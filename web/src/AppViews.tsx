@@ -1,13 +1,15 @@
 import { EmptyState } from "./components/EmptyState";
+import { AssignedWorkQueue, type AssignedWorkState } from "./components/AssignedWorkQueue";
 import { BankJourneysWorkspace } from "./components/BankJourneysWorkspace";
 import { EvidenceWorkspace } from "./components/EvidenceWorkspace";
 import { MattersWorkspace } from "./components/MattersWorkspace";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
 import { TodayInterventions } from "./components/TodayInterventions";
+import { Tabs } from "./components/ui";
 import { WorkspaceErrorBoundary } from "./components/WorkspaceErrorBoundary";
 import type { AttentionItem, AuthorityResolution, EvidenceRequest, EvidenceSource, Readiness } from "./types";
 import { initials } from "./components/Monogram";
-import type { ProgramItemTarget, ProgramSection } from "./appRouting";
+import type { ProgramItemTarget, ProgramSection, WorkTab } from "./appRouting";
 
 export { CapturePanel } from "./components/CapturePanel";
 
@@ -34,14 +36,22 @@ export function ReferenceJourneysView({ organizationName }: { organizationName: 
   return <><header className="topbar"><div><span className="eyebrow">Demo environment · {organizationName}</span><h1>Reference journeys</h1><p>Walk through sample, non-production compliance scenarios using the same ClearSight operating records.</p></div></header><BankJourneysWorkspace/></>;
 }
 
-export function WorkView({ organizationName, actorPrincipalID, evidenceScopeToken, tab, onTab, onBackMatter, sources, requests, evidenceSourceState, evidenceRequestState, onEvidenceRetry, onEvidenceRequestUpdated, matterTargetID, openFirstMatter, evidenceTargetID, openFirstEvidence, onOpenEvidence, onAnalyzeDocument }: { organizationName: string; actorPrincipalID?: string; evidenceScopeToken: number; tab: "matters" | "evidence"; onTab: (value: "matters" | "evidence") => void; onBackMatter: () => void; sources: EvidenceSource[]; requests: EvidenceRequest[]; evidenceSourceState: LoadState; evidenceRequestState: LoadState; onEvidenceRetry: () => void; onEvidenceRequestUpdated: (request: EvidenceRequest, scopeToken: number) => boolean; matterTargetID?: string; openFirstMatter?: boolean; evidenceTargetID?: string; openFirstEvidence?: boolean; onOpenEvidence: (id: string) => void; onAnalyzeDocument?: () => void }) {
+export function WorkView({ organizationName, actorPrincipalID, evidenceScopeToken, tab, onTab, onBackMatter, assignedItems, assignedState, onOpenAssignedItem, onInspectAuthority, sources, requests, evidenceSourceState, evidenceRequestState, onEvidenceRetry, onEvidenceRequestUpdated, matterTargetID, openFirstMatter, evidenceTargetID, openFirstEvidence, onOpenEvidence, onAnalyzeDocument }: { organizationName: string; actorPrincipalID?: string; evidenceScopeToken: number; tab: WorkTab; onTab: (value: WorkTab) => void; onBackMatter: () => void; assignedItems: AttentionItem[]; assignedState: AssignedWorkState; onOpenAssignedItem: (item: AttentionItem) => void; onInspectAuthority?: (item: AttentionItem) => void; sources: EvidenceSource[]; requests: EvidenceRequest[]; evidenceSourceState: LoadState; evidenceRequestState: LoadState; onEvidenceRetry: () => void; onEvidenceRequestUpdated: (request: EvidenceRequest, scopeToken: number) => boolean; matterTargetID?: string; openFirstMatter?: boolean; evidenceTargetID?: string; openFirstEvidence?: boolean; onOpenEvidence: (id: string) => void; onAnalyzeDocument?: () => void }) {
   return <>
-    <header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Work</h1><p>Review decisions, exceptions and evidence that still need attention.</p></div>{tab === "matters" && onAnalyzeDocument && <div className="topbar-actions"><button className="secondary-button" type="button" aria-label="Analyze document to create an issue or change" onClick={onAnalyzeDocument}>Analyze document</button></div>}</header>
-    <nav className="workspace-tabs" aria-label="Work views"><button type="button" aria-current={tab === "matters" ? "page" : undefined} className={tab === "matters" ? "active" : ""} onClick={() => onTab("matters")}>Issues and changes</button><button type="button" aria-current={tab === "evidence" ? "page" : undefined} className={tab === "evidence" ? "active" : ""} onClick={() => onTab("evidence")}>Evidence review</button></nav>
-    {tab === "matters" ? <WorkspaceErrorBoundary label="Issues and changes"><MattersWorkspace targetID={matterTargetID} openFirst={openFirstMatter} onBack={onBackMatter} onOpenRequest={onOpenEvidence}/></WorkspaceErrorBoundary> : <EvidenceWorkspace sources={sources} requests={requests} sourceState={evidenceSourceState} requestState={evidenceRequestState} actorPrincipalID={actorPrincipalID} evidenceScopeToken={evidenceScopeToken} targetID={evidenceTargetID} openFirst={openFirstEvidence} onOpenRequest={onOpenEvidence} onRequestUpdated={onEvidenceRequestUpdated}/>}
-    {tab === "evidence" && (evidenceSourceState === "unavailable" || evidenceRequestState === "unavailable") && <div className="workspace-recovery-actions"><button className="secondary-button" type="button" onClick={onEvidenceRetry}>Retry unavailable evidence data</button></div>}
+    <header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Work</h1><p>Act on assigned decisions, exceptions and evidence, or inspect the underlying work records.</p></div>{tab === "matters" && onAnalyzeDocument && <div className="topbar-actions"><button className="secondary-button" type="button" aria-label="Analyze document to create an issue or change" onClick={onAnalyzeDocument}>Analyze document</button></div>}</header>
+    <Tabs ariaLabel="Work views" compactLabel="Work view" items={workViews} selectedKey={tab} onSelectionChange={onTab}>{(selected) => <>
+      {selected === "assigned" && <AssignedWorkQueue items={assignedItems} state={assignedState} onOpenItem={onOpenAssignedItem} onInspectAuthority={onInspectAuthority}/>}
+      {selected === "matters" && <WorkspaceErrorBoundary label="Issues and changes"><MattersWorkspace targetID={matterTargetID} openFirst={openFirstMatter} onBack={onBackMatter} onOpenRequest={onOpenEvidence}/></WorkspaceErrorBoundary>}
+      {selected === "evidence" && <><EvidenceWorkspace sources={sources} requests={requests} sourceState={evidenceSourceState} requestState={evidenceRequestState} actorPrincipalID={actorPrincipalID} evidenceScopeToken={evidenceScopeToken} targetID={evidenceTargetID} openFirst={openFirstEvidence} onOpenRequest={onOpenEvidence} onRequestUpdated={onEvidenceRequestUpdated}/>{(evidenceSourceState === "unavailable" || evidenceRequestState === "unavailable") && <div className="workspace-recovery-actions"><button className="secondary-button" type="button" onClick={onEvidenceRetry}>Retry unavailable evidence data</button></div>}</>}
+    </>}</Tabs>
   </>;
 }
+
+const workViews = [
+  { id: "assigned", label: "Assigned" },
+  { id: "matters", label: "Issues & changes" },
+  { id: "evidence", label: "Evidence" },
+] as const;
 
 export function RoutingPanel({ resolution, item, legalEntityName, state }: { resolution: AuthorityResolution | null; item: AttentionItem | null; legalEntityName: string; state: RoutingLoadState }) {
   if (state === "loading") return <div className="panel-content"><span className="eyebrow">Authority</span><h2>Checking approval authority</h2><p aria-live="polite" aria-busy="true">Checking responsibility and the current approval policy…</p></div>;

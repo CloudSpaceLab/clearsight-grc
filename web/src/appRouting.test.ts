@@ -17,6 +17,15 @@ describe("workspace routes", () => {
     expect(parseRoute("#oversight?metric=unknown")).toEqual({ view: "oversight", target: {} });
   });
 
+  it("uses assigned work as the Work landing while preserving exact domain routes", () => {
+    expect(parseRoute("#work")).toEqual({ view: "work", workTab: "assigned", target: {} });
+    expect(routeHash("work", {}, "assigned")).toBe("#work");
+    expect(parseRoute("#work/matters/matter-1")).toEqual({ view: "work", workTab: "matters", target: { matterID: "matter-1" } });
+    expect(parseRoute("#work/evidence/request-1")).toEqual({ view: "work", workTab: "evidence", target: { evidenceID: "request-1" } });
+    expect(routeHash("work", { matterID: "matter-1" }, "matters")).toBe("#work/matters/matter-1");
+    expect(routeHash("work", { evidenceID: "request-1" }, "evidence")).toBe("#work/evidence/request-1");
+  });
+
   it("keeps filter queries out of record targets", () => {
     expect(parseRoute("#work/matters/matter%2F1?status=OPEN&priority=4")).toEqual({ view: "work", workTab: "matters", target: { matterID: "matter/1" } });
     expect(parseRoute("#programs/program%2F1?overall_state=CURRENT")).toEqual({ view: "programs", target: { programID: "program/1", programSection: "overview" } });

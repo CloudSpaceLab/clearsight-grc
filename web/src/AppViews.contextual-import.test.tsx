@@ -8,6 +8,7 @@ vi.mock("./components/MattersWorkspace", () => ({ MattersWorkspace: () => <div>M
 vi.mock("./components/EvidenceWorkspace", () => ({ EvidenceWorkspace: () => <div>Evidence workspace</div> }));
 vi.mock("./components/BankJourneysWorkspace", () => ({ BankJourneysWorkspace: () => <div>Reference journeys</div> }));
 vi.mock("./components/TodayInterventions", () => ({ TodayInterventions: () => <div>Today interventions</div> }));
+vi.mock("./components/AssignedWorkQueue", () => ({ AssignedWorkQueue: ({ items }: { items: unknown[] }) => <div>Assigned work · {items.length}</div> }));
 vi.mock("./components/WorkspaceErrorBoundary", () => ({ WorkspaceErrorBoundary: ({ children }: { children: ReactNode }) => <>{children}</> }));
 
 afterEach(() => vi.restoreAllMocks());
@@ -30,6 +31,9 @@ describe("contextual document analysis entry", () => {
       evidenceScopeToken: 0,
       onTab: vi.fn(),
       onBackMatter: vi.fn(),
+      assignedItems: [],
+      assignedState: "live" as const,
+      onOpenAssignedItem: vi.fn(),
       sources: [],
       requests: [],
       evidenceSourceState: "live" as const,
@@ -39,6 +43,10 @@ describe("contextual document analysis entry", () => {
       onOpenEvidence: vi.fn(),
       onAnalyzeDocument,
     };
+    const assigned = render(<WorkView {...props} assignedItems={[{ id: "work-1" } as never]} tab="assigned"/>);
+    expect(screen.getByText("Assigned work · 1")).toBeTruthy();
+    assigned.unmount();
+
     const { rerender } = render(<WorkView {...props} tab="matters"/>);
 
     fireEvent.click(screen.getByRole("button", { name: "Analyze document to create an issue or change" }));
