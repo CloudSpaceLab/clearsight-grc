@@ -570,8 +570,9 @@ type Trigger struct {
 	Type        string          `json:"type"`
 	SubjectType string          `json:"subject_type,omitempty"`
 	SubjectID   string          `json:"subject_id,omitempty"`
-	DedupeKey   string          `json:"dedupe_key"`
-	Payload     json.RawMessage `json:"payload"`
+	DedupeKey       string          `json:"dedupe_key"`
+	MatterDedupeKey string          `json:"matter_dedupe_key,omitempty"`
+	Payload         json.RawMessage `json:"payload"`
 	ObservedAt  time.Time       `json:"observed_at"`
 	Source      string          `json:"source"`
 	ActorID     string          `json:"actor_id,omitempty"`
