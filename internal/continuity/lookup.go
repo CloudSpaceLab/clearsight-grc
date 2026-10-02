@@ -2,6 +2,7 @@ package continuity
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 )
 
@@ -11,6 +12,10 @@ type programCodeRepository interface {
 
 type matterTriggerLookupRepository interface {
 	MatterAggregateByTriggerKey(context.Context, string, string) (MatterAggregate, error)
+}
+
+type openMonitoringMatterRepository interface {
+	OpenMonitoringMatter(context.Context, string, string, string) (MatterAggregate, error)
 }
 
 func (s *Service) ProgramByCode(ctx context.Context, tenant, code string) (ProgramAggregate, error) {
@@ -30,6 +35,20 @@ func (s *Service) ProgramByCode(ctx context.Context, tenant, code string) (Progr
 		}
 	}
 	return ProgramAggregate{}, ErrNotFound
+}
+
+func (s *Service) OpenMonitoringMatter(ctx context.Context, tenant, programID, checkID string) (MatterAggregate, error) {
+	tenant = strings.TrimSpace(tenant)
+	programID = strings.TrimSpace(programID)
+	checkID = strings.TrimSpace(checkID)
+	if tenant == "" || programID == "" || checkID == "" {
+		return MatterAggregate{}, ErrNotFound
+	}
+	repo, ok := s.repo.(openMonitoringMatterRepository)
+	if !ok {
+		return MatterAggregate{}, ErrNotFound
+	}
+	return repo.OpenMonitoringMatter(ctx, tenant, programID, checkID)
 }
 
 func (s *Service) MatterByTriggerKey(ctx context.Context, tenant, triggerKey string) (MatterAggregate, error) {
@@ -55,6 +74,42 @@ func (r *MemoryRepository) ProgramByCode(ctx context.Context, tenant, code strin
 		}
 	}
 	return ProgramAggregate{}, ErrNotFound
+}
+
+func (r *MemoryRepository) OpenMonitoringMatter(ctx context.Context, tenant, programID, checkID string) (MatterAggregate, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var selected MatterAggregate
+	found := false
+	for _, aggregate := range r.matters[tenant] {
+		matter := aggregate.Matter
+		if matter.Status == MatterClosed || matter.Status == MatterCancelled ||
+			!strings.EqualFold(matter.TriggerType, "MONITORING_RESULT_ADVERSE") ||
+			!r.visibleLegalEntity(ctx, matter.TenantID, matter.LegalEntityID) ||
+			monitoringCheckIDFromMatter(matter) != checkID ||
+			!matterLinkedToProgram(aggregate, programID) {
+			continue
+		}
+		if !found || matter.UpdatedAt.After(selected.Matter.UpdatedAt) ||
+			(matter.UpdatedAt.Equal(selected.Matter.UpdatedAt) && matter.ID > selected.Matter.ID) {
+			selected = cloneMatterAggregate(aggregate)
+			found = true
+		}
+	}
+	if !found {
+		return MatterAggregate{}, ErrNotFound
+	}
+	return decorateMatter(selected), nil
+}
+
+func monitoringCheckIDFromMatter(matter Matter) string {
+	var facts struct {
+		MonitoringCheckID string `json:"monitoring_check_id"`
+	}
+	if len(matter.KnownFacts) == 0 || json.Unmarshal(matter.KnownFacts, &facts) != nil {
+		return ""
+	}
+	return strings.TrimSpace(facts.MonitoringCheckID)
 }
 
 func (r *MemoryRepository) MatterAggregateByTriggerKey(ctx context.Context, tenant, triggerKey string) (MatterAggregate, error) {
