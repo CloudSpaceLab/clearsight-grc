@@ -64,4 +64,4 @@ Requests and linked work begin collapsed; response Filters uses a disclosure wit
 
 ## Portfolio shell
 
-Primary navigation now treats Programs, Vendors, Processing activities and Forms as peer Portfolio lenses instead of independent rail destinations. The shared `WorkspaceSwitcher` reflects the current route and changes only navigation; each underlying workspace keeps its existing data ownership, URL, loading behavior and deep links. Compact layouts use the same shared select contract rather than a second mobile workspace implementation.
+Primary navigation now treats Programs, Risks, Vendors, Processing activities and Forms as peer Portfolio lenses instead of independent rail destinations. The shared `WorkspaceSwitcher` reflects the current route and changes only navigation; each underlying workspace keeps its existing data ownership, URL, loading behavior and deep links. Risks uses the canonical ERM Risk read contract and does not introduce a separate dashboard, task or evidence model. Compact layouts use the same shared select contract rather than a second mobile workspace implementation.
