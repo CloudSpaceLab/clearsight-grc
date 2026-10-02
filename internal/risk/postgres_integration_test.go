@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -190,6 +191,90 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 	}
 	if len(unknownFiltered.Items) != 1 || unknownFiltered.Items[0].Risk.ID != created.ID {
 		t.Fatalf("stale assessment was not exposed as current UNKNOWN: %#v", unknownFiltered)
+	}
+}
+
+func TestPostgresRiskIndicatorRejectsCrossEntityMonitoringCheck(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	tenantID := mustRiskID(t)
+	entityA := mustRiskID(t)
+	entityB := mustRiskID(t)
+	programA := mustRiskID(t)
+	programB := mustRiskID(t)
+	checkA := mustRiskID(t)
+	checkB := mustRiskID(t)
+	riskID := mustRiskID(t)
+	linkA := mustRiskID(t)
+	linkB := mustRiskID(t)
+	bindingA := mustRiskID(t)
+	bindingB := mustRiskID(t)
+	suffix := tenantID[len(tenantID)-8:]
+	now := time.Date(2026, 10, 2, 16, 0, 0, 0, time.UTC)
+
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,$3)
+	`, tenantID, "risk-ind-"+suffix, "Risk Indicator "+suffix); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES
+			($1::uuid,$2::uuid,$3,'Indicator Entity A','NG',$6::timestamptz),
+			($4::uuid,$2::uuid,$5,'Indicator Entity B','GH',$6::timestamptz)
+	`, entityA, tenantID, "RIA-"+suffix, entityB, "RIB-"+suffix, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,scope,effective_from,created_at,updated_at,version) VALUES
+			($1::uuid,$2::uuid,$3::uuid,$4,'Program A','ASSURANCE','ACTIVE','Risk','{}'::jsonb,$8::timestamptz,$8::timestamptz,$8::timestamptz,1),
+			($5::uuid,$2::uuid,$6::uuid,$7,'Program B','ASSURANCE','ACTIVE','Risk','{}'::jsonb,$8::timestamptz,$8::timestamptz,$8::timestamptz,1)
+	`, programA, tenantID, entityA, "PIA-"+suffix, programB, entityB, "PIB-"+suffix, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO monitoring_checks(
+			id,tenant_id,program_id,code,name,claim,input_kind,binding_id,binding_version,source_rules,thresholds,
+			freshness_minutes,minimum_coverage,failure_action,status,is_current,effective_from,version,created_at,updated_at) VALUES
+			($1::uuid,$2::uuid,$3::uuid,'CHECK-A','Entity A check','A remains within bounds.','SOURCE',$4::uuid,1,
+			 '[{"id":"state","field":"state","operator":"EQUALS","expected":"ok","risk_points":100}]'::jsonb,
+			 '{"moderate_from":25,"high_from":50,"critical_from":75}'::jsonb,60,1,'REVIEW','ACTIVE',true,$8::timestamptz,1,$8::timestamptz,$8::timestamptz),
+			($5::uuid,$2::uuid,$6::uuid,'CHECK-B','Entity B check','B remains within bounds.','SOURCE',$7::uuid,1,
+			 '[{"id":"state","field":"state","operator":"EQUALS","expected":"ok","risk_points":100}]'::jsonb,
+			 '{"moderate_from":25,"high_from":50,"critical_from":75}'::jsonb,60,1,'REVIEW','ACTIVE',true,$8::timestamptz,1,$8::timestamptz,$8::timestamptz)
+	`, checkA, tenantID, programA, bindingA, checkB, programB, bindingB, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO risks(id,tenant_id,legal_entity_id,code,name,statement,impact,scope,status,version,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4,'Indicator risk','Indicator source may breach tolerance.','Material service impact.','{}'::jsonb,'ACTIVE',1,$5::timestamptz,$5::timestamptz)
+	`, riskID, tenantID, entityA, "IND-"+suffix, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO risk_indicator_links(
+			id,tenant_id,legal_entity_id,risk_id,risk_version,program_id,monitoring_check_id,monitoring_check_version,kind,measurement,created_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,2,$5::uuid,$6::uuid,1,'KRI','MONITORING_RISK_SCORE',$7::timestamptz)
+	`, linkA, tenantID, entityA, riskID, programA, checkA, now); err != nil {
+		t.Fatalf("same-entity indicator link rejected: %v", err)
+	}
+
+	_, err = pool.Exec(ctx, `
+		INSERT INTO risk_indicator_links(
+			id,tenant_id,legal_entity_id,risk_id,risk_version,program_id,monitoring_check_id,monitoring_check_version,kind,measurement,created_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,3,$5::uuid,$6::uuid,1,'KCI','MONITORING_RISK_SCORE',$7::timestamptz)
+	`, linkB, tenantID, entityA, riskID, programB, checkB, now.Add(time.Minute))
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != "23503" {
+		t.Fatalf("cross-entity indicator link error=%v, want foreign-key rejection", err)
 	}
 }
 

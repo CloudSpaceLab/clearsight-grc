@@ -75,7 +75,7 @@ func (a *API) getRisk(w http.ResponseWriter, r *http.Request) {
 		writeRiskError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, a.riskAggregateWithControls(r.Context(), actor, value))
+	httpx.WriteJSON(w, http.StatusOK, a.riskAggregateWithDetails(r.Context(), actor, value))
 }
 
 func (a *API) createRisk(w http.ResponseWriter, r *http.Request) {

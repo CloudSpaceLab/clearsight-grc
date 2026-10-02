@@ -103,6 +103,37 @@ type ControlLink struct {
 	CreatedAt     time.Time `json:"created_at"`
 }
 
+type IndicatorKind string
+
+const (
+	IndicatorKRI IndicatorKind = "KRI"
+	IndicatorKCI IndicatorKind = "KCI"
+)
+
+type IndicatorMeasurement string
+
+const (
+	IndicatorMonitoringRiskScore IndicatorMeasurement = "MONITORING_RISK_SCORE"
+)
+
+const (
+	IndicatorRiskScoreUnit        = "RISK_POINTS"
+	IndicatorRiskScoreDenominator = 100
+)
+
+type IndicatorLink struct {
+	ID                     string               `json:"id"`
+	RiskID                 string               `json:"risk_id"`
+	RiskVersion            int64                `json:"risk_version"`
+	ProgramID              string               `json:"program_id"`
+	MonitoringCheckID      string               `json:"monitoring_check_id"`
+	MonitoringCheckVersion int64                `json:"monitoring_check_version"`
+	Kind                   IndicatorKind        `json:"kind"`
+	Measurement            IndicatorMeasurement `json:"measurement"`
+	LinkedBy               string               `json:"linked_by,omitempty"`
+	CreatedAt              time.Time            `json:"created_at"`
+}
+
 type Summary struct {
 	Risk             Risk               `json:"risk"`
 	LatestAssessment *Assessment        `json:"latest_assessment,omitempty"`
@@ -120,6 +151,7 @@ type Aggregate struct {
 	Appetite       []AppetiteStatement `json:"appetite"`
 	ActiveAppetite *AppetiteStatement  `json:"active_appetite,omitempty"`
 	Controls       []ControlLink       `json:"controls"`
+	Indicators     []IndicatorLink     `json:"indicators"`
 }
 
 type Event struct {
@@ -221,4 +253,15 @@ type LinkControlInput struct {
 	ExpectedRiskVersion int64  `json:"expected_risk_version"`
 	CatalogLinkID       string `json:"catalog_link_id"`
 	ActorID             string `json:"actor_id,omitempty"`
+}
+
+type LinkIndicatorInput struct {
+	TenantID               string        `json:"tenant_id,omitempty"`
+	LegalEntityID          string        `json:"legal_entity_id,omitempty"`
+	RiskID                 string        `json:"risk_id,omitempty"`
+	ExpectedRiskVersion    int64         `json:"expected_risk_version"`
+	MonitoringCheckID      string        `json:"monitoring_check_id"`
+	MonitoringCheckVersion int64         `json:"monitoring_check_version"`
+	Kind                   IndicatorKind `json:"kind"`
+	ActorID                string        `json:"actor_id,omitempty"`
 }

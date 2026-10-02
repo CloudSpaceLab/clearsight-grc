@@ -135,6 +135,17 @@
     gap: var(--cs-space-inline);
   }
 
+  .risk-indicator-link__contract {
+    max-inline-size: var(--cs-reading-measure);
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+    line-height: 1.5;
+  }
+
+  .risk-indicator-link__contract strong {
+    color: var(--cs-text-primary);
+  }
+
   .risk-record__history .section-header p {
     margin: var(--cs-primitive-space-1) 0 0;
     color: var(--cs-text-muted);

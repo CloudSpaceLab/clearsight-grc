@@ -121,6 +121,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	riskService := risk.NewService(risk.NewPostgresRepository(pool))
 	controlCatalogService := controlcatalog.NewService(controlcatalog.NewPostgresRepository(pool))
 	configureRiskControlCatalog(riskService, controlCatalogService)
+	configureRiskIndicators(riskService, monitoringService, continuityService)
 	if cfg.DemoMode {
 		if err := installPostgresDemo(ctx, pool, ropaService, reportingService); err != nil {
 			return serviceSet{}, err

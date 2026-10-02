@@ -385,6 +385,77 @@ func TestRiskControlLinkIsVersionedAndDuplicateSafe(t *testing.T) {
 	}
 }
 
+func TestRiskIndicatorLinkIsVersionedExactAndDuplicateSafe(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	service.ConfigureIndicatorLinkValidator(func(_ context.Context, scope Scope, checkID string, version int64) (string, error) {
+		if scope.TenantID == "bank" && scope.LegalEntityID == "entity-a" && checkID == "check-1" && version == 3 {
+			return "program-1", nil
+		}
+		return "", ErrInvalid
+	})
+	now := time.Date(2026, 10, 2, 15, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-INDICATOR")
+
+	updated, linked, err := service.LinkIndicator(ctx, LinkIndicatorInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID,
+		ExpectedRiskVersion: created.Version, MonitoringCheckID: "check-1", MonitoringCheckVersion: 3,
+		Kind: IndicatorKRI, ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Version != 2 || linked.RiskVersion != 2 || linked.ProgramID != "program-1" ||
+		linked.MonitoringCheckID != "check-1" || linked.MonitoringCheckVersion != 3 ||
+		linked.Kind != IndicatorKRI || linked.Measurement != IndicatorMonitoringRiskScore {
+		t.Fatalf("updated=%#v linked=%#v", updated, linked)
+	}
+	aggregate, err := service.Get(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(aggregate.Indicators) != 1 || aggregate.Indicators[0].ID != linked.ID {
+		t.Fatalf("indicators=%#v", aggregate.Indicators)
+	}
+
+	now = now.Add(time.Minute)
+	_, _, err = service.LinkIndicator(ctx, LinkIndicatorInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID,
+		ExpectedRiskVersion: updated.Version, MonitoringCheckID: "check-1", MonitoringCheckVersion: 3,
+		Kind: IndicatorKCI, ActorID: "owner-1",
+	})
+	if !errors.Is(err, ErrDuplicate) {
+		t.Fatalf("duplicate indicator link error=%v", err)
+	}
+	after, err := service.Get(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Risk.Version != 2 || len(after.Indicators) != 1 {
+		t.Fatalf("duplicate link changed Risk: %#v", after)
+	}
+}
+
+func TestRiskIndicatorRejectsUnverifiedSourceOrKind(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	service.ConfigureIndicatorLinkValidator(func(_ context.Context, _ Scope, _ string, _ int64) (string, error) {
+		return "", ErrInvalid
+	})
+	service.Now = func() time.Time { return time.Date(2026, 10, 2, 15, 30, 0, 0, time.UTC) }
+	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-INDICATOR-INVALID")
+
+	_, _, err := service.LinkIndicator(ctx, LinkIndicatorInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID,
+		ExpectedRiskVersion: created.Version, MonitoringCheckID: "check-1", MonitoringCheckVersion: 1,
+		Kind: IndicatorKind("KPI"), ActorID: "owner-1",
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("invalid indicator kind error=%v", err)
+	}
+}
+
 func TestDuplicateRiskCodeIsScopedPerLegalEntity(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(NewMemoryRepository())

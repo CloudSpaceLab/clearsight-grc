@@ -6,11 +6,13 @@ import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment, RiskControlD
 import { apiErrorKind } from "../../http";
 import { Button, DataTable, EmptyState, Notice, SelectField, StatusBadge, Surface, type DataColumn } from "../ui";
 import { appetiteLabel, appetiteTone, assessmentKindLabel, controlEvidenceSummary, controlImplementationStatusLabel, controlImplementationStatusTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
+import { RiskIndicatorsSection } from "./RiskIndicatorsSection";
 
 type Props = {
   riskID: string;
   actorID?: string;
   onBack: () => void;
+  onOpenProgram?: (programID: string) => void;
   onOpenProgramControl?: (programID: string, objectiveID: string) => void;
   loadRisk?: (id: string, signal?: AbortSignal) => Promise<RiskAggregate>;
   loadControlCandidates?: (programID?: string) => Promise<ControlCatalogCandidatePage>;
@@ -19,7 +21,7 @@ type Props = {
 
 type LoadState = "loading" | "live" | "not-found" | "error";
 
-export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, loadRisk = getRisk, loadControlCandidates = listControlCatalogCandidates, linkControl = linkRiskControl }: Props) {
+export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenProgramControl, loadRisk = getRisk, loadControlCandidates = listControlCatalogCandidates, linkControl = linkRiskControl }: Props) {
   const [value, setValue] = useState<RiskAggregate>();
   const [state, setState] = useState<LoadState>("loading");
   const [retry, setRetry] = useState(0);
@@ -222,6 +224,19 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
         rowActionLabel="Open control"
       /> : <EmptyState population={risk.name} title="No linked controls" description="No existing Program control is linked to this risk."/>}
     </section>
+
+    <RiskIndicatorsSection
+      risk={risk}
+      actorID={actorID}
+      indicators={aggregate.indicators ?? []}
+      details={aggregate.indicator_details ?? []}
+      detailsComplete={aggregate.indicator_details_complete !== false}
+      onReload={async () => {
+        const loaded = await loadRisk(riskID);
+        setValue(loaded);
+      }}
+      onOpenProgram={onOpenProgram}
+    />
 
     <section className="risk-record__history" aria-labelledby="risk-assessments-heading">
       <div className="section-header"><div><h2 id="risk-assessments-heading">Assessments</h2><p>Approved assessment records and their appetite position.</p></div></div>

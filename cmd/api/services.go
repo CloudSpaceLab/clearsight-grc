@@ -90,6 +90,28 @@ type serviceSet struct {
 	Close                          func()
 }
 
+func configureRiskIndicators(risks *risk.Service, checks *monitoring.Service, programs *continuity.Service) {
+	if risks == nil {
+		return
+	}
+	risks.ConfigureIndicatorLinkValidator(func(ctx context.Context, scope risk.Scope, checkID string, version int64) (string, error) {
+		if checks == nil || programs == nil {
+			return "", risk.ErrInvalid
+		}
+		check, err := checks.Check(ctx, monitoring.Actor{
+			TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, PrincipalID: "risk-indicator-validator",
+		}, checkID, version)
+		if err != nil || check.Status != monitoring.LifecycleActive || !check.IsCurrent {
+			return "", risk.ErrInvalid
+		}
+		program, err := programs.GetProgram(continuity.WithTrustedSystemScope(ctx), scope.TenantID, check.ProgramID)
+		if err != nil || program.Program.LegalEntityID != scope.LegalEntityID || program.Program.Status != continuity.ProgramActive {
+			return "", risk.ErrInvalid
+		}
+		return check.ProgramID, nil
+	})
+}
+
 func configureRiskControlCatalog(risks *risk.Service, catalog *controlcatalog.Service) {
 	if risks == nil {
 		return
