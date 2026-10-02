@@ -3,9 +3,9 @@ package oversight
 import "time"
 
 const (
-	ProjectionVersion = "oversight-v5"
+	ProjectionVersion      = "oversight-v5"
 	ReportingPeriodMaxDays = 365
-	ReportingDateLayout = "2006-01-02"
+	ReportingDateLayout    = "2006-01-02"
 )
 
 type ReportingPeriodMode string
