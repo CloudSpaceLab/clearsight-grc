@@ -509,8 +509,8 @@ func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	continuityService, ok := a.continuityService(w)
-	if !ok {
+	if a.deps.MonitoringEpisodes == nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "monitoring_episode_unavailable", "Monitoring intervention state is unavailable. No issue was created.")
 		return
 	}
 	var request createMonitoringLinkedIssueRequest
@@ -523,60 +523,42 @@ func (a *API) createMonitoringLinkedIssue(w http.ResponseWriter, r *http.Request
 		writeMonitoringError(w, err)
 		return
 	}
-	failedRuleIDs := make([]string, 0)
-	for _, rule := range result.Evaluation.RuleResults {
-		if rule.Outcome != monitoring.RulePassed {
-			failureID := rule.RuleID
-			if failureID == "" {
-				failureID = rule.FieldID
-			}
-			if failureID != "" {
-				failedRuleIDs = append(failedRuleIDs, failureID)
-			}
-		}
+	observation := monitoring.AdverseEpisodeObservation{
+		TenantID: actor.TenantID, LegalEntityID: aggregate.Program.LegalEntityID, ProgramID: aggregate.Program.ID,
+		Check: check, Result: result,
 	}
-	payload, err := json.Marshal(map[string]any{
-		"monitoring_result_id": result.ID, "monitoring_check_id": check.ID, "monitoring_check_version": check.Version,
-		"monitoring_check_name": check.Name, "risk_band": result.Evaluation.Band, "score": result.Evaluation.Score,
-		"coverage": result.Evaluation.Coverage, "failed_rule_ids": failedRuleIDs, "evaluated_at": result.EvaluatedAt,
-	})
+	reconciled, err := a.deps.MonitoringEpisodes.Reconcile(r.Context(), observation)
 	if err != nil {
 		writeMonitoringError(w, err)
 		return
 	}
-	triggerKey := "monitoring-result-adverse:" + result.ID
-	if existing, lookupErr := continuityService.MatterByTriggerKey(r.Context(), actor.TenantID, triggerKey); lookupErr == nil {
-		linked := false
-		for _, link := range existing.Links {
-			if link.ProgramID == aggregate.Program.ID {
-				linked = true
-				break
-			}
-		}
-		if !linked || existing.Matter.LegalEntityID != aggregate.Program.LegalEntityID {
-			writeContinuityError(w, continuity.ErrNotFound)
-			return
-		}
-		httpx.WriteJSON(w, http.StatusOK, map[string]any{"matter": existing.Matter, "created": false})
-		return
-	} else if !errors.Is(lookupErr, continuity.ErrNotFound) {
-		writeContinuityError(w, lookupErr)
+	if reconciled.Episode == nil {
+		writeMonitoringError(w, monitoring.ErrLinkedIssueIneligible)
 		return
 	}
-	_, matter, inserted, err := continuityService.ApplyTrigger(r.Context(), continuity.Trigger{
-		TenantID: actor.TenantID, ProgramID: aggregate.Program.ID, Type: "MONITORING_RESULT_ADVERSE",
-		SubjectType: "MONITORING_RESULT", SubjectID: result.ID, DedupeKey: triggerKey,
-		Payload: payload, ObservedAt: result.EvaluatedAt, Source: "monitoring-result-review", ActorID: actor.PrincipalID,
-	})
+	linked, err := a.deps.MonitoringEpisodes.EnsureMatter(r.Context(), observation, *reconciled.Episode, actor.PrincipalID)
 	if err != nil {
-		writeContinuityError(w, err)
+		switch {
+		case errors.Is(err, monitoring.ErrLinkedIssueIneligible), errors.Is(err, monitoring.ErrInvalid), errors.Is(err, monitoring.ErrConflict):
+			writeMonitoringError(w, err)
+		default:
+			writeContinuityError(w, err)
+		}
+		return
+	}
+	if linked.Matter == nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "monitoring_issue_unavailable", "The monitoring issue could not be resolved. Try again.")
 		return
 	}
 	status := http.StatusOK
-	if inserted {
+	if linked.MatterCreated {
 		status = http.StatusCreated
 	}
-	httpx.WriteJSON(w, status, map[string]any{"matter": matter, "created": inserted})
+	httpx.WriteJSON(w, status, map[string]any{
+		"matter": linked.Matter,
+		"created": linked.MatterCreated,
+		"episode": linked.Episode,
+	})
 }
 
 func writeMonitoringError(w http.ResponseWriter, err error) {
