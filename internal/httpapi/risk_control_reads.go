@@ -24,6 +24,7 @@ type riskControlRead struct {
 	ProgramID              string                               `json:"program_id"`
 	ProgramName            string                               `json:"program_name"`
 	ImplementationID       string                               `json:"implementation_id"`
+	ObjectiveID            string                               `json:"objective_id"`
 	ImplementationName     string                               `json:"implementation_name"`
 	ImplementationType     string                               `json:"implementation_type"`
 	ImplementationStatus   continuity.ControlImplementationStatus `json:"implementation_status"`
@@ -97,6 +98,7 @@ func (a *API) riskAggregateWithControls(ctx context.Context, actor identity.Acto
 			ProgramID:             program.Program.ID,
 			ProgramName:           program.Program.Name,
 			ImplementationID:      implementation.ID,
+			ObjectiveID:           implementation.ObjectiveID,
 			ImplementationName:    implementation.Name,
 			ImplementationType:    implementation.ImplementationType,
 			ImplementationStatus:  implementation.Status,
