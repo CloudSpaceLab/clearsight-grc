@@ -175,10 +175,8 @@ describe("runtime navigation", () => {
       fireEvent.click(screen.getByRole("tab", { name: "Documents" }));
       expect(screen.getByRole("tabpanel", { name: "Documents" })).toBeTruthy();
       expect(window.location.hash).toBe("#forms?section=documents");
-      const navigation = surface === "desktop"
-        ? screen.getByRole("complementary", { name: "Primary navigation" })
-        : screen.getByRole("navigation", { name: "Mobile navigation" });
-      fireEvent.click(within(navigation).getByRole("button", { name: "Forms" }));
+      const portfolio = screen.getByRole("navigation", { name: "Portfolio lenses" });
+      fireEvent.click(within(portfolio).getByRole("button", { name: "Forms" }));
       expect(window.location.hash).toBe("#forms");
       expect(screen.getByRole("tab", { name: "Templates", selected: true })).toBeTruthy();
       expect(screen.getByRole("tabpanel", { name: "Templates" })).toBeTruthy();
@@ -241,7 +239,10 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
-    expect((await screen.findAllByRole("button", { name: "Forms" })).length).toBeGreaterThan(0);
+    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
+    fireEvent.click(within(primaryNavigation).getByRole("button", { name: "Portfolio" }));
+    const portfolio = await screen.findByRole("navigation", { name: "Portfolio lenses" });
+    expect(within(portfolio).getByRole("button", { name: "Forms" })).toBeTruthy();
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
     expect(screen.getByLabelText("Administration")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Imports/ })).toBeNull();
@@ -295,25 +296,44 @@ describe("runtime navigation", () => {
     expect(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Home" })).toBeTruthy();
   });
 
+  it("collapses governed records into one primary Portfolio destination", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    window.history.replaceState(null, "", "#forms");
+    render(<App />);
+
+    const primary = screen.getByRole("complementary", { name: "Primary navigation" });
+    expect(within(primary).getByRole("button", { name: "Portfolio" }).getAttribute("aria-current")).toBe("page");
+    expect(within(primary).queryByRole("button", { name: "Programs" })).toBeNull();
+    expect(within(primary).queryByRole("button", { name: "Vendors" })).toBeNull();
+    expect(within(primary).queryByRole("button", { name: "Processing activities" })).toBeNull();
+    expect(within(primary).queryByRole("button", { name: "Forms" })).toBeNull();
+
+    const portfolio = screen.getByRole("navigation", { name: "Portfolio lenses" });
+    expect(within(portfolio).getByRole("button", { name: "Forms" }).getAttribute("aria-current")).toBe("page");
+  });
+
   it("keeps Reports out of product navigation until the rebuilt workspace is approved", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
-    await screen.findAllByRole("button", { name: "Vendors" });
+    await screen.findByRole("button", { name: "Portfolio" });
     expect(screen.queryByRole("button", { name: "Reports" })).toBeNull();
   });
 
-  it("provides Vendors as a first-class navigation destination", async () => {
+  it("provides Vendors as a Portfolio lens while keeping its route stable", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
-    const vendorButtons = await screen.findAllByRole("button", { name: "Vendors" });
-    expect(vendorButtons.length).toBeGreaterThan(0);
-    const vendorButton = vendorButtons[0];
-    if (!vendorButton) throw new Error("Vendors navigation is missing");
+    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
+    const portfolioButton = await within(primaryNavigation).findByRole("button", { name: "Portfolio" });
+    fireEvent.click(portfolioButton);
+    const portfolio = await screen.findByRole("navigation", { name: "Portfolio lenses" });
+    const vendorButton = within(portfolio).getByRole("button", { name: "Vendors" });
     fireEvent.click(vendorButton);
-    expect(vendorButton.getAttribute("aria-current")).toBe("page");
+
     expect(window.location.hash).toBe("#vendors");
+    expect(portfolioButton.getAttribute("aria-current")).toBe("page");
+    expect(vendorButton.getAttribute("aria-current")).toBe("page");
   });
 
   it("passes the due-diligence guide intent to the Vendors workspace", async () => {
@@ -338,9 +358,10 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
-    const vendorButton = (await screen.findAllByRole("button", { name: "Vendors" }))[0];
-    if (!vendorButton) throw new Error("Vendors navigation is missing");
-    fireEvent.click(vendorButton);
+    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
+    fireEvent.click(within(primaryNavigation).getByRole("button", { name: "Portfolio" }));
+    const portfolio = await screen.findByRole("navigation", { name: "Portfolio lenses" });
+    fireEvent.click(within(portfolio).getByRole("button", { name: "Vendors" }));
 
     expect((await screen.findByTestId("onboarding-surface")).textContent).toBe("VENDORS");
     expect(screen.getByRole("complementary", { name: "Vendor guide" })).toBeTruthy();
@@ -383,9 +404,10 @@ describe("runtime navigation", () => {
     vi.mocked(loadEvidenceRequest).mockResolvedValue(request);
     render(<App />);
 
-    const vendorButton = (await screen.findAllByRole("button", { name: "Vendors" }))[0];
-    if (!vendorButton) throw new Error("Vendors navigation is missing");
-    fireEvent.click(vendorButton);
+    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
+    fireEvent.click(within(primaryNavigation).getByRole("button", { name: "Portfolio" }));
+    const portfolio = await screen.findByRole("navigation", { name: "Portfolio lenses" });
+    fireEvent.click(within(portfolio).getByRole("button", { name: "Vendors" }));
     fireEvent.click(await screen.findByRole("button", { name: "Review vendor request" }));
 
     expect(window.location.hash).toBe("#work/evidence/request-vendor-1");
