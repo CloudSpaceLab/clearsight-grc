@@ -69,7 +69,7 @@ it("leads with exact interventions and provides table alternatives for oversight
   expect(screen.getByText("42 issues checked · 1 excluded · 2 unknown")).toBeTruthy();
   const period = screen.getByRole("button", { name: /Reporting period/ });
   expect(period.textContent).toContain("Period");
-  expect(period.textContent).toContain("Last 90 days");
+  expect(period.textContent).toContain("Jun");\n  expect(period.textContent).toContain("Sep");
   expect(screen.getByText(/Current · Updated/)).toBeTruthy();
   expect(screen.queryByText("Current snapshot")).toBeNull();
   fireEvent.click(screen.getByText("Data freshness"));
@@ -134,7 +134,7 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
   expect(to.value).toBe("2026-09-01");
   expect(to.readOnly).toBe(true);
 
-  const nextPeriod = { start_date: "2026-08-02", end_date: "2026-09-01", mode: "CURRENT_WINDOW" as const, max_days: 365, historical_end_supported: false as const };
+  const nextPeriod = { start_date: "2026-08-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW" as const, max_days: 365, historical_end_supported: false as const };
   const currentSnapshot = await vi.mocked(api.loadOversight).mock.results[0]!.value;
   const currentMetrics = await vi.mocked(metricApi.loadHomeMetrics).mock.results[0]!.value;
   vi.mocked(api.loadOversight).mockResolvedValueOnce({
@@ -153,8 +153,8 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
 
   fireEvent.click(screen.getByRole("button", { name: "Last 30 days" }));
 
-  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-08-02", end_date: "2026-09-01" }));
-  expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-08-02", end_date: "2026-09-01" });
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }));
+  expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" });
   expect(screen.getByRole("button", { name: /Reporting period/ }).textContent).toContain("Last 30 days");
   expect(screen.getByText("7")).toBeTruthy();
 
@@ -169,7 +169,7 @@ it("submits a custom start date but never offers an editable historical end date
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
   const from = screen.getByLabelText("From") as HTMLInputElement;
   const to = screen.getByLabelText("To") as HTMLInputElement;
-  expect(from.min).toBe("2025-09-01");
+  expect(from.min).toBe("2025-09-02");
   expect(from.max).toBe("2026-09-01");
   expect(to.readOnly).toBe(true);
 
