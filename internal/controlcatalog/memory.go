@@ -116,6 +116,34 @@ func (r *MemoryRepository) ListImplementationLinks(ctx context.Context, tenant, 
 	return values, nil
 }
 
+func (r *MemoryRepository) ListEntityImplementationLinks(ctx context.Context, tenant, entity, programID string, limit int) ([]ImplementationLink, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make([]ImplementationLink, 0)
+	for _, value := range r.links {
+		if value.TenantID != tenant || value.LegalEntityID != entity {
+			continue
+		}
+		if programID != "" && value.ProgramID != programID {
+			continue
+		}
+		values = append(values, value)
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if !values[i].CreatedAt.Equal(values[j].CreatedAt) {
+			return values[i].CreatedAt.Before(values[j].CreatedAt)
+		}
+		return values[i].ID < values[j].ID
+	})
+	if len(values) > limit {
+		values = values[:limit]
+	}
+	return values, nil
+}
+
 func definitionKey(tenant, id string) string   { return tenant + "\x00" + id }
 func linkKey(tenant, entity, id string) string { return tenant + "\x00" + entity + "\x00" + id }
 func implementationKey(tenant, entity, id string) string {
