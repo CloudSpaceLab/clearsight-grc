@@ -61,21 +61,21 @@ type Metric struct {
 }
 
 type Bundle struct {
-	GeneratedAt        time.Time           `json:"generated_at"`
-	PeriodStart        time.Time           `json:"period_start"`
-	PeriodEnd          time.Time           `json:"period_end"`
+	GeneratedAt        time.Time                 `json:"generated_at"`
+	PeriodStart        time.Time                 `json:"period_start"`
+	PeriodEnd          time.Time                 `json:"period_end"`
 	ReportingPeriod    oversight.ReportingPeriod `json:"reporting_period"`
-	PostureAsOf        time.Time           `json:"posture_as_of"`
-	ScopeID            string              `json:"scope_id"`
-	ScopeKind          string              `json:"scope_kind"`
-	Freshness          oversight.Freshness `json:"freshness"`
-	Completeness       Completeness        `json:"completeness"`
-	Population         int                 `json:"population"`
-	Excluded           *int                `json:"excluded,omitempty"`
-	Unknown            *int                `json:"unknown,omitempty"`
-	SourceRevision     string              `json:"source_revision"`
-	DefinitionRevision string              `json:"definition_revision"`
-	Items              []Metric            `json:"items"`
+	PostureAsOf        time.Time                 `json:"posture_as_of"`
+	ScopeID            string                    `json:"scope_id"`
+	ScopeKind          string                    `json:"scope_kind"`
+	Freshness          oversight.Freshness       `json:"freshness"`
+	Completeness       Completeness              `json:"completeness"`
+	Population         int                       `json:"population"`
+	Excluded           *int                      `json:"excluded,omitempty"`
+	Unknown            *int                      `json:"unknown,omitempty"`
+	SourceRevision     string                    `json:"source_revision"`
+	DefinitionRevision string                    `json:"definition_revision"`
+	Items              []Metric                  `json:"items"`
 }
 
 func FromOversight(snapshot oversight.Snapshot) Bundle {
