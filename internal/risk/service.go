@@ -79,7 +79,11 @@ func (s *Service) Update(ctx context.Context, input UpdateInput) (Risk, error) {
 	next.Event = strings.TrimSpace(input.Event)
 	next.Impact = strings.TrimSpace(input.Impact)
 	next.Scope = normalizedJSON(input.Scope)
-	next.OwnerPrincipalID = strings.TrimSpace(input.OwnerPrincipalID)
+	requestedOwner := strings.TrimSpace(input.OwnerPrincipalID)
+	if requestedOwner != "" && requestedOwner != current.OwnerPrincipalID {
+		return Risk{}, ErrInvalid
+	}
+	next.OwnerPrincipalID = current.OwnerPrincipalID
 	next.Status = input.Status
 	next.Version = current.Version + 1
 	now := s.now()
@@ -183,9 +187,10 @@ func (s *Service) ActivateAppetite(ctx context.Context, input AppetiteInput) (Ri
 		AuthorityPrincipalID: strings.TrimSpace(input.ActorID), Status: AppetiteActive,
 		EffectiveFrom: effectiveFrom, EffectiveUntil: normalizedTimePointer(input.EffectiveUntil), CreatedAt: now,
 	}
-	if statement.OwnerPrincipalID == "" {
-		statement.OwnerPrincipalID = current.OwnerPrincipalID
+	if statement.OwnerPrincipalID != "" && statement.OwnerPrincipalID != current.OwnerPrincipalID {
+		return Risk{}, AppetiteStatement{}, ErrInvalid
 	}
+	statement.OwnerPrincipalID = current.OwnerPrincipalID
 	if err := validateAppetite(statement); err != nil {
 		return Risk{}, AppetiteStatement{}, err
 	}
