@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import {
   addProgramControlImplementation,
@@ -10,6 +10,7 @@ import {
   transitionProgramControlImplementation,
 } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
+import { listControlCatalogCandidates, promoteProgramControl } from "../controlCatalogApi";
 import type { ProgramAggregate, RecordResponsibleParty } from "../types";
 
 type Props = {
@@ -49,6 +50,41 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
   const [implementationID, setImplementationID] = useState(aggregate.control_implementations[0]?.id ?? "");
   const [rationale, setRationale] = useState("");
   const [transitionTarget, setTransitionTarget] = useState("");
+  const [cataloguedImplementationIDs, setCataloguedImplementationIDs] = useState<Set<string>>(new Set());
+  const [catalogState, setCatalogState] = useState<"loading" | "live" | "error">("loading");
+  const [catalogBusyID, setCatalogBusyID] = useState("");
+  const [catalogError, setCatalogError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setCatalogState("loading");
+    setCatalogError("");
+    void listControlCatalogCandidates(aggregate.program.id, controller.signal).then((page) => {
+      if (controller.signal.aborted) return;
+      setCataloguedImplementationIDs(new Set(page.items.map((item) => item.implementation_id)));
+      setCatalogState(page.complete ? "live" : "error");
+      if (!page.complete) setCatalogError("Reusable control status is incomplete. Reload before changing the catalog.");
+    }).catch((value: unknown) => {
+      if (controller.signal.aborted || (typeof value === "object" && value !== null && "name" in value && value.name === "AbortError")) return;
+      setCatalogState("error");
+      setCatalogError("Reusable control status is unavailable. Reload before changing the catalog.");
+    });
+    return () => controller.abort();
+  }, [aggregate.program.id]);
+
+  async function promoteSafeguard(implementationID: string) {
+    if (catalogState !== "live" || catalogBusyID) return;
+    setCatalogBusyID(implementationID);
+    setCatalogError("");
+    try {
+      await promoteProgramControl(aggregate.program.id, implementationID, aggregate.program.version);
+      setCataloguedImplementationIDs((current) => new Set(current).add(implementationID));
+    } catch (value) {
+      setCatalogError(value instanceof Error ? value.message : "The safeguard could not be added to reusable controls.");
+    } finally {
+      setCatalogBusyID("");
+    }
+  }
 
   const operationFor = (command: string, subresourceID: string) => operations.find((value) => value.command === command && value.subresource_id === subresourceID);
 
@@ -170,6 +206,7 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
         {aggregate.requirements.some((value) => value.status === "APPROVED") && aggregate.control_implementations.length > 0 && <button className="secondary-button" type="button" onClick={() => begin("link")}>Link requirement to safeguard</button>}
       </div>}
     </div>
+    {catalogError && <p className="program-form-error" role="alert">{catalogError} <button className="text-button" type="button" onClick={onReload}>Reload Program</button></p>}
 
     {aggregate.control_objectives.length === 0 ? <div className="program-empty-state"><strong>No control objectives are recorded</strong><p>Add the required outcome, then record the safeguard and accountable performer.</p></div> : <div className="program-safeguard-list">
       {aggregate.control_objectives.map((objective) => {
@@ -194,6 +231,9 @@ export function ProgramSafeguardsPanel({ aggregate, operations, responsibleParti
                 </li>;
               })}</ul>}
               <div className="program-panel-actions">
+              {cataloguedImplementationIDs.has(implementation.id)
+                ? <span className="program-operation-reason">Reusable control</span>
+                : operation?.can_act && objective.status === "ACTIVE" && implementation.status !== "RETIRED" && catalogState === "live" && <button className="text-button" type="button" disabled={Boolean(catalogBusyID)} onClick={() => void promoteSafeguard(implementation.id)}>{catalogBusyID === implementation.id ? "Adding…" : `Add ${implementation.name} to reusable controls`}</button>}
               {updateOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("edit", implementation.id)}>Edit {implementation.name}</button>}
               {assignOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("assign", implementation.id)}>Change {implementation.name} owner</button>}
               {transitionOperation?.can_act && <button className="text-button" type="button" onClick={() => beginResourceAction("transition", implementation.id)}>Change {implementation.name} status</button>}
