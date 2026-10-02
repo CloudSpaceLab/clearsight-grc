@@ -11,6 +11,7 @@ import {
   loadReadiness,
   loadToday,
   resolveAuthority,
+  switchLegalEntity,
 } from "./api";
 import type { RuntimeContext } from "./api";
 import { CapturePanel, ProgramsView, ReferenceJourneysView, RoutingPanel, TodayView, WorkView, type RoutingLoadState } from "./AppViews";
@@ -23,7 +24,7 @@ import { NavigationIcon } from "./components/NavigationIcon";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
-import { WorkspaceSwitcher } from "./components/ui";
+import { SelectField, WorkspaceSwitcher } from "./components/ui";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { apiErrorKind } from "./http";
 import { canRespondToEvidenceRequest, isEvidenceRequestAssignedToActor } from "./evidenceAuthorization";
@@ -68,6 +69,7 @@ type ProductRuntime = RuntimeContext & {
     platform_operations_read?: boolean;
     platform_operations_write?: boolean;
     oversight_read?: boolean;
+    scope_switch?: boolean;
   };
   actor: RuntimeContext["actor"] & { role_codes?: string[] };
 };
@@ -75,6 +77,8 @@ type ProductRuntime = RuntimeContext & {
 function App({ presentation = "enterprise" }: { presentation?: RuntimePresentation }) {
   const initialRoute = parseRoute(window.location.hash);
   const [runtime, setRuntime] = useState<ProductRuntime | null>(null);
+  const [scopeSwitchState, setScopeSwitchState] = useState<"idle" | "changing">("idle");
+  const [scopeSwitchError, setScopeSwitchError] = useState("");
   const [activeView, setActiveView] = useState<View>(initialRoute.view);
   const [workTab, setWorkTab] = useState<WorkTab>(initialRoute.workTab ?? "assigned");
   const [target, setTarget] = useState<WorkspaceTarget>(initialRoute.target);
@@ -281,12 +285,33 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const legalEntityName = runtime?.legal_entity.name || runtime?.legal_entity.id || "Legal entity unavailable";
   const actorName = runtime?.actor.name || runtime?.actor.id || "User unavailable";
   const roleName = humanRole(runtime?.actor.role_codes?.[0]) || "Role not provided";
+  const scopeHierarchy = runtime?.scope_hierarchy;
+  const scopeOptions = scopeHierarchy?.legal_entities.map((entity) => ({
+    id: entity.id,
+    label: entity.name,
+    description: entity.jurisdiction || undefined,
+  })) ?? [];
+  const currentScopeID = scopeHierarchy?.current.id;
+  const canSwitchScope = runtime?.capabilities?.scope_switch === true && scopeOptions.length > 1 && Boolean(currentScopeID);
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
     { label: "Portfolio", view: "programs", activeViews: portfolioViews },
     { label: "Work", view: "work", activeViews: ["work"] },
   ];
   const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
+
+  async function changeLegalEntity(nextID: string | undefined) {
+    if (!nextID || !canSwitchScope || nextID === currentScopeID || scopeSwitchState === "changing") return;
+    setScopeSwitchError("");
+    setScopeSwitchState("changing");
+    try {
+      await switchLegalEntity(nextID);
+      window.location.reload();
+    } catch {
+      setScopeSwitchState("idle");
+      setScopeSwitchError("Legal entity could not be changed. Try again.");
+    }
+  }
 
   function cancelVendorGuideIntent(reason: string) {
     const pending = vendorGuideAck.current;
@@ -421,7 +446,23 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     </aside>
     <main>
       <div className="context-bar" aria-label="Active workspace context">
-        <div><strong>{organizationName}</strong><span>{legalEntityName}</span></div>
+        <div className="context-scope">
+          <strong>{organizationName}</strong>
+          {canSwitchScope
+            ? <SelectField
+              label="Legal entity"
+              value={currentScopeID}
+              placeholder={legalEntityName}
+              options={scopeOptions}
+              onChange={(value) => void changeLegalEntity(value)}
+              isDisabled={scopeSwitchState === "changing"}
+              allowsEmpty={false}
+              isLabelHidden
+            />
+            : <span>{legalEntityName}</span>}
+          {scopeSwitchState === "changing" && <span className="context-scope__status" aria-live="polite">Changing…</span>}
+          {scopeSwitchError && <span className="context-scope__error" role="alert">{scopeSwitchError}</span>}
+        </div>
         <div className="context-role">
           {runtime && <NotificationCenter key={notificationScopeKey(runtime)}/>}
           <DisplayPreferencesMenu/>
