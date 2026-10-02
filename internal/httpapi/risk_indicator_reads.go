@@ -21,6 +21,14 @@ const (
 	riskIndicatorUnknown riskIndicatorState = "UNKNOWN"
 )
 
+type riskIndicatorInterventionRead struct {
+	MatterID  string                  `json:"matter_id"`
+	Reference string                  `json:"reference"`
+	Status    continuity.MatterStatus `json:"status"`
+	Priority  int                     `json:"priority"`
+	CreatedAt time.Time               `json:"created_at"`
+}
+
 type riskIndicatorRead struct {
 	Link                risk.IndicatorLink         `json:"link"`
 	ProgramID           string                     `json:"program_id"`
@@ -46,6 +54,7 @@ type riskIndicatorRead struct {
 	FreshnessMinutes    int                        `json:"freshness_minutes"`
 	ResultID            string                     `json:"result_id,omitempty"`
 	EvaluatedAt         *time.Time                 `json:"evaluated_at,omitempty"`
+	Intervention        *riskIndicatorInterventionRead `json:"intervention,omitempty"`
 }
 
 func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor, value risk.Aggregate) riskAggregateRead {
@@ -131,6 +140,24 @@ func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor
 			continue
 		}
 
+		episodeKey := "monitoring-check-adverse:" + check.ID
+		intervention, interventionErr := a.deps.Continuity.OpenMatterByTriggerKey(ctx, actor.TenantID, episodeKey)
+		switch {
+		case interventionErr == nil:
+			if riskIndicatorMatterLinkedToProgram(intervention, program.Program.ID) {
+				detail.Intervention = &riskIndicatorInterventionRead{
+					MatterID: intervention.Matter.ID, Reference: intervention.Matter.Reference,
+					Status: intervention.Matter.Status, Priority: intervention.Matter.Priority, CreatedAt: intervention.Matter.CreatedAt,
+				}
+			} else {
+				result.IndicatorDetailsComplete = false
+			}
+		case errors.Is(interventionErr, continuity.ErrNotFound):
+			// No open intervention is valid state.
+		default:
+			result.IndicatorDetailsComplete = false
+		}
+
 		result.IndicatorDetails = append(result.IndicatorDetails, detail)
 		index := len(result.IndicatorDetails) - 1
 		if check.OwnerPrincipalID != "" {
@@ -201,4 +228,14 @@ func currentRiskIndicatorState(check monitoring.MonitoringCheck, result monitori
 	default:
 		return riskIndicatorUnknown, "Latest monitoring result is not assessed."
 	}
+}
+
+
+func riskIndicatorMatterLinkedToProgram(value continuity.MatterAggregate, programID string) bool {
+	for _, link := range value.Links {
+		if link.ProgramID == programID && link.RetiredAt == nil {
+			return true
+		}
+	}
+	return false
 }
