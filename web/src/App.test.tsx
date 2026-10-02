@@ -167,6 +167,8 @@ beforeEach(() => {
   vi.mocked(reassignCaptureRecipient).mockRejectedValue(new Error("Recipient lifecycle command not configured"));
   listEvidenceRecipientCandidates.mockRejectedValue(new Error("Recipient candidates not configured"));
   vi.mocked(loadReadiness).mockRejectedValue(new Error("No readiness baseline"));
+  vi.mocked(loadNotifications).mockReset();
+  vi.mocked(loadNotifications).mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" });
 });
 
 describe("runtime navigation", () => {
