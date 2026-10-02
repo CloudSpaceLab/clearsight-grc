@@ -239,6 +239,92 @@ func (r *PostgresRepository) AddControl(ctx context.Context, scope Scope, riskID
 	return updated, control, nil
 }
 
+func (r *PostgresRepository) AddIndicator(ctx context.Context, scope Scope, riskID string, expectedVersion int64, indicator IndicatorLink, event Event) (Risk, IndicatorLink, error) {
+	tx, current, err := r.lockRisk(ctx, scope, riskID)
+	if err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if current.Version != expectedVersion {
+		return Risk{}, IndicatorLink{}, ErrVersionConflict
+	}
+	if indicator.RiskID != current.ID || indicator.RiskVersion != expectedVersion+1 || event.RiskVersion != expectedVersion+1 ||
+		indicator.ProgramID == "" || indicator.MonitoringCheckID == "" || indicator.MonitoringCheckVersion < 1 ||
+		!validIndicatorKind(indicator.Kind) || indicator.Measurement != IndicatorMonitoringRiskScore {
+		return Risk{}, IndicatorLink{}, ErrInvalid
+	}
+	_, err = tx.Exec(ctx, `
+		INSERT INTO risk_indicator_links(
+			id,tenant_id,legal_entity_id,risk_id,risk_version,program_id,
+			monitoring_check_id,monitoring_check_version,kind,measurement,linked_by,created_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6::uuid,
+		       $7::uuid,$8::bigint,$9::text,$10::text,NULLIF($11::text,'')::uuid,$12::timestamptz)`,
+		indicator.ID, current.TenantID, current.LegalEntityID, current.ID, indicator.RiskVersion, indicator.ProgramID,
+		indicator.MonitoringCheckID, indicator.MonitoringCheckVersion, indicator.Kind, indicator.Measurement,
+		indicator.LinkedBy, indicator.CreatedAt,
+	)
+	if err != nil {
+		return Risk{}, IndicatorLink{}, mapRiskPostgresError(err)
+	}
+	updated, err := bumpRiskVersion(ctx, tx, current, expectedVersion, event.OccurredAt)
+	if err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	event.TenantID, event.LegalEntityID, event.RiskID = updated.TenantID, updated.LegalEntityID, updated.ID
+	if err := storeRiskHistory(ctx, tx, updated, event); err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Risk{}, IndicatorLink{}, err
+	}
+	return updated, indicator, nil
+}
+
+func (r *PostgresRepository) Indicators(ctx context.Context, scope Scope, riskID string, limit int) ([]IndicatorLink, error) {
+	scope, err := normalizeScope(scope)
+	if err != nil || !validUUID(riskID) {
+		return nil, ErrNotFound
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 100
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT i.id::text,i.risk_id::text,i.risk_version,i.program_id::text,
+		       i.monitoring_check_id::text,i.monitoring_check_version,i.kind,i.measurement,
+		       COALESCE(i.linked_by::text,''),i.created_at
+		FROM risk_indicator_links i
+		JOIN tenants t ON t.id=i.tenant_id
+		JOIN legal_entities le ON le.tenant_id=i.tenant_id AND le.id=i.legal_entity_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND i.risk_id=$3::uuid
+		ORDER BY i.risk_version DESC,i.id DESC
+		LIMIT $4`, scope.TenantID, scope.LegalEntityID, riskID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	values := make([]IndicatorLink, 0, limit)
+	for rows.Next() {
+		var value IndicatorLink
+		if err := rows.Scan(&value.ID, &value.RiskID, &value.RiskVersion, &value.ProgramID,
+			&value.MonitoringCheckID, &value.MonitoringCheckVersion, &value.Kind, &value.Measurement,
+			&value.LinkedBy, &value.CreatedAt); err != nil {
+			return nil, err
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		if _, err := r.Get(ctx, scope, riskID); err != nil {
+			return nil, err
+		}
+	}
+	return values, nil
+}
+
 func (r *PostgresRepository) Controls(ctx context.Context, scope Scope, riskID string, limit int) ([]ControlLink, error) {
 	scope, err := normalizeScope(scope)
 	if err != nil || !validUUID(riskID) {
