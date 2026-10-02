@@ -86,7 +86,6 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 		t.Fatalf("retry was not idempotent: inserted=%v matter=%#v program=%#v", inserted, duplicate, replayed)
 	}
 
-
 	var triggers, programEvents, matters, links, matterEvents, outboxEvents, projectionJobs int
 	checks := []struct {
 		query  string
