@@ -8,6 +8,7 @@ import type { AttentionItem, EvidenceRequest } from "./types";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captureApi";
 import { ApiError } from "./http";
 import { loadFormTemplatePage } from "./formsApi";
+import { loadNotifications } from "./notificationApi";
 
 const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
 
@@ -19,6 +20,10 @@ vi.mock("./formsApi", () => ({
   loadSavedFormViews: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("./submittedDocumentApi", () => ({ loadDocuments: vi.fn().mockResolvedValue({ items: [] }) }));
+vi.mock("./notificationApi", () => ({
+  loadNotifications: vi.fn().mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" }),
+  markNotificationRead: vi.fn(),
+}));
 
 vi.mock("./components/RoleAwareOnboarding", async () => {
   const React = await import("react");
