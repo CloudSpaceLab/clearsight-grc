@@ -116,6 +116,8 @@ func (r *MemoryRepository) ListImplementationLinks(ctx context.Context, tenant, 
 	return values, nil
 }
 
-func definitionKey(tenant, id string) string { return tenant + "\x00" + id }
+func definitionKey(tenant, id string) string   { return tenant + "\x00" + id }
 func linkKey(tenant, entity, id string) string { return tenant + "\x00" + entity + "\x00" + id }
-func implementationKey(tenant, entity, id string) string { return tenant + "\x00" + entity + "\x00" + id }
+func implementationKey(tenant, entity, id string) string {
+	return tenant + "\x00" + entity + "\x00" + id
+}
