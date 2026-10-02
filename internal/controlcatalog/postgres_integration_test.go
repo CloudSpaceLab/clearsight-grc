@@ -104,6 +104,13 @@ func TestPostgresControlCatalogUsesExistingProgramImplementationAndExactEntitySc
 	}
 
 	riskService := riskdomain.NewService(riskdomain.NewPostgresRepository(pool))
+	riskService.ConfigureControlLinkValidator(func(ctx context.Context, scope riskdomain.Scope, catalogLinkID string) error {
+		_, validateErr := service.GetImplementationLink(ctx, scope.TenantID, scope.LegalEntityID, catalogLinkID)
+		if errors.Is(validateErr, ErrNotFound) || errors.Is(validateErr, ErrInvalid) {
+			return riskdomain.ErrInvalid
+		}
+		return validateErr
+	})
 	riskService.Now = func() time.Time { return now }
 	createdRisk, err := riskService.Create(ctx, riskdomain.CreateInput{
 		TenantID: tenantSlug, LegalEntityID: entityACode, Code: "RISK-" + suffix,
