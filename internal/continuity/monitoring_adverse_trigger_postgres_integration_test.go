@@ -86,6 +86,30 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 		t.Fatalf("retry was not idempotent: inserted=%v matter=%#v program=%#v", inserted, duplicate, replayed)
 	}
 
+
+	var triggers, programEvents, matters, links, matterEvents, outboxEvents, projectionJobs int
+	checks := []struct {
+		query  string
+		args   []any
+		target *int
+	}{
+		{`SELECT count(*) FROM program_trigger_events WHERE tenant_id=$1::uuid AND program_id=$2::uuid AND dedupe_key=$3`, []any{tenantID, program.Program.ID, trigger.DedupeKey}, &triggers},
+		{`SELECT count(*) FROM continuity_events WHERE tenant_id=$1::uuid AND aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND event_type='PROGRAM_TRIGGER_RECORDED' AND payload->>'dedupe_key'=$3`, []any{tenantID, program.Program.ID, trigger.DedupeKey}, &programEvents},
+		{`SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND id=$2::uuid AND legal_entity_id=$3::uuid AND owner_principal_id=$4::uuid AND required_authority='CONTROL_ASSURANCE'`, []any{tenantID, matter.ID, entityID, ownerID}, &matters},
+		{`SELECT count(*) FROM matter_links WHERE tenant_id=$1::uuid AND matter_id=$2::uuid AND program_id=$3::uuid`, []any{tenantID, matter.ID, program.Program.ID}, &links},
+		{`SELECT count(*) FROM continuity_events WHERE tenant_id=$1::uuid AND aggregate_type='MATTER' AND aggregate_id=$2::uuid`, []any{tenantID, matter.ID}, &matterEvents},
+		{`SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND ((aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND event_type='PROGRAM_TRIGGER_RECORDED' AND payload->>'dedupe_key'=$3) OR (aggregate_type='MATTER' AND aggregate_id=$4::uuid))`, []any{tenantID, program.Program.ID, trigger.DedupeKey, matter.ID}, &outboxEvents},
+		{`SELECT count(*) FROM continuity_projection_jobs WHERE tenant_id=$1::uuid AND aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND source_aggregate_version=$3`, []any{tenantID, program.Program.ID, updated.Program.Version}, &projectionJobs},
+	}
+	for _, check := range checks {
+		if err := pool.QueryRow(ctx, check.query, check.args...).Scan(check.target); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if triggers != 1 || programEvents != 1 || matters != 1 || links != 1 || matterEvents != 2 || outboxEvents != 3 || projectionJobs != 1 {
+		t.Fatalf("atomic/idempotent rows triggers=%d program_events=%d matters=%d links=%d matter_events=%d outbox=%d jobs=%d", triggers, programEvents, matters, links, matterEvents, outboxEvents, projectionJobs)
+	}
+
 	secondTrigger := trigger
 	secondTrigger.ID = triggerID2
 	secondTrigger.SubjectID = resultID2
@@ -151,29 +175,6 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 	}
 	if triggerReceiptCount != 3 {
 		t.Fatalf("recurrent episode trigger receipts=%d want=3", triggerReceiptCount)
-	}
-
-	var triggers, programEvents, matters, links, matterEvents, outboxEvents, projectionJobs int
-	checks := []struct {
-		query  string
-		args   []any
-		target *int
-	}{
-		{`SELECT count(*) FROM program_trigger_events WHERE tenant_id=$1::uuid AND program_id=$2::uuid AND dedupe_key=$3`, []any{tenantID, program.Program.ID, trigger.DedupeKey}, &triggers},
-		{`SELECT count(*) FROM continuity_events WHERE tenant_id=$1::uuid AND aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND event_type='PROGRAM_TRIGGER_RECORDED' AND payload->>'dedupe_key'=$3`, []any{tenantID, program.Program.ID, trigger.DedupeKey}, &programEvents},
-		{`SELECT count(*) FROM matters WHERE tenant_id=$1::uuid AND id=$2::uuid AND legal_entity_id=$3::uuid AND owner_principal_id=$4::uuid AND required_authority='CONTROL_ASSURANCE'`, []any{tenantID, matter.ID, entityID, ownerID}, &matters},
-		{`SELECT count(*) FROM matter_links WHERE tenant_id=$1::uuid AND matter_id=$2::uuid AND program_id=$3::uuid`, []any{tenantID, matter.ID, program.Program.ID}, &links},
-		{`SELECT count(*) FROM continuity_events WHERE tenant_id=$1::uuid AND aggregate_type='MATTER' AND aggregate_id=$2::uuid`, []any{tenantID, matter.ID}, &matterEvents},
-		{`SELECT count(*) FROM outbox_events WHERE tenant_id=$1::uuid AND ((aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND event_type='PROGRAM_TRIGGER_RECORDED' AND payload->>'dedupe_key'=$3) OR (aggregate_type='MATTER' AND aggregate_id=$4::uuid))`, []any{tenantID, program.Program.ID, trigger.DedupeKey, matter.ID}, &outboxEvents},
-		{`SELECT count(*) FROM continuity_projection_jobs WHERE tenant_id=$1::uuid AND aggregate_type='PROGRAM' AND aggregate_id=$2::uuid AND source_aggregate_version=$3`, []any{tenantID, program.Program.ID, updated.Program.Version}, &projectionJobs},
-	}
-	for _, check := range checks {
-		if err := pool.QueryRow(ctx, check.query, check.args...).Scan(check.target); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if triggers != 1 || programEvents != 1 || matters != 1 || links != 1 || matterEvents != 2 || outboxEvents != 3 || projectionJobs != 1 {
-		t.Fatalf("atomic/idempotent rows triggers=%d program_events=%d matters=%d links=%d matter_events=%d outbox=%d jobs=%d", triggers, programEvents, matters, links, matterEvents, outboxEvents, projectionJobs)
 	}
 
 	current, err := repo.GetProgram(ctx, "monitoring-adverse-trigger-test", program.Program.ID)
