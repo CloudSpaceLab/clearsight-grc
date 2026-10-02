@@ -165,7 +165,7 @@ beforeEach(() => {
 });
 
 describe("runtime navigation", () => {
-  it.each(["desktop", "mobile"])("opens Templates from the %s Forms navigation after a section-only change", async (surface) => {
+  it("opens Templates from the Portfolio Forms lens after a section-only change", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     window.history.replaceState(null, "", "#forms");
     const app = render(<App/>);
