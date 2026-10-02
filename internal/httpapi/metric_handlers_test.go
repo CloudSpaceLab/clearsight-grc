@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -89,5 +90,44 @@ func TestHomeMetricRecoveryStatesAreExplicit(t *testing.T) {
 			api.homeMetrics(response, request)
 			assertAPIError(t, response, http.StatusServiceUnavailable, tt.code, tt.message)
 		})
+	}
+}
+
+
+func TestHomeMetricsShareRequestedPeriodAndMarkHeadlineMetricsCurrentPosture(t *testing.T) {
+	now := time.Date(2026, 10, 2, 15, 30, 0, 0, time.UTC)
+	repo := oversight.NewMemoryRepository(nil).WithPeriodBuilder(func(_ context.Context, scope oversight.Scope, start, end time.Time) (oversight.Snapshot, error) {
+		unknown := 0
+		return oversight.Snapshot{
+			TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, GeneratedAt: end,
+			PeriodStart: start, PeriodEnd: end, PostureAsOf: end, ProjectionVersion: oversight.ProjectionVersion,
+			Coverage: oversight.Coverage{Population: 8, Unknown: &unknown},
+			Counts: oversight.Counts{CriticalHigh: 3, Overdue: 2},
+		}, nil
+	})
+	service := oversight.NewService(repo)
+	service.Now = func() time.Time { return now }
+	api := &API{deps: Dependencies{Oversight: service}}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/metrics/home?start_date=2026-08-02&end_date=2026-10-02", nil)
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
+		TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "reviewer", ExpiresAt: now.Add(time.Hour),
+	}))
+	response := httptest.NewRecorder()
+
+	api.homeMetrics(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var bundle metricview.Bundle
+	if err := json.Unmarshal(response.Body.Bytes(), &bundle); err != nil {
+		t.Fatal(err)
+	}
+	if bundle.ReportingPeriod.StartDate != "2026-08-02" || bundle.ReportingPeriod.EndDate != "2026-10-02" {
+		t.Fatalf("reporting period=%#v", bundle.ReportingPeriod)
+	}
+	for _, metric := range bundle.Items {
+		if metric.Basis != metricview.MetricBasisCurrentPosture || metric.Drill.Consistency != metricview.DrillCurrentState {
+			t.Fatalf("headline metric lost current-posture semantics: %#v", metric)
+		}
 	}
 }
