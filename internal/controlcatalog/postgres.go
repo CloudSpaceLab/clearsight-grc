@@ -31,7 +31,7 @@ func (r *PostgresRepository) CreateWithImplementationLink(ctx context.Context, d
 	created, err := scanDefinition(tx.QueryRow(ctx, `
 		INSERT INTO control_definitions(
 			id,tenant_id,code,name,objective,description,category,status,version,created_at,updated_at)
-		SELECT $2::uuid,t.id,$3,$4,$5,$6,$7,$8,$9,$10,$11
+		SELECT $2::uuid,t.id,$3::text,$4::text,$5::text,$6::text,$7::text,$8::text,$9::bigint,$10::timestamptz,$11::timestamptz
 		FROM tenants t
 		WHERE t.id::text=$1 OR t.slug=$1
 		RETURNING id::text,tenant_id::text,code,name,objective,description,category,status,version,created_at,updated_at`,
@@ -151,7 +151,7 @@ func insertImplementationLink(ctx context.Context, tx txExecutor, link Implement
 	value, err := scanImplementationLink(tx.QueryRow(ctx, `
 		INSERT INTO control_catalog_implementation_links(
 			id,tenant_id,legal_entity_id,definition_id,program_id,implementation_id,created_at)
-		SELECT $3::uuid,t.id,le.id,$4::uuid,p.id,ci.id,$7
+		SELECT $3::uuid,t.id,le.id,$4::uuid,p.id,ci.id,$7::timestamptz
 		FROM tenants t
 		JOIN legal_entities le ON le.tenant_id=t.id
 		JOIN programs p ON p.tenant_id=t.id AND p.legal_entity_id=le.id
