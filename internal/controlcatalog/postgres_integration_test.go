@@ -54,8 +54,8 @@ func TestPostgresControlCatalogUsesExistingProgramImplementationAndExactEntitySc
 	}
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO control_objectives(id,tenant_id,program_id,code,name,outcome,status,created_at,version) VALUES
-		($1::uuid,$2::uuid,$3::uuid,'OBJ-A','Objective A','Outcome A','ACTIVE',$7,1),
-		($4::uuid,$2::uuid,$5::uuid,'OBJ-B','Objective B','Outcome B','ACTIVE',$7,1)`,
+		($1::uuid,$2::uuid,$3::uuid,'OBJ-A','Objective A','Outcome A','ACTIVE',$6::timestamptz,1),
+		($4::uuid,$2::uuid,$5::uuid,'OBJ-B','Objective B','Outcome B','ACTIVE',$6::timestamptz,1)`,
 		objectiveA, tenantID, programA, objectiveB, programB, now); err != nil {
 		t.Fatal(err)
 	}
