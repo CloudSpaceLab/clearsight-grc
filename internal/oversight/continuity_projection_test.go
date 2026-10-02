@@ -61,3 +61,33 @@ func oversightMatter(id string, scope json.RawMessage, now time.Time) continuity
 		CreatedAt: now.Add(-24 * time.Hour), UpdatedAt: now,
 	}
 }
+
+func TestMatterAggregateReportingPeriodChangesHistoryNotCurrentPosture(t *testing.T) {
+	now := time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)
+	closedAt := now.Add(-60 * 24 * time.Hour)
+	openedAt := now.Add(-70 * 24 * time.Hour)
+	dueAt := now.Add(-1 * time.Hour)
+	aggregates := []continuity.MatterAggregate{
+		{Matter: continuity.Matter{
+			ID: "current-high", TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterControlGap,
+			Status: continuity.MatterInitialReview, Priority: 5, Title: "Current high risk",
+			Scope: json.RawMessage(`{"access":"INTERNAL"}`), CreatedAt: now.Add(-10 * 24 * time.Hour), UpdatedAt: now, DueAt: &dueAt,
+		}},
+		{Matter: continuity.Matter{
+			ID: "closed-history", TenantID: "bank", LegalEntityID: "bank-ng", Type: continuity.MatterVendorReview,
+			Status: continuity.MatterClosed, Priority: 3, Title: "Historical closure",
+			Scope: json.RawMessage(`{"access":"INTERNAL"}`), OwnerPrincipalID: "owner-1",
+			CreatedAt: openedAt, UpdatedAt: closedAt, ClosedAt: &closedAt,
+		}},
+	}
+
+	short := FromMatterAggregatesForPeriod("bank", "bank-ng", aggregates, now.Add(-30*24*time.Hour), now)
+	long := FromMatterAggregatesForPeriod("bank", "bank-ng", aggregates, now.Add(-90*24*time.Hour), now)
+
+	if short.Counts != long.Counts || short.Counts.CriticalHigh != 1 || short.Counts.Overdue != 1 {
+		t.Fatalf("current posture changed with history window: short=%#v long=%#v", short.Counts, long.Counts)
+	}
+	if short.HistoryQuality.CompletedPopulation != 0 || long.HistoryQuality.CompletedPopulation != 1 {
+		t.Fatalf("history did not follow selected period: short=%#v long=%#v", short.HistoryQuality, long.HistoryQuality)
+	}
+}

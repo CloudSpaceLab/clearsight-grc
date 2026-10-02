@@ -14,10 +14,16 @@ import (
 // substitutes a presentation-specific metric fixture.
 func FromMatterAggregates(tenantID, legalEntityID string, aggregates []continuity.MatterAggregate, now time.Time) Snapshot {
 	now = now.UTC()
+	return FromMatterAggregatesForPeriod(tenantID, legalEntityID, aggregates, now.Add(-90*24*time.Hour), now)
+}
+
+func FromMatterAggregatesForPeriod(tenantID, legalEntityID string, aggregates []continuity.MatterAggregate, periodStart, now time.Time) Snapshot {
+	now = now.UTC()
+	periodStart = periodStart.UTC()
 	excluded, unknown := 0, 0
 	value := Snapshot{
 		TenantID: tenantID, LegalEntityID: legalEntityID, GeneratedAt: now,
-		PeriodStart: now.Add(-90 * 24 * time.Hour), PeriodEnd: now, ProjectionVersion: ProjectionVersion,
+		PeriodStart: periodStart, PeriodEnd: now, PostureAsOf: now, ProjectionVersion: ProjectionVersion,
 		SourceHighWater: map[string]time.Time{}, Coverage: Coverage{Excluded: &excluded, Unknown: &unknown},
 		Interventions: []Intervention{}, Pressure: []CategoryPressure{}, Performance: []Performance{}, Estimates: []ResolutionEstimate{},
 	}

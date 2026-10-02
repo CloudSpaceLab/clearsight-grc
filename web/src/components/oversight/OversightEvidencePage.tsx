@@ -8,6 +8,8 @@ const snapshot: OversightSnapshot = {
   generated_at: generatedAt,
   period_start: "2026-06-03T08:00:00Z",
   period_end: "2026-09-01T08:00:00Z",
+  reporting_period: { start_date: "2026-06-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW", max_days: 365, historical_end_supported: false },
+  posture_as_of: generatedAt,
   projection_version: "oversight-v2",
   freshness: "CURRENT",
   source_high_water: { matters: generatedAt, actions: generatedAt, workflow_tasks: generatedAt, verification_results: generatedAt, continuity_events: generatedAt },
@@ -36,6 +38,8 @@ const metrics: HomeMetricBundle = {
   generated_at: snapshot.generated_at,
   period_start: snapshot.period_start,
   period_end: snapshot.period_end,
+  reporting_period: snapshot.reporting_period,
+  posture_as_of: snapshot.posture_as_of,
   scope_id: "bank-ng",
   scope_kind: "LEGAL_ENTITY",
   freshness: snapshot.freshness,
@@ -44,7 +48,7 @@ const metrics: HomeMetricBundle = {
   excluded: snapshot.coverage.excluded,
   unknown: snapshot.coverage.unknown,
   source_revision: snapshot.projection_version,
-  definition_revision: "home-oversight-v1",
+  definition_revision: "home-oversight-v2",
   items: [
     homeMetric("critical_high_open", "Critical and high", snapshot.counts.critical_high, "critical-high"),
     homeMetric("overdue_open", "Overdue", snapshot.counts.overdue, "overdue"),
@@ -58,7 +62,7 @@ function homeMetric(id: string, label: string, value: number, filter: string) {
     id, label, value, unit: "COUNT" as const, condition: value > 0 ? "ATTENTION" as const : "CLEAR" as const,
     freshness: snapshot.freshness, completeness: "PARTIAL" as const, population: snapshot.coverage.population,
     excluded: snapshot.coverage.excluded, unknown: snapshot.coverage.unknown, generated_at: snapshot.generated_at,
-    source_revision: snapshot.projection_version, definition_revision: "home-oversight-v1",
+    source_revision: snapshot.projection_version, definition_revision: "home-oversight-v2", basis: "CURRENT_POSTURE" as const,
     drill: { workspace: "oversight", filter, consistency: "CURRENT_STATE" as const },
   };
 }

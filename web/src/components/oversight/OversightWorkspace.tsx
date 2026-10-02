@@ -2,21 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import { loadHomeMetrics, type HomeMetricBundle } from "../../metricApi";
 import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
+import type { ReportingPeriod, ReportingPeriodQuery } from "../../reportingPeriod";
 import { Button, DataTable, EmptyState, MetricCard, Notice, Tabs } from "../ui";
 import type { AttentionItem } from "../../types";
+import { OversightPeriodPicker } from "./OversightPeriodPicker";
 import "../../oversight.css";
 
 type DetailView = "pressure" | "outlook" | "performance";
 export type OversightMetricFilter = HomeMetricFilter;
 type TodayState = "loading" | "live" | "unavailable";
 
-export function OversightWorkspace({ organizationName, legalEntityName, onOpenMatter, loadSnapshot = loadOversight, loadMetrics = loadHomeMetrics, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem }: { organizationName: string; legalEntityName: string; onOpenMatter: (id: string) => void; loadSnapshot?: () => Promise<OversightSnapshot>; loadMetrics?: () => Promise<HomeMetricBundle>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void }) {
+export function OversightWorkspace({ organizationName, legalEntityName, onOpenMatter, loadSnapshot = loadOversight, loadMetrics = loadHomeMetrics, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem }: { organizationName: string; legalEntityName: string; onOpenMatter: (id: string) => void; loadSnapshot?: (period?: ReportingPeriodQuery) => Promise<OversightSnapshot>; loadMetrics?: (period?: ReportingPeriodQuery) => Promise<HomeMetricBundle>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void }) {
   const [snapshot, setSnapshot] = useState<OversightSnapshot | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [metrics, setMetrics] = useState<HomeMetricBundle | null>(null);
   const [metricState, setMetricState] = useState<"loading" | "live" | "unavailable">("loading");
   const [view, setView] = useState<DetailView>("pressure");
   const [localMetricFilter, setLocalMetricFilter] = useState<OversightMetricFilter>(metricFilter);
+  const [periodState, setPeriodState] = useState<"idle" | "changing">("idle");
+  const [periodError, setPeriodError] = useState("");
   const selectedMetricFilter = onMetricFilterChange ? metricFilter : localMetricFilter;
 
   useEffect(() => { setLocalMetricFilter(metricFilter); }, [metricFilter]);
@@ -33,10 +37,10 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     }
   }
 
-  async function load() {
+  async function load(period?: ReportingPeriodQuery) {
     setState("loading");
     setMetricState("loading");
-    const [snapshotResult, metricResult] = await Promise.allSettled([loadSnapshot(), loadMetrics()]);
+    const [snapshotResult, metricResult] = await Promise.allSettled([loadSnapshot(period), loadMetrics(period)]);
     if (snapshotResult.status === "fulfilled") {
       setSnapshot(snapshotResult.value);
       setState("live");
@@ -55,6 +59,22 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
 
   useEffect(() => { void load(); }, []);
 
+  async function changePeriod(period: ReportingPeriodQuery) {
+    if (periodState === "changing") return;
+    setPeriodState("changing");
+    setPeriodError("");
+    const [snapshotResult, metricResult] = await Promise.allSettled([loadSnapshot(period), loadMetrics(period)]);
+    if (snapshotResult.status === "fulfilled" && metricResult.status === "fulfilled" && sameReportingPeriod(snapshotResult.value.reporting_period, metricResult.value.reporting_period)) {
+      setSnapshot(snapshotResult.value);
+      setMetrics(metricResult.value);
+      setState("live");
+      setMetricState("live");
+    } else {
+      setPeriodError("The reporting period could not be changed. Current data is still shown.");
+    }
+    setPeriodState("idle");
+  }
+
   if (state === "loading" && metricState === "loading") return <section className="oversight-workspace" aria-busy="true"><header className="oversight-header"><div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Loading current risk posture and assigned work…</p></div></header></section>;
 
   const headlineMetrics = <HomeMetricStrip metrics={metrics} state={metricState} selected={selectedMetricFilter} onSelect={selectMetric}/>;
@@ -62,7 +82,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   if (state === "unavailable" || !snapshot) return <section className="oversight-workspace">
     <header className="oversight-header">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Oversight information is unavailable</h1><p>Current risk posture remains separate from detailed analysis.</p></div>
-      {metrics && <OversightPeriodSummary periodStart={metrics.period_start} periodEnd={metrics.period_end} freshness={metrics.freshness} generatedAt={metrics.generated_at}/>} 
+      {metrics && <OversightPeriodPicker period={metrics.reporting_period} freshness={metrics.freshness} generatedAt={metrics.generated_at} isChanging={periodState === "changing"} error={periodError} onApply={(period) => void changePeriod(period)}/>} 
     </header>
     {headlineMetrics}
     <Notice tone="warning">Detailed risk analysis is unavailable. Headline metrics remain separate and may still be current.</Notice>
@@ -75,7 +95,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   return <section className="oversight-workspace">
     <header className="oversight-header">
       <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Review issues requiring intervention, resolution outlook and operating workload for this legal entity.</p></div>
-      <OversightPeriodSummary periodStart={snapshot.period_start} periodEnd={snapshot.period_end} freshness={snapshot.freshness} generatedAt={snapshot.generated_at}/>
+      <OversightPeriodPicker period={snapshot.reporting_period} freshness={snapshot.freshness} generatedAt={snapshot.generated_at} isChanging={periodState === "changing"} error={periodError} onApply={(period) => void changePeriod(period)}/>
     </header>
 
     <div className="oversight-scope-line"><span>{coverage}</span></div>
@@ -106,12 +126,8 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   </section>;
 }
 
-function OversightPeriodSummary({ periodStart, periodEnd, freshness, generatedAt }: { periodStart: string; periodEnd: string; freshness: "CURRENT" | "STALE"; generatedAt: string }) {
-  return <div className={`oversight-period-summary ${freshness.toLowerCase()}`} aria-label="Oversight reporting period">
-    <span>Reporting period</span>
-    <strong>{formatDate(periodStart)} – {formatDate(periodEnd)}</strong>
-    <small>{freshness === "CURRENT" ? "Current" : "Needs refresh"} · Updated {formatDateTime(generatedAt)}</small>
-  </div>;
+function sameReportingPeriod(left: ReportingPeriod, right: ReportingPeriod) {
+  return left.start_date === right.start_date && left.end_date === right.end_date && left.mode === right.mode;
 }
 
 function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: HomeMetricBundle | null; state: "loading" | "live" | "unavailable"; selected: OversightMetricFilter; onSelect: (filter: OversightMetricFilter) => void }) {
@@ -129,7 +145,7 @@ function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: Home
         meta={homeMetricMeta(metric)}
         tone={homeMetricTone(metric)}
         quality={homeMetricQuality(metric)}
-        actionLabel={filter === "all" ? undefined : active ? "Show all priority interventions" : "Review related interventions"}
+        actionLabel={filter === "all" ? undefined : active ? "Show all priority interventions" : "Review current related interventions"}
         isSelected={active}
         ariaControls={filter === "all" ? undefined : "oversight-attention"}
         onPress={filter === "all" ? undefined : () => onSelect(active ? "all" : filter)}
@@ -163,7 +179,7 @@ function ResolutionOutlook({ snapshot }: { snapshot: OversightSnapshot }) {
 }
 
 function OperatingPerformance({ snapshot }: { snapshot: OversightSnapshot }) {
-  return <article className="oversight-panel"><div className="section-header"><div><h2>Workload and completion context</h2><p>Measures show work conditions and delivery history; they are not an employee ranking.</p></div></div>{snapshot.performance.length ? <DataTable ariaLabel="Owner workload and completion context" rows={snapshot.performance} rowKey={(item) => item.owner_id} rowName={(item) => item.owner_name} columns={performanceColumns}/> : <EmptyState population="Issues with an accountable owner and recorded lifecycle dates" title="No owner-level measures are available" description="Completion and workload measures appear after issues have an accountable owner and recorded lifecycle dates."/>}</article>;
+  return <article className="oversight-panel"><div className="section-header"><div><h2>Workload and completion context</h2><p>Current workload is shown with completion and handling history from the selected period; this is not an employee ranking.</p></div></div>{snapshot.performance.length ? <DataTable ariaLabel="Owner workload and completion context" rows={snapshot.performance} rowKey={(item) => item.owner_id} rowName={(item) => item.owner_name} columns={performanceColumns}/> : <EmptyState population="Issues with an accountable owner and recorded lifecycle dates" title="No owner-level measures are available" description="Completion and workload measures appear after issues have an accountable owner and recorded lifecycle dates."/>}</article>;
 }
 
 function EmptyMeasure() { return <EmptyState population="Open issues in this legal entity" title="No open issues in this measure" description="The current snapshot contains no rows for this breakdown."/>; }

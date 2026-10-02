@@ -1,4 +1,5 @@
 import { requestJSON } from "./http";
+import { reportingPeriodPath, type ReportingPeriod, type ReportingPeriodQuery } from "./reportingPeriod";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -6,6 +7,8 @@ export type OversightSnapshot = {
   generated_at: string;
   period_start: string;
   period_end: string;
+  reporting_period: ReportingPeriod;
+  posture_as_of: string;
   projection_version: string;
   freshness: "CURRENT" | "STALE";
   source_high_water: Record<string, string>;
@@ -19,6 +22,6 @@ export type OversightSnapshot = {
   history_quality: { completed_population: number; complete_lifecycle: number; missing_created_event: number; missing_terminal_event: number; excluded_from_durations: number; reassigned_owner_excluded: number; returned_owner_excluded?: number; blocked_owner_excluded?: number; reopened_owner_excluded?: number };
 };
 
-export function loadOversight() {
-  return requestJSON<OversightSnapshot>(apiBase, "/api/v1/oversight");
+export function loadOversight(period?: ReportingPeriodQuery) {
+  return requestJSON<OversightSnapshot>(apiBase, reportingPeriodPath("/api/v1/oversight", period));
 }

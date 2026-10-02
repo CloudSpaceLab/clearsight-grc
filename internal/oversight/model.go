@@ -2,7 +2,28 @@ package oversight
 
 import "time"
 
-const ProjectionVersion = "oversight-v5"
+const (
+	ProjectionVersion      = "oversight-v5"
+	ReportingPeriodMaxDays = 365
+	ReportingDateLayout    = "2006-01-02"
+)
+
+type ReportingPeriodMode string
+
+const ReportingPeriodCurrentWindow ReportingPeriodMode = "CURRENT_WINDOW"
+
+type ReportingPeriod struct {
+	StartDate              string              `json:"start_date"`
+	EndDate                string              `json:"end_date"`
+	Mode                   ReportingPeriodMode `json:"mode"`
+	MaxDays                int                 `json:"max_days"`
+	HistoricalEndSupported bool                `json:"historical_end_supported"`
+}
+
+type PeriodRequest struct {
+	StartDate string
+	EndDate   string
+}
 
 type Freshness string
 
@@ -102,6 +123,8 @@ type Snapshot struct {
 	GeneratedAt       time.Time            `json:"generated_at"`
 	PeriodStart       time.Time            `json:"period_start"`
 	PeriodEnd         time.Time            `json:"period_end"`
+	ReportingPeriod   ReportingPeriod      `json:"reporting_period"`
+	PostureAsOf       time.Time            `json:"posture_as_of"`
 	ProjectionVersion string               `json:"projection_version"`
 	Freshness         Freshness            `json:"freshness"`
 	SourceHighWater   map[string]time.Time `json:"source_high_water"`

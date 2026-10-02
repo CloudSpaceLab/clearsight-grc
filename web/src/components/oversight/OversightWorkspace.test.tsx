@@ -13,6 +13,8 @@ beforeEach(() => {
     generated_at: "2026-09-01T07:55:00Z",
     period_start: "2026-06-03T08:00:00Z",
     period_end: "2026-09-01T08:00:00Z",
+    reporting_period: { start_date: "2026-06-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW", max_days: 365, historical_end_supported: false },
+    posture_as_of: "2026-09-01T07:55:00Z",
     scope_id: "bank-ng",
     scope_kind: "LEGAL_ENTITY",
     freshness: "CURRENT",
@@ -21,7 +23,7 @@ beforeEach(() => {
     excluded: 1,
     unknown: 2,
     source_revision: "oversight-v4",
-    definition_revision: "home-oversight-v1",
+    definition_revision: "home-oversight-v2",
     items: [
       metric("critical_high_open", "Critical and high", 7, "critical-high"),
       metric("overdue_open", "Overdue", 4, "overdue"),
@@ -33,6 +35,8 @@ beforeEach(() => {
     generated_at: "2026-09-01T07:55:00Z",
     period_start: "2026-06-03T08:00:00Z",
     period_end: "2026-09-01T08:00:00Z",
+    reporting_period: { start_date: "2026-06-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW", max_days: 365, historical_end_supported: false },
+    posture_as_of: "2026-09-01T07:55:00Z",
     projection_version: "oversight-v4",
     freshness: "CURRENT",
     source_high_water: { matters: "2026-09-01T07:54:00Z", actions: "2026-09-01T07:53:00Z", workflow_tasks: "2026-09-01T07:52:00Z", verification_results: "2026-09-01T07:51:00Z", continuity_events: "2026-09-01T07:54:30Z" },
@@ -51,7 +55,7 @@ function metric(id: string, label: string, value: number, filter: string) {
   return {
     id, label, value, unit: "COUNT", condition: value > 0 ? "ATTENTION" : "CLEAR",
     freshness: "CURRENT", completeness: "PARTIAL", population: 42, excluded: 1, unknown: 2,
-    generated_at: "2026-09-01T07:55:00Z", source_revision: "oversight-v4", definition_revision: "home-oversight-v1",
+    generated_at: "2026-09-01T07:55:00Z", source_revision: "oversight-v4", definition_revision: "home-oversight-v2", basis: "CURRENT_POSTURE",
     drill: { workspace: "oversight", filter, consistency: "CURRENT_STATE" },
   };
 }
@@ -63,11 +67,11 @@ it("leads with exact interventions and provides table alternatives for oversight
   await screen.findByRole("heading", { name: "Risk and delivery oversight" });
   expect(screen.getByText("7")).toBeTruthy();
   expect(screen.getByText("42 issues checked · 1 excluded · 2 unknown")).toBeTruthy();
-  const period = screen.getByLabelText("Oversight reporting period");
+  const period = screen.getByRole("button", { name: /Reporting period/ });
+  expect(period.textContent).toContain("Period");
   expect(period.textContent).toContain("Jun");
   expect(period.textContent).toContain("Sep");
-  expect(period.textContent).toContain("2026");
-  expect(period.textContent).toContain("Current");
+  expect(screen.getByText(/Current · Updated/)).toBeTruthy();
   expect(screen.queryByText("Current snapshot")).toBeNull();
   fireEvent.click(screen.getByText("Data freshness"));
   expect(screen.getByText("Continuity Events")).toBeTruthy();
@@ -119,4 +123,68 @@ it("filters interventions from an accessible metric and keeps Today work availab
   expect(screen.getByRole("heading", { name: "Your assigned work" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Open Confirm the NDPA evidence owner" }));
   expect(onOpenTodayItem).toHaveBeenCalledWith(todayItems[0]);
+});
+
+
+it("applies one exact server-backed period to both Home reads and keeps the end date current", async () => {
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+
+  fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
+  const to = screen.getByLabelText("To") as HTMLInputElement;
+  expect(to.value).toBe("2026-09-01");
+  expect(to.readOnly).toBe(true);
+
+  const nextPeriod = { start_date: "2026-08-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW" as const, max_days: 365, historical_end_supported: false as const };
+  const currentSnapshot = await vi.mocked(api.loadOversight).mock.results[0]!.value;
+  const currentMetrics = await vi.mocked(metricApi.loadHomeMetrics).mock.results[0]!.value;
+  vi.mocked(api.loadOversight).mockResolvedValueOnce({
+    ...currentSnapshot,
+    period_start: "2026-08-02T00:00:00Z",
+    reporting_period: nextPeriod,
+    performance: currentSnapshot.performance.map((item: any) => ({ ...item, completed: 3, measurement_samples: 3 })),
+  });
+  vi.mocked(metricApi.loadHomeMetrics).mockResolvedValueOnce({
+    ...currentMetrics,
+    period_start: "2026-08-02T00:00:00Z",
+    reporting_period: nextPeriod,
+  });
+  vi.mocked(api.loadOversight).mockClear();
+  vi.mocked(metricApi.loadHomeMetrics).mockClear();
+
+  fireEvent.click(screen.getByRole("button", { name: "Last 30 days" }));
+
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }));
+  expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" });
+  expect(screen.getByRole("button", { name: /Reporting period/ }).textContent).toContain("Last 30 days");
+  expect(screen.getByText("7")).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("tab", { name: "Operating performance" }));
+  expect(screen.getByText("3 completed · 3 measured")).toBeTruthy();
+});
+
+it("submits a custom start date but never offers an editable historical end date", async () => {
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+
+  fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
+  const from = screen.getByLabelText("From") as HTMLInputElement;
+  const to = screen.getByLabelText("To") as HTMLInputElement;
+  expect(from.min).toBe("2025-09-02");
+  expect(from.max).toBe("2026-09-01");
+  expect(to.readOnly).toBe(true);
+
+  fireEvent.change(from, { target: { value: "2026-07-15" } });
+
+  const currentSnapshot = await vi.mocked(api.loadOversight).mock.results[0]!.value;
+  const currentMetrics = await vi.mocked(metricApi.loadHomeMetrics).mock.results[0]!.value;
+  const customPeriod = { start_date: "2026-07-15", end_date: "2026-09-01", mode: "CURRENT_WINDOW" as const, max_days: 365, historical_end_supported: false as const };
+  vi.mocked(api.loadOversight).mockResolvedValueOnce({ ...currentSnapshot, reporting_period: customPeriod, period_start: "2026-07-15T00:00:00Z" });
+  vi.mocked(metricApi.loadHomeMetrics).mockResolvedValueOnce({ ...currentMetrics, reporting_period: customPeriod, period_start: "2026-07-15T00:00:00Z" });
+  vi.mocked(api.loadOversight).mockClear();
+  vi.mocked(metricApi.loadHomeMetrics).mockClear();
+
+  fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-07-15", end_date: "2026-09-01" }));
+  expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-07-15", end_date: "2026-09-01" });
 });
