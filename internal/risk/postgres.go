@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -332,7 +333,7 @@ func scanRisk(row riskScanner) (Risk, error) {
 	return value, err
 }
 
-func bumpRiskVersion(ctx context.Context, tx pgx.Tx, current Risk, expected int64, occurredAt any) (Risk, error) {
+func bumpRiskVersion(ctx context.Context, tx pgx.Tx, current Risk, expected int64, occurredAt time.Time) (Risk, error) {
 	row := tx.QueryRow(ctx, `
 		UPDATE risks SET version=version+1,updated_at=$5
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$4
@@ -354,15 +355,25 @@ func storeRiskHistory(ctx context.Context, tx pgx.Tx, value Risk, event Event) e
 	if event.RiskVersion != value.Version || event.RiskID != value.ID {
 		return ErrInvalid
 	}
-	_, err = tx.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
 		INSERT INTO risk_revisions(tenant_id,legal_entity_id,risk_id,risk_version,snapshot,recorded_at)
-		VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6);
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6)`,
+		value.TenantID, value.LegalEntityID, value.ID, value.Version, snapshot, event.OccurredAt); err != nil {
+		return mapRiskPostgresError(err)
+	}
+	if _, err := tx.Exec(ctx, `
 		INSERT INTO risk_events(id,tenant_id,legal_entity_id,risk_id,risk_version,event_type,payload,actor_id,occurred_at)
-		VALUES($7::uuid,$1::uuid,$2::uuid,$3::uuid,$4,$8,$9,NULLIF($10,'')::uuid,$6);
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,NULLIF($8,'')::uuid,$9)`,
+		event.ID, value.TenantID, value.LegalEntityID, value.ID, value.Version, event.Type, event.Payload, event.ActorID, event.OccurredAt); err != nil {
+		return mapRiskPostgresError(err)
+	}
+	if _, err := tx.Exec(ctx, `
 		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
-		VALUES($1::uuid,'RISK',$3::uuid,$8,jsonb_build_object('risk_version',$4,'legal_entity_id',$2::text),$6,$6)`,
-		value.TenantID,value.LegalEntityID,value.ID,value.Version,snapshot,event.OccurredAt,event.ID,event.Type,event.Payload,event.ActorID)
-	return mapRiskPostgresError(err)
+		VALUES($1::uuid,'RISK',$2::uuid,$3,jsonb_build_object('risk_version',$4,'legal_entity_id',$5::text),$6,$6)`,
+		value.TenantID, value.ID, event.Type, value.Version, value.LegalEntityID, event.OccurredAt); err != nil {
+		return mapRiskPostgresError(err)
+	}
+	return nil
 }
 
 func mapRiskPostgresError(err error) error {
