@@ -277,7 +277,7 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 			cloned := cloneAssessment(*latest)
 			summary.LatestAssessment = &cloned
 		}
-		if active := latestAppetite(r.appetite[key], time.Now().UTC()); active != nil {
+		if active := latestAppetite(r.appetite[key], filter.AsOf); active != nil {
 			cloned := cloneAppetite(*active)
 			summary.ActiveAppetite = &cloned
 		}
@@ -313,6 +313,7 @@ func latestAssessment(values []Assessment) *Assessment {
 }
 
 func latestAppetite(values []AppetiteStatement, at time.Time) *AppetiteStatement {
+	if at.IsZero() { at = time.Now().UTC() }
 	var selected *AppetiteStatement
 	for i := range values {
 		value := values[i]
