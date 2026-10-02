@@ -64,12 +64,13 @@ func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor
 		owner bool
 		id    string
 	}
-	pending := make([]pendingLabel, 0, len(value.Indicators)*2)
+	currentIndicators := currentRiskIndicatorLinks(value.Indicators)
+	pending := make([]pendingLabel, 0, len(currentIndicators)*2)
 	programs := map[string]continuity.ProgramAggregate{}
 	now := time.Now().UTC()
 	monitorActor := monitoring.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}
 
-	for _, link := range value.Indicators {
+	for _, link := range currentIndicators {
 		check, err := a.deps.Monitoring.Check(ctx, monitorActor, link.MonitoringCheckID, link.MonitoringCheckVersion)
 		if err != nil || check.ProgramID != link.ProgramID {
 			result.IndicatorDetailsComplete = false
@@ -146,6 +147,22 @@ func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor
 		} else {
 			result.IndicatorDetails[value.index].ReviewerDisplayName = labels[value.id]
 		}
+	}
+	return result
+}
+
+func currentRiskIndicatorLinks(values []risk.IndicatorLink) []risk.IndicatorLink {
+	latest := make(map[string]risk.IndicatorLink, len(values))
+	for _, value := range values {
+		current, ok := latest[value.MonitoringCheckID]
+		if !ok || value.RiskVersion > current.RiskVersion ||
+			(value.RiskVersion == current.RiskVersion && value.ID > current.ID) {
+			latest[value.MonitoringCheckID] = value
+		}
+	}
+	result := make([]risk.IndicatorLink, 0, len(latest))
+	for _, value := range latest {
+		result = append(result, value)
 	}
 	return result
 }
