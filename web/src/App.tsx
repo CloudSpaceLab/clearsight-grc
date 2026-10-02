@@ -73,6 +73,8 @@ type ProductRuntime = RuntimeContext & {
     platform_operations_write?: boolean;
     oversight_read?: boolean;
     scope_switch?: boolean;
+    identity_read?: boolean;
+    identity_configure?: boolean;
   };
   actor: RuntimeContext["actor"] & { role_codes?: string[] };
 };
@@ -290,10 +292,14 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const roleName = humanRole(runtime?.actor.role_codes?.[0]) || "Role not provided";
   const scopeHierarchy = runtime?.scope_hierarchy;
   const currentScopeID = scopeHierarchy?.current.id;
-  const canSwitchScope = runtime?.capabilities?.scope_switch === true
+  const canSwitchLegalEntity = runtime?.capabilities?.scope_switch === true
     && scopeHierarchy?.state === "COMPLETE"
     && scopeHierarchy.legal_entities.length > 1
     && Boolean(currentScopeID);
+  const organizationAreas = authorizedOrganizationAreas(runtime?.actor.department_grants);
+  const canOpenOrganization = configureEnabled && runtime?.capabilities?.identity_read === true;
+  const showScopeControl = Boolean(scopeHierarchy && currentScopeID)
+    && (canSwitchLegalEntity || organizationAreas.length > 0 || canOpenOrganization);
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
     { label: "Portfolio", view: "programs", activeViews: portfolioViews },
@@ -302,7 +308,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
 
   async function changeLegalEntity(nextID: string | undefined) {
-    if (!nextID || !canSwitchScope || nextID === currentScopeID || scopeSwitchState === "changing") return;
+    if (!nextID || !canSwitchLegalEntity || nextID === currentScopeID || scopeSwitchState === "changing") return;
     setScopeSwitchError("");
     setScopeSwitchState("changing");
     try {
@@ -312,6 +318,13 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       setScopeSwitchState("idle");
       setScopeSwitchError("Legal entity could not be changed. Try again.");
     }
+  }
+
+  function openOrganizationAccess() {
+    if (!canOpenOrganization) return;
+    setActiveView("configure");
+    setTarget({});
+    if (window.location.hash !== "#configure/access") window.location.hash = "#configure/access";
   }
 
   function cancelVendorGuideIntent(reason: string) {
@@ -457,12 +470,15 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
           <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
           {serverDemoMode && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}
           <span>{roleName}</span>
-          {canSwitchScope && scopeHierarchy && currentScopeID && <div className="context-scope-control">
+          {showScopeControl && scopeHierarchy && currentScopeID && <div className="context-scope-control">
             <EnterpriseScopeSwitcher
               hierarchy={scopeHierarchy}
               currentScopeID={currentScopeID}
+              organizationAreas={organizationAreas}
+              canSwitchLegalEntity={canSwitchLegalEntity}
               isChanging={scopeSwitchState === "changing"}
               onSelectionChange={(value) => void changeLegalEntity(value)}
+              onManageOrganization={canOpenOrganization ? openOrganizationAccess : undefined}
             />
             {scopeSwitchState === "changing" && <span className="context-scope__status" aria-live="polite">Changing…</span>}
             {scopeSwitchError && <span className="context-scope__error" role="alert">{scopeSwitchError}</span>}
@@ -508,6 +524,17 @@ function humanRole(value?: string) {
 function evidenceRuntimeScopeKey(runtime: ProductRuntime | null) {
   if (!runtime) return undefined;
   return `${runtime.tenant.id}\u0000${runtime.legal_entity.id}\u0000${runtime.actor.id}`;
+}
+
+function authorizedOrganizationAreas(grants: RuntimeContext["actor"]["department_grants"]) {
+  const areas = new Map<string, string[]>();
+  for (const grant of grants ?? []) {
+    const path = grant.path.map((part) => part.trim()).filter(Boolean);
+    if (!path.length) continue;
+    const key = path.map((part) => part.toUpperCase()).join("/");
+    if (!areas.has(key)) areas.set(key, path);
+  }
+  return [...areas.values()].sort((left, right) => left.join("/").localeCompare(right.join("/")));
 }
 
 export default App;
