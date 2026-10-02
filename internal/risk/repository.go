@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 )
 
 var (
@@ -22,6 +23,7 @@ type Repository interface {
 	AddAppetite(context.Context, Scope, string, int64, AppetiteStatement, Event) (Risk, AppetiteStatement, error)
 	Assessments(context.Context, Scope, string, int) ([]Assessment, error)
 	AppetiteStatements(context.Context, Scope, string, int) ([]AppetiteStatement, error)
+	CurrentAppetite(context.Context, Scope, string, time.Time) (*AppetiteStatement, error)
 	List(context.Context, Scope, ListFilter) (Page, error)
 }
 
