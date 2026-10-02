@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { listControlCatalogCandidates, type ControlCatalogCandidatePage } from "../../controlCatalogApi";
 import { getRisk, linkRiskControl, type LinkRiskControlResponse } from "../../riskApi";
 import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment, RiskControlDetail } from "../../riskTypes";
@@ -130,7 +131,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
     }
   }
 
-  async function saveControlLink(event: React.FormEvent) {
+  async function saveControlLink(event: FormEvent) {
     event.preventDefault();
     if (!selectedCatalogLinkID || linkBusy) return;
     setLinkBusy(true);
@@ -207,7 +208,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgramControl, load
             <Button variant="secondary" type="button" onPress={() => { setLinkMode(false); setLinkError(""); }}>Cancel</Button>
           </div>
         </form>}
-        {candidateState !== "loading" && <Button variant="secondary" size="compact" onPress={() => { setLinkMode(false); setLinkError(""); }}>Close</Button>}
+        {candidateState !== "loading" && (candidateState !== "live" || candidateOptions.length === 0) && <Button variant="secondary" size="compact" onPress={() => { setLinkMode(false); setLinkError(""); }}>Close</Button>}
       </div>}
       {value.control_details_complete === false && <Notice tone="warning">Some linked control details are unavailable in the current scope.</Notice>}
       {value.control_details?.length ? <DataTable
