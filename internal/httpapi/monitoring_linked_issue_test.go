@@ -64,12 +64,13 @@ func newLinkedIssueFixture(t *testing.T) linkedIssueFixture {
 func (f linkedIssueFixture) handler(principal string, resolution authority.Resolution) http.Handler {
 	return New(Dependencies{
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank", principal, "entity-a"),
-		Monitoring: f.monitoring, Continuity: f.continuity,
+		Monitoring: f.monitoring, MonitoringEpisodes: &monitoring.AdverseEpisodeCoordinator{Repository: f.repo, Continuity: f.continuity},
+		Continuity: f.continuity,
 		Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{authority.ResponsibilityReviewer: resolution}},
 	})
 }
 
-func TestReviewerCreatesAndReopensOneIssueForLatestAdverseMonitoringResult(t *testing.T) {
+func TestReviewerCreatesAndReusesOneIssueForPersistentAdverseMonitoringEpisode(t *testing.T) {
 	fixture := newLinkedIssueFixture(t)
 	handler := fixture.handler("reviewer-1", authority.Resolution{Principal: authority.Principal{ID: "reviewer-1", DisplayName: "Control assurance reviewer"}})
 	path := "/api/v1/monitoring-results/" + fixture.result.ID + "/linked-issue"
@@ -79,8 +80,9 @@ func TestReviewerCreatesAndReopensOneIssueForLatestAdverseMonitoringResult(t *te
 		t.Fatalf("create linked issue returned %d: %s", response.Code, response.Body.String())
 	}
 	var created struct {
-		Matter  continuity.Matter `json:"matter"`
-		Created bool              `json:"created"`
+		Matter  continuity.Matter         `json:"matter"`
+		Created bool                      `json:"created"`
+		Episode monitoring.AdverseEpisode `json:"episode"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&created); err != nil {
 		t.Fatal(err)
@@ -88,13 +90,21 @@ func TestReviewerCreatesAndReopensOneIssueForLatestAdverseMonitoringResult(t *te
 	if !created.Created || created.Matter.Type != continuity.MatterControlGap || created.Matter.LegalEntityID != fixture.program.Program.LegalEntityID || created.Matter.OwnerPrincipalID != fixture.program.Program.OwnerPrincipalID || created.Matter.RequiredAuthority != "CONTROL_ASSURANCE" {
 		t.Fatalf("linked issue is not governed by the Program: %#v", created)
 	}
-	if created.Matter.SourceType != "MONITORING_RESULT" || created.Matter.SourceID != fixture.result.ID || created.Matter.TriggerKey != "monitoring-result-adverse:"+fixture.result.ID {
+	if created.Episode.ID == "" || created.Episode.LastResultID != fixture.result.ID || created.Episode.MatterID != created.Matter.ID {
+		t.Fatalf("linked issue episode = %#v", created.Episode)
+	}
+	if created.Matter.SourceType != "MONITORING_ADVERSE_EPISODE" || created.Matter.SourceID != created.Episode.ID ||
+		created.Matter.TriggerKey != "monitoring-adverse-episode:"+created.Episode.ID {
 		t.Fatalf("linked issue lineage = %#v", created.Matter)
 	}
 	var provenance struct {
+		EpisodeID     string   `json:"monitoring_episode_id"`
+		ResultID      string   `json:"monitoring_result_id"`
 		FailedRuleIDs []string `json:"failed_rule_ids"`
 	}
-	if err := json.Unmarshal(created.Matter.Scope, &provenance); err != nil || len(provenance.FailedRuleIDs) != 1 || provenance.FailedRuleIDs[0] != "status" {
+	if err := json.Unmarshal(created.Matter.Scope, &provenance); err != nil ||
+		provenance.EpisodeID != created.Episode.ID || provenance.ResultID != fixture.result.ID ||
+		len(provenance.FailedRuleIDs) != 1 || provenance.FailedRuleIDs[0] != "status" {
 		t.Fatalf("linked issue failure provenance = %#v err=%v", provenance, err)
 	}
 
@@ -104,14 +114,48 @@ func TestReviewerCreatesAndReopensOneIssueForLatestAdverseMonitoringResult(t *te
 		t.Fatalf("replay returned %d: %s", replay.Code, replay.Body.String())
 	}
 	var existing struct {
-		Matter  continuity.Matter `json:"matter"`
-		Created bool              `json:"created"`
+		Matter  continuity.Matter         `json:"matter"`
+		Created bool                      `json:"created"`
+		Episode monitoring.AdverseEpisode `json:"episode"`
 	}
 	if err := json.NewDecoder(replay.Body).Decode(&existing); err != nil {
 		t.Fatal(err)
 	}
-	if existing.Created || existing.Matter.ID != created.Matter.ID {
+	if existing.Created || existing.Matter.ID != created.Matter.ID || existing.Episode.ID != created.Episode.ID {
 		t.Fatalf("replay did not return the existing linked issue: %#v", existing)
+	}
+
+	newerScore := 95.0
+	newerAt := fixture.result.EvaluatedAt.Add(time.Minute)
+	newer, err := fixture.repo.AppendResult(t.Context(), monitoring.MonitoringResult{
+		ID: "result-2", TenantID: "bank", ProgramID: fixture.program.Program.ID,
+		MonitoringCheckID: fixture.check.ID, MonitoringCheckVersion: fixture.check.Version,
+		InputKind: monitoring.InputSource, InputReferenceID: "receipt-2", InputReferenceVersion: 2,
+		Evaluation: monitoring.Evaluation{
+			Score: &newerScore, Band: monitoring.RiskCritical, Coverage: 1,
+			RuleResults: []monitoring.RuleResult{{FieldID: "status", Outcome: monitoring.RuleFailed, Points: 95, Critical: true, Reason: "The status is still adverse."}},
+		},
+		EvaluatedAt: newerAt, EvaluatorVersion: "risk-v1", CreatedAt: newerAt,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	persistent := httptest.NewRecorder()
+	handler.ServeHTTP(persistent, httptest.NewRequest(http.MethodPost, "/api/v1/monitoring-results/"+newer.ID+"/linked-issue", bytes.NewBufferString(`{}`)))
+	if persistent.Code != http.StatusOK {
+		t.Fatalf("persistent adverse result returned %d: %s", persistent.Code, persistent.Body.String())
+	}
+	var persistentPayload struct {
+		Matter  continuity.Matter         `json:"matter"`
+		Created bool                      `json:"created"`
+		Episode monitoring.AdverseEpisode `json:"episode"`
+	}
+	if err := json.NewDecoder(persistent.Body).Decode(&persistentPayload); err != nil {
+		t.Fatal(err)
+	}
+	if persistentPayload.Created || persistentPayload.Matter.ID != created.Matter.ID ||
+		persistentPayload.Episode.ID != created.Episode.ID || persistentPayload.Episode.LastResultID != newer.ID {
+		t.Fatalf("persistent breach created duplicate intervention: %#v", persistentPayload)
 	}
 }
 
