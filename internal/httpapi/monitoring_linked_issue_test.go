@@ -219,7 +219,7 @@ func TestMonitoringCheckRevisionStartsSeparateOpenEpisode(t *testing.T) {
 
 	revised := fixture.check
 	revised.Version = 2
-	revised.Thresholds = monitoring.RiskThresholds{ModerateFrom: 20, HighFrom: 45, CriticalFrom: 70}
+	revised.Thresholds = monitoring.Thresholds{ModerateFrom: 20, HighFrom: 45, CriticalFrom: 70}
 	revised.CreatedAt = fixture.check.CreatedAt.Add(time.Hour)
 	revised.UpdatedAt = revised.CreatedAt
 	if _, err := fixture.repo.CreateCheckRevision(t.Context(), revised); err != nil {
