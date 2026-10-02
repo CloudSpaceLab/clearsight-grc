@@ -184,7 +184,9 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	activityService := activity.NewService(activity.NewMemoryRepository())
 	auditExports := activity.NewExportService(activityService, activity.NewMemoryExportRepository(), store)
 	todayService := actorTodayService(workflowService, continuityService, authorityService, nil, backgroundJobs)
-	oversightRepo := oversight.NewMemoryRepository(nil)
+	oversightRepo := oversight.NewMemoryRepository(nil).WithPeriodBuilder(func(_ context.Context, scope oversight.Scope, start, end time.Time) (oversight.Snapshot, error) {
+		return oversight.FromMatterAggregatesForPeriod(scope.TenantID, scope.LegalEntityID, seededMatters, start, end), nil
+	})
 	if cfg.DemoMode {
 		oversightRepo.Put(oversight.FromMatterAggregates(cfg.DemoTenantID, cfg.DemoLegalEntityID, seededMatters, time.Now().UTC()))
 	}
