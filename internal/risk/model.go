@@ -140,65 +140,65 @@ type ListFilter struct {
 }
 
 type CreateInput struct {
-	TenantID         string
-	LegalEntityID    string
-	Code             string
-	Name             string
-	Category         string
-	Statement        string
-	Cause            string
-	Event            string
-	Impact           string
-	Scope            json.RawMessage
-	OwnerPrincipalID string
-	ActorID          string
+	TenantID         string          `json:"tenant_id,omitempty"`
+	LegalEntityID    string          `json:"legal_entity_id,omitempty"`
+	Code             string          `json:"code"`
+	Name             string          `json:"name"`
+	Category         string          `json:"category,omitempty"`
+	Statement        string          `json:"statement"`
+	Cause            string          `json:"cause,omitempty"`
+	Event            string          `json:"event,omitempty"`
+	Impact           string          `json:"impact"`
+	Scope            json.RawMessage `json:"scope,omitempty"`
+	OwnerPrincipalID string          `json:"owner_principal_id,omitempty"`
+	ActorID          string          `json:"actor_id,omitempty"`
 }
 
 type UpdateInput struct {
-	TenantID         string
-	LegalEntityID    string
-	RiskID           string
-	ExpectedVersion  int64
-	Name             string
-	Category         string
-	Statement        string
-	Cause            string
-	Event            string
-	Impact           string
-	Scope            json.RawMessage
-	OwnerPrincipalID string
-	Status           Status
-	ActorID          string
+	TenantID         string          `json:"tenant_id,omitempty"`
+	LegalEntityID    string          `json:"legal_entity_id,omitempty"`
+	RiskID           string          `json:"risk_id,omitempty"`
+	ExpectedVersion  int64           `json:"expected_version"`
+	Name             string          `json:"name"`
+	Category         string          `json:"category,omitempty"`
+	Statement        string          `json:"statement"`
+	Cause            string          `json:"cause,omitempty"`
+	Event            string          `json:"event,omitempty"`
+	Impact           string          `json:"impact"`
+	Scope            json.RawMessage `json:"scope,omitempty"`
+	OwnerPrincipalID string          `json:"owner_principal_id,omitempty"`
+	Status           Status          `json:"status"`
+	ActorID          string          `json:"actor_id,omitempty"`
 }
 
 type AssessmentInput struct {
-	TenantID            string
-	LegalEntityID       string
-	RiskID              string
-	ExpectedRiskVersion int64
-	Kind                AssessmentKind
-	MethodCode          string
-	MethodVersion       string
-	Dimensions          json.RawMessage
-	Assumptions         json.RawMessage
-	EvidenceReferences  json.RawMessage
-	Confidence          *float64
-	AppetiteStatementID string
-	AppetitePosition    AppetitePosition
-	AppetiteRationale   string
-	ActorID              string
+	TenantID            string           `json:"tenant_id,omitempty"`
+	LegalEntityID       string           `json:"legal_entity_id,omitempty"`
+	RiskID              string           `json:"risk_id,omitempty"`
+	ExpectedRiskVersion int64            `json:"expected_risk_version"`
+	Kind                AssessmentKind   `json:"kind"`
+	MethodCode          string           `json:"method_code"`
+	MethodVersion       string           `json:"method_version"`
+	Dimensions          json.RawMessage  `json:"dimensions"`
+	Assumptions         json.RawMessage  `json:"assumptions,omitempty"`
+	EvidenceReferences  json.RawMessage  `json:"evidence_references,omitempty"`
+	Confidence          *float64         `json:"confidence,omitempty"`
+	AppetiteStatementID string           `json:"appetite_statement_id,omitempty"`
+	AppetitePosition    AppetitePosition `json:"appetite_position"`
+	AppetiteRationale   string           `json:"appetite_rationale,omitempty"`
+	ActorID             string           `json:"actor_id,omitempty"`
 }
 
 type AppetiteInput struct {
-	TenantID            string
-	LegalEntityID       string
-	RiskID              string
-	ExpectedRiskVersion int64
-	Statement           string
-	Rule                json.RawMessage
-	Rationale           string
-	OwnerPrincipalID    string
-	ActorID              string
-	EffectiveFrom       time.Time
-	EffectiveUntil      *time.Time
+	TenantID            string          `json:"tenant_id,omitempty"`
+	LegalEntityID       string          `json:"legal_entity_id,omitempty"`
+	RiskID              string          `json:"risk_id,omitempty"`
+	ExpectedRiskVersion int64           `json:"expected_risk_version"`
+	Statement           string          `json:"statement"`
+	Rule                json.RawMessage `json:"rule"`
+	Rationale           string          `json:"rationale,omitempty"`
+	OwnerPrincipalID    string          `json:"owner_principal_id,omitempty"`
+	ActorID             string          `json:"actor_id,omitempty"`
+	EffectiveFrom       time.Time       `json:"effective_from"`
+	EffectiveUntil      *time.Time      `json:"effective_until,omitempty"`
 }
