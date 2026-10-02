@@ -87,12 +87,13 @@ func (s *ActorNotificationService) List(ctx context.Context, scope ActorNotifica
 	if err != nil {
 		return ActorNotificationPage{}, err
 	}
-	if len(page.Items) > filter.Limit {
+	hasMore := len(page.Items) > filter.Limit
+	if hasMore {
 		page.Items = page.Items[:filter.Limit]
-	}
-	if len(page.Items) == filter.Limit {
 		last := page.Items[len(page.Items)-1]
 		page.NextCursor = encodeActorNotificationCursor(actorNotificationCursor{OccurredAt: last.OccurredAt, ID: last.ID})
+	} else {
+		page.NextCursor = ""
 	}
 	return page, nil
 }
