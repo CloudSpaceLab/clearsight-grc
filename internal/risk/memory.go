@@ -338,18 +338,7 @@ func latestAppetite(values []AppetiteStatement, at time.Time) *AppetiteStatement
 	if at.IsZero() {
 		at = time.Now().UTC()
 	}
-	var selected *AppetiteStatement
-	for i := range values {
-		value := values[i]
-		if value.Status != AppetiteActive || !statementAppliesAt(value, at) {
-			continue
-		}
-		if selected == nil || value.Version > selected.Version {
-			copy := value
-			selected = &copy
-		}
-	}
-	return selected
+	return latestApplicableAppetite(values, at)
 }
 
 func cloneRisk(value Risk) Risk {
