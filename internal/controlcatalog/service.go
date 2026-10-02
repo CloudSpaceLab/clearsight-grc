@@ -103,6 +103,24 @@ func (s *Service) ListImplementationLinks(ctx context.Context, tenant, definitio
 	return s.repo.ListImplementationLinks(ctx, strings.TrimSpace(tenant), strings.TrimSpace(definitionID), limit)
 }
 
+func (s *Service) ListEntityImplementationLinks(ctx context.Context, tenant, entity, programID string, limit int) ([]ImplementationLink, error) {
+	if s == nil || s.repo == nil {
+		return nil, ErrInvalid
+	}
+	tenant = strings.TrimSpace(tenant)
+	entity = strings.TrimSpace(entity)
+	programID = strings.TrimSpace(programID)
+	if tenant == "" || entity == "" || entity == "*" {
+		return nil, ErrInvalid
+	}
+	if limit <= 0 {
+		limit = 50
+	} else if limit > 100 {
+		limit = 100
+	}
+	return s.repo.ListEntityImplementationLinks(ctx, tenant, entity, programID, limit)
+}
+
 func canonicalLink(tenant, entity, definitionID, programID, implementationID string, now time.Time) ImplementationLink {
 	return ImplementationLink{
 		TenantID:         strings.TrimSpace(tenant),
