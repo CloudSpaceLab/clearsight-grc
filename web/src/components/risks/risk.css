@@ -105,6 +105,36 @@
     min-inline-size: 0;
   }
 
+  .risk-record__link-form {
+    display: grid;
+    gap: var(--cs-space-group);
+    padding: var(--cs-space-group);
+    border: var(--cs-surface-border-width) solid var(--cs-border-default);
+    border-radius: var(--cs-surface-radius);
+    background: var(--cs-bg-surface-1);
+  }
+
+  .risk-record__link-form :is(h3, p, form) {
+    margin: 0;
+  }
+
+  .risk-record__link-form > div:first-child p {
+    margin-block-start: var(--cs-primitive-space-1);
+    color: var(--cs-text-muted);
+  }
+
+  .risk-record__link-form form {
+    display: grid;
+    gap: var(--cs-space-group);
+    max-inline-size: 44rem;
+  }
+
+  .risk-record__link-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cs-space-inline);
+  }
+
   .risk-record__history .section-header p {
     margin: var(--cs-primitive-space-1) 0 0;
     color: var(--cs-text-muted);
