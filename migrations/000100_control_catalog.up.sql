@@ -49,4 +49,26 @@ CREATE INDEX control_catalog_definition_links_idx
 CREATE INDEX control_catalog_entity_links_idx
     ON control_catalog_implementation_links(tenant_id,legal_entity_id,created_at,id);
 
+CREATE TABLE risk_control_links (
+    id uuid PRIMARY KEY DEFAULT uuidv7(),
+    tenant_id uuid NOT NULL,
+    legal_entity_id uuid NOT NULL,
+    risk_id uuid NOT NULL,
+    risk_version bigint NOT NULL CHECK (risk_version>1),
+    catalog_link_id uuid NOT NULL,
+    linked_by uuid,
+    created_at timestamptz NOT NULL,
+    UNIQUE(tenant_id,legal_entity_id,risk_id,catalog_link_id),
+    UNIQUE(tenant_id,legal_entity_id,risk_id,risk_version),
+    FOREIGN KEY(tenant_id,legal_entity_id,risk_id)
+        REFERENCES risks(tenant_id,legal_entity_id,id),
+    FOREIGN KEY(catalog_link_id,tenant_id,legal_entity_id)
+        REFERENCES control_catalog_implementation_links(id,tenant_id,legal_entity_id),
+    FOREIGN KEY(linked_by,tenant_id)
+        REFERENCES principals(id,tenant_id)
+);
+
+CREATE INDEX risk_control_links_risk_idx
+    ON risk_control_links(tenant_id,legal_entity_id,risk_id,risk_version DESC,id DESC);
+
 COMMIT;
