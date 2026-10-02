@@ -79,7 +79,7 @@ func (r *PostgresRepository) OpenOrUpdateAdverseEpisode(ctx context.Context, obs
 
 	eventType := EventMonitoringAdverseEpisodeUpdated
 	change := AdverseEpisodeUpdated
-	if episodeWorsened(current, observation.Result) {
+	if episodeWorsened(current, observation) {
 		eventType = EventMonitoringAdverseEpisodeWorsened
 		change = AdverseEpisodeWorsened
 	}
