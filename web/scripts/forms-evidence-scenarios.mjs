@@ -32,6 +32,21 @@ async function openFormsTab(page, tab, heading = tab) {
   await page.getByRole("heading", { name: heading, exact: true }).waitFor({ state: "visible" });
 }
 
+async function selectPortfolioLens(page, name) {
+  const navigation = page.getByRole("navigation", { name: "Portfolio lenses" });
+  const button = navigation.getByRole("button", { name, exact: true });
+  if (await button.isVisible()) {
+    await button.click();
+    return;
+  }
+  const compact = page.locator(".cs-workspace-switcher__compact .cs-select-field__trigger");
+  await compact.waitFor({ state: "visible" });
+  await compact.click();
+  const listbox = page.getByRole("listbox");
+  await listbox.waitFor({ state: "visible" });
+  await listbox.getByRole("option", { name, exact: true }).click();
+}
+
 async function selectFormsSection(page, name) {
   await page.locator(".cs-tabs--compact-select").waitFor({ state: "visible" });
   const compact = page.getByRole("button", { name: / Forms section$/ });
@@ -830,9 +845,11 @@ async function verifyFormsSectionResumption(page) {
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await selectFormsSection(page, "Documents");
-  await page.getByRole("button", { name: "Forms", exact: true }).click();
+  await selectPortfolioLens(page, "Programs");
+  await page.getByRole("heading", { name: "Programs", exact: true }).waitFor({ state: "visible" });
+  await selectPortfolioLens(page, "Forms");
   await selected("Templates");
-  if (new URL(page.url()).hash !== "#forms") throw new Error("Primary Forms navigation must open the Templates root.");
+  if (new URL(page.url()).hash !== "#forms") throw new Error("Returning to the Forms Portfolio lens must open the Templates root.");
   await page.reload({ waitUntil: "networkidle" });
   await selected("Templates");
   await selectFormsSection(page, "Documents");

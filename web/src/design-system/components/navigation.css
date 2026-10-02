@@ -93,3 +93,67 @@
   .cs-tabs__indicator { background: Highlight; }
   .cs-scope-bar__item { border-color: ButtonText; }
 }
+
+
+.cs-workspace-switcher {
+  min-inline-size: 0;
+  border-block-end: var(--cs-tabs-border-width) solid var(--cs-tabs-border);
+}
+
+.cs-workspace-switcher__list {
+  display: flex;
+  min-inline-size: 0;
+  flex-wrap: wrap;
+  gap: var(--cs-tabs-gap);
+}
+
+.cs-workspace-switcher__item {
+  position: relative;
+  display: inline-flex;
+  min-block-size: var(--cs-tabs-height);
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--cs-tabs-padding-inline);
+  border: 0;
+  background: transparent;
+  color: var(--cs-tabs-text);
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.cs-workspace-switcher__item[data-hovered] {
+  background: var(--cs-tabs-hover);
+  color: var(--cs-tabs-text-hover);
+}
+
+.cs-workspace-switcher__item[aria-current="page"] {
+  color: var(--cs-tabs-text-selected);
+}
+
+.cs-workspace-switcher__item[data-focus-visible] {
+  box-shadow: inset 0 0 0 var(--cs-focus-width) var(--cs-focus-ring);
+}
+
+.cs-workspace-switcher__indicator {
+  position: absolute;
+  inset-inline: var(--cs-tabs-indicator-inset);
+  inset-block-end: calc(var(--cs-tabs-border-width) * -1);
+  block-size: var(--cs-tabs-indicator-height);
+  border-radius: var(--cs-tabs-indicator-radius) var(--cs-tabs-indicator-radius) 0 0;
+  background: var(--cs-tabs-indicator);
+}
+
+.cs-workspace-switcher__compact {
+  display: none;
+  padding-block: var(--cs-primitive-space-2);
+}
+
+@media (max-width: 760px) {
+  .cs-workspace-switcher__list { display: none; }
+  .cs-workspace-switcher__compact { display: block; }
+}
+
+@media (forced-colors: active) {
+  .cs-workspace-switcher__indicator { background: Highlight; }
+}

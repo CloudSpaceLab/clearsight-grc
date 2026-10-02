@@ -174,7 +174,7 @@ async function capturePage(capture) {
       await page.getByRole("heading", { name: "Due diligence" }).waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Use a starter template" }).click();
       await page.getByRole("dialog", { name: "Set up due-diligence form" }).waitFor({ state: "visible" });
-      await page.getByLabel("Program").waitFor({ state: "visible" });
+      await page.locator(".vendor-form-readiness select").waitFor({ state: "visible" });
     }
     if (capture.openVendorLink) {
       const link = page.getByRole("button", { name: "Link vendor" });
@@ -907,7 +907,8 @@ async function captureVendorActivationRecovery() {
           return originalFetch(input, init);
         };
       });
-      await page.getByRole("button", { name: "Vendors", exact: true }).click();
+      await page.getByRole("button", { name: "Portfolio", exact: true }).click();
+      await page.getByRole("navigation", { name: "Portfolio lenses" }).getByRole("button", { name: "Vendors", exact: true }).click();
       await page.getByRole("navigation", { name: "Vendor sections" }).getByRole("button", { name: "Register", exact: true }).click();
       await page.getByRole("button", { name: /Sample · Acme Processing Limited/ }).click();
       await openVendorSection(page, "Due diligence");

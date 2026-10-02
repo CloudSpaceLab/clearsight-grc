@@ -22,6 +22,7 @@
     "src/components/ui/Tabs.tsx",
     "src/components/ui/TextArea.tsx",
     "src/components/ui/TextField.tsx",
+    "src/components/ui/WorkspaceSwitcher.tsx",
     "src/components/ui-gallery/UIComponentGallery.tsx",
     "src/components/FormsWorkspace.tsx",
     "src/components/VendorPortfolio.tsx",
@@ -207,6 +208,11 @@
     "Tabs": [
       "automatic-activation",
       "wrapped-compact"
+    ],
+    "WorkspaceSwitcher": [
+      "selected",
+      "navigation",
+      "compact-select"
     ],
     "ScopeBar": [
       "selected",
