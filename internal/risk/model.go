@@ -119,7 +119,7 @@ type Aggregate struct {
 	Assessments    []Assessment        `json:"assessments"`
 	Appetite       []AppetiteStatement `json:"appetite"`
 	ActiveAppetite *AppetiteStatement  `json:"active_appetite,omitempty"`
-	Controls       []ControlLink        `json:"controls"`
+	Controls       []ControlLink       `json:"controls"`
 }
 
 type Event struct {
