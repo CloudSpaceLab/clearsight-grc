@@ -49,6 +49,7 @@ type serviceSet struct {
 	FormCommunicationTestDelivery  *evidence.InvitationDeliveryService
 	FormPolicies                   *formpolicy.Service
 	Monitoring                     *monitoring.Service
+	MonitoringEpisodes             *monitoring.AdverseEpisodeCoordinator
 	FormProposals                  *monitoring.FormProposalService
 	ThirdParty                     *thirdparty.Service
 	ThirdPartyBrandRepo            thirdparty.VendorBrandMutationRepository
