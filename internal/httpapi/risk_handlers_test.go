@@ -66,7 +66,7 @@ func TestRiskHTTPBindsVerifiedScopeAndActor(t *testing.T) {
 		"statement":"Critical network service may exceed approved recovery tolerance.",
 		"impact":"Customers cannot access critical services within the approved tolerance.",
 		"scope":{"service":"critical-network"},
-		"owner_principal_id":"risk-owner",
+		"owner_principal_id":"spoofed-owner",
 		"actor_id":"spoofed-actor"
 	}`
 	create := httptest.NewRecorder()
@@ -78,8 +78,8 @@ func TestRiskHTTPBindsVerifiedScopeAndActor(t *testing.T) {
 	if err := json.Unmarshal(create.Body.Bytes(), &created); err != nil {
 		t.Fatal(err)
 	}
-	if created.TenantID != "bank" || created.LegalEntityID != "entity-a" {
-		t.Fatalf("created scope = %#v", created)
+	if created.TenantID != "bank" || created.LegalEntityID != "entity-a" || created.OwnerPrincipalID != "risk-owner" {
+		t.Fatalf("created scope/owner = %#v", created)
 	}
 
 	now = now.Add(time.Minute)
