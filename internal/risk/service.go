@@ -16,13 +16,20 @@ const (
 	EventControlLinked     = "RiskControlLinked"
 )
 
+type ControlLinkValidator func(context.Context, Scope, string) error
+
 type Service struct {
-	repository Repository
-	Now        func() time.Time
+	repository           Repository
+	controlLinkValidator ControlLinkValidator
+	Now                  func() time.Time
 }
 
 func NewService(repository Repository) *Service {
 	return &Service{repository: repository}
+}
+
+func (s *Service) ConfigureControlLinkValidator(validator ControlLinkValidator) {
+	s.controlLinkValidator = validator
 }
 
 func (s *Service) Create(ctx context.Context, input CreateInput) (Risk, error) {
@@ -222,8 +229,11 @@ func (s *Service) LinkControl(ctx context.Context, input LinkControlInput) (Risk
 		return Risk{}, ControlLink{}, ErrVersionConflict
 	}
 	catalogLinkID := strings.TrimSpace(input.CatalogLinkID)
-	if catalogLinkID == "" {
+	if catalogLinkID == "" || s.controlLinkValidator == nil {
 		return Risk{}, ControlLink{}, ErrInvalid
+	}
+	if err := s.controlLinkValidator(ctx, scope, catalogLinkID); err != nil {
+		return Risk{}, ControlLink{}, err
 	}
 	now := s.now()
 	control := ControlLink{
