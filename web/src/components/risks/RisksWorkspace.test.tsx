@@ -66,6 +66,49 @@ const aggregate: RiskAggregate = {
   assessments: [assessment],
   appetite: [appetite],
   active_appetite: appetite,
+  controls: [{
+    id: "risk-control-1",
+    risk_id: risk.id,
+    risk_version: 3,
+    catalog_link_id: "catalog-link-1",
+    created_at: "2026-10-02T09:11:00Z",
+  }],
+  control_details: [{
+    link: {
+      id: "risk-control-1",
+      risk_id: risk.id,
+      risk_version: 3,
+      catalog_link_id: "catalog-link-1",
+      created_at: "2026-10-02T09:11:00Z",
+    },
+    definition: {
+      id: "control-definition-1",
+      code: "NET-01",
+      name: "Network recovery testing",
+      objective: "Recovery paths meet the approved service tolerance.",
+      description: "",
+      category: "Resilience",
+      status: "ACTIVE",
+      version: 1,
+    },
+    program_id: "program-1",
+    program_name: "Network resilience program",
+    implementation_id: "implementation-1",
+    objective_id: "objective-1",
+    implementation_name: "Quarterly recovery exercise",
+    implementation_type: "OWNER_REVIEW",
+    implementation_status: "IMPLEMENTED",
+    implementation_version: 4,
+    owner_display_name: "Jordan Ellis",
+    owner_assigned: true,
+    evidence: [{
+      contract_id: "evidence-1",
+      name: "Recovery exercise result",
+      conclusion: "SUPPORTED",
+      assessed_at: "2026-10-02T08:45:00Z",
+    }],
+  }],
+  control_details_complete: true,
 };
 
 it("renders a bounded Risk register with working-language appetite state", async () => {
@@ -126,6 +169,21 @@ it("shows statement, impact, scope and history without exposing principal identi
   expect(screen.queryByText(risk.owner_principal_id!)).toBeNull();
   expect(screen.queryByText(assessment.assessed_by)).toBeNull();
   expect(screen.queryByText(appetite.authority_principal_id)).toBeNull();
+});
+
+it("shows linked controls from Program truth and opens the existing safeguard workspace", async () => {
+  const onOpenProgramControl = vi.fn();
+  render(<RiskRecord riskID="risk-1" onBack={vi.fn()} onOpenProgramControl={onOpenProgramControl} loadRisk={vi.fn().mockResolvedValue(aggregate)}/>);
+
+  const controls = await screen.findByRole("table", { name: "Risk controls" });
+  expect(within(controls).getByText("Network recovery testing")).toBeTruthy();
+  expect(within(controls).getByText("Quarterly recovery exercise")).toBeTruthy();
+  expect(within(controls).getByText("Implemented")).toBeTruthy();
+  expect(within(controls).getByText("Jordan Ellis")).toBeTruthy();
+  expect(within(controls).getByText("1 active check · Supported")).toBeTruthy();
+
+  fireEvent.click(within(controls).getByRole("button", { name: /Open control for Network recovery testing/ }));
+  expect(onOpenProgramControl).toHaveBeenCalledWith("program-1", "objective-1");
 });
 
 it("does not present a stale assessment as the current appetite position", async () => {
