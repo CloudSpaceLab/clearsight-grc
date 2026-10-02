@@ -37,12 +37,18 @@ func (s *Service) Promote(ctx context.Context, input PromoteInput) (Definition, 
 	if err := validateDefinition(definition); err != nil {
 		return Definition{}, ImplementationLink{}, err
 	}
-	definition.ID = mustNewID()
+	definition.ID, err = platformid.NewUUIDv7()
+	if err != nil {
+		return Definition{}, ImplementationLink{}, err
+	}
 	link := canonicalLink(input.TenantID, input.LegalEntityID, definition.ID, input.ProgramID, input.ImplementationID, now)
 	if err := validateLink(link); err != nil {
 		return Definition{}, ImplementationLink{}, err
 	}
-	link.ID = mustNewID()
+	link.ID, err = platformid.NewUUIDv7()
+	if err != nil {
+		return Definition{}, ImplementationLink{}, err
+	}
 	return s.repo.CreateWithImplementationLink(ctx, definition, link)
 }
 
@@ -61,7 +67,10 @@ func (s *Service) LinkImplementation(ctx context.Context, input LinkImplementati
 	if err := validateLink(link); err != nil {
 		return ImplementationLink{}, err
 	}
-	link.ID = mustNewID()
+	link.ID, err = platformid.NewUUIDv7()
+	if err != nil {
+		return ImplementationLink{}, err
+	}
 	return s.repo.LinkImplementation(ctx, link)
 }
 
@@ -122,10 +131,3 @@ func (s *Service) now() time.Time {
 	return time.Now().UTC()
 }
 
-func mustNewID() string {
-	value, err := platformid.NewUUIDv7()
-	if err != nil {
-		panic(err)
-	}
-	return value
-}
