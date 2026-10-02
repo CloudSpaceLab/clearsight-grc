@@ -39,7 +39,7 @@ func (a *API) linkRiskIndicator(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		program, err = a.programForActor(r.Context(), program, nil)
 	}
-	if err != nil || program.Program.LegalEntityID != actor.LegalEntityID {
+	if err != nil || program.Program.LegalEntityID != actor.LegalEntityID || program.Program.Status != continuity.ProgramActive {
 		if errors.Is(err, continuity.ErrNotFound) {
 			writeRiskError(w, risk.ErrInvalid)
 			return
