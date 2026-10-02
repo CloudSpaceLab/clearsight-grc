@@ -91,7 +91,6 @@
 
 .oversight-period-control { display: grid; justify-items: stretch; gap: 4px; min-width: 220px; max-width: 330px; }
 .oversight-period-control > small { color: var(--muted); font-size: .69rem; text-align: right; }
-.oversight-period-control .cs-notice { margin: 4px 0 0; text-align: left; }
 .oversight-period-trigger { width: 100%; min-height: 50px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
 .oversight-period-trigger:hover { border-color: color-mix(in srgb, var(--cyan) 48%, var(--border)); }
 .oversight-period-trigger__label { color: var(--muted); font-size: .66rem; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }
