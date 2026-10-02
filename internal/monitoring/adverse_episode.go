@@ -3,7 +3,6 @@ package monitoring
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -17,6 +16,7 @@ const (
 	AggregateMonitoringAdverseEpisode = "MONITORING_ADVERSE_EPISODE"
 
 	EventMonitoringAdverseEpisodeOpened       = "MONITORING_ADVERSE_EPISODE_OPENED"
+	EventMonitoringAdverseEpisodeUpdated      = "MONITORING_ADVERSE_EPISODE_UPDATED"
 	EventMonitoringAdverseEpisodeWorsened     = "MONITORING_ADVERSE_EPISODE_WORSENED"
 	EventMonitoringAdverseEpisodeCleared      = "MONITORING_ADVERSE_EPISODE_CLEARED"
 	EventMonitoringAdverseEpisodeMatterLinked = "MONITORING_ADVERSE_EPISODE_MATTER_LINKED"
@@ -310,6 +310,7 @@ func episodeWorsened(before AdverseEpisode, result MonitoringResult) bool {
 func episodeEventPayload(value AdverseEpisode) map[string]any {
 	return map[string]any{
 		"episode_id": value.ID,
+		"version": value.RecordVersion,
 		"legal_entity_id": value.LegalEntityID,
 		"program_id": value.ProgramID,
 		"monitoring_check_id": value.MonitoringCheckID,
@@ -327,4 +328,3 @@ func episodeEventPayload(value AdverseEpisode) map[string]any {
 	}
 }
 
-var _ = errors.Is
