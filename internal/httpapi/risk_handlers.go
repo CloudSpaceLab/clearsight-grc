@@ -95,6 +95,7 @@ func (a *API) createRisk(w http.ResponseWriter, r *http.Request) {
 	input.TenantID = actor.TenantID
 	input.LegalEntityID = actor.LegalEntityID
 	input.ActorID = actor.PrincipalID
+	input.OwnerPrincipalID = actor.PrincipalID
 	value, err := service.Create(r.Context(), input)
 	if err != nil {
 		writeRiskError(w, err)
