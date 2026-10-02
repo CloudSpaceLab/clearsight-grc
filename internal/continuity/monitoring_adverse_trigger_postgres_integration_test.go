@@ -68,7 +68,7 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 		ID: triggerID, TenantID: "monitoring-adverse-trigger-test", ProgramID: program.Program.ID,
 		Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_RESULT", SubjectID: resultID,
 		DedupeKey: "monitoring-result-adverse:" + resultID, MatterDedupeKey: "monitoring-check-adverse:" + checkID,
-		Payload: json.RawMessage(`{"risk_band":"HIGH","score":72}`),
+		Payload:    json.RawMessage(`{"risk_band":"HIGH","score":72}`),
 		ObservedAt: now.Add(time.Minute), Source: "monitoring", ActorID: reviewerID,
 	}
 	updated, matter, inserted, err := service.ApplyTrigger(ctx, trigger)
