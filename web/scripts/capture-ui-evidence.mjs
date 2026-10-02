@@ -907,7 +907,8 @@ async function captureVendorActivationRecovery() {
           return originalFetch(input, init);
         };
       });
-      await page.getByRole("button", { name: "Vendors", exact: true }).click();
+      await page.getByRole("button", { name: "Portfolio", exact: true }).click();
+      await page.getByRole("navigation", { name: "Portfolio lenses" }).getByRole("button", { name: "Vendors", exact: true }).click();
       await page.getByRole("navigation", { name: "Vendor sections" }).getByRole("button", { name: "Register", exact: true }).click();
       await page.getByRole("button", { name: /Sample · Acme Processing Limited/ }).click();
       await openVendorSection(page, "Due diligence");
