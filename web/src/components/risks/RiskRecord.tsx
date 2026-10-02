@@ -3,7 +3,7 @@ import { getRisk } from "../../riskApi";
 import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment, RiskControlDetail } from "../../riskTypes";
 import { apiErrorKind } from "../../http";
 import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
-import { appetiteLabel, appetiteTone, assessmentKindLabel, controlEvidenceSummary, controlImplementationLabel, controlImplementationTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
+import { appetiteLabel, appetiteTone, assessmentKindLabel, controlEvidenceSummary, controlImplementationStatusLabel, controlImplementationStatusTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
 
 type Props = {
   riskID: string;
@@ -76,8 +76,8 @@ export function RiskRecord({ riskID, onBack, onOpenProgramControl, loadRisk = ge
       id: "state",
       header: "State",
       kind: "status",
-      render: (item) => <StatusBadge tone={controlImplementationTone(item.implementation_status)}>{controlImplementationLabel(item.implementation_status)}</StatusBadge>,
-      accessibleText: (item) => controlImplementationLabel(item.implementation_status),
+      render: (item) => <StatusBadge tone={controlImplementationStatusTone(item.implementation_status)}>{controlImplementationStatusLabel(item.implementation_status)}</StatusBadge>,
+      accessibleText: (item) => controlImplementationStatusLabel(item.implementation_status),
     },
     {
       id: "owner",
@@ -140,7 +140,7 @@ export function RiskRecord({ riskID, onBack, onOpenProgramControl, loadRisk = ge
         ariaLabel="Risk controls"
         rows={value.control_details}
         rowKey={(item) => item.link.id}
-        rowName={(item) => `${item.definition.name}, ${item.implementation_name}, ${controlImplementationLabel(item.implementation_status)}`}
+        rowName={(item) => `${item.definition.name}, ${item.implementation_name}, ${controlImplementationStatusLabel(item.implementation_status)}`}
         columns={controlColumns}
         onRowAction={onOpenProgramControl ? (item) => onOpenProgramControl(item.program_id, item.objective_id) : undefined}
         rowActionLabel="Open control"
