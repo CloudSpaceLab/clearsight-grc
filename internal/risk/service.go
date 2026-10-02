@@ -227,8 +227,11 @@ func (s *Service) LinkControl(ctx context.Context, input LinkControlInput) (Risk
 	}
 	now := s.now()
 	control := ControlLink{
-		RiskID: current.ID, RiskVersion: current.Version + 1,
-		CatalogLinkID: catalogLinkID, LinkedBy: strings.TrimSpace(input.ActorID), CreatedAt: now,
+		RiskID:        current.ID,
+		RiskVersion:   current.Version + 1,
+		CatalogLinkID: catalogLinkID,
+		LinkedBy:      strings.TrimSpace(input.ActorID),
+		CreatedAt:     now,
 	}
 	control.ID, err = newID()
 	if err != nil {
