@@ -118,15 +118,25 @@ func (c *AdverseEpisodeCoordinator) Reconcile(ctx context.Context, observation A
 		return AdverseEpisodeResult{Episode: closed, EpisodeChange: change}, nil
 	}
 
-	episodeID, err := c.nextID()
-	if err != nil {
-		return AdverseEpisodeResult{}, err
+	episodeID := ""
+	current, lookupErr := c.Repository.OpenAdverseEpisode(ctx, observation.TenantID, observation.LegalEntityID, observation.Check.ID)
+	switch {
+	case lookupErr == nil:
+		episodeID = current.ID
+	case errors.Is(lookupErr, ErrNotFound):
+		episodeID, err = c.nextID()
+		if err != nil {
+			return AdverseEpisodeResult{}, err
+		}
+	default:
+		return AdverseEpisodeResult{}, lookupErr
 	}
+
 	episode, change, err := c.Repository.OpenOrUpdateAdverseEpisode(ctx, observation, episodeID, now)
 	if errors.Is(err, ErrConflict) {
 		// Another worker/API request may have opened the same stable episode
 		// after this caller observed no row. Retry against that committed row.
-		current, lookupErr := c.Repository.OpenAdverseEpisode(ctx, observation.TenantID, observation.LegalEntityID, observation.Check.ID)
+		current, lookupErr = c.Repository.OpenAdverseEpisode(ctx, observation.TenantID, observation.LegalEntityID, observation.Check.ID)
 		if lookupErr != nil {
 			return AdverseEpisodeResult{}, err
 		}
