@@ -43,6 +43,11 @@
   background: var(--cs-bg-surface-1);
 }
 
+.notification-center__item.is-unread {
+  border-inline-start: var(--cs-primitive-border-2) solid var(--cs-status-info);
+  background: color-mix(in srgb, var(--cs-status-info) 5%, var(--cs-bg-surface-1));
+}
+
 .notification-center__item-copy {
   display: grid;
   min-inline-size: 0;
