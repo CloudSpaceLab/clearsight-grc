@@ -80,6 +80,48 @@ func TestNotificationServiceScopesPagesAndMarksRead(t *testing.T) {
 	}
 }
 
+func TestMemoryNotificationIDsAreDistinctPerKindAndCursorCompatible(t *testing.T) {
+	repo := NewMemoryRepository(nil)
+	base := time.Date(2026, 10, 2, 6, 0, 0, 0, time.UTC)
+	common := inAppNotificationRecord{
+		TenantID: "bank", LegalEntityID: "entity-ng", PrincipalID: "person-a",
+		OutboxEventID: "10000000-0000-4000-8000-000000000099",
+		SubjectType: "MATTER", SubjectID: "20000000-0000-4000-8000-000000000099",
+		ActionPath: "#work/matters/20000000-0000-4000-8000-000000000099", OccurredAt: base,
+	}
+	first := common
+	first.Kind = matterOwnerNotificationKind
+	first.Title = "Issue assigned to you"
+	second := common
+	second.Kind = commentMentionNotificationKind
+	second.Title = "You were mentioned"
+
+	if err := repo.StoreInAppNotification(context.Background(), first); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.StoreInAppNotification(context.Background(), second); err != nil {
+		t.Fatal(err)
+	}
+	page, err := NewService(repo).ListNotifications(context.Background(), NotificationFilter{
+		TenantID: "bank", LegalEntityID: "entity-ng", PrincipalID: "person-a", Limit: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.NextCursor == "" || !validNotificationUUID(page.Items[0].ID) {
+		t.Fatalf("first page = %#v", page)
+	}
+	next, err := NewService(repo).ListNotifications(context.Background(), NotificationFilter{
+		TenantID: "bank", LegalEntityID: "entity-ng", PrincipalID: "person-a", Limit: 1, Cursor: page.NextCursor,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(next.Items) != 1 || next.Items[0].ID == page.Items[0].ID || !validNotificationUUID(next.Items[0].ID) {
+		t.Fatalf("second page = %#v first=%#v", next, page.Items[0])
+	}
+}
+
 func TestNotificationServiceRejectsInvalidCursor(t *testing.T) {
 	service := NewService(NewMemoryRepository(nil))
 	_, err := service.ListNotifications(context.Background(), NotificationFilter{
