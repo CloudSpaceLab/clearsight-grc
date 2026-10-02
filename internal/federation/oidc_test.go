@@ -182,7 +182,7 @@ func TestSwitchScopeRejectsMismatchedActorAndInvalidTarget(t *testing.T) {
 	if _, err := service.SwitchScope(ctx, identity.Actor{TenantID: "other", PrincipalID: "principal-1"}, "BANK-GH"); !errors.Is(err, ErrScopeUnavailable) {
 		t.Fatalf("mismatched actor error = %v", err)
 	}
-	if _, err := service.SwitchScope(ctx, identity.Actor{TenantID: "bank-demo", PrincipalID: "principal-1"}, "BANK-GH\n"); !errors.Is(err, ErrScopeInvalid) {
+	if _, err := service.SwitchScope(ctx, identity.Actor{TenantID: "bank-demo", PrincipalID: "principal-1"}, "BANK-\nGH"); !errors.Is(err, ErrScopeInvalid) {
 		t.Fatalf("invalid target error = %v", err)
 	}
 	if resolver.calls != 0 {
