@@ -141,7 +141,7 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
     ...currentSnapshot,
     period_start: "2026-08-02T00:00:00Z",
     reporting_period: nextPeriod,
-    performance: currentSnapshot.performance.map((item) => ({ ...item, completed: 3, measurement_samples: 3 })),
+    performance: currentSnapshot.performance.map((item: any) => ({ ...item, completed: 3, measurement_samples: 3 })),
   });
   vi.mocked(metricApi.loadHomeMetrics).mockResolvedValueOnce({
     ...currentMetrics,
