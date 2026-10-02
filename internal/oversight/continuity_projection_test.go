@@ -62,7 +62,6 @@ func oversightMatter(id string, scope json.RawMessage, now time.Time) continuity
 	}
 }
 
-
 func TestMatterAggregateReportingPeriodChangesHistoryNotCurrentPosture(t *testing.T) {
 	now := time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)
 	closedAt := now.Add(-60 * 24 * time.Hour)
@@ -82,8 +81,8 @@ func TestMatterAggregateReportingPeriodChangesHistoryNotCurrentPosture(t *testin
 		}},
 	}
 
-	short := FromMatterAggregatesForPeriod("bank", "bank-ng", aggregates, now.Add(-30*24*time.Hour), now)
-	long := FromMatterAggregatesForPeriod("bank", "bank-ng", aggregates, now.Add(-90*24*time.Hour), now)
+	short := FromMatterAggregatesForPeriod("bank", "bank-ng", aggregates, now.Add(-30 * 24 * time.Hour), now)
+	long := FromMatterAggregatesForPeriod("bank", "bank-ng", aggregates, now.Add(-90 * 24 * time.Hour), now)
 
 	if short.Counts != long.Counts || short.Counts.CriticalHigh != 1 || short.Counts.Overdue != 1 {
 		t.Fatalf("current posture changed with history window: short=%#v long=%#v", short.Counts, long.Counts)
