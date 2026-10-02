@@ -127,11 +127,13 @@ func TestPostgresInAppNotificationsStayActorAndEntityScoped(t *testing.T) {
 	if _, err := pool.Exec(ctx, `DELETE FROM outbox_events WHERE id=$1::uuid AND tenant_id=$2::uuid`, eventA2, tenantID); err != nil {
 		t.Fatal(err)
 	}
-	retained, err := service.ListNotifications(ctx, scopeA)
+	retained, err := service.ListNotifications(ctx, NotificationFilter{
+		TenantID: scopeA.TenantID, LegalEntityID: scopeA.LegalEntityID, PrincipalID: scopeA.PrincipalID, Limit: 10,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(retained.Items) != 2 {
+	if len(retained.Items) != 2 || retained.UnreadCount != 2 {
 		t.Fatalf("notification retention changed with outbox cleanup: %#v", retained)
 	}
 
