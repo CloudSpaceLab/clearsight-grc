@@ -20,9 +20,9 @@ var currencyPattern = regexp.MustCompile(`^[A-Z]{3}$`)
 type ReferenceValidator func(context.Context, Scope, Loss) error
 
 type Service struct {
-	repo      Repository
-	validate  ReferenceValidator
-	Now       func() time.Time
+	repo     Repository
+	validate ReferenceValidator
+	Now      func() time.Time
 }
 
 func NewService(repo Repository) *Service {
@@ -45,7 +45,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Loss, error) {
 	loss := Loss{
 		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID,
 		OrganizationScopeID: strings.TrimSpace(input.OrganizationScopeID),
-		Code: strings.ToUpper(strings.TrimSpace(input.Code)), Title: strings.TrimSpace(input.Title),
+		Code:                strings.ToUpper(strings.TrimSpace(input.Code)), Title: strings.TrimSpace(input.Title),
 		EventType: input.EventType, Cause: strings.TrimSpace(input.Cause), Description: strings.TrimSpace(input.Description),
 		GrossAmountMinor: input.GrossAmountMinor, Currency: strings.ToUpper(strings.TrimSpace(input.Currency)),
 		OccurredAt: input.OccurredAt.UTC(), DiscoveredAt: input.DiscoveredAt.UTC(),
