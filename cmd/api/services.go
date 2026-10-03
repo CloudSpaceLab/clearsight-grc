@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 
@@ -90,6 +91,119 @@ type serviceSet struct {
 	SessionStore                   scs.Store
 	SCIM                           *scimapi.Service
 	Close                          func()
+}
+
+const rcsaChallengeDecisionType = "RCSA_CHALLENGE"
+
+var rcsaChallengeOptions = json.RawMessage(`["ACCEPT_FIRST_LINE","REQUIRE_CHANGES","DEFICIENCY_CONFIRMED"]`)
+
+func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
+	if cycles == nil {
+		return
+	}
+	cycles.ConfigureChallenge(
+		func(ctx context.Context, scope rcsa.Scope, cycle rcsa.Cycle, actorID string) (string, error) {
+			if matters == nil {
+				return "", rcsa.ErrInvalid
+			}
+			trusted := continuity.WithTrustedSystemEntityScope(ctx, scope.TenantID, scope.LegalEntityID)
+			triggerKey := "rcsa-challenge:" + cycle.ID
+			aggregate, err := matters.MatterByTriggerKey(trusted, scope.TenantID, triggerKey)
+			if errors.Is(err, continuity.ErrNotFound) {
+				scopeJSON, marshalErr := json.Marshal(map[string]any{
+					"rcsa_cycle_id": cycle.ID,
+					"population_checksum": cycle.PopulationChecksum,
+					"first_line_response_revision_id": cycle.FirstLineResponseRevisionID,
+				})
+				if marshalErr != nil {
+					return "", marshalErr
+				}
+				knownFacts, marshalErr := json.Marshal(map[string]any{
+					"rcsa_cycle_id": cycle.ID,
+					"population_checksum": cycle.PopulationChecksum,
+					"first_line_response_revision_id": cycle.FirstLineResponseRevisionID,
+				})
+				if marshalErr != nil {
+					return "", marshalErr
+				}
+				aggregate, err = matters.CreateMatter(trusted, continuity.CreateMatterInput{
+					TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID,
+					Type: continuity.MatterRiskSituation, Priority: 3,
+					Title: "Challenge " + cycle.Name,
+					Summary: "Independent review of the completed first-line RCSA assessment.",
+					Scope: scopeJSON, SourceType: "RCSA_CYCLE", SourceID: cycle.ID,
+					TriggerType: "RCSA_CHALLENGE_REQUIRED", TriggerID: cycle.ID, TriggerKey: triggerKey,
+					KnownFacts: knownFacts, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`),
+					OwnerPrincipalID: actorID, RequiredAuthority: "AUTHORIZER", ActorID: actorID,
+				})
+				if errors.Is(err, continuity.ErrDuplicate) {
+					aggregate, err = matters.MatterByTriggerKey(trusted, scope.TenantID, triggerKey)
+				}
+			}
+			if err != nil || !validRCSAChallengeMatter(aggregate, scope, cycle) {
+				return "", rcsa.ErrInvalid
+			}
+			if continuity.CurrentDecisionForType(aggregate.Decisions, rcsaChallengeDecisionType) == nil {
+				aggregate, err = matters.RecordDecisionLifecycle(trusted, continuity.AddDecisionInput{
+					TenantID: scope.TenantID, MatterID: aggregate.Matter.ID, ExpectedVersion: aggregate.Matter.Version,
+					Type: rcsaChallengeDecisionType, Status: continuity.DecisionProposed,
+					Options: rcsaChallengeOptions,
+					Rationale: "Independent challenge of the submitted first-line RCSA assessment.",
+					Conditions: json.RawMessage(`[]`), AuthorityPrincipalID: actorID,
+				})
+				if err != nil {
+					return "", err
+				}
+			}
+			return aggregate.Matter.ID, nil
+		},
+		func(ctx context.Context, scope rcsa.Scope, cycle rcsa.Cycle) error {
+			if matters == nil || cycle.ChallengeMatterID == "" {
+				return rcsa.ErrInvalid
+			}
+			trusted := continuity.WithTrustedSystemEntityScope(ctx, scope.TenantID, scope.LegalEntityID)
+			aggregate, err := matters.GetMatter(trusted, scope.TenantID, cycle.ChallengeMatterID)
+			if err != nil || !validRCSAChallengeMatter(aggregate, scope, cycle) {
+				return rcsa.ErrInvalid
+			}
+			decision := continuity.CurrentDecisionForType(aggregate.Decisions, rcsaChallengeDecisionType)
+			if decision == nil || decision.AuthorityPrincipalID == "" || decision.AuthorityPrincipalID == cycle.FirstLineOwnerID {
+				return rcsa.ErrInvalid
+			}
+			switch decision.Status {
+			case continuity.DecisionApproved, continuity.DecisionConditionallyApproved, continuity.DecisionRejected:
+			default:
+				return rcsa.ErrInvalid
+			}
+			switch decision.SelectedOption {
+			case "ACCEPT_FIRST_LINE", "REQUIRE_CHANGES", "DEFICIENCY_CONFIRMED":
+				return nil
+			default:
+				return rcsa.ErrInvalid
+			}
+		},
+	)
+}
+
+func validRCSAChallengeMatter(aggregate continuity.MatterAggregate, scope rcsa.Scope, cycle rcsa.Cycle) bool {
+	matter := aggregate.Matter
+	if matter.ID == "" || matter.TenantID != cycle.TenantID || matter.LegalEntityID != cycle.LegalEntityID ||
+		matter.LegalEntityID != scope.LegalEntityID || matter.Type != continuity.MatterRiskSituation ||
+		matter.SourceType != "RCSA_CYCLE" || matter.SourceID != cycle.ID ||
+		matter.TriggerType != "RCSA_CHALLENGE_REQUIRED" || matter.TriggerKey != "rcsa-challenge:"+cycle.ID {
+		return false
+	}
+	var metadata struct {
+		CycleID                    string `json:"rcsa_cycle_id"`
+		PopulationChecksum         string `json:"population_checksum"`
+		FirstLineResponseRevision string `json:"first_line_response_revision_id"`
+	}
+	if err := json.Unmarshal(matter.Scope, &metadata); err != nil {
+		return false
+	}
+	return metadata.CycleID == cycle.ID &&
+		metadata.PopulationChecksum == cycle.PopulationChecksum &&
+		metadata.FirstLineResponseRevision == cycle.FirstLineResponseRevisionID
 }
 
 func configureRCSAFirstLine(cycles *rcsa.Service, distributions *evidence.DistributionService) {
