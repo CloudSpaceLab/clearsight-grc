@@ -16,8 +16,8 @@ func TestObservationsFromBundlePreservesHomeMetricTruth(t *testing.T) {
 		PeriodStart: now.Add(-90 * 24 * time.Hour), PeriodEnd: now, PostureAsOf: now,
 		ProjectionVersion: oversight.ProjectionVersion, Freshness: oversight.FreshnessCurrent,
 		SourceHighWater: map[string]time.Time{"matters": now.Add(-time.Minute)},
-		Coverage: oversight.Coverage{Population: 100, Excluded: &excluded, Unknown: &unknown},
-		Counts: oversight.Counts{CriticalHigh: 7, Overdue: 4, RoutingFailures: 2, OutcomeFailures: 1},
+		Coverage:        oversight.Coverage{Population: 100, Excluded: &excluded, Unknown: &unknown},
+		Counts:          oversight.Counts{CriticalHigh: 7, Overdue: 4, RoutingFailures: 2, OutcomeFailures: 1},
 	}
 	bundle := FromOversight(snapshot)
 	values, err := ObservationsFromBundle("tenant-1", "entity-1", "snapshot-1", snapshot.SourceHighWater, bundle)
