@@ -98,7 +98,7 @@
     display: grid;
     gap: var(--cs-primitive-space-3);
     padding-block-start: var(--cs-space-group);
-    border-block-start: 1px solid var(--cs-border);
+    border-block-start: 1px solid var(--border);
   }
 
   .group-revision-list__heading {
