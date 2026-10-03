@@ -222,10 +222,10 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 	unattributedRiskID := mustRiskID(t)
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO risks(id,tenant_id,legal_entity_id,organization_scope_id,code,name,statement,impact,scope,status,version,created_at,updated_at) VALUES
-			($1::uuid,$4::uuid,$5::uuid,$7::uuid,$10,'Child scope risk','Child scope risk.','Material impact.','{}'::jsonb,'ACTIVE',1,$9,$9),
-			($2::uuid,$4::uuid,$5::uuid,$8::uuid,$11,'Sibling scope risk','Sibling scope risk.','Material impact.','{}'::jsonb,'ACTIVE',1,$9,$9),
-			($3::uuid,$4::uuid,$5::uuid,NULL,$12,'Unattributed risk','Unattributed risk.','Material impact.','{}'::jsonb,'ACTIVE',1,$9,$9)
-	`, childRiskID, siblingRiskID, unattributedRiskID, tenantID, entityA, created.ID, childScopeID, siblingScopeID, now,
+			($1::uuid,$4::uuid,$5::uuid,$6::uuid,$9,'Child scope risk','Child scope risk.','Material impact.','{}'::jsonb,'ACTIVE',1,$8,$8),
+			($2::uuid,$4::uuid,$5::uuid,$7::uuid,$10,'Sibling scope risk','Sibling scope risk.','Material impact.','{}'::jsonb,'ACTIVE',1,$8,$8),
+			($3::uuid,$4::uuid,$5::uuid,NULL,$11,'Unattributed risk','Unattributed risk.','Material impact.','{}'::jsonb,'ACTIVE',1,$8,$8)
+	`, childRiskID, siblingRiskID, unattributedRiskID, tenantID, entityA, childScopeID, siblingScopeID, now,
 		"CHILD-"+suffix, "SIBLING-"+suffix, "UNATTRIBUTED-"+suffix); err != nil {
 		t.Fatal(err)
 	}
