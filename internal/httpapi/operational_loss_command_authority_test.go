@@ -20,8 +20,8 @@ func TestStoredOperationalLossOwnerOrDelegateRequiredForChange(t *testing.T) {
 		TenantID: "bank", LegalEntityID: "entity-a", Code: "LOSS-OWNER", Title: "Settlement loss",
 		EventType: oploss.EventExecutionDeliveryProcess, Cause: "Duplicate settlement.",
 		GrossAmountMinor: 100000, Currency: "NGN",
-		OccurredAt: time.Date(2026, 10, 3, 17, 0, 0, 0, time.UTC),
-		DiscoveredAt: time.Date(2026, 10, 3, 18, 0, 0, 0, time.UTC),
+		OccurredAt:       time.Date(2026, 10, 3, 17, 0, 0, 0, time.UTC),
+		DiscoveredAt:     time.Date(2026, 10, 3, 18, 0, 0, 0, time.UTC),
 		OwnerPrincipalID: "owner-1", ActorID: "owner-1",
 	})
 	if err != nil {
@@ -76,8 +76,8 @@ func TestOperationalLossCommandLifecycleDoesNotRevealCrossEntityRecord(t *testin
 	created, err := service.Create(t.Context(), oploss.CreateInput{
 		TenantID: "bank", LegalEntityID: "entity-a", Code: "LOSS-SCOPED", Title: "Scoped loss",
 		EventType: oploss.EventOther, Cause: "Scoped event.", GrossAmountMinor: 10000, Currency: "NGN",
-		OccurredAt: time.Date(2026, 10, 3, 17, 0, 0, 0, time.UTC),
-		DiscoveredAt: time.Date(2026, 10, 3, 18, 0, 0, 0, time.UTC),
+		OccurredAt:       time.Date(2026, 10, 3, 17, 0, 0, 0, time.UTC),
+		DiscoveredAt:     time.Date(2026, 10, 3, 18, 0, 0, 0, time.UTC),
 		OwnerPrincipalID: "owner-a", ActorID: "owner-a",
 	})
 	if err != nil {
