@@ -28,6 +28,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/rcsa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/ropa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
@@ -130,6 +131,8 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	controlCatalogService := controlcatalog.NewService(controlcatalog.NewMemoryRepository())
 	configureRiskControlCatalog(riskService, controlCatalogService)
 	configureRiskIndicators(riskService, monitoringService, continuityService)
+	rcsaService := rcsa.NewService(rcsa.NewMemoryRepository(), rcsaPopulationResolver{Risks: riskService, Catalog: controlCatalogService, Continuity: continuityService})
+	evidenceRepo.rcsa = rcsaService
 	if cfg.DemoMode {
 		if err := reporting.InstallDemo(ctx, reportingService); err != nil {
 			return serviceSet{}, err
@@ -200,7 +203,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,
-		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdparty.NewMemoryActivationRepository(thirdPartyRepo), ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
+		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdparty.NewMemoryActivationRepository(thirdPartyRepo), ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewMemoryRepository()), Close: func() {},
 		RuntimeContext: runtimecontext.IdentifierResolver{},
@@ -214,6 +217,7 @@ func configureReferenceVerticals(verticals *bankverticals.Service, monitoringSer
 type memoryEvidenceRepository struct {
 	*evidence.MemoryRepository
 	continuity *continuity.Service
+	rcsa       *rcsa.Service
 }
 
 func (r *memoryEvidenceRepository) ResolveSubjectScope(ctx context.Context, tenant, subjectType, subjectID string) (evidence.SubjectScope, error) {
@@ -223,6 +227,15 @@ func (r *memoryEvidenceRepository) ResolveSubjectScope(ctx context.Context, tena
 	subjectType = strings.ToUpper(strings.TrimSpace(subjectType))
 	system := continuity.WithTrustedSystemScope(ctx)
 	switch subjectType {
+	case "RCSA_CYCLE":
+		if r.rcsa == nil {
+			return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+		}
+		value, err := r.rcsa.Get(ctx, rcsa.Scope{TenantID: tenant, LegalEntityID: r.rcsaEntity(ctx, tenant, subjectID)}, subjectID)
+		if err != nil {
+			return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+		}
+		return evidence.SubjectScope{TenantID: tenant, LegalEntityID: value.Cycle.LegalEntityID, SubjectType: subjectType, SubjectID: subjectID}, nil
 	case "PROGRAM":
 		value, err := r.continuity.GetProgram(system, tenant, subjectID)
 		if err != nil {
@@ -240,6 +253,17 @@ func (r *memoryEvidenceRepository) ResolveSubjectScope(ctx context.Context, tena
 	}
 }
 
+func (r *memoryEvidenceRepository) rcsaEntity(ctx context.Context, tenant, subjectID string) string {
+	if r == nil || r.rcsa == nil {
+		return ""
+	}
+	entity, err := r.rcsa.ResolveLegalEntity(ctx, tenant, subjectID)
+	if err != nil {
+		return ""
+	}
+	return entity
+}
+
 func (r *memoryEvidenceRepository) CanReadSubject(ctx context.Context, tenant, principalID, subjectType, subjectID string) (bool, error) {
 	if strings.TrimSpace(principalID) == "" {
 		return false, nil
@@ -247,6 +271,10 @@ func (r *memoryEvidenceRepository) CanReadSubject(ctx context.Context, tenant, p
 	scope, err := r.ResolveSubjectScope(ctx, tenant, subjectType, subjectID)
 	if err != nil {
 		return false, err
+	}
+	if scope.SubjectType == "RCSA_CYCLE" {
+		value, readErr := r.rcsa.Get(ctx, rcsa.Scope{TenantID: tenant, LegalEntityID: scope.LegalEntityID}, subjectID)
+		return readErr == nil && value.Cycle.FirstLineOwnerID == principalID, readErr
 	}
 	if scope.SubjectType == "MATTER" {
 		value, readErr := r.continuity.GetMatter(continuity.WithTrustedSystemScope(ctx), tenant, subjectID)
