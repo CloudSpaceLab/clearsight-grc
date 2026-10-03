@@ -29,7 +29,7 @@ func (r *PostgresResolver) ResolveOversightLegalEntities(ctx context.Context, te
 	}
 	rows, err := r.pool.Query(ctx, `
 		WITH selected_tenant AS (
-			SELECT t.id
+			SELECT t.id,t.name
 			FROM tenants t
 			WHERE t.id::text=$1 OR t.slug=$1
 			LIMIT 1
@@ -42,7 +42,7 @@ func (r *PostgresResolver) ResolveOversightLegalEntities(ctx context.Context, te
 			  AND p.valid_from<=clock_timestamp()
 			  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)
 		)
-		SELECT le.id::text,le.code,le.name,COALESCE(le.jurisdiction,'')
+		SELECT t.id::text,t.name,le.id::text,le.code,le.name,COALESCE(le.jurisdiction,'')
 		FROM legal_entities le
 		JOIN selected_tenant t ON t.id=le.tenant_id
 		CROSS JOIN active_principal p
@@ -98,8 +98,14 @@ func (r *PostgresResolver) ResolveOversightLegalEntities(ctx context.Context, te
 	page := OversightScopePage{Items: make([]OversightLegalEntity, 0, limit)}
 	for rows.Next() {
 		var item OversightLegalEntity
-		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.Jurisdiction); err != nil {
+		var tenantID, tenantName string
+		if err := rows.Scan(&tenantID, &tenantName, &item.ID, &item.Code, &item.Name, &item.Jurisdiction); err != nil {
 			return OversightScopePage{}, fmt.Errorf("scan oversight legal entity: %w", err)
+		}
+		if page.TenantID == "" {
+			page.TenantID, page.TenantName = tenantID, tenantName
+		} else if page.TenantID != tenantID || page.TenantName != tenantName {
+			return OversightScopePage{}, fmt.Errorf("resolve oversight legal entities: inconsistent tenant root")
 		}
 		if len(page.Items) == limit {
 			page.HasMore = true
