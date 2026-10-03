@@ -974,11 +974,15 @@ func recordAdminDecision(ctx context.Context, tx pgx.Tx, tenant, actorID, eventT
 
 func adminDecisionStates(eventType string) (string, string) {
 	switch eventType {
-	case "SCIM_SOURCE_CREATED", "DIRECTORY_GROUP_ROLE_BOUND":
+	case "SCIM_SOURCE_CREATED", "DIRECTORY_GROUP_ROLE_BOUND", "ORGANIZATION_SCOPE_CREATED":
 		return "NONE", "ACTIVE"
+	case "ORGANIZATION_SCOPE_CHANGE_PROPOSED":
+		return "NONE", "PENDING"
+	case "ORGANIZATION_SCOPE_CHANGE_REJECTED":
+		return "PENDING", "REJECTED"
 	case "SCIM_SOURCE_REVOKED":
 		return "ACTIVE", "REVOKED"
-	case "DIRECTORY_GROUP_ROLE_RETIRED":
+	case "DIRECTORY_GROUP_ROLE_RETIRED", "ORGANIZATION_SCOPE_RETIRED":
 		return "ACTIVE", "RETIRED"
 	default:
 		return "ACTIVE", "ACTIVE"
