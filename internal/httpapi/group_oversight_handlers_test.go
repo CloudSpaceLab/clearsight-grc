@@ -49,8 +49,7 @@ func TestGroupOversightHandlerReturnsOnlyAuthorizedAggregateFacts(t *testing.T) 
 
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/oversight/group", nil)
 	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
-		TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "group-reader",
-		PermissionCodes: []string{identity.PermissionOversightRead},
+		TenantID: "bank", LegalEntityID: "entity-c", PrincipalID: "group-reader",
 	}))
 	response := httptest.NewRecorder()
 
