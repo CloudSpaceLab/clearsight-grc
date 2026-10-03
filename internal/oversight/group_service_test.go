@@ -3,6 +3,7 @@ package oversight
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -97,6 +98,47 @@ func TestGroupServiceRequiresAtLeastTwoAuthorizedOpCos(t *testing.T) {
 	_, err := service.Get(context.Background(), identity.Actor{TenantID: "bank", PrincipalID: "reader"})
 	if !errors.Is(err, ErrGroupForbidden) {
 		t.Fatalf("single OpCo group error = %v", err)
+	}
+}
+
+type boundedGroupAccessStub struct {
+	calls int
+}
+
+func (s *boundedGroupAccessStub) ResolveLegalEntityAccess(_ context.Context, _, _ string, entityIDs []string) ([]access.LegalEntityAccess, error) {
+	s.calls++
+	if len(entityIDs) > access.MaxLegalEntityAccessBatchSize {
+		return nil, access.ErrPrincipalBatchTooLarge
+	}
+	values := make([]access.LegalEntityAccess, 0, len(entityIDs))
+	for _, id := range entityIDs {
+		values = append(values, access.LegalEntityAccess{LegalEntityID: id, PermissionCodes: []string{identity.PermissionOversightRead}})
+	}
+	return values, nil
+}
+
+func TestGroupServiceBatchesLargeOpCoAuthorization(t *testing.T) {
+	now := time.Now().UTC()
+	children := make([]GroupChildFact, 0, access.MaxLegalEntityAccessBatchSize+1)
+	for index := 0; index < access.MaxLegalEntityAccessBatchSize+1; index++ {
+		id := fmt.Sprintf("entity-%03d", index)
+		children = append(children, GroupChildFact{
+			LegalEntityID: id, LegalEntityName: id, State: GroupChildAvailable,
+			ChildSnapshotID: "snapshot-" + id, ChildGeneratedAt: &now, ChildProjectionVersion: ProjectionVersion,
+		})
+	}
+	resolver := &boundedGroupAccessStub{}
+	service := NewGroupService(groupRepositoryStub{value: GroupProjection{
+		ID: "large-run", TenantID: "bank", GeneratedAt: now, ProjectionVersion: GroupProjectionVersion, Children: children,
+	}}, resolver)
+	service.Now = func() time.Time { return now }
+
+	value, err := service.Get(context.Background(), identity.Actor{TenantID: "bank", PrincipalID: "group-reader"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolver.calls != 2 || value.Coverage.AuthorizedChildren != len(children) {
+		t.Fatalf("batched authorization calls=%d coverage=%#v", resolver.calls, value.Coverage)
 	}
 }
 
