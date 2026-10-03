@@ -35,6 +35,19 @@ func (s groupOversightAccessStub) ResolveOversightLegalEntities(context.Context,
 	return s.page, s.err
 }
 
+func TestGroupOversightRouteUsesChildSetAuthorization(t *testing.T) {
+	for _, route := range (&API{}).routes() {
+		if route.Method != http.MethodGet || route.Path != "/api/v1/oversight/group" {
+			continue
+		}
+		if route.Class != routeAuthenticatedRead || route.Permission != "" || route.Command != nil {
+			t.Fatalf("Group posture route must be an authenticated read with independent child authorization: %#v", route)
+		}
+		return
+	}
+	t.Fatal("Group posture route was not registered")
+}
+
 func TestGroupOversightReturnsAggregateWithoutCrossEntityRecordDetails(t *testing.T) {
 	now := time.Date(2026, 10, 3, 20, 0, 0, 0, time.UTC)
 	zero := 0
