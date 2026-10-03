@@ -18,5 +18,6 @@ DROP TABLE IF EXISTS rcsa_cycle_revisions;
 DROP TABLE IF EXISTS rcsa_cycle_controls;
 DROP TABLE IF EXISTS rcsa_cycle_risks;
 DROP TABLE IF EXISTS rcsa_cycles;
+DROP INDEX IF EXISTS risk_control_links_rcsa_scope_idx;
 
 COMMIT;
