@@ -185,6 +185,106 @@ func TestFirstLineLifecycleRejectsWrongOwnerAndIncompleteResponse(t *testing.T) 
 	}
 }
 
+func TestChallengeLifecycleRequiresIndependentActorAndTerminalDecision(t *testing.T) {
+	now := time.Date(2026, 10, 3, 14, 0, 0, 0, time.UTC)
+	service := NewService(NewMemoryRepository(), testPopulationResolver{population: Population{
+		Risks: []RiskSnapshot{{RiskID: "risk-a", RiskVersion: 2, Code: "RA", Name: "Risk A"}},
+	}})
+	service.Now = func() time.Time { return now }
+	service.ConfigureFirstLine(
+		func(context.Context, Scope, Cycle, string) error { return nil },
+		func(context.Context, Scope, Cycle) (string, error) { return "response-final-1", nil },
+	)
+	allowCompletion := false
+	service.ConfigureChallenge(
+		func(_ context.Context, scope Scope, cycle Cycle, actorID string) (string, error) {
+			if scope != (Scope{TenantID: "bank", LegalEntityID: "entity-a"}) ||
+				cycle.Status != StatusAwaitingChallenge || actorID != "reviewer-1" {
+				return "", ErrInvalid
+			}
+			return "matter-challenge-1", nil
+		},
+		func(_ context.Context, scope Scope, cycle Cycle) error {
+			if !allowCompletion || scope != (Scope{TenantID: "bank", LegalEntityID: "entity-a"}) ||
+				cycle.ChallengeMatterID != "matter-challenge-1" {
+				return ErrInvalid
+			}
+			return nil
+		},
+	)
+	created, err := service.Create(context.Background(), CreateInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Code: "RCSA-Q4", Name: "Q4 RCSA",
+		TriggerKind: TriggerScheduled, RiskIDs: []string{"risk-a"}, FirstLineOwnerID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	opened, err := service.BindFirstLineDistribution(context.Background(), BindFirstLineDistributionInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: 1, DistributionID: "distribution-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	challengeReady, err := service.CompleteFirstLine(context.Background(), CompleteFirstLineInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: opened.Version, ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.StartChallenge(context.Background(), StartChallengeInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: challengeReady.Version, ActorID: "owner-1",
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("first-line owner challenge error=%v", err)
+	}
+
+	now = now.Add(time.Minute)
+	challenging, err := service.StartChallenge(context.Background(), StartChallengeInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: challengeReady.Version, ActorID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if challenging.Status != StatusAwaitingChallenge || challenging.ChallengeMatterID != "matter-challenge-1" ||
+		challenging.Version != challengeReady.Version+1 {
+		t.Fatalf("challenging=%#v", challenging)
+	}
+
+	_, err = service.CompleteChallenge(context.Background(), CompleteChallengeInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: challenging.Version, ActorID: "reviewer-1",
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("nonterminal challenge completion error=%v", err)
+	}
+	unchanged, err := service.Get(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.Cycle.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unchanged.Cycle.Version != challenging.Version || unchanged.Cycle.Status != StatusAwaitingChallenge {
+		t.Fatalf("failed challenge completion changed cycle=%#v", unchanged.Cycle)
+	}
+
+	allowCompletion = true
+	now = now.Add(time.Minute)
+	completed, err := service.CompleteChallenge(context.Background(), CompleteChallengeInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: challenging.Version, ActorID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if completed.Status != StatusCompleted || completed.Version != challenging.Version+1 ||
+		completed.ChallengeMatterID != "matter-challenge-1" {
+		t.Fatalf("completed=%#v", completed)
+	}
+}
+
 func TestCreateRejectsIncompleteOrCrossScopePopulation(t *testing.T) {
 	service := NewService(NewMemoryRepository(), testPopulationResolver{population: Population{
 		Risks: []RiskSnapshot{{RiskID: "risk-a", RiskVersion: 1, Code: "RA", Name: "Risk A"}},
