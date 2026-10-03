@@ -261,13 +261,11 @@ func (r *PostgresRepository) storeGroupProjection(ctx context.Context, value Gro
 }
 
 func scanLatestGroupSource(rows pgx.Rows, now time.Time) (GroupChildFact, string, error) {
-	var (
-		tenantID, entityID, code, name, jurisdiction string
-		snapshotID, projectionVersion                 sql.NullString
-		generatedAt                                   sql.NullTime
-		highWater, payload                            []byte
-		population, excluded, unknown                 sql.NullInt64
-	)
+	var tenantID, entityID, code, name, jurisdiction string
+	var snapshotID, projectionVersion sql.NullString
+	var generatedAt sql.NullTime
+	var highWater, payload []byte
+	var population, excluded, unknown sql.NullInt64
 	if err := rows.Scan(
 		&tenantID, &entityID, &code, &name, &jurisdiction,
 		&snapshotID, &generatedAt, &projectionVersion, &highWater,
@@ -314,12 +312,10 @@ func scanLatestGroupSource(rows pgx.Rows, now time.Time) (GroupChildFact, string
 }
 
 func scanGroupChild(rows pgx.Rows) (GroupChildFact, error) {
-	var (
-		state                                      string
-		generatedAt                                sql.NullTime
-		population, excluded, unknown              sql.NullInt64
-		countsJSON, sourceHighWaterJSON            []byte
-	)
+	var state string
+	var generatedAt sql.NullTime
+	var population, excluded, unknown sql.NullInt64
+	var countsJSON, sourceHighWaterJSON []byte
 	var child GroupChildFact
 	if err := rows.Scan(
 		&child.LegalEntityID, &child.LegalEntityCode, &child.LegalEntityName, &child.Jurisdiction, &state,
