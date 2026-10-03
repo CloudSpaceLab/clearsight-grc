@@ -92,7 +92,7 @@ func TestPostgresOperationalLossIsScopedVersionedAndRecoverySafe(t *testing.T) {
 		TenantID: tenantSlug, LegalEntityID: entityACode, OrganizationScopeID: scopeA,
 		Code: "LOSS-" + suffix, Title: "Duplicate settlement loss",
 		EventType: EventExecutionDeliveryProcess, Cause: "Duplicate settlement instruction.",
-		Description: "Duplicate settlement completed before correction.",
+		Description:      "Duplicate settlement completed before correction.",
 		GrossAmountMinor: 500_000_000, Currency: "NGN",
 		OccurredAt: now.Add(-2 * time.Hour), DiscoveredAt: now.Add(-time.Hour),
 		RiskID: riskA, MatterID: matterA, OwnerPrincipalID: ownerID, ActorID: ownerID,
@@ -166,8 +166,8 @@ func TestPostgresOperationalLossIsScopedVersionedAndRecoverySafe(t *testing.T) {
 	}
 
 	for table, want := range map[string]int{
-		"operational_loss_revisions": 3,
-		"operational_loss_events":    3,
+		"operational_loss_revisions":  3,
+		"operational_loss_events":     3,
 		"operational_loss_recoveries": 2,
 	} {
 		var count int
