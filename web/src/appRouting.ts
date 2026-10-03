@@ -5,6 +5,7 @@ export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id:
 export type VendorPage = "overview" | "register";
 export type RopaPage = "register" | "reports";
 export type OversightMetric = "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
+export type OversightScopeMode = "group";
 export type WorkspaceTarget = {
   programID?: string;
   riskID?: string;
@@ -19,6 +20,7 @@ export type WorkspaceTarget = {
   ropaPage?: RopaPage;
   ropaActivityID?: string;
   oversightMetric?: OversightMetric;
+  oversightScope?: OversightScopeMode;
   documentID?: string;
   openFirstProgram?: boolean;
   openFirstMatter?: boolean;
@@ -41,7 +43,10 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
   if (view === "oversight") {
     const metric = query.get("metric");
     const allowedMetrics: OversightMetric[] = ["critical-high", "overdue", "routing-gaps", "outcome-failures"];
-    return { view, target: allowedMetrics.includes(metric as OversightMetric) ? { oversightMetric: metric as OversightMetric } : {} };
+    const target: WorkspaceTarget = {};
+    if (allowedMetrics.includes(metric as OversightMetric)) target.oversightMetric = metric as OversightMetric;
+    if (query.get("scope") === "group") target.oversightScope = "group";
+    return { view, target };
   }
   if (view === "programs") {
     if (!parts[1]) return { view, target: {} };
@@ -86,7 +91,13 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
 }
 
 export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab) {
-  if (view === "oversight") return target.oversightMetric ? `#oversight?metric=${encodeURIComponent(target.oversightMetric)}` : "#oversight";
+  if (view === "oversight") {
+    const params = new URLSearchParams();
+    if (target.oversightMetric) params.set("metric", target.oversightMetric);
+    if (target.oversightScope === "group") params.set("scope", "group");
+    const query = params.toString();
+    return query ? `#oversight?${query}` : "#oversight";
+  }
   if (view === "programs" && target.programID) {
     const section = target.programSection ?? "overview";
     const item = section === "requirements-controls" ? target.programItem : undefined;
