@@ -29,7 +29,7 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 	var value Snapshot
 	var payload, highWater []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
+		SELECT os.id::text,os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
 		       os.coverage_population,os.coverage_excluded,os.coverage_unknown,os.payload,
 		       t.slug,le.code
 		FROM oversight_snapshots os
@@ -37,7 +37,7 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 		JOIN legal_entities le ON le.tenant_id=os.tenant_id AND le.id=os.legal_entity_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)
 		ORDER BY os.generated_at DESC,os.id DESC LIMIT 1`, scope.TenantID, scope.LegalEntityID).
-		Scan(&value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
+		Scan(&value.SnapshotID, &value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
 			&value.Coverage.Population, &value.Coverage.Excluded, &value.Coverage.Unknown, &payload,
 			&value.TenantID, &value.LegalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -46,24 +46,9 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 	if err != nil {
 		return Snapshot{}, err
 	}
-	if err := json.Unmarshal(highWater, &value.SourceHighWater); err != nil {
-		return Snapshot{}, fmt.Errorf("decode oversight high-water marks: %w", err)
+	if err := decodeStoredSnapshot(&value, highWater, payload); err != nil {
+		return Snapshot{}, err
 	}
-	metadata := struct {
-		Counts         Counts               `json:"counts"`
-		Interventions  []Intervention       `json:"interventions"`
-		Pressure       []CategoryPressure   `json:"pressure"`
-		Aging          []AgingBucket        `json:"aging"`
-		Performance    []Performance        `json:"performance"`
-		Estimates      []ResolutionEstimate `json:"estimates"`
-		HistoryQuality HistoryQuality       `json:"history_quality"`
-	}{Counts: value.Counts}
-	if err := json.Unmarshal(payload, &metadata); err != nil {
-		return Snapshot{}, fmt.Errorf("decode oversight snapshot: %w", err)
-	}
-	value.Counts, value.Interventions, value.Pressure = metadata.Counts, metadata.Interventions, metadata.Pressure
-	value.Aging, value.Performance, value.Estimates = metadata.Aging, metadata.Performance, metadata.Estimates
-	value.HistoryQuality = metadata.HistoryQuality
 	return value, nil
 }
 
