@@ -38,6 +38,46 @@ describe("EnterpriseScopeSwitcher", () => {
     expect(screen.queryByRole("dialog", { name: "Change organization scope" })).toBeNull();
   });
 
+  it("uses the organization root only as Group read mode when explicitly authorized", async () => {
+    const onSelectionChange = vi.fn();
+    const onGroupSelectionChange = vi.fn();
+    render(<EnterpriseScopeSwitcher
+      hierarchy={hierarchy()}
+      currentScopeID="entity-ng"
+      canSelectGroup
+      onSelectionChange={onSelectionChange}
+      onGroupSelectionChange={onGroupSelectionChange}
+    />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    fireEvent.click(within(dialog).getByRole("button", { name: /^Clear Bank$/ }));
+
+    expect(onGroupSelectionChange).toHaveBeenCalledWith(true);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it("exits Group read mode through the current legal entity without a session switch", async () => {
+    const onSelectionChange = vi.fn();
+    const onGroupSelectionChange = vi.fn();
+    render(<EnterpriseScopeSwitcher
+      hierarchy={hierarchy()}
+      currentScopeID="entity-ng"
+      canSelectGroup
+      isGroupSelected
+      onSelectionChange={onSelectionChange}
+      onGroupSelectionChange={onGroupSelectionChange}
+    />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank · Group" }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    expect(within(dialog).getByRole("button", { name: /^Clear Bank$/ }).getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: /Clear Bank Nigeria/ }));
+    expect(onGroupSelectionChange).toHaveBeenCalledWith(false);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
   it("adds search only for larger authorized hierarchies and filters by name, code or jurisdiction", async () => {
     render(<EnterpriseScopeSwitcher hierarchy={hierarchy(8)} currentScopeID="entity-ng" onSelectionChange={() => undefined}/>);
 
