@@ -28,13 +28,13 @@ func TestStoredOperationalLossOwnerOrDelegateRequiredForChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	resolver := fixedProgramAuthority{resolution: authority.Resolution{
-		Principal: authority.Principal{ID: "owner-1", DisplayName: "Loss owner"},
+		Principal:           authority.Principal{ID: "owner-1", DisplayName: "Loss owner"},
 		CandidatePrincipals: []authority.Principal{
 			{ID: "owner-1", DisplayName: "Loss owner"},
 			{ID: "owner-delegate", DisplayName: "Acting loss owner"},
 			{ID: "other-owner", DisplayName: "Another eligible owner"},
 		},
-		EffectiveOrigins: []authority.EffectiveOrigin{
+		EffectiveOrigins:    []authority.EffectiveOrigin{
 			{PrincipalID: "owner-1", OriginPrincipalID: "owner-1"},
 			{PrincipalID: "owner-delegate", OriginPrincipalID: "owner-1"},
 			{PrincipalID: "other-owner", OriginPrincipalID: "other-owner"},
