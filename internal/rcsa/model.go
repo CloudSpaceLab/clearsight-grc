@@ -109,12 +109,12 @@ const (
 )
 
 type BindFirstLineDistributionInput struct {
-	TenantID            string `json:"tenant_id,omitempty"`
-	LegalEntityID       string `json:"legal_entity_id,omitempty"`
-	CycleID             string `json:"cycle_id,omitempty"`
-	ExpectedVersion     int64  `json:"expected_version"`
-	DistributionID      string `json:"distribution_id"`
-	ActorID             string `json:"actor_id,omitempty"`
+	TenantID        string `json:"tenant_id,omitempty"`
+	LegalEntityID   string `json:"legal_entity_id,omitempty"`
+	CycleID         string `json:"cycle_id,omitempty"`
+	ExpectedVersion int64  `json:"expected_version"`
+	DistributionID  string `json:"distribution_id"`
+	ActorID         string `json:"actor_id,omitempty"`
 }
 
 type CompleteFirstLineInput struct {
