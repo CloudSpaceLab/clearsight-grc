@@ -162,7 +162,7 @@ func TestOperationalLossInterventionCreatesAndReusesCanonicalMatter(t *testing.T
 	api := &API{deps: Dependencies{OperationalLoss: losses, Continuity: matters}}
 
 	open := func(expected int64) struct {
-		Loss   oploss.Loss      `json:"loss"`
+		Loss   oploss.Loss       `json:"loss"`
 		Matter continuity.Matter `json:"matter"`
 	} {
 		t.Helper()
@@ -181,7 +181,7 @@ func TestOperationalLossInterventionCreatesAndReusesCanonicalMatter(t *testing.T
 			t.Fatalf("intervention status=%d body=%s", response.Code, response.Body.String())
 		}
 		var payload struct {
-			Loss   oploss.Loss      `json:"loss"`
+			Loss   oploss.Loss       `json:"loss"`
 			Matter continuity.Matter `json:"matter"`
 		}
 		if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
