@@ -3,6 +3,7 @@ import { loadAIGovernancePolicies, loadAIGovernanceWorkloads } from "../../api";
 import type { AIGovernancePolicy, AIGovernanceWorkload } from "../../types";
 import { AIGovernancePanel } from "../AIGovernancePanel";
 import { AIGatewayControlPlane } from "./AIGatewayControlPlane";
+import { AIGatewayExceptionControl } from "./AIGatewayExceptionControl";
 import { AIGatewaySimulationPanel } from "./AIGatewaySimulationPanel";
 import { AIGatewayTransportControl } from "./AIGatewayTransportControl";
 
@@ -47,6 +48,7 @@ export function AIGovernanceSection() {
     </header>
     <AIGatewayTransportControl/>
     <AIGatewayControlPlane onChanged={() => void load()}/>
+    <AIGatewayExceptionControl policies={policies} policyState={policyState} workloads={workloads} workloadState={workloadState} onChanged={() => void load()}/>
     <AIGatewaySimulationPanel workloads={workloads} workloadState={workloadState}/>
     <AIGovernancePanel policies={policies} policyState={policyState} workloads={workloads} workloadState={workloadState}/>
   </section>;

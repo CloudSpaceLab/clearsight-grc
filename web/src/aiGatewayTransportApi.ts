@@ -128,6 +128,12 @@ export type GatewaySimulationPolicyRef = {
   rollout_mode: string;
 };
 
+export type GatewaySimulationExceptionRef = {
+  id: string;
+  code: string;
+  version: number;
+};
+
 export type GatewaySimulationWorkloadRef = {
   id: string;
   workload_id: string;
@@ -183,6 +189,7 @@ export type GatewaySimulationResult = {
   workload?: GatewaySimulationWorkloadRef;
   workload_policy?: GatewaySimulationPolicyRef;
   baseline_policy?: GatewaySimulationPolicyRef;
+  baseline_exceptions?: GatewaySimulationExceptionRef[];
   transport?: GatewaySimulationTransportRef;
   decision: GatewaySimulationDecision;
   detector_facts: GatewaySimulationFact[];
