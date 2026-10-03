@@ -158,7 +158,6 @@ func TestIdentityAccessAdminRevokesSourceDerivedGrantWithoutDeletingPrincipal(t 
 	}
 }
 
-
 func TestOrganizationScopeManagementRequiresIndependentApprovalAndProtectsLiveReferences(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
@@ -172,10 +171,10 @@ func TestOrganizationScopeManagementRequiresIndependentApprovalAndProtectsLiveRe
 	defer pool.Close()
 
 	const (
-		tenantID  = "8a444444-4444-7444-8444-444444444441"
-		entityID  = "8a444444-4444-7444-8444-444444444442"
-		makerID   = "8a444444-4444-7444-8444-444444444443"
-		checkerID = "8a444444-4444-7444-8444-444444444444"
+		tenantID   = "8a444444-4444-7444-8444-444444444441"
+		entityID   = "8a444444-4444-7444-8444-444444444442"
+		makerID    = "8a444444-4444-7444-8444-444444444443"
+		checkerID  = "8a444444-4444-7444-8444-444444444444"
 		positionID = "8a444444-4444-7444-8444-444444444445"
 	)
 	cleanup := func(cleanCtx context.Context) {
