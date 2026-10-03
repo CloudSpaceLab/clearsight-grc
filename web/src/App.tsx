@@ -305,7 +305,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     ? [...organizationScopes, activeOrganizationScope]
     : organizationScopes;
   const showScopeControl = Boolean(scopeHierarchy && currentScopeID)
-    && (canSwitchLegalEntity || organizationScopes.length > 0 || scopeHierarchy.organization_scopes_truncated === true || canOpenOrganization);
+    && (canSwitchLegalEntity || organizationScopes.length > 0 || scopeHierarchy?.organization_scopes_truncated === true || canOpenOrganization);
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
     { label: "Portfolio", view: "programs", activeViews: portfolioViews },
