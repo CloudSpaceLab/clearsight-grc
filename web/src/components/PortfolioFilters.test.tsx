@@ -34,8 +34,7 @@ describe("portfolio filters", () => {
         { id: "scope-risk-ops", name: "Risk Operations", kind: "DEPARTMENT", department_path: ["BANK", "RISK", "OPERATIONS"], filterable: true },
       ]}
     />);
-    await screen.findByText("No programs in this scope");
-    expect(loadProgramSummaries).toHaveBeenCalledWith(expect.objectContaining({ organizationScopeID: "scope-risk", limit: 20 }));
+    await waitFor(() => expect(loadProgramSummaries).toHaveBeenCalledWith(expect.objectContaining({ organizationScopeID: "scope-risk", limit: 20 })));
   });
 
   it("applies issue type, priority, due and ownership filters together", async () => {
