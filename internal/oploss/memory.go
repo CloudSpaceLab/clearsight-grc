@@ -62,7 +62,7 @@ func (r *MemoryRepository) Update(ctx context.Context, scope Scope, next Loss, e
 	return next, nil
 }
 
-func (r *MemoryRepository) AddRecovery(ctx context.Context, scope Scope, id string, expected int64, recovery Recovery, _ Event) (Loss, Recovery, error) {
+func (r *MemoryRepository) AddRecovery(ctx context.Context, scope Scope, id string, expected int64, recovery Recovery, event Event) (Loss, Recovery, error) {
 	if err := ctx.Err(); err != nil {
 		return Loss{}, Recovery{}, err
 	}
@@ -76,6 +76,10 @@ func (r *MemoryRepository) AddRecovery(ctx context.Context, scope Scope, id stri
 	if current.Version != expected {
 		return Loss{}, Recovery{}, ErrVersionConflict
 	}
+	if recovery.LossID != current.ID || recovery.LossVersion != expected+1 || recovery.Currency != current.Currency ||
+		event.LossID != current.ID || event.LossVersion != expected+1 || event.Type != EventLossRecoveryRecorded {
+		return Loss{}, Recovery{}, ErrInvalid
+	}
 	existing := r.recoveries[key]
 	currentTotals, err := totals(current, existing)
 	if err != nil {
@@ -87,12 +91,11 @@ func (r *MemoryRepository) AddRecovery(ctx context.Context, scope Scope, id stri
 	} else {
 		nextRecovered -= recovery.AmountMinor
 	}
-	if nextRecovered < 0 || nextRecovered > current.GrossAmountMinor ||
-		recovery.LossID != current.ID || recovery.LossVersion != expected+1 || recovery.Currency != current.Currency {
+	if nextRecovered < 0 || nextRecovered > current.GrossAmountMinor {
 		return Loss{}, Recovery{}, ErrRecoveryLimit
 	}
 	current.Version++
-	current.UpdatedAt = recovery.CreatedAt
+	current.UpdatedAt = event.OccurredAt.UTC()
 	r.losses[key] = current
 	r.recoveries[key] = append(existing, recovery)
 	return current, recovery, nil
