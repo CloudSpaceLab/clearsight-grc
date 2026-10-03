@@ -14,7 +14,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 func (a *API) continuityService(w http.ResponseWriter) (*continuity.Service, bool) {
@@ -26,8 +25,7 @@ func (a *API) continuityService(w http.ResponseWriter) (*continuity.Service, boo
 }
 
 func (a *API) validateMatterOrganizationScope(w http.ResponseWriter, r *http.Request, requested string) bool {
-	requested = strings.TrimSpace(requested)
-	if requested == "" {
+	if strings.TrimSpace(requested) == "" {
 		return true
 	}
 	actor, err := identity.Require(r.Context())
@@ -35,22 +33,13 @@ func (a *API) validateMatterOrganizationScope(w http.ResponseWriter, r *http.Req
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
 		return false
 	}
-	resolver, ok := a.deps.RuntimeContext.(runtimecontext.HierarchyResolver)
-	if !ok {
+	_, err = a.resolveOrganizationScopeSelection(r.Context(), actor, requested, false)
+	if err == nil {
+		return true
+	}
+	if errors.Is(err, errOrganizationScopeUnavailable) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "organization_scope_unavailable", "Organization scope could not be verified. Try again.")
 		return false
-	}
-	hierarchy, err := resolver.ResolveHierarchy(r.Context(), runtimecontext.Scope{
-		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
-	})
-	if err != nil {
-		httpx.WriteError(w, http.StatusServiceUnavailable, "organization_scope_unavailable", "Organization scope could not be verified. Try again.")
-		return false
-	}
-	for _, node := range hierarchy.OrganizationScopes {
-		if node.ID == requested && node.Filterable {
-			return true
-		}
 	}
 	httpx.WriteError(w, http.StatusForbidden, "organization_scope_forbidden", "This organization scope is not available for issue attribution.")
 	return false
