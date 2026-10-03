@@ -51,15 +51,15 @@ func (a *API) listRisks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page, err := service.List(r.Context(), scope, risk.ListFilter{
-		Status:           risk.Status(strings.TrimSpace(r.URL.Query().Get("status"))),
-		Category:         strings.TrimSpace(r.URL.Query().Get("category")),
-		OwnerPrincipalID: strings.TrimSpace(r.URL.Query().Get("owner_principal_id")),
-		Search:           strings.TrimSpace(r.URL.Query().Get("search")),
+		Status:               risk.Status(strings.TrimSpace(r.URL.Query().Get("status"))),
+		Category:             strings.TrimSpace(r.URL.Query().Get("category")),
+		OwnerPrincipalID:     strings.TrimSpace(r.URL.Query().Get("owner_principal_id")),
+		Search:               strings.TrimSpace(r.URL.Query().Get("search")),
 		AppetitePosition:     risk.AppetitePosition(strings.TrimSpace(r.URL.Query().Get("appetite_position"))),
 		OrganizationScopeID:  selection.ID,
 		OrganizationScopeIDs: selection.IDs,
 		Cursor:               strings.TrimSpace(r.URL.Query().Get("cursor")),
-		Limit:            limit,
+		Limit:                limit,
 	})
 	if err != nil {
 		writeRiskError(w, err)
