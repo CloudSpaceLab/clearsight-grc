@@ -520,7 +520,7 @@ func writeIdentityAccessError(w http.ResponseWriter, err error) {
 	case errors.Is(err, access.ErrAdminNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "identity_access_not_found", "The identity or access object was not found in this scope.")
 	case errors.Is(err, access.ErrAdminMakerChecker):
-		httpx.WriteError(w, http.StatusConflict, "organization_scope_maker_checker", "A different administrator must approve this change.")
+		httpx.WriteError(w, http.StatusConflict, "identity_access_maker_checker", "A different administrator must approve this change.")
 	case errors.Is(err, access.ErrAdminConflict):
 		httpx.WriteError(w, http.StatusConflict, "identity_access_conflict", "The current state changed or the requested change conflicts with existing configuration.")
 	case errors.Is(err, access.ErrAdminInvalid):
