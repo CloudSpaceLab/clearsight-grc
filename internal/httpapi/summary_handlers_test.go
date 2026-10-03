@@ -108,7 +108,6 @@ func TestSummaryEndpointsValidateAndAcceptStructuredFilters(t *testing.T) {
 	}
 }
 
-
 func TestProgramSummaryEndpointFiltersAuthorizedOrganizationDescendants(t *testing.T) {
 	entity := runtimecontext.ScopeNode{ID: "bank-ng", Name: "Bank Nigeria", Kind: runtimecontext.ScopeKindLegalEntity}
 	parent := runtimecontext.ScopeNode{ID: "scope-risk", Name: "Risk", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "RISK"}, Filterable: true}
