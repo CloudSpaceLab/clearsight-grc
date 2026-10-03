@@ -194,15 +194,58 @@ func (r *PostgresResolver) ResolveHierarchy(ctx context.Context, scope Scope) (S
 	if err != nil {
 		return ScopeHierarchy{}, err
 	}
-	if organizationState == HierarchyTruncated {
-		state = HierarchyTruncated
-	}
 	return ScopeHierarchy{
 		State: state, Root: root, Current: current, LegalEntities: nodes, OrganizationScopes: organizationScopes,
+		OrganizationScopesTruncated: organizationState == HierarchyTruncated,
 	}, nil
 }
 
 func (r *PostgresResolver) resolveOrganizationScopes(ctx context.Context, scope Scope, currentEntityID string) ([]ScopeNode, HierarchyState, error) {
+	page, err := r.queryOrganizationScopes(ctx, scope, currentEntityID, "", maxOrganizationScopes)
+	if err != nil {
+		return nil, HierarchyUnavailable, err
+	}
+	state := HierarchyComplete
+	if page.HasMore {
+		state = HierarchyTruncated
+	}
+	return page.Items, state, nil
+}
+
+func (r *PostgresResolver) SearchOrganizationScopes(ctx context.Context, scope Scope, search string, limit int) (OrganizationScopeSearchPage, error) {
+	scope.TenantID = strings.TrimSpace(scope.TenantID)
+	scope.LegalEntityID = strings.TrimSpace(scope.LegalEntityID)
+	scope.PrincipalID = strings.TrimSpace(scope.PrincipalID)
+	search = strings.TrimSpace(search)
+	if r == nil || r.pool == nil || scope.TenantID == "" || scope.LegalEntityID == "" || scope.PrincipalID == "" || len(search) < 2 || len(search) > 120 {
+		return OrganizationScopeSearchPage{}, ErrInvalid
+	}
+	if limit <= 0 || limit > 50 {
+		limit = 30
+	}
+	if _, err := r.Resolve(ctx, scope); err != nil {
+		return OrganizationScopeSearchPage{}, err
+	}
+	var currentEntityID string
+	err := r.pool.QueryRow(ctx, `
+		SELECT le.id::text
+		FROM tenants t
+		JOIN legal_entities le ON le.tenant_id=t.id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND le.valid_from<=clock_timestamp()
+		  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
+		LIMIT 1`, scope.TenantID, scope.LegalEntityID).Scan(&currentEntityID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return OrganizationScopeSearchPage{}, ErrNotFound
+	}
+	if err != nil {
+		return OrganizationScopeSearchPage{}, err
+	}
+	return r.queryOrganizationScopes(ctx, scope, currentEntityID, search, limit)
+}
+
+func (r *PostgresResolver) queryOrganizationScopes(ctx context.Context, scope Scope, currentEntityID, search string, limit int) (OrganizationScopeSearchPage, error) {
 	rows, err := r.pool.Query(ctx, `
 		WITH principal AS (
 			SELECT p.id,p.tenant_id
@@ -316,6 +359,7 @@ func (r *PostgresResolver) resolveOrganizationScopes(ctx context.Context, scope 
 		  AND s.status='ACTIVE'
 		  AND s.valid_from<=clock_timestamp()
 		  AND (s.valid_until IS NULL OR clock_timestamp()<s.valid_until)
+		  AND ($4='' OR s.search_document @@ websearch_to_tsquery('simple'::regconfig,$4))
 		  AND (
 			g.has_global_scope
 			OR EXISTS (
@@ -346,30 +390,30 @@ func (r *PostgresResolver) resolveOrganizationScopes(ctx context.Context, scope 
 			)
 		  )
 		ORDER BY cardinality(s.department_path),s.department_path,s.id
-		LIMIT $4`, scope.TenantID, scope.PrincipalID, currentEntityID, maxOrganizationScopes+1)
+		LIMIT $5`, scope.TenantID, scope.PrincipalID, currentEntityID, search, limit+1)
 	if err != nil {
-		return nil, HierarchyUnavailable, fmt.Errorf("resolve organization scopes: %w", err)
+		return OrganizationScopeSearchPage{}, fmt.Errorf("query organization scopes: %w", err)
 	}
 	defer rows.Close()
 
-	state := HierarchyComplete
-	values := make([]ScopeNode, 0, maxOrganizationScopes)
+	page := OrganizationScopeSearchPage{Items: make([]ScopeNode, 0, limit)}
 	for rows.Next() {
 		var item ScopeNode
 		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.Kind, &item.ParentID, &item.DepartmentPath, &item.Filterable); err != nil {
-			return nil, HierarchyUnavailable, fmt.Errorf("scan organization scope: %w", err)
+			return OrganizationScopeSearchPage{}, fmt.Errorf("scan organization scope: %w", err)
 		}
-		if len(values) < maxOrganizationScopes {
-			values = append(values, item)
-		} else {
-			state = HierarchyTruncated
+		if len(page.Items) == limit {
+			page.HasMore = true
+			continue
 		}
+		page.Items = append(page.Items, item)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, HierarchyUnavailable, fmt.Errorf("iterate organization scopes: %w", err)
+		return OrganizationScopeSearchPage{}, fmt.Errorf("iterate organization scopes: %w", err)
 	}
-	return values, state, nil
+	return page, nil
 }
 
 var _ Resolver = (*PostgresResolver)(nil)
 var _ HierarchyResolver = (*PostgresResolver)(nil)
+var _ OrganizationScopeSearcher = (*PostgresResolver)(nil)

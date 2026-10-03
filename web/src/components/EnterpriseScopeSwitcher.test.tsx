@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ScopeHierarchy } from "../api";
 import { EnterpriseScopeSwitcher } from "./EnterpriseScopeSwitcher";
@@ -75,7 +75,7 @@ describe("EnterpriseScopeSwitcher", () => {
     expect(within(dialog).queryByRole("button", { name: /OPERATIONS/ })).toBeNull();
 
     fireEvent.click(within(dialog).getByRole("button", { name: /RISK/ }));
-    expect(onOrganizationScopeChange).toHaveBeenCalledWith("scope-risk");
+    expect(onOrganizationScopeChange).toHaveBeenCalledWith(expect.objectContaining({ id: "scope-risk", filterable: true }));
 
     fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
     const managementDialog = await screen.findByRole("dialog", { name: "Change organization scope" });
@@ -104,6 +104,40 @@ describe("EnterpriseScopeSwitcher", () => {
     expect(within(dialog).getByText("RISK")).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: /PAYMENTS/ })).toBeTruthy();
     expect(within(dialog).queryByText("OPERATIONS")).toBeNull();
+  });
+
+  it("searches beyond a truncated compact hierarchy and selects the authorized remote area", async () => {
+    const onOrganizationScopeChange = vi.fn();
+    const searchOrganizationAreas = vi.fn().mockResolvedValue({
+      items: [{ id: "scope-lagos", code: "LAGOS", name: "Lagos Island", kind: "BRANCH", department_path: ["BANK", "BRANCHES", "LAGOS"], filterable: true }],
+      has_more: false,
+    });
+    const scopedHierarchy = hierarchy();
+    scopedHierarchy.organization_scopes = [
+      { id: "scope-bank", code: "BANK", name: "BANK", kind: "BUSINESS_UNIT", department_path: ["BANK"] },
+    ];
+    scopedHierarchy.organization_scopes_truncated = true;
+    render(<EnterpriseScopeSwitcher
+      hierarchy={scopedHierarchy}
+      currentScopeID="entity-ng"
+      onSelectionChange={() => undefined}
+      onOrganizationScopeChange={onOrganizationScopeChange}
+      searchOrganizationAreas={searchOrganizationAreas}
+    />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    expect(within(dialog).getByText("More areas available. Search to find them.")).toBeTruthy();
+
+    fireEvent.change(within(dialog).getByPlaceholderText("Search scope"), { target: { value: "Lagos Island" } });
+    await waitFor(() => expect(searchOrganizationAreas).toHaveBeenCalledWith("Lagos Island", 30));
+    fireEvent.click(await within(dialog).findByRole("button", { name: /Lagos Island/ }));
+
+    expect(onOrganizationScopeChange).toHaveBeenCalledWith(expect.objectContaining({
+      id: "scope-lagos",
+      department_path: ["BANK", "BRANCHES", "LAGOS"],
+      filterable: true,
+    }));
   });
 
   it("clears an active subordinate Home scope when the current legal entity is selected", async () => {

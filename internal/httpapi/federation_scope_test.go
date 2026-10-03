@@ -27,6 +27,15 @@ func (s scopeContextResolverStub) ResolveHierarchy(context.Context, runtimeconte
 	return s.hierarchy, nil
 }
 
+type scopeSearchResolverStub struct {
+	scopeContextResolverStub
+	page runtimecontext.OrganizationScopeSearchPage
+}
+
+func (s scopeSearchResolverStub) SearchOrganizationScopes(context.Context, runtimecontext.Scope, string, int) (runtimecontext.OrganizationScopeSearchPage, error) {
+	return s.page, nil
+}
+
 func TestFederationScopeRouteRejectsInvalidBody(t *testing.T) {
 	api := &API{deps: Dependencies{Federation: &federation.Service{}}}
 	mux := http.NewServeMux()
@@ -64,17 +73,20 @@ func TestActorContextAdvertisesScopeSwitchOnlyForFederatedMultiEntityContext(t *
 		hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Root: root, Current: current, LegalEntities: []runtimecontext.ScopeNode{current, ghana}},
 	}
 	for _, test := range []struct {
-		name           string
-		federation     *federation.Service
-		hierarchyState runtimecontext.HierarchyState
-		want           string
+		name                        string
+		federation                  *federation.Service
+		hierarchyState              runtimecontext.HierarchyState
+		organizationScopesTruncated bool
+		want                        string
 	}{
 		{name: "federated", federation: &federation.Service{}, hierarchyState: runtimecontext.HierarchyComplete, want: `"scope_switch":true`},
+		{name: "federated with truncated areas", federation: &federation.Service{}, hierarchyState: runtimecontext.HierarchyComplete, organizationScopesTruncated: true, want: `"scope_switch":true`},
 		{name: "non-federated", federation: nil, hierarchyState: runtimecontext.HierarchyComplete, want: `"scope_switch":false`},
-		{name: "truncated", federation: &federation.Service{}, hierarchyState: runtimecontext.HierarchyTruncated, want: `"scope_switch":false`},
+		{name: "truncated legal entities", federation: &federation.Service{}, hierarchyState: runtimecontext.HierarchyTruncated, want: `"scope_switch":false`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			resolver.hierarchy.State = test.hierarchyState
+			resolver.hierarchy.OrganizationScopesTruncated = test.organizationScopesTruncated
 			api := &API{deps: Dependencies{
 				Logger: slog.Default(), RuntimeContext: resolver, Federation: test.federation,
 			}}
@@ -88,5 +100,35 @@ func TestActorContextAdvertisesScopeSwitchOnlyForFederatedMultiEntityContext(t *
 				t.Fatalf("status=%d body=%s want=%s", response.Code, response.Body.String(), test.want)
 			}
 		})
+	}
+}
+
+func TestActorOrganizationScopeSearchUsesVerifiedScopeAndBoundedQuery(t *testing.T) {
+	now := time.Now().UTC()
+	actor := identity.Actor{
+		TenantID: "bank-demo", LegalEntityID: "BANK-NG", PrincipalID: "principal-1", Kind: "PERSON",
+		AuthenticationMethod: "OIDC", AssuranceLevel: "MFA", SessionID: "session-1",
+		IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour),
+	}
+	resolver := scopeSearchResolverStub{page: runtimecontext.OrganizationScopeSearchPage{Items: []runtimecontext.ScopeNode{{
+		ID: "scope-payments", Code: "PAYMENTS", Name: "Payments", Kind: runtimecontext.ScopeKindFunction,
+		DepartmentPath: []string{"BANK", "RISK", "PAYMENTS"}, Filterable: true,
+	}}}}
+	api := &API{deps: Dependencies{RuntimeContext: resolver}}
+
+	valid := httptest.NewRequest(http.MethodGet, "/api/v1/context/organization-scopes?q=payments&limit=20", nil)
+	valid = valid.WithContext(identity.WithActor(valid.Context(), actor))
+	response := httptest.NewRecorder()
+	api.actorOrganizationScopeSearch(response, valid)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), "scope-payments") {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+
+	invalid := httptest.NewRequest(http.MethodGet, "/api/v1/context/organization-scopes?q=p", nil)
+	invalid = invalid.WithContext(identity.WithActor(invalid.Context(), actor))
+	invalidResponse := httptest.NewRecorder()
+	api.actorOrganizationScopeSearch(invalidResponse, invalid)
+	if invalidResponse.Code != http.StatusBadRequest || !strings.Contains(invalidResponse.Body.String(), "scope_search_invalid") {
+		t.Fatalf("invalid status=%d body=%s", invalidResponse.Code, invalidResponse.Body.String())
 	}
 }
