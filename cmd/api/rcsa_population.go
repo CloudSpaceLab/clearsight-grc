@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/controlcatalog"
@@ -17,7 +18,7 @@ type rcsaPopulationResolver struct {
 	Continuity *continuity.Service
 }
 
-func (r rcsaPopulationResolver) ResolvePopulation(ctx context.Context, scope rcsa.Scope, riskIDs []string) (rcsa.Population, error) {
+func (r rcsaPopulationResolver) ResolvePopulation(ctx context.Context, scope rcsa.Scope, riskIDs []string, at time.Time) (rcsa.Population, error) {
 	if r.Risks == nil || r.Catalog == nil || r.Continuity == nil {
 		return rcsa.Population{}, rcsa.ErrInvalid
 	}
@@ -38,6 +39,9 @@ func (r rcsaPopulationResolver) ResolvePopulation(ctx context.Context, scope rcs
 			return rcsa.Population{}, err
 		}
 		current := aggregate.Risk
+		if current.Status != risk.StatusActive {
+			return rcsa.Population{}, rcsa.ErrInvalid
+		}
 		population.Risks = append(population.Risks, rcsa.RiskSnapshot{
 			RiskID: current.ID, RiskVersion: current.Version, Code: current.Code, Name: current.Name, Category: current.Category,
 		})
@@ -53,7 +57,7 @@ func (r rcsaPopulationResolver) ResolvePopulation(ctx context.Context, scope rcs
 			definition, ok := definitions[catalogLink.DefinitionID]
 			if !ok {
 				definition, err = r.Catalog.GetDefinition(ctx, scope.TenantID, catalogLink.DefinitionID)
-				if err != nil {
+				if err != nil || definition.Status != controlcatalog.DefinitionActive {
 					return rcsa.Population{}, rcsa.ErrInvalid
 				}
 				definitions[catalogLink.DefinitionID] = definition
@@ -67,7 +71,7 @@ func (r rcsaPopulationResolver) ResolvePopulation(ctx context.Context, scope rcs
 				programs[catalogLink.ProgramID] = program
 			}
 			implementation, found := rcsaControlImplementation(program, catalogLink.ImplementationID)
-			if !found {
+			if !found || !rcsaImplementationAssessable(implementation, at) {
 				return rcsa.Population{}, rcsa.ErrInvalid
 			}
 			population.Controls = append(population.Controls, rcsa.ControlSnapshot{
@@ -76,6 +80,8 @@ func (r rcsaPopulationResolver) ResolvePopulation(ctx context.Context, scope rcs
 				DefinitionID: definition.ID, DefinitionCode: definition.Code, DefinitionName: definition.Name,
 				ProgramID: program.Program.ID, ImplementationID: implementation.ID,
 				ImplementationVersion: implementation.Version, ImplementationName: implementation.Name,
+				ImplementationStatus: string(implementation.Status), ImplementationEffectiveFrom: implementation.EffectiveFrom,
+				ImplementationEffectiveUntil: implementation.EffectiveUntil,
 			})
 		}
 	}
@@ -89,4 +95,15 @@ func rcsaControlImplementation(program continuity.ProgramAggregate, id string) (
 		}
 	}
 	return continuity.ControlImplementation{}, false
+}
+
+
+func rcsaImplementationAssessable(value continuity.ControlImplementation, at time.Time) bool {
+	if value.Status == continuity.ImplementationInactive || value.Status == continuity.ImplementationRetired {
+		return false
+	}
+	if value.EffectiveFrom.IsZero() || at.Before(value.EffectiveFrom) {
+		return false
+	}
+	return value.EffectiveUntil == nil || at.Before(*value.EffectiveUntil)
 }
