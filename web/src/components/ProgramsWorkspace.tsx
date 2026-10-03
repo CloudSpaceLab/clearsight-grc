@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { ProgramItemTarget, ProgramSection } from "../appRouting";
-import { loadProgramSummaries } from "../api";
+import { loadProgramSummaries, type ScopeNode } from "../api";
 import type { ProgramSummary } from "../summaryTypes";
 import type { ProgramAggregate, ProgramState } from "../types";
 import { EmptyState } from "./EmptyState";
@@ -11,7 +11,7 @@ import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../wo
 
 type LoadState = "loading" | "live" | "unavailable";
 type ProgramListSummary = Omit<ProgramSummary, "open_matter_count"> & { open_matter_count?: number };
-type Props = { targetID?: string; targetSection?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
+type Props = { targetID?: string; targetSection?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; organizationScopeID?: string; organizationScopeName?: string; organizationScopes?: ScopeNode[]; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
 
 function ProgramIcon() {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 11h6M9 15h6M9 19h4"/></svg>;
@@ -62,6 +62,21 @@ export function ProgramsWorkspace(props: Props) {
   return <ProgramListWorkspace {...props}/>;
 }
 
+function organizationDescendantIDs(selectedID: string | undefined, scopes: ScopeNode[]) {
+  if (!selectedID) return new Set<string>();
+  const selected = scopes.find((scope) => scope.id === selectedID && scope.filterable);
+  if (!selected?.department_path?.length) return new Set([selectedID]);
+  return new Set(scopes
+    .filter((scope) => scope.filterable && isDescendantPath(scope.department_path ?? [], selected.department_path ?? []))
+    .map((scope) => scope.id));
+}
+
+function isDescendantPath(candidate: string[], ancestor: string[]) {
+  return ancestor.length > 0
+    && candidate.length >= ancestor.length
+    && ancestor.every((segment, index) => candidate[index]?.trim().toLowerCase() === segment.trim().toLowerCase());
+}
+
 function humanizeProgramState(value: string) {
   const labels: Record<string, string> = {
     CURRENT: "Up to date",
@@ -76,7 +91,7 @@ function humanizeProgramState(value: string) {
   return labels[value] ?? value.replaceAll("_", " ").toLowerCase();
 }
 
-function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false }: Props) {
+function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false, organizationScopeID, organizationScopes = [] }: Props) {
   const initialFilters = useMemo(() => readWorkspaceFilters(window.location.hash), []);
   const [items, setItems] = useState<ProgramListSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -93,6 +108,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   const [assignedToMe, setAssignedToMe] = useState(initialFilters.assigned_to_me === "true");
   const [loadingMore, setLoadingMore] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
+  const visibleOrganizationScopeIDs = useMemo(() => organizationDescendantIDs(organizationScopeID, organizationScopes), [organizationScopeID, organizationScopes]);
   const requestID = useRef(0);
   const handledTarget = useRef("");
 
@@ -106,7 +122,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     const currentRequest = ++requestID.current;
     if (reset) setState("loading"); else setLoadingMore(true);
     try {
-      const page = await loadProgramSummaries({ q: search, status, overallState, jurisdiction, assignedToMe, cursor, limit: 20 });
+      const page = await loadProgramSummaries({ q: search, status, overallState, jurisdiction, organizationScopeID, assignedToMe, cursor, limit: 20 });
       if (currentRequest !== requestID.current) return;
       setItems((current) => reset ? page.items : [...current, ...page.items]);
       setNextCursor(page.next_cursor ?? "");
@@ -117,7 +133,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     } finally {
       if (currentRequest === requestID.current) setLoadingMore(false);
     }
-  }, [assignedToMe, jurisdiction, overallState, search, status]);
+  }, [assignedToMe, jurisdiction, organizationScopeID, overallState, search, status]);
 
   useEffect(() => { void load(true); }, [load]);
 
@@ -154,6 +170,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   }
 
   function applyCreatedProgram(value: ProgramAggregate) {
+    if (organizationScopeID && !visibleOrganizationScopeIDs.has(value.program.organization_scope_id ?? "")) return;
     setItems((current) => {
       const next = summaryFromAggregate(value);
       return current.some((item) => item.program.id === value.program.id) ? current.map((item) => item.program.id === value.program.id ? next : item) : [next, ...current];
@@ -184,7 +201,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
         <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2></div>
       <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup, review or assessment needed</span></div><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
     </section>
-    {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
+    {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} organizationScopes={organizationScopes} initialOrganizationScopeID={organizationScopeID} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label className="workspace-search-field"><span>Search programs</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Name, code, function or jurisdiction"/></label>
       <label><span>Status</span><select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option><option value="DRAFT">Setup in progress</option><option value="RETIRED">Ended</option></select></label>
