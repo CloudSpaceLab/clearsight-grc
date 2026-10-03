@@ -7,10 +7,13 @@ type Props = {
   hierarchy: ScopeHierarchy;
   currentScopeID: string;
   canSwitchLegalEntity?: boolean;
+  canSelectGroup?: boolean;
+  isGroupSelected?: boolean;
   activeOrganizationScope?: ScopeNode;
   activeOrganizationScopeID?: string;
   isChanging?: boolean;
   onSelectionChange: (legalEntityID: string) => void;
+  onGroupSelectionChange?: (selected: boolean) => void;
   onOrganizationScopeChange?: (organizationScope?: ScopeNode) => void;
   onManageOrganization?: () => void;
   searchOrganizationAreas?: (query: string, limit?: number) => Promise<OrganizationScopeSearchPage>;
@@ -22,10 +25,13 @@ export function EnterpriseScopeSwitcher({
   hierarchy,
   currentScopeID,
   canSwitchLegalEntity = true,
+  canSelectGroup = false,
+  isGroupSelected = false,
   activeOrganizationScope,
   activeOrganizationScopeID,
   isChanging = false,
   onSelectionChange,
+  onGroupSelectionChange,
   onOrganizationScopeChange,
   onManageOrganization,
   searchOrganizationAreas = searchOrganizationScopes,
@@ -50,7 +56,7 @@ export function EnterpriseScopeSwitcher({
   }, [areaByID, areas]);
   const selectedAreaID = activeOrganizationScope?.id ?? activeOrganizationScopeID;
   const activeArea = activeOrganizationScope ?? areas.find((area) => area.id === selectedAreaID && area.filterable);
-  const triggerName = activeArea ? `${current.name} · ${activeArea.name}` : current.name;
+  const triggerName = isGroupSelected ? `${hierarchy.root.name} · Group` : activeArea ? `${current.name} · ${activeArea.name}` : current.name;
   const normalizedQuery = query.trim().toLowerCase();
   const visibleEntities = useMemo(() => {
     if (!normalizedQuery) return hierarchy.legal_entities;
@@ -102,6 +108,12 @@ export function EnterpriseScopeSwitcher({
   function chooseScope(id: string) {
     if (isChanging) return;
     if (id === currentScopeID) {
+      if (isGroupSelected && onGroupSelectionChange) {
+        setOpen(false);
+        setQuery("");
+        onGroupSelectionChange(false);
+        return;
+      }
       if (selectedAreaID && onOrganizationScopeChange) {
         setOpen(false);
         setQuery("");
@@ -112,7 +124,16 @@ export function EnterpriseScopeSwitcher({
     if (!canSwitchLegalEntity) return;
     setOpen(false);
     setQuery("");
+    onGroupSelectionChange?.(false);
     onSelectionChange(id);
+  }
+
+  function chooseGroup() {
+    if (!canSelectGroup || !onGroupSelectionChange || isChanging) return;
+    setOpen(false);
+    setQuery("");
+    onOrganizationScopeChange?.(undefined);
+    onGroupSelectionChange(true);
   }
 
   function chooseOrganizationScope(area: ScopeNode) {
@@ -162,12 +183,20 @@ export function EnterpriseScopeSwitcher({
     </>}
   >
     <div className="enterprise-scope-switcher">
-      <div className="enterprise-scope-root" aria-label={`Organization ${hierarchy.root.name}`}>
+      <div className="enterprise-scope-root" aria-label={`Organization ${hierarchy.root.name}`} data-current={isGroupSelected || undefined}>
         <span className="enterprise-scope-root__marker" aria-hidden="true"/>
-        <span className="enterprise-scope-root__content">
-          <strong>{hierarchy.root.name}</strong>
-          <small>Organization</small>
-        </span>
+        {canSelectGroup && onGroupSelectionChange
+          ? <SelectableRecord
+            title={hierarchy.root.name}
+            metadata={isGroupSelected ? "Group · Selected" : "Group"}
+            isSelected={isGroupSelected}
+            isDisabled={isChanging}
+            onPress={chooseGroup}
+          />
+          : <span className="enterprise-scope-root__content">
+            <strong>{hierarchy.root.name}</strong>
+            <small>Organization</small>
+          </span>}
       </div>
 
       {showSearch && <SearchField
@@ -188,7 +217,7 @@ export function EnterpriseScopeSwitcher({
           <span className="enterprise-scope-tree__line" aria-hidden="true"/>
           <ul className="enterprise-scope-list" aria-label={`Legal entities in ${hierarchy.root.name}`}>
             {visibleEntities.map((entity) => {
-              const selected = entity.id === currentScopeID && !selectedAreaID;
+              const selected = entity.id === currentScopeID && !selectedAreaID && !isGroupSelected;
               const metadata = entity.jurisdiction || "Legal entity";
               return <li className="enterprise-scope-option-row" data-current={selected || undefined} key={entity.id}>
                 <span className="enterprise-scope-option__branch" aria-hidden="true"/>
