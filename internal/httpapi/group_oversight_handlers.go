@@ -10,7 +10,6 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 var errGroupOversightUnavailable = errors.New("group oversight unavailable")
@@ -43,12 +42,7 @@ func (a *API) groupOversight(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "group_oversight_unavailable", "Group posture is unavailable. Try again.")
 		return
 	}
-	groupRoot, err := a.groupOversightRoot(r.Context(), actor)
-	if err != nil {
-		httpx.WriteError(w, http.StatusServiceUnavailable, "group_oversight_unavailable", "Group posture is unavailable. Try again.")
-		return
-	}
-	group, err := oversight.BuildGroupSnapshot(groupRoot.ID, groupRoot.Name, entities, snapshots)
+	group, err := oversight.BuildGroupSnapshot(page.TenantID, page.TenantName, entities, snapshots)
 	if err != nil {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "group_oversight_unavailable", "Group posture is unavailable. Try again.")
 		return
@@ -71,24 +65,10 @@ func (a *API) resolveGroupOversightEntities(ctx context.Context, actor identity.
 		}
 		return access.OversightScopePage{}, err
 	}
-	if page.HasMore || len(page.Items) < 2 {
+	if page.HasMore || len(page.Items) < 2 || page.TenantID == "" || page.TenantName == "" {
 		return access.OversightScopePage{}, errGroupOversightUnavailable
 	}
 	return page, nil
-}
-
-func (a *API) groupOversightRoot(ctx context.Context, actor identity.Actor) (runtimecontext.ScopeNode, error) {
-	resolver, ok := a.deps.RuntimeContext.(runtimecontext.HierarchyResolver)
-	if !ok {
-		return runtimecontext.ScopeNode{}, errGroupOversightUnavailable
-	}
-	hierarchy, err := resolver.ResolveHierarchy(ctx, runtimecontext.Scope{
-		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
-	})
-	if err != nil || hierarchy.Root.ID == "" || hierarchy.Root.Name == "" {
-		return runtimecontext.ScopeNode{}, errGroupOversightUnavailable
-	}
-	return hierarchy.Root, nil
 }
 
 func (a *API) groupOversightAvailable(ctx context.Context, actor identity.Actor) bool {
