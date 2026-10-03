@@ -1,8 +1,35 @@
 BEGIN;
 
+DO $
+BEGIN
+    IF EXISTS (SELECT 1 FROM organization_scope_revisions) THEN
+        RAISE EXCEPTION 'organization scope revisions exist; refusing to erase organization governance history';
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM governance_decisions
+        WHERE object_type IN ('ORGANIZATION_SCOPE','ORGANIZATION_SCOPE_REVISION')
+    ) THEN
+        RAISE EXCEPTION 'organization scope governance decisions exist; refusing to erase organization governance history';
+    END IF;
+END;
+$;
+
 DROP INDEX IF EXISTS organization_scope_revisions_queue_idx;
 DROP INDEX IF EXISTS organization_scope_revisions_pending_idx;
 DROP TABLE IF EXISTS organization_scope_revisions;
+
+ALTER TABLE governance_decisions
+    DROP CONSTRAINT IF EXISTS governance_decisions_object_type_check;
+ALTER TABLE governance_decisions
+    ADD CONSTRAINT governance_decisions_object_type_check
+    CHECK (object_type IN (
+        'ROUTING_POLICY',
+        'DELEGATION',
+        'SEGREGATION_RULE',
+        'SCIM_SOURCE',
+        'DIRECTORY_GROUP_ROLE_BINDING'
+    ));
 
 CREATE OR REPLACE FUNCTION bind_legacy_organization_scope() RETURNS trigger
 LANGUAGE plpgsql
