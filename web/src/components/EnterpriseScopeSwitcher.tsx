@@ -1,16 +1,19 @@
-import { useMemo, useState } from "react";
-import type { ScopeHierarchy, ScopeNode } from "../api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { searchOrganizationScopes } from "../api";
+import type { OrganizationScopeSearchPage, ScopeHierarchy, ScopeNode } from "../api";
 import { Button, PopoverDialog, SearchField, SelectableRecord } from "./ui";
 
 type Props = {
   hierarchy: ScopeHierarchy;
   currentScopeID: string;
   canSwitchLegalEntity?: boolean;
+  activeOrganizationScope?: ScopeNode;
   activeOrganizationScopeID?: string;
   isChanging?: boolean;
   onSelectionChange: (legalEntityID: string) => void;
-  onOrganizationScopeChange?: (organizationScopeID?: string) => void;
+  onOrganizationScopeChange?: (organizationScope?: ScopeNode) => void;
   onManageOrganization?: () => void;
+  searchOrganizationAreas?: (query: string, limit?: number) => Promise<OrganizationScopeSearchPage>;
 };
 
 const searchThreshold = 7;
@@ -19,14 +22,19 @@ export function EnterpriseScopeSwitcher({
   hierarchy,
   currentScopeID,
   canSwitchLegalEntity = true,
+  activeOrganizationScope,
   activeOrganizationScopeID,
   isChanging = false,
   onSelectionChange,
   onOrganizationScopeChange,
   onManageOrganization,
+  searchOrganizationAreas = searchOrganizationScopes,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [remoteAreas, setRemoteAreas] = useState<ScopeNode[]>([]);
+  const [remoteState, setRemoteState] = useState<"idle" | "loading" | "live" | "unavailable">("idle");
+  const searchRequestID = useRef(0);
   const current = hierarchy.legal_entities.find((entity) => entity.id === currentScopeID) ?? hierarchy.current;
   const areas = useMemo(() => hierarchy.organization_scopes ?? [], [hierarchy.organization_scopes]);
   const areaByID = useMemo(() => new Map(areas.map((area) => [area.id, area])), [areas]);
@@ -40,7 +48,8 @@ export function EnterpriseScopeSwitcher({
     }
     return values;
   }, [areaByID, areas]);
-  const activeArea = areas.find((area) => area.id === activeOrganizationScopeID && area.filterable);
+  const selectedAreaID = activeOrganizationScope?.id ?? activeOrganizationScopeID;
+  const activeArea = activeOrganizationScope ?? areas.find((area) => area.id === selectedAreaID && area.filterable);
   const triggerName = activeArea ? `${current.name} · ${activeArea.name}` : current.name;
   const normalizedQuery = query.trim().toLowerCase();
   const visibleEntities = useMemo(() => {
@@ -60,7 +69,30 @@ export function EnterpriseScopeSwitcher({
     }
     return visible;
   }, [areaByID, areas, normalizedQuery]);
-  const showSearch = hierarchy.legal_entities.length + areas.length >= searchThreshold;
+  const remoteSearchActive = hierarchy.organization_scopes_truncated === true && normalizedQuery.length >= 2;
+  const showSearch = hierarchy.organization_scopes_truncated === true || hierarchy.legal_entities.length + areas.length >= searchThreshold;
+
+  useEffect(() => {
+    const requestID = ++searchRequestID.current;
+    if (!open || !remoteSearchActive) {
+      setRemoteAreas([]);
+      setRemoteState("idle");
+      return;
+    }
+    setRemoteState("loading");
+    const timer = window.setTimeout(() => {
+      void searchOrganizationAreas(query.trim(), 30).then((page) => {
+        if (requestID !== searchRequestID.current) return;
+        setRemoteAreas(page.items ?? []);
+        setRemoteState("live");
+      }).catch(() => {
+        if (requestID !== searchRequestID.current) return;
+        setRemoteAreas([]);
+        setRemoteState("unavailable");
+      });
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [open, query, remoteSearchActive, searchOrganizationAreas]);
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
@@ -70,7 +102,7 @@ export function EnterpriseScopeSwitcher({
   function chooseScope(id: string) {
     if (isChanging) return;
     if (id === currentScopeID) {
-      if (activeOrganizationScopeID && onOrganizationScopeChange) {
+      if (selectedAreaID && onOrganizationScopeChange) {
         setOpen(false);
         setQuery("");
         onOrganizationScopeChange(undefined);
@@ -83,12 +115,11 @@ export function EnterpriseScopeSwitcher({
     onSelectionChange(id);
   }
 
-  function chooseOrganizationScope(id: string) {
-    const area = areas.find((item) => item.id === id);
-    if (!area?.filterable || !onOrganizationScopeChange || isChanging) return;
+  function chooseOrganizationScope(area: ScopeNode) {
+    if (!area.filterable || !onOrganizationScopeChange || isChanging) return;
     setOpen(false);
     setQuery("");
-    onOrganizationScopeChange(id);
+    onOrganizationScopeChange(area);
   }
 
   function manageOrganization() {
@@ -99,7 +130,7 @@ export function EnterpriseScopeSwitcher({
   function renderArea(area: ScopeNode) {
     if (!visibleAreaIDs.has(area.id)) return null;
     const children = (childrenByParent.get(area.id) ?? []).filter((child) => visibleAreaIDs.has(child.id));
-    const selected = area.id === activeOrganizationScopeID;
+    const selected = area.id === selectedAreaID;
     return <li className="enterprise-scope-area-node" key={area.id}>
       {area.filterable && onOrganizationScopeChange
         ? <SelectableRecord
@@ -107,7 +138,7 @@ export function EnterpriseScopeSwitcher({
           metadata={selected ? `${humanizeScopeKind(area.kind)} · Selected` : humanizeScopeKind(area.kind)}
           isSelected={selected}
           isDisabled={isChanging}
-          onPress={() => chooseOrganizationScope(area.id)}
+          onPress={() => chooseOrganizationScope(area)}
         />
         : <div className="enterprise-scope-area-static"><span>{area.name}</span><small>{humanizeScopeKind(area.kind)}</small></div>}
       {children.length > 0 && <ul>{children.map(renderArea)}</ul>}
@@ -157,7 +188,7 @@ export function EnterpriseScopeSwitcher({
           <span className="enterprise-scope-tree__line" aria-hidden="true"/>
           <ul className="enterprise-scope-list" aria-label={`Legal entities in ${hierarchy.root.name}`}>
             {visibleEntities.map((entity) => {
-              const selected = entity.id === currentScopeID && !activeOrganizationScopeID;
+              const selected = entity.id === currentScopeID && !selectedAreaID;
               const metadata = entity.jurisdiction || "Legal entity";
               return <li className="enterprise-scope-option-row" data-current={selected || undefined} key={entity.id}>
                 <span className="enterprise-scope-option__branch" aria-hidden="true"/>
@@ -179,10 +210,30 @@ export function EnterpriseScopeSwitcher({
       <section className="enterprise-scope-section enterprise-scope-areas" aria-labelledby="enterprise-areas-heading">
         <div className="enterprise-scope-section__heading">
           <strong id="enterprise-areas-heading">Areas</strong>
-          {!areas.length && <small>No areas available.</small>}
+          {!areas.length && !hierarchy.organization_scopes_truncated && <small>No areas available.</small>}
+          {hierarchy.organization_scopes_truncated && !remoteSearchActive && <small>More areas available. Search to find them.</small>}
         </div>
-        {rootAreas.length > 0 && <ul className="enterprise-scope-area-tree">{rootAreas.map(renderArea)}</ul>}
-        {areas.length > 0 && !rootAreas.length && normalizedQuery && <p className="enterprise-scope-empty">No area matches.</p>}
+        {remoteSearchActive ? <>
+          {remoteState === "loading" && <p className="enterprise-scope-empty" role="status">Searching areas…</p>}
+          {remoteState === "unavailable" && <p className="enterprise-scope-empty" role="alert">Area search unavailable. Try again.</p>}
+          {remoteState === "live" && remoteAreas.length > 0 && <ul className="enterprise-scope-list" aria-label="Matching organization areas">
+            {remoteAreas.map((area) => <li className="enterprise-scope-option-row" key={area.id}>
+              {area.filterable && onOrganizationScopeChange
+                ? <SelectableRecord
+                  title={area.name}
+                  metadata={area.department_path?.join(" / ") || humanizeScopeKind(area.kind)}
+                  isSelected={area.id === selectedAreaID}
+                  isDisabled={isChanging}
+                  onPress={() => chooseOrganizationScope(area)}
+                />
+                : <div className="enterprise-scope-area-static"><span>{area.name}</span><small>{area.department_path?.join(" / ") || humanizeScopeKind(area.kind)}</small></div>}
+            </li>)}
+          </ul>}
+          {remoteState === "live" && !remoteAreas.length && <p className="enterprise-scope-empty">No area matches.</p>}
+        </> : <>
+          {rootAreas.length > 0 && <ul className="enterprise-scope-area-tree">{rootAreas.map(renderArea)}</ul>}
+          {areas.length > 0 && !rootAreas.length && normalizedQuery && <p className="enterprise-scope-empty">No area matches.</p>}
+        </>}
       </section>
 
       {onManageOrganization && <div className="enterprise-scope-management">
