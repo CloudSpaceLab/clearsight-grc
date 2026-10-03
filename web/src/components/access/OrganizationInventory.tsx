@@ -1,12 +1,23 @@
 import { useMemo, useState } from "react";
-import type { OrganizationPosition, OrganizationScope, OrganizationScopeRevision, ProposeOrganizationScopeInput } from "../../identityAccessApi";
+import type {
+  IdentityPerson,
+  OrganizationPosition,
+  OrganizationPositionRevision,
+  OrganizationScope,
+  OrganizationScopeRevision,
+  ProposeOrganizationPositionInput,
+  ProposeOrganizationScopeInput,
+} from "../../identityAccessApi";
+import { OrganizationPositionManager } from "./OrganizationPositionManager";
 import { OrganizationScopeManager } from "./OrganizationScopeManager";
 import { SelectField, StatusBadge } from "../ui";
 
 type Props = {
   positions: OrganizationPosition[];
+  people: IdentityPerson[];
   scopes: OrganizationScope[];
   revisions?: OrganizationScopeRevision[];
+  positionRevisions?: OrganizationPositionRevision[];
   actorPrincipalID?: string;
   canConfigure?: boolean;
   isBusy?: boolean;
@@ -15,12 +26,17 @@ type Props = {
   onProposeScope?: (input: ProposeOrganizationScopeInput) => Promise<boolean>;
   onApproveScope?: (revision: OrganizationScopeRevision, rationale: string) => Promise<boolean>;
   onRejectScope?: (revision: OrganizationScopeRevision, rationale: string) => Promise<boolean>;
+  onProposePosition?: (input: ProposeOrganizationPositionInput) => Promise<boolean>;
+  onApprovePosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
+  onRejectPosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
 };
 
 export function OrganizationInventory({
   positions,
+  people,
   scopes,
   revisions = [],
+  positionRevisions = [],
   actorPrincipalID = "",
   canConfigure = false,
   isBusy = false,
@@ -29,6 +45,9 @@ export function OrganizationInventory({
   onProposeScope,
   onApproveScope,
   onRejectScope,
+  onProposePosition,
+  onApprovePosition,
+  onRejectPosition,
 }: Props) {
   const [query, setQuery] = useState("");
   const [area, setArea] = useState<string>();
@@ -101,7 +120,24 @@ export function OrganizationInventory({
       </div>
 
       {scopesTruncated && <div className="inline-notice" role="status">Only the first 500 organization scopes are shown. Narrow the hierarchy before editing or reviewing a larger structure.</div>}
-      {mode === "positions" ? <PositionTable positions={visible} scopeByID={scopeByID}/> : <ReportingList positions={visible} positionByID={positionByID}/>} 
+      {mode === "positions" && onProposePosition && onApprovePosition && onRejectPosition
+        ? <OrganizationPositionManager
+          positions={visible}
+          allPositions={positions}
+          people={people}
+          scopes={scopes}
+          revisions={positionRevisions}
+          actorPrincipalID={actorPrincipalID}
+          canConfigure={canConfigure}
+          isBusy={isBusy}
+          scopeByID={scopeByID}
+          onPropose={onProposePosition}
+          onApprove={onApprovePosition}
+          onReject={onRejectPosition}
+        />
+        : mode === "reporting"
+          ? <ReportingList positions={visible} positionByID={positionByID}/>
+          : null} 
 
       {!visible.length && <div className="identity-empty-state">
         <strong>{positions.length ? "No positions match these filters" : "No active positions were recorded"}</strong>
@@ -113,25 +149,6 @@ export function OrganizationInventory({
       <strong>{mode === "positions" ? "Area changes require approval." : "Reporting lines do not grant approval authority."}</strong>
       <span>{mode === "positions" ? "Home uses explicit Matter area scope." : "Authority comes from active policy."}</span>
     </div>
-  </div>;
-}
-
-function PositionTable({ positions, scopeByID }: { positions: OrganizationPosition[]; scopeByID: Map<string, OrganizationScope> }) {
-  if (!positions.length) return null;
-  return <div className="identity-position-table-wrap">
-    <table className="identity-position-table">
-      <thead><tr><th>Position</th><th>Current occupant</th><th>Workspace roles</th><th>Reports to</th></tr></thead>
-      <tbody>{positions.map((position) => <tr key={position.id}>
-        <td data-label="Position"><strong>{position.title}</strong><span>{position.code} · {scopeLabel(position, scopeByID)}</span></td>
-        <td data-label="Current occupant">{position.occupant_name
-          ? <><strong>{position.occupant_name}</strong><span>{humanize(position.occupant_status || "active")}</span></>
-          : <span className="identity-vacancy">Vacant — coverage required</span>}</td>
-        <td data-label="Workspace roles"><div className="identity-role-chips">{position.role_codes.length
-          ? position.role_codes.map((role) => <span key={role}>{role}</span>)
-          : <span className="identity-empty-value">No role assigned</span>}</div></td>
-        <td data-label="Reports to"><strong>{position.parent_position_title || "Top-level position"}</strong>{position.parent_position_code && <span>{position.parent_position_code}</span>}</td>
-      </tr>)}</tbody>
-    </table>
   </div>;
 }
 

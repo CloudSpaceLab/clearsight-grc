@@ -263,6 +263,10 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	if err != nil {
 		return AdminOverview{}, err
 	}
+	result.OrganizationPositionRevisions, err = a.organizationPositionRevisions(ctx, tenantID, entityID)
+	if err != nil {
+		return AdminOverview{}, err
+	}
 
 	if err := a.pool.QueryRow(ctx, `
 		SELECT
@@ -974,15 +978,15 @@ func recordAdminDecision(ctx context.Context, tx pgx.Tx, tenant, actorID, eventT
 
 func adminDecisionStates(eventType string) (string, string) {
 	switch eventType {
-	case "SCIM_SOURCE_CREATED", "DIRECTORY_GROUP_ROLE_BOUND", "ORGANIZATION_SCOPE_CREATED":
+	case "SCIM_SOURCE_CREATED", "DIRECTORY_GROUP_ROLE_BOUND", "ORGANIZATION_SCOPE_CREATED", "ORGANIZATION_POSITION_CREATED":
 		return "NONE", "ACTIVE"
-	case "ORGANIZATION_SCOPE_CHANGE_PROPOSED":
+	case "ORGANIZATION_SCOPE_CHANGE_PROPOSED", "ORGANIZATION_POSITION_CHANGE_PROPOSED":
 		return "NONE", "PENDING"
-	case "ORGANIZATION_SCOPE_CHANGE_REJECTED":
+	case "ORGANIZATION_SCOPE_CHANGE_REJECTED", "ORGANIZATION_POSITION_CHANGE_REJECTED":
 		return "PENDING", "REJECTED"
 	case "SCIM_SOURCE_REVOKED":
 		return "ACTIVE", "REVOKED"
-	case "DIRECTORY_GROUP_ROLE_RETIRED", "ORGANIZATION_SCOPE_RETIRED":
+	case "DIRECTORY_GROUP_ROLE_RETIRED", "ORGANIZATION_SCOPE_RETIRED", "ORGANIZATION_POSITION_RETIRED":
 		return "ACTIVE", "RETIRED"
 	default:
 		return "ACTIVE", "ACTIVE"
