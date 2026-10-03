@@ -24,7 +24,7 @@ func TestObservationsFromBundlePreservesHomeMetricTruth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(values) != len(HomeDefinitions) {
+	if len(values) != len(homeDefinitions) {
 		t.Fatalf("observation count=%d", len(values))
 	}
 	byID := map[string]Observation{}
@@ -67,9 +67,9 @@ func TestObservationsFromBundleRejectsScopeOrDefinitionDrift(t *testing.T) {
 	}
 }
 
-func TestHomeDefinitionsAreUniqueAndExplicitlyAdditive(t *testing.T) {
+func TesthomeDefinitionsAreUniqueAndExplicitlyAdditive(t *testing.T) {
 	seen := map[string]struct{}{}
-	for _, definition := range HomeDefinitions {
+	for _, definition := range homeDefinitions {
 		if _, exists := seen[definition.ID]; exists {
 			t.Fatalf("duplicate metric definition %q", definition.ID)
 		}
