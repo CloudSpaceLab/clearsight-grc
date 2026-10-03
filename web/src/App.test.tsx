@@ -305,6 +305,16 @@ describe("legal entity scope selector", () => {
     expect(switchLegalEntity).not.toHaveBeenCalled();
   });
 
+  it("fails closed when a direct Group route is not authorized", async () => {
+    vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
+    vi.mocked(loadGroupOversight).mockRejectedValue(new Error("forbidden"));
+    window.history.replaceState(null, "", "#oversight?scope=group&metric=overdue");
+    render(<App/>);
+
+    await waitFor(() => expect(window.location.hash).toBe("#oversight?metric=overdue"));
+    expect(screen.queryByRole("heading", { name: "Group posture" })).toBeNull();
+  });
+
   it("shows server-authorized organization scopes even when there is only one legal entity", async () => {
     const scoped = switchableRuntime();
     const entity = scoped.scope_hierarchy!.legal_entities[0]!;
