@@ -1,4 +1,4 @@
-export type View = "today" | "oversight" | "programs" | "risks" | "forms" | "vendors" | "ropa" | "reports" | "work" | "people" | "imports" | "explore" | "configure";
+export type View = "today" | "oversight" | "programs" | "risks" | "losses" | "forms" | "vendors" | "ropa" | "reports" | "work" | "people" | "imports" | "explore" | "configure";
 export type WorkTab = "assigned" | "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "monitoring" | "evidence-results" | "issues-actions" | "history";
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
@@ -8,6 +8,7 @@ export type OversightMetric = "critical-high" | "overdue" | "routing-gaps" | "ou
 export type WorkspaceTarget = {
   programID?: string;
   riskID?: string;
+  lossID?: string;
   formTemplateID?: string;
   programSection?: ProgramSection;
   programItem?: ProgramItemTarget;
@@ -34,7 +35,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (!value) return undefined;
     try { return decodeURIComponent(value); } catch { return value; }
   };
-	const allowed: View[] = ["today", "oversight", "programs", "risks", "forms", "vendors", "ropa", "reports", "work", "people", "imports", "explore", "configure"];
+	const allowed: View[] = ["today", "oversight", "programs", "risks", "losses", "forms", "vendors", "ropa", "reports", "work", "people", "imports", "explore", "configure"];
 	const requestedView = allowed.includes(parts[0] as View) ? parts[0] as View : "oversight";
 	const view = requestedView === "today" || (requestedView === "ropa" && parts[1] === "reports") ? "oversight" : requestedView;
 	if (requestedView === "ropa" && parts[1] === "reports") return { view: "reports", target: {} };
@@ -59,6 +60,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     return { view, target };
   }
 	if (view === "risks") return { view, target: { riskID: decodeTarget(parts[1]) } };
+	if (view === "losses") return { view, target: { lossID: decodeTarget(parts[1]) } };
 	if (view === "forms") return { view, target: { formTemplateID: decodeTarget(parts[1]) } };
 	if (view === "people") return { view, target: { personID: decodeTarget(parts[1]) } };
 	if (view === "vendors") {
@@ -93,6 +95,7 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
     return `#programs/${encodeURIComponent(target.programID)}/${section}${item?.id.trim() ? `/${item.kind}/${encodeURIComponent(item.id)}` : ""}`;
   }
 	if (view === "risks" && target.riskID) return `#risks/${encodeURIComponent(target.riskID)}`;
+	if (view === "losses" && target.lossID) return `#losses/${encodeURIComponent(target.lossID)}`;
 	if (view === "forms" && target.formTemplateID) return `#forms/${encodeURIComponent(target.formTemplateID)}`;
 	if (view === "people" && target.personID) return `#people/${encodeURIComponent(target.personID)}`;
   if (view === "vendors") {
