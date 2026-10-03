@@ -62,7 +62,7 @@ func TestStoredOperationalLossOwnerOrDelegateRequiredForChange(t *testing.T) {
 	if err := check("owner-delegate", "loss.update"); err != nil {
 		t.Fatalf("stored loss owner's delegate was rejected: %v", err)
 	}
-	if err := check("other-owner", "loss.recovery.record"); !errors.Is(err, commandauth.ErrNotAuthorized) {
+	if err := check("owner-delegate", "loss.intervention.open"); err != nil {\n\t\tt.Fatalf("stored loss owner delegate could not open intervention: %v", err)\n\t}\n	if err := check("other-owner", "loss.recovery.record"); !errors.Is(err, commandauth.ErrNotAuthorized) {
 		t.Fatalf("unassigned loss owner candidate was not rejected: %v", err)
 	}
 }
