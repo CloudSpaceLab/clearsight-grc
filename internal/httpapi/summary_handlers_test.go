@@ -3,11 +3,16 @@ package httpapi
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 func TestProgramSummaryEndpointIsBoundedAndCursorBased(t *testing.T) {
@@ -100,5 +105,81 @@ func TestSummaryEndpointsValidateAndAcceptStructuredFilters(t *testing.T) {
 	handler.ServeHTTP(invalid, httptest.NewRequest(http.MethodGet, "/api/v1/program-summaries?tenant_id=bank&overall_state=COMPLIANT", nil))
 	if invalid.Code != http.StatusBadRequest || !bytes.Contains(invalid.Body.Bytes(), []byte("overall state")) {
 		t.Fatalf("invalid state returned %d: %s", invalid.Code, invalid.Body.String())
+	}
+}
+
+
+func TestProgramSummaryEndpointFiltersAuthorizedOrganizationDescendants(t *testing.T) {
+	entity := runtimecontext.ScopeNode{ID: "bank-ng", Name: "Bank Nigeria", Kind: runtimecontext.ScopeKindLegalEntity}
+	parent := runtimecontext.ScopeNode{ID: "scope-risk", Name: "Risk", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "RISK"}, Filterable: true}
+	child := runtimecontext.ScopeNode{ID: "scope-risk-ops", Name: "Risk Operations", Kind: runtimecontext.ScopeKindDepartment, ParentID: parent.ID, DepartmentPath: []string{"BANK", "RISK", "OPERATIONS"}, Filterable: true}
+	sibling := runtimecontext.ScopeNode{ID: "scope-finance", Name: "Finance", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "FINANCE"}, Filterable: true}
+	service := continuity.NewService(continuity.NewMemoryRepository())
+	handler := New(Dependencies{
+		Logger:        slog.New(slog.NewTextHandler(io.Discard, nil)),
+		AllowedOrigin: "http://localhost:5173",
+		Mode:          "test-memory",
+		Identity:      identity.NewDevelopmentAuthenticator("bank", "role-cro", "bank-ng"),
+		RuntimeContext: scopeContextResolverStub{
+			hierarchy: runtimecontext.ScopeHierarchy{
+				State: runtimecontext.HierarchyComplete, Current: entity, LegalEntities: []runtimecontext.ScopeNode{entity},
+				OrganizationScopes: []runtimecontext.ScopeNode{parent, child, sibling},
+			},
+		},
+		Continuity: service,
+		Authority: &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+			authority.ResponsibilityOwner:      {Principal: authority.Principal{ID: "role-cro", DisplayName: "Program creator"}, CandidatePrincipals: []authority.Principal{{ID: "owner", DisplayName: "Program owner"}}},
+			authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "approver", DisplayName: "Approval authority"}},
+		}},
+	})
+
+	for _, program := range []struct {
+		code  string
+		scope string
+	}{
+		{code: "PARENT", scope: parent.ID},
+		{code: "CHILD", scope: child.ID},
+		{code: "SIBLING", scope: sibling.ID},
+		{code: "UNATTRIBUTED"},
+	} {
+		body := []byte(`{"tenant_id":"bank","code":"` + program.code + `","name":"` + program.code + `","type":"ASSURANCE","owning_function":"Risk","owner_candidate_id":"owner","approval_authority_candidate_id":"approver","organization_scope_id":"` + program.scope + `","scope":{},"effective_from":"2026-10-03T10:00:00Z"}`)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/api/v1/programs", bytes.NewReader(body)))
+		if response.Code != http.StatusCreated {
+			t.Fatalf("create %s status=%d body=%s", program.code, response.Code, response.Body.String())
+		}
+	}
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/program-summaries?tenant_id=bank&organization_scope_id="+parent.ID+"&limit=20", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("scoped summary status=%d body=%s", response.Code, response.Body.String())
+	}
+	var page continuity.ProgramSummaryPage
+	if err := json.NewDecoder(response.Body).Decode(&page); err != nil {
+		t.Fatal(err)
+	}
+	if page.OrganizationScopeID != parent.ID || len(page.Items) != 2 {
+		t.Fatalf("scoped programs=%#v", page)
+	}
+	seen := map[string]bool{}
+	for _, item := range page.Items {
+		seen[item.Program.Code] = true
+	}
+	if !seen["PARENT"] || !seen["CHILD"] || seen["SIBLING"] || seen["UNATTRIBUTED"] {
+		t.Fatalf("scope membership=%#v", seen)
+	}
+
+	forbidden := httptest.NewRecorder()
+	handler.ServeHTTP(forbidden, httptest.NewRequest(http.MethodGet, "/api/v1/program-summaries?tenant_id=bank&organization_scope_id=scope-unauthorized", nil))
+	if forbidden.Code != http.StatusForbidden || !bytes.Contains(forbidden.Body.Bytes(), []byte("organization_scope_forbidden")) {
+		t.Fatalf("forbidden scope status=%d body=%s", forbidden.Code, forbidden.Body.String())
+	}
+
+	forbiddenCreate := httptest.NewRecorder()
+	body := []byte(`{"tenant_id":"bank","code":"FORBIDDEN","name":"Forbidden","type":"ASSURANCE","owning_function":"Risk","owner_candidate_id":"owner","approval_authority_candidate_id":"approver","organization_scope_id":"scope-unauthorized","scope":{},"effective_from":"2026-10-03T10:00:00Z"}`)
+	handler.ServeHTTP(forbiddenCreate, httptest.NewRequest(http.MethodPost, "/api/v1/programs", bytes.NewReader(body)))
+	if forbiddenCreate.Code != http.StatusForbidden || !bytes.Contains(forbiddenCreate.Body.Bytes(), []byte("organization_scope_forbidden")) {
+		t.Fatalf("forbidden create status=%d body=%s", forbiddenCreate.Code, forbiddenCreate.Body.String())
 	}
 }
