@@ -126,7 +126,6 @@ func TestEscalationGuardMutationRequiresIdentityAndGovernanceConfigure(t *testin
 	}
 }
 
-
 func TestOrganizationScopeChangesRequireIdentityAndGovernanceConfigure(t *testing.T) {
 	now := time.Now().UTC()
 	base := identity.Actor{
