@@ -264,8 +264,10 @@ describe("legal entity scope selector", () => {
     fireEvent.click(trigger);
     const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
 
-    expect(within(dialog).getByText("BANK / OPERATIONS / PAYMENTS")).toBeTruthy();
-    expect(within(dialog).getByText("BANK / RISK")).toBeTruthy();
+    expect(within(dialog).getByText("BANK")).toBeTruthy();
+    expect(within(dialog).getByText("OPERATIONS")).toBeTruthy();
+    expect(within(dialog).getByText("PAYMENTS")).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /RISK/ })).toBeTruthy();
   });
 
   it("selects a filterable organization scope from the persistent Scope control", async () => {
@@ -280,7 +282,7 @@ describe("legal entity scope selector", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
     const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
-    fireEvent.click(within(dialog).getByRole("button", { name: /BANK \/ RISK/ }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /Risk/ }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Risk"));
   });
