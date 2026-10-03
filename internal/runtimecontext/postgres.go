@@ -222,6 +222,11 @@ func (r *PostgresResolver) resolveOrganizationScopes(ctx context.Context, scope 
 				JOIN role_templates rt ON rt.tenant_id=prb.tenant_id AND rt.id=prb.role_template_id
 				WHERE op.legal_entity_id=$3::uuid
 				  AND cardinality(op.department_path)=0
+				  AND (
+				        'OVERSIGHT_READ'=ANY(rt.capabilities)
+				        OR 'IDENTITY_READ'=ANY(rt.capabilities)
+				        OR 'CONFIG_READ'=ANY(rt.capabilities)
+				      )
 				  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
 				  AND prb.valid_from<=clock_timestamp() AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
 				  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
@@ -236,6 +241,11 @@ func (r *PostgresResolver) resolveOrganizationScopes(ctx context.Context, scope 
 				JOIN role_templates rt ON rt.tenant_id=b.tenant_id AND rt.id=b.role_template_id
 				WHERE b.legal_entity_id=$3::uuid
 				  AND cardinality(b.department_path)=0
+				  AND (
+				        'OVERSIGHT_READ'=ANY(rt.capabilities)
+				        OR 'IDENTITY_READ'=ANY(rt.capabilities)
+				        OR 'CONFIG_READ'=ANY(rt.capabilities)
+				      )
 				  AND b.valid_from<=clock_timestamp() AND (b.valid_until IS NULL OR clock_timestamp()<b.valid_until)
 				  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
 			)) AS has_global_scope,
