@@ -71,6 +71,18 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Risk, error) {
 	return s.repository.Create(ctx, risk, event)
 }
 
+func (s *Service) ResolveScope(ctx context.Context, tenantID, riskID string) (Scope, error) {
+	if s == nil || s.repository == nil {
+		return Scope{}, ErrInvalid
+	}
+	tenantID = strings.TrimSpace(tenantID)
+	riskID = strings.TrimSpace(riskID)
+	if tenantID == "" || riskID == "" {
+		return Scope{}, ErrInvalid
+	}
+	return s.repository.ResolveScope(ctx, tenantID, riskID)
+}
+
 func (s *Service) Update(ctx context.Context, input UpdateInput) (Risk, error) {
 	if s == nil || s.repository == nil {
 		return Risk{}, ErrInvalid
