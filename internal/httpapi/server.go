@@ -30,6 +30,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/rcsa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
@@ -94,6 +95,7 @@ type Dependencies struct {
 	RopaEventsReader       ropa.Repository
 	Reporting              *reporting.Service
 	Risk                   *risk.Service
+	RCSA                   *rcsa.Service
 	ControlCatalog         *controlcatalog.Service
 	Today                  *today.Service
 	Oversight              *oversight.Service
