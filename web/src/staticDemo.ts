@@ -659,8 +659,72 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/context") {
     const productionUnavailable = fixture === "today-unavailable";
     const noConfig = fixture === "no-config-access";
-    return clone({ tenant: { id: "bank-demo", name: "Meridian Trust Bank" }, legal_entity: { id: "bank-ng", name: "Meridian Trust Bank Nigeria" }, actor: { ...currentStaticActor, assurance_level: "MFA", authentication: "STATIC_DEMO", session_id: "pages-demo" }, mode: "static-stakeholder-demo", demo_mode: !productionUnavailable, capabilities: { document_import: true, reference_journeys: !productionUnavailable, config_read: !noConfig, config_write: !noConfig, platform_operations_read: !noConfig, platform_operations_write: !noConfig } }) as T;
+    return clone({ tenant: { id: "bank-demo", name: "Meridian Trust Bank" }, legal_entity: { id: "bank-ng", name: "Meridian Trust Bank Nigeria" }, actor: { ...currentStaticActor, assurance_level: "MFA", authentication: "STATIC_DEMO", session_id: "pages-demo" }, mode: "static-stakeholder-demo", demo_mode: !productionUnavailable, capabilities: { document_import: true, reference_journeys: !productionUnavailable, config_read: !noConfig, config_write: !noConfig, platform_operations_read: !noConfig, platform_operations_write: !noConfig, identity_read: !noConfig, identity_configure: !noConfig } }) as T;
   }
+  if (pathname === "/api/v1/access/overview" && method === "GET") return clone({
+    sign_in: { mode: "OIDC", authentication: "MFA", assurance_level: "AAL2" },
+    actor_principal_id: currentStaticActor.id,
+    can_configure: true,
+    can_configure_organization: true,
+    can_configure_escalation: false,
+    sources: [],
+    people: [],
+    groups: [],
+    roles: [{ id: "sample-reviewer-role", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: [] }],
+    legal_entities: [{ id: "bank-ng", code: "BANK-NG", name: "Meridian Trust Bank Nigeria" }],
+    bindings: [],
+    positions: [{
+      id: "sample-cro-position",
+      code: "CRO-NG",
+      title: "Chief Risk Officer",
+      function_name: "Risk",
+      department_path: ["BANK", "RISK"],
+      organization_scope_id: "sample-scope-risk",
+      occupant_principal_id: "role-cro",
+      occupant_name: "Morgan Ellis",
+      occupant_status: "ACTIVE",
+      role_codes: ["CRO"],
+      valid_from: "2026-01-01T00:00:00Z",
+      version: 1,
+    }],
+    organization_scopes: [{
+      id: "sample-scope-risk",
+      legal_entity_id: "bank-ng",
+      code: "RISK",
+      name: "Risk",
+      kind: "DEPARTMENT",
+      department_path: ["BANK", "RISK"],
+      origin: "MANAGED",
+      status: "ACTIVE",
+      valid_from: "2026-01-01T00:00:00Z",
+      version: 2,
+    }, {
+      id: "sample-scope-risk-ops",
+      legal_entity_id: "bank-ng",
+      parent_scope_id: "sample-scope-risk",
+      code: "RISK-OPS",
+      name: "Risk Operations",
+      kind: "DEPARTMENT",
+      department_path: ["BANK", "RISK", "OPERATIONS"],
+      origin: "MANAGED",
+      status: "ACTIVE",
+      valid_from: "2026-01-01T00:00:00Z",
+      version: 1,
+    }],
+    organization_scope_revisions: [{
+      id: "sample-scope-revision",
+      scope_id: "sample-scope-risk-ops",
+      operation: "UPDATE",
+      base_version: 1,
+      proposed_name: "Operational Risk",
+      maker_id: "sample-other-admin",
+      status: "PENDING",
+      impact: { child_scopes: 0, positions: 0, access_mappings: 0, open_matters: 0 },
+      created_at: "2026-10-03T18:00:00Z",
+    }],
+    escalation: { pending_timers: 0, escalated_tasks: 0, unresolved_24h: 0, failed_timers: 0 },
+    escalation_policies: [],
+  }) as T;
   if (pathname === "/api/v1/onboarding/guide") {
     const surface = url.searchParams.get("surface")?.trim().toUpperCase() ?? "TODAY";
     const guide = surface === "VENDORS" ? vendorsGuide : surface === "TODAY" ? todayGuide : undefined;
