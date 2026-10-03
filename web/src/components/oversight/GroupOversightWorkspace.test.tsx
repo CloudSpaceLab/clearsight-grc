@@ -73,7 +73,7 @@ describe("GroupOversightWorkspace", () => {
     expect(screen.queryByText("revision-secret")).toBeNull();
 
     fireEvent.click(screen.getByText("Data basis · 2 contributing OpCos"));
-    expect(screen.getByText("revision-secret")).toBeTruthy();
+    expect(await screen.findByText("revision-secret")).toBeTruthy();
     expect(screen.getByText("snap-secret-a")).toBeTruthy();
     expect(screen.getByText("snap-secret-b")).toBeTruthy();
     expect(screen.getAllByText("oversight-v5")).toHaveLength(2);
@@ -110,6 +110,6 @@ describe("GroupOversightWorkspace", () => {
     expect(screen.getByText("No snapshot")).toBeTruthy();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByText("Data basis · 1 contributing OpCo"));
-    expect(screen.getByText("No snapshot contributed for this OpCo.")).toBeTruthy();
+    expect(await screen.findByText("No snapshot contributed for this OpCo.")).toBeTruthy();
   });
 });
