@@ -61,4 +61,20 @@ CREATE TABLE group_oversight_child_facts (
 CREATE INDEX group_oversight_child_entity_idx
     ON group_oversight_child_facts(tenant_id, legal_entity_id, run_id);
 
+CREATE FUNCTION prevent_group_oversight_projection_mutation() RETURNS trigger
+LANGUAGE plpgsql
+AS $
+BEGIN
+    RAISE EXCEPTION 'Group oversight projections are immutable';
+END;
+$;
+
+CREATE TRIGGER group_oversight_runs_immutable
+    BEFORE UPDATE ON group_oversight_runs
+    FOR EACH ROW EXECUTE FUNCTION prevent_group_oversight_projection_mutation();
+
+CREATE TRIGGER group_oversight_child_facts_immutable
+    BEFORE UPDATE ON group_oversight_child_facts
+    FOR EACH ROW EXECUTE FUNCTION prevent_group_oversight_projection_mutation();
+
 COMMIT;
