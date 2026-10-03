@@ -83,6 +83,31 @@ func (r *PostgresRepository) Get(ctx context.Context, scope Scope, riskID string
 	return value, nil
 }
 
+func (r *PostgresRepository) ResolveScope(ctx context.Context, tenantID, riskID string) (Scope, error) {
+	if r == nil || r.pool == nil {
+		return Scope{}, ErrInvalid
+	}
+	tenantID = strings.TrimSpace(tenantID)
+	riskID = strings.TrimSpace(riskID)
+	if tenantID == "" || !validUUID(riskID) {
+		return Scope{}, ErrNotFound
+	}
+	var scope Scope
+	err := r.pool.QueryRow(ctx, `
+		SELECT t.slug,r.legal_entity_id::text
+		FROM risks r
+		JOIN tenants t ON t.id=r.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND r.id=$2::uuid
+	`, tenantID, riskID).Scan(&scope.TenantID, &scope.LegalEntityID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Scope{}, ErrNotFound
+	}
+	if err != nil {
+		return Scope{}, err
+	}
+	return scope, nil
+}
+
 func (r *PostgresRepository) Update(ctx context.Context, scope Scope, next Risk, expectedVersion int64, event Event) (Risk, error) {
 	if r == nil || r.pool == nil {
 		return Risk{}, ErrInvalid
