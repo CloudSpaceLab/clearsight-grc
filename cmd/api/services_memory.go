@@ -133,6 +133,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	configureRiskIndicators(riskService, monitoringService, continuityService)
 	rcsaService := rcsa.NewService(rcsa.NewMemoryRepository(), rcsaPopulationResolver{Risks: riskService, Catalog: controlCatalogService, Continuity: continuityService})
 	configureRCSAFirstLine(rcsaService, distributionService)
+	configureRCSAChallenge(rcsaService, continuityService)
 	evidenceRepo.rcsa = rcsaService
 	if cfg.DemoMode {
 		if err := reporting.InstallDemo(ctx, reportingService); err != nil {
