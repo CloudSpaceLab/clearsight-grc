@@ -42,7 +42,7 @@ describe("LossRegister", () => {
     expect(await screen.findByText("Duplicate settlement")).toBeTruthy();
     expect(screen.getByText(/net$/i)).toBeTruthy();
     expect(screen.getByText(/Gross .* Recovered/i)).toBeTruthy();
-    expect(screen.getByText("Partly recovered")).toBeTruthy();
+    expect(screen.getByRole("cell", { name: "Recovery: Partly recovered" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Open loss/i }));
     expect(onOpenLoss).toHaveBeenCalledWith("loss-1");
