@@ -303,8 +303,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     && Boolean(currentScopeID);
   const organizationScopes = scopeHierarchy?.organization_scopes ?? [];
   const organizationScopeID = organizationScope?.id;
-  const groupScopeActive = activeView === "oversight" && target.oversightScope === "group";
+  const groupScopeRequested = activeView === "oversight" && target.oversightScope === "group";
   const canSelectGroup = runtime?.capabilities?.group_oversight === true;
+  const groupScopeActive = groupScopeRequested && canSelectGroup;
   const canOpenOrganization = configureEnabled && runtime?.capabilities?.identity_read === true;
   const activeOrganizationScope = organizationScope;
   const programOrganizationScopes = activeOrganizationScope && !organizationScopes.some((node) => node.id === activeOrganizationScope.id)
@@ -318,6 +319,11 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     { label: "Work", view: "work", activeViews: ["work"] },
   ];
   const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
+
+  useEffect(() => {
+    if (!runtime || !groupScopeRequested || canSelectGroup) return;
+    navigate("oversight", target.oversightMetric ? { oversightMetric: target.oversightMetric } : {});
+  }, [canSelectGroup, groupScopeRequested, runtime, target.oversightMetric]);
 
   useEffect(() => {
     if (!organizationScope) return;
@@ -544,7 +550,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         </div>
       </div>
       {activePortfolioView && <WorkspaceSwitcher ariaLabel="Portfolio lenses" compactLabel="Portfolio lens" items={portfolioLenses} selectedKey={activePortfolioView} onSelectionChange={(view) => navigate(view)}/>}
-      {(activeView === "oversight" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
+      {((activeView === "oversight" && !groupScopeActive) || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>} 
       {activeView === "oversight" && !groupScopeActive && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
       {activeView === "oversight" && groupScopeActive && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Group posture…</div>}><GroupOversightWorkspace organizationName={organizationName} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", { oversightScope: "group", ...(metric === "all" ? {} : { oversightMetric: metric }) })} onOpenLegalEntity={openGroupLegalEntity}/></Suspense>}
       {activeView === "oversight" && !groupScopeActive && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Home…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
