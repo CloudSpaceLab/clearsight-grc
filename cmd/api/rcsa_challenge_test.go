@@ -91,7 +91,7 @@ func TestRCSAChallengeBridgeUsesOneCanonicalMatterAndDecision(t *testing.T) {
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Type: rcsaChallengeDecisionType, Status: continuity.DecisionApproved,
 		Options: rcsaChallengeOptions, SelectedOption: "ACCEPT_FIRST_LINE",
-		Rationale: "Independent challenge accepted the first-line assessment.",
+		Rationale:  "Independent challenge accepted the first-line assessment.",
 		Conditions: json.RawMessage(`[]`), AuthorityPrincipalID: "authorizer-1",
 	})
 	if err != nil {
@@ -130,24 +130,34 @@ func TestRCSAChallengeCompletionRejectsFirstLineAuthorityDecision(t *testing.T) 
 		TenantID: "bank", LegalEntityID: "entity-a", Code: "RCSA-2", Name: "RCSA",
 		TriggerKind: rcsa.TriggerManual, RiskIDs: []string{"risk-1"}, FirstLineOwnerID: "owner-1", ActorID: "owner-1",
 	})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	opened, err := cycles.BindFirstLineDistribution(ctx, rcsa.BindFirstLineDistributionInput{
 		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID, ExpectedVersion: 1,
 		DistributionID: "distribution-1", ActorID: "owner-1",
 	})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	ready, err := cycles.CompleteFirstLine(ctx, rcsa.CompleteFirstLineInput{
 		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
 		ExpectedVersion: opened.Version, ActorID: "owner-1",
 	})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	challenging, err := cycles.StartChallenge(ctx, rcsa.StartChallengeInput{
 		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
 		ExpectedVersion: ready.Version, ActorID: "reviewer-1",
 	})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	matter, err := matters.GetMatter(ctx, "bank", challenging.ChallengeMatterID)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, err = matters.RecordDecisionLifecycle(ctx, continuity.AddDecisionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Type: rcsaChallengeDecisionType, Status: continuity.DecisionRejected,
@@ -155,7 +165,9 @@ func TestRCSAChallengeCompletionRejectsFirstLineAuthorityDecision(t *testing.T) 
 		Rationale: "First-line outcome requires correction.", Conditions: json.RawMessage(`[]`),
 		AuthorityPrincipalID: "owner-1",
 	})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, err = cycles.CompleteChallenge(ctx, rcsa.CompleteChallengeInput{
 		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
 		ExpectedVersion: challenging.Version, ActorID: "reviewer-1",
