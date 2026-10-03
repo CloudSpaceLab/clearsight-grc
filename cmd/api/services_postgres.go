@@ -125,6 +125,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	configureRiskIndicators(riskService, monitoringService, continuityService)
 	rcsaService := rcsa.NewService(rcsa.NewPostgresRepository(pool), rcsaPopulationResolver{Risks: riskService, Catalog: controlCatalogService, Continuity: continuityService})
 	configureRCSAFirstLine(rcsaService, distributionService)
+	configureRCSAChallenge(rcsaService, continuityService)
 	if cfg.DemoMode {
 		if err := installPostgresDemo(ctx, pool, ropaService, reportingService); err != nil {
 			return serviceSet{}, err
