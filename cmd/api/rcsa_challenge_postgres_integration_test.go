@@ -66,7 +66,7 @@ func TestPostgresRCSAChallengeBridgeUsesCanonicalMatterTruth(t *testing.T) {
 	trusted := continuity.WithTrustedSystemEntityScope(ctx, tenantID, entityID)
 
 	created, err := cycles.Create(trusted, rcsa.CreateInput{
-		TenantID: tenantID, LegalEntityID: entityID, Code: "RCSA-"+suffix, Name: "Durable challenge RCSA",
+		TenantID: tenantID, LegalEntityID: entityID, Code: "RCSA-" + suffix, Name: "Durable challenge RCSA",
 		TriggerKind: rcsa.TriggerManual, RiskIDs: []string{"risk-1"}, FirstLineOwnerID: firstLineID, ActorID: firstLineID,
 	})
 	if err != nil {
@@ -116,8 +116,8 @@ func TestPostgresRCSAChallengeBridgeUsesCanonicalMatterTruth(t *testing.T) {
 		TenantID: tenantID, MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
 		Type: rcsaChallengeDecisionType, Status: continuity.DecisionConditionallyApproved,
 		Options: rcsaChallengeOptions, SelectedOption: "DEFICIENCY_CONFIRMED",
-		Rationale: "Independent challenge confirmed a deficiency requiring governed remediation.",
-		Conditions: json.RawMessage(`["Track remediation through this Matter"]`),
+		Rationale:            "Independent challenge confirmed a deficiency requiring governed remediation.",
+		Conditions:           json.RawMessage(`["Track remediation through this Matter"]`),
 		AuthorityPrincipalID: authorizerID,
 	})
 	if err != nil {
