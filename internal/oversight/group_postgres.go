@@ -84,13 +84,13 @@ func (m *GroupMaintainer) Maintain(ctx context.Context, now time.Time, limit int
 	rows, err := m.Repository.pool.Query(ctx, `
 		SELECT tenant.id::text
 		FROM tenants tenant
-		WHERE EXISTS (
-			SELECT 1
+		WHERE (
+			SELECT count(*)
 			FROM legal_entities entity
 			WHERE entity.tenant_id=tenant.id
 			  AND entity.valid_from<=$1
 			  AND (entity.valid_until IS NULL OR $1<entity.valid_until)
-		)
+		) >= 2
 		  AND NOT EXISTS (
 			SELECT 1
 			FROM group_oversight_runs run
