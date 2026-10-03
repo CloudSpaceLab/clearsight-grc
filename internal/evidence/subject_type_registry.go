@@ -9,7 +9,7 @@ type CanonicalSubjectTypeRegistry struct{}
 
 func (CanonicalSubjectTypeRegistry) SupportsSubjectType(subjectType string) bool {
 	switch strings.ToUpper(strings.TrimSpace(subjectType)) {
-	case "PROGRAM", "MATTER", "VENDOR_RELATIONSHIP":
+	case "PROGRAM", "MATTER", "VENDOR_RELATIONSHIP", "RCSA_CYCLE":
 		return true
 	default:
 		return false
