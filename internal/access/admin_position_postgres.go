@@ -500,7 +500,6 @@ func normalizeOrganizationPositionCode(value string) string {
 	return value
 }
 
-
 func mapOrganizationPositionPgError(err error) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "P0001" {
