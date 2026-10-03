@@ -12,14 +12,24 @@ import (
 	platformid "github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
 
+type FirstLineDistributionValidator func(context.Context, Scope, Cycle, string) error
+type FirstLineResponseResolver func(context.Context, Scope, Cycle) (string, error)
+
 type Service struct {
-	repo       Repository
-	population PopulationResolver
-	Now        func() time.Time
+	repo                      Repository
+	population                PopulationResolver
+	firstLineDistribution     FirstLineDistributionValidator
+	firstLineResponseResolver FirstLineResponseResolver
+	Now                       func() time.Time
 }
 
 func NewService(repo Repository, population PopulationResolver) *Service {
 	return &Service{repo: repo, population: population}
+}
+
+func (s *Service) ConfigureFirstLine(distribution FirstLineDistributionValidator, response FirstLineResponseResolver) {
+	s.firstLineDistribution = distribution
+	s.firstLineResponseResolver = response
 }
 
 func (s *Service) Create(ctx context.Context, input CreateInput) (Aggregate, error) {
@@ -80,6 +90,96 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Aggregate, err
 		ActorID: strings.TrimSpace(input.ActorID), OccurredAt: now,
 	}
 	return s.repo.Create(ctx, cycle, population.Risks, population.Controls, event)
+}
+
+func (s *Service) BindFirstLineDistribution(ctx context.Context, input BindFirstLineDistributionInput) (Cycle, error) {
+	if s == nil || s.repo == nil || s.firstLineDistribution == nil {
+		return Cycle{}, ErrInvalid
+	}
+	scope, err := normalizeScope(Scope{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID})
+	if err != nil {
+		return Cycle{}, err
+	}
+	current, err := s.repo.Get(ctx, scope, strings.TrimSpace(input.CycleID))
+	if err != nil {
+		return Cycle{}, err
+	}
+	if input.ExpectedVersion < 1 || current.Cycle.Version != input.ExpectedVersion {
+		return Cycle{}, ErrVersionConflict
+	}
+	actorID := strings.TrimSpace(input.ActorID)
+	distributionID := strings.TrimSpace(input.DistributionID)
+	if actorID == "" || actorID != current.Cycle.FirstLineOwnerID || distributionID == "" ||
+		current.Cycle.Status != StatusDraft || current.Cycle.FirstLineDistributionID != "" ||
+		current.Cycle.FirstLineResponseRevisionID != "" {
+		return Cycle{}, ErrInvalid
+	}
+	if err := s.firstLineDistribution(ctx, scope, current.Cycle, distributionID); err != nil {
+		return Cycle{}, err
+	}
+	next := current.Cycle
+	next.FirstLineDistributionID = distributionID
+	next.Status = StatusAssessmentOpen
+	next.Version++
+	next.UpdatedAt = s.now()
+	event, err := newCycleEvent(next, EventFirstLineDistributionSet, actorID, next.UpdatedAt)
+	if err != nil {
+		return Cycle{}, err
+	}
+	return s.repo.UpdateCycle(ctx, scope, next, input.ExpectedVersion, event)
+}
+
+func (s *Service) CompleteFirstLine(ctx context.Context, input CompleteFirstLineInput) (Cycle, error) {
+	if s == nil || s.repo == nil || s.firstLineResponseResolver == nil {
+		return Cycle{}, ErrInvalid
+	}
+	scope, err := normalizeScope(Scope{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID})
+	if err != nil {
+		return Cycle{}, err
+	}
+	current, err := s.repo.Get(ctx, scope, strings.TrimSpace(input.CycleID))
+	if err != nil {
+		return Cycle{}, err
+	}
+	if input.ExpectedVersion < 1 || current.Cycle.Version != input.ExpectedVersion {
+		return Cycle{}, ErrVersionConflict
+	}
+	actorID := strings.TrimSpace(input.ActorID)
+	if actorID == "" || actorID != current.Cycle.FirstLineOwnerID ||
+		current.Cycle.Status != StatusAssessmentOpen || current.Cycle.FirstLineDistributionID == "" ||
+		current.Cycle.FirstLineResponseRevisionID != "" {
+		return Cycle{}, ErrInvalid
+	}
+	responseID, err := s.firstLineResponseResolver(ctx, scope, current.Cycle)
+	if err != nil {
+		return Cycle{}, err
+	}
+	responseID = strings.TrimSpace(responseID)
+	if responseID == "" {
+		return Cycle{}, ErrInvalid
+	}
+	next := current.Cycle
+	next.FirstLineResponseRevisionID = responseID
+	next.Status = StatusAwaitingChallenge
+	next.Version++
+	next.UpdatedAt = s.now()
+	event, err := newCycleEvent(next, EventFirstLineCompleted, actorID, next.UpdatedAt)
+	if err != nil {
+		return Cycle{}, err
+	}
+	return s.repo.UpdateCycle(ctx, scope, next, input.ExpectedVersion, event)
+}
+
+func newCycleEvent(cycle Cycle, eventType, actorID string, at time.Time) (Event, error) {
+	eventID, err := platformid.NewUUIDv7()
+	if err != nil {
+		return Event{}, err
+	}
+	return Event{
+		ID: eventID, TenantID: cycle.TenantID, LegalEntityID: cycle.LegalEntityID,
+		CycleID: cycle.ID, CycleVersion: cycle.Version, Type: eventType,
+		ActorID: strings.TrimSpace(actorID), OccurredAt: at.UTC(),
+	}, nil
 }
 
 func (s *Service) Get(ctx context.Context, scope Scope, id string) (Aggregate, error) {
