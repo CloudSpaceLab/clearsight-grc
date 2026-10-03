@@ -49,7 +49,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Risk, error) {
 	}
 	now := s.now()
 	risk := Risk{
-		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID,
+		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, OrganizationScopeID: strings.TrimSpace(input.OrganizationScopeID),
 		Code: strings.ToUpper(strings.TrimSpace(input.Code)),
 		Name: strings.TrimSpace(input.Name), Category: strings.TrimSpace(input.Category),
 		Statement: strings.TrimSpace(input.Statement), Cause: strings.TrimSpace(input.Cause),
@@ -358,6 +358,8 @@ func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Pag
 	filter.OwnerPrincipalID = strings.TrimSpace(filter.OwnerPrincipalID)
 	filter.Search = strings.TrimSpace(filter.Search)
 	filter.AppetitePosition = AppetitePosition(strings.ToUpper(strings.TrimSpace(string(filter.AppetitePosition))))
+	filter.OrganizationScopeID = strings.TrimSpace(filter.OrganizationScopeID)
+	filter.OrganizationScopeIDs = normalizeOrganizationScopeIDs(filter.OrganizationScopeID, filter.OrganizationScopeIDs)
 	filter.Cursor = strings.TrimSpace(filter.Cursor)
 	if filter.Limit <= 0 {
 		filter.Limit = 50
@@ -372,6 +374,29 @@ func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Pag
 	}
 	filter.AsOf = s.now()
 	return s.repository.List(ctx, scope, filter)
+}
+
+func normalizeOrganizationScopeIDs(selected string, values []string) []string {
+	selected = strings.TrimSpace(selected)
+	seen := make(map[string]struct{}, len(values)+1)
+	normalized := make([]string, 0, len(values)+1)
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
+	}
+	if selected != "" {
+		if _, ok := seen[selected]; !ok {
+			normalized = append(normalized, selected)
+		}
+	}
+	return normalized
 }
 
 func validIndicatorKind(value IndicatorKind) bool {
