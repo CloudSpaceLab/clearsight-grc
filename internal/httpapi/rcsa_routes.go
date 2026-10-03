@@ -17,5 +17,13 @@ func (a *API) rcsaRoutes() []routeSpec {
 			ObjectType: "RCSA_CYCLE", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner,
 			Materiality: 3, ActorField: noActorField,
 		}),
+		material("/api/v1/rcsa/cycles/{id}/challenge/start", "rcsa.challenge.start", a.startRCSAChallenge, commandPolicy{
+			ObjectType: "RCSA_CYCLE", ObjectIDPath: "id", Responsibility: authority.ResponsibilityReviewer,
+			Materiality: 3, ActorField: noActorField,
+		}),
+		material("/api/v1/rcsa/cycles/{id}/challenge/complete", "rcsa.challenge.complete", a.completeRCSAChallenge, commandPolicy{
+			ObjectType: "RCSA_CYCLE", ObjectIDPath: "id", Responsibility: authority.ResponsibilityReviewer,
+			Materiality: 3, ActorField: noActorField,
+		}),
 	}
 }

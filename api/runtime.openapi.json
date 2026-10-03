@@ -4578,6 +4578,50 @@
           }
         }
       }
+    },
+    "/api/v1/rcsa/cycles/{id}/challenge/start": {
+      "post": {
+        "operationId": "startRCSAChallenge",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical independent-challenge Matter bound to the cycle."
+          }
+        }
+      }
+    },
+    "/api/v1/rcsa/cycles/{id}/challenge/complete": {
+      "post": {
+        "operationId": "completeRCSAChallenge",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cycle completed after terminal independent RCSA challenge Decision."
+          }
+        }
+      }
     }
   }
 }

@@ -106,6 +106,8 @@ const (
 	EventCycleCreated             = "RCSACycleCreated"
 	EventFirstLineDistributionSet = "RCSAFirstLineDistributionSet"
 	EventFirstLineCompleted       = "RCSAFirstLineCompleted"
+	EventChallengeMatterBound     = "RCSAChallengeMatterBound"
+	EventChallengeCompleted       = "RCSAChallengeCompleted"
 )
 
 type BindFirstLineDistributionInput struct {
@@ -118,6 +120,22 @@ type BindFirstLineDistributionInput struct {
 }
 
 type CompleteFirstLineInput struct {
+	TenantID        string `json:"tenant_id,omitempty"`
+	LegalEntityID   string `json:"legal_entity_id,omitempty"`
+	CycleID         string `json:"cycle_id,omitempty"`
+	ExpectedVersion int64  `json:"expected_version"`
+	ActorID         string `json:"actor_id,omitempty"`
+}
+
+type StartChallengeInput struct {
+	TenantID        string `json:"tenant_id,omitempty"`
+	LegalEntityID   string `json:"legal_entity_id,omitempty"`
+	CycleID         string `json:"cycle_id,omitempty"`
+	ExpectedVersion int64  `json:"expected_version"`
+	ActorID         string `json:"actor_id,omitempty"`
+}
+
+type CompleteChallengeInput struct {
 	TenantID        string `json:"tenant_id,omitempty"`
 	LegalEntityID   string `json:"legal_entity_id,omitempty"`
 	CycleID         string `json:"cycle_id,omitempty"`

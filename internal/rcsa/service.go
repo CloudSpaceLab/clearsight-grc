@@ -14,12 +14,16 @@ import (
 
 type FirstLineDistributionValidator func(context.Context, Scope, Cycle, string) error
 type FirstLineResponseResolver func(context.Context, Scope, Cycle) (string, error)
+type ChallengeMatterResolver func(context.Context, Scope, Cycle, string) (string, error)
+type ChallengeDecisionValidator func(context.Context, Scope, Cycle) error
 
 type Service struct {
 	repo                      Repository
 	population                PopulationResolver
 	firstLineDistribution     FirstLineDistributionValidator
 	firstLineResponseResolver FirstLineResponseResolver
+	challengeMatter           ChallengeMatterResolver
+	challengeDecision         ChallengeDecisionValidator
 	Now                       func() time.Time
 }
 
@@ -30,6 +34,11 @@ func NewService(repo Repository, population PopulationResolver) *Service {
 func (s *Service) ConfigureFirstLine(distribution FirstLineDistributionValidator, response FirstLineResponseResolver) {
 	s.firstLineDistribution = distribution
 	s.firstLineResponseResolver = response
+}
+
+func (s *Service) ConfigureChallenge(matter ChallengeMatterResolver, decision ChallengeDecisionValidator) {
+	s.challengeMatter = matter
+	s.challengeDecision = decision
 }
 
 func (s *Service) Create(ctx context.Context, input CreateInput) (Aggregate, error) {
@@ -164,6 +173,81 @@ func (s *Service) CompleteFirstLine(ctx context.Context, input CompleteFirstLine
 	next.Version++
 	next.UpdatedAt = s.now()
 	event, err := newCycleEvent(next, EventFirstLineCompleted, actorID, next.UpdatedAt)
+	if err != nil {
+		return Cycle{}, err
+	}
+	return s.repo.UpdateCycle(ctx, scope, next, input.ExpectedVersion, event)
+}
+
+func (s *Service) StartChallenge(ctx context.Context, input StartChallengeInput) (Cycle, error) {
+	if s == nil || s.repo == nil || s.challengeMatter == nil {
+		return Cycle{}, ErrInvalid
+	}
+	scope, err := normalizeScope(Scope{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID})
+	if err != nil {
+		return Cycle{}, err
+	}
+	current, err := s.repo.Get(ctx, scope, strings.TrimSpace(input.CycleID))
+	if err != nil {
+		return Cycle{}, err
+	}
+	if input.ExpectedVersion < 1 || current.Cycle.Version != input.ExpectedVersion {
+		return Cycle{}, ErrVersionConflict
+	}
+	actorID := strings.TrimSpace(input.ActorID)
+	if actorID == "" || actorID == current.Cycle.FirstLineOwnerID ||
+		current.Cycle.Status != StatusAwaitingChallenge || current.Cycle.FirstLineResponseRevisionID == "" ||
+		current.Cycle.ChallengeMatterID != "" {
+		return Cycle{}, ErrInvalid
+	}
+	matterID, err := s.challengeMatter(ctx, scope, current.Cycle, actorID)
+	if err != nil {
+		return Cycle{}, err
+	}
+	matterID = strings.TrimSpace(matterID)
+	if matterID == "" {
+		return Cycle{}, ErrInvalid
+	}
+	next := current.Cycle
+	next.ChallengeMatterID = matterID
+	next.Version++
+	next.UpdatedAt = s.now()
+	event, err := newCycleEvent(next, EventChallengeMatterBound, actorID, next.UpdatedAt)
+	if err != nil {
+		return Cycle{}, err
+	}
+	return s.repo.UpdateCycle(ctx, scope, next, input.ExpectedVersion, event)
+}
+
+func (s *Service) CompleteChallenge(ctx context.Context, input CompleteChallengeInput) (Cycle, error) {
+	if s == nil || s.repo == nil || s.challengeDecision == nil {
+		return Cycle{}, ErrInvalid
+	}
+	scope, err := normalizeScope(Scope{TenantID: input.TenantID, LegalEntityID: input.LegalEntityID})
+	if err != nil {
+		return Cycle{}, err
+	}
+	current, err := s.repo.Get(ctx, scope, strings.TrimSpace(input.CycleID))
+	if err != nil {
+		return Cycle{}, err
+	}
+	if input.ExpectedVersion < 1 || current.Cycle.Version != input.ExpectedVersion {
+		return Cycle{}, ErrVersionConflict
+	}
+	actorID := strings.TrimSpace(input.ActorID)
+	if actorID == "" || actorID == current.Cycle.FirstLineOwnerID ||
+		current.Cycle.Status != StatusAwaitingChallenge || current.Cycle.FirstLineResponseRevisionID == "" ||
+		current.Cycle.ChallengeMatterID == "" {
+		return Cycle{}, ErrInvalid
+	}
+	if err := s.challengeDecision(ctx, scope, current.Cycle); err != nil {
+		return Cycle{}, err
+	}
+	next := current.Cycle
+	next.Status = StatusCompleted
+	next.Version++
+	next.UpdatedAt = s.now()
+	event, err := newCycleEvent(next, EventChallengeCompleted, actorID, next.UpdatedAt)
 	if err != nil {
 		return Cycle{}, err
 	}
