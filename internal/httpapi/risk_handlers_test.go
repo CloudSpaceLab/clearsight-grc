@@ -14,6 +14,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 func TestRiskRoutesUseGovernedAuthorityContracts(t *testing.T) {
@@ -200,5 +201,112 @@ func TestRiskHTTPListUsesVerifiedEntityAndBoundedFilters(t *testing.T) {
 	handler.ServeHTTP(invalid, httptest.NewRequest(http.MethodGet, "/api/v1/risks?limit=500", nil))
 	if invalid.Code != http.StatusBadRequest {
 		t.Fatalf("invalid limit status=%d body=%s", invalid.Code, invalid.Body.String())
+	}
+}
+
+
+func TestRiskHTTPOrganizationScopeIncludesAuthorizedDescendants(t *testing.T) {
+	service := risk.NewService(risk.NewMemoryRepository())
+	now := time.Date(2026, 10, 3, 10, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	for _, value := range []struct {
+		code  string
+		scope string
+	}{
+		{code: "RISK-PARENT", scope: "scope-risk"},
+		{code: "RISK-CHILD", scope: "scope-risk-ops"},
+		{code: "RISK-SIBLING", scope: "scope-finance"},
+		{code: "RISK-UNATTRIBUTED"},
+	} {
+		if _, err := service.Create(t.Context(), risk.CreateInput{
+			TenantID: "bank", LegalEntityID: "entity-a", OrganizationScopeID: value.scope,
+			Code: value.code, Name: value.code, Statement: "Scoped risk.", Impact: "Material impact.",
+		}); err != nil {
+			t.Fatal(err)
+		}
+		now = now.Add(time.Minute)
+	}
+
+	entity := runtimecontext.ScopeNode{ID: "entity-a", Name: "Entity A", Kind: runtimecontext.ScopeKindLegalEntity}
+	parent := runtimecontext.ScopeNode{ID: "scope-risk", Name: "Risk", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "RISK"}, Filterable: true}
+	child := runtimecontext.ScopeNode{ID: "scope-risk-ops", Name: "Risk operations", Kind: runtimecontext.ScopeKindDepartment, ParentID: parent.ID, DepartmentPath: []string{"BANK", "RISK", "OPERATIONS"}, Filterable: true}
+	sibling := runtimecontext.ScopeNode{ID: "scope-finance", Name: "Finance", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "FINANCE"}, Filterable: true}
+	handler := New(Dependencies{
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity: identity.NewDevelopmentAuthenticator("bank", "reader-a", "entity-a"),
+		Risk:     service,
+		RuntimeContext: scopeContextResolverStub{
+			hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Current: entity, LegalEntities: []runtimecontext.ScopeNode{entity}, OrganizationScopes: []runtimecontext.ScopeNode{parent, child, sibling}},
+		},
+	})
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/risks?organization_scope_id=scope-risk&limit=25", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("list status=%d body=%s", response.Code, response.Body.String())
+	}
+	var page risk.Page
+	if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
+		t.Fatal(err)
+	}
+	if page.OrganizationScopeID != parent.ID || len(page.Items) != 2 {
+		t.Fatalf("scoped page = %#v", page)
+	}
+	for _, item := range page.Items {
+		if item.Risk.OrganizationScopeID != parent.ID && item.Risk.OrganizationScopeID != child.ID {
+			t.Fatalf("scope filter leaked %q: %#v", item.Risk.OrganizationScopeID, page)
+		}
+	}
+
+	forbidden := httptest.NewRecorder()
+	handler.ServeHTTP(forbidden, httptest.NewRequest(http.MethodGet, "/api/v1/risks?organization_scope_id=scope-unauthorized", nil))
+	if forbidden.Code != http.StatusForbidden || !strings.Contains(forbidden.Body.String(), "organization_scope_forbidden") {
+		t.Fatalf("forbidden scope status=%d body=%s", forbidden.Code, forbidden.Body.String())
+	}
+}
+
+func TestRiskHTTPCreateValidatesOrganizationScope(t *testing.T) {
+	service := risk.NewService(risk.NewMemoryRepository())
+	service.Now = func() time.Time { return time.Date(2026, 10, 3, 11, 0, 0, 0, time.UTC) }
+	entity := runtimecontext.ScopeNode{ID: "entity-a", Name: "Entity A", Kind: runtimecontext.ScopeKindLegalEntity}
+	allowed := runtimecontext.ScopeNode{ID: "scope-risk", Name: "Risk", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "RISK"}, Filterable: true}
+	handler := New(Dependencies{
+		Logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity: identity.NewDevelopmentAuthenticator("bank", "risk-owner", "entity-a"),
+		Risk:     service,
+		RuntimeContext: scopeContextResolverStub{
+			hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Current: entity, LegalEntities: []runtimecontext.ScopeNode{entity}, OrganizationScopes: []runtimecontext.ScopeNode{allowed}},
+		},
+	})
+
+	create := httptest.NewRecorder()
+	handler.ServeHTTP(create, httptest.NewRequest(http.MethodPost, "/api/v1/risks", strings.NewReader(`{
+		"organization_scope_id":"scope-risk",
+		"code":"RISK-SCOPE-01",
+		"name":"Scoped risk",
+		"statement":"A scoped risk exists.",
+		"impact":"Material impact."
+	}`)))
+	if create.Code != http.StatusCreated {
+		t.Fatalf("create status=%d body=%s", create.Code, create.Body.String())
+	}
+	var created risk.Risk
+	if err := json.Unmarshal(create.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	if created.OrganizationScopeID != allowed.ID {
+		t.Fatalf("created organization scope = %#v", created)
+	}
+
+	forbidden := httptest.NewRecorder()
+	handler.ServeHTTP(forbidden, httptest.NewRequest(http.MethodPost, "/api/v1/risks", strings.NewReader(`{
+		"organization_scope_id":"scope-finance",
+		"code":"RISK-SCOPE-02",
+		"name":"Forbidden scoped risk",
+		"statement":"A scoped risk exists.",
+		"impact":"Material impact."
+	}`)))
+	if forbidden.Code != http.StatusForbidden || !strings.Contains(forbidden.Body.String(), "organization_scope_forbidden") {
+		t.Fatalf("forbidden create status=%d body=%s", forbidden.Code, forbidden.Body.String())
 	}
 }
