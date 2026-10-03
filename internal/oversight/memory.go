@@ -44,6 +44,24 @@ func (r *MemoryRepository) Latest(_ context.Context, scope Scope) (Snapshot, err
 	return latest, nil
 }
 
+func (r *MemoryRepository) LatestMany(ctx context.Context, tenantID string, legalEntityIDs []string) ([]Snapshot, error) {
+	if len(legalEntityIDs) == 0 || len(legalEntityIDs) > 256 {
+		return nil, ErrInvalid
+	}
+	values := make([]Snapshot, 0, len(legalEntityIDs))
+	for _, legalEntityID := range legalEntityIDs {
+		value, err := r.Latest(ctx, Scope{TenantID: tenantID, LegalEntityID: legalEntityID})
+		if err == ErrNotFound {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, value)
+	}
+	return values, nil
+}
+
 func (r *MemoryRepository) BuildPeriod(ctx context.Context, scope Scope, start, end time.Time) (Snapshot, error) {
 	r.mu.RLock()
 	builder := r.periodBuilder
