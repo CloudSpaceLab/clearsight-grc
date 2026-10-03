@@ -54,6 +54,9 @@ vi.mock("./components/risks/RisksWorkspace", () => ({
 vi.mock("./components/oversight/GroupOversightWorkspace", () => ({
   GroupOversightWorkspace: ({ onOpenLegalEntity }: { onOpenLegalEntity: (legalEntityID: string) => void }) => <section><h1>Group posture</h1><button type="button" onClick={() => onOpenLegalEntity("entity-ng-uuid")}>Open current OpCo</button></section>,
 }));
+vi.mock("./components/losses/LossesWorkspace", () => ({
+  LossesWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Losses</h1><output data-testid="loss-target">{targetID}</output></section>,
+}));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
   reassignCaptureRecipient: vi.fn(),
@@ -357,6 +360,11 @@ describe("scope and Portfolio integration", () => {
 
     expect(await screen.findByRole("heading", { name: "Risks" })).toBeTruthy();
     expect(window.location.hash).toBe("#risks");
+    expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria");
+
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Losses" }));
+    expect(await screen.findByRole("heading", { name: "Losses" })).toBeTruthy();
+    expect(window.location.hash).toBe("#losses");
     expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria");
 
     fireEvent.click(screen.getByRole("button", { name: /Organization scope/ }));

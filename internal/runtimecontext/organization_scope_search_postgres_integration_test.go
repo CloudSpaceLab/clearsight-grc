@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -48,36 +47,54 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 	t.Cleanup(func() { cleanup(context.Background()) })
 
 	now := time.Now().UTC().Truncate(time.Second)
-	if _, err = pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'scope-scale-test','Scope Scale Test');
+	validFrom := now.Add(-time.Hour)
+	exec := func(query string, args ...any) {
+		t.Helper()
+		if _, execErr := pool.Exec(ctx, query, args...); execErr != nil {
+			t.Fatal(execErr)
+		}
+	}
+
+	exec(`INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'scope-scale-test','Scope Scale Test')`, tenantID)
+	exec(`
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from)
-		VALUES($2::uuid,$1::uuid,'SCALE-NG','Scale Nigeria','NG',$9);
+		VALUES($1::uuid,$2::uuid,'SCALE-NG','Scale Nigeria','NG',$3)
+	`, entityID, tenantID, validFrom)
+	exec(`
 		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
-			($3::uuid,$1::uuid,'PERSON','Global reader','ACTIVE',$9),
-			($4::uuid,$1::uuid,'PERSON','Local reader','ACTIVE',$9);
+			($1::uuid,$3::uuid,'PERSON','Global reader','ACTIVE',$4),
+			($2::uuid,$3::uuid,'PERSON','Local reader','ACTIVE',$4)
+	`, globalPrincipal, localPrincipal, tenantID, validFrom)
+	exec(`
 		INSERT INTO role_templates(id,tenant_id,code,name,capabilities,valid_from)
-		VALUES($6::uuid,$1::uuid,'SCOPE_READER','Scope reader',ARRAY['CONFIG_READ','OVERSIGHT_READ'],$8);
+		VALUES($1::uuid,$2::uuid,'SCOPE_READER','Scope reader',ARRAY['CONFIG_READ','OVERSIGHT_READ'],$3)
+	`, roleID, tenantID, validFrom)
+	exec(`
 		INSERT INTO organization_scopes(
 			id,tenant_id,legal_entity_id,code,name,kind,department_path,origin,status,valid_from
-		) VALUES($7::uuid,$1::uuid,$2::uuid,'BANK','Bank','BUSINESS_UNIT',ARRAY['BANK'],'MANAGED','ACTIVE',$8);
+		) VALUES($1::uuid,$2::uuid,$3::uuid,'BANK','Bank','BUSINESS_UNIT',ARRAY['BANK'],'MANAGED','ACTIVE',$4)
+	`, rootScopeID, tenantID, entityID, validFrom)
+	exec(`
 		INSERT INTO organization_scopes(
 			tenant_id,legal_entity_id,parent_scope_id,code,name,kind,department_path,origin,status,valid_from
 		)
-		SELECT $1::uuid,$2::uuid,$7::uuid,
+		SELECT $1::uuid,$2::uuid,$3::uuid,
 		       'SITE' || lpad(value::text,5,'0'),
 		       'Site ' || lpad(value::text,5,'0'),
 		       'BRANCH',
 		       ARRAY['BANK','SITE' || lpad(value::text,5,'0')],
-		       'MANAGED','ACTIVE',$8
-		FROM generate_series(1,19999) value;
+		       'MANAGED','ACTIVE',$4
+		FROM generate_series(1,19999) value
+	`, tenantID, entityID, rootScopeID, validFrom)
+	exec(`
 		INSERT INTO org_positions(
 			id,tenant_id,legal_entity_id,code,title,occupant_principal_id,department_path,valid_from
-		) VALUES($5::uuid,$1::uuid,$2::uuid,'GLOBAL','Global reader',$3::uuid,ARRAY[]::text[],$8);
+		) VALUES($1::uuid,$2::uuid,$3::uuid,'GLOBAL','Global reader',$4::uuid,ARRAY[]::text[],$5)
+	`, globalPosition, tenantID, entityID, globalPrincipal, validFrom)
+	exec(`
 		INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from)
-		VALUES($1::uuid,$5::uuid,$6::uuid,$8)
-	`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, globalPrincipal, localPrincipal, globalPosition, roleID, rootScopeID, now.Add(-time.Hour)); err != nil {
-		t.Fatal(err)
-	}
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4)
+	`, tenantID, globalPosition, roleID, validFrom)
 
 	var localScopeID string
 	if err = pool.QueryRow(ctx, `
@@ -86,15 +103,15 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 	`, tenantID, entityID).Scan(&localScopeID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = pool.Exec(ctx, `
+	exec(`
 		INSERT INTO org_positions(
 			id,tenant_id,legal_entity_id,code,title,occupant_principal_id,department_path,organization_scope_id,valid_from
-		) VALUES($1::uuid,$2::uuid,$3::uuid,'LOCAL','Local reader',$4::uuid,ARRAY['BANK','SITE00001'],$5::uuid,$6);
+		) VALUES($1::uuid,$2::uuid,$3::uuid,'LOCAL','Local reader',$4::uuid,ARRAY['BANK','SITE00001'],$5::uuid,$6)
+	`, localPosition, tenantID, entityID, localPrincipal, localScopeID, validFrom)
+	exec(`
 		INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from)
-		VALUES($2::uuid,$1::uuid,$7::uuid,$6)
-	`, pgx.QueryExecModeSimpleProtocol, localPosition, tenantID, entityID, localPrincipal, localScopeID, now.Add(-time.Hour), roleID); err != nil {
-		t.Fatal(err)
-	}
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4)
+	`, tenantID, localPosition, roleID, validFrom)
 
 	resolver := NewPostgresResolver(pool)
 	globalScope := Scope{TenantID: "scope-scale-test", LegalEntityID: "SCALE-NG", PrincipalID: globalPrincipal}

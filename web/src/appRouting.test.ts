@@ -57,6 +57,12 @@ describe("workspace routes", () => {
     expect(routeHash("risks", {}, "matters")).toBe("#risks");
   });
 
+  it("round-trips an exact operational loss record without mixing query filters into its identity", () => {
+    expect(parseRoute("#losses/loss%2F1?status=ACTIVE&recovery_status=PARTIAL")).toEqual({ view: "losses", target: { lossID: "loss/1" } });
+    expect(routeHash("losses", { lossID: "loss/1" }, "matters")).toBe("#losses/loss%2F1");
+    expect(routeHash("losses", {}, "matters")).toBe("#losses");
+  });
+
   it("keeps the Forms search query separate from the selected exact template", () => {
     expect(parseRoute("#forms/template%2F1?search=vendor&status=ACTIVE")).toEqual({ view: "forms", target: { formTemplateID: "template/1" } });
     expect(routeHash("forms", { formTemplateID: "template/1" }, "matters")).toBe("#forms/template%2F1");
