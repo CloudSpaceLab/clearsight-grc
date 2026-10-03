@@ -63,11 +63,11 @@ CREATE INDEX group_oversight_child_entity_idx
 
 CREATE FUNCTION prevent_group_oversight_projection_mutation() RETURNS trigger
 LANGUAGE plpgsql
-AS $
+AS $group_oversight$
 BEGIN
     RAISE EXCEPTION 'Group oversight projections are immutable';
 END;
-$;
+$group_oversight$;
 
 CREATE TRIGGER group_oversight_runs_immutable
     BEFORE UPDATE ON group_oversight_runs
