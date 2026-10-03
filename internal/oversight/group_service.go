@@ -36,9 +36,6 @@ func (s *GroupService) Get(ctx context.Context, actor identity.Actor) (GroupSnap
 		strings.TrimSpace(actor.TenantID) == "" || strings.TrimSpace(actor.PrincipalID) == "" {
 		return GroupSnapshot{}, ErrGroupUnavailable
 	}
-	if !identity.HasPermission(actor, identity.PermissionOversightRead) {
-		return GroupSnapshot{}, ErrGroupForbidden
-	}
 	projection, err := s.repository.LatestGroup(ctx, actor.TenantID)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
