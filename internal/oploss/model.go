@@ -77,6 +77,28 @@ type Aggregate struct {
 	Totals     Totals     `json:"totals"`
 }
 
+type Summary struct {
+	Loss   Loss   `json:"loss"`
+	Totals Totals `json:"totals"`
+}
+
+type Page struct {
+	Items      []Summary `json:"items"`
+	NextCursor string    `json:"next_cursor,omitempty"`
+}
+
+type ListFilter struct {
+	Status              Status
+	EventType           EventType
+	Currency            string
+	OrganizationScopeID string
+	RiskID              string
+	RecoveryStatus      string
+	Search              string
+	Cursor              string
+	Limit               int
+}
+
 type Scope struct {
 	TenantID      string
 	LegalEntityID string
