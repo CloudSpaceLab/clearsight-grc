@@ -15,20 +15,22 @@ import (
 // Cursor values are opaque to clients and encode the last item from the
 // previous page.
 type SummaryQuery struct {
-	Search       string
-	Status       string
-	ProgramID    string
-	OverallState string
-	Jurisdiction string
-	MatterType   string
-	DueCondition string
-	Cursor       string
-	Priority     int
-	AssignedToMe bool
-	Unassigned   bool
-	asOf         time.Time
-	principalID  string
-	Limit        int
+	Search               string
+	Status               string
+	ProgramID            string
+	OverallState         string
+	Jurisdiction         string
+	OrganizationScopeID  string
+	OrganizationScopeIDs []string
+	MatterType           string
+	DueCondition         string
+	Cursor               string
+	Priority             int
+	AssignedToMe         bool
+	Unassigned           bool
+	asOf                 time.Time
+	principalID          string
+	Limit                int
 }
 
 type ProgramSummary struct {
@@ -62,9 +64,10 @@ type MatterSummary struct {
 }
 
 type ProgramSummaryPage struct {
-	Items       []ProgramSummary `json:"items"`
-	NextCursor  string           `json:"next_cursor,omitempty"`
-	GeneratedAt time.Time        `json:"generated_at"`
+	Items               []ProgramSummary `json:"items"`
+	NextCursor          string           `json:"next_cursor,omitempty"`
+	GeneratedAt         time.Time        `json:"generated_at"`
+	OrganizationScopeID string           `json:"organization_scope_id,omitempty"`
 }
 
 type MatterSummaryPage struct {
@@ -89,6 +92,8 @@ func (s *Service) ListProgramSummaries(ctx context.Context, tenant string, query
 	query.ProgramID = strings.TrimSpace(query.ProgramID)
 	query.OverallState = strings.ToUpper(strings.TrimSpace(query.OverallState))
 	query.Jurisdiction = strings.TrimSpace(query.Jurisdiction)
+	query.OrganizationScopeID = strings.TrimSpace(query.OrganizationScopeID)
+	query.OrganizationScopeIDs = normalizedSummaryOrganizationScopes(query.OrganizationScopeID, query.OrganizationScopeIDs)
 	query.asOf = s.now().UTC()
 	query.Limit = boundedLimit(query.Limit)
 	if err := validateProgramSummaryQuery(ctx, tenant, &query); err != nil {
@@ -102,10 +107,16 @@ func (s *Service) ListProgramSummaries(ctx context.Context, tenant string, query
 		return ProgramSummaryPage{}, err
 	}
 	items := make([]ProgramSummary, 0, len(values))
+	organizationScopes := organizationScopeSet(query.OrganizationScopeIDs)
 	for _, value := range values {
+		if query.OrganizationScopeID != "" {
+			if _, ok := organizationScopes[value.Program.OrganizationScopeID]; !ok {
+				continue
+			}
+		}
 		items = append(items, summarizeProgram(value))
 	}
-	return ProgramSummaryPage{Items: items, GeneratedAt: s.now().UTC()}, nil
+	return ProgramSummaryPage{Items: items, GeneratedAt: s.now().UTC(), OrganizationScopeID: query.OrganizationScopeID}, nil
 }
 
 func (s *Service) ListMatterSummaries(ctx context.Context, tenant string, query SummaryQuery) (MatterSummaryPage, error) {
@@ -146,6 +157,37 @@ func (s *Service) ListMatterSummaries(ctx context.Context, tenant string, query 
 		items = append(items, summarizeMatter(value))
 	}
 	return MatterSummaryPage{Items: items, GeneratedAt: s.now().UTC()}, nil
+}
+
+func normalizedSummaryOrganizationScopes(selected string, values []string) []string {
+	selected = strings.TrimSpace(selected)
+	seen := make(map[string]struct{}, len(values)+1)
+	normalized := make([]string, 0, len(values)+1)
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
+	}
+	if selected != "" {
+		if _, ok := seen[selected]; !ok {
+			normalized = append(normalized, selected)
+		}
+	}
+	return normalized
+}
+
+func organizationScopeSet(values []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		set[value] = struct{}{}
+	}
+	return set
 }
 
 func validateProgramSummaryQuery(ctx context.Context, tenant string, query *SummaryQuery) error {
