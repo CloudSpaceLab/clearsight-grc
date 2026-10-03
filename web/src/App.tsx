@@ -336,13 +336,14 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     if (!stillAuthorized) setOrganizationScope(undefined);
   }, [activeView, groupScopeActive, organizationScope, scopeHierarchy]);
 
-  async function changeLegalEntity(nextID: string | undefined) {
+  async function changeLegalEntity(nextID: string | undefined, reloadHash?: string) {
     if (!nextID || !canSwitchLegalEntity || nextID === currentScopeID || scopeSwitchState === "changing") return;
     setScopeSwitchError("");
     setOrganizationScope(undefined);
     setScopeSwitchState("changing");
     try {
       await switchLegalEntity(nextID);
+      if (reloadHash && window.location.hash !== reloadHash) window.history.replaceState(null, "", reloadHash);
       window.location.reload();
     } catch {
       setScopeSwitchState("idle");
@@ -377,7 +378,8 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       changeGroupScope(false);
       return;
     }
-    void changeLegalEntity(legalEntityID);
+    const legalEntityTarget = target.oversightMetric ? { oversightMetric: target.oversightMetric } : {};
+    void changeLegalEntity(legalEntityID, routeHash("oversight", legalEntityTarget, workTab));
   }
 
   function openOrganizationAccess() {
