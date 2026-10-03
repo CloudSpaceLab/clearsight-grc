@@ -92,7 +92,7 @@ func (r *ObservationRepository) validateDefinitions(ctx context.Context) error {
 	}
 	defer rows.Close()
 
-	stored := make(map[string]Definition, len(HomeDefinitions))
+	stored := make(map[string]Definition, len(homeDefinitions))
 	for rows.Next() {
 		var definition Definition
 		var basis, conditionRule, aggregationRule, consistency string
@@ -119,10 +119,10 @@ func (r *ObservationRepository) validateDefinitions(ctx context.Context) error {
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("iterate metric definitions: %w", err)
 	}
-	if len(stored) != len(HomeDefinitions) {
+	if len(stored) != len(homeDefinitions) {
 		return ErrDefinitionMismatch
 	}
-	for _, expected := range HomeDefinitions {
+	for _, expected := range homeDefinitions {
 		actual, ok := stored[expected.ID]
 		if !ok || actual != expected {
 			return ErrDefinitionMismatch
@@ -150,7 +150,7 @@ func (r *ObservationRepository) pendingOversightSnapshots(ctx context.Context, l
 		LIMIT $4`,
 		ObservationSourceOversightSnapshot,
 		HomeDefinitionRevision,
-		len(HomeDefinitions),
+		len(homeDefinitions),
 		limit,
 	)
 	if err != nil {
@@ -209,7 +209,7 @@ func (r *ObservationRepository) pendingOversightSnapshots(ctx context.Context, l
 }
 
 func (r *ObservationRepository) storeObservations(ctx context.Context, values []Observation) (bool, error) {
-	if r == nil || r.pool == nil || len(values) != len(HomeDefinitions) {
+	if r == nil || r.pool == nil || len(values) != len(homeDefinitions) {
 		return false, ErrInvalidObservation
 	}
 	tx, err := r.pool.Begin(ctx)
