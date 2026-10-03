@@ -6,10 +6,12 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/organization"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -153,6 +155,125 @@ func TestIdentityAccessAdminRevokesSourceDerivedGrantWithoutDeletingPrincipal(t 
 	}
 	if decisionCount < 4 {
 		t.Fatalf("expected governed source/binding administration history, got %d decisions", decisionCount)
+	}
+}
+
+func TestOrganizationScopeManagementRequiresIndependentApprovalAndProtectsLiveReferences(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	const (
+		tenantID   = "8a444444-4444-7444-8444-444444444441"
+		entityID   = "8a444444-4444-7444-8444-444444444442"
+		makerID    = "8a444444-4444-7444-8444-444444444443"
+		checkerID  = "8a444444-4444-7444-8444-444444444444"
+		positionID = "8a444444-4444-7444-8444-444444444445"
+	)
+	cleanup := func(cleanCtx context.Context) {
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM organization_scope_revisions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM organization_scopes WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	}
+	cleanup(ctx)
+	t.Cleanup(func() { cleanup(context.Background()) })
+
+	now := time.Now().UTC().Truncate(time.Second)
+	mustAdminExec(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'org-scope-admin','Org Scope Admin')`, tenantID)
+	mustAdminExec(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'BANK-NG','Bank NG','NG',$3)`, entityID, tenantID, now.Add(-time.Hour))
+	mustAdminExec(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
+		($1::uuid,$3::uuid,'PERSON','Maker','ACTIVE',$4),
+		($2::uuid,$3::uuid,'PERSON','Checker','ACTIVE',$4)`, makerID, checkerID, tenantID, now.Add(-time.Hour))
+	mustAdminExec(t, ctx, pool, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,department_path,occupant_principal_id,valid_from)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'RISK-HEAD','Risk head',ARRAY['BANK','RISK'],$4::uuid,$5)`,
+		positionID, tenantID, entityID, makerID, now.Add(-time.Hour))
+
+	var riskScopeID string
+	if err := pool.QueryRow(ctx, `
+		SELECT id::text FROM organization_scopes
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND department_path=ARRAY['BANK','RISK']::text[]
+		  AND status='ACTIVE' AND valid_until IS NULL`, tenantID, entityID).Scan(&riskScopeID); err != nil {
+		t.Fatal(err)
+	}
+
+	admin := NewPostgresAdministrator(pool)
+	revision, err := admin.ProposeOrganizationScope(ctx, ProposeOrganizationScopeInput{
+		TenantID: tenantID, LegalEntityID: entityID, Operation: OrganizationScopeCreate,
+		ParentScopeID: riskScopeID, Code: "LAGOS_ISLAND", Name: "Lagos Island",
+		Kind: organization.ScopeKindBranch, ActorID: makerID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if revision.Status != "PENDING" || revision.ScopeID == "" || revision.MakerID != makerID {
+		t.Fatalf("unexpected revision: %#v", revision)
+	}
+	if err := admin.ApproveOrganizationScope(ctx, DecideOrganizationScopeInput{
+		TenantID: tenantID, LegalEntityID: entityID, RevisionID: revision.ID, ActorID: makerID, Rationale: "self",
+	}); !errors.Is(err, ErrAdminMakerChecker) {
+		t.Fatalf("maker approval error=%v", err)
+	}
+	if err := admin.ApproveOrganizationScope(ctx, DecideOrganizationScopeInput{
+		TenantID: tenantID, LegalEntityID: entityID, RevisionID: revision.ID, ActorID: checkerID, Rationale: "checked",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var childID string
+	var childVersion int64
+	var childPath []string
+	if err := pool.QueryRow(ctx, `
+		SELECT id::text,version,department_path FROM organization_scopes
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND code='LAGOS_ISLAND' AND status='ACTIVE'`,
+		tenantID, entityID).Scan(&childID, &childVersion, &childPath); err != nil {
+		t.Fatal(err)
+	}
+	if childID != revision.ScopeID || strings.Join(childPath, "/") != "BANK/RISK/LAGOS_ISLAND" {
+		t.Fatalf("created scope id=%s path=%v revision=%#v", childID, childPath, revision)
+	}
+
+	livePositionID := "8a444444-4444-7444-8444-444444444446"
+	mustAdminExec(t, ctx, pool, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,organization_scope_id,department_path,valid_from)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'LAGOS-OPS','Lagos operations',$4::uuid,ARRAY['WRONG'],$5)`,
+		livePositionID, tenantID, entityID, childID, now)
+
+	retire, err := admin.ProposeOrganizationScope(ctx, ProposeOrganizationScopeInput{
+		TenantID: tenantID, LegalEntityID: entityID, ScopeID: childID, Operation: OrganizationScopeRetire,
+		ExpectedVersion: childVersion, ActorID: makerID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if retire.Impact.Positions != 1 {
+		t.Fatalf("retirement impact=%#v", retire.Impact)
+	}
+	if err := admin.ApproveOrganizationScope(ctx, DecideOrganizationScopeInput{
+		TenantID: tenantID, LegalEntityID: entityID, RevisionID: retire.ID, ActorID: checkerID, Rationale: "checked",
+	}); !errors.Is(err, ErrAdminConflict) {
+		t.Fatalf("retire with active position error=%v", err)
+	}
+	if err := admin.RejectOrganizationScope(ctx, DecideOrganizationScopeInput{
+		TenantID: tenantID, LegalEntityID: entityID, RevisionID: retire.ID, ActorID: checkerID, Rationale: "active position",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	overview, err := admin.Overview(ctx, tenantID, entityID, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(overview.OrganizationScopeRevisions) != 0 {
+		t.Fatalf("pending revisions after rejection=%#v", overview.OrganizationScopeRevisions)
 	}
 }
 

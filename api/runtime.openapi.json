@@ -4622,6 +4622,27 @@
           }
         }
       }
+    },
+    "/api/v1/access/organization-scope-revisions": {
+      "post": {
+        "operationId": "proposeOrganizationScope",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/organization-scope-revisions/{id}/approve": {
+      "post": {
+        "operationId": "approveOrganizationScope",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/organization-scope-revisions/{id}/reject": {
+      "post": {
+        "operationId": "rejectOrganizationScope",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
     }
   }
 }

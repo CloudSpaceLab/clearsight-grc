@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	ErrAdminNotFound = errors.New("identity access object not found")
-	ErrAdminConflict = errors.New("identity access object conflicts with current state")
-	ErrAdminInvalid  = errors.New("identity access input is invalid")
+	ErrAdminNotFound     = errors.New("identity access object not found")
+	ErrAdminConflict     = errors.New("identity access object conflicts with current state")
+	ErrAdminInvalid      = errors.New("identity access input is invalid")
+	ErrAdminMakerChecker = errors.New("a different administrator must approve this change")
 )
 
 type SCIMSourceSummary struct {
@@ -96,6 +97,62 @@ type PositionSummary struct {
 	Version             int64      `json:"version"`
 }
 
+type OrganizationScopeOperation string
+
+const (
+	OrganizationScopeCreate OrganizationScopeOperation = "CREATE"
+	OrganizationScopeUpdate OrganizationScopeOperation = "UPDATE"
+	OrganizationScopeMove   OrganizationScopeOperation = "MOVE"
+	OrganizationScopeRetire OrganizationScopeOperation = "RETIRE"
+)
+
+type OrganizationScopeImpact struct {
+	ChildScopes    int `json:"child_scopes"`
+	Positions      int `json:"positions"`
+	AccessMappings int `json:"access_mappings"`
+	OpenMatters    int `json:"open_matters"`
+}
+
+type OrganizationScopeRevisionSummary struct {
+	ID                    string                     `json:"id"`
+	ScopeID               string                     `json:"scope_id"`
+	Operation             OrganizationScopeOperation `json:"operation"`
+	BaseVersion           int64                      `json:"base_version"`
+	ProposedParentScopeID string                     `json:"proposed_parent_scope_id,omitempty"`
+	ProposedCode          string                     `json:"proposed_code,omitempty"`
+	ProposedName          string                     `json:"proposed_name,omitempty"`
+	ProposedKind          organization.ScopeKind     `json:"proposed_kind,omitempty"`
+	MakerID               string                     `json:"maker_id"`
+	CheckerID             string                     `json:"checker_id,omitempty"`
+	Status                string                     `json:"status"`
+	Rationale             string                     `json:"rationale,omitempty"`
+	Impact                OrganizationScopeImpact    `json:"impact"`
+	CreatedAt             time.Time                  `json:"created_at"`
+	DecidedAt             *time.Time                 `json:"decided_at,omitempty"`
+	AppliedAt             *time.Time                 `json:"applied_at,omitempty"`
+}
+
+type ProposeOrganizationScopeInput struct {
+	TenantID        string                     `json:"tenant_id"`
+	LegalEntityID   string                     `json:"legal_entity_id"`
+	ScopeID         string                     `json:"scope_id,omitempty"`
+	Operation       OrganizationScopeOperation `json:"operation"`
+	ParentScopeID   string                     `json:"parent_scope_id,omitempty"`
+	Code            string                     `json:"code,omitempty"`
+	Name            string                     `json:"name,omitempty"`
+	Kind            organization.ScopeKind     `json:"kind,omitempty"`
+	ExpectedVersion int64                      `json:"expected_version,omitempty"`
+	ActorID         string                     `json:"-"`
+}
+
+type DecideOrganizationScopeInput struct {
+	TenantID      string `json:"tenant_id"`
+	LegalEntityID string `json:"legal_entity_id"`
+	RevisionID    string `json:"revision_id"`
+	ActorID       string `json:"-"`
+	Rationale     string `json:"rationale"`
+}
+
 type EscalationRuntimeStatus struct {
 	PendingTimers  int `json:"pending_timers"`
 	EscalatedTasks int `json:"escalated_tasks"`
@@ -104,16 +161,17 @@ type EscalationRuntimeStatus struct {
 }
 
 type AdminOverview struct {
-	Sources                     []SCIMSourceSummary       `json:"sources"`
-	People                      []PersonSummary           `json:"people"`
-	Groups                      []GroupSummary            `json:"groups"`
-	Roles                       []RoleTemplateSummary     `json:"roles"`
-	LegalEntities               []LegalEntitySummary      `json:"legal_entities"`
-	Bindings                    []GroupRoleBindingSummary `json:"bindings"`
-	Positions                   []PositionSummary         `json:"positions"`
-	OrganizationScopes          []organization.Scope      `json:"organization_scopes"`
-	OrganizationScopesTruncated bool                      `json:"organization_scopes_truncated"`
-	Escalation                  EscalationRuntimeStatus   `json:"escalation"`
+	Sources                     []SCIMSourceSummary                `json:"sources"`
+	People                      []PersonSummary                    `json:"people"`
+	Groups                      []GroupSummary                     `json:"groups"`
+	Roles                       []RoleTemplateSummary              `json:"roles"`
+	LegalEntities               []LegalEntitySummary               `json:"legal_entities"`
+	Bindings                    []GroupRoleBindingSummary          `json:"bindings"`
+	Positions                   []PositionSummary                  `json:"positions"`
+	OrganizationScopes          []organization.Scope               `json:"organization_scopes"`
+	OrganizationScopesTruncated bool                               `json:"organization_scopes_truncated"`
+	OrganizationScopeRevisions  []OrganizationScopeRevisionSummary `json:"organization_scope_revisions"`
+	Escalation                  EscalationRuntimeStatus            `json:"escalation"`
 }
 
 // OperationalStatus is the bounded exception projection used by actor-facing
@@ -149,6 +207,9 @@ type Administrator interface {
 	RevokeSCIMSource(context.Context, string, string, string) error
 	CreateGroupRoleBinding(context.Context, CreateGroupRoleBindingInput) (GroupRoleBindingSummary, error)
 	RetireGroupRoleBinding(context.Context, string, string, string) error
+	ProposeOrganizationScope(context.Context, ProposeOrganizationScopeInput) (OrganizationScopeRevisionSummary, error)
+	ApproveOrganizationScope(context.Context, DecideOrganizationScopeInput) error
+	RejectOrganizationScope(context.Context, DecideOrganizationScopeInput) error
 }
 
 func NewProvisioningToken() (string, [32]byte, error) {
