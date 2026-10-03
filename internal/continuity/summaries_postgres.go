@@ -26,7 +26,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT
-			p.id::text,t.id::text,COALESCE(p.legal_entity_id::text,''),p.code,p.name,p.program_type,p.status,
+			p.id::text,t.id::text,COALESCE(p.legal_entity_id::text,''),COALESCE(p.organization_scope_id::text,''),p.code,p.name,p.program_type,p.status,
 			p.owning_function,COALESCE(p.owner_principal_id::text,''),COALESCE(p.authority_principal_id::text,''),
 			p.jurisdiction,p.scope,p.effective_from,p.effective_until,p.created_at,p.updated_at,p.version,
 			COALESCE(effective_state.overall_state,'UNKNOWN'),COALESCE(ps.dimensions,'{}'::jsonb),COALESCE(ps.reasons,'[]'::jsonb),
@@ -107,6 +107,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		  AND ($13='' OR lower(btrim(p.jurisdiction))=lower(btrim($13)))
 		  AND ($14='' OR effective_state.overall_state=$14)
 		  AND (NOT $15 OR COALESCE(p.owner_principal_id::text,'')=$16)
+		  AND (NOT $17::boolean OR p.organization_scope_id=ANY($18::uuid[]))
 		  AND (
 			NOT $4 OR
 			CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END > $5 OR
@@ -115,7 +116,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		  )
 		ORDER BY CASE p.status WHEN 'ACTIVE' THEN 0 WHEN 'PAUSED' THEN 1 WHEN 'DRAFT' THEN 2 ELSE 3 END,
 			p.updated_at DESC,p.id DESC
-		LIMIT $8`, tenant, query.Status, query.Search, hasCursor, cursor.Rank, cursor.UpdatedAt, cursor.ID, limit+1, enforceEntity, principalID, actorTenant, actorEntity, query.Jurisdiction, query.OverallState, query.AssignedToMe, query.principalID)
+		LIMIT $8`, tenant, query.Status, query.Search, hasCursor, cursor.Rank, cursor.UpdatedAt, cursor.ID, limit+1, enforceEntity, principalID, actorTenant, actorEntity, query.Jurisdiction, query.OverallState, query.AssignedToMe, query.principalID, query.OrganizationScopeID != "", query.OrganizationScopeIDs)
 	if err != nil {
 		return ProgramSummaryPage{}, err
 	}
@@ -127,7 +128,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 		var dimensions ComplianceDimensions
 		var latestVisibleAt, generatedAt *time.Time
 		if err := rows.Scan(
-			&value.Program.ID, &value.Program.TenantID, &value.Program.LegalEntityID, &value.Program.Code, &value.Program.Name,
+			&value.Program.ID, &value.Program.TenantID, &value.Program.LegalEntityID, &value.Program.OrganizationScopeID, &value.Program.Code, &value.Program.Name,
 			&value.Program.Type, &value.Program.Status, &value.Program.OwningFunction, &value.Program.OwnerPrincipalID,
 			&value.Program.AuthorityPrincipalID, &value.Program.Jurisdiction, &value.Program.Scope, &value.Program.EffectiveFrom,
 			&value.Program.EffectiveUntil, &value.Program.CreatedAt, &value.Program.UpdatedAt, &value.Program.Version,
@@ -189,7 +190,7 @@ func (r *PostgresRepository) ListProgramSummaries(ctx context.Context, tenant st
 	if err := rows.Err(); err != nil {
 		return ProgramSummaryPage{}, err
 	}
-	page := ProgramSummaryPage{GeneratedAt: time.Now().UTC()}
+	page := ProgramSummaryPage{GeneratedAt: time.Now().UTC(), OrganizationScopeID: query.OrganizationScopeID}
 	if len(values) > limit {
 		last := values[limit-1]
 		page.NextCursor, err = encodeSummaryCursor(programSummaryCursor{Rank: programStatusRank(last.Program.Status), UpdatedAt: last.Program.UpdatedAt, ID: last.Program.ID})
