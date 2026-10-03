@@ -59,7 +59,7 @@ func TestGroupOversightHandlerReturnsOnlyAuthorizedAggregateFacts(t *testing.T) 
 	if response.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
-	if !strings.Contains(response.Body.String(), ""critical_high":5") ||
+	if !strings.Contains(response.Body.String(), "\"critical_high\":5") ||
 		strings.Contains(response.Body.String(), "Restricted") ||
 		strings.Contains(response.Body.String(), "999") {
 		t.Fatalf("unsafe group response: %s", response.Body.String())
