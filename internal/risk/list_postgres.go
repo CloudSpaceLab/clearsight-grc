@@ -32,7 +32,7 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 	}
 	rows, err := r.pool.Query(ctx, `
 		SELECT
-			r.id::text,r.tenant_id::text,r.legal_entity_id::text,r.code,r.name,r.category,r.statement,r.cause,
+			r.id::text,r.tenant_id::text,r.legal_entity_id::text,COALESCE(r.organization_scope_id::text,''),r.code,r.name,r.category,r.statement,r.cause,
 			r.event,r.impact,r.scope,COALESCE(r.owner_principal_id::text,''),r.status,r.version,r.created_at,r.updated_at,
 			(la.id IS NOT NULL),COALESCE(la.id::text,''),COALESCE(la.risk_version,0),COALESCE(la.assessment_kind,''),COALESCE(la.method_code,''),COALESCE(la.method_version,''),
 			COALESCE(la.dimensions,'{}'::jsonb),COALESCE(la.assumptions,'{}'::jsonb),COALESCE(la.evidence_references,'[]'::jsonb),
@@ -81,11 +81,12 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 		        END
 		      )=$7)
 		  AND ($9::boolean=false OR r.updated_at<$10 OR (r.updated_at=$10 AND r.id<$11::uuid))
+		  AND (NOT $12::boolean OR r.organization_scope_id=ANY($13::uuid[]))
 		ORDER BY r.updated_at DESC,r.id DESC
-		LIMIT $12`,
+		LIMIT $14`,
 		scope.TenantID, scope.LegalEntityID, string(filter.Status), filter.Category, filter.OwnerPrincipalID,
 		filter.Search, string(filter.AppetitePosition), filter.AsOf.UTC(), !cursor.UpdatedAt.IsZero(),
-		cursor.UpdatedAt, cursorID, filter.Limit+1,
+		cursor.UpdatedAt, cursorID, filter.OrganizationScopeID != "", filter.OrganizationScopeIDs, filter.Limit+1,
 	)
 	if err != nil {
 		return Page{}, fmt.Errorf("list risks: %w", err)
@@ -103,7 +104,7 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 	if err := rows.Err(); err != nil {
 		return Page{}, err
 	}
-	page := Page{Items: summaries}
+	page := Page{Items: summaries, OrganizationScopeID: filter.OrganizationScopeID}
 	if len(summaries) > filter.Limit {
 		page.Items = summaries[:filter.Limit]
 		last := page.Items[len(page.Items)-1].Risk
@@ -133,7 +134,7 @@ func scanRiskSummary(row riskSummaryScanner) (Summary, error) {
 	)
 
 	err := row.Scan(
-		&risk.ID, &risk.TenantID, &risk.LegalEntityID, &risk.Code, &risk.Name, &risk.Category, &risk.Statement, &risk.Cause,
+		&risk.ID, &risk.TenantID, &risk.LegalEntityID, &risk.OrganizationScopeID, &risk.Code, &risk.Name, &risk.Category, &risk.Statement, &risk.Cause,
 		&risk.Event, &risk.Impact, &risk.Scope, &risk.OwnerPrincipalID, &risk.Status, &risk.Version, &risk.CreatedAt, &risk.UpdatedAt,
 		&hasAssessment, &assessment.ID, &assessment.RiskVersion, &assessment.Kind, &assessment.MethodCode, &assessment.MethodVersion,
 		&assessment.Dimensions, &assessment.Assumptions, &assessment.EvidenceReferences, &hasConfidence, &confidence, &assessment.AssessedBy,

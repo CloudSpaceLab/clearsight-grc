@@ -9,6 +9,7 @@ export type RiskListParams = {
   ownerPrincipalID?: string;
   search?: string;
   appetitePosition?: RiskAppetitePosition;
+  organizationScopeID?: string;
   cursor?: string;
   limit?: number;
 };
@@ -20,6 +21,7 @@ export function listRisks(params: RiskListParams = {}, signal?: AbortSignal): Pr
   if (params.ownerPrincipalID?.trim()) query.set("owner_principal_id", params.ownerPrincipalID.trim());
   if (params.search?.trim()) query.set("search", params.search.trim());
   if (params.appetitePosition) query.set("appetite_position", params.appetitePosition);
+  if (params.organizationScopeID?.trim()) query.set("organization_scope_id", params.organizationScopeID.trim());
   if (params.cursor) query.set("cursor", params.cursor);
   if (params.limit !== undefined) query.set("limit", String(params.limit));
   const suffix = query.size ? `?${query.toString()}` : "";

@@ -7,6 +7,8 @@ import { assessmentKindLabel, currentAppetiteLabel, currentAppetiteTone, formatR
 type Props = {
   organizationName?: string;
   legalEntityName?: string;
+  organizationScopeID?: string;
+  organizationScopeName?: string;
   onOpenRisk: (id: string) => void;
   loadPage?: (params?: RiskListParams, signal?: AbortSignal) => Promise<RiskPage>;
 };
@@ -26,8 +28,8 @@ const appetiteOptions: ReadonlyArray<{ id: RiskAppetitePosition; label: string }
   { id: "UNKNOWN", label: "Unknown" },
 ];
 
-export function RiskRegister({ organizationName, legalEntityName, onOpenRisk, loadPage = listRisks }: Props) {
-  const scope = legalEntityName || "this legal entity";
+export function RiskRegister({ organizationName, legalEntityName, organizationScopeID, organizationScopeName, onOpenRisk, loadPage = listRisks }: Props) {
+  const scope = organizationScopeName || legalEntityName || "this legal entity";
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<RiskStatus>();
   const [appetite, setAppetite] = useState<RiskAppetitePosition>();
@@ -45,6 +47,7 @@ export function RiskRegister({ organizationName, legalEntityName, onOpenRisk, lo
       search: search.trim() || undefined,
       status,
       appetitePosition: appetite,
+      organizationScopeID,
       cursor: currentCursor,
       limit: 25,
     }, controller.signal).then((value) => {
@@ -56,7 +59,7 @@ export function RiskRegister({ organizationName, legalEntityName, onOpenRisk, lo
       setState("error");
     });
     return () => controller.abort();
-  }, [appetite, currentCursor, loadPage, retry, search, status]);
+  }, [appetite, currentCursor, loadPage, organizationScopeID, retry, search, status]);
 
   function changeSearch(value: string) {
     setSearch(value);
@@ -154,7 +157,7 @@ export function RiskRegister({ organizationName, legalEntityName, onOpenRisk, lo
     {state === "live" && page.items.length === 0 && <EmptyState
       population={hasFilters ? `${scope} · current risk filters` : `${scope} · current risk register`}
       title={hasFilters ? "No matching risks" : "No risks in this scope"}
-      description={hasFilters ? "Change the filters or search." : "No current risk records were returned for this legal entity."}
+      description={hasFilters ? "Change the filters or search." : `No current risk records were returned for ${scope}.`}
     />}
     {page.items.length > 0 && <DataTable
       ariaLabel="Risk register"

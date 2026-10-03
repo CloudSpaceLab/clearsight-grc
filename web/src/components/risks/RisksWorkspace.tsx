@@ -5,6 +5,8 @@ import "./risk.css";
 type Props = {
   organizationName?: string;
   legalEntityName?: string;
+  organizationScopeID?: string;
+  organizationScopeName?: string;
   actorID?: string;
   targetID?: string;
   onTarget: (id?: string) => void;
@@ -13,7 +15,7 @@ type Props = {
   onOpenProgramControl?: (programID: string, objectiveID: string) => void;
 };
 
-export function RisksWorkspace({ organizationName, legalEntityName, actorID, targetID, onTarget, onOpenProgram, onOpenMatter, onOpenProgramControl }: Props) {
+export function RisksWorkspace({ organizationName, legalEntityName, organizationScopeID, organizationScopeName, actorID, targetID, onTarget, onOpenProgram, onOpenMatter, onOpenProgramControl }: Props) {
   if (targetID) return <RiskRecord riskID={targetID} actorID={actorID} onBack={() => onTarget(undefined)} onOpenProgram={onOpenProgram} onOpenMatter={onOpenMatter} onOpenProgramControl={onOpenProgramControl}/>;
-  return <RiskRegister organizationName={organizationName} legalEntityName={legalEntityName} onOpenRisk={(id) => onTarget(id)}/>;
+  return <RiskRegister organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={organizationScopeID} organizationScopeName={organizationScopeName} onOpenRisk={(id) => onTarget(id)}/>;
 }

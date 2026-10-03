@@ -124,6 +124,21 @@ it("renders a bounded Risk register with working-language appetite state", async
   expect(screen.queryByText(risk.owner_principal_id!)).toBeNull();
 });
 
+it("binds the register read to the selected organization scope", async () => {
+  const loadPage = vi.fn().mockResolvedValue(page);
+  render(<RiskRegister
+    legalEntityName="Clear Bank Nigeria"
+    organizationScopeID="scope-risk"
+    organizationScopeName="BANK / RISK"
+    onOpenRisk={vi.fn()}
+    loadPage={loadPage}
+  />);
+
+  await screen.findByText("Network resilience");
+  expect(screen.getByText("Current risk statements and appetite position for BANK / RISK.")).toBeTruthy();
+  expect(loadPage).toHaveBeenCalledWith(expect.objectContaining({ organizationScopeID: "scope-risk", limit: 25 }), expect.any(AbortSignal));
+});
+
 it("opens the exact Risk from the visible row action", async () => {
   const onOpenRisk = vi.fn();
   render(<RiskRegister onOpenRisk={onOpenRisk} loadPage={vi.fn().mockResolvedValue(page)}/>);
