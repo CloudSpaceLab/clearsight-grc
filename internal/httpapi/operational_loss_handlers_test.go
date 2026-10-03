@@ -21,7 +21,8 @@ func TestOperationalLossRoutesUseGovernedAuthorityContracts(t *testing.T) {
 	want := map[string]bool{
 		"POST /api/v1/losses":                 true,
 		"POST /api/v1/losses/{id}":            false,
-		"POST /api/v1/losses/{id}/recoveries":   false,\n\t\t"POST /api/v1/losses/{id}/intervention": false,
+		"POST /api/v1/losses/{id}/recoveries":   false,
+		"POST /api/v1/losses/{id}/intervention": false,
 	}
 	for _, route := range (&API{}).operationalLossRoutes() {
 		key := route.Method + " " + route.Path
