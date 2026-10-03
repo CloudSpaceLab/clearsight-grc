@@ -127,6 +127,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	reportingRepository := reporting.NewMemoryRepository()
 	reportingService := reporting.NewService(reportingRepository, store, authorityService)
 	riskService := risk.NewService(risk.NewMemoryRepository())
+	evidenceRepo.risk = riskService
 	controlCatalogService := controlcatalog.NewService(controlcatalog.NewMemoryRepository())
 	configureRiskControlCatalog(riskService, controlCatalogService)
 	configureRiskIndicators(riskService, monitoringService, continuityService)
@@ -214,6 +215,7 @@ func configureReferenceVerticals(verticals *bankverticals.Service, monitoringSer
 type memoryEvidenceRepository struct {
 	*evidence.MemoryRepository
 	continuity *continuity.Service
+	risk       *risk.Service
 }
 
 func (r *memoryEvidenceRepository) ResolveSubjectScope(ctx context.Context, tenant, subjectType, subjectID string) (evidence.SubjectScope, error) {
@@ -235,6 +237,15 @@ func (r *memoryEvidenceRepository) ResolveSubjectScope(ctx context.Context, tena
 			return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
 		}
 		return evidence.SubjectScope{TenantID: tenant, LegalEntityID: value.Matter.LegalEntityID, SubjectType: subjectType, SubjectID: subjectID}, nil
+	case "RISK":
+		if r.risk == nil {
+			return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+		}
+		scope, err := r.risk.ResolveScope(ctx, tenant, subjectID)
+		if err != nil {
+			return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
+		}
+		return evidence.SubjectScope{TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, SubjectType: subjectType, SubjectID: subjectID}, nil
 	default:
 		return evidence.SubjectScope{}, evidence.ErrSubjectUnsupported
 	}
