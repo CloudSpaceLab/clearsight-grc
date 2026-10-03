@@ -487,3 +487,5 @@ func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Res
 	}
 	return value, nil
 }
+
+var _ OversightScopeResolver = (*PostgresResolver)(nil)
