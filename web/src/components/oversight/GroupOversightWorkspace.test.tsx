@@ -55,7 +55,7 @@ function fixture(): GroupOversightSnapshot {
 }
 
 describe("GroupOversightWorkspace", () => {
-  it("shows canonical metrics and OpCo posture without exposing projection identifiers", async () => {
+  it("keeps revision details collapsed until the user asks for the exact data basis", async () => {
     const onOpenLegalEntity = vi.fn();
     render(<GroupOversightWorkspace
       organizationName="Clear Bank"
@@ -69,6 +69,17 @@ describe("GroupOversightWorkspace", () => {
     expect(screen.getByText("Beta")).toBeTruthy();
     expect(screen.queryByText("snap-secret-a")).toBeNull();
     expect(screen.queryByText("revision-secret")).toBeNull();
+
+    const basisButton = screen.getByRole("button", { name: "Data basis" });
+    expect(basisButton.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(basisButton);
+
+    expect(await screen.findByRole("heading", { name: "Data basis" })).toBeTruthy();
+    expect(screen.getByText("revision-secret")).toBeTruthy();
+    expect(screen.getByText("snap-secret-a")).toBeTruthy();
+    expect(screen.getByText("snap-secret-b")).toBeTruthy();
+    expect(screen.getAllByText("oversight-v5").length).toBe(2);
+    expect(screen.getByRole("button", { name: "Hide data basis" }).getAttribute("aria-expanded")).toBe("true");
 
     fireEvent.click(screen.getByRole("button", { name: /Open OpCo for Alpha/i }));
     expect(onOpenLegalEntity).toHaveBeenCalledWith("entity-a");
