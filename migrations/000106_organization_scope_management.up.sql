@@ -35,6 +35,20 @@ CREATE UNIQUE INDEX organization_scope_revisions_pending_idx
 CREATE INDEX organization_scope_revisions_queue_idx
     ON organization_scope_revisions(tenant_id, legal_entity_id, status, created_at, id);
 
+ALTER TABLE governance_decisions
+    DROP CONSTRAINT IF EXISTS governance_decisions_object_type_check;
+ALTER TABLE governance_decisions
+    ADD CONSTRAINT governance_decisions_object_type_check
+    CHECK (object_type IN (
+        'ROUTING_POLICY',
+        'DELEGATION',
+        'SEGREGATION_RULE',
+        'SCIM_SOURCE',
+        'DIRECTORY_GROUP_ROLE_BINDING',
+        'ORGANIZATION_SCOPE',
+        'ORGANIZATION_SCOPE_REVISION'
+    ));
+
 CREATE OR REPLACE FUNCTION bind_legacy_organization_scope() RETURNS trigger
 LANGUAGE plpgsql
 AS $$
