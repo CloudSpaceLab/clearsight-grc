@@ -46,18 +46,18 @@ type Risk struct {
 	LegalEntityID       string          `json:"legal_entity_id"`
 	OrganizationScopeID string          `json:"organization_scope_id,omitempty"`
 	Code                string          `json:"code"`
-	Name             string          `json:"name"`
-	Category         string          `json:"category"`
-	Statement        string          `json:"statement"`
-	Cause            string          `json:"cause"`
-	Event            string          `json:"event"`
-	Impact           string          `json:"impact"`
-	Scope            json.RawMessage `json:"scope"`
-	OwnerPrincipalID string          `json:"owner_principal_id,omitempty"`
-	Status           Status          `json:"status"`
-	Version          int64           `json:"version"`
-	CreatedAt        time.Time       `json:"created_at"`
-	UpdatedAt        time.Time       `json:"updated_at"`
+	Name                string          `json:"name"`
+	Category            string          `json:"category"`
+	Statement           string          `json:"statement"`
+	Cause               string          `json:"cause"`
+	Event               string          `json:"event"`
+	Impact              string          `json:"impact"`
+	Scope               json.RawMessage `json:"scope"`
+	OwnerPrincipalID    string          `json:"owner_principal_id,omitempty"`
+	Status              Status          `json:"status"`
+	Version             int64           `json:"version"`
+	CreatedAt           time.Time       `json:"created_at"`
+	UpdatedAt           time.Time       `json:"updated_at"`
 }
 
 type Assessment struct {
@@ -191,15 +191,15 @@ type CreateInput struct {
 	LegalEntityID       string          `json:"legal_entity_id,omitempty"`
 	OrganizationScopeID string          `json:"organization_scope_id,omitempty"`
 	Code                string          `json:"code"`
-	Name             string          `json:"name"`
-	Category         string          `json:"category,omitempty"`
-	Statement        string          `json:"statement"`
-	Cause            string          `json:"cause,omitempty"`
-	Event            string          `json:"event,omitempty"`
-	Impact           string          `json:"impact"`
-	Scope            json.RawMessage `json:"scope,omitempty"`
-	OwnerPrincipalID string          `json:"owner_principal_id,omitempty"`
-	ActorID          string          `json:"actor_id,omitempty"`
+	Name                string          `json:"name"`
+	Category            string          `json:"category,omitempty"`
+	Statement           string          `json:"statement"`
+	Cause               string          `json:"cause,omitempty"`
+	Event               string          `json:"event,omitempty"`
+	Impact              string          `json:"impact"`
+	Scope               json.RawMessage `json:"scope,omitempty"`
+	OwnerPrincipalID    string          `json:"owner_principal_id,omitempty"`
+	ActorID             string          `json:"actor_id,omitempty"`
 }
 
 type UpdateInput struct {
