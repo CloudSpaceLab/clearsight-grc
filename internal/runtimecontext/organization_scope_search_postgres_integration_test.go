@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -74,7 +75,7 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 		) VALUES($5::uuid,$1::uuid,$2::uuid,'GLOBAL','Global reader',$3::uuid,ARRAY[]::text[],$9);
 		INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from)
 		VALUES($1::uuid,$5::uuid,$7::uuid,$9)
-	`, tenantID, entityID, globalPrincipal, localPrincipal, globalPosition, localPosition, roleID, rootScopeID, now.Add(-time.Hour)); err != nil {
+	`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, globalPrincipal, localPrincipal, globalPosition, localPosition, roleID, rootScopeID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -91,7 +92,7 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 		) VALUES($1::uuid,$2::uuid,$3::uuid,'LOCAL','Local reader',$4::uuid,ARRAY['BANK','SITE00001'],$5::uuid,$6);
 		INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from)
 		VALUES($2::uuid,$1::uuid,$7::uuid,$6)
-	`, localPosition, tenantID, entityID, localPrincipal, localScopeID, now.Add(-time.Hour), roleID); err != nil {
+	`, pgx.QueryExecModeSimpleProtocol, localPosition, tenantID, entityID, localPrincipal, localScopeID, now.Add(-time.Hour), roleID); err != nil {
 		t.Fatal(err)
 	}
 
