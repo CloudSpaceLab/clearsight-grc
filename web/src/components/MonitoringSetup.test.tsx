@@ -180,7 +180,18 @@ describe("monitoring setup", () => {
   it("creates a channel Program from business fields without technical identifiers", async () => {
     vi.mocked(createProgram).mockResolvedValue(program);
     const onCreated = vi.fn();
-    render(<ProgramSetupWorkspace actorPrincipalID="owner-1" canConfigureSources onCreated={onCreated} onClose={vi.fn()}/>);
+    render(<ProgramSetupWorkspace
+      actorPrincipalID="owner-1"
+      canConfigureSources
+      organizationScopes={[
+        { id: "scope-risk", name: "Risk", kind: "DEPARTMENT", department_path: ["BANK", "RISK"], filterable: true },
+        { id: "scope-finance", name: "Finance", kind: "DEPARTMENT", department_path: ["BANK", "FINANCE"], filterable: true },
+      ]}
+      initialOrganizationScopeID="scope-risk"
+      onCreated={onCreated}
+      onClose={vi.fn()}
+    />);
+    expect((await screen.findByLabelText("Organization area") as HTMLSelectElement).value).toBe("scope-risk");
     expect((await screen.findByLabelText("Accountable owner") as HTMLSelectElement).value).toBe("owner-1");
     expect((screen.getByLabelText("Approval authority") as HTMLSelectElement).value).toBe("cro-1");
     fireEvent.change(screen.getByLabelText("Program name"), { target: { value: "Mobile banking" } });
@@ -188,7 +199,7 @@ describe("monitoring setup", () => {
     fireEvent.change(screen.getByLabelText("Owning function"), { target: { value: "Digital Banking" } });
     fireEvent.change(screen.getByLabelText("Scope"), { target: { value: "Retail mobile banking channel" } });
     fireEvent.click(screen.getByRole("button", { name: "Create Program" }));
-    await waitFor(() => expect(createProgram).toHaveBeenCalledWith(expect.objectContaining({ name: "Mobile banking", type: "CHANNEL", scopeDescription: "Retail mobile banking channel", ownerCandidateID: "owner-1", approvalAuthorityCandidateID: "cro-1" })));
+    await waitFor(() => expect(createProgram).toHaveBeenCalledWith(expect.objectContaining({ name: "Mobile banking", type: "CHANNEL", organizationScopeID: "scope-risk", scopeDescription: "Retail mobile banking channel", ownerCandidateID: "owner-1", approvalAuthorityCandidateID: "cro-1" })));
     expect(onCreated).toHaveBeenCalledWith(program);
   });
 

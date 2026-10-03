@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 )
 
@@ -23,9 +24,20 @@ func (a *API) listProgramSummaries(w http.ResponseWriter, r *http.Request) {
 	if !parseOK {
 		return
 	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	selection, err := a.resolveOrganizationScopeSelection(r.Context(), actor, r.URL.Query().Get("organization_scope_id"), true)
+	if err != nil {
+		writeOrganizationScopeRequestError(w, err, "This organization scope is not available for Programs.")
+		return
+	}
 	page, err := service.ListProgramSummaries(r.Context(), tenant, continuity.SummaryQuery{
 		Search: r.URL.Query().Get("q"), Status: r.URL.Query().Get("status"),
 		OverallState: r.URL.Query().Get("overall_state"), Jurisdiction: r.URL.Query().Get("jurisdiction"),
+		OrganizationScopeID: selection.ID, OrganizationScopeIDs: selection.IDs,
 		AssignedToMe: assignedToMe, Cursor: r.URL.Query().Get("cursor"), Limit: limit,
 	})
 	if err != nil {

@@ -82,6 +82,17 @@ func (a *API) createProgram(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	selection, err := a.resolveOrganizationScopeSelection(r.Context(), actor, request.OrganizationScopeID, false)
+	if err != nil {
+		writeOrganizationScopeRequestError(w, err, "This organization scope is not available for Program attribution.")
+		return
+	}
+	request.OrganizationScopeID = selection.ID
 	owner, approval, err := a.resolveProgramSetupSelections(r.Context(), request.LegalEntityID, request.OwnerCandidateID, request.ApprovalAuthorityCandidateID)
 	if err != nil {
 		if errors.Is(err, commandauth.ErrIdentityRequired) || errors.Is(err, commandauth.ErrGuardUnavailable) || errors.Is(err, commandauth.ErrLegalEntityMismatch) {

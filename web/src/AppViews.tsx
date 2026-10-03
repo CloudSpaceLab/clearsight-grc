@@ -7,6 +7,7 @@ import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
 import { TodayInterventions } from "./components/TodayInterventions";
 import { Tabs } from "./components/ui";
 import { WorkspaceErrorBoundary } from "./components/WorkspaceErrorBoundary";
+import type { ScopeNode } from "./api";
 import type { AttentionItem, AuthorityResolution, EvidenceRequest, EvidenceSource, Readiness } from "./types";
 import { initials } from "./components/Monogram";
 import type { ProgramItemTarget, ProgramSection, WorkTab } from "./appRouting";
@@ -28,8 +29,8 @@ export function TodayView({ organizationName, items, connection, generatedAt, re
   </>;
 }
 
-export function ProgramsView({ organizationName, actorPrincipalID, canConfigureSources, targetID, targetSection, programItem, onSectionChange, openFirst, onOpenRequest, onOpenForm, onAnalyzeDocument }: { organizationName: string; actorPrincipalID?: string; canConfigureSources?: boolean; targetID?: string; targetSection?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void; onAnalyzeDocument?: () => void }) {
-  return <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div>{onAnalyzeDocument && <div className="topbar-actions"><button className="secondary-button" type="button" aria-label="Analyze document to create or update Programs" onClick={onAnalyzeDocument}>Analyze document</button></div>}</header><ProgramsWorkspace targetID={targetID} targetSection={targetSection} programItem={programItem} onSectionChange={onSectionChange} openFirst={openFirst} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} onOpenRequest={onOpenRequest} onOpenForm={onOpenForm}/></>;
+export function ProgramsView({ organizationName, organizationScopeID, organizationScopeName, organizationScopes, actorPrincipalID, canConfigureSources, targetID, targetSection, programItem, onSectionChange, openFirst, onOpenRequest, onOpenForm, onAnalyzeDocument }: { organizationName: string; organizationScopeID?: string; organizationScopeName?: string; organizationScopes?: ScopeNode[]; actorPrincipalID?: string; canConfigureSources?: boolean; targetID?: string; targetSection?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void; onAnalyzeDocument?: () => void }) {
+  return <><header className="topbar"><div><span className="eyebrow">{organizationScopeName ? `${organizationName} · ${organizationScopeName}` : organizationName}</span><h1>Programs</h1><p>Ongoing obligations, safeguards, evidence checks and open issues.</p></div>{onAnalyzeDocument && <div className="topbar-actions"><button className="secondary-button" type="button" aria-label="Analyze document to create or update Programs" onClick={onAnalyzeDocument}>Analyze document</button></div>}</header><ProgramsWorkspace targetID={targetID} targetSection={targetSection} programItem={programItem} onSectionChange={onSectionChange} openFirst={openFirst} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} organizationScopeID={organizationScopeID} organizationScopeName={organizationScopeName} organizationScopes={organizationScopes} onOpenRequest={onOpenRequest} onOpenForm={onOpenForm}/></>;
 }
 
 export function ReferenceJourneysView({ organizationName }: { organizationName: string }) {

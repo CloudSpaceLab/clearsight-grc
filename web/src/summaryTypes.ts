@@ -34,6 +34,7 @@ export type SummaryPage<T> = {
   items: T[];
   next_cursor?: string;
   generated_at: string;
+  organization_scope_id?: string;
 };
 
 export type SummaryQuery = {
@@ -42,6 +43,7 @@ export type SummaryQuery = {
   programID?: string;
   overallState?: string;
   jurisdiction?: string;
+  organizationScopeID?: string;
   matterType?: string;
   dueCondition?: string;
   priority?: number;

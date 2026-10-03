@@ -330,7 +330,7 @@ func (s *Service) CreateProgram(ctx context.Context, input CreateProgramInput) (
 		value := input.EffectiveUntil.UTC()
 		effectiveUntil = &value
 	}
-	program := Program{ID: programID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Type: strings.TrimSpace(input.Type), Status: ProgramDraft, OwningFunction: strings.TrimSpace(input.OwningFunction), OwnerPrincipalID: input.OwnerPrincipalID, AuthorityPrincipalID: input.AuthorityPrincipalID, Jurisdiction: strings.TrimSpace(input.Jurisdiction), Scope: scope, EffectiveFrom: input.EffectiveFrom.UTC(), EffectiveUntil: effectiveUntil, CreatedAt: now, UpdatedAt: now, Version: 1}
+	program := Program{ID: programID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, OrganizationScopeID: strings.TrimSpace(input.OrganizationScopeID), Code: strings.ToUpper(strings.TrimSpace(input.Code)), Name: strings.TrimSpace(input.Name), Type: strings.TrimSpace(input.Type), Status: ProgramDraft, OwningFunction: strings.TrimSpace(input.OwningFunction), OwnerPrincipalID: input.OwnerPrincipalID, AuthorityPrincipalID: input.AuthorityPrincipalID, Jurisdiction: strings.TrimSpace(input.Jurisdiction), Scope: scope, EffectiveFrom: input.EffectiveFrom.UTC(), EffectiveUntil: effectiveUntil, CreatedAt: now, UpdatedAt: now, Version: 1}
 	event, err := newEvent(input.TenantID, "PROGRAM", program.ID, 1, EventProgramCreated, program, actorFor(input.ActorID), input.ActorID, now)
 	if err != nil {
 		return ProgramAggregate{}, err

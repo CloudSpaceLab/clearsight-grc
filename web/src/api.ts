@@ -142,6 +142,7 @@ function summaryValues(query: SummaryQuery) {
     program_id: query.programID,
     overall_state: query.overallState,
     jurisdiction: query.jurisdiction,
+    organization_scope_id: query.organizationScopeID,
     matter_type: query.matterType,
     due: query.dueCondition,
     priority: query.priority,

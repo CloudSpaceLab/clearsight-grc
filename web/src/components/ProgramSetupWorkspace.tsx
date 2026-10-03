@@ -1,16 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { addProgramRequirement, createProgram, loadProgramSetupCandidates } from "../continuityCommands";
 import type { ProgramSetupCandidates } from "../continuityCommands";
+import type { ScopeNode } from "../api";
 import type { ProgramAggregate } from "../types";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { loadProgramOperations } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
 import { Notice, SelectField, TextField } from "./ui";
 
-type Props = { actorPrincipalID: string; canConfigureSources: boolean; onCreated: (aggregate: ProgramAggregate) => void; onClose: () => void };
+type Props = {
+  actorPrincipalID: string;
+  canConfigureSources: boolean;
+  organizationScopes?: ScopeNode[];
+  initialOrganizationScopeID?: string;
+  onCreated: (aggregate: ProgramAggregate) => void;
+  onClose: () => void;
+};
 
-export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, onCreated, onClose }: Props) {
+export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, organizationScopes = [], initialOrganizationScopeID, onCreated, onClose }: Props) {
   const [aggregate, setAggregate] = useState<ProgramAggregate | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -24,6 +32,8 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
   const [requiredAction, setRequiredAction] = useState("");
   const [requirementObject, setRequirementObject] = useState("");
   const [modality, setModality] = useState("");
+  const filterableOrganizationScopes = useMemo(() => organizationScopes.filter((scope) => scope.filterable), [organizationScopes]);
+  const initialArea = filterableOrganizationScopes.some((scope) => scope.id === initialOrganizationScopeID) ? initialOrganizationScopeID : "";
 
   async function loadCandidates() {
     setCandidateState("loading");
@@ -56,7 +66,9 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
       const created = await createProgram({
         name: String(data.get("name") ?? "").trim(), code: String(data.get("code") ?? "").trim(),
         type: String(data.get("type") ?? "CHANNEL"), owningFunction: String(data.get("owning_function") ?? "").trim(),
-        jurisdiction: String(data.get("jurisdiction") ?? "").trim(), scopeDescription: String(data.get("scope") ?? "").trim(),
+        jurisdiction: String(data.get("jurisdiction") ?? "").trim(),
+        organizationScopeID: String(data.get("organization_scope_id") ?? "").trim() || undefined,
+        scopeDescription: String(data.get("scope") ?? "").trim(),
         ownerCandidateID, approvalAuthorityCandidateID,
       });
       setAggregate(created); onCreated(created); setNotice("Program created. Add its requirements and monitoring checks.");
@@ -97,6 +109,7 @@ export function ProgramSetupWorkspace({ actorPrincipalID, canConfigureSources, o
         <label><span>Code</span><input name="code" required placeholder="SERVICE"/></label>
         <label><span>Program type</span><select name="type" defaultValue="CHANNEL"><option value="CHANNEL">Channel</option><option value="REGULATORY">Regulatory obligation</option><option value="CYBERSECURITY">Cybersecurity</option><option value="OPERATIONS">Operations</option><option value="THIRD_PARTY">Third party</option><option value="PRIVACY">Privacy</option></select></label>
         <label><span>Owning function</span><input name="owning_function" required placeholder="Operations"/></label>
+        <label><span>Organization area</span><select name="organization_scope_id" defaultValue={initialArea}><option value="">Legal entity</option>{filterableOrganizationScopes.map((scope) => <option key={scope.id} value={scope.id}>{scope.department_path?.join(" / ") || scope.name}</option>)}</select></label>
         <label><span>Accountable owner</span><select required disabled={candidateState !== "live"} value={ownerCandidateID} onChange={(event) => { const value = event.target.value; setOwnerCandidateID(value); if (approvalAuthorityCandidateID === value) setApprovalAuthorityCandidateID(""); }}><option value="">Select an eligible owner</option>{candidates?.owner_candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name}{candidate.role ? ` · ${candidate.role}` : ""}</option>)}</select></label>
         <label><span>Approval authority</span><select required disabled={candidateState !== "live"} value={approvalAuthorityCandidateID} onChange={(event) => setApprovalAuthorityCandidateID(event.target.value)}><option value="">Select an eligible approver</option>{candidates?.approval_authority_candidates.filter((candidate) => candidate.id !== ownerCandidateID).map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.display_name}{candidate.role ? ` · ${candidate.role}` : ""}</option>)}</select></label>
         <label><span>Jurisdiction</span><input name="jurisdiction" placeholder="Country or region"/></label>

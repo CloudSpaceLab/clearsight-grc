@@ -184,6 +184,7 @@ type Program struct {
 	ID                   string          `json:"id"`
 	TenantID             string          `json:"tenant_id"`
 	LegalEntityID        string          `json:"legal_entity_id,omitempty"`
+	OrganizationScopeID  string          `json:"organization_scope_id,omitempty"`
 	Code                 string          `json:"code"`
 	Name                 string          `json:"name"`
 	Type                 string          `json:"type"`
@@ -608,6 +609,7 @@ type ResponseHistoryPage struct {
 type CreateProgramInput struct {
 	TenantID             string          `json:"tenant_id"`
 	LegalEntityID        string          `json:"legal_entity_id,omitempty"`
+	OrganizationScopeID  string          `json:"organization_scope_id,omitempty"`
 	Code                 string          `json:"code"`
 	Name                 string          `json:"name"`
 	Type                 string          `json:"type"`
