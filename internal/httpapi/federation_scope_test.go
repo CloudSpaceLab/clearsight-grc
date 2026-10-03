@@ -103,7 +103,6 @@ func TestActorContextAdvertisesScopeSwitchOnlyForFederatedMultiEntityContext(t *
 	}
 }
 
-
 func TestActorOrganizationScopeSearchUsesVerifiedScopeAndBoundedQuery(t *testing.T) {
 	now := time.Now().UTC()
 	actor := identity.Actor{
