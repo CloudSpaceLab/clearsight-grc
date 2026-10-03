@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	ErrAdminNotFound    = errors.New("identity access object not found")
-	ErrAdminConflict    = errors.New("identity access object conflicts with current state")
-	ErrAdminInvalid     = errors.New("identity access input is invalid")
+	ErrAdminNotFound     = errors.New("identity access object not found")
+	ErrAdminConflict     = errors.New("identity access object conflicts with current state")
+	ErrAdminInvalid      = errors.New("identity access input is invalid")
 	ErrAdminMakerChecker = errors.New("a different administrator must approve this change")
 )
 
@@ -97,7 +97,6 @@ type PositionSummary struct {
 	Version             int64      `json:"version"`
 }
 
-
 type OrganizationScopeOperation string
 
 const (
@@ -108,10 +107,10 @@ const (
 )
 
 type OrganizationScopeImpact struct {
-	ChildScopes       int `json:"child_scopes"`
-	Positions         int `json:"positions"`
-	AccessMappings    int `json:"access_mappings"`
-	OpenMatters       int `json:"open_matters"`
+	ChildScopes    int `json:"child_scopes"`
+	Positions      int `json:"positions"`
+	AccessMappings int `json:"access_mappings"`
+	OpenMatters    int `json:"open_matters"`
 }
 
 type OrganizationScopeRevisionSummary struct {
@@ -134,16 +133,16 @@ type OrganizationScopeRevisionSummary struct {
 }
 
 type ProposeOrganizationScopeInput struct {
-	TenantID       string                     `json:"tenant_id"`
-	LegalEntityID  string                     `json:"legal_entity_id"`
-	ScopeID        string                     `json:"scope_id,omitempty"`
-	Operation      OrganizationScopeOperation `json:"operation"`
-	ParentScopeID  string                     `json:"parent_scope_id,omitempty"`
-	Code           string                     `json:"code,omitempty"`
-	Name           string                     `json:"name,omitempty"`
-	Kind           organization.ScopeKind     `json:"kind,omitempty"`
-	ExpectedVersion int64                     `json:"expected_version,omitempty"`
-	ActorID        string                     `json:"-"`
+	TenantID        string                     `json:"tenant_id"`
+	LegalEntityID   string                     `json:"legal_entity_id"`
+	ScopeID         string                     `json:"scope_id,omitempty"`
+	Operation       OrganizationScopeOperation `json:"operation"`
+	ParentScopeID   string                     `json:"parent_scope_id,omitempty"`
+	Code            string                     `json:"code,omitempty"`
+	Name            string                     `json:"name,omitempty"`
+	Kind            organization.ScopeKind     `json:"kind,omitempty"`
+	ExpectedVersion int64                      `json:"expected_version,omitempty"`
+	ActorID         string                     `json:"-"`
 }
 
 type DecideOrganizationScopeInput struct {
@@ -162,17 +161,17 @@ type EscalationRuntimeStatus struct {
 }
 
 type AdminOverview struct {
-	Sources                     []SCIMSourceSummary       `json:"sources"`
-	People                      []PersonSummary           `json:"people"`
-	Groups                      []GroupSummary            `json:"groups"`
-	Roles                       []RoleTemplateSummary     `json:"roles"`
-	LegalEntities               []LegalEntitySummary      `json:"legal_entities"`
-	Bindings                    []GroupRoleBindingSummary `json:"bindings"`
-	Positions                   []PositionSummary         `json:"positions"`
-	OrganizationScopes          []organization.Scope                `json:"organization_scopes"`
-	OrganizationScopesTruncated bool                                `json:"organization_scopes_truncated"`
-	OrganizationScopeRevisions  []OrganizationScopeRevisionSummary  `json:"organization_scope_revisions"`
-	Escalation                  EscalationRuntimeStatus             `json:"escalation"`
+	Sources                     []SCIMSourceSummary                `json:"sources"`
+	People                      []PersonSummary                    `json:"people"`
+	Groups                      []GroupSummary                     `json:"groups"`
+	Roles                       []RoleTemplateSummary              `json:"roles"`
+	LegalEntities               []LegalEntitySummary               `json:"legal_entities"`
+	Bindings                    []GroupRoleBindingSummary          `json:"bindings"`
+	Positions                   []PositionSummary                  `json:"positions"`
+	OrganizationScopes          []organization.Scope               `json:"organization_scopes"`
+	OrganizationScopesTruncated bool                               `json:"organization_scopes_truncated"`
+	OrganizationScopeRevisions  []OrganizationScopeRevisionSummary `json:"organization_scope_revisions"`
+	Escalation                  EscalationRuntimeStatus            `json:"escalation"`
 }
 
 // OperationalStatus is the bounded exception projection used by actor-facing
