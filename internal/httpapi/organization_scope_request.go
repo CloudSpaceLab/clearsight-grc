@@ -3,9 +3,11 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
@@ -54,6 +56,14 @@ func (a *API) resolveOrganizationScopeSelection(ctx context.Context, actor ident
 		return selection, nil
 	}
 	return organizationScopeSelection{}, errOrganizationScopeForbidden
+}
+
+func writeOrganizationScopeRequestError(w http.ResponseWriter, err error, forbiddenMessage string) {
+	if errors.Is(err, errOrganizationScopeUnavailable) {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "organization_scope_unavailable", "Organization scope could not be verified. Try again.")
+		return
+	}
+	httpx.WriteError(w, http.StatusForbidden, "organization_scope_forbidden", forbiddenMessage)
 }
 
 func organizationScopeDescendant(candidate, ancestor []string) bool {
