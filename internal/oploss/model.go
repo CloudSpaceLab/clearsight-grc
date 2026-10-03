@@ -47,16 +47,16 @@ type Loss struct {
 }
 
 type Recovery struct {
-	ID               string       `json:"id"`
-	LossID           string       `json:"loss_id"`
-	LossVersion      int64        `json:"loss_version"`
-	Kind             RecoveryKind `json:"kind"`
-	AmountMinor      int64        `json:"amount_minor"`
-	Currency         string       `json:"currency"`
-	Reference        string       `json:"reference,omitempty"`
-	RecoveredAt      time.Time    `json:"recovered_at"`
-	ActorID          string       `json:"actor_id,omitempty"`
-	CreatedAt        time.Time    `json:"created_at"`
+	ID          string       `json:"id"`
+	LossID      string       `json:"loss_id"`
+	LossVersion int64        `json:"loss_version"`
+	Kind        RecoveryKind `json:"kind"`
+	AmountMinor int64        `json:"amount_minor"`
+	Currency    string       `json:"currency"`
+	Reference   string       `json:"reference,omitempty"`
+	RecoveredAt time.Time    `json:"recovered_at"`
+	ActorID     string       `json:"actor_id,omitempty"`
+	CreatedAt   time.Time    `json:"created_at"`
 }
 
 type Totals struct {
