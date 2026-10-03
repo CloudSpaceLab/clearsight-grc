@@ -124,8 +124,8 @@ func TestOperationalLossHTTPRejectsCrossEntityRead(t *testing.T) {
 	value, err := service.Create(t.Context(), oploss.CreateInput{
 		TenantID: "bank", LegalEntityID: "entity-a", Code: "LOSS-SCOPED", Title: "Scoped loss",
 		EventType: oploss.EventOther, Cause: "Scoped event.", GrossAmountMinor: 10000, Currency: "NGN",
-		OccurredAt: time.Date(2026, 10, 3, 17, 0, 0, 0, time.UTC),
-		DiscoveredAt: time.Date(2026, 10, 3, 18, 0, 0, 0, time.UTC),
+		OccurredAt:       time.Date(2026, 10, 3, 17, 0, 0, 0, time.UTC),
+		DiscoveredAt:     time.Date(2026, 10, 3, 18, 0, 0, 0, time.UTC),
 		OwnerPrincipalID: "owner-a", ActorID: "owner-a",
 	})
 	if err != nil {
@@ -150,7 +150,7 @@ func TestOperationalLossInterventionCreatesAndReusesCanonicalMatter(t *testing.T
 	created, err := losses.Create(t.Context(), oploss.CreateInput{
 		TenantID: "bank", LegalEntityID: "entity-a", Code: "LOSS-MATERIAL", Title: "Material settlement loss",
 		EventType: oploss.EventExecutionDeliveryProcess, Cause: "Settlement control failed.",
-		Description: "A duplicate settlement caused a material operational loss.",
+		Description:      "A duplicate settlement caused a material operational loss.",
 		GrossAmountMinor: 500000000, Currency: "NGN",
 		OccurredAt: now.Add(-2 * time.Hour), DiscoveredAt: now.Add(-time.Hour),
 		OwnerPrincipalID: "owner-1", ActorID: "owner-1",
