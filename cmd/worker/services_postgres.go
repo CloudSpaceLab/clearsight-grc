@@ -16,6 +16,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -37,6 +38,7 @@ const (
 	documentProposalWorkProjectionClass = "document-proposal-work-projection"
 	aiGovernanceRetentionClass          = "ai-governance-retention"
 	oversightProjectionClass            = "oversight-projection"
+	metricObservationProjectionClass    = "metric-observation-projection"
 	groupOversightProjectionClass       = "group-oversight-projection"
 	formPolicyMaintenanceClass          = "form-response-policy-maintenance"
 	ropaSummaryProjectionClass          = "ropa-summary-projection"
@@ -214,6 +216,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.ConfigureClass(documentProposalWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Batch: 100})
 	service.ConfigureClass(aiGovernanceRetentionClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500})
 	service.ConfigureClass(oversightProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
+	service.ConfigureClass(metricObservationProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 100})
 	service.ConfigureClass(groupOversightProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
 	service.ConfigureClass(ropaSummaryProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
 	// Report retries are durable on report_runs.attempt_count; this class is
@@ -247,6 +250,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
 	oversightRepository := oversight.NewPostgresRepository(pool)
 	service.AddMaintainerClass(oversightProjectionClass, &oversight.Maintainer{Repository: oversightRepository})
+	service.AddMaintainerClass(metricObservationProjectionClass, &metricview.ObservationMaintainer{Repository: metricview.NewObservationRepository(pool)})
 	service.AddMaintainerClass(groupOversightProjectionClass, &oversight.GroupMaintainer{Repository: oversightRepository})
 	service.AddMaintainerClass(ropaSummaryProjectionClass, &ropaSummaryProjectionMaintainer{pool: pool, maintainer: ropaSummaryMaintainer})
 	service.AddMaintainerClass(reportRunClass, reporting.NewRunMaintainer(reportingRepository, reportingService))
