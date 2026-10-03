@@ -40,8 +40,8 @@ func (r *PostgresRepository) Create(ctx context.Context, cycle Cycle, risks []Ri
 		  AND (le.id::text=$2 OR le.code=$2)
 		RETURNING id::text,tenant_id::text,legal_entity_id::text,code,name,trigger_kind,
 		          first_line_owner_principal_id::text,status,population_checksum,
-		          COALESCE(first_line_distribution_id::text,''),COALESCE(challenge_matter_id::text,''),
-		          version,created_at,updated_at`,
+		          COALESCE(first_line_distribution_id::text,''),COALESCE(first_line_response_revision_id::text,''),
+		          COALESCE(challenge_matter_id::text,''),version,created_at,updated_at`,
 		cycle.TenantID, cycle.LegalEntityID, cycle.ID, cycle.Code, cycle.Name, cycle.TriggerKind,
 		cycle.FirstLineOwnerID, cycle.Status, cycle.PopulationChecksum, cycle.Version, cycle.CreatedAt, cycle.UpdatedAt,
 	))
@@ -91,6 +91,69 @@ func (r *PostgresRepository) Create(ctx context.Context, cycle Cycle, risks []Ri
 	return Aggregate{Cycle: created, Risks: risks, Controls: controls}, nil
 }
 
+func (r *PostgresRepository) UpdateCycle(ctx context.Context, scope Scope, next Cycle, expected int64, event Event) (Cycle, error) {
+	if r == nil || r.pool == nil || strings.TrimSpace(next.ID) == "" {
+		return Cycle{}, ErrInvalid
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return Cycle{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	current, err := scanCycle(tx.QueryRow(ctx, `
+		SELECT c.id::text,c.tenant_id::text,c.legal_entity_id::text,c.code,c.name,c.trigger_kind,
+		       c.first_line_owner_principal_id::text,c.status,c.population_checksum,
+		       COALESCE(c.first_line_distribution_id::text,''),COALESCE(c.first_line_response_revision_id::text,''),
+		       COALESCE(c.challenge_matter_id::text,''),c.version,c.created_at,c.updated_at
+		FROM rcsa_cycles c
+		JOIN tenants t ON t.id=c.tenant_id
+		JOIN legal_entities le ON le.tenant_id=c.tenant_id AND le.id=c.legal_entity_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND c.id=$3::uuid
+		FOR UPDATE`, scope.TenantID, scope.LegalEntityID, next.ID))
+	if err != nil {
+		return Cycle{}, mapPostgresError(err)
+	}
+	if current.Version != expected {
+		return Cycle{}, ErrVersionConflict
+	}
+	if next.TenantID != current.TenantID || next.LegalEntityID != current.LegalEntityID ||
+		next.ID != current.ID || next.Code != current.Code || next.Name != current.Name ||
+		next.TriggerKind != current.TriggerKind || next.FirstLineOwnerID != current.FirstLineOwnerID ||
+		next.PopulationChecksum != current.PopulationChecksum || !next.CreatedAt.Equal(current.CreatedAt) ||
+		next.Version != expected+1 || event.CycleID != next.ID || event.CycleVersion != next.Version {
+		return Cycle{}, ErrInvalid
+	}
+	updated, err := scanCycle(tx.QueryRow(ctx, `
+		UPDATE rcsa_cycles
+		SET status=$4::text,
+		    first_line_distribution_id=NULLIF($5::text,'')::uuid,
+		    first_line_response_revision_id=NULLIF($6::text,'')::uuid,
+		    challenge_matter_id=NULLIF($7::text,'')::uuid,
+		    version=$8::bigint,
+		    updated_at=$9::timestamptz
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$10::bigint
+		RETURNING id::text,tenant_id::text,legal_entity_id::text,code,name,trigger_kind,
+		          first_line_owner_principal_id::text,status,population_checksum,
+		          COALESCE(first_line_distribution_id::text,''),COALESCE(first_line_response_revision_id::text,''),
+		          COALESCE(challenge_matter_id::text,''),version,created_at,updated_at`,
+		current.TenantID, current.LegalEntityID, current.ID, next.Status,
+		next.FirstLineDistributionID, next.FirstLineResponseRevisionID, next.ChallengeMatterID,
+		next.Version, next.UpdatedAt, expected))
+	if err != nil {
+		return Cycle{}, mapPostgresError(err)
+	}
+	if err := storeHistory(ctx, tx, updated, event); err != nil {
+		return Cycle{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Cycle{}, err
+	}
+	return updated, nil
+}
+
 func (r *PostgresRepository) Get(ctx context.Context, scope Scope, id string) (Aggregate, error) {
 	if r == nil || r.pool == nil || strings.TrimSpace(id) == "" {
 		return Aggregate{}, ErrInvalid
@@ -98,8 +161,8 @@ func (r *PostgresRepository) Get(ctx context.Context, scope Scope, id string) (A
 	cycle, err := scanCycle(r.pool.QueryRow(ctx, `
 		SELECT c.id::text,c.tenant_id::text,c.legal_entity_id::text,c.code,c.name,c.trigger_kind,
 		       c.first_line_owner_principal_id::text,c.status,c.population_checksum,
-		       COALESCE(c.first_line_distribution_id::text,''),COALESCE(c.challenge_matter_id::text,''),
-		       c.version,c.created_at,c.updated_at
+		       COALESCE(c.first_line_distribution_id::text,''),COALESCE(c.first_line_response_revision_id::text,''),
+		       COALESCE(c.challenge_matter_id::text,''),c.version,c.created_at,c.updated_at
 		FROM rcsa_cycles c
 		JOIN tenants t ON t.id=c.tenant_id
 		JOIN legal_entities le ON le.tenant_id=c.tenant_id AND le.id=c.legal_entity_id
@@ -194,7 +257,7 @@ func scanCycle(row scanner) (Cycle, error) {
 	err := row.Scan(
 		&value.ID, &value.TenantID, &value.LegalEntityID, &value.Code, &value.Name, &value.TriggerKind,
 		&value.FirstLineOwnerID, &value.Status, &value.PopulationChecksum, &value.FirstLineDistributionID,
-		&value.ChallengeMatterID, &value.Version, &value.CreatedAt, &value.UpdatedAt,
+		&value.FirstLineResponseRevisionID, &value.ChallengeMatterID, &value.Version, &value.CreatedAt, &value.UpdatedAt,
 	)
 	return value, err
 }
