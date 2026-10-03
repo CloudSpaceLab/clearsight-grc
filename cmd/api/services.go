@@ -92,6 +92,62 @@ type serviceSet struct {
 	Close                          func()
 }
 
+func configureRCSAFirstLine(cycles *rcsa.Service, distributions *evidence.DistributionService) {
+	if cycles == nil {
+		return
+	}
+	cycles.ConfigureFirstLine(
+		func(ctx context.Context, scope rcsa.Scope, cycle rcsa.Cycle, distributionID string) error {
+			if distributions == nil {
+				return rcsa.ErrInvalid
+			}
+			bundle, err := distributions.Get(ctx, scope.TenantID, scope.LegalEntityID, distributionID)
+			if err != nil {
+				return rcsa.ErrInvalid
+			}
+			distribution := bundle.Distribution
+			if distribution.ID != distributionID || distribution.SubjectType != "RCSA_CYCLE" ||
+				distribution.SubjectID != cycle.ID || distribution.LegalEntityID != scope.LegalEntityID ||
+				(distribution.Status != evidence.DistributionOpen && distribution.Status != evidence.DistributionCompleted) {
+				return rcsa.ErrInvalid
+			}
+			for _, recipient := range bundle.Recipients {
+				if recipient.Role == evidence.RecipientTo &&
+					recipient.Type == evidence.RecipientInternalPrincipal &&
+					recipient.PrincipalID == cycle.FirstLineOwnerID &&
+					recipient.State != evidence.DistributionRecipientRevoked {
+					return nil
+				}
+			}
+			return rcsa.ErrInvalid
+		},
+		func(ctx context.Context, scope rcsa.Scope, cycle rcsa.Cycle) (string, error) {
+			if distributions == nil || cycle.FirstLineDistributionID == "" {
+				return "", rcsa.ErrInvalid
+			}
+			bundle, err := distributions.Get(ctx, scope.TenantID, scope.LegalEntityID, cycle.FirstLineDistributionID)
+			if err != nil {
+				return "", rcsa.ErrInvalid
+			}
+			distribution := bundle.Distribution
+			if distribution.SubjectType != "RCSA_CYCLE" || distribution.SubjectID != cycle.ID ||
+				distribution.Status != evidence.DistributionCompleted {
+				return "", rcsa.ErrInvalid
+			}
+			revisions, err := distributions.ListResponseRevisions(ctx, scope.TenantID, scope.LegalEntityID, distribution.ID, 100)
+			if err != nil {
+				return "", rcsa.ErrInvalid
+			}
+			for _, revision := range revisions {
+				if revision.Current && revision.State == evidence.ResponseRevisionFinal && revision.ID != "" {
+					return revision.ID, nil
+				}
+			}
+			return "", rcsa.ErrInvalid
+		},
+	)
+}
+
 func configureRiskIndicators(risks *risk.Service, checks *monitoring.Service, programs *continuity.Service) {
 	if risks == nil {
 		return
