@@ -59,7 +59,7 @@ func (a *API) openOperationalLossIntervention(w http.ResponseWriter, r *http.Req
 		TenantID: current.Loss.TenantID, LegalEntityID: current.Loss.LegalEntityID,
 		LossID: current.Loss.ID, ExpectedVersion: input.ExpectedVersion,
 		OrganizationScopeID: current.Loss.OrganizationScopeID,
-		Title: current.Loss.Title, EventType: current.Loss.EventType, Cause: current.Loss.Cause,
+		Title:               current.Loss.Title, EventType: current.Loss.EventType, Cause: current.Loss.Cause,
 		Description: current.Loss.Description, GrossAmountMinor: current.Loss.GrossAmountMinor,
 		Currency: current.Loss.Currency, OccurredAt: current.Loss.OccurredAt, DiscoveredAt: current.Loss.DiscoveredAt,
 		RiskID: current.Loss.RiskID, MatterID: matter.Matter.ID, Status: current.Loss.Status,
@@ -105,24 +105,24 @@ func (a *API) ensureOperationalLossMatter(
 		summary = current.Loss.Cause
 	}
 	scopeJSON, err := json.Marshal(map[string]any{
-		"loss_id": current.Loss.ID,
-		"currency": current.Totals.Currency,
-		"gross_amount_minor": current.Totals.GrossAmountMinor,
+		"loss_id":                current.Loss.ID,
+		"currency":               current.Totals.Currency,
+		"gross_amount_minor":     current.Totals.GrossAmountMinor,
 		"recovered_amount_minor": current.Totals.RecoveredAmountMinor,
-		"net_loss_minor": current.Totals.NetLossMinor,
+		"net_loss_minor":         current.Totals.NetLossMinor,
 	})
 	if err != nil {
 		return continuity.MatterAggregate{}, err
 	}
 	knownFacts, err := json.Marshal(map[string]any{
-		"loss_code": current.Loss.Code,
-		"event_type": current.Loss.EventType,
-		"occurred_at": current.Loss.OccurredAt,
-		"discovered_at": current.Loss.DiscoveredAt,
-		"currency": current.Totals.Currency,
-		"gross_amount_minor": current.Totals.GrossAmountMinor,
-		"recovered_amount_minor": current.Totals.RecoveredAmountMinor,
-		"net_loss_minor": current.Totals.NetLossMinor,
+		"loss_code":               current.Loss.Code,
+		"event_type":              current.Loss.EventType,
+		"occurred_at":             current.Loss.OccurredAt,
+		"discovered_at":           current.Loss.DiscoveredAt,
+		"currency":                current.Totals.Currency,
+		"gross_amount_minor":      current.Totals.GrossAmountMinor,
+		"recovered_amount_minor":  current.Totals.RecoveredAmountMinor,
+		"net_loss_minor":          current.Totals.NetLossMinor,
 	})
 	if err != nil {
 		return continuity.MatterAggregate{}, err
@@ -131,7 +131,7 @@ func (a *API) ensureOperationalLossMatter(
 	matter, err = a.deps.Continuity.CreateMatter(ctx, continuity.CreateMatterInput{
 		TenantID: current.Loss.TenantID, LegalEntityID: current.Loss.LegalEntityID,
 		OrganizationScopeID: current.Loss.OrganizationScopeID,
-		Type: continuity.MatterOperationalLoss, Priority: 3,
+		Type:                continuity.MatterOperationalLoss, Priority: 3,
 		Title: current.Loss.Title, Summary: summary, Scope: scopeJSON,
 		SourceType: "OPERATIONAL_LOSS", SourceID: current.Loss.ID,
 		TriggerType: "MATERIAL_OPERATIONAL_LOSS", TriggerID: current.Loss.ID, TriggerKey: triggerKey,
