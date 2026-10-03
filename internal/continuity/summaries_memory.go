@@ -20,10 +20,16 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 		return ProgramSummaryPage{GeneratedAt: time.Now().UTC()}, nil
 	}
 	r.mu.RLock()
+	organizationScopes := organizationScopeSet(query.OrganizationScopeIDs)
 	values := make([]ProgramSummary, 0, len(r.programs[tenant]))
 	for _, aggregate := range r.programs[tenant] {
 		if !r.visibleLegalEntity(ctx, aggregate.Program.TenantID, aggregate.Program.LegalEntityID) {
 			continue
+		}
+		if query.OrganizationScopeID != "" {
+			if _, ok := organizationScopes[aggregate.Program.OrganizationScopeID]; !ok {
+				continue
+			}
 		}
 		aggregate = cloneProgramAggregate(aggregate)
 		if enforceVisibility && aggregate.CurrentState != nil {
@@ -73,7 +79,7 @@ func (r *MemoryRepository) ListProgramSummaries(ctx context.Context, tenant stri
 		values = filtered
 	}
 	limit := boundedLimit(query.Limit)
-	page := ProgramSummaryPage{GeneratedAt: time.Now().UTC()}
+	page := ProgramSummaryPage{GeneratedAt: time.Now().UTC(), OrganizationScopeID: query.OrganizationScopeID}
 	if len(values) > limit {
 		last := values[limit-1]
 		page.NextCursor, err = encodeSummaryCursor(programSummaryCursor{Rank: programStatusRank(last.Program.Status), UpdatedAt: last.Program.UpdatedAt, ID: last.Program.ID})
