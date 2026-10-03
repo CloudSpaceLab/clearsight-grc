@@ -143,11 +143,14 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	verticals.ConfigureMonitoring(monitoringService)
 	workflowService := workflow.NewService(workflow.NewPostgresRepository(pool))
 	accessAdmin := access.NewPostgresAdministrator(pool)
+	accessResolver := access.NewPostgresResolver(pool)
 	backgroundJobs := operations.NewService(continuityRepo, runtimeRepo)
 	activityService := activity.NewService(activity.NewPostgresRepository(pool))
 	auditExports := activity.NewExportService(activityService, activity.NewPostgresExportRepository(pool), store)
 	todayService := actorTodayService(workflowService, continuityService, authorityService, accessAdmin, backgroundJobs)
-	oversightService := oversight.NewService(oversight.NewPostgresRepository(pool))
+	oversightRepository := oversight.NewPostgresRepository(pool)
+	oversightService := oversight.NewService(oversightRepository)
+	groupOversightService := oversight.NewGroupService(oversightRepository, accessResolver)
 	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
 	scimService, err := scimapi.New(scimapi.NewPostgresRepository(pool), logger)
 	if err != nil {
@@ -166,10 +169,10 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,
-		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, OperationalLoss: operationalLossService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
+		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, OperationalLoss: operationalLossService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService, GroupOversight: groupOversightService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewPostgresRepository(pool)),
-		Access: access.NewPostgresResolver(pool), AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
+		Access: accessResolver, AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 		RuntimeContext: runtimecontext.NewPostgresResolver(pool),
 	}, nil
 }

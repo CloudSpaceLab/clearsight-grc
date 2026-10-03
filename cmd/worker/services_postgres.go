@@ -37,6 +37,7 @@ const (
 	documentProposalWorkProjectionClass = "document-proposal-work-projection"
 	aiGovernanceRetentionClass          = "ai-governance-retention"
 	oversightProjectionClass            = "oversight-projection"
+	groupOversightProjectionClass       = "group-oversight-projection"
 	formPolicyMaintenanceClass          = "form-response-policy-maintenance"
 	ropaSummaryProjectionClass          = "ropa-summary-projection"
 	reportRunClass                      = "report-run"
@@ -213,6 +214,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.ConfigureClass(documentProposalWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 30 * time.Second, Batch: 100})
 	service.ConfigureClass(aiGovernanceRetentionClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500})
 	service.ConfigureClass(oversightProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
+	service.ConfigureClass(groupOversightProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
 	service.ConfigureClass(ropaSummaryProjectionClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 20})
 	// Report retries are durable on report_runs.attempt_count; this class is
 	// only the bounded polling loop and declares no runtime attempt budget.
@@ -243,7 +245,9 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(evidenceWorkProjectionClass, evidenceWork)
 	service.AddMaintainerClass(documentProposalWorkProjectionClass, documentProposalWork)
 	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
-	service.AddMaintainerClass(oversightProjectionClass, &oversight.Maintainer{Repository: oversight.NewPostgresRepository(pool)})
+	oversightRepository := oversight.NewPostgresRepository(pool)
+	service.AddMaintainerClass(oversightProjectionClass, &oversight.Maintainer{Repository: oversightRepository})
+	service.AddMaintainerClass(groupOversightProjectionClass, &oversight.GroupMaintainer{Repository: oversightRepository})
 	service.AddMaintainerClass(ropaSummaryProjectionClass, &ropaSummaryProjectionMaintainer{pool: pool, maintainer: ropaSummaryMaintainer})
 	service.AddMaintainerClass(reportRunClass, reporting.NewRunMaintainer(reportingRepository, reportingService))
 	service.AddMaintainerClass(formPolicyMaintenanceClass, formpolicy.NewMaintainer(formPolicyRepository, formPolicyExecutor, cfg.WorkerID))
