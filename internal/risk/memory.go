@@ -68,6 +68,25 @@ func (r *MemoryRepository) Get(ctx context.Context, scope Scope, id string) (Ris
 	return cloneRisk(value), nil
 }
 
+func (r *MemoryRepository) ResolveScope(ctx context.Context, tenantID, id string) (Scope, error) {
+	if err := ctx.Err(); err != nil {
+		return Scope{}, err
+	}
+	tenantID = strings.TrimSpace(tenantID)
+	id = strings.TrimSpace(id)
+	if tenantID == "" || id == "" {
+		return Scope{}, ErrInvalid
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, value := range r.risks {
+		if value.TenantID == tenantID && value.ID == id {
+			return Scope{TenantID: value.TenantID, LegalEntityID: value.LegalEntityID}, nil
+		}
+	}
+	return Scope{}, ErrNotFound
+}
+
 func (r *MemoryRepository) Update(ctx context.Context, scope Scope, next Risk, expected int64, event Event) (Risk, error) {
 	if err := ctx.Err(); err != nil {
 		return Risk{}, err
