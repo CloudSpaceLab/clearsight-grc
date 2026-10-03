@@ -12,7 +12,7 @@ type testPopulationResolver struct {
 	err        error
 }
 
-func (r testPopulationResolver) ResolvePopulation(context.Context, Scope, []string) (Population, error) {
+func (r testPopulationResolver) ResolvePopulation(context.Context, Scope, []string, time.Time) (Population, error) {
 	return r.population, r.err
 }
 
@@ -26,7 +26,8 @@ func TestCreateFreezesExactRiskControlPopulation(t *testing.T) {
 		Controls: []ControlSnapshot{
 			{RiskID: "risk-a", RiskVersion: 2, RiskControlLinkID: "risk-control-1", CatalogLinkID: "catalog-1",
 				DefinitionID: "definition-1", DefinitionCode: "IAM-01", DefinitionName: "Access review",
-				ProgramID: "program-1", ImplementationID: "implementation-1", ImplementationVersion: 3, ImplementationName: "Quarterly access review"},
+				ProgramID: "program-1", ImplementationID: "implementation-1", ImplementationVersion: 3, ImplementationName: "Quarterly access review",
+				ImplementationStatus: "IMPLEMENTED", ImplementationEffectiveFrom: now.Add(-24 * time.Hour)},
 		},
 	}})
 	service.Now = func() time.Time { return now }
