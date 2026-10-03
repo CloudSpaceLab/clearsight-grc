@@ -22,6 +22,7 @@ export type ScopeNode = {
   jurisdiction?: string;
   department_path?: string[];
   current?: boolean;
+  filterable?: boolean;
 };
 
 export type ScopeHierarchy = {
