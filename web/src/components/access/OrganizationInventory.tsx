@@ -1,15 +1,35 @@
 import { useMemo, useState } from "react";
-import type { OrganizationPosition, OrganizationScope } from "../../identityAccessApi";
+import type { OrganizationPosition, OrganizationScope, OrganizationScopeRevision, ProposeOrganizationScopeInput } from "../../identityAccessApi";
+import { OrganizationScopeManager } from "./OrganizationScopeManager";
 import { SelectField, StatusBadge } from "../ui";
 
 type Props = {
   positions: OrganizationPosition[];
   scopes: OrganizationScope[];
+  revisions?: OrganizationScopeRevision[];
+  actorPrincipalID?: string;
+  canConfigure?: boolean;
+  isBusy?: boolean;
   scopesTruncated?: boolean;
   mode: "positions" | "reporting";
+  onProposeScope?: (input: ProposeOrganizationScopeInput) => Promise<boolean>;
+  onApproveScope?: (revision: OrganizationScopeRevision, rationale: string) => Promise<boolean>;
+  onRejectScope?: (revision: OrganizationScopeRevision, rationale: string) => Promise<boolean>;
 };
 
-export function OrganizationInventory({ positions, scopes, scopesTruncated = false, mode }: Props) {
+export function OrganizationInventory({
+  positions,
+  scopes,
+  revisions = [],
+  actorPrincipalID = "",
+  canConfigure = false,
+  isBusy = false,
+  scopesTruncated = false,
+  mode,
+  onProposeScope,
+  onApproveScope,
+  onRejectScope,
+}: Props) {
   const [query, setQuery] = useState("");
   const [area, setArea] = useState<string>();
   const positionByID = useMemo(() => new Map(positions.map((position) => [position.id, position])), [positions]);
@@ -42,6 +62,16 @@ export function OrganizationInventory({ positions, scopes, scopesTruncated = fal
   const vacancies = positions.length - occupied;
 
   return <div className="identity-organization-view">
+    {mode === "positions" && onProposeScope && onApproveScope && onRejectScope && <OrganizationScopeManager
+      scopes={scopes}
+      revisions={revisions}
+      actorPrincipalID={actorPrincipalID}
+      canConfigure={canConfigure}
+      isBusy={isBusy}
+      onPropose={onProposeScope}
+      onApprove={onApproveScope}
+      onReject={onRejectScope}
+    />}
     <div className="identity-organization-summary" aria-label="Active organization position summary">
       <div><strong>{scopes.length}</strong><span>Active organization scopes in this legal entity</span></div>
       <div><strong>{positions.length}</strong><span>Active positions in this legal entity</span></div>
@@ -52,10 +82,8 @@ export function OrganizationInventory({ positions, scopes, scopesTruncated = fal
     <article className="config-card identity-organization-card">
       <div className="section-header identity-card-header">
         <div>
-          <h3>{mode === "positions" ? "Organization, positions & roles" : "Reporting lines"}</h3>
-          <p>{mode === "positions"
-            ? "Browse stable organization scopes, positions, occupants and workspace roles for this legal entity."
-            : "Active reporting relationships used to determine who may hand off assigned work."}</p>
+          <h3>{mode === "positions" ? "Positions & roles" : "Reporting lines"}</h3>
+          <p>{mode === "positions" ? "Positions, occupants and roles." : "Active reporting relationships."}</p>
         </div>
         <div className="identity-position-filters">
           <label className="identity-position-search">
@@ -82,10 +110,8 @@ export function OrganizationInventory({ positions, scopes, scopesTruncated = fal
     </article>
 
     <div className="identity-authority-note" role="note">
-      <strong>{mode === "positions" ? "Organization scopes have stable server IDs." : "Reporting lines permit responsibility handoff only."}</strong>
-      <span>{mode === "positions"
-        ? "Legacy department paths are reconciled to these scopes. Dashboard filtering remains disabled until business records carry an authoritative scope reference."
-        : "A manager does not gain approval, review or signing authority unless the active authority policy grants it."}</span>
+      <strong>{mode === "positions" ? "Area changes require approval." : "Reporting lines do not grant approval authority."}</strong>
+      <span>{mode === "positions" ? "Home uses explicit Matter area scope." : "Authority comes from active policy."}</span>
     </div>
   </div>;
 }

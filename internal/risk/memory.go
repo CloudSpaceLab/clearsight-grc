@@ -86,7 +86,7 @@ func (r *MemoryRepository) Update(ctx context.Context, scope Scope, next Risk, e
 	if current.Version != expected {
 		return Risk{}, ErrVersionConflict
 	}
-	if next.TenantID != current.TenantID || next.LegalEntityID != current.LegalEntityID || next.Code != current.Code || next.Version != expected+1 {
+	if next.TenantID != current.TenantID || next.LegalEntityID != current.LegalEntityID || next.OrganizationScopeID != current.OrganizationScopeID || next.Code != current.Code || next.Version != expected+1 {
 		return Risk{}, ErrInvalid
 	}
 	r.risks[key] = cloneRisk(next)
@@ -383,10 +383,19 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	organizationScopes := make(map[string]struct{}, len(filter.OrganizationScopeIDs))
+	for _, id := range filter.OrganizationScopeIDs {
+		organizationScopes[id] = struct{}{}
+	}
 	rows := make([]Risk, 0, len(r.risks))
 	for _, value := range r.risks {
 		if value.TenantID != scope.TenantID || value.LegalEntityID != scope.LegalEntityID {
 			continue
+		}
+		if filter.OrganizationScopeID != "" {
+			if _, ok := organizationScopes[value.OrganizationScopeID]; !ok {
+				continue
+			}
 		}
 		if filter.Status != "" && value.Status != filter.Status {
 			continue
@@ -419,7 +428,7 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 		}
 		return rows[i].ID > rows[j].ID
 	})
-	page := Page{}
+	page := Page{OrganizationScopeID: filter.OrganizationScopeID}
 	pageRows := rows
 	if len(rows) > filter.Limit {
 		pageRows = rows[:filter.Limit]

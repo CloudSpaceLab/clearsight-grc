@@ -55,7 +55,7 @@ async function capture(scenario) {
 
     if (scenario.expectation === "overview" || scenario.expectation === "mobile") await assertOverview(page, scenario.name);
     if (scenario.expectation === "authority") await assertAuthority(page, scenario.name);
-    if (scenario.expectation === "access") await assertAccessUnavailable(page, scenario.name);
+    if (scenario.expectation === "access") await assertAccessLive(page, scenario.name);
     if (scenario.expectation === "mobile") await assertMobileShell(page, scenario.name);
     await assertNoHorizontalOverflow(page, scenario.name);
 
@@ -81,13 +81,17 @@ async function assertAuthority(page, name) {
   if (await page.getByRole("dialog").count()) throw new Error(`${name} renders governance creation before an explicit action`);
 }
 
-async function assertAccessUnavailable(page, name) {
-  await page.getByRole("heading", { name: "Organization & access", exact: true }).waitFor({ state: "visible" });
-  await page.getByRole("heading", { name: "Enterprise access unavailable", exact: true }).waitFor({ state: "visible" });
-  await page.getByRole("button", { name: "Retry", exact: true }).waitFor({ state: "visible" });
-  if (await page.getByRole("dialog").count()) throw new Error(`${name} opens a mutation dialog while access administration is unavailable`);
+async function assertAccessLive(page, name) {
+  await page.locator("#organization-access-heading").getByText("Organization & access", { exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("heading", { name: "Areas", exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("button", { name: "Add area", exact: true }).waitFor({ state: "visible" });
+  await page.getByText("Pending changes", { exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("button", { name: "Approve", exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("button", { name: "Reject", exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("heading", { name: "Positions & roles", exact: true }).waitFor({ state: "visible" });
+  if (await page.getByRole("dialog").count()) throw new Error(`${name} opens an organization mutation before the administrator chooses an action`);
   const selected = page.getByRole("navigation", { name: "Configuration areas" }).getByRole("button", { name: /^Organization & access\b/i });
-  if (!(await selected.getAttribute("aria-current"))) throw new Error(`${name} loses its selected Configuration domain when access data is unavailable`);
+  if (!(await selected.getAttribute("aria-current"))) throw new Error(`${name} loses its selected Configuration domain while access data is live`);
 }
 
 async function assertMobileShell(page, name) {

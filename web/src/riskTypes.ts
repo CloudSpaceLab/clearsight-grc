@@ -107,6 +107,7 @@ export type RiskRecord = {
   id: string;
   tenant_id: string;
   legal_entity_id: string;
+  organization_scope_id?: string;
   code: string;
   name: string;
   category: string;

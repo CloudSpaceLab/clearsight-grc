@@ -12,6 +12,9 @@ const api = vi.hoisted(() => ({
   previewEscalation: vi.fn(),
   proposeEscalationGuardRevision: vi.fn(),
   approveEscalationGuardRevision: vi.fn(),
+  proposeOrganizationScope: vi.fn(),
+  approveOrganizationScope: vi.fn(),
+  rejectOrganizationScope: vi.fn(),
 }));
 
 vi.mock("../identityAccessApi", () => api);
@@ -22,6 +25,7 @@ beforeEach(() => {
     sign_in: { mode: "oidc", issuer: "https://id.bank.test", assurance_level: "MFA" },
     actor_principal_id: "actor-1",
     can_configure: true,
+    can_configure_organization: true,
     can_configure_escalation: false,
     sources: [{ id: "source-1", code: "ENTRA", status: "ACTIVE", subject_attribute: "externalId", active_users: 12, active_groups: 2 }],
     people: [],
@@ -33,6 +37,7 @@ beforeEach(() => {
       { id: "scope-risk", legal_entity_id: "entity-1", code: "RISK", name: "RISK", kind: "ORGANIZATION_UNIT", department_path: ["BANK", "RISK"], origin: "LEGACY_DEPARTMENT_PATH", status: "ACTIVE", valid_from: "2026-01-01T00:00:00Z", version: 1 },
       { id: "scope-operations", legal_entity_id: "entity-1", parent_scope_id: "scope-risk", code: "OPERATIONS", name: "OPERATIONS", kind: "ORGANIZATION_UNIT", department_path: ["BANK", "RISK", "OPERATIONS"], origin: "LEGACY_DEPARTMENT_PATH", status: "ACTIVE", valid_from: "2026-01-01T00:00:00Z", version: 1 },
     ],
+    organization_scope_revisions: [],
     positions: [
       {
         id: "position-cro",
@@ -89,7 +94,7 @@ beforeEach(() => {
 it("keeps access inventory primary and opens one focused creation workflow at a time", async () => {
   render(<IdentityAccessPanel/>);
 
-  await screen.findByRole("heading", { name: "Enterprise access" });
+  await screen.findByRole("heading", { name: "Organization & access" });
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.queryByRole("textbox", { name: "Code" })).toBeNull();
   expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
@@ -102,7 +107,7 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
 
   fireEvent.click(screen.getByRole("tab", { name: "Reporting lines" }));
   expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent === "Chidi Eze reports to Ada Okafor")).toBeTruthy();
-  expect(screen.getByText(/Reporting lines permit responsibility handoff/)).toBeTruthy();
+  expect(screen.getByText(/Reporting lines do not grant approval authority/)).toBeTruthy();
 
   fireEvent.click(screen.getByRole("tab", { name: "Directory groups & access" }));
 
@@ -128,4 +133,72 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add group role mapping" })).toBeNull());
   expect(screen.getByText("Risk Operations → RISK_REVIEWER")).toBeTruthy();
   expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
+});
+
+
+it("proposes a new organization area from the Organization tab", async () => {
+  api.proposeOrganizationScope.mockResolvedValue({
+    id: "revision-1",
+    scope_id: "scope-new",
+    operation: "CREATE",
+    base_version: 0,
+    proposed_code: "LAGOS_ISLAND",
+    proposed_name: "Lagos Island",
+    proposed_kind: "BRANCH",
+    maker_id: "actor-1",
+    status: "PENDING",
+    impact: { child_scopes: 0, positions: 0, access_mappings: 0, open_matters: 0 },
+    created_at: "2026-10-03T12:00:00Z",
+  });
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByRole("heading", { name: "Organization & access" });
+
+  fireEvent.click(screen.getByRole("button", { name: "Add area" }));
+  const dialog = screen.getByRole("dialog", { name: "Add area" });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Code/ }), { target: { value: "LAGOS_ISLAND" } });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Name/ }), { target: { value: "Lagos Island" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Propose change" }));
+
+  await waitFor(() => expect(api.proposeOrganizationScope).toHaveBeenCalledWith({
+    operation: "CREATE",
+    parent_scope_id: undefined,
+    code: "LAGOS_ISLAND",
+    name: "Lagos Island",
+    kind: "DEPARTMENT",
+  }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add area" })).toBeNull());
+  expect(screen.getByText("Change proposed.")).toBeTruthy();
+});
+
+it("shows pending organization changes for independent approval", async () => {
+  const base = await api.loadIdentityAccessOverview();
+  api.loadIdentityAccessOverview.mockClear();
+  api.loadIdentityAccessOverview.mockResolvedValue({
+    ...base,
+    actor_principal_id: "checker-1",
+    organization_scope_revisions: [{
+      id: "revision-2",
+      scope_id: "scope-risk",
+      operation: "UPDATE",
+      base_version: 1,
+      proposed_name: "Enterprise Risk",
+      proposed_kind: "DEPARTMENT",
+      maker_id: "maker-1",
+      status: "PENDING",
+      impact: { child_scopes: 1, positions: 1, access_mappings: 0, open_matters: 2 },
+      created_at: "2026-10-03T12:00:00Z",
+    }],
+  });
+  api.approveOrganizationScope.mockResolvedValue(undefined);
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByText("Pending changes");
+
+  fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+  const dialog = screen.getByRole("dialog", { name: "Approve change" });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Rationale/ }), { target: { value: "Checked" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(api.approveOrganizationScope).toHaveBeenCalledWith("revision-2", "Checked"));
 });

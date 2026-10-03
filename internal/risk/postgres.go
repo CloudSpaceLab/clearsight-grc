@@ -33,19 +33,19 @@ func (r *PostgresRepository) Create(ctx context.Context, value Risk, event Event
 
 	row := tx.QueryRow(ctx, `
 		INSERT INTO risks(
-			id,tenant_id,legal_entity_id,code,name,category,statement,cause,event,impact,scope,
+			id,tenant_id,legal_entity_id,organization_scope_id,code,name,category,statement,cause,event,impact,scope,
 			owner_principal_id,status,version,created_at,updated_at)
-		SELECT $3::uuid,t.id,le.id,$4::text,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::jsonb,
-		       NULLIF($12::text,'')::uuid,$13::text,$14::bigint,$15::timestamptz,$16::timestamptz
+		SELECT $3::uuid,t.id,le.id,NULLIF($4::text,'')::uuid,$5::text,$6::text,$7::text,$8::text,$9::text,$10::text,$11::text,$12::jsonb,
+		       NULLIF($13::text,'')::uuid,$14::text,$15::bigint,$16::timestamptz,$17::timestamptz
 		FROM tenants t
 		JOIN legal_entities le ON le.tenant_id=t.id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND (le.id::text=$2 OR le.code=$2)
-		  AND le.valid_from<=$16
-		  AND (le.valid_until IS NULL OR $16<le.valid_until)
-		RETURNING id::text,tenant_id::text,legal_entity_id::text,code,name,category,statement,cause,event,impact,scope,
+		  AND le.valid_from<=$17
+		  AND (le.valid_until IS NULL OR $17<le.valid_until)
+		RETURNING id::text,tenant_id::text,legal_entity_id::text,COALESCE(organization_scope_id::text,''),code,name,category,statement,cause,event,impact,scope,
 		          COALESCE(owner_principal_id::text,''),status,version,created_at,updated_at`,
-		value.TenantID, value.LegalEntityID, value.ID, value.Code, value.Name, value.Category,
+		value.TenantID, value.LegalEntityID, value.ID, value.OrganizationScopeID, value.Code, value.Name, value.Category,
 		value.Statement, value.Cause, value.Event, value.Impact, value.Scope, value.OwnerPrincipalID,
 		value.Status, value.Version, value.CreatedAt, value.UpdatedAt,
 	)
@@ -95,7 +95,7 @@ func (r *PostgresRepository) Update(ctx context.Context, scope Scope, next Risk,
 	if current.Version != expectedVersion {
 		return Risk{}, ErrVersionConflict
 	}
-	if next.ID != current.ID || next.Code != current.Code || next.Version != expectedVersion+1 {
+	if next.ID != current.ID || next.OrganizationScopeID != current.OrganizationScopeID || next.Code != current.Code || next.Version != expectedVersion+1 {
 		return Risk{}, ErrInvalid
 	}
 	row := tx.QueryRow(ctx, `
@@ -103,7 +103,7 @@ func (r *PostgresRepository) Update(ctx context.Context, scope Scope, next Risk,
 		SET name=$5,category=$6,statement=$7,cause=$8,event=$9,impact=$10,scope=$11,
 		    owner_principal_id=NULLIF($12,'')::uuid,status=$13,version=$14,updated_at=$15
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$4
-		RETURNING id::text,tenant_id::text,legal_entity_id::text,code,name,category,statement,cause,event,impact,scope,
+		RETURNING id::text,tenant_id::text,legal_entity_id::text,COALESCE(organization_scope_id::text,''),code,name,category,statement,cause,event,impact,scope,
 		          COALESCE(owner_principal_id::text,''),status,version,created_at,updated_at`,
 		current.TenantID, current.LegalEntityID, current.ID, expectedVersion,
 		next.Name, next.Category, next.Statement, next.Cause, next.Event, next.Impact, next.Scope,
@@ -522,7 +522,7 @@ func (r *PostgresRepository) lockRisk(ctx context.Context, scope Scope, riskID s
 
 func riskReadSQL(lock bool) string {
 	sql := `
-		SELECT r.id::text,r.tenant_id::text,r.legal_entity_id::text,r.code,r.name,r.category,r.statement,r.cause,
+		SELECT r.id::text,r.tenant_id::text,r.legal_entity_id::text,COALESCE(r.organization_scope_id::text,''),r.code,r.name,r.category,r.statement,r.cause,
 		       r.event,r.impact,r.scope,COALESCE(r.owner_principal_id::text,''),r.status,r.version,r.created_at,r.updated_at
 		FROM risks r
 		JOIN tenants t ON t.id=r.tenant_id
@@ -538,7 +538,7 @@ type riskScanner interface{ Scan(...any) error }
 
 func scanRisk(row riskScanner) (Risk, error) {
 	var value Risk
-	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.Code, &value.Name, &value.Category, &value.Statement,
+	err := row.Scan(&value.ID, &value.TenantID, &value.LegalEntityID, &value.OrganizationScopeID, &value.Code, &value.Name, &value.Category, &value.Statement,
 		&value.Cause, &value.Event, &value.Impact, &value.Scope, &value.OwnerPrincipalID, &value.Status, &value.Version,
 		&value.CreatedAt, &value.UpdatedAt)
 	return value, err
@@ -548,7 +548,7 @@ func bumpRiskVersion(ctx context.Context, tx pgx.Tx, current Risk, expected int6
 	row := tx.QueryRow(ctx, `
 		UPDATE risks SET version=version+1,updated_at=$5
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND version=$4
-		RETURNING id::text,tenant_id::text,legal_entity_id::text,code,name,category,statement,cause,event,impact,scope,
+		RETURNING id::text,tenant_id::text,legal_entity_id::text,COALESCE(organization_scope_id::text,''),code,name,category,statement,cause,event,impact,scope,
 		          COALESCE(owner_principal_id::text,''),status,version,created_at,updated_at`,
 		current.TenantID, current.LegalEntityID, current.ID, expected, occurredAt)
 	value, err := scanRisk(row)

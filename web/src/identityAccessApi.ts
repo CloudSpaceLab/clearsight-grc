@@ -47,6 +47,42 @@ export type OrganizationScope = {
   valid_until?: string;
   version: number;
 };
+
+export type OrganizationScopeOperation = "CREATE" | "UPDATE" | "MOVE" | "RETIRE";
+export type OrganizationScopeImpact = {
+  child_scopes: number;
+  positions: number;
+  access_mappings: number;
+  open_matters: number;
+};
+export type OrganizationScopeRevision = {
+  id: string;
+  scope_id: string;
+  operation: OrganizationScopeOperation;
+  base_version: number;
+  proposed_parent_scope_id?: string;
+  proposed_code?: string;
+  proposed_name?: string;
+  proposed_kind?: OrganizationScope["kind"];
+  maker_id: string;
+  checker_id?: string;
+  status: string;
+  rationale?: string;
+  impact: OrganizationScopeImpact;
+  created_at: string;
+  decided_at?: string;
+  applied_at?: string;
+};
+export type ProposeOrganizationScopeInput = {
+  scope_id?: string;
+  operation: OrganizationScopeOperation;
+  parent_scope_id?: string;
+  code?: string;
+  name?: string;
+  kind?: OrganizationScope["kind"];
+  expected_version?: number;
+};
+
 export type OrganizationPosition = {
   id: string;
   code: string;
@@ -112,6 +148,7 @@ export type IdentityAccessOverview = {
   sign_in: { mode: string; issuer?: string; authentication?: string; assurance_level?: string };
   actor_principal_id: string;
   can_configure: boolean;
+  can_configure_organization: boolean;
   can_configure_escalation: boolean;
   sources: IdentitySource[];
   people: IdentityPerson[];
@@ -122,6 +159,7 @@ export type IdentityAccessOverview = {
   positions: OrganizationPosition[];
   organization_scopes: OrganizationScope[];
   organization_scopes_truncated?: boolean;
+  organization_scope_revisions: OrganizationScopeRevision[];
   escalation: { pending_timers: number; escalated_tasks: number; unresolved_24h: number; failed_timers: number };
   escalation_policies: EscalationPolicy[];
 };
@@ -159,8 +197,22 @@ export async function loadIdentityAccessOverview(): Promise<IdentityAccessOvervi
     bindings: overview.bindings ?? [],
     positions: overview.positions ?? [],
     organization_scopes: overview.organization_scopes ?? [],
+    organization_scope_revisions: overview.organization_scope_revisions ?? [],
     escalation_policies: overview.escalation_policies ?? [],
   };
+}
+
+
+export function proposeOrganizationScope(input: ProposeOrganizationScopeInput): Promise<OrganizationScopeRevision> {
+  return request("/api/v1/access/organization-scope-revisions", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function approveOrganizationScope(id: string, rationale: string): Promise<void> {
+  return requestNoContent(apiBase, `/api/v1/access/organization-scope-revisions/${encodeURIComponent(id)}/approve`, { method: "POST", body: JSON.stringify({ rationale }) });
+}
+
+export function rejectOrganizationScope(id: string, rationale: string): Promise<void> {
+  return requestNoContent(apiBase, `/api/v1/access/organization-scope-revisions/${encodeURIComponent(id)}/reject`, { method: "POST", body: JSON.stringify({ rationale }) });
 }
 
 export function createIdentitySource(input: { code: string; identity_issuer?: string; subject_attribute: "externalId" | "userName" }): Promise<{ source: IdentitySource; token: string }> {

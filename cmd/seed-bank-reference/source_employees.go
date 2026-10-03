@@ -145,16 +145,17 @@ func seedSourceEmployees(ctx context.Context, pool *pgxpool.Pool, seed bankverti
 				return sourceEmployeeReceipt{}, fmt.Errorf("source employee identity conflict for %s; existing record preserved", person.DisplayName)
 			}
 		}
+		departmentPath := []string{strings.ToUpper(strings.TrimSpace(person.Function))}
 		if err = tx.QueryRow(ctx, `SELECT count(*) FROM org_positions WHERE id=$1::uuid OR (tenant_id=$2::uuid AND (code=$3 OR occupant_principal_id=$4::uuid))`, person.PositionID, tenant, person.PositionCode, person.PrincipalID).Scan(&matches); err != nil {
 			return sourceEmployeeReceipt{}, err
 		}
 		if matches == 0 {
-			if _, err = tx.Exec(ctx, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,function_name,occupant_principal_id,department_path,valid_from,version) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7::uuid,$8,$9,1)`, person.PositionID, tenant, entity, person.PositionCode, person.PositionTitle, person.Function, person.PrincipalID, []string{person.Function}, at); err != nil {
+			if _, err = tx.Exec(ctx, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,function_name,occupant_principal_id,department_path,valid_from,version) VALUES($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7::uuid,$8,$9,1)`, person.PositionID, tenant, entity, person.PositionCode, person.PositionTitle, person.Function, person.PrincipalID, departmentPath, at); err != nil {
 				return sourceEmployeeReceipt{}, err
 			}
 		} else {
 			var exact bool
-			err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM org_positions WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id=$3::uuid AND code=$4 AND title=$5 AND function_name=$6 AND occupant_principal_id=$7::uuid AND department_path=$8 AND parent_position_id IS NULL AND valid_until IS NULL AND version=1)`, person.PositionID, tenant, entity, person.PositionCode, person.PositionTitle, person.Function, person.PrincipalID, []string{person.Function}).Scan(&exact)
+			err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM org_positions WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id=$3::uuid AND code=$4 AND title=$5 AND function_name=$6 AND occupant_principal_id=$7::uuid AND department_path=$8 AND parent_position_id IS NULL AND valid_until IS NULL AND version=1)`, person.PositionID, tenant, entity, person.PositionCode, person.PositionTitle, person.Function, person.PrincipalID, departmentPath).Scan(&exact)
 			if err != nil {
 				return sourceEmployeeReceipt{}, err
 			}

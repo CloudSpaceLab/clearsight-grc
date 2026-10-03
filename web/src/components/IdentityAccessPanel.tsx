@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ApiError } from "../http";
 import {
   approveEscalationGuardRevision,
+  approveOrganizationScope,
   createGroupRoleBinding,
   createIdentitySource,
   loadIdentityAccessOverview,
   previewEscalation,
   proposeEscalationGuardRevision,
+  proposeOrganizationScope,
+  rejectOrganizationScope,
   retireGroupRoleBinding,
   revokeIdentitySource,
   rotateIdentitySourceToken,
@@ -14,6 +17,8 @@ import {
   type GroupRoleBinding,
   type IdentityAccessOverview,
   type IdentitySource,
+  type OrganizationScopeRevision,
+  type ProposeOrganizationScopeInput,
 } from "../identityAccessApi";
 import "../identity-access.css";
 import { GroupRoleBindingComposer, ProvisioningSourceComposer } from "./access/IdentityAccessComposers";
@@ -164,6 +169,31 @@ export function IdentityAccessPanel() {
     });
   }
 
+
+  async function proposeScope(input: ProposeOrganizationScopeInput) {
+    return run("scope-propose", async () => {
+      await proposeOrganizationScope(input);
+      setNotice("Change proposed.");
+      await refresh();
+    });
+  }
+
+  async function approveScope(revision: OrganizationScopeRevision, rationale: string) {
+    return run("scope-approve-" + revision.id, async () => {
+      await approveOrganizationScope(revision.id, rationale);
+      setNotice("Change approved.");
+      await refresh();
+    });
+  }
+
+  async function rejectScope(revision: OrganizationScopeRevision, rationale: string) {
+    return run("scope-reject-" + revision.id, async () => {
+      await rejectOrganizationScope(revision.id, rationale);
+      setNotice("Change rejected.");
+      await refresh();
+    });
+  }
+
   async function proposeGuard(event: FormEvent) {
     event.preventDefault();
     if (!selectedPolicy || !selectedSequence) return;
@@ -217,14 +247,14 @@ export function IdentityAccessPanel() {
     }
   }
 
-  if (state === "loading") return <section className="identity-access-panel" aria-busy="true"><div className="section-header"><div><span className="eyebrow">Identity & access</span><h2>Enterprise access</h2><p>Loading sign-in, provisioning and role mappings…</p></div></div></section>;
-  if (state === "restricted") return <section className="identity-access-panel"><div className="section-header"><div><span className="eyebrow">Identity & access</span><h2>Enterprise access</h2><p>Your current role does not include identity administration visibility.</p></div></div></section>;
-  if (state === "unavailable" || !overview) return <section className="identity-access-panel"><div className="section-header"><div><span className="eyebrow">Identity & access</span><h2>Enterprise access unavailable</h2><p>Sign-in, provisioning and role mappings could not be loaded.</p></div><button className="secondary-button" type="button" onClick={() => void load()}>Retry</button></div></section>;
+  if (state === "loading") return <section className="identity-access-panel" aria-busy="true"><div className="section-header"><div><span className="eyebrow">Organization & access</span><h2>Loading…</h2></div></div></section>;
+  if (state === "restricted") return <section className="identity-access-panel"><div className="section-header"><div><span className="eyebrow">Organization & access</span><h2>Access restricted</h2></div></div></section>;
+  if (state === "unavailable" || !overview) return <section className="identity-access-panel"><div className="section-header"><div><span className="eyebrow">Organization & access</span><h2>Unavailable</h2></div><button className="secondary-button" type="button" onClick={() => void load()}>Retry</button></div></section>;
 
   const isBusy = busy !== "";
 
   return <section className="identity-access-panel" aria-label="Identity and access configuration">
-    <div className="section-header identity-access-heading"><div><span className="eyebrow">Identity & access</span><h2>Enterprise access</h2><p>Review connected directories, workspace access and escalation routing. Open a focused action only when a change is needed.</p></div><span className="identity-health">{overview.sources.filter((source) => source.status === "ACTIVE").length} active source{overview.sources.filter((source) => source.status === "ACTIVE").length === 1 ? "" : "s"}</span></div>
+    <div className="section-header identity-access-heading"><div><span className="eyebrow">Organization & access</span><h2>Organization & access</h2></div><span className="identity-health">{overview.sources.filter((source) => source.status === "ACTIVE").length} active source{overview.sources.filter((source) => source.status === "ACTIVE").length === 1 ? "" : "s"}</span></div>
     {notice && <div className="inline-notice" role="status">{notice}</div>}
     {token && <div className="identity-token" role="status"><div><strong>Provisioning token — shown once</strong><p>Copy this token to your SCIM provider now. It cannot be recovered after you leave this screen.</p><code>{token}</code></div><div className="identity-token-actions"><button className="secondary-button" type="button" onClick={() => void navigator.clipboard?.writeText(token)}>Copy</button><button className="text-button" type="button" onClick={() => setToken("")}>Hide</button></div></div>}
 
@@ -236,7 +266,19 @@ export function IdentityAccessPanel() {
     </div>
 
     <div className="identity-access-area" role="tabpanel" aria-label={areaLabel(area)}>
-      {(area === "positions" || area === "reporting") && <OrganizationInventory positions={overview.positions} scopes={overview.organization_scopes} scopesTruncated={overview.organization_scopes_truncated === true} mode={area}/>}
+      {(area === "positions" || area === "reporting") && <OrganizationInventory
+        positions={overview.positions}
+        scopes={overview.organization_scopes}
+        revisions={overview.organization_scope_revisions}
+        actorPrincipalID={overview.actor_principal_id}
+        canConfigure={overview.can_configure_organization}
+        isBusy={isBusy}
+        scopesTruncated={overview.organization_scopes_truncated === true}
+        mode={area}
+        onProposeScope={proposeScope}
+        onApproveScope={approveScope}
+        onRejectScope={rejectScope}
+      />}
 
       {area === "directory" && <div className="identity-access-grid">
       <IdentityAccessInventory
