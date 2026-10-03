@@ -140,6 +140,10 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 		t.Fatalf("local reader discovered sibling scope: %#v", forbiddenPage.Items)
 	}
 
+	if _, err = pool.Exec(ctx, "ANALYZE organization_scopes"); err != nil {
+		t.Fatal(err)
+	}
+
 	var plan []byte
 	if err = pool.QueryRow(ctx, `
 		EXPLAIN (FORMAT JSON)
