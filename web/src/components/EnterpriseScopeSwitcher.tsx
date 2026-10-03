@@ -218,6 +218,7 @@ export function EnterpriseScopeSwitcher({
           {remoteState === "unavailable" && <p className="enterprise-scope-empty" role="alert">Area search unavailable. Try again.</p>}
           {remoteState === "live" && remoteAreas.length > 0 && <ul className="enterprise-scope-list" aria-label="Matching organization areas">
             {remoteAreas.map((area) => <li className="enterprise-scope-option-row" key={area.id}>
+              <span className="enterprise-scope-option__branch" aria-hidden="true"/>
               {area.filterable && onOrganizationScopeChange
                 ? <SelectableRecord
                   title={area.name}
