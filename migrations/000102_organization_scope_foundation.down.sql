@@ -1,12 +1,12 @@
 BEGIN;
 
-DO $
+DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM organization_scopes WHERE origin='MANAGED' LIMIT 1) THEN
         RAISE EXCEPTION 'Retain managed organization scope history before downgrade';
     END IF;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS directory_group_role_bindings_bind_organization_scope ON directory_group_role_bindings;
 DROP TRIGGER IF EXISTS org_positions_bind_organization_scope ON org_positions;
