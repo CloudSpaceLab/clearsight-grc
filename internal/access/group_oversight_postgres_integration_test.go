@@ -83,7 +83,8 @@ func TestPostgresResolverGroupOversightRequiresLegalEntityWidePermission(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if page.HasMore || len(page.Items) != 2 || page.Items[0].ID != entityA || page.Items[1].ID != entityB {
+	if page.HasMore || page.TenantID != tenantID || page.TenantName != "Group Oversight Test" ||
+		len(page.Items) != 2 || page.Items[0].ID != entityA || page.Items[1].ID != entityB {
 		t.Fatalf("authorized Group scopes=%#v", page)
 	}
 
