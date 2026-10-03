@@ -103,7 +103,6 @@ func rcsaControlImplementation(program continuity.ProgramAggregate, id string) (
 	return continuity.ControlImplementation{}, false
 }
 
-
 func rcsaImplementationAssessable(value continuity.ControlImplementation, at time.Time) bool {
 	if value.Status == continuity.ImplementationInactive || value.Status == continuity.ImplementationRetired {
 		return false
