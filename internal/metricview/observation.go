@@ -93,7 +93,7 @@ func ObservationsFromBundle(
 			Unknown:            cloneInt(item.Unknown),
 		})
 	}
-	if len(observations) != len(HomeDefinitions) {
+	if len(observations) != len(homeDefinitions) {
 		return nil, ErrInvalidObservation
 	}
 	return observations, nil
