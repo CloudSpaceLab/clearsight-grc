@@ -54,6 +54,7 @@ type ScopeNode struct {
 	Jurisdiction   string    `json:"jurisdiction,omitempty"`
 	DepartmentPath []string  `json:"department_path,omitempty"`
 	Current        bool      `json:"current,omitempty"`
+	Filterable     bool      `json:"filterable,omitempty"`
 }
 
 type ScopeHierarchy struct {
