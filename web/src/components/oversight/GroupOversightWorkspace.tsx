@@ -115,6 +115,44 @@ export function GroupOversightWorkspace({
     },
   ];
 
+  const basisColumns: readonly DataColumn<GroupChild>[] = [
+    {
+      id: "entity",
+      header: "OpCo",
+      mobileLayout: "full-width",
+      render: (item) => <span className="group-opco__identity"><strong>{item.legal_entity_name}</strong><small>{item.jurisdiction || item.legal_entity_code || "Legal entity"}</small></span>,
+      accessibleText: (item) => `${item.legal_entity_name}, ${item.jurisdiction || item.legal_entity_code || "Legal entity"}`,
+    },
+    {
+      id: "data",
+      header: "Data",
+      kind: "status",
+      render: (item) => <StatusBadge tone={item.state === "AVAILABLE" ? "success" : item.state === "STALE" ? "warning" : "neutral"}>{groupChildStateLabel(item.state)}</StatusBadge>,
+      accessibleText: (item) => groupChildStateLabel(item.state),
+    },
+    {
+      id: "snapshot",
+      header: "Snapshot revision",
+      mobileLayout: "full-width",
+      render: (item) => item.state === "MISSING"
+        ? <span>No snapshot contributed for this OpCo.</span>
+        : <span className="group-data-basis__snapshot"><code>{item.child_snapshot_id || "Unavailable"}</code><small>{formatHighWater(item.source_high_water)}</small></span>,
+      accessibleText: (item) => item.state === "MISSING" ? "No snapshot contributed for this OpCo." : `${item.child_snapshot_id || "Unavailable"}. Source high-water: ${formatHighWater(item.source_high_water)}`,
+    },
+    {
+      id: "captured",
+      header: "Captured",
+      render: (item) => item.child_generated_at ? <time dateTime={item.child_generated_at}>{formatGroupTime(item.child_generated_at)}</time> : "—",
+      accessibleText: (item) => item.child_generated_at ? formatGroupTime(item.child_generated_at) : "Unavailable",
+    },
+    {
+      id: "projection",
+      header: "Projection",
+      render: (item) => item.child_projection_version || "—",
+      accessibleText: (item) => item.child_projection_version || "Unavailable",
+    },
+  ];
+
   if (state === "unavailable" && !value) {
     return <section className="group-oversight-page">
       <EmptyState
@@ -171,20 +209,13 @@ export function GroupOversightWorkspace({
           <div><dt>Generated</dt><dd><time dateTime={value.generated_at}>{formatGroupTime(value.generated_at)}</time></dd></div>
           <div><dt>Projection</dt><dd>{value.projection_version}</dd></div>
         </dl>
-        <ol className="group-revision-list">
-          {value.children.map((child) => <li key={child.legal_entity_id}>
-            <div className="group-revision-list__heading">
-              <span><strong>{child.legal_entity_name}</strong><small>{child.jurisdiction || child.legal_entity_code || "Legal entity"}</small></span>
-              <StatusBadge tone={child.state === "AVAILABLE" ? "success" : child.state === "STALE" ? "warning" : "neutral"}>{groupChildStateLabel(child.state)}</StatusBadge>
-            </div>
-            {child.state === "MISSING" ? <p>No snapshot contributed for this OpCo.</p> : <dl>
-              <div><dt>Snapshot revision</dt><dd><code>{child.child_snapshot_id || "Unavailable"}</code></dd></div>
-              <div><dt>Captured</dt><dd>{child.child_generated_at ? <time dateTime={child.child_generated_at}>{formatGroupTime(child.child_generated_at)}</time> : "Unavailable"}</dd></div>
-              <div><dt>Projection</dt><dd>{child.child_projection_version || "Unavailable"}</dd></div>
-              <div><dt>Source high-water</dt><dd>{formatHighWater(child.source_high_water)}</dd></div>
-            </dl>}
-          </li>)}
-        </ol>
+        <DataTable
+          ariaLabel="Group data basis"
+          rows={value.children}
+          rowKey={(item) => item.legal_entity_id}
+          rowName={(item) => `${item.legal_entity_name}, ${groupChildStateLabel(item.state)}`}
+          columns={basisColumns}
+        />
       </div>}
     </details>}
 
