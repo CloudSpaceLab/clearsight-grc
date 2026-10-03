@@ -56,8 +56,11 @@ type ControlSnapshot struct {
 	DefinitionName        string `json:"definition_name"`
 	ProgramID             string `json:"program_id"`
 	ImplementationID      string `json:"implementation_id"`
-	ImplementationVersion int64  `json:"implementation_version"`
-	ImplementationName    string `json:"implementation_name"`
+	ImplementationVersion   int64      `json:"implementation_version"`
+	ImplementationName      string     `json:"implementation_name"`
+	ImplementationStatus    string     `json:"implementation_status"`
+	ImplementationEffectiveFrom time.Time  `json:"implementation_effective_from"`
+	ImplementationEffectiveUntil *time.Time `json:"implementation_effective_until,omitempty"`
 }
 
 type Aggregate struct {
