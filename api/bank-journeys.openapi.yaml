@@ -144,6 +144,7 @@ components:
           type: array
           items: { type: string }
         current: { type: boolean }
+        filterable: { type: boolean }
     AttentionItem:
       type: object
       required: [id, type, title, why_now, scope, state, evidence, owner, due_at, primary_action]
