@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { loadGroupOversight, type GroupChild, type GroupOversightSnapshot } from "../../groupOversightApi";
 import { homeMetricDetail, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
 import type { MetricCompleteness } from "../../metricApi";
-import { Button, DataTable, EmptyState, MetricCard, Notice, StatusBadge, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, MetricCard, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
 import "./group-oversight.css";
 
 type Props = {
@@ -27,6 +27,7 @@ export function GroupOversightWorkspace({
   const [value, setValue] = useState<GroupOversightSnapshot | undefined>(initialSnapshot);
   const [state, setState] = useState<LoadState>(initialSnapshot ? "live" : "loading");
   const [retry, setRetry] = useState(0);
+  const [showBasis, setShowBasis] = useState(false);
   const [localFilter, setLocalFilter] = useState<HomeMetricFilter>(metricFilter);
   const selected = onMetricFilterChange ? metricFilter : localFilter;
 
@@ -135,9 +136,18 @@ export function GroupOversightWorkspace({
         <h1 id="group-oversight-heading">Group posture</h1>
         <p>Authorized OpCos only. Open an OpCo before viewing record detail.</p>
       </div>
+      {value && <Button
+        variant="secondary"
+        size="compact"
+        aria-expanded={showBasis}
+        aria-controls="group-data-basis"
+        onPress={() => setShowBasis((current) => !current)}
+      >{showBasis ? "Hide data basis" : "Data basis"}</Button>}
     </header>
 
     {value && <GroupCoverageNotice value={value}/>}
+
+    {value && showBasis && <GroupDataBasis value={value}/>}
 
     <div className="oversight-counts" aria-label="Group risk metrics" aria-busy={state === "loading" || undefined}>
       {headlineMetricDefinitions.map((definition) => {
@@ -185,6 +195,68 @@ export function GroupOversightWorkspace({
           : <EmptyState population="Authorized Group legal entities" title="No OpCo posture available" description="No authorized legal entity returned a Group posture row."/>}
     </section>
   </section>;
+}
+
+function GroupDataBasis({ value }: { value: GroupOversightSnapshot }) {
+  const columns: readonly DataColumn<GroupChild>[] = [
+    {
+      id: "entity",
+      header: "OpCo",
+      mobileLayout: "full-width",
+      render: (item) => <span className="group-opco__identity"><strong>{item.legal_entity_name}</strong><small>{item.jurisdiction || item.legal_entity_code}</small></span>,
+      accessibleText: (item) => `${item.legal_entity_name}, ${item.jurisdiction || item.legal_entity_code}`,
+    },
+    {
+      id: "state",
+      header: "Data",
+      kind: "status",
+      render: (item) => <StatusBadge tone={item.state === "AVAILABLE" ? "success" : item.state === "STALE" ? "warning" : "neutral"}>{groupChildStateLabel(item.state)}</StatusBadge>,
+      accessibleText: (item) => groupChildStateLabel(item.state),
+    },
+    {
+      id: "captured",
+      header: "Captured",
+      render: (item) => item.child_generated_at ? formatGroupDateTime(item.child_generated_at) : "—",
+      accessibleText: (item) => item.child_generated_at ? formatGroupDateTime(item.child_generated_at) : "No snapshot",
+    },
+    {
+      id: "snapshot",
+      header: "Snapshot",
+      mobileLayout: "full-width",
+      render: (item) => item.child_snapshot_id ? <code className="group-revision-ref">{item.child_snapshot_id}</code> : "—",
+      accessibleText: (item) => item.child_snapshot_id || "No snapshot",
+    },
+    {
+      id: "version",
+      header: "Projection",
+      render: (item) => item.child_projection_version || "—",
+      accessibleText: (item) => item.child_projection_version || "No projection",
+    },
+  ];
+
+  return <Surface>
+    <section id="group-data-basis" className="group-data-basis" aria-labelledby="group-data-basis-heading">
+      <div className="section-header">
+        <div>
+          <span className="eyebrow">Audit basis</span>
+          <h2 id="group-data-basis-heading">Data basis</h2>
+          <p>Exact OpCo snapshots used for the Group totals above.</p>
+        </div>
+      </div>
+      <dl className="group-data-basis__summary">
+        <div><dt>Group revision</dt><dd><code className="group-revision-ref">{value.revision_id}</code></dd></div>
+        <div><dt>Captured</dt><dd>{formatGroupDateTime(value.generated_at)}</dd></div>
+        <div><dt>Projection</dt><dd>{value.projection_version}</dd></div>
+      </dl>
+      <DataTable
+        ariaLabel="Group data basis"
+        rows={value.children}
+        rowKey={(item) => item.legal_entity_id}
+        rowName={(item) => `${item.legal_entity_name}, ${groupChildStateLabel(item.state)}`}
+        columns={columns}
+      />
+    </section>
+  </Surface>;
 }
 
 function GroupCoverageNotice({ value }: { value: GroupOversightSnapshot }) {
@@ -245,4 +317,10 @@ function groupChildStateLabel(state: GroupChild["state"]) {
 
 function knownCount(value: number | undefined) {
   return value === undefined ? "unknown" : String(value);
+}
+
+function formatGroupDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return "Unknown";
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
