@@ -1,0 +1,111 @@
+@layer features {
+  .loss-register-page,
+  .loss-record-page {
+    display: grid;
+    min-inline-size: 0;
+    gap: var(--cs-space-section);
+  }
+
+  .loss-page-header p {
+    max-inline-size: var(--cs-reading-measure);
+    margin: var(--cs-primitive-space-2) 0 0;
+    color: var(--cs-text-muted);
+  }
+
+  .loss-register__identity,
+  .loss-register__money {
+    display: grid;
+    min-inline-size: 0;
+    gap: var(--cs-primitive-space-1);
+  }
+
+  .loss-register__identity strong,
+  .loss-register__money strong {
+    color: var(--cs-text-strong);
+  }
+
+  .loss-register__identity small,
+  .loss-register__money small {
+    color: var(--cs-text-muted);
+  }
+
+  .loss-load-state {
+    margin: 0;
+    color: var(--cs-text-muted);
+  }
+
+  .loss-record__state {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--cs-space-group);
+    margin: 0;
+  }
+
+  .loss-record__state > div,
+  .loss-record__facts > div {
+    display: grid;
+    gap: var(--cs-primitive-space-1);
+    min-inline-size: 0;
+  }
+
+  .loss-record__state dt,
+  .loss-record__facts dt {
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+
+  .loss-record__state dd,
+  .loss-record__facts dd {
+    margin: 0;
+    color: var(--cs-text-primary);
+    overflow-wrap: anywhere;
+  }
+
+  .loss-record__overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(16rem, .65fr);
+    gap: var(--cs-space-section);
+    min-inline-size: 0;
+    align-items: start;
+  }
+
+  .loss-record__section,
+  .loss-record__history,
+  .loss-record__facts {
+    display: grid;
+    gap: var(--cs-space-group);
+    min-inline-size: 0;
+  }
+
+  .loss-record__section :is(h2, p, dl),
+  .loss-record__facts {
+    margin: 0;
+  }
+
+  .loss-record__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cs-space-inline);
+  }
+
+  .loss-record__history .section-header p {
+    margin: var(--cs-primitive-space-1) 0 0;
+    color: var(--cs-text-muted);
+  }
+
+  @media (max-width: 760px) {
+    .loss-record__state {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .loss-record__overview {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 420px) {
+    .loss-record__state {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

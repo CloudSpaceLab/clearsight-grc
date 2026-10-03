@@ -27,6 +27,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oploss"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
@@ -96,6 +97,7 @@ type Dependencies struct {
 	Reporting              *reporting.Service
 	Risk                   *risk.Service
 	RCSA                   *rcsa.Service
+	OperationalLoss        *oploss.Service
 	ControlCatalog         *controlcatalog.Service
 	Today                  *today.Service
 	Oversight              *oversight.Service
