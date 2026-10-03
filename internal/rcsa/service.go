@@ -93,6 +93,13 @@ func (s *Service) Get(ctx context.Context, scope Scope, id string) (Aggregate, e
 	return s.repo.Get(ctx, normalized, strings.TrimSpace(id))
 }
 
+func (s *Service) ResolveLegalEntity(ctx context.Context, tenant, id string) (string, error) {
+	if s == nil || s.repo == nil || strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
+		return "", ErrInvalid
+	}
+	return s.repo.ResolveLegalEntity(ctx, strings.TrimSpace(tenant), strings.TrimSpace(id))
+}
+
 func normalizeScope(scope Scope) (Scope, error) {
 	scope.TenantID = strings.TrimSpace(scope.TenantID)
 	scope.LegalEntityID = strings.TrimSpace(scope.LegalEntityID)
