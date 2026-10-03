@@ -204,6 +204,50 @@ it("keeps Indicator linking hidden from a non-owner", () => {
   expect(screen.queryByRole("button", { name: "Link indicator" })).toBeNull();
 });
 
+it("shows and opens the current Indicator intervention Matter", () => {
+  const onOpenMatter = vi.fn();
+  render(<RiskIndicatorsSection
+    risk={risk}
+    actorID="viewer-1"
+    indicators={[detail.link]}
+    details={[{
+      ...detail,
+      state: "BREACH",
+      reason: "Latest complete result is in a high or critical band.",
+      intervention: {
+        matter_id: "matter-1",
+        reference: "MAT-001",
+        status: "INITIAL_REVIEW",
+        priority: 4,
+        created_at: "2026-10-02T10:05:00Z",
+      },
+    }]}
+    detailsComplete
+    onReload={vi.fn()}
+    onOpenMatter={onOpenMatter}
+  />);
+
+  const table = screen.getByRole("table", { name: "Risk indicators" });
+  expect(within(table).getByText("MAT-001")).toBeTruthy();
+  expect(within(table).getByText("Initial Review")).toBeTruthy();
+  fireEvent.click(within(table).getByRole("button", { name: "Open issue" }));
+  expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
+});
+
+it("shows that a linked Indicator has no open intervention when no Matter is active", () => {
+  render(<RiskIndicatorsSection
+    risk={risk}
+    actorID="viewer-1"
+    indicators={[detail.link]}
+    details={[{ ...detail, state: "BREACH", reason: "Latest complete result is in a high or critical band." }]}
+    detailsComplete
+    onReload={vi.fn()}
+  />);
+
+  const table = screen.getByRole("table", { name: "Risk indicators" });
+  expect(within(table).getByText("No open issue")).toBeTruthy();
+});
+
 it("opens the source Program from a linked Indicator", () => {
   const onOpenProgram = vi.fn();
   render(<RiskIndicatorsSection

@@ -20,6 +20,14 @@ export type RiskIndicatorLink = {
   created_at: string;
 };
 
+export type RiskIndicatorIntervention = {
+  matter_id: string;
+  reference: string;
+  status: string;
+  priority: number;
+  created_at: string;
+};
+
 export type RiskIndicatorDetail = {
   link: RiskIndicatorLink;
   program_id: string;
@@ -45,6 +53,7 @@ export type RiskIndicatorDetail = {
   freshness_minutes: number;
   result_id?: string;
   evaluated_at?: string;
+  intervention?: RiskIndicatorIntervention;
 };
 
 export type RiskControlImplementationStatus = "PLANNED" | "IN_PROGRESS" | "IMPLEMENTED" | "INACTIVE" | "RETIRED";

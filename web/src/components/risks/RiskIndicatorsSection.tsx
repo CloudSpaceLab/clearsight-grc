@@ -16,6 +16,7 @@ type Props = {
   detailsComplete: boolean;
   onReload: () => Promise<void>;
   onOpenProgram?: (programID: string) => void;
+  onOpenMatter?: (matterID: string) => void;
   searchPrograms?: (query: string) => Promise<SummaryPage<ProgramSummary>>;
   loadChecks?: (programID: string) => Promise<MonitoringCheck[]>;
   linkIndicator?: (
@@ -41,6 +42,7 @@ export function RiskIndicatorsSection({
   detailsComplete,
   onReload,
   onOpenProgram,
+  onOpenMatter,
   searchPrograms = searchIndicatorPrograms,
   loadChecks = loadMonitoringChecks,
   linkIndicator = linkRiskIndicator,
@@ -169,6 +171,15 @@ export function RiskIndicatorsSection({
       render: (item) => <span className="risk-record__stack"><strong>{item.evaluated_at ? formatIndicatorDate(item.evaluated_at) : "No result"}</strong><small>{item.reason}</small></span>,
       accessibleText: (item) => `${item.evaluated_at ? formatIndicatorDate(item.evaluated_at) : "No result"}. ${item.reason}`,
     },
+    {
+      id: "intervention",
+      header: "Intervention",
+      mobileLayout: "full-width",
+      render: (item) => item.intervention
+        ? <span className="risk-record__intervention"><span className="risk-record__stack"><strong>{item.intervention.reference}</strong><small>{matterStatusLabel(item.intervention.status)}</small></span>{onOpenMatter && <Button variant="secondary" size="compact" onPress={() => onOpenMatter(item.intervention!.matter_id)}>Open issue</Button>}</span>
+        : "No open issue",
+      accessibleText: (item) => item.intervention ? `${item.intervention.reference}, ${matterStatusLabel(item.intervention.status)}` : "No open issue",
+    },
   ];
 
   async function submit(event: FormEvent) {
@@ -291,4 +302,9 @@ function formatIndicatorDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return value;
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+
+function matterStatusLabel(value: string) {
+  return value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

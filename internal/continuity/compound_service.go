@@ -3,6 +3,7 @@ package continuity
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -46,13 +47,28 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 	committedProgram.Program.UpdatedAt = programEvent.OccurredAt
 	bundle := TriggerBundle{Trigger: trigger, ProgramEvent: programEvent}
 	matterType, title, summary, create := matterForTrigger(trigger)
+	var existingMatter *Matter
+	if create {
+		episodeKey := triggerMatterDedupeKey(trigger)
+		if existing, lookupErr := s.OpenMatterByTriggerKey(ctx, trigger.TenantID, episodeKey); lookupErr == nil {
+			if matterLinkedToProgram(existing, trigger.ProgramID) {
+				current := existing.Matter
+				existingMatter = &current
+				create = false
+			} else {
+				return ProgramAggregate{}, nil, false, ErrNotFound
+			}
+		} else if !errors.Is(lookupErr, ErrNotFound) {
+			return ProgramAggregate{}, nil, false, lookupErr
+		}
+	}
 	if create {
 		matterID, err := id.NewUUIDv7()
 		if err != nil {
 			return ProgramAggregate{}, nil, false, err
 		}
 		now := s.now().UTC()
-		matter := Matter{ID: matterID, TenantID: trigger.TenantID, LegalEntityID: aggregate.Program.LegalEntityID, Reference: matterReference(matterID), Type: matterType, Status: MatterInitialReview, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: append(json.RawMessage(nil), trigger.Payload...), TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: trigger.DedupeKey, KnownFacts: append(json.RawMessage(nil), trigger.Payload...), MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), CreatedAt: now, UpdatedAt: now, Version: 1}
+		matter := Matter{ID: matterID, TenantID: trigger.TenantID, LegalEntityID: aggregate.Program.LegalEntityID, Reference: matterReference(matterID), Type: matterType, Status: MatterInitialReview, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: append(json.RawMessage(nil), trigger.Payload...), TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: triggerMatterDedupeKey(trigger), KnownFacts: append(json.RawMessage(nil), trigger.Payload...), MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), CreatedAt: now, UpdatedAt: now, Version: 1}
 		if strings.EqualFold(trigger.Type, "MONITORING_RESULT_ADVERSE") {
 			matter.SourceType = "MONITORING_RESULT"
 			matter.SourceID = trigger.SubjectID
@@ -89,6 +105,9 @@ func (s *Service) applyTriggerBundle(ctx context.Context, trigger Trigger, aggre
 	// current-state read is temporarily unavailable.
 	if refreshed, readErr := s.repo.GetProgram(ctx, trigger.TenantID, trigger.ProgramID); readErr == nil {
 		responseProgram = refreshed
+	}
+	if result.Matter == nil && existingMatter != nil {
+		result.Matter = existingMatter
 	}
 	return responseProgram, result.Matter, result.Inserted, nil
 }

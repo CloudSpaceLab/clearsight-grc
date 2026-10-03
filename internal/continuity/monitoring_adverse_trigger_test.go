@@ -45,7 +45,7 @@ func TestMonitoringAdverseTriggerCreatesOneGovernedEntityScopedControlGap(t *tes
 	}
 	trigger := Trigger{
 		TenantID: "bank", ProgramID: program.Program.ID, Type: "MONITORING_RESULT_ADVERSE", SubjectType: "MONITORING_RESULT", SubjectID: "result-1",
-		DedupeKey: "monitoring-adverse:check-1:period-2026-08", Source: "monitoring", ObservedAt: now,
+		DedupeKey: "monitoring-result-adverse:result-1", MatterDedupeKey: "monitoring-check-adverse:check-1", Source: "monitoring", ObservedAt: now,
 		Payload: json.RawMessage(`{"monitoring_check_id":"check-1","monitoring_result_id":"result-1","risk_band":"HIGH","score":72}`), ActorID: "reviewer-1",
 	}
 	updated, matter, inserted, err := service.ApplyTrigger(ctx, trigger)
@@ -61,7 +61,7 @@ func TestMonitoringAdverseTriggerCreatesOneGovernedEntityScopedControlGap(t *tes
 	if matter.SourceType != "MONITORING_RESULT" || matter.SourceID != "result-1" {
 		t.Fatalf("adverse monitoring source lineage is incomplete: %#v", matter)
 	}
-	if matter.TriggerType != trigger.Type || matter.TriggerKey != trigger.DedupeKey || matter.TriggerID == "" {
+	if matter.TriggerType != trigger.Type || matter.TriggerKey != trigger.MatterDedupeKey || matter.TriggerID == "" {
 		t.Fatalf("adverse monitoring lineage is incomplete: %#v", matter)
 	}
 	if updated.Program.Version != program.Program.Version+1 || len(updated.Triggers) != 1 {
@@ -96,6 +96,43 @@ func TestMonitoringAdverseTriggerCreatesOneGovernedEntityScopedControlGap(t *tes
 	matters, err := service.ListMatters(ctx, "bank", "OPEN", 20)
 	if err != nil || len(matters) != 1 {
 		t.Fatalf("adverse trigger created duplicate work: matters=%d err=%v", len(matters), err)
+	}
+
+	second := trigger
+	second.ID = ""
+	second.SubjectID = "result-2"
+	second.DedupeKey = "monitoring-result-adverse:result-2"
+	second.ObservedAt = now.Add(time.Minute)
+	second.Payload = json.RawMessage(`{"monitoring_check_id":"check-1","monitoring_result_id":"result-2","risk_band":"CRITICAL","score":88}`)
+	withSecondReceipt, sameEpisode, inserted, err := service.ApplyTrigger(ctx, second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !inserted || sameEpisode == nil || sameEpisode.ID != matter.ID || withSecondReceipt.Program.Version != updated.Program.Version+1 || len(withSecondReceipt.Triggers) != 2 {
+		t.Fatalf("new adverse result did not retain one open episode: inserted=%v matter=%#v program=%#v", inserted, sameEpisode, withSecondReceipt)
+	}
+
+	repo.mu.Lock()
+	closed := repo.matters["bank"][matter.ID]
+	closedAt := now.Add(2 * time.Minute)
+	closed.Matter.Status = MatterClosed
+	closed.Matter.ClosedAt = &closedAt
+	closed.Matter.ClosureReason = "Verified remediation"
+	repo.matters["bank"][matter.ID] = closed
+	repo.mu.Unlock()
+
+	third := second
+	third.ID = ""
+	third.SubjectID = "result-3"
+	third.DedupeKey = "monitoring-result-adverse:result-3"
+	third.ObservedAt = now.Add(3 * time.Minute)
+	third.Payload = json.RawMessage(`{"monitoring_check_id":"check-1","monitoring_result_id":"result-3","risk_band":"HIGH","score":70}`)
+	_, newEpisode, inserted, err := service.ApplyTrigger(ctx, third)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !inserted || newEpisode == nil || newEpisode.ID == matter.ID || newEpisode.TriggerKey != trigger.MatterDedupeKey {
+		t.Fatalf("closed adverse episode did not allow a new Matter: inserted=%v old=%s new=%#v", inserted, matter.ID, newEpisode)
 	}
 }
 

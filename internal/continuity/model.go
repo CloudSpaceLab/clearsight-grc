@@ -564,17 +564,18 @@ type ClosureAssessment struct {
 }
 
 type Trigger struct {
-	ID          string          `json:"id"`
-	TenantID    string          `json:"tenant_id"`
-	ProgramID   string          `json:"program_id"`
-	Type        string          `json:"type"`
-	SubjectType string          `json:"subject_type,omitempty"`
-	SubjectID   string          `json:"subject_id,omitempty"`
-	DedupeKey   string          `json:"dedupe_key"`
-	Payload     json.RawMessage `json:"payload"`
-	ObservedAt  time.Time       `json:"observed_at"`
-	Source      string          `json:"source"`
-	ActorID     string          `json:"actor_id,omitempty"`
+	ID              string          `json:"id"`
+	TenantID        string          `json:"tenant_id"`
+	ProgramID       string          `json:"program_id"`
+	Type            string          `json:"type"`
+	SubjectType     string          `json:"subject_type,omitempty"`
+	SubjectID       string          `json:"subject_id,omitempty"`
+	DedupeKey       string          `json:"dedupe_key"`
+	MatterDedupeKey string          `json:"matter_dedupe_key,omitempty"`
+	Payload         json.RawMessage `json:"payload"`
+	ObservedAt      time.Time       `json:"observed_at"`
+	Source          string          `json:"source"`
+	ActorID         string          `json:"actor_id,omitempty"`
 }
 
 type Event struct {

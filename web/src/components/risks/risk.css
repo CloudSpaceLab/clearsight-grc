@@ -135,6 +135,14 @@
     gap: var(--cs-space-inline);
   }
 
+  .risk-record__intervention {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cs-space-inline);
+    min-inline-size: 0;
+  }
+
   .risk-indicator-link__contract {
     max-inline-size: var(--cs-reading-measure);
     color: var(--cs-text-muted);

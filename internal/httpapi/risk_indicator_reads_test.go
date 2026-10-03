@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 )
@@ -91,4 +92,22 @@ func withIndicatorStatus(value monitoring.MonitoringCheck, status monitoring.Lif
 	value.Status = status
 	value.IsCurrent = current
 	return value
+}
+
+func TestRiskIndicatorMatterLinkedToProgramRequiresActiveProgramLink(t *testing.T) {
+	linked := continuity.MatterAggregate{
+		Links: []continuity.MatterLink{{ProgramID: "program-1"}},
+	}
+	if !riskIndicatorMatterLinkedToProgram(linked, "program-1") {
+		t.Fatal("active Program link was not recognized")
+	}
+
+	retiredAt := time.Date(2026, 10, 2, 17, 0, 0, 0, time.UTC)
+	linked.Links[0].RetiredAt = &retiredAt
+	if riskIndicatorMatterLinkedToProgram(linked, "program-1") {
+		t.Fatal("retired Program link was treated as current intervention")
+	}
+	if riskIndicatorMatterLinkedToProgram(linked, "program-2") {
+		t.Fatal("wrong Program was treated as current intervention")
+	}
 }

@@ -671,6 +671,13 @@ func (s *Service) RefreshProgram(ctx context.Context, tenant, programID, trigger
 	return s.repo.GetProgram(ctx, tenant, programID)
 }
 
+func triggerMatterDedupeKey(trigger Trigger) string {
+	if value := strings.TrimSpace(trigger.MatterDedupeKey); value != "" {
+		return value
+	}
+	return strings.TrimSpace(trigger.DedupeKey)
+}
+
 func (s *Service) ApplyTrigger(ctx context.Context, trigger Trigger) (ProgramAggregate, *Matter, bool, error) {
 	if strings.TrimSpace(trigger.TenantID) == "" || strings.TrimSpace(trigger.ProgramID) == "" || strings.TrimSpace(trigger.Type) == "" || strings.TrimSpace(trigger.DedupeKey) == "" || strings.TrimSpace(trigger.Source) == "" {
 		return ProgramAggregate{}, nil, false, fmt.Errorf("tenant_id, program_id, type, dedupe_key and source are required")
@@ -731,7 +738,8 @@ func (s *Service) ensureTriggerMatter(ctx context.Context, trigger Trigger) (*Ma
 	if !create {
 		return nil, nil
 	}
-	existingAggregate, err := s.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
+	matterDedupeKey := triggerMatterDedupeKey(trigger)
+	existingAggregate, err := s.OpenMatterByTriggerKey(ctx, trigger.TenantID, matterDedupeKey)
 	if err == nil {
 		if matterLinkedToProgram(existingAggregate, trigger.ProgramID) {
 			existing := existingAggregate.Matter
@@ -742,9 +750,9 @@ func (s *Service) ensureTriggerMatter(ctx context.Context, trigger Trigger) (*Ma
 	if !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
-	matterAggregate, err := s.CreateMatter(ctx, CreateMatterInput{TenantID: trigger.TenantID, Type: matterType, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: trigger.Payload, TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: trigger.DedupeKey, KnownFacts: trigger.Payload, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), ProgramID: trigger.ProgramID, ActorID: trigger.ActorID})
+	matterAggregate, err := s.CreateMatter(ctx, CreateMatterInput{TenantID: trigger.TenantID, Type: matterType, Priority: triggerPriority(trigger.Type), Title: title, Summary: summary, Scope: trigger.Payload, TriggerType: trigger.Type, TriggerID: trigger.ID, TriggerKey: matterDedupeKey, KnownFacts: trigger.Payload, MissingFacts: json.RawMessage(`[]`), Contradictions: json.RawMessage(`[]`), ProgramID: trigger.ProgramID, ActorID: trigger.ActorID})
 	if errors.Is(err, ErrDuplicate) {
-		existingAggregate, lookupErr := s.MatterByTriggerKey(ctx, trigger.TenantID, trigger.DedupeKey)
+		existingAggregate, lookupErr := s.OpenMatterByTriggerKey(ctx, trigger.TenantID, matterDedupeKey)
 		if lookupErr != nil {
 			if errors.Is(lookupErr, ErrNotFound) {
 				return nil, nil

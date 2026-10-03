@@ -13,6 +13,7 @@ type Props = {
   actorID?: string;
   onBack: () => void;
   onOpenProgram?: (programID: string) => void;
+  onOpenMatter?: (matterID: string) => void;
   onOpenProgramControl?: (programID: string, objectiveID: string) => void;
   loadRisk?: (id: string, signal?: AbortSignal) => Promise<RiskAggregate>;
   loadControlCandidates?: (programID?: string) => Promise<ControlCatalogCandidatePage>;
@@ -21,7 +22,7 @@ type Props = {
 
 type LoadState = "loading" | "live" | "not-found" | "error";
 
-export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenProgramControl, loadRisk = getRisk, loadControlCandidates = listControlCatalogCandidates, linkControl = linkRiskControl }: Props) {
+export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatter, onOpenProgramControl, loadRisk = getRisk, loadControlCandidates = listControlCatalogCandidates, linkControl = linkRiskControl }: Props) {
   const [value, setValue] = useState<RiskAggregate>();
   const [state, setState] = useState<LoadState>("loading");
   const [retry, setRetry] = useState(0);
@@ -236,6 +237,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenProgr
         setValue(loaded);
       }}
       onOpenProgram={onOpenProgram}
+      onOpenMatter={onOpenMatter}
     />
 
     <section className="risk-record__history" aria-labelledby="risk-assessments-heading">

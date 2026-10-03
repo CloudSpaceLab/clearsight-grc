@@ -21,31 +21,40 @@ const (
 	riskIndicatorUnknown riskIndicatorState = "UNKNOWN"
 )
 
+type riskIndicatorInterventionRead struct {
+	MatterID  string                  `json:"matter_id"`
+	Reference string                  `json:"reference"`
+	Status    continuity.MatterStatus `json:"status"`
+	Priority  int                     `json:"priority"`
+	CreatedAt time.Time               `json:"created_at"`
+}
+
 type riskIndicatorRead struct {
-	Link                risk.IndicatorLink         `json:"link"`
-	ProgramID           string                     `json:"program_id"`
-	ProgramName         string                     `json:"program_name"`
-	CheckID             string                     `json:"check_id"`
-	CheckCode           string                     `json:"check_code"`
-	CheckName           string                     `json:"check_name"`
-	Claim               string                     `json:"claim"`
-	CheckStatus         monitoring.LifecycleStatus `json:"check_status"`
-	CheckVersion        int64                      `json:"check_version"`
-	InputKind           monitoring.InputKind       `json:"input_kind"`
-	OwnerDisplayName    string                     `json:"owner_display_name,omitempty"`
-	ReviewerDisplayName string                     `json:"reviewer_display_name,omitempty"`
-	Measurement         risk.IndicatorMeasurement  `json:"measurement"`
-	Unit                string                     `json:"unit"`
-	Denominator         int                        `json:"denominator"`
-	State               riskIndicatorState         `json:"state"`
-	Reason              string                     `json:"reason"`
-	Score               *float64                   `json:"score,omitempty"`
-	Band                monitoring.RiskBand        `json:"band,omitempty"`
-	Coverage            *float64                   `json:"coverage,omitempty"`
-	MinimumCoverage     float64                    `json:"minimum_coverage"`
-	FreshnessMinutes    int                        `json:"freshness_minutes"`
-	ResultID            string                     `json:"result_id,omitempty"`
-	EvaluatedAt         *time.Time                 `json:"evaluated_at,omitempty"`
+	Link                risk.IndicatorLink             `json:"link"`
+	ProgramID           string                         `json:"program_id"`
+	ProgramName         string                         `json:"program_name"`
+	CheckID             string                         `json:"check_id"`
+	CheckCode           string                         `json:"check_code"`
+	CheckName           string                         `json:"check_name"`
+	Claim               string                         `json:"claim"`
+	CheckStatus         monitoring.LifecycleStatus     `json:"check_status"`
+	CheckVersion        int64                          `json:"check_version"`
+	InputKind           monitoring.InputKind           `json:"input_kind"`
+	OwnerDisplayName    string                         `json:"owner_display_name,omitempty"`
+	ReviewerDisplayName string                         `json:"reviewer_display_name,omitempty"`
+	Measurement         risk.IndicatorMeasurement      `json:"measurement"`
+	Unit                string                         `json:"unit"`
+	Denominator         int                            `json:"denominator"`
+	State               riskIndicatorState             `json:"state"`
+	Reason              string                         `json:"reason"`
+	Score               *float64                       `json:"score,omitempty"`
+	Band                monitoring.RiskBand            `json:"band,omitempty"`
+	Coverage            *float64                       `json:"coverage,omitempty"`
+	MinimumCoverage     float64                        `json:"minimum_coverage"`
+	FreshnessMinutes    int                            `json:"freshness_minutes"`
+	ResultID            string                         `json:"result_id,omitempty"`
+	EvaluatedAt         *time.Time                     `json:"evaluated_at,omitempty"`
+	Intervention        *riskIndicatorInterventionRead `json:"intervention,omitempty"`
 }
 
 func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor, value risk.Aggregate) riskAggregateRead {
@@ -131,6 +140,24 @@ func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor
 			continue
 		}
 
+		episodeKey := "monitoring-check-adverse:" + check.ID
+		intervention, interventionErr := a.deps.Continuity.OpenMatterByTriggerKey(ctx, actor.TenantID, episodeKey)
+		switch {
+		case interventionErr == nil:
+			if riskIndicatorMatterLinkedToProgram(intervention, program.Program.ID) {
+				detail.Intervention = &riskIndicatorInterventionRead{
+					MatterID: intervention.Matter.ID, Reference: intervention.Matter.Reference,
+					Status: intervention.Matter.Status, Priority: intervention.Matter.Priority, CreatedAt: intervention.Matter.CreatedAt,
+				}
+			} else {
+				result.IndicatorDetailsComplete = false
+			}
+		case errors.Is(interventionErr, continuity.ErrNotFound):
+			// No open intervention is valid state.
+		default:
+			result.IndicatorDetailsComplete = false
+		}
+
 		result.IndicatorDetails = append(result.IndicatorDetails, detail)
 		index := len(result.IndicatorDetails) - 1
 		if check.OwnerPrincipalID != "" {
@@ -201,4 +228,13 @@ func currentRiskIndicatorState(check monitoring.MonitoringCheck, result monitori
 	default:
 		return riskIndicatorUnknown, "Latest monitoring result is not assessed."
 	}
+}
+
+func riskIndicatorMatterLinkedToProgram(value continuity.MatterAggregate, programID string) bool {
+	for _, link := range value.Links {
+		if link.ProgramID == programID && link.RetiredAt == nil {
+			return true
+		}
+	}
+	return false
 }
