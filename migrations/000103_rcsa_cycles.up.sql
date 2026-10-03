@@ -45,6 +45,9 @@ CREATE TABLE rcsa_cycle_risks (
         REFERENCES risk_revisions(tenant_id,legal_entity_id,risk_id,risk_version)
 );
 
+CREATE UNIQUE INDEX risk_control_links_rcsa_scope_idx
+    ON risk_control_links(id,tenant_id,legal_entity_id,risk_id,risk_version);
+
 CREATE TABLE rcsa_cycle_controls (
     tenant_id uuid NOT NULL,
     legal_entity_id uuid NOT NULL,
@@ -63,8 +66,8 @@ CREATE TABLE rcsa_cycle_controls (
     PRIMARY KEY(tenant_id,legal_entity_id,cycle_id,risk_control_link_id),
     FOREIGN KEY(tenant_id,legal_entity_id,cycle_id,risk_id)
         REFERENCES rcsa_cycle_risks(tenant_id,legal_entity_id,cycle_id,risk_id) ON DELETE CASCADE,
-    FOREIGN KEY(risk_control_link_id,tenant_id,legal_entity_id)
-        REFERENCES risk_control_links(id,tenant_id,legal_entity_id),
+    FOREIGN KEY(risk_control_link_id,tenant_id,legal_entity_id,risk_id,risk_version)
+        REFERENCES risk_control_links(id,tenant_id,legal_entity_id,risk_id,risk_version),
     FOREIGN KEY(catalog_link_id,tenant_id,legal_entity_id)
         REFERENCES control_catalog_implementation_links(id,tenant_id,legal_entity_id),
     FOREIGN KEY(definition_id,tenant_id)
