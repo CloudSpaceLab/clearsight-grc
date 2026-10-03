@@ -48,6 +48,32 @@ func TestBuildGroupSnapshotSumsDisjointChildrenAndRetainsContributors(t *testing
 	}
 }
 
+func TestBuildGroupSnapshotContributorRevisionIgnoresDisplayNameOrder(t *testing.T) {
+	now := time.Date(2026, 10, 3, 20, 0, 0, 0, time.UTC)
+	zero := 0
+	snapshots := []Snapshot{
+		{SnapshotID: "snap-a", LegalEntityID: "entity-a", GeneratedAt: now, PostureAsOf: now, ProjectionVersion: ProjectionVersion, Freshness: FreshnessCurrent, Coverage: Coverage{Unknown: &zero}},
+		{SnapshotID: "snap-b", LegalEntityID: "entity-b", GeneratedAt: now, PostureAsOf: now, ProjectionVersion: ProjectionVersion, Freshness: FreshnessCurrent, Coverage: Coverage{Unknown: &zero}},
+	}
+	before, err := BuildGroupSnapshot("tenant-1", "Clear Bank", []GroupEntity{
+		{ID: "entity-a", Name: "Alpha"},
+		{ID: "entity-b", Name: "Beta"},
+	}, snapshots)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := BuildGroupSnapshot("tenant-1", "Clear Bank", []GroupEntity{
+		{ID: "entity-a", Name: "Zulu"},
+		{ID: "entity-b", Name: "Aardvark"},
+	}, snapshots)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if before.ContributorRevision != after.ContributorRevision {
+		t.Fatalf("display rename changed contributor revision: %s != %s", before.ContributorRevision, after.ContributorRevision)
+	}
+}
+
 func TestBuildGroupSnapshotMakesMissingChildExplicit(t *testing.T) {
 	now := time.Date(2026, 10, 3, 20, 0, 0, 0, time.UTC)
 	zero := 0
