@@ -1356,6 +1356,17 @@
         "x-clearsight-permission": "OVERSIGHT_READ"
       }
     },
+    "/api/v1/oversight/group": {
+      "get": {
+        "operationId": "groupOversightSnapshot",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "responses": {
+          "200": {
+            "description": "Authorized Group oversight projection."
+          }
+        }
+      }
+    },
     "/api/v1/metrics/home": {
       "get": {
         "operationId": "homeMetrics",

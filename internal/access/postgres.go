@@ -193,6 +193,139 @@ func (r *PostgresResolver) ResolvePrincipal(ctx context.Context, tenantID, princ
 	return r.withRoles(ctx, value)
 }
 
+func (r *PostgresResolver) ResolveLegalEntityAccess(ctx context.Context, tenantID, principalID string, legalEntityIDs []string) ([]LegalEntityAccess, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	principalID = strings.TrimSpace(principalID)
+	if tenantID == "" || principalID == "" {
+		return nil, ErrPrincipalUnavailable
+	}
+	if len(legalEntityIDs) > MaxLegalEntityAccessBatchSize {
+		return nil, ErrPrincipalBatchTooLarge
+	}
+	if len(legalEntityIDs) == 0 {
+		return []LegalEntityAccess{}, nil
+	}
+	normalized := make([]string, 0, len(legalEntityIDs))
+	seen := make(map[string]struct{}, len(legalEntityIDs))
+	for _, value := range legalEntityIDs {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
+	}
+	if len(normalized) == 0 {
+		return []LegalEntityAccess{}, nil
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		WITH selected_tenant AS (
+			SELECT id
+			FROM tenants
+			WHERE id::text=$1 OR slug=$1
+			LIMIT 1
+		), principal AS (
+			SELECT p.id,p.tenant_id
+			FROM principals p
+			JOIN selected_tenant tenant ON tenant.id=p.tenant_id
+			WHERE p.id::text=$2
+			  AND p.status='ACTIVE'
+			  AND p.valid_from<=clock_timestamp()
+			  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)
+		), entities AS (
+			SELECT le.id,le.code
+			FROM legal_entities le
+			JOIN selected_tenant tenant ON tenant.id=le.tenant_id
+			WHERE le.id=ANY($3::uuid[])
+			  AND le.valid_from<=clock_timestamp()
+			  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
+		)
+		SELECT entity.id::text,entity.code,
+		       COALESCE((
+		         SELECT array_agg(DISTINCT permission ORDER BY permission)
+		         FROM (
+		           SELECT unnest(role.capabilities) AS permission
+		           FROM principal p
+		           JOIN org_positions position
+		             ON position.tenant_id=p.tenant_id
+		            AND position.occupant_principal_id=p.id
+		           JOIN position_role_bindings binding
+		             ON binding.tenant_id=position.tenant_id
+		            AND binding.position_id=position.id
+		           JOIN role_templates role
+		             ON role.tenant_id=binding.tenant_id
+		            AND role.id=binding.role_template_id
+		           WHERE (position.legal_entity_id IS NULL OR position.legal_entity_id=entity.id)
+		             AND cardinality(position.department_path)=0
+		             AND (NOT (binding.scope ? 'legal_entity_id') OR binding.scope->>'legal_entity_id' IN ('*',entity.id::text))
+		             AND position.valid_from<=clock_timestamp()
+		             AND (position.valid_until IS NULL OR clock_timestamp()<position.valid_until)
+		             AND binding.valid_from<=clock_timestamp()
+		             AND (binding.valid_until IS NULL OR clock_timestamp()<binding.valid_until)
+		             AND role.valid_from<=clock_timestamp()
+		             AND (role.valid_until IS NULL OR clock_timestamp()<role.valid_until)
+
+		           UNION
+
+		           SELECT unnest(role.capabilities) AS permission
+		           FROM principal p
+		           JOIN scim_users user_row
+		             ON user_row.tenant_id=p.tenant_id
+		            AND user_row.principal_id=p.id
+		            AND user_row.active
+		            AND user_row.deleted_at IS NULL
+		           JOIN scim_sources source
+		             ON source.tenant_id=user_row.tenant_id
+		            AND source.id=user_row.source_id
+		            AND source.status='ACTIVE'
+		           JOIN directory_group_members membership
+		             ON membership.tenant_id=user_row.tenant_id
+		            AND membership.scim_user_id=user_row.id
+		           JOIN directory_groups directory_group
+		             ON directory_group.tenant_id=membership.tenant_id
+		            AND directory_group.id=membership.group_id
+		            AND directory_group.source_id=user_row.source_id
+		            AND directory_group.deleted_at IS NULL
+		           JOIN directory_group_role_bindings binding
+		             ON binding.tenant_id=directory_group.tenant_id
+		            AND binding.group_id=directory_group.id
+		            AND binding.legal_entity_id=entity.id
+		           JOIN role_templates role
+		             ON role.tenant_id=binding.tenant_id
+		            AND role.id=binding.role_template_id
+		           WHERE cardinality(binding.department_path)=0
+		             AND binding.valid_from<=clock_timestamp()
+		             AND (binding.valid_until IS NULL OR clock_timestamp()<binding.valid_until)
+		             AND role.valid_from<=clock_timestamp()
+		             AND (role.valid_until IS NULL OR clock_timestamp()<role.valid_until)
+		         ) permissions
+		       ),ARRAY[]::text[])
+		FROM entities entity
+		ORDER BY entity.id`, tenantID, principalID, normalized)
+	if err != nil {
+		return nil, fmt.Errorf("resolve legal entity access: %w", err)
+	}
+	defer rows.Close()
+
+	values := make([]LegalEntityAccess, 0, len(normalized))
+	for rows.Next() {
+		var value LegalEntityAccess
+		if err := rows.Scan(&value.LegalEntityID, &value.LegalEntityCode, &value.PermissionCodes); err != nil {
+			return nil, fmt.Errorf("scan legal entity access: %w", err)
+		}
+		value.PermissionCodes = identity.NormalizePermissionCodes(value.PermissionCodes)
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate legal entity access: %w", err)
+	}
+	return values, nil
+}
+
 func (r *PostgresResolver) ResolvePrincipals(ctx context.Context, tenantID, legalEntityID string, principalIDs []string) ([]PrincipalResolveOutcome, error) {
 	tenantID = strings.TrimSpace(tenantID)
 	legalEntityID = strings.TrimSpace(legalEntityID)
@@ -298,6 +431,7 @@ func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Res
 			WHERE t.slug=$1
 			  AND p.id::text=$2
 			  AND (op.legal_entity_id IS NULL OR op.legal_entity_id=(SELECT id FROM current_entity))
+			  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id' IN ('*',(SELECT id FROM current_entity)::text))
 			  AND op.valid_from<=clock_timestamp()
 			  AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
 			  AND prb.valid_from<=clock_timestamp()
@@ -389,3 +523,5 @@ func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Res
 	}
 	return value, nil
 }
+
+var _ LegalEntityAccessResolver = (*PostgresResolver)(nil)
