@@ -43,37 +43,87 @@ describe("EnterpriseScopeSwitcher", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
     const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
-    const search = within(dialog).getByPlaceholderText("Search legal entities");
+    const search = within(dialog).getByPlaceholderText("Search scope");
     fireEvent.change(search, { target: { value: "GH" } });
 
     expect(within(dialog).getByRole("button", { name: /Clear Bank Ghana/ })).toBeTruthy();
     expect(within(dialog).queryByRole("button", { name: /Clear Bank Nigeria/ })).toBeNull();
   });
 
-  it("shows department paths as organization context and keeps them non-selectable", async () => {
+  it("selects only server-filterable organization scopes and keeps context-only ancestors inert", async () => {
     const onManageOrganization = vi.fn();
+    const onOrganizationScopeChange = vi.fn();
     const scopedHierarchy = hierarchy();
     scopedHierarchy.organization_scopes = [
-      { id: "scope-risk", code: "RISK", name: "RISK", kind: "DEPARTMENT", parent_id: "entity-ng", department_path: ["BANK", "RISK"] },
-      { id: "scope-payments", code: "PAYMENTS", name: "PAYMENTS", kind: "DEPARTMENT", parent_id: "scope-ops", department_path: ["BANK", "OPERATIONS", "PAYMENTS"] },
+      { id: "scope-bank", code: "BANK", name: "BANK", kind: "BUSINESS_UNIT", department_path: ["BANK"] },
+      { id: "scope-risk", code: "RISK", name: "RISK", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "RISK"], filterable: true },
+      { id: "scope-ops", code: "OPS", name: "OPERATIONS", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "OPERATIONS"] },
     ];
     render(<EnterpriseScopeSwitcher
       hierarchy={scopedHierarchy}
       currentScopeID="entity-ng"
       onSelectionChange={() => undefined}
+      onOrganizationScopeChange={onOrganizationScopeChange}
       onManageOrganization={onManageOrganization}
     />);
 
     fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
     const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
 
-    expect(within(dialog).getByText("BANK / RISK")).toBeTruthy();
-    expect(within(dialog).getByText("BANK / OPERATIONS / PAYMENTS")).toBeTruthy();
-    expect(within(dialog).queryByRole("button", { name: /BANK \/ RISK/ })).toBeNull();
-    expect(within(dialog).getByText(/Home filtering remains unavailable/)).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /RISK/ })).toBeTruthy();
+    expect(within(dialog).getByText("OPERATIONS")).toBeTruthy();
+    expect(within(dialog).queryByRole("button", { name: /OPERATIONS/ })).toBeNull();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Organization & access" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /RISK/ }));
+    expect(onOrganizationScopeChange).toHaveBeenCalledWith("scope-risk");
+
+    fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
+    const managementDialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    fireEvent.click(within(managementDialog).getByRole("button", { name: "Organization & access" }));
     expect(onManageOrganization).toHaveBeenCalledTimes(1);
+  });
+
+  it("searches organization areas and keeps their parent path visible", async () => {
+    const scopedHierarchy = hierarchy();
+    scopedHierarchy.organization_scopes = [
+      { id: "scope-bank", code: "BANK", name: "BANK", kind: "BUSINESS_UNIT", department_path: ["BANK"] },
+      { id: "scope-risk", code: "RISK", name: "RISK", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "RISK"] },
+      { id: "scope-payments", code: "PAYMENTS", name: "PAYMENTS", kind: "FUNCTION", parent_id: "scope-risk", department_path: ["BANK", "RISK", "PAYMENTS"], filterable: true },
+      { id: "scope-ops", code: "OPS", name: "OPERATIONS", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "OPERATIONS"] },
+      { id: "scope-a", code: "A", name: "AREA A", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "A"] },
+      { id: "scope-b", code: "B", name: "AREA B", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "B"] },
+    ];
+    render(<EnterpriseScopeSwitcher hierarchy={scopedHierarchy} currentScopeID="entity-ng" onSelectionChange={() => undefined} onOrganizationScopeChange={() => undefined}/>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    const search = within(dialog).getByPlaceholderText("Search scope");
+    fireEvent.change(search, { target: { value: "payments" } });
+
+    expect(within(dialog).getByText("BANK")).toBeTruthy();
+    expect(within(dialog).getByText("RISK")).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /PAYMENTS/ })).toBeTruthy();
+    expect(within(dialog).queryByText("OPERATIONS")).toBeNull();
+  });
+
+  it("clears an active subordinate Home scope when the current legal entity is selected", async () => {
+    const onOrganizationScopeChange = vi.fn();
+    const scopedHierarchy = hierarchy();
+    scopedHierarchy.organization_scopes = [
+      { id: "scope-risk", code: "RISK", name: "Risk", kind: "DEPARTMENT", parent_id: "entity-ng", department_path: ["BANK", "RISK"], filterable: true },
+    ];
+    render(<EnterpriseScopeSwitcher
+      hierarchy={scopedHierarchy}
+      currentScopeID="entity-ng"
+      activeOrganizationScopeID="scope-risk"
+      onSelectionChange={() => undefined}
+      onOrganizationScopeChange={onOrganizationScopeChange}
+    />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Organization scope, Clear Bank Nigeria · Risk/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    fireEvent.click(within(dialog).getByRole("button", { name: /Clear Bank Nigeria/ }));
+    expect(onOrganizationScopeChange).toHaveBeenCalledWith(undefined);
   });
 
   it("does not expose a search field for a small hierarchy", async () => {
@@ -82,6 +132,6 @@ describe("EnterpriseScopeSwitcher", () => {
     fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
     await screen.findByRole("dialog", { name: "Change organization scope" });
 
-    expect(screen.queryByPlaceholderText("Search legal entities")).toBeNull();
+    expect(screen.queryByPlaceholderText("Search scope")).toBeNull();
   });
 });

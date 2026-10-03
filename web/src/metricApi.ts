@@ -38,7 +38,7 @@ export type HomeMetricBundle = {
   reporting_period: ReportingPeriod;
   posture_as_of: string;
   scope_id: string;
-  scope_kind: "LEGAL_ENTITY";
+  scope_kind: "LEGAL_ENTITY" | "ORGANIZATION_SCOPE";
   freshness: "CURRENT" | "STALE";
   completeness: MetricCompleteness;
   population: number;
@@ -49,6 +49,6 @@ export type HomeMetricBundle = {
   items: HomeMetric[];
 };
 
-export function loadHomeMetrics(period?: ReportingPeriodQuery): Promise<HomeMetricBundle> {
-  return requestJSON<HomeMetricBundle>(apiBase, reportingPeriodPath("/api/v1/metrics/home", period));
+export function loadHomeMetrics(period?: ReportingPeriodQuery, organizationScopeID?: string): Promise<HomeMetricBundle> {
+  return requestJSON<HomeMetricBundle>(apiBase, reportingPeriodPath("/api/v1/metrics/home", period, organizationScopeID));
 }

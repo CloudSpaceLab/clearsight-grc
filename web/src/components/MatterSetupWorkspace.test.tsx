@@ -1,11 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadProgramSummaries } from "../api";
+import { loadContext, loadProgramSummaries } from "../api";
 import { createMatter } from "../continuityCommands";
 import type { MatterAggregate } from "../types";
 import { MatterSetupWorkspace } from "./MatterSetupWorkspace";
 
-vi.mock("../api", () => ({ loadProgramSummaries: vi.fn() }));
+vi.mock("../api", () => ({ loadContext: vi.fn(), loadProgramSummaries: vi.fn() }));
 vi.mock("../continuityCommands", () => ({ createMatter: vi.fn() }));
 
 const createdMatter: MatterAggregate = {
@@ -15,7 +15,7 @@ const createdMatter: MatterAggregate = {
   matter: {
     id: "matter-new", tenant_id: "bank", reference: "MAT-NEW", type: "CONTROL_GAP", status: "DRAFT", priority: 4,
     title: "Face verification is unavailable", summary: "The mobile channel did not return a successful face-verification result.",
-    scope: { access: "INTERNAL", area: "Mobile banking" }, known_facts: { notes: "The public status check failed." },
+    organization_scope_id: "scope-mobile", scope: { access: "INTERNAL", area: "Mobile banking" }, known_facts: { notes: "The public status check failed." },
     missing_facts: ["Confirm the SDK version", "Confirm the last successful check"], contradictions: [], owner_principal_id: "actor-1",
     due_at: "2026-09-30T22:59:59.999Z", created_at: "2026-08-17T10:00:00Z", updated_at: "2026-08-17T10:00:00Z", version: 1,
   },
@@ -38,6 +38,22 @@ describe("MatterSetupWorkspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(loadProgramSummaries).mockResolvedValue({ items: [programSummary], generated_at: "2026-08-17T10:00:00Z" });
+    vi.mocked(loadContext).mockResolvedValue({
+      tenant: { id: "bank", name: "Clear Bank" },
+      legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" },
+      scope_hierarchy: {
+        state: "COMPLETE",
+        root: { id: "bank", name: "Clear Bank", kind: "ORGANIZATION" },
+        current: { id: "bank-ng", name: "Clear Bank Nigeria", kind: "LEGAL_ENTITY", current: true },
+        legal_entities: [{ id: "bank-ng", name: "Clear Bank Nigeria", kind: "LEGAL_ENTITY", current: true }],
+        organization_scopes: [
+          { id: "scope-mobile", code: "MOBILE", name: "Mobile Banking", kind: "DEPARTMENT", parent_id: "bank-ng", department_path: ["BANK", "DIGITAL", "MOBILE"], filterable: true },
+          { id: "scope-digital", code: "DIGITAL", name: "Digital", kind: "ORGANIZATION_UNIT", parent_id: "bank-ng", department_path: ["BANK", "DIGITAL"] },
+        ],
+      },
+      actor: { id: "actor-1", name: "Actor" },
+      mode: "postgres",
+    });
     vi.mocked(createMatter).mockResolvedValue(createdMatter);
   });
 
@@ -47,6 +63,8 @@ describe("MatterSetupWorkspace", () => {
     expect(screen.getByRole("heading", { name: "New issue or change" })).toBeTruthy();
     expect(screen.getByLabelText("Work type")).toBeTruthy();
     expect(screen.getByLabelText("What happened or changed?")).toBeTruthy();
+    expect(await screen.findByRole("option", { name: "BANK / DIGITAL / MOBILE" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "BANK / DIGITAL" })).toBeNull();
     expect(screen.queryByRole("option", { name: "Failed verification" })).toBeNull();
     expect(screen.queryByRole("option", { name: "Evidence contradiction" })).toBeNull();
     expect(await screen.findByRole("option", { name: "Mobile banking (MOBILE)" })).toBeTruthy();
@@ -59,6 +77,7 @@ describe("MatterSetupWorkspace", () => {
     fireEvent.change(screen.getByLabelText("Work type"), { target: { value: "CONTROL_GAP" } });
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Face verification is unavailable" } });
     fireEvent.change(screen.getByLabelText("What happened or changed?"), { target: { value: "The mobile channel did not return a successful face-verification result." } });
+    fireEvent.change(await screen.findByLabelText("Organization area"), { target: { value: "scope-mobile" } });
     fireEvent.change(screen.getByLabelText("Affected area"), { target: { value: "Mobile banking" } });
     fireEvent.change(screen.getByLabelText("Priority"), { target: { value: "4" } });
     expect(screen.getByLabelText("Due date").getAttribute("type")).toBe("date");
@@ -71,7 +90,7 @@ describe("MatterSetupWorkspace", () => {
     await waitFor(() => expect(createMatter).toHaveBeenCalledTimes(1));
     expect(createMatter).toHaveBeenCalledWith(expect.objectContaining({
       type: "CONTROL_GAP", priority: 4, title: "Face verification is unavailable",
-      summary: "The mobile channel did not return a successful face-verification result.", affectedArea: "Mobile banking",
+      summary: "The mobile channel did not return a successful face-verification result.", affectedArea: "Mobile banking", organizationScopeID: "scope-mobile",
       knownInformation: "The public status check failed.", missingInformation: ["Confirm the SDK version", "Confirm the last successful check"],
       programID: "program-mobile",
     }));

@@ -1300,6 +1300,15 @@
               "format": "date"
             },
             "description": "Must be the current reporting date; historical end dates are not supported."
+          },
+          {
+            "name": "organization_scope_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Optional organization scope. Included descendants are limited to scopes independently authorized for oversight."
           }
         ],
         "x-clearsight-route-class": "AUTHENTICATED_READ",
@@ -1327,6 +1336,15 @@
               "format": "date"
             },
             "description": "Must be the current reporting date; historical end dates are not supported."
+          },
+          {
+            "name": "organization_scope_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Optional organization scope. Included descendants are limited to scopes independently authorized for oversight."
           }
         ],
         "x-clearsight-route-class": "AUTHENTICATED_READ",

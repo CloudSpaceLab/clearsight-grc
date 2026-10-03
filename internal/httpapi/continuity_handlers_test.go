@@ -17,6 +17,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 func continuityTestHandler() http.Handler {
@@ -466,4 +467,30 @@ func TestRestrictedMatterCommandFailsBeforeAuthorityAndPreservesState(t *testing
 	if resolver.calls != 0 {
 		t.Fatalf("authority was consulted %d times before restricted visibility failed", resolver.calls)
 	}
+}
+
+func TestMatterOrganizationScopeAttributionRequiresFilterableServerNode(t *testing.T) {
+	root := runtimecontext.ScopeNode{ID: "bank", Name: "Clear Bank", Kind: runtimecontext.ScopeKindOrganization}
+	entity := runtimecontext.ScopeNode{ID: "bank-ng", Name: "Clear Bank Nigeria", Kind: runtimecontext.ScopeKindLegalEntity, ParentID: root.ID, Current: true}
+	risk := runtimecontext.ScopeNode{ID: "scope-risk", Name: "Risk", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "RISK"}, Filterable: true}
+	resolver := scopeContextResolverStub{
+		display:   runtimecontext.DisplayContext{TenantName: "Clear Bank", LegalEntityName: "Clear Bank Nigeria", PrincipalName: "Reviewer"},
+		hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Root: root, Current: entity, LegalEntities: []runtimecontext.ScopeNode{entity}, OrganizationScopes: []runtimecontext.ScopeNode{risk}},
+	}
+	api := &API{deps: Dependencies{RuntimeContext: resolver}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "reviewer", ExpiresAt: time.Now().Add(time.Hour)}
+
+	allowed := httptest.NewRequest(http.MethodPost, "/api/v1/matters", nil)
+	allowed = allowed.WithContext(identity.WithActor(allowed.Context(), actor))
+	if !api.validateMatterOrganizationScope(httptest.NewRecorder(), allowed, "scope-risk") {
+		t.Fatal("expected server-filterable scope to be accepted")
+	}
+
+	forbidden := httptest.NewRequest(http.MethodPost, "/api/v1/matters", nil)
+	forbidden = forbidden.WithContext(identity.WithActor(forbidden.Context(), actor))
+	response := httptest.NewRecorder()
+	if api.validateMatterOrganizationScope(response, forbidden, "scope-guessed") {
+		t.Fatal("guessed scope must be rejected")
+	}
+	assertAPIError(t, response, http.StatusForbidden, "organization_scope_forbidden", "This organization scope is not available for issue attribution.")
 }

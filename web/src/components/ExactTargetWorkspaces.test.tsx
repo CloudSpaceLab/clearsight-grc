@@ -11,6 +11,12 @@ import { loadProgramOperations } from "../programOperationsApi";
 import { loadProgramReviewDigest } from "../programReviewApi";
 
 vi.mock("../api", () => ({
+  loadContext: vi.fn().mockResolvedValue({
+    tenant: { id: "bank-demo", name: "Clear Bank" },
+    legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" },
+    actor: { id: "actor", name: "Actor" },
+    mode: "memory",
+  }),
   loadMatter: vi.fn(),
   loadMatterSummaries: vi.fn(),
   loadProgram: vi.fn(),

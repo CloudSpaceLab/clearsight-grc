@@ -11,10 +11,15 @@ export type ReportingPeriodQuery = {
   end_date: string;
 };
 
-export function reportingPeriodPath(path: string, period?: ReportingPeriodQuery) {
-  if (!period) return path;
-  const query = new URLSearchParams({ start_date: period.start_date, end_date: period.end_date });
-  return `${path}?${query.toString()}`;
+export function reportingPeriodPath(path: string, period?: ReportingPeriodQuery, organizationScopeID?: string) {
+  const query = new URLSearchParams();
+  if (period) {
+    query.set("start_date", period.start_date);
+    query.set("end_date", period.end_date);
+  }
+  if (organizationScopeID?.trim()) query.set("organization_scope_id", organizationScopeID.trim());
+  const encoded = query.toString();
+  return encoded ? `${path}?${encoded}` : path;
 }
 
 export function reportingPeriodLabel(period: ReportingPeriod) {

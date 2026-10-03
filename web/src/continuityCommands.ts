@@ -76,6 +76,7 @@ export type CreateMatterInput = {
   title: string;
   summary: string;
   affectedArea: string;
+  organizationScopeID?: string;
   knownInformation?: string;
   missingInformation?: string[];
   dueAt?: string;
@@ -141,6 +142,7 @@ export async function createMatter(input: CreateMatterInput): Promise<MatterAggr
     title: input.title,
     summary: input.summary,
     scope: { access: "INTERNAL", area: input.affectedArea },
+    organization_scope_id: input.organizationScopeID,
     known_facts: input.knownInformation ? { notes: input.knownInformation } : {},
     missing_facts: input.missingInformation ?? [],
     contradictions: [],

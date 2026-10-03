@@ -44,7 +44,19 @@ func (s *Service) GetForPeriod(ctx context.Context, scope Scope, request PeriodR
 	request.StartDate = strings.TrimSpace(request.StartDate)
 	request.EndDate = strings.TrimSpace(request.EndDate)
 	if request.StartDate == "" && request.EndDate == "" {
-		value, err := s.repository.Latest(ctx, scope)
+		if strings.TrimSpace(scope.OrganizationScopeID) == "" {
+			value, err := s.repository.Latest(ctx, scope)
+			if err != nil {
+				return Snapshot{}, err
+			}
+			return s.decorate(value), nil
+		}
+		repository, ok := s.repository.(PeriodRepository)
+		if !ok {
+			return Snapshot{}, ErrReportingPeriodUnavailable
+		}
+		now := s.Now().UTC()
+		value, err := repository.BuildPeriod(ctx, scope, now.Add(-90*24*time.Hour), now)
 		if err != nil {
 			return Snapshot{}, err
 		}

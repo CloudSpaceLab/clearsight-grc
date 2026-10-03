@@ -20,9 +20,11 @@ func (a *API) homeMetrics(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "metrics_unavailable", "Risk metrics are unavailable. Try again.")
 		return
 	}
-	snapshot, err := a.deps.Oversight.GetForPeriod(r.Context(), oversight.Scope{
-		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
-	}, oversightPeriodRequest(r))
+	scope, ok := a.oversightScopeForRequest(w, r, actor)
+	if !ok {
+		return
+	}
+	snapshot, err := a.deps.Oversight.GetForPeriod(r.Context(), scope, oversightPeriodRequest(r))
 	if writeOversightPeriodError(w, err) {
 		return
 	}

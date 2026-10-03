@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { loadProgramSummaries } from "../api";
+import { loadContext, loadProgramSummaries, type ScopeNode } from "../api";
 import { createMatter } from "../continuityCommands";
 import type { ProgramSummary } from "../summaryTypes";
 import type { MatterAggregate } from "../types";
@@ -35,6 +35,8 @@ export function MatterSetupWorkspace({ onCreated, onClose, initialProgramID = ""
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [programID, setProgramID] = useState(initialProgramID);
+  const [organizationScopes, setOrganizationScopes] = useState<ScopeNode[]>([]);
+  const [organizationScopeState, setOrganizationScopeState] = useState<ProgramState>("loading");
   const firstField = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
@@ -46,6 +48,13 @@ export function MatterSetupWorkspace({ onCreated, onClose, initialProgramID = ""
       setProgramState("live");
     }).catch(() => {
       if (active) setProgramState("unavailable");
+    });
+    void loadContext().then((context) => {
+      if (!active) return;
+      setOrganizationScopes((context.scope_hierarchy?.organization_scopes ?? []).filter((scope) => scope.filterable));
+      setOrganizationScopeState("live");
+    }).catch(() => {
+      if (active) setOrganizationScopeState("unavailable");
     });
     return () => { active = false; };
   }, []);
@@ -62,6 +71,7 @@ export function MatterSetupWorkspace({ onCreated, onClose, initialProgramID = ""
         title: String(data.get("title") ?? "").trim(),
         summary: String(data.get("summary") ?? "").trim(),
         affectedArea: String(data.get("affected_area") ?? "").trim(),
+        organizationScopeID: String(data.get("organization_scope_id") ?? "").trim() || undefined,
         knownInformation: String(data.get("known_information") ?? "").trim() || undefined,
         missingInformation: nonEmptyLines(data.get("missing_information")),
         dueAt: selectedDateEndOfLocalDay(String(data.get("due_date") ?? "")),
@@ -87,7 +97,9 @@ export function MatterSetupWorkspace({ onCreated, onClose, initialProgramID = ""
         <label><span>Priority</span><select name="priority" defaultValue="3"><option value="1">Low</option><option value="2">Normal</option><option value="3">Medium</option><option value="4">High</option><option value="5">Critical</option></select></label>
         <label className="full"><span>Title</span><input name="title" required maxLength={180} placeholder="Face verification is unavailable"/></label>
         <label className="full"><span>What happened or changed?</span><textarea name="summary" required rows={3} placeholder="Describe the issue, change or request that needs attention."/></label>
+        <label><span>Organization area</span><select name="organization_scope_id" disabled={organizationScopeState === "loading"} defaultValue=""><option value="">{organizationScopeState === "loading" ? "Loading organization areas…" : "Legal entity"}</option>{organizationScopes.map((scope) => <option value={scope.id} key={scope.id}>{scope.department_path?.join(" / ") || scope.name}</option>)}</select></label>
         <label><span>Affected area</span><input name="affected_area" required placeholder="Mobile banking"/></label>
+        {organizationScopeState === "unavailable" && <p className="field-note full">Areas unavailable. You can continue without one.</p>}
         <label><span>Due date</span><input name="due_date" type="date"/></label>
         <label className="full"><span>Program (optional)</span><select name="program_id" disabled={programState === "loading"} value={programID} onChange={(event) => setProgramID(event.target.value)}><option value="">No Program link</option>{initialProgramID && !programs.some((item) => item.program.id === initialProgramID) && <option value={initialProgramID}>Current Program</option>}{programs.map((item) => <option value={item.program.id} key={item.program.id}>{item.program.name} ({item.program.code})</option>)}</select></label>
         {programState === "loading" && <p className="field-note full" role="status">Loading Programs…</p>}
