@@ -92,7 +92,7 @@ func TestPostgresProgramOrganizationScopeIsExactAndFilterable(t *testing.T) {
 	page, err := service.ListProgramSummaries(actor, "program-scope-test", SummaryQuery{
 		OrganizationScopeID:  parentScope,
 		OrganizationScopeIDs: []string{parentScope, childScope},
-		Limit:                 20,
+		Limit:                20,
 	})
 	if err != nil {
 		t.Fatal(err)
