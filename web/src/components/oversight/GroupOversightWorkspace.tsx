@@ -27,6 +27,7 @@ export function GroupOversightWorkspace({
   const [value, setValue] = useState<GroupOversightSnapshot | undefined>(initialSnapshot);
   const [state, setState] = useState<LoadState>(initialSnapshot ? "live" : "loading");
   const [retry, setRetry] = useState(0);
+  const [basisOpen, setBasisOpen] = useState(false);
   const [localFilter, setLocalFilter] = useState<HomeMetricFilter>(metricFilter);
   const selected = onMetricFilterChange ? metricFilter : localFilter;
 
@@ -114,6 +115,44 @@ export function GroupOversightWorkspace({
     },
   ];
 
+  const basisColumns: readonly DataColumn<GroupChild>[] = [
+    {
+      id: "entity",
+      header: "OpCo",
+      mobileLayout: "full-width",
+      render: (item) => <span className="group-opco__identity"><strong>{item.legal_entity_name}</strong><small>{item.jurisdiction || item.legal_entity_code || "Legal entity"}</small></span>,
+      accessibleText: (item) => `${item.legal_entity_name}, ${item.jurisdiction || item.legal_entity_code || "Legal entity"}`,
+    },
+    {
+      id: "data",
+      header: "Data",
+      kind: "status",
+      render: (item) => <StatusBadge tone={item.state === "AVAILABLE" ? "success" : item.state === "STALE" ? "warning" : "neutral"}>{groupChildStateLabel(item.state)}</StatusBadge>,
+      accessibleText: (item) => groupChildStateLabel(item.state),
+    },
+    {
+      id: "snapshot",
+      header: "Snapshot revision",
+      mobileLayout: "full-width",
+      render: (item) => item.state === "MISSING"
+        ? <span>No snapshot contributed for this OpCo.</span>
+        : <span className="group-data-basis__snapshot"><code>{item.child_snapshot_id || "Unavailable"}</code><small>{formatHighWater(item.source_high_water)}</small></span>,
+      accessibleText: (item) => item.state === "MISSING" ? "No snapshot contributed for this OpCo." : `${item.child_snapshot_id || "Unavailable"}. Source high-water: ${formatHighWater(item.source_high_water)}`,
+    },
+    {
+      id: "captured",
+      header: "Captured",
+      render: (item) => item.child_generated_at ? <time dateTime={item.child_generated_at}>{formatGroupTime(item.child_generated_at)}</time> : "—",
+      accessibleText: (item) => item.child_generated_at ? formatGroupTime(item.child_generated_at) : "Unavailable",
+    },
+    {
+      id: "projection",
+      header: "Projection",
+      render: (item) => item.child_projection_version || "—",
+      accessibleText: (item) => item.child_projection_version || "Unavailable",
+    },
+  ];
+
   if (state === "unavailable" && !value) {
     return <section className="group-oversight-page">
       <EmptyState
@@ -160,6 +199,25 @@ export function GroupOversightWorkspace({
         />;
       })}
     </div>
+
+    {value && <details className="oversight-data-freshness group-data-basis" onToggle={(event) => setBasisOpen(event.currentTarget.open)}>
+      <summary>Data basis · {value.coverage.included_children} contributing {value.coverage.included_children === 1 ? "OpCo" : "OpCos"}</summary>
+      {basisOpen && <div>
+        <p>All four Group metrics use this exact authorized revision set.</p>
+        <dl className="group-data-basis__group">
+          <div><dt>Group revision</dt><dd><code>{value.revision_id}</code></dd></div>
+          <div><dt>Generated</dt><dd><time dateTime={value.generated_at}>{formatGroupTime(value.generated_at)}</time></dd></div>
+          <div><dt>Projection</dt><dd>{value.projection_version}</dd></div>
+        </dl>
+        <DataTable
+          ariaLabel="Group data basis"
+          rows={value.children}
+          rowKey={(item) => item.legal_entity_id}
+          rowName={(item) => `${item.legal_entity_name}, ${groupChildStateLabel(item.state)}`}
+          columns={basisColumns}
+        />
+      </div>}
+    </details>}
 
     <section id="group-opcos" className="group-opcos" aria-labelledby="group-opcos-heading" tabIndex={-1}>
       <div className="section-header">
@@ -241,6 +299,23 @@ function groupChildStateLabel(state: GroupChild["state"]) {
   if (state === "AVAILABLE") return "Current";
   if (state === "STALE") return "Stale";
   return "No snapshot";
+}
+
+function formatGroupTime(value: string) {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed)
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(parsed))
+    : "Unavailable";
+}
+
+function formatHighWater(values: Record<string, string> | undefined) {
+  const entries = Object.entries(values ?? {}).sort(([left], [right]) => left.localeCompare(right));
+  if (!entries.length) return "Not recorded";
+  return entries.map(([source, at]) => `${humanizeSource(source)} ${formatGroupTime(at)}`).join(" · ");
+}
+
+function humanizeSource(value: string) {
+  return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
 function knownCount(value: number | undefined) {

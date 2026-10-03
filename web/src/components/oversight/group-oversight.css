@@ -42,4 +42,50 @@
   .group-opco__identity small {
     color: var(--cs-text-muted);
   }
+
+  .group-data-basis {
+    margin: 0;
+  }
+
+  .group-data-basis > div {
+    display: grid;
+    gap: var(--cs-space-group);
+  }
+
+  .group-data-basis__group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: var(--cs-primitive-space-3) var(--cs-space-group);
+    margin: 0;
+  }
+
+  .group-data-basis__group div,
+  .group-data-basis__snapshot {
+    display: grid;
+    align-content: start;
+    gap: var(--cs-primitive-space-1);
+    min-inline-size: 0;
+  }
+
+  .group-data-basis dt {
+    color: var(--cs-text-muted);
+    font-size: .72rem;
+    font-weight: 700;
+  }
+
+  .group-data-basis dd {
+    min-inline-size: 0;
+    margin: 0;
+    color: var(--cs-text-strong);
+  }
+
+  .group-data-basis code {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .group-data-basis__snapshot small {
+    color: var(--cs-text-muted);
+    line-height: 1.45;
+  }
 }
