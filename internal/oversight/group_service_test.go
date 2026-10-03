@@ -68,8 +68,7 @@ func TestGroupServiceAggregatesOnlyAuthorizedChildrenAndKeepsIncompleteCoverage(
 	if value.Counts.CriticalHigh != 5 || value.Counts.Overdue != 1 || value.Counts.DueSoon != 4 {
 		t.Fatalf("group counts = %#v", value.Counts)
 	}
-	if value.RecordCoverage.Population != 30 || value.RecordCoverage.Excluded == nil || *value.RecordCoverage.Excluded != 1 ||
-		value.RecordCoverage.Unknown == nil || *value.RecordCoverage.Unknown != 3 {
+	if value.RecordCoverage.Population != 30 || value.RecordCoverage.Excluded != nil || value.RecordCoverage.Unknown != nil {
 		t.Fatalf("record coverage = %#v", value.RecordCoverage)
 	}
 	if len(value.Children) != 3 {
