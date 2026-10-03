@@ -26,6 +26,8 @@ func (r *PostgresRepository) ResolveSubjectScope(ctx context.Context, tenant, su
 		err = r.pool.QueryRow(ctx, `SELECT m.legal_entity_id::text FROM matters m JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND m.id::text=$2`, tenant, subjectID).Scan(&legalEntityID)
 	case "VENDOR_RELATIONSHIP":
 		err = r.pool.QueryRow(ctx, `SELECT r.legal_entity_id::text FROM third_party_relationships r JOIN tenants t ON t.id=r.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND r.id::text=$2`, tenant, subjectID).Scan(&legalEntityID)
+	case "RCSA_CYCLE":
+		err = r.pool.QueryRow(ctx, `SELECT c.legal_entity_id::text FROM rcsa_cycles c JOIN tenants t ON t.id=c.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND c.id::text=$2`, tenant, subjectID).Scan(&legalEntityID)
 	default:
 		return SubjectScope{}, ErrSubjectUnsupported
 	}
@@ -71,6 +73,10 @@ func (r *PostgresRepository) CanReadSubject(ctx context.Context, tenant, princip
 		query = `SELECT r.business_owner_principal_id::text=$2
 			FROM third_party_relationships r JOIN tenants t ON t.id=r.tenant_id
 			WHERE (t.id::text=$1 OR t.slug=$1) AND r.id::text=$3`
+	case "RCSA_CYCLE":
+		query = `SELECT c.first_line_owner_principal_id::text=$2
+			FROM rcsa_cycles c JOIN tenants t ON t.id=c.tenant_id
+			WHERE (t.id::text=$1 OR t.slug=$1) AND c.id::text=$3`
 	default:
 		return false, nil
 	}
