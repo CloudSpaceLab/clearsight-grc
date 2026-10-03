@@ -89,6 +89,51 @@ func TestGroupOversightReturnsAggregateWithoutCrossEntityRecordDetails(t *testin
 	}
 }
 
+func TestActorContextAdvertisesGroupOnlyWhenMultipleOversightEntitiesAreAuthorized(t *testing.T) {
+	handler := New(Dependencies{
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:       identity.NewDevelopmentAuthenticator("bank", "group-reader", "entity-a"),
+		RuntimeContext: runtimecontext.IdentifierResolver{},
+		Access: groupOversightAccessStub{page: access.OversightScopePage{Items: []access.OversightLegalEntity{
+			{ID: "entity-a", Name: "Alpha"}, {ID: "entity-b", Name: "Beta"},
+		}}},
+	})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/context", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var payload struct {
+		Capabilities map[string]bool `json:"capabilities"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if !payload.Capabilities["group_oversight"] || payload.Capabilities["scope_switch"] {
+		t.Fatalf("capabilities=%#v", payload.Capabilities)
+	}
+
+	handler = New(Dependencies{
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:       identity.NewDevelopmentAuthenticator("bank", "group-reader", "entity-a"),
+		RuntimeContext: runtimecontext.IdentifierResolver{},
+		Access: groupOversightAccessStub{page: access.OversightScopePage{Items: []access.OversightLegalEntity{
+			{ID: "entity-a", Name: "Alpha"},
+		}}},
+	})
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/context", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("single entity status=%d body=%s", response.Code, response.Body.String())
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Capabilities["group_oversight"] {
+		t.Fatalf("single entity sign-in advertised Group posture: %#v", payload.Capabilities)
+	}
+}
+
 func TestGroupOversightKeepsMissingChildIncomplete(t *testing.T) {
 	now := time.Date(2026, 10, 3, 20, 0, 0, 0, time.UTC)
 	zero := 0
