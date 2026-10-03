@@ -23,7 +23,7 @@ type Definition struct {
 	Drill           DrillTarget
 }
 
-var HomeDefinitions = []Definition{
+var homeDefinitions = [...]Definition{
 	{
 		ID: "critical_high_open", Revision: HomeDefinitionRevision, Label: "Critical and high", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
@@ -46,8 +46,14 @@ var HomeDefinitions = []Definition{
 	},
 }
 
+func HomeDefinitionList() []Definition {
+	values := make([]Definition, len(homeDefinitions))
+	copy(values, homeDefinitions[:])
+	return values
+}
+
 func HomeDefinition(id string) (Definition, bool) {
-	for _, definition := range HomeDefinitions {
+	for _, definition := range homeDefinitions {
 		if definition.ID == id {
 			return definition, true
 		}
