@@ -61,7 +61,7 @@ func (a *API) operationalLossLifecycleCommandPolicy(
 	delete(payload, "legal_entity_id")
 	payload["loss_id"] = current.Loss.ID
 
-	if name == "loss.update" || name == "loss.recovery.record" {
+	if name == "loss.update" || name == "loss.recovery.record" || name == "loss.intervention.open" {
 		if err := a.validateStoredResponsibilityActor(
 			ctx,
 			tenant,
