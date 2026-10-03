@@ -308,7 +308,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const groupScopeRequested = activeView === "oversight" && target.oversightScope === "group";
   const canSelectGroup = groupState === "live" && groupSnapshot != null;
   const groupScopeActive = groupScopeRequested && canSelectGroup;
-  const groupScopePending = groupScopeRequested && groupState === "loading";
+  const groupScopePending = groupScopeRequested && (groupState === "idle" || groupState === "loading");
   const canOpenOrganization = configureEnabled && runtime?.capabilities?.identity_read === true;
   const activeOrganizationScope = organizationScope;
   const programOrganizationScopes = activeOrganizationScope && !organizationScopes.some((node) => node.id === activeOrganizationScope.id)
