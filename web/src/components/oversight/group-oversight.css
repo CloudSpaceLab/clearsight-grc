@@ -1,0 +1,45 @@
+@layer features {
+  .group-oversight-page {
+    display: grid;
+    min-inline-size: 0;
+    gap: var(--cs-space-section);
+  }
+
+  .group-oversight-header p {
+    max-inline-size: var(--cs-reading-measure);
+    margin: var(--cs-primitive-space-2) 0 0;
+    color: var(--cs-text-muted);
+  }
+
+  .group-oversight-quality,
+  .group-oversight-status {
+    margin: 0;
+    color: var(--cs-text-muted);
+  }
+
+  .group-opcos {
+    display: grid;
+    min-inline-size: 0;
+    gap: var(--cs-space-group);
+    scroll-margin-block-start: var(--cs-space-section);
+  }
+
+  .group-opcos .section-header p {
+    margin: var(--cs-primitive-space-1) 0 0;
+    color: var(--cs-text-muted);
+  }
+
+  .group-opco__identity {
+    display: grid;
+    min-inline-size: 0;
+    gap: var(--cs-primitive-space-1);
+  }
+
+  .group-opco__identity strong {
+    color: var(--cs-text-strong);
+  }
+
+  .group-opco__identity small {
+    color: var(--cs-text-muted);
+  }
+}

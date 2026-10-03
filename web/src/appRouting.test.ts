@@ -31,6 +31,16 @@ describe("workspace routes", () => {
     expect(parseRoute("#programs/program%2F1?overall_state=CURRENT")).toEqual({ view: "programs", target: { programID: "program/1", programSection: "overview" } });
   });
 
+  it("round-trips Group Home scope with the existing metric filter", () => {
+    expect(parseRoute("#oversight?scope=group&metric=overdue")).toEqual({
+      view: "oversight",
+      target: { oversightMetric: "overdue", oversightScope: "group" },
+    });
+    expect(routeHash("oversight", { oversightMetric: "overdue", oversightScope: "group" }, "assigned"))
+      .toBe("#oversight?metric=overdue&scope=group");
+    expect(routeHash("oversight", { oversightScope: "group" }, "assigned")).toBe("#oversight?scope=group");
+  });
+
   it("parses and builds vendor relationship targets", () => {
     expect(parseRoute("#vendors")).toEqual({ view: "vendors", target: { vendorPage: "overview" } });
     expect(parseRoute("#vendors/register")).toEqual({ view: "vendors", target: { vendorPage: "register" } });

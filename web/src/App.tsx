@@ -32,12 +32,14 @@ import { canRespondToEvidenceRequest, isEvidenceRequestAssignedToActor } from ".
 import { parseRoute, routeHash } from "./appRouting";
 import type { View, WorkspaceTarget, WorkTab } from "./appRouting";
 import type { RuntimePresentation } from "./runtimePresentation";
+import { loadGroupOversight, type GroupOversightSnapshot } from "./groupOversightApi";
 import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, Readiness } from "./types";
 
 const FormsWorkspace = lazy(() => import("./components/FormsWorkspace").then((module) => ({ default: module.FormsWorkspace })));
 const VendorsWorkspace = lazy(() => import("./components/VendorsWorkspace").then((module) => ({ default: module.VendorsWorkspace })));
 const ConfigureWorkspace = lazy(() => import("./components/configure/ConfigureWorkspace").then((module) => ({ default: module.ConfigureWorkspace })));
 const OversightWorkspace = lazy(() => import("./components/oversight/OversightWorkspace").then((module) => ({ default: module.OversightWorkspace })));
+const GroupOversightWorkspace = lazy(() => import("./components/oversight/GroupOversightWorkspace").then((module) => ({ default: module.GroupOversightWorkspace })));
 const RopaRegisterPage = lazy(() => import("./components/RopaRegisterPage").then((module) => ({ default: module.RopaRegisterPage })));
 const RisksWorkspace = lazy(() => import("./components/risks/RisksWorkspace").then((module) => ({ default: module.RisksWorkspace })));
 const LossesWorkspace = lazy(() => import("./components/losses/LossesWorkspace").then((module) => ({ default: module.LossesWorkspace })));
@@ -87,6 +89,8 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const [scopeSwitchState, setScopeSwitchState] = useState<"idle" | "changing">("idle");
   const [scopeSwitchError, setScopeSwitchError] = useState("");
   const [organizationScope, setOrganizationScope] = useState<ScopeNode>();
+  const [groupSnapshot, setGroupSnapshot] = useState<GroupOversightSnapshot>();
+  const [groupState, setGroupState] = useState<"idle" | "loading" | "live" | "unavailable">("idle");
   const [activeView, setActiveView] = useState<View>(initialRoute.view);
   const [workTab, setWorkTab] = useState<WorkTab>(initialRoute.workTab ?? "assigned");
   const [target, setTarget] = useState<WorkspaceTarget>(initialRoute.target);
@@ -301,13 +305,17 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     && Boolean(currentScopeID);
   const organizationScopes = scopeHierarchy?.organization_scopes ?? [];
   const organizationScopeID = organizationScope?.id;
+  const groupScopeRequested = activeView === "oversight" && target.oversightScope === "group";
+  const canSelectGroup = groupState === "live" && groupSnapshot != null;
+  const groupScopeActive = groupScopeRequested && canSelectGroup;
+  const groupScopePending = groupScopeRequested && (groupState === "idle" || groupState === "loading");
   const canOpenOrganization = configureEnabled && runtime?.capabilities?.identity_read === true;
   const activeOrganizationScope = organizationScope;
   const programOrganizationScopes = activeOrganizationScope && !organizationScopes.some((node) => node.id === activeOrganizationScope.id)
     ? [...organizationScopes, activeOrganizationScope]
     : organizationScopes;
   const showScopeControl = Boolean(scopeHierarchy && currentScopeID)
-    && (canSwitchLegalEntity || organizationScopes.length > 0 || scopeHierarchy?.organization_scopes_truncated === true || canOpenOrganization);
+    && (canSelectGroup || canSwitchLegalEntity || organizationScopes.length > 0 || scopeHierarchy?.organization_scopes_truncated === true || canOpenOrganization);
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
     { label: "Portfolio", view: "programs", activeViews: portfolioViews },
@@ -316,23 +324,49 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
 
   useEffect(() => {
+    if (!runtime || !scopeHierarchy || scopeHierarchy.legal_entities.length < 2) {
+      setGroupSnapshot(undefined);
+      setGroupState(runtime ? "unavailable" : "idle");
+      return;
+    }
+    const controller = new AbortController();
+    setGroupState("loading");
+    void loadGroupOversight(controller.signal).then((value) => {
+      if (controller.signal.aborted) return;
+      setGroupSnapshot(value);
+      setGroupState("live");
+    }).catch(() => {
+      if (controller.signal.aborted) return;
+      setGroupSnapshot(undefined);
+      setGroupState("unavailable");
+    });
+    return () => controller.abort();
+  }, [runtime?.actor.id, runtime?.tenant.id, scopeHierarchy]);
+
+  useEffect(() => {
+    if (!runtime || !groupScopeRequested || groupState !== "unavailable") return;
+    navigate("oversight", target.oversightMetric ? { oversightMetric: target.oversightMetric } : {});
+  }, [groupScopeRequested, groupState, runtime, target.oversightMetric]);
+
+  useEffect(() => {
     if (!organizationScope) return;
-    if (!supportsOrganizationScope(activeView)) {
+    if (groupScopeActive || !supportsOrganizationScope(activeView)) {
       setOrganizationScope(undefined);
       return;
     }
     if (scopeHierarchy?.organization_scopes_truncated === true) return;
     const stillAuthorized = scopeHierarchy?.organization_scopes?.some((node) => node.id === organizationScope.id && node.filterable) === true;
     if (!stillAuthorized) setOrganizationScope(undefined);
-  }, [activeView, organizationScope, scopeHierarchy]);
+  }, [activeView, groupScopeActive, organizationScope, scopeHierarchy]);
 
-  async function changeLegalEntity(nextID: string | undefined) {
+  async function changeLegalEntity(nextID: string | undefined, reloadHash?: string) {
     if (!nextID || !canSwitchLegalEntity || nextID === currentScopeID || scopeSwitchState === "changing") return;
     setScopeSwitchError("");
     setOrganizationScope(undefined);
     setScopeSwitchState("changing");
     try {
       await switchLegalEntity(nextID);
+      if (reloadHash && window.location.hash !== reloadHash) window.history.replaceState(null, "", reloadHash);
       window.location.reload();
     } catch {
       setScopeSwitchState("idle");
@@ -347,7 +381,28 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     }
     if (!nextScope.filterable) return;
     setOrganizationScope(nextScope);
+    if (groupScopeActive) {
+      navigate("oversight", target.oversightMetric ? { oversightMetric: target.oversightMetric } : {});
+      return;
+    }
     if (!supportsOrganizationScope(activeView)) navigate("oversight");
+  }
+
+  function changeGroupScope(selected: boolean) {
+    setOrganizationScope(undefined);
+    navigate("oversight", {
+      ...(target.oversightMetric ? { oversightMetric: target.oversightMetric } : {}),
+      ...(selected ? { oversightScope: "group" as const } : {}),
+    });
+  }
+
+  function openGroupLegalEntity(legalEntityID: string) {
+    if (legalEntityID === currentScopeID) {
+      changeGroupScope(false);
+      return;
+    }
+    const legalEntityTarget = target.oversightMetric ? { oversightMetric: target.oversightMetric } : {};
+    void changeLegalEntity(legalEntityID, routeHash("oversight", legalEntityTarget, workTab));
   }
 
   function openOrganizationAccess() {
@@ -505,9 +560,12 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
               hierarchy={scopeHierarchy}
               currentScopeID={currentScopeID}
               canSwitchLegalEntity={canSwitchLegalEntity}
+              canSelectGroup={canSelectGroup}
+              isGroupSelected={groupScopeActive}
               activeOrganizationScope={activeOrganizationScope}
               isChanging={scopeSwitchState === "changing"}
               onSelectionChange={(value) => void changeLegalEntity(value)}
+              onGroupSelectionChange={changeGroupScope}
               onOrganizationScopeChange={changeOrganizationScope}
               onManageOrganization={canOpenOrganization ? openOrganizationAccess : undefined}
             />
@@ -517,9 +575,11 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         </div>
       </div>
       {activePortfolioView && <WorkspaceSwitcher ariaLabel="Portfolio lenses" compactLabel="Portfolio lens" items={portfolioLenses} selectedKey={activePortfolioView} onSelectionChange={(view) => navigate(view)}/>}
-      {(activeView === "oversight" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
-      {activeView === "oversight" && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
-      {activeView === "oversight" && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Home…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
+      {((activeView === "oversight" && !groupScopeRequested) || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>} 
+      {activeView === "oversight" && !groupScopeRequested && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
+      {activeView === "oversight" && groupScopePending && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Group posture…</div>}
+      {activeView === "oversight" && groupScopeActive && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Group posture…</div>}><GroupOversightWorkspace initialSnapshot={groupSnapshot} organizationName={organizationName} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", { oversightScope: "group", ...(metric === "all" ? {} : { oversightMetric: metric }) })} onOpenLegalEntity={openGroupLegalEntity}/></Suspense>}
+      {activeView === "oversight" && !groupScopeRequested && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Home…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
       {activeView === "programs" && <ProgramsView organizationName={organizationName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "risks" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading risks…</div>}><RisksWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} actorID={runtime?.actor?.id} targetID={target.riskID} onTarget={(id) => navigate("risks", id ? { riskID: id } : {})} onOpenProgram={(programID) => navigate("programs", { programID, programSection: "monitoring" })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")} onOpenProgramControl={(programID, objectiveID) => navigate("programs", { programID, programSection: "requirements-controls", programItem: { kind: "control-objective", id: objectiveID } })}/></Suspense>}
       {activeView === "losses" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading losses…</div>}><LossesWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.lossID} onTarget={(id) => navigate("losses", id ? { lossID: id } : {})} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")}/></Suspense>}

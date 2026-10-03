@@ -9,6 +9,7 @@ import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captur
 import { ApiError } from "./http";
 import { loadFormTemplatePage } from "./formsApi";
 import { loadNotifications } from "./notificationApi";
+import { loadGroupOversight, type GroupOversightSnapshot } from "./groupOversightApi";
 
 const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
 
@@ -23,6 +24,9 @@ vi.mock("./submittedDocumentApi", () => ({ loadDocuments: vi.fn().mockResolvedVa
 vi.mock("./notificationApi", () => ({
   loadNotifications: vi.fn().mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" }),
   markNotificationRead: vi.fn(),
+}));
+vi.mock("./groupOversightApi", () => ({
+  loadGroupOversight: vi.fn(),
 }));
 
 vi.mock("./components/RoleAwareOnboarding", async () => {
@@ -50,6 +54,9 @@ vi.mock("./components/VendorsWorkspace", () => ({
 }));
 vi.mock("./components/risks/RisksWorkspace", () => ({
   RisksWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Risks</h1><output data-testid="risk-target">{targetID}</output></section>,
+}));
+vi.mock("./components/oversight/GroupOversightWorkspace", () => ({
+  GroupOversightWorkspace: ({ onOpenLegalEntity }: { onOpenLegalEntity: (legalEntityID: string) => void }) => <section><h1>Group posture</h1><button type="button" onClick={() => onOpenLegalEntity("entity-ng-uuid")}>Open current OpCo</button></section>,
 }));
 vi.mock("./components/losses/LossesWorkspace", () => ({
   LossesWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Losses</h1><output data-testid="loss-target">{targetID}</output></section>,
@@ -117,6 +124,32 @@ function switchableRuntime(): RuntimeWithCapabilities {
       ],
     },
     capabilities: { document_import: true, reference_journeys: false, scope_switch: true },
+  };
+}
+
+function groupSnapshot(): GroupOversightSnapshot {
+  return {
+    revision_id: "group-run-1",
+    generated_at: "2026-10-03T20:00:00Z",
+    projection_version: "group-oversight-v1",
+    freshness: "CURRENT",
+    coverage: { authorized_children: 2, included_children: 2, missing_children: 0, stale_children: 0, complete: true },
+    record_coverage: { population: 10, excluded: 0, unknown: 0 },
+    counts: { critical_high: 5, overdue: 2, due_soon: 1, routing_failures: 1, unassigned: 0, outcome_failures: 3 },
+    children: [
+      {
+        legal_entity_id: "entity-ng-uuid", legal_entity_code: "bank-ng", legal_entity_name: "Clear Bank Nigeria",
+        jurisdiction: "NG", state: "AVAILABLE", child_snapshot_id: "snapshot-ng", child_generated_at: "2026-10-03T20:00:00Z",
+        child_projection_version: "oversight-v5", coverage: { population: 4, excluded: 0, unknown: 0 },
+        counts: { critical_high: 2, overdue: 1, due_soon: 1, routing_failures: 0, unassigned: 0, outcome_failures: 1 },
+      },
+      {
+        legal_entity_id: "entity-gh-uuid", legal_entity_code: "bank-gh", legal_entity_name: "Clear Bank Ghana",
+        jurisdiction: "GH", state: "AVAILABLE", child_snapshot_id: "snapshot-gh", child_generated_at: "2026-10-03T20:00:00Z",
+        child_projection_version: "oversight-v5", coverage: { population: 6, excluded: 0, unknown: 0 },
+        counts: { critical_high: 3, overdue: 1, due_soon: 0, routing_failures: 1, unassigned: 0, outcome_failures: 2 },
+      },
+    ],
   };
 }
 
@@ -193,7 +226,9 @@ beforeEach(() => {
   vi.mocked(loadReadiness).mockRejectedValue(new Error("No readiness baseline"));
   vi.mocked(switchLegalEntity).mockReset();
   vi.mocked(switchLegalEntity).mockResolvedValue();
-    vi.mocked(loadNotifications).mockReset();
+  vi.mocked(loadGroupOversight).mockReset();
+  vi.mocked(loadGroupOversight).mockRejectedValue(new Error("Group posture unavailable"));
+  vi.mocked(loadNotifications).mockReset();
   vi.mocked(loadNotifications).mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" });
 });
 
@@ -245,6 +280,39 @@ describe("legal entity scope selector", () => {
     const trigger = within(context).getByRole("button", { name: /Organization scope/ });
     expect(trigger.textContent).toContain("Clear Bank Nigeria");
     expect(within(context).queryByText("Non-production data")).toBeNull();
+  });
+
+  it("opens Group Home from the organization root without changing the legal-entity session", async () => {
+    const scoped = switchableRuntime();
+    scoped.capabilities.oversight_read = true;
+    vi.mocked(loadContext).mockResolvedValue(scoped);
+    vi.mocked(loadGroupOversight).mockResolvedValue(groupSnapshot());
+    vi.mocked(switchLegalEntity).mockClear();
+    window.history.replaceState(null, "", "#oversight");
+    render(<App/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    fireEvent.click(await within(dialog).findByRole("button", { name: "Group, Clear Bank" }));
+
+    expect(await screen.findByRole("heading", { name: "Group posture" })).toBeTruthy();
+    expect(window.location.hash).toBe("#oversight?scope=group");
+    expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank · Group");
+    expect(switchLegalEntity).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open current OpCo" }));
+    await waitFor(() => expect(window.location.hash).toBe("#oversight"));
+    expect(switchLegalEntity).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a direct Group route is not authorized", async () => {
+    vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
+    vi.mocked(loadGroupOversight).mockRejectedValue(new Error("forbidden"));
+    window.history.replaceState(null, "", "#oversight?scope=group&metric=overdue");
+    render(<App/>);
+
+    await waitFor(() => expect(window.location.hash).toBe("#oversight?metric=overdue"));
+    expect(screen.queryByRole("heading", { name: "Group posture" })).toBeNull();
   });
 
   it("shows server-authorized organization scopes even when there is only one legal entity", async () => {
