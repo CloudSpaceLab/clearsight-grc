@@ -179,6 +179,8 @@ These tables are intentionally absent from the live register:
 | `audit_events` | removable | Generic unused ledger removed by migration `000019_schema_ownership_cleanup`; narrower owned histories and delivery ledgers remain. Migration refuses removal if unexpected data exists. |
 | `readiness_snapshots` | removable | Unused snapshot table removed by migration `000019_schema_ownership_cleanup`; current Readiness is derived from active drift assessments and does not claim a known population baseline. Migration refuses removal if unexpected data exists. |
 
+Operational-loss intervention linkage is canonical: the Loss may reference only the OPERATIONAL_LOSS Matter whose source and trigger lineage are bound to that exact Loss ID. Generic Loss create/update commands cannot attach an arbitrary Matter; the governed intervention command creates or reuses that one Matter.
+
 ## API/schema ownership boundary
 
 `internal/httpapi/route_registry.go` is the executable route inventory. `api/runtime.openapi.json` is the mechanically verified route/access/permission projection generated from that inventory. It is the only repository API artifact that may be used as executable authorization or route-existence truth.
