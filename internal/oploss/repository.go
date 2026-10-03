@@ -18,5 +18,6 @@ type Repository interface {
 	Update(context.Context, Scope, Loss, int64, Event) (Loss, error)
 	AddRecovery(context.Context, Scope, string, int64, Recovery, Event) (Loss, Recovery, error)
 	Get(context.Context, Scope, string) (Aggregate, error)
+	List(context.Context, Scope, ListFilter) (Page, error)
 	ResolveLegalEntity(context.Context, string, string) (string, error)
 }
