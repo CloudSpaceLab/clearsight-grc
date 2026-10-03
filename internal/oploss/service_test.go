@@ -101,6 +101,28 @@ func TestLossRejectsOverRecoveryAndCurrencyMutation(t *testing.T) {
 	}
 }
 
+func TestLossRejectsRecoveryBeforeOccurrence(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	now := time.Date(2026, 10, 3, 18, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	created, err := service.Create(ctx, CreateInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Code: "LOSS-DATE", Title: "Timed loss",
+		EventType: EventOther, Cause: "Operational event.", GrossAmountMinor: 100_00, Currency: "NGN",
+		OccurredAt: now.Add(-time.Hour), DiscoveredAt: now, OwnerPrincipalID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = service.AddRecovery(ctx, RecoveryInput{
+		TenantID: "bank", LegalEntityID: "entity-a", LossID: created.ID, ExpectedVersion: 1,
+		Kind: RecoveryCash, AmountMinor: 10_00, RecoveredAt: created.OccurredAt.Add(-time.Minute), ActorID: "owner-1",
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("recovery before occurrence error=%v", err)
+	}
+}
+
 func TestLossCodeIsScopedPerLegalEntity(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(NewMemoryRepository())
