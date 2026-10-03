@@ -15,6 +15,7 @@ var (
 type Repository interface {
 	Create(context.Context, Cycle, []RiskSnapshot, []ControlSnapshot, Event) (Aggregate, error)
 	Get(context.Context, Scope, string) (Aggregate, error)
+	ResolveLegalEntity(context.Context, string, string) (string, error)
 }
 
 type PopulationResolver interface {
