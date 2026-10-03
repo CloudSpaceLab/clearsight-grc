@@ -136,11 +136,13 @@ func configureOperationalLosses(
 				value.MatterID,
 			)
 			if err != nil || aggregate.Matter.LegalEntityID != scope.LegalEntityID ||
-				aggregate.Matter.Type != continuity.MatterOperationalLoss {
-				return oploss.ErrInvalid
-			}
-			if value.OrganizationScopeID != "" && aggregate.Matter.OrganizationScopeID != "" &&
-				aggregate.Matter.OrganizationScopeID != value.OrganizationScopeID {
+				aggregate.Matter.Type != continuity.MatterOperationalLoss ||
+				aggregate.Matter.OrganizationScopeID != value.OrganizationScopeID ||
+				aggregate.Matter.SourceType != "OPERATIONAL_LOSS" ||
+				aggregate.Matter.SourceID != value.ID ||
+				aggregate.Matter.TriggerType != "MATERIAL_OPERATIONAL_LOSS" ||
+				aggregate.Matter.TriggerID != value.ID ||
+				aggregate.Matter.TriggerKey != "operational-loss:"+value.ID {
 				return oploss.ErrInvalid
 			}
 		}
