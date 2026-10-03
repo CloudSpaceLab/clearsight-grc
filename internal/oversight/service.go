@@ -19,6 +19,10 @@ type Repository interface {
 	Latest(context.Context, Scope) (Snapshot, error)
 }
 
+type BatchRepository interface {
+	LatestMany(context.Context, string, []string) ([]Snapshot, error)
+}
+
 type PeriodRepository interface {
 	BuildPeriod(context.Context, Scope, time.Time, time.Time) (Snapshot, error)
 }
@@ -31,6 +35,50 @@ type Service struct {
 
 func NewService(repository Repository) *Service {
 	return &Service{repository: repository, Now: time.Now, StaleAfter: 15 * time.Minute}
+}
+
+func (s *Service) GetMany(ctx context.Context, tenantID string, legalEntityIDs []string) ([]Snapshot, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if s == nil || s.repository == nil || tenantID == "" || len(legalEntityIDs) == 0 || len(legalEntityIDs) > 256 {
+		return nil, ErrInvalid
+	}
+	normalized := make([]string, 0, len(legalEntityIDs))
+	seen := make(map[string]struct{}, len(legalEntityIDs))
+	for _, id := range legalEntityIDs {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			return nil, ErrInvalid
+		}
+		if _, exists := seen[id]; exists {
+			continue
+		}
+		seen[id] = struct{}{}
+		normalized = append(normalized, id)
+	}
+	var values []Snapshot
+	if repository, ok := s.repository.(BatchRepository); ok {
+		batch, err := repository.LatestMany(ctx, tenantID, normalized)
+		if err != nil {
+			return nil, err
+		}
+		values = batch
+	} else {
+		values = make([]Snapshot, 0, len(normalized))
+		for _, id := range normalized {
+			value, err := s.repository.Latest(ctx, Scope{TenantID: tenantID, LegalEntityID: id})
+			if errors.Is(err, ErrNotFound) {
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+			values = append(values, value)
+		}
+	}
+	for index := range values {
+		values[index] = s.decorate(values[index])
+	}
+	return values, nil
 }
 
 func (s *Service) Get(ctx context.Context, scope Scope) (Snapshot, error) {
