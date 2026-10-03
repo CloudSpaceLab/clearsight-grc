@@ -147,8 +147,8 @@ func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
 				aggregate, err = matters.RecordDecisionLifecycle(trusted, continuity.AddDecisionInput{
 					TenantID: scope.TenantID, MatterID: aggregate.Matter.ID, ExpectedVersion: aggregate.Matter.Version,
 					Type: rcsaChallengeDecisionType, Status: continuity.DecisionProposed,
-					Options:   rcsaChallengeOptions,
-					Rationale: "Independent challenge of the submitted first-line RCSA assessment.",
+					Options:    rcsaChallengeOptions,
+					Rationale:  "Independent challenge of the submitted first-line RCSA assessment.",
 					Conditions: json.RawMessage(`[]`), AuthorityPrincipalID: actorID,
 				})
 				if err != nil {
