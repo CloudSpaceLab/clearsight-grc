@@ -112,6 +112,60 @@ func (a *API) completeRCSAFirstLine(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, value)
 }
 
+type rcsaChallengeRequest struct {
+	ExpectedVersion int64 `json:"expected_version"`
+}
+
+func (a *API) startRCSAChallenge(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.rcsaService(w)
+	if !ok {
+		return
+	}
+	actor, scope, ok := a.rcsaActorScope(w, r)
+	if !ok {
+		return
+	}
+	var request rcsaChallengeRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		writeRCSAError(w, rcsa.ErrInvalid)
+		return
+	}
+	value, err := service.StartChallenge(r.Context(), rcsa.StartChallengeInput{
+		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, CycleID: r.PathValue("id"),
+		ExpectedVersion: request.ExpectedVersion, ActorID: actor.PrincipalID,
+	})
+	if err != nil {
+		writeRCSAError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, value)
+}
+
+func (a *API) completeRCSAChallenge(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.rcsaService(w)
+	if !ok {
+		return
+	}
+	actor, scope, ok := a.rcsaActorScope(w, r)
+	if !ok {
+		return
+	}
+	var request rcsaChallengeRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		writeRCSAError(w, rcsa.ErrInvalid)
+		return
+	}
+	value, err := service.CompleteChallenge(r.Context(), rcsa.CompleteChallengeInput{
+		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, CycleID: r.PathValue("id"),
+		ExpectedVersion: request.ExpectedVersion, ActorID: actor.PrincipalID,
+	})
+	if err != nil {
+		writeRCSAError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, value)
+}
+
 func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.rcsaService(w)
 	if !ok {
