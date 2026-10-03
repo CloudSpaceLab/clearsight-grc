@@ -159,14 +159,18 @@ func (s *Service) AddRecovery(ctx context.Context, input RecoveryInput) (Loss, R
 		return Loss{}, Recovery{}, ErrRecoveryLimit
 	}
 	now := s.now()
+	recoveredAt := input.RecoveredAt.UTC()
+	if recoveredAt.IsZero() {
+		recoveredAt = now
+	}
+	if recoveredAt.Before(current.Loss.OccurredAt) {
+		return Loss{}, Recovery{}, ErrInvalid
+	}
 	recovery := Recovery{
 		LossID: current.Loss.ID, LossVersion: current.Loss.Version + 1,
 		Kind: input.Kind, AmountMinor: input.AmountMinor, Currency: current.Loss.Currency,
-		Reference: strings.TrimSpace(input.Reference), RecoveredAt: input.RecoveredAt.UTC(),
+		Reference: strings.TrimSpace(input.Reference), RecoveredAt: recoveredAt,
 		ActorID: strings.TrimSpace(input.ActorID), CreatedAt: now,
-	}
-	if recovery.RecoveredAt.IsZero() {
-		recovery.RecoveredAt = now
 	}
 	recovery.ID, err = newID()
 	if err != nil {
