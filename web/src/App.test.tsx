@@ -9,6 +9,7 @@ import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captur
 import { ApiError } from "./http";
 import { loadFormTemplatePage } from "./formsApi";
 import { loadNotifications } from "./notificationApi";
+import { loadGroupOversight, type GroupOversightSnapshot } from "./groupOversightApi";
 
 const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
 
@@ -23,6 +24,9 @@ vi.mock("./submittedDocumentApi", () => ({ loadDocuments: vi.fn().mockResolvedVa
 vi.mock("./notificationApi", () => ({
   loadNotifications: vi.fn().mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" }),
   markNotificationRead: vi.fn(),
+}));
+vi.mock("./groupOversightApi", () => ({
+  loadGroupOversight: vi.fn(),
 }));
 
 vi.mock("./components/RoleAwareOnboarding", async () => {
@@ -92,7 +96,7 @@ vi.mock("./evidenceRequestAdminApi", async (importOriginal) => ({
 
 type RuntimeWithCapabilities = RuntimeContext & {
   demo_mode: boolean;
-  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean; group_oversight?: boolean; scope_switch?: boolean; identity_read?: boolean };
+  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean; scope_switch?: boolean; identity_read?: boolean };
   actor: RuntimeContext["actor"] & { role_codes: string[] };
 };
 
@@ -120,6 +124,32 @@ function switchableRuntime(): RuntimeWithCapabilities {
       ],
     },
     capabilities: { document_import: true, reference_journeys: false, scope_switch: true },
+  };
+}
+
+function groupSnapshot(): GroupOversightSnapshot {
+  return {
+    revision_id: "group-run-1",
+    generated_at: "2026-10-03T20:00:00Z",
+    projection_version: "group-oversight-v1",
+    freshness: "CURRENT",
+    coverage: { authorized_children: 2, included_children: 2, missing_children: 0, stale_children: 0, complete: true },
+    record_coverage: { population: 10, excluded: 0, unknown: 0 },
+    counts: { critical_high: 5, overdue: 2, due_soon: 1, routing_failures: 1, unassigned: 0, outcome_failures: 3 },
+    children: [
+      {
+        legal_entity_id: "entity-ng-uuid", legal_entity_code: "bank-ng", legal_entity_name: "Clear Bank Nigeria",
+        jurisdiction: "NG", state: "AVAILABLE", child_snapshot_id: "snapshot-ng", child_generated_at: "2026-10-03T20:00:00Z",
+        child_projection_version: "oversight-v5", coverage: { population: 4, excluded: 0, unknown: 0 },
+        counts: { critical_high: 2, overdue: 1, due_soon: 1, routing_failures: 0, unassigned: 0, outcome_failures: 1 },
+      },
+      {
+        legal_entity_id: "entity-gh-uuid", legal_entity_code: "bank-gh", legal_entity_name: "Clear Bank Ghana",
+        jurisdiction: "GH", state: "AVAILABLE", child_snapshot_id: "snapshot-gh", child_generated_at: "2026-10-03T20:00:00Z",
+        child_projection_version: "oversight-v5", coverage: { population: 6, excluded: 0, unknown: 0 },
+        counts: { critical_high: 3, overdue: 1, due_soon: 0, routing_failures: 1, unassigned: 0, outcome_failures: 2 },
+      },
+    ],
   };
 }
 
@@ -196,7 +226,9 @@ beforeEach(() => {
   vi.mocked(loadReadiness).mockRejectedValue(new Error("No readiness baseline"));
   vi.mocked(switchLegalEntity).mockReset();
   vi.mocked(switchLegalEntity).mockResolvedValue();
-    vi.mocked(loadNotifications).mockReset();
+  vi.mocked(loadGroupOversight).mockReset();
+  vi.mocked(loadGroupOversight).mockRejectedValue(new Error("Group posture unavailable"));
+  vi.mocked(loadNotifications).mockReset();
   vi.mocked(loadNotifications).mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" });
 });
 
@@ -253,8 +285,8 @@ describe("legal entity scope selector", () => {
   it("opens Group Home from the organization root without changing the legal-entity session", async () => {
     const scoped = switchableRuntime();
     scoped.capabilities.oversight_read = true;
-    scoped.capabilities.group_oversight = true;
     vi.mocked(loadContext).mockResolvedValue(scoped);
+    vi.mocked(loadGroupOversight).mockResolvedValue(groupSnapshot());
     vi.mocked(switchLegalEntity).mockClear();
     window.history.replaceState(null, "", "#oversight");
     render(<App/>);
