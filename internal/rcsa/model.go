@@ -46,20 +46,20 @@ type RiskSnapshot struct {
 }
 
 type ControlSnapshot struct {
-	CycleID               string `json:"cycle_id"`
-	RiskID                string `json:"risk_id"`
-	RiskVersion           int64  `json:"risk_version"`
-	RiskControlLinkID     string `json:"risk_control_link_id"`
-	CatalogLinkID         string `json:"catalog_link_id"`
-	DefinitionID          string `json:"definition_id"`
-	DefinitionCode        string `json:"definition_code"`
-	DefinitionName        string `json:"definition_name"`
-	ProgramID             string `json:"program_id"`
-	ImplementationID      string `json:"implementation_id"`
-	ImplementationVersion   int64      `json:"implementation_version"`
-	ImplementationName      string     `json:"implementation_name"`
-	ImplementationStatus    string     `json:"implementation_status"`
-	ImplementationEffectiveFrom time.Time  `json:"implementation_effective_from"`
+	CycleID                      string     `json:"cycle_id"`
+	RiskID                       string     `json:"risk_id"`
+	RiskVersion                  int64      `json:"risk_version"`
+	RiskControlLinkID            string     `json:"risk_control_link_id"`
+	CatalogLinkID                string     `json:"catalog_link_id"`
+	DefinitionID                 string     `json:"definition_id"`
+	DefinitionCode               string     `json:"definition_code"`
+	DefinitionName               string     `json:"definition_name"`
+	ProgramID                    string     `json:"program_id"`
+	ImplementationID             string     `json:"implementation_id"`
+	ImplementationVersion        int64      `json:"implementation_version"`
+	ImplementationName           string     `json:"implementation_name"`
+	ImplementationStatus         string     `json:"implementation_status"`
+	ImplementationEffectiveFrom  time.Time  `json:"implementation_effective_from"`
 	ImplementationEffectiveUntil *time.Time `json:"implementation_effective_until,omitempty"`
 }
 
