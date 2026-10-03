@@ -63,6 +63,10 @@ CREATE TABLE rcsa_cycle_controls (
     implementation_id uuid NOT NULL,
     implementation_version bigint NOT NULL CHECK (implementation_version>0),
     implementation_name text NOT NULL,
+    implementation_status text NOT NULL CHECK (implementation_status IN ('PLANNED','IN_PROGRESS','IMPLEMENTED')),
+    implementation_effective_from timestamptz NOT NULL,
+    implementation_effective_until timestamptz,
+    CHECK (implementation_effective_until IS NULL OR implementation_effective_from < implementation_effective_until),
     PRIMARY KEY(tenant_id,legal_entity_id,cycle_id,risk_control_link_id),
     FOREIGN KEY(tenant_id,legal_entity_id,cycle_id,risk_id)
         REFERENCES rcsa_cycle_risks(tenant_id,legal_entity_id,cycle_id,risk_id) ON DELETE CASCADE,
