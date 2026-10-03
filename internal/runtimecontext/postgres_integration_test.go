@@ -32,8 +32,12 @@ func TestPostgresResolverUsesExactVerifiedScope(t *testing.T) {
 		hiddenEntityID    = "8f100000-0000-4000-8000-000000000005"
 		positionID        = "8f100000-0000-4000-8000-000000000006"
 		currentPositionID = "8f100000-0000-4000-8000-000000000007"
-		oversightRoleID   = "8f100000-0000-4000-8000-000000000008"
-		otherTenant       = "8f200000-0000-4000-8000-000000000001"
+		oversightRoleID    = "8f100000-0000-4000-8000-000000000008"
+		otherPrincipalID   = "8f100000-0000-4000-8000-000000000009"
+		operationsPosition = "8f100000-0000-4000-8000-000000000010"
+		globalPositionID   = "8f100000-0000-4000-8000-000000000011"
+		unrelatedRoleID    = "8f100000-0000-4000-8000-000000000012"
+		otherTenant        = "8f200000-0000-4000-8000-000000000001"
 	)
 	cleanup := func(cleanCtx context.Context) {
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
@@ -57,23 +61,30 @@ func TestPostgresResolverUsesExactVerifiedScope(t *testing.T) {
 		entityID, tenantID, eligibleEntityID, hiddenEntityID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from)
-		VALUES($1::uuid,$2::uuid,'PERSON','Compliance Officer','ACTIVE',$3)`, principalID, tenantID, now.Add(-time.Hour)); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
+		($1::uuid,$3::uuid,'PERSON','Compliance Officer','ACTIVE',$4),
+		($2::uuid,$3::uuid,'PERSON','Operations Officer','ACTIVE',$4)`,
+		principalID, otherPrincipalID, tenantID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,department_path,valid_from) VALUES
-		($1::uuid,$3::uuid,$4::uuid,'GROUP-RISK-GH','Ghana risk oversight',$5::uuid,ARRAY['BANK','RISK'],$6),
-		($2::uuid,$3::uuid,$7::uuid,'RISK-NG','Nigeria risk oversight',$5::uuid,ARRAY['BANK','RISK'],$6)`,
-		positionID, currentPositionID, tenantID, eligibleEntityID, principalID, now.Add(-time.Hour), entityID); err != nil {
+		($1::uuid,$5::uuid,$6::uuid,'GROUP-RISK-GH','Ghana risk oversight',$7::uuid,ARRAY['BANK','RISK'],$8),
+		($2::uuid,$5::uuid,$9::uuid,'RISK-NG','Nigeria risk oversight',$7::uuid,ARRAY['BANK','RISK'],$8),
+		($3::uuid,$5::uuid,$9::uuid,'OPS-NG','Nigeria operations',$10::uuid,ARRAY['BANK','OPERATIONS'],$8),
+		($4::uuid,$5::uuid,$9::uuid,'GLOBAL-REPORT','Global report reader',$7::uuid,ARRAY[]::text[],$8)`,
+		positionID, currentPositionID, operationsPosition, globalPositionID, tenantID, eligibleEntityID, principalID, now.Add(-time.Hour), entityID, otherPrincipalID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO role_templates(id,tenant_id,code,name,capabilities,valid_from)
-		VALUES($1::uuid,$2::uuid,'RISK_OVERSIGHT','Risk oversight',ARRAY['OVERSIGHT_READ'],$3)`,
-		oversightRoleID, tenantID, now.Add(-time.Hour)); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO role_templates(id,tenant_id,code,name,capabilities,valid_from) VALUES
+		($1::uuid,$3::uuid,'RISK_OVERSIGHT','Risk oversight',ARRAY['OVERSIGHT_READ'],$4),
+		($2::uuid,$3::uuid,'REPORT_READER','Report reader',ARRAY['REPORT_DOWNLOAD'],$4)`,
+		oversightRoleID, unrelatedRoleID, tenantID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from)
-		VALUES($1::uuid,$2::uuid,$3::uuid,$4)`, tenantID, currentPositionID, oversightRoleID, now.Add(-time.Hour)); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from) VALUES
+		($1::uuid,$2::uuid,$4::uuid,$5),
+		($1::uuid,$3::uuid,$6::uuid,$5)`,
+		tenantID, currentPositionID, globalPositionID, oversightRoleID, now.Add(-time.Hour), unrelatedRoleID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -122,6 +133,11 @@ func TestPostgresResolverUsesExactVerifiedScope(t *testing.T) {
 	}
 	if hierarchy.OrganizationScopes[1].ParentID != hierarchy.OrganizationScopes[0].ID {
 		t.Fatalf("organization parentage = %#v", hierarchy.OrganizationScopes)
+	}
+	for _, node := range hierarchy.OrganizationScopes {
+		if len(node.DepartmentPath) > 1 && node.DepartmentPath[1] == "OPERATIONS" {
+			t.Fatalf("unrelated global report role leaked sibling organization scope: %#v", node)
+		}
 	}
 
 	_, err = resolver.Resolve(ctx, Scope{TenantID: "runtime-context-other", LegalEntityID: "REFERENCE-NG", PrincipalID: principalID})
