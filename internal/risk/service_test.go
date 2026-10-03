@@ -456,6 +456,24 @@ func TestRiskIndicatorRejectsUnverifiedSourceOrKind(t *testing.T) {
 	}
 }
 
+func TestResolveScopeReturnsCanonicalRiskEntityWithoutCrossTenantDisclosure(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	service.Now = func() time.Time { return time.Date(2026, 10, 3, 9, 0, 0, 0, time.UTC) }
+	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-SCOPE")
+
+	scope, err := service.ResolveScope(ctx, "bank", created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scope.TenantID != "bank" || scope.LegalEntityID != "entity-a" {
+		t.Fatalf("resolved scope = %#v", scope)
+	}
+	if _, err := service.ResolveScope(ctx, "other-bank", created.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-tenant scope lookup error = %v", err)
+	}
+}
+
 func TestDuplicateRiskCodeIsScopedPerLegalEntity(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(NewMemoryRepository())
