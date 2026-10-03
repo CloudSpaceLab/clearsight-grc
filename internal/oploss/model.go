@@ -3,7 +3,9 @@ package oploss
 import "time"
 
 type EventType string
+
 type Status string
+
 type RecoveryKind string
 
 const (
