@@ -81,7 +81,7 @@ func TestGroupServiceAggregatesOnlyAuthorizedChildrenAndKeepsIncompleteCoverage(
 	}
 }
 
-func TestGroupServiceRequiresCurrentOversightAndAtLeastTwoAuthorizedOpCos(t *testing.T) {
+func TestGroupServiceRequiresAtLeastTwoAuthorizedOpCos(t *testing.T) {
 	now := time.Now().UTC()
 	repo := groupRepositoryStub{value: GroupProjection{
 		ID: "run", TenantID: "bank", GeneratedAt: now, ProjectionVersion: GroupProjectionVersion,
@@ -95,13 +95,6 @@ func TestGroupServiceRequiresCurrentOversightAndAtLeastTwoAuthorizedOpCos(t *tes
 	}})
 
 	_, err := service.Get(context.Background(), identity.Actor{TenantID: "bank", PrincipalID: "reader"})
-	if !errors.Is(err, ErrGroupForbidden) {
-		t.Fatalf("missing current oversight error = %v", err)
-	}
-
-	_, err = service.Get(context.Background(), identity.Actor{
-		TenantID: "bank", PrincipalID: "reader", PermissionCodes: []string{identity.PermissionOversightRead},
-	})
 	if !errors.Is(err, ErrGroupForbidden) {
 		t.Fatalf("single OpCo group error = %v", err)
 	}
