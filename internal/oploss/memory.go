@@ -126,6 +126,72 @@ func (r *MemoryRepository) Get(ctx context.Context, scope Scope, id string) (Agg
 	return Aggregate{Loss: loss, Recoveries: recoveries, Totals: calculated}, nil
 }
 
+func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFilter) (Page, error) {
+	if err := ctx.Err(); err != nil {
+		return Page{}, err
+	}
+	cursor, err := decodeListCursor(filter.Cursor)
+	if err != nil {
+		return Page{}, err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	values := make([]Summary, 0)
+	search := strings.ToLower(strings.TrimSpace(filter.Search))
+	for key, loss := range r.losses {
+		if loss.TenantID != scope.TenantID || loss.LegalEntityID != scope.LegalEntityID {
+			continue
+		}
+		if filter.Status != "" && loss.Status != filter.Status {
+			continue
+		}
+		if filter.EventType != "" && loss.EventType != filter.EventType {
+			continue
+		}
+		if filter.Currency != "" && loss.Currency != filter.Currency {
+			continue
+		}
+		if filter.OrganizationScopeID != "" && loss.OrganizationScopeID != filter.OrganizationScopeID {
+			continue
+		}
+		if filter.RiskID != "" && loss.RiskID != filter.RiskID {
+			continue
+		}
+		if search != "" && !strings.Contains(strings.ToLower(strings.Join([]string{
+			loss.Code, loss.Title, loss.Cause, loss.Description,
+		}, " ")), search) {
+			continue
+		}
+		if !cursor.UpdatedAt.IsZero() &&
+			!(loss.UpdatedAt.Before(cursor.UpdatedAt) || (loss.UpdatedAt.Equal(cursor.UpdatedAt) && loss.ID < cursor.ID)) {
+			continue
+		}
+		calculated, err := totals(loss, r.recoveries[key])
+		if err != nil {
+			return Page{}, err
+		}
+		if filter.RecoveryStatus != "" && calculated.RecoveryStatus != filter.RecoveryStatus {
+			continue
+		}
+		values = append(values, Summary{Loss: loss, Totals: calculated})
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if !values[i].Loss.UpdatedAt.Equal(values[j].Loss.UpdatedAt) {
+			return values[i].Loss.UpdatedAt.After(values[j].Loss.UpdatedAt)
+		}
+		return values[i].Loss.ID > values[j].Loss.ID
+	})
+	page := Page{Items: values}
+	if len(values) > filter.Limit {
+		page.Items = values[:filter.Limit]
+		page.NextCursor, err = encodeListCursor(page.Items[len(page.Items)-1].Loss)
+		if err != nil {
+			return Page{}, err
+		}
+	}
+	return page, nil
+}
+
 func (r *MemoryRepository) ResolveLegalEntity(ctx context.Context, tenant, id string) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
