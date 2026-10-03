@@ -31,8 +31,15 @@ func (s groupOversightAccessStub) ResolvePrincipal(context.Context, string, stri
 	return access.Resolution{}, s.err
 }
 
-func (s groupOversightAccessStub) ResolveOversightLegalEntities(context.Context, string, string, int) (access.OversightScopePage, error) {
-	return s.page, s.err
+func (s groupOversightAccessStub) ResolveOversightLegalEntities(_ context.Context, tenantID, _ string, _ int) (access.OversightScopePage, error) {
+	page := s.page
+	if page.TenantID == "" {
+		page.TenantID = tenantID
+	}
+	if page.TenantName == "" {
+		page.TenantName = "Clear Bank"
+	}
+	return page, s.err
 }
 
 func TestGroupOversightRouteUsesChildSetAuthorization(t *testing.T) {
