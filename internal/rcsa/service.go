@@ -43,14 +43,14 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Aggregate, err
 	if len(riskIDs) == 0 || len(riskIDs) > 100 {
 		return Aggregate{}, ErrInvalid
 	}
-	population, err := s.population.ResolvePopulation(ctx, scope, riskIDs)
+	now := s.now()
+	population, err := s.population.ResolvePopulation(ctx, scope, riskIDs, now)
 	if err != nil {
 		return Aggregate{}, err
 	}
 	if err := validatePopulation(riskIDs, population); err != nil {
 		return Aggregate{}, err
 	}
-	now := s.now()
 	cycleID, err := platformid.NewUUIDv7()
 	if err != nil {
 		return Aggregate{}, err
@@ -151,7 +151,8 @@ func validatePopulation(requested []string, population Population) error {
 	for _, item := range population.Controls {
 		if _, ok := seenRisks[item.RiskID]; !ok || item.RiskVersion < 1 || item.RiskControlLinkID == "" ||
 			item.CatalogLinkID == "" || item.DefinitionID == "" || item.ProgramID == "" ||
-			item.ImplementationID == "" || item.ImplementationVersion < 1 {
+			item.ImplementationID == "" || item.ImplementationVersion < 1 || item.ImplementationName == "" ||
+			item.ImplementationStatus == "" || item.ImplementationEffectiveFrom.IsZero() {
 			return ErrInvalid
 		}
 		key := item.RiskControlLinkID
