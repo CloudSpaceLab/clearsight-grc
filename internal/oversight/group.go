@@ -193,8 +193,8 @@ func BuildGroupSnapshot(scopeID, scopeName string, entities []GroupEntity, snaps
 	if unknownKnown && value.Coverage.MissingChildren == 0 {
 		value.Coverage.Unknown = &unknown
 	}
-	hash := sha256.Sum256([]byte(strings.Join(revisionParts, "
-")))
+	sort.Strings(revisionParts)
+	hash := sha256.Sum256([]byte(strings.Join(revisionParts, "\n")))
 	value.ContributorRevision = hex.EncodeToString(hash[:])
 	return value, nil
 }
