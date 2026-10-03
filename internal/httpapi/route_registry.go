@@ -326,6 +326,7 @@ func (a *API) routes() []routeSpec {
 	}
 
 	routes = append(routes, a.riskRoutes()...)
+	routes = append(routes, a.operationalLossRoutes()...)
 	routes = append(routes, a.rcsaRoutes()...)
 	routes = append(routes, a.controlCatalogRoutes()...)
 

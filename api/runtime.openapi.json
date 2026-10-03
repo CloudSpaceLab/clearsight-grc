@@ -4551,6 +4551,79 @@
         }
       }
     },
+    "/api/v1/losses": {
+      "get": {
+        "operationId": "listOperationalLosses",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          {"name":"status","in":"query","schema":{"type":"string","enum":["ACTIVE","VOIDED"]}},
+          {"name":"event_type","in":"query","schema":{"type":"string"}},
+          {"name":"currency","in":"query","schema":{"type":"string"}},
+          {"name":"organization_scope_id","in":"query","schema":{"type":"string","format":"uuid"}},
+          {"name":"risk_id","in":"query","schema":{"type":"string","format":"uuid"}},
+          {"name":"recovery_status","in":"query","schema":{"type":"string","enum":["NONE","PARTIAL","FULL"]}},
+          {"name":"search","in":"query","schema":{"type":"string"}},
+          {"name":"cursor","in":"query","schema":{"type":"string"}},
+          {"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":50}}
+        ],
+        "responses": {
+          "200": {"description": "Exact legal-entity operational loss page."}
+        }
+      },
+      "post": {
+        "operationId": "createOperationalLoss",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "responses": {
+          "201": {"description": "Created governed operational loss."}
+        }
+      }
+    },
+    "/api/v1/losses/{id}": {
+      "get": {
+        "operationId": "getOperationalLoss",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}
+        ],
+        "responses": {
+          "200": {"description": "Operational loss with recovery ledger and derived totals."}
+        }
+      },
+      "post": {
+        "operationId": "updateOperationalLoss",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [
+          {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}
+        ],
+        "responses": {
+          "200": {"description": "Updated governed operational loss."}
+        }
+      }
+    },
+    "/api/v1/losses/{id}/intervention": {
+      "post": {
+        "operationId": "openOperationalLossIntervention",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [
+          {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}
+        ],
+        "responses": {
+          "200": {"description": "Canonical operational-loss Matter created or reused and linked."}
+        }
+      }
+    },
+    "/api/v1/losses/{id}/recoveries": {
+      "post": {
+        "operationId": "recordOperationalLossRecovery",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [
+          {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}
+        ],
+        "responses": {
+          "201": {"description": "Append-only recovery or recovery reversal recorded."}
+        }
+      }
+    },
     "/api/v1/rcsa/cycles": {
       "post": {
         "operationId": "createRCSACycle",

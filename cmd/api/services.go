@@ -22,6 +22,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oploss"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/organization"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -72,6 +74,7 @@ type serviceSet struct {
 	Reporting                      *reporting.Service
 	Risk                           *risk.Service
 	RCSA                           *rcsa.Service
+	OperationalLoss                *oploss.Service
 	ControlCatalog                 *controlcatalog.Service
 	MatterFormRemediationRepo      continuity.MatterFormRemediationRepository
 	Today                          *today.Service
@@ -91,6 +94,60 @@ type serviceSet struct {
 	SessionStore                   scs.Store
 	SCIM                           *scimapi.Service
 	Close                          func()
+}
+
+type organizationScopeGetter interface {
+	Get(context.Context, string, string, string) (organization.Scope, error)
+}
+
+func configureOperationalLosses(
+	losses *oploss.Service,
+	risks *risk.Service,
+	matters *continuity.Service,
+	organizationScopes organizationScopeGetter,
+) {
+	if losses == nil {
+		return
+	}
+	losses.ConfigureReferenceValidator(func(ctx context.Context, scope oploss.Scope, value oploss.Loss) error {
+		if value.OrganizationScopeID != "" {
+			if organizationScopes == nil {
+				return oploss.ErrInvalid
+			}
+			if _, err := organizationScopes.Get(ctx, scope.TenantID, scope.LegalEntityID, value.OrganizationScopeID); err != nil {
+				return oploss.ErrInvalid
+			}
+		}
+		if value.RiskID != "" {
+			if risks == nil {
+				return oploss.ErrInvalid
+			}
+			if _, err := risks.Get(ctx, risk.Scope{TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID}, value.RiskID); err != nil {
+				return oploss.ErrInvalid
+			}
+		}
+		if value.MatterID != "" {
+			if matters == nil {
+				return oploss.ErrInvalid
+			}
+			aggregate, err := matters.GetMatter(
+				continuity.WithTrustedSystemEntityScope(ctx, scope.TenantID, scope.LegalEntityID),
+				scope.TenantID,
+				value.MatterID,
+			)
+			if err != nil || aggregate.Matter.LegalEntityID != scope.LegalEntityID ||
+				aggregate.Matter.Type != continuity.MatterOperationalLoss ||
+				aggregate.Matter.OrganizationScopeID != value.OrganizationScopeID ||
+				aggregate.Matter.SourceType != "OPERATIONAL_LOSS" ||
+				aggregate.Matter.SourceID != value.ID ||
+				aggregate.Matter.TriggerType != "MATERIAL_OPERATIONAL_LOSS" ||
+				aggregate.Matter.TriggerID != value.ID ||
+				aggregate.Matter.TriggerKey != "operational-loss:"+value.ID {
+				return oploss.ErrInvalid
+			}
+		}
+		return nil
+	})
 }
 
 const rcsaChallengeDecisionType = "RCSA_CHALLENGE"

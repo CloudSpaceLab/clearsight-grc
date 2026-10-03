@@ -106,6 +106,10 @@ func (a *API) command(name string, policy commandPolicy, handler http.HandlerFun
 				writeRiskError(w, err)
 				return
 			}
+			if strings.HasPrefix(name, "loss.") {
+				writeOperationalLossError(w, err)
+				return
+			}
 			writeContinuityError(w, err)
 			return
 		}

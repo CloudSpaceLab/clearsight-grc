@@ -23,6 +23,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oploss"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/organization"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
@@ -120,9 +122,11 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	reportingRepository := reporting.NewPostgresRepository(pool)
 	reportingService := reporting.NewService(reportingRepository, store, authorityService)
 	riskService := risk.NewService(risk.NewPostgresRepository(pool))
+	operationalLossService := oploss.NewService(oploss.NewPostgresRepository(pool))
 	controlCatalogService := controlcatalog.NewService(controlcatalog.NewPostgresRepository(pool))
 	configureRiskControlCatalog(riskService, controlCatalogService)
 	configureRiskIndicators(riskService, monitoringService, continuityService)
+	configureOperationalLosses(operationalLossService, riskService, continuityService, organization.NewPostgresRepository(pool))
 	rcsaService := rcsa.NewService(rcsa.NewPostgresRepository(pool), rcsaPopulationResolver{Risks: riskService, Catalog: controlCatalogService, Continuity: continuityService})
 	configureRCSAFirstLine(rcsaService, distributionService)
 	configureRCSAChallenge(rcsaService, continuityService)
@@ -162,7 +166,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,
-		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
+		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, OperationalLoss: operationalLossService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
 		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewPostgresRepository(pool)),
 		Access: access.NewPostgresResolver(pool), AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
