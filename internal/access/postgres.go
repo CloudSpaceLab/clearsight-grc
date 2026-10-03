@@ -261,6 +261,7 @@ func (r *PostgresResolver) ResolveLegalEntityAccess(ctx context.Context, tenantI
 		            AND role.id=binding.role_template_id
 		           WHERE (position.legal_entity_id IS NULL OR position.legal_entity_id=entity.id)
 		             AND cardinality(position.department_path)=0
+		             AND (NOT (binding.scope ? 'legal_entity_id') OR binding.scope->>'legal_entity_id' IN ('*',entity.id::text))
 		             AND position.valid_from<=clock_timestamp()
 		             AND (position.valid_until IS NULL OR clock_timestamp()<position.valid_until)
 		             AND binding.valid_from<=clock_timestamp()
@@ -430,6 +431,7 @@ func (r *PostgresResolver) withRoles(ctx context.Context, value Resolution) (Res
 			WHERE t.slug=$1
 			  AND p.id::text=$2
 			  AND (op.legal_entity_id IS NULL OR op.legal_entity_id=(SELECT id FROM current_entity))
+			  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id' IN ('*',(SELECT id FROM current_entity)::text))
 			  AND op.valid_from<=clock_timestamp()
 			  AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
 			  AND prb.valid_from<=clock_timestamp()
