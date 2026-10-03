@@ -54,7 +54,7 @@ jobs:
             echo "The following Go files require gofmt:"
             echo "$files"
             for file in $files; do
-              gofmt -d "$file"
+              gofmt -d "$file" || true
             done
             exit 1
           fi
