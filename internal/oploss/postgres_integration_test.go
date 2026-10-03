@@ -55,9 +55,9 @@ func TestPostgresOperationalLossIsScopedVersionedAndRecoverySafe(t *testing.T) {
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO organization_scopes(
 			id,tenant_id,legal_entity_id,code,name,kind,department_path,origin,status,valid_from,created_at,updated_at,version) VALUES
-			($1::uuid,$2::uuid,$3::uuid,'BR-A','Branch A','BRANCH',ARRAY['BRANCH A'],'MANAGED','ACTIVE',$7,$7,$7,1),
-			($4::uuid,$2::uuid,$5::uuid,'BR-B','Branch B','BRANCH',ARRAY['BRANCH B'],'MANAGED','ACTIVE',$7,$7,$7,1)
-	`, scopeA, tenantID, entityA, scopeB, entityB, "unused", now.Add(-time.Hour)); err != nil {
+			($1::uuid,$2::uuid,$3::uuid,'BR-A','Branch A','BRANCH',ARRAY['BRANCH A'],'MANAGED','ACTIVE',$6,$6,$6,1),
+			($4::uuid,$2::uuid,$5::uuid,'BR-B','Branch B','BRANCH',ARRAY['BRANCH B'],'MANAGED','ACTIVE',$6,$6,$6,1)
+	`, scopeA, tenantID, entityA, scopeB, entityB, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
