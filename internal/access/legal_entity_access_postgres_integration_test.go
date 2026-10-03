@@ -59,11 +59,11 @@ func TestPostgresResolveLegalEntityAccessExcludesDepartmentGrants(t *testing.T) 
 		INSERT INTO role_templates(id,tenant_id,code,name,capabilities,valid_from)
 		VALUES($3::uuid,$1::uuid,'ENTITY_OVERSIGHT','Entity oversight',ARRAY['OVERSIGHT_READ'],$9);
 		INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,department_path,valid_from) VALUES
-			($7::uuid,$1::uuid,$4::uuid,'A-GLOBAL','A global',$2::uuid,ARRAY[]::text[],$9),
+			($7::uuid,$1::uuid,NULL,'A-TENANT','Tenant position scoped to A',$2::uuid,ARRAY[]::text[],$9),
 			($8::uuid,$1::uuid,$5::uuid,'B-RISK','B risk',$2::uuid,ARRAY['BANK','RISK'],$9);
-		INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from) VALUES
-			($1::uuid,$7::uuid,$3::uuid,$9),
-			($1::uuid,$8::uuid,$3::uuid,$9);
+		INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,scope,valid_from) VALUES
+			($1::uuid,$7::uuid,$3::uuid,jsonb_build_object('legal_entity_id',$4::text),$9),
+			($1::uuid,$8::uuid,$3::uuid,'{}'::jsonb,$9);
 	`, pgx.QueryExecModeSimpleProtocol,
 		tenantID, principalID, roleID, entityA, entityB, entityC, positionA, positionB, validFrom); err != nil {
 		t.Fatal(err)
@@ -88,5 +88,13 @@ func TestPostgresResolveLegalEntityAccessExcludesDepartmentGrants(t *testing.T) 
 	}
 	if len(permissions[entityC]) != 0 {
 		t.Fatalf("unassigned entity gained permissions: %#v", permissions)
+	}
+
+	resolvedB, err := NewPostgresResolver(pool).ResolvePrincipal(ctx, "entity-access-test", principalID, entityB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(resolvedB.PermissionCodes, identity.PermissionOversightRead) {
+		t.Fatalf("entity-scoped position-role binding leaked into target session permissions: %#v", resolvedB)
 	}
 }
