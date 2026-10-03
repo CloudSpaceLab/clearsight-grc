@@ -83,6 +83,49 @@ export type ProposeOrganizationScopeInput = {
   expected_version?: number;
 };
 
+export type OrganizationPositionOperation = "CREATE" | "UPDATE" | "RETIRE";
+export type OrganizationPositionState = {
+  code: string;
+  title: string;
+  function_name?: string;
+  organization_scope_id?: string;
+  parent_position_id?: string;
+  occupant_principal_id?: string;
+};
+export type OrganizationPositionImpact = {
+  child_positions: number;
+  responsibility_assignments: number;
+  authority_grants: number;
+  active_role_bindings: number;
+};
+export type OrganizationPositionRevision = {
+  id: string;
+  position_id: string;
+  operation: OrganizationPositionOperation;
+  base_version: number;
+  base: OrganizationPositionState;
+  proposed: OrganizationPositionState;
+  maker_id: string;
+  checker_id?: string;
+  status: string;
+  rationale?: string;
+  impact: OrganizationPositionImpact;
+  created_at: string;
+  decided_at?: string;
+  applied_at?: string;
+};
+export type ProposeOrganizationPositionInput = {
+  position_id?: string;
+  operation: OrganizationPositionOperation;
+  code?: string;
+  title?: string;
+  function_name?: string;
+  organization_scope_id?: string;
+  parent_position_id?: string;
+  occupant_principal_id?: string;
+  expected_version?: number;
+};
+
 export type OrganizationPosition = {
   id: string;
   code: string;
@@ -160,6 +203,7 @@ export type IdentityAccessOverview = {
   organization_scopes: OrganizationScope[];
   organization_scopes_truncated?: boolean;
   organization_scope_revisions: OrganizationScopeRevision[];
+  organization_position_revisions: OrganizationPositionRevision[];
   escalation: { pending_timers: number; escalated_tasks: number; unresolved_24h: number; failed_timers: number };
   escalation_policies: EscalationPolicy[];
 };
@@ -198,6 +242,7 @@ export async function loadIdentityAccessOverview(): Promise<IdentityAccessOvervi
     positions: overview.positions ?? [],
     organization_scopes: overview.organization_scopes ?? [],
     organization_scope_revisions: overview.organization_scope_revisions ?? [],
+    organization_position_revisions: overview.organization_position_revisions ?? [],
     escalation_policies: overview.escalation_policies ?? [],
   };
 }
@@ -213,6 +258,18 @@ export function approveOrganizationScope(id: string, rationale: string): Promise
 
 export function rejectOrganizationScope(id: string, rationale: string): Promise<void> {
   return requestNoContent(apiBase, `/api/v1/access/organization-scope-revisions/${encodeURIComponent(id)}/reject`, { method: "POST", body: JSON.stringify({ rationale }) });
+}
+
+export function proposeOrganizationPosition(input: ProposeOrganizationPositionInput): Promise<OrganizationPositionRevision> {
+  return request("/api/v1/access/organization-position-revisions", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function approveOrganizationPosition(id: string, rationale: string): Promise<void> {
+  return requestNoContent(apiBase, `/api/v1/access/organization-position-revisions/${encodeURIComponent(id)}/approve`, { method: "POST", body: JSON.stringify({ rationale }) });
+}
+
+export function rejectOrganizationPosition(id: string, rationale: string): Promise<void> {
+  return requestNoContent(apiBase, `/api/v1/access/organization-position-revisions/${encodeURIComponent(id)}/reject`, { method: "POST", body: JSON.stringify({ rationale }) });
 }
 
 export function createIdentitySource(input: { code: string; identity_issuer?: string; subject_attribute: "externalId" | "userName" }): Promise<{ source: IdentitySource; token: string }> {
