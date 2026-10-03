@@ -56,26 +56,26 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 			($3::uuid,$1::uuid,'PERSON','Global reader','ACTIVE',$9),
 			($4::uuid,$1::uuid,'PERSON','Local reader','ACTIVE',$9);
 		INSERT INTO role_templates(id,tenant_id,code,name,capabilities,valid_from)
-		VALUES($7::uuid,$1::uuid,'SCOPE_READER','Scope reader',ARRAY['CONFIG_READ','OVERSIGHT_READ'],$9);
+		VALUES($6::uuid,$1::uuid,'SCOPE_READER','Scope reader',ARRAY['CONFIG_READ','OVERSIGHT_READ'],$8);
 		INSERT INTO organization_scopes(
 			id,tenant_id,legal_entity_id,code,name,kind,department_path,origin,status,valid_from
-		) VALUES($8::uuid,$1::uuid,$2::uuid,'BANK','Bank','BUSINESS_UNIT',ARRAY['BANK'],'MANAGED','ACTIVE',$9);
+		) VALUES($7::uuid,$1::uuid,$2::uuid,'BANK','Bank','BUSINESS_UNIT',ARRAY['BANK'],'MANAGED','ACTIVE',$8);
 		INSERT INTO organization_scopes(
 			tenant_id,legal_entity_id,parent_scope_id,code,name,kind,department_path,origin,status,valid_from
 		)
-		SELECT $1::uuid,$2::uuid,$8::uuid,
+		SELECT $1::uuid,$2::uuid,$7::uuid,
 		       'SITE' || lpad(value::text,5,'0'),
 		       'Site ' || lpad(value::text,5,'0'),
 		       'BRANCH',
 		       ARRAY['BANK','SITE' || lpad(value::text,5,'0')],
-		       'MANAGED','ACTIVE',$9
+		       'MANAGED','ACTIVE',$8
 		FROM generate_series(1,19999) value;
 		INSERT INTO org_positions(
 			id,tenant_id,legal_entity_id,code,title,occupant_principal_id,department_path,valid_from
-		) VALUES($5::uuid,$1::uuid,$2::uuid,'GLOBAL','Global reader',$3::uuid,ARRAY[]::text[],$9);
+		) VALUES($5::uuid,$1::uuid,$2::uuid,'GLOBAL','Global reader',$3::uuid,ARRAY[]::text[],$8);
 		INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from)
-		VALUES($1::uuid,$5::uuid,$7::uuid,$9)
-	`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, globalPrincipal, localPrincipal, globalPosition, localPosition, roleID, rootScopeID, now.Add(-time.Hour)); err != nil {
+		VALUES($1::uuid,$5::uuid,$6::uuid,$8)
+	`, pgx.QueryExecModeSimpleProtocol, tenantID, entityID, globalPrincipal, localPrincipal, globalPosition, roleID, rootScopeID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 
