@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/organization"
 )
 
 var (
@@ -62,16 +64,17 @@ type LegalEntitySummary struct {
 }
 
 type GroupRoleBindingSummary struct {
-	ID             string     `json:"id"`
-	GroupID        string     `json:"group_id"`
-	GroupName      string     `json:"group_name"`
-	RoleTemplateID string     `json:"role_template_id"`
-	RoleCode       string     `json:"role_code"`
-	LegalEntityID  string     `json:"legal_entity_id"`
-	LegalEntity    string     `json:"legal_entity"`
-	DepartmentPath []string   `json:"department_path"`
-	ValidFrom      time.Time  `json:"valid_from"`
-	ValidUntil     *time.Time `json:"valid_until,omitempty"`
+	ID                  string     `json:"id"`
+	GroupID             string     `json:"group_id"`
+	GroupName           string     `json:"group_name"`
+	RoleTemplateID      string     `json:"role_template_id"`
+	RoleCode            string     `json:"role_code"`
+	LegalEntityID       string     `json:"legal_entity_id"`
+	LegalEntity         string     `json:"legal_entity"`
+	DepartmentPath      []string   `json:"department_path"`
+	OrganizationScopeID string     `json:"organization_scope_id,omitempty"`
+	ValidFrom           time.Time  `json:"valid_from"`
+	ValidUntil          *time.Time `json:"valid_until,omitempty"`
 }
 
 type PositionSummary struct {
@@ -80,6 +83,7 @@ type PositionSummary struct {
 	Title               string     `json:"title"`
 	FunctionName        string     `json:"function_name,omitempty"`
 	DepartmentPath      []string   `json:"department_path"`
+	OrganizationScopeID string     `json:"organization_scope_id,omitempty"`
 	ParentPositionID    string     `json:"parent_position_id,omitempty"`
 	ParentPositionCode  string     `json:"parent_position_code,omitempty"`
 	ParentPositionTitle string     `json:"parent_position_title,omitempty"`
@@ -100,14 +104,16 @@ type EscalationRuntimeStatus struct {
 }
 
 type AdminOverview struct {
-	Sources       []SCIMSourceSummary       `json:"sources"`
-	People        []PersonSummary           `json:"people"`
-	Groups        []GroupSummary            `json:"groups"`
-	Roles         []RoleTemplateSummary     `json:"roles"`
-	LegalEntities []LegalEntitySummary      `json:"legal_entities"`
-	Bindings      []GroupRoleBindingSummary `json:"bindings"`
-	Positions     []PositionSummary         `json:"positions"`
-	Escalation    EscalationRuntimeStatus   `json:"escalation"`
+	Sources                     []SCIMSourceSummary       `json:"sources"`
+	People                      []PersonSummary           `json:"people"`
+	Groups                      []GroupSummary            `json:"groups"`
+	Roles                       []RoleTemplateSummary     `json:"roles"`
+	LegalEntities               []LegalEntitySummary      `json:"legal_entities"`
+	Bindings                    []GroupRoleBindingSummary `json:"bindings"`
+	Positions                   []PositionSummary         `json:"positions"`
+	OrganizationScopes          []organization.Scope      `json:"organization_scopes"`
+	OrganizationScopesTruncated bool                      `json:"organization_scopes_truncated"`
+	Escalation                  EscalationRuntimeStatus   `json:"escalation"`
 }
 
 // OperationalStatus is the bounded exception projection used by actor-facing

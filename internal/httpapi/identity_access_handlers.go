@@ -61,7 +61,7 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	policies := identityEscalationPolicies(r, a.deps.Governance, actor.TenantID)
 	canConfigure := identity.HasPermission(actor, identity.PermissionIdentityConfigure)
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{
+	payload := map[string]any{
 		"sign_in": map[string]any{
 			"mode": a.deps.IdentityMode, "issuer": a.deps.OIDCIssuer,
 			"authentication": actor.AuthenticationMethod, "assurance_level": actor.AssuranceLevel,
@@ -78,7 +78,10 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 		"positions":                overview.Positions,
 		"escalation":               overview.Escalation,
 		"escalation_policies":      policies,
-	})
+	}
+	payload["organization_scopes"] = overview.OrganizationScopes
+	payload["organization_scopes_truncated"] = overview.OrganizationScopesTruncated
+	httpx.WriteJSON(w, http.StatusOK, payload)
 }
 
 func (a *API) createSCIMSource(w http.ResponseWriter, r *http.Request) {

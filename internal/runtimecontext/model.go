@@ -26,8 +26,14 @@ type DisplayContext struct {
 type ScopeKind string
 
 const (
-	ScopeKindOrganization ScopeKind = "ORGANIZATION"
-	ScopeKindLegalEntity  ScopeKind = "LEGAL_ENTITY"
+	ScopeKindOrganization     ScopeKind = "ORGANIZATION"
+	ScopeKindLegalEntity      ScopeKind = "LEGAL_ENTITY"
+	ScopeKindOrganizationUnit ScopeKind = "ORGANIZATION_UNIT"
+	ScopeKindBranch           ScopeKind = "BRANCH"
+	ScopeKindDepartment       ScopeKind = "DEPARTMENT"
+	ScopeKindFunction         ScopeKind = "FUNCTION"
+	ScopeKindBusinessUnit     ScopeKind = "BUSINESS_UNIT"
+	ScopeKindCriticalService  ScopeKind = "CRITICAL_SERVICE"
 )
 
 type HierarchyState string
@@ -40,20 +46,22 @@ const (
 )
 
 type ScopeNode struct {
-	ID           string    `json:"id"`
-	Code         string    `json:"code,omitempty"`
-	Name         string    `json:"name"`
-	Kind         ScopeKind `json:"kind"`
-	ParentID     string    `json:"parent_id,omitempty"`
-	Jurisdiction string    `json:"jurisdiction,omitempty"`
-	Current      bool      `json:"current,omitempty"`
+	ID             string    `json:"id"`
+	Code           string    `json:"code,omitempty"`
+	Name           string    `json:"name"`
+	Kind           ScopeKind `json:"kind"`
+	ParentID       string    `json:"parent_id,omitempty"`
+	Jurisdiction   string    `json:"jurisdiction,omitempty"`
+	DepartmentPath []string  `json:"department_path,omitempty"`
+	Current        bool      `json:"current,omitempty"`
 }
 
 type ScopeHierarchy struct {
-	State         HierarchyState `json:"state"`
-	Root          ScopeNode      `json:"root"`
-	Current       ScopeNode      `json:"current"`
-	LegalEntities []ScopeNode    `json:"legal_entities"`
+	State              HierarchyState `json:"state"`
+	Root               ScopeNode      `json:"root"`
+	Current            ScopeNode      `json:"current"`
+	LegalEntities      []ScopeNode    `json:"legal_entities"`
+	OrganizationScopes []ScopeNode    `json:"organization_scopes,omitempty"`
 }
 
 type Resolver interface {

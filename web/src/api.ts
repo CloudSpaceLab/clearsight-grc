@@ -17,9 +17,10 @@ export type ScopeNode = {
   id: string;
   code?: string;
   name: string;
-  kind: "ORGANIZATION" | "LEGAL_ENTITY";
+  kind: "ORGANIZATION" | "LEGAL_ENTITY" | "ORGANIZATION_UNIT" | "BRANCH" | "DEPARTMENT" | "FUNCTION" | "BUSINESS_UNIT" | "CRITICAL_SERVICE";
   parent_id?: string;
   jurisdiction?: string;
+  department_path?: string[];
   current?: boolean;
 };
 
@@ -28,6 +29,7 @@ export type ScopeHierarchy = {
   root: ScopeNode;
   current: ScopeNode;
   legal_entities: ScopeNode[];
+  organization_scopes?: ScopeNode[];
 };
 
 export type RuntimeContext = {

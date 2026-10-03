@@ -52,10 +52,14 @@ describe("EnterpriseScopeSwitcher", () => {
 
   it("shows department paths as organization context and keeps them non-selectable", async () => {
     const onManageOrganization = vi.fn();
+    const scopedHierarchy = hierarchy();
+    scopedHierarchy.organization_scopes = [
+      { id: "scope-risk", code: "RISK", name: "RISK", kind: "DEPARTMENT", parent_id: "entity-ng", department_path: ["BANK", "RISK"] },
+      { id: "scope-payments", code: "PAYMENTS", name: "PAYMENTS", kind: "DEPARTMENT", parent_id: "scope-ops", department_path: ["BANK", "OPERATIONS", "PAYMENTS"] },
+    ];
     render(<EnterpriseScopeSwitcher
-      hierarchy={hierarchy()}
+      hierarchy={scopedHierarchy}
       currentScopeID="entity-ng"
-      organizationAreas={[["BANK", "RISK"], ["BANK", "OPERATIONS", "PAYMENTS"], ["bank", "risk"]]}
       onSelectionChange={() => undefined}
       onManageOrganization={onManageOrganization}
     />);
@@ -66,7 +70,7 @@ describe("EnterpriseScopeSwitcher", () => {
     expect(within(dialog).getByText("BANK / RISK")).toBeTruthy();
     expect(within(dialog).getByText("BANK / OPERATIONS / PAYMENTS")).toBeTruthy();
     expect(within(dialog).queryByRole("button", { name: /BANK \/ RISK/ })).toBeNull();
-    expect(within(dialog).getByText(/Home area filtering is not available/)).toBeTruthy();
+    expect(within(dialog).getByText(/Home filtering remains unavailable/)).toBeTruthy();
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Organization & access" }));
     expect(onManageOrganization).toHaveBeenCalledTimes(1);

@@ -108,8 +108,17 @@ func TestIdentityAccessAdminRevokesSourceDerivedGrantWithoutDeletingPrincipal(t 
 	if len(overview.Bindings) != 1 || overview.Bindings[0].ID != binding.ID {
 		t.Fatalf("unexpected binding overview: %#v", overview.Bindings)
 	}
+	if overview.Bindings[0].OrganizationScopeID == "" {
+		t.Fatalf("department-scoped group mapping must have stable organization scope: %#v", overview.Bindings[0])
+	}
 	if len(overview.Positions) != 2 {
 		t.Fatalf("expected two active positions, got %#v", overview.Positions)
+	}
+	if len(overview.OrganizationScopes) != 3 || overview.OrganizationScopesTruncated {
+		t.Fatalf("expected stable organization scope inventory, got %#v truncated=%v", overview.OrganizationScopes, overview.OrganizationScopesTruncated)
+	}
+	if overview.Positions[0].OrganizationScopeID == "" || overview.Positions[1].OrganizationScopeID == "" {
+		t.Fatalf("positions must resolve stable organization scopes: %#v", overview.Positions)
 	}
 	if overview.Positions[1].ParentPositionID != croID || overview.Positions[1].OccupantName != "Alice" || overview.Positions[1].Version != 4 {
 		t.Fatalf("expected exact reporting-line inventory, got %#v", overview.Positions[1])

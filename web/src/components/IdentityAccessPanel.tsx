@@ -236,7 +236,7 @@ export function IdentityAccessPanel() {
     </div>
 
     <div className="identity-access-area" role="tabpanel" aria-label={areaLabel(area)}>
-      {(area === "positions" || area === "reporting") && <OrganizationInventory positions={overview.positions} mode={area}/>}
+      {(area === "positions" || area === "reporting") && <OrganizationInventory positions={overview.positions} scopes={overview.organization_scopes} scopesTruncated={overview.organization_scopes_truncated === true} mode={area}/>}
 
       {area === "directory" && <div className="identity-access-grid">
       <IdentityAccessInventory

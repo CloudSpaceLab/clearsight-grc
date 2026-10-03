@@ -296,10 +296,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     && scopeHierarchy?.state === "COMPLETE"
     && scopeHierarchy.legal_entities.length > 1
     && Boolean(currentScopeID);
-  const organizationAreas = authorizedOrganizationAreas(runtime?.actor.department_grants);
+  const organizationScopes = scopeHierarchy?.organization_scopes ?? [];
   const canOpenOrganization = configureEnabled && runtime?.capabilities?.identity_read === true;
   const showScopeControl = Boolean(scopeHierarchy && currentScopeID)
-    && (canSwitchLegalEntity || organizationAreas.length > 0 || canOpenOrganization);
+    && (canSwitchLegalEntity || organizationScopes.length > 0 || canOpenOrganization);
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
     { label: "Portfolio", view: "programs", activeViews: portfolioViews },
@@ -474,7 +474,6 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
             <EnterpriseScopeSwitcher
               hierarchy={scopeHierarchy}
               currentScopeID={currentScopeID}
-              organizationAreas={organizationAreas}
               canSwitchLegalEntity={canSwitchLegalEntity}
               isChanging={scopeSwitchState === "changing"}
               onSelectionChange={(value) => void changeLegalEntity(value)}
@@ -524,17 +523,6 @@ function humanRole(value?: string) {
 function evidenceRuntimeScopeKey(runtime: ProductRuntime | null) {
   if (!runtime) return undefined;
   return `${runtime.tenant.id}\u0000${runtime.legal_entity.id}\u0000${runtime.actor.id}`;
-}
-
-function authorizedOrganizationAreas(grants: RuntimeContext["actor"]["department_grants"]) {
-  const areas = new Map<string, string[]>();
-  for (const grant of grants ?? []) {
-    const path = grant.path.map((part) => part.trim()).filter(Boolean);
-    if (!path.length) continue;
-    const key = path.map((part) => part.toUpperCase()).join("/");
-    if (!areas.has(key)) areas.set(key, path);
-  }
-  return [...areas.values()].sort((left, right) => left.join("/").localeCompare(right.join("/")));
 }
 
 export default App;

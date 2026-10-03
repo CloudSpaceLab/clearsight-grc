@@ -1,20 +1,29 @@
 import { useMemo, useState } from "react";
-import type { OrganizationPosition } from "../../identityAccessApi";
+import type { OrganizationPosition, OrganizationScope } from "../../identityAccessApi";
 import { SelectField, StatusBadge } from "../ui";
 
 type Props = {
   positions: OrganizationPosition[];
+  scopes: OrganizationScope[];
+  scopesTruncated?: boolean;
   mode: "positions" | "reporting";
 };
 
-export function OrganizationInventory({ positions, mode }: Props) {
+export function OrganizationInventory({ positions, scopes, scopesTruncated = false, mode }: Props) {
   const [query, setQuery] = useState("");
   const [area, setArea] = useState<string>();
   const positionByID = useMemo(() => new Map(positions.map((position) => [position.id, position])), [positions]);
-  const areaOptions = useMemo(() => organizationAreaOptions(positions), [positions]);
+  const scopeByID = useMemo(() => new Map(scopes.map((scope) => [scope.id, scope])), [scopes]);
+  const areaOptions = useMemo(() => scopes.map((scope) => ({
+    id: scope.id,
+    label: scope.department_path.join(" / "),
+    description: scope.kind === "ORGANIZATION_UNIT" ? "Imported organization area" : humanize(scope.kind),
+  })), [scopes]);
   const normalizedQuery = query.trim().toLowerCase();
   const visible = useMemo(() => positions.filter((position) => {
-    const matchesArea = !area || departmentKey(position.department_path).startsWith(`${area}/`) || departmentKey(position.department_path) === area;
+    const selectedScope = area ? scopeByID.get(area) : undefined;
+    const positionScope = position.organization_scope_id ? scopeByID.get(position.organization_scope_id) : undefined;
+    const matchesArea = !selectedScope || Boolean(positionScope && isDescendantPath(positionScope.department_path, selectedScope.department_path));
     if (!matchesArea) return false;
     if (!normalizedQuery) return true;
     return [
@@ -27,14 +36,14 @@ export function OrganizationInventory({ positions, mode }: Props) {
       position.department_path.join(" "),
       position.role_codes.join(" "),
     ].some((value) => value?.toLowerCase().includes(normalizedQuery));
-  }), [area, normalizedQuery, positions]);
+  }), [area, normalizedQuery, positions, scopeByID]);
 
   const occupied = positions.filter((position) => position.occupant_principal_id).length;
   const vacancies = positions.length - occupied;
 
   return <div className="identity-organization-view">
     <div className="identity-organization-summary" aria-label="Active organization position summary">
-      <div><strong>{areaOptions.length}</strong><span>Organization areas represented by active positions</span></div>
+      <div><strong>{scopes.length}</strong><span>Active organization scopes in this legal entity</span></div>
       <div><strong>{positions.length}</strong><span>Active positions in this legal entity</span></div>
       <div><strong>{occupied}</strong><span>Positions with an active occupant</span></div>
       <div><strong>{vacancies}</strong><span>Vacant positions requiring coverage</span></div>
@@ -43,9 +52,9 @@ export function OrganizationInventory({ positions, mode }: Props) {
     <article className="config-card identity-organization-card">
       <div className="section-header identity-card-header">
         <div>
-          <h3>{mode === "positions" ? "Departments, positions & roles" : "Reporting lines"}</h3>
+          <h3>{mode === "positions" ? "Organization, positions & roles" : "Reporting lines"}</h3>
           <p>{mode === "positions"
-            ? "Browse active organization areas, positions, occupants and workspace roles for this legal entity."
+            ? "Browse stable organization scopes, positions, occupants and workspace roles for this legal entity."
             : "Active reporting relationships used to determine who may hand off assigned work."}</p>
         </div>
         <div className="identity-position-filters">
@@ -63,30 +72,31 @@ export function OrganizationInventory({ positions, mode }: Props) {
         </div>
       </div>
 
-      {mode === "positions" ? <PositionTable positions={visible}/> : <ReportingList positions={visible} positionByID={positionByID}/>} 
+      {scopesTruncated && <div className="inline-notice" role="status">Only the first 500 organization scopes are shown. Narrow the hierarchy before editing or reviewing a larger structure.</div>}
+      {mode === "positions" ? <PositionTable positions={visible} scopeByID={scopeByID}/> : <ReportingList positions={visible} positionByID={positionByID}/>} 
 
       {!visible.length && <div className="identity-empty-state">
         <strong>{positions.length ? "No positions match these filters" : "No active positions were recorded"}</strong>
-        <span>{positions.length ? "Clear the search or choose another organization area." : "Organization positions must be recorded before reporting lines or department views are available."}</span>
+        <span>{positions.length ? "Clear the search or choose another organization area." : "Organization positions must be recorded before reporting lines are available."}</span>
       </div>}
     </article>
 
     <div className="identity-authority-note" role="note">
-      <strong>{mode === "positions" ? "Organization areas are derived from active position paths." : "Reporting lines permit responsibility handoff only."}</strong>
+      <strong>{mode === "positions" ? "Organization scopes have stable server IDs." : "Reporting lines permit responsibility handoff only."}</strong>
       <span>{mode === "positions"
-        ? "They are not yet dashboard data filters. Branch or department filtering requires records to carry an authoritative organization scope."
+        ? "Legacy department paths are reconciled to these scopes. Dashboard filtering remains disabled until business records carry an authoritative scope reference."
         : "A manager does not gain approval, review or signing authority unless the active authority policy grants it."}</span>
     </div>
   </div>;
 }
 
-function PositionTable({ positions }: { positions: OrganizationPosition[] }) {
+function PositionTable({ positions, scopeByID }: { positions: OrganizationPosition[]; scopeByID: Map<string, OrganizationScope> }) {
   if (!positions.length) return null;
   return <div className="identity-position-table-wrap">
     <table className="identity-position-table">
       <thead><tr><th>Position</th><th>Current occupant</th><th>Workspace roles</th><th>Reports to</th></tr></thead>
       <tbody>{positions.map((position) => <tr key={position.id}>
-        <td data-label="Position"><strong>{position.title}</strong><span>{position.code} · {departmentLabel(position)}</span></td>
+        <td data-label="Position"><strong>{position.title}</strong><span>{position.code} · {scopeLabel(position, scopeByID)}</span></td>
         <td data-label="Current occupant">{position.occupant_name
           ? <><strong>{position.occupant_name}</strong><span>{humanize(position.occupant_status || "active")}</span></>
           : <span className="identity-vacancy">Vacant — coverage required</span>}</td>
@@ -120,24 +130,13 @@ function ReportingList({ positions, positionByID }: { positions: OrganizationPos
   </ol>;
 }
 
-function organizationAreaOptions(positions: OrganizationPosition[]) {
-  const paths = new Map<string, string[]>();
-  for (const position of positions) {
-    const path = position.department_path.map((part) => part.trim()).filter(Boolean);
-    if (path.length < 2) continue;
-    for (let length = 2; length <= path.length; length++) {
-      const candidate = path.slice(0, length);
-      const key = departmentKey(candidate);
-      if (!paths.has(key)) paths.set(key, candidate);
-    }
-  }
-  return [...paths.entries()]
-    .sort((left, right) => left[1].join("/").localeCompare(right[1].join("/")))
-    .map(([id, path]) => ({ id, label: path.join(" / "), description: path.length > 2 ? "Sub-area" : "Department / branch" }));
+function isDescendantPath(candidate: string[], ancestor: string[]) {
+  return ancestor.length <= candidate.length && ancestor.every((part, index) => part.toUpperCase() === candidate[index]?.toUpperCase());
 }
 
-function departmentKey(path: string[]) {
-  return path.map((part) => part.trim().toUpperCase()).filter(Boolean).join("/");
+function scopeLabel(position: OrganizationPosition, scopeByID: Map<string, OrganizationScope>) {
+  const scope = position.organization_scope_id ? scopeByID.get(position.organization_scope_id) : undefined;
+  return scope ? scope.department_path.join(" / ") : departmentLabel(position);
 }
 
 function departmentLabel(position: OrganizationPosition) {
