@@ -27,6 +27,7 @@ export function GroupOversightWorkspace({
   const [value, setValue] = useState<GroupOversightSnapshot | undefined>(initialSnapshot);
   const [state, setState] = useState<LoadState>(initialSnapshot ? "live" : "loading");
   const [retry, setRetry] = useState(0);
+  const [basisOpen, setBasisOpen] = useState(false);
   const [localFilter, setLocalFilter] = useState<HomeMetricFilter>(metricFilter);
   const selected = onMetricFilterChange ? metricFilter : localFilter;
 
@@ -161,6 +162,32 @@ export function GroupOversightWorkspace({
       })}
     </div>
 
+    {value && <details className="oversight-data-freshness group-data-basis" onToggle={(event) => setBasisOpen(event.currentTarget.open)}>
+      <summary>Data basis · {value.coverage.included_children} contributing {value.coverage.included_children === 1 ? "OpCo" : "OpCos"}</summary>
+      {basisOpen && <div>
+        <p>All four Group metrics use this exact authorized revision set.</p>
+        <dl className="group-data-basis__group">
+          <div><dt>Group revision</dt><dd><code>{value.revision_id}</code></dd></div>
+          <div><dt>Generated</dt><dd><time dateTime={value.generated_at}>{formatGroupTime(value.generated_at)}</time></dd></div>
+          <div><dt>Projection</dt><dd>{value.projection_version}</dd></div>
+        </dl>
+        <ol className="group-revision-list">
+          {value.children.map((child) => <li key={child.legal_entity_id}>
+            <div className="group-revision-list__heading">
+              <span><strong>{child.legal_entity_name}</strong><small>{child.jurisdiction || child.legal_entity_code || "Legal entity"}</small></span>
+              <StatusBadge tone={child.state === "AVAILABLE" ? "success" : child.state === "STALE" ? "warning" : "neutral"}>{groupChildStateLabel(child.state)}</StatusBadge>
+            </div>
+            {child.state === "MISSING" ? <p>No snapshot contributed for this OpCo.</p> : <dl>
+              <div><dt>Snapshot revision</dt><dd><code>{child.child_snapshot_id || "Unavailable"}</code></dd></div>
+              <div><dt>Captured</dt><dd>{child.child_generated_at ? <time dateTime={child.child_generated_at}>{formatGroupTime(child.child_generated_at)}</time> : "Unavailable"}</dd></div>
+              <div><dt>Projection</dt><dd>{child.child_projection_version || "Unavailable"}</dd></div>
+              <div><dt>Source high-water</dt><dd>{formatHighWater(child.source_high_water)}</dd></div>
+            </dl>}
+          </li>)}
+        </ol>
+      </div>}
+    </details>}
+
     <section id="group-opcos" className="group-opcos" aria-labelledby="group-opcos-heading" tabIndex={-1}>
       <div className="section-header">
         <div>
@@ -241,6 +268,23 @@ function groupChildStateLabel(state: GroupChild["state"]) {
   if (state === "AVAILABLE") return "Current";
   if (state === "STALE") return "Stale";
   return "No snapshot";
+}
+
+function formatGroupTime(value: string) {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed)
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(parsed))
+    : "Unavailable";
+}
+
+function formatHighWater(values: Record<string, string> | undefined) {
+  const entries = Object.entries(values ?? {}).sort(([left], [right]) => left.localeCompare(right));
+  if (!entries.length) return "Not recorded";
+  return entries.map(([source, at]) => `${humanizeSource(source)} ${formatGroupTime(at)}`).join(" · ");
+}
+
+function humanizeSource(value: string) {
+  return value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
 
 function knownCount(value: number | undefined) {
