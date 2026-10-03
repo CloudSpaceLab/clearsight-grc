@@ -1327,7 +1327,6 @@
       "get": {
         "operationId": "groupOversightSnapshot",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
-        "x-clearsight-permission": "OVERSIGHT_READ",
         "responses": {
           "200": {
             "description": "Authorized Group oversight projection."
