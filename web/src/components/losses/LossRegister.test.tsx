@@ -1,0 +1,64 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import type { LossPage } from "../../lossTypes";
+import { LossRegister } from "./LossRegister";
+
+const page: LossPage = {
+  items: [{
+    loss: {
+      id: "loss-1",
+      tenant_id: "tenant-1",
+      legal_entity_id: "entity-1",
+      code: "LOSS-001",
+      title: "Duplicate settlement",
+      event_type: "EXECUTION_DELIVERY_PROCESS_MANAGEMENT",
+      cause: "Duplicate instruction",
+      description: "Duplicate settlement completed before correction.",
+      gross_amount_minor: 500000000,
+      currency: "NGN",
+      occurred_at: "2026-10-03T17:00:00Z",
+      discovered_at: "2026-10-03T18:00:00Z",
+      status: "ACTIVE",
+      version: 2,
+      created_at: "2026-10-03T18:00:00Z",
+      updated_at: "2026-10-03T19:00:00Z",
+    },
+    totals: {
+      gross_amount_minor: 500000000,
+      recovered_amount_minor: 200000000,
+      net_loss_minor: 300000000,
+      currency: "NGN",
+      recovery_status: "PARTIAL",
+    },
+  }],
+};
+
+describe("LossRegister", () => {
+  it("shows derived financial truth and opens the exact loss", async () => {
+    const onOpenLoss = vi.fn();
+    const loadPage = vi.fn().mockResolvedValue(page);
+    render(<LossRegister organizationName="Clear Bank" legalEntityName="Nigeria" onOpenLoss={onOpenLoss} loadPage={loadPage}/>);
+
+    expect(await screen.findByText("Duplicate settlement")).toBeTruthy();
+    expect(screen.getByText(/net$/i)).toBeTruthy();
+    expect(screen.getByText(/Gross .* Recovered/i)).toBeTruthy();
+    expect(screen.getByText("Partly recovered")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Open loss/i }));
+    expect(onOpenLoss).toHaveBeenCalledWith("loss-1");
+  });
+
+  it("passes recovery filters to the bounded list read", async () => {
+    const loadPage = vi.fn().mockResolvedValue({ items: [] });
+    render(<LossRegister onOpenLoss={() => {}} loadPage={loadPage}/>);
+
+    await waitFor(() => expect(loadPage).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: /Recovery/i }));
+    fireEvent.click(await screen.findByRole("option", { name: "Partly recovered" }));
+
+    await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ recoveryStatus: "PARTIAL", limit: 25 }),
+      expect.any(AbortSignal),
+    ));
+  });
+});
