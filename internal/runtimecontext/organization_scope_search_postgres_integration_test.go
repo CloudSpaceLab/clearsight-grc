@@ -51,10 +51,10 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 	if _, err = pool.Exec(ctx, `
 		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'scope-scale-test','Scope Scale Test');
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from)
-		VALUES($2::uuid,$1::uuid,'SCALE-NG','Scale Nigeria','NG',$9);
+		VALUES($2::uuid,$1::uuid,'SCALE-NG','Scale Nigeria','NG',$8);
 		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
-			($3::uuid,$1::uuid,'PERSON','Global reader','ACTIVE',$9),
-			($4::uuid,$1::uuid,'PERSON','Local reader','ACTIVE',$9);
+			($3::uuid,$1::uuid,'PERSON','Global reader','ACTIVE',$8),
+			($4::uuid,$1::uuid,'PERSON','Local reader','ACTIVE',$8);
 		INSERT INTO role_templates(id,tenant_id,code,name,capabilities,valid_from)
 		VALUES($6::uuid,$1::uuid,'SCOPE_READER','Scope reader',ARRAY['CONFIG_READ','OVERSIGHT_READ'],$8);
 		INSERT INTO organization_scopes(
