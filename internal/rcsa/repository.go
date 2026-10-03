@@ -3,6 +3,7 @@ package rcsa
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 var (
@@ -19,5 +20,5 @@ type Repository interface {
 }
 
 type PopulationResolver interface {
-	ResolvePopulation(context.Context, Scope, []string) (Population, error)
+	ResolvePopulation(context.Context, Scope, []string, time.Time) (Population, error)
 }
