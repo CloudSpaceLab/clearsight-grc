@@ -156,8 +156,8 @@ it("proposes a new organization area from the Organization tab", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: "Add area" }));
   const dialog = screen.getByRole("dialog", { name: "Add area" });
-  fireEvent.change(within(dialog).getByRole("textbox", { name: "Code" }), { target: { value: "LAGOS_ISLAND" } });
-  fireEvent.change(within(dialog).getByRole("textbox", { name: "Name" }), { target: { value: "Lagos Island" } });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Code/ }), { target: { value: "LAGOS_ISLAND" } });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Name/ }), { target: { value: "Lagos Island" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "Propose change" }));
 
   await waitFor(() => expect(api.proposeOrganizationScope).toHaveBeenCalledWith({
@@ -197,7 +197,7 @@ it("shows pending organization changes for independent approval", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: "Approve" }));
   const dialog = screen.getByRole("dialog", { name: "Approve change" });
-  fireEvent.change(within(dialog).getByRole("textbox", { name: "Rationale" }), { target: { value: "Checked" } });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Rationale/ }), { target: { value: "Checked" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
 
   await waitFor(() => expect(api.approveOrganizationScope).toHaveBeenCalledWith("revision-2", "Checked"));
