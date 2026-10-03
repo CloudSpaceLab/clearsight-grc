@@ -13,14 +13,14 @@ const (
 )
 
 type Definition struct {
-	ID               string
-	Revision         string
-	Label            string
-	Unit             string
-	Basis            MetricBasis
-	ConditionRule    ConditionRule
-	AggregationRule  AggregationRule
-	Drill            DrillTarget
+	ID              string
+	Revision        string
+	Label           string
+	Unit            string
+	Basis           MetricBasis
+	ConditionRule   ConditionRule
+	AggregationRule AggregationRule
+	Drill           DrillTarget
 }
 
 var HomeDefinitions = []Definition{
