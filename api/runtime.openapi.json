@@ -4516,6 +4516,50 @@
           }
         }
       }
+    },
+    "/api/v1/rcsa/cycles/{id}/first-line-distribution": {
+      "post": {
+        "operationId": "bindRCSAFirstLineDistribution",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact RCSA first-line Form distribution bound; cycle moves to assessment open."
+          }
+        }
+      }
+    },
+    "/api/v1/rcsa/cycles/{id}/first-line-complete": {
+      "post": {
+        "operationId": "completeRCSAFirstLine",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current final response revision pinned server-side; cycle moves to awaiting challenge."
+          }
+        }
+      }
     }
   }
 }

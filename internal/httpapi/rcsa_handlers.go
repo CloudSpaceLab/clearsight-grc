@@ -53,6 +53,65 @@ func (a *API) createRCSACycle(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusCreated, value)
 }
 
+type rcsaFirstLineDistributionRequest struct {
+	ExpectedVersion int64  `json:"expected_version"`
+	DistributionID  string `json:"distribution_id"`
+}
+
+type rcsaFirstLineCompleteRequest struct {
+	ExpectedVersion int64 `json:"expected_version"`
+}
+
+func (a *API) bindRCSAFirstLineDistribution(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.rcsaService(w)
+	if !ok {
+		return
+	}
+	actor, scope, ok := a.rcsaActorScope(w, r)
+	if !ok {
+		return
+	}
+	var request rcsaFirstLineDistributionRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		writeRCSAError(w, rcsa.ErrInvalid)
+		return
+	}
+	value, err := service.BindFirstLineDistribution(r.Context(), rcsa.BindFirstLineDistributionInput{
+		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, CycleID: r.PathValue("id"),
+		ExpectedVersion: request.ExpectedVersion, DistributionID: request.DistributionID, ActorID: actor.PrincipalID,
+	})
+	if err != nil {
+		writeRCSAError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, value)
+}
+
+func (a *API) completeRCSAFirstLine(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.rcsaService(w)
+	if !ok {
+		return
+	}
+	actor, scope, ok := a.rcsaActorScope(w, r)
+	if !ok {
+		return
+	}
+	var request rcsaFirstLineCompleteRequest
+	if err := httpx.DecodeJSON(w, r, &request); err != nil {
+		writeRCSAError(w, rcsa.ErrInvalid)
+		return
+	}
+	value, err := service.CompleteFirstLine(r.Context(), rcsa.CompleteFirstLineInput{
+		TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, CycleID: r.PathValue("id"),
+		ExpectedVersion: request.ExpectedVersion, ActorID: actor.PrincipalID,
+	})
+	if err != nil {
+		writeRCSAError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, value)
+}
+
 func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.rcsaService(w)
 	if !ok {

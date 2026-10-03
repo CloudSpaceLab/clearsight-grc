@@ -36,6 +36,32 @@ func (r *MemoryRepository) Create(ctx context.Context, cycle Cycle, risks []Risk
 	return cloneAggregate(value), nil
 }
 
+func (r *MemoryRepository) UpdateCycle(ctx context.Context, scope Scope, next Cycle, expected int64, event Event) (Cycle, error) {
+	if err := ctx.Err(); err != nil {
+		return Cycle{}, err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := cycleKey(scope.TenantID, scope.LegalEntityID, next.ID)
+	current, ok := r.cycles[key]
+	if !ok {
+		return Cycle{}, ErrNotFound
+	}
+	if current.Cycle.Version != expected {
+		return Cycle{}, ErrVersionConflict
+	}
+	if next.TenantID != current.Cycle.TenantID || next.LegalEntityID != current.Cycle.LegalEntityID ||
+		next.ID != current.Cycle.ID || next.Code != current.Cycle.Code || next.Name != current.Cycle.Name ||
+		next.TriggerKind != current.Cycle.TriggerKind || next.FirstLineOwnerID != current.Cycle.FirstLineOwnerID ||
+		next.PopulationChecksum != current.Cycle.PopulationChecksum || !next.CreatedAt.Equal(current.Cycle.CreatedAt) ||
+		next.Version != expected+1 || event.CycleID != next.ID || event.CycleVersion != next.Version {
+		return Cycle{}, ErrInvalid
+	}
+	current.Cycle = next
+	r.cycles[key] = cloneAggregate(current)
+	return next, nil
+}
+
 func (r *MemoryRepository) Get(ctx context.Context, scope Scope, id string) (Aggregate, error) {
 	if err := ctx.Err(); err != nil {
 		return Aggregate{}, err

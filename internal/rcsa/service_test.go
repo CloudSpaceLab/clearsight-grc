@@ -60,6 +60,131 @@ func TestCreateFreezesExactRiskControlPopulation(t *testing.T) {
 	}
 }
 
+func TestFirstLineLifecyclePinsServerResolvedFinalResponse(t *testing.T) {
+	now := time.Date(2026, 10, 3, 12, 0, 0, 0, time.UTC)
+	service := NewService(NewMemoryRepository(), testPopulationResolver{population: Population{
+		Risks: []RiskSnapshot{{RiskID: "risk-a", RiskVersion: 2, Code: "RA", Name: "Risk A"}},
+	}})
+	service.Now = func() time.Time { return now }
+	validatedDistribution := ""
+	resolvedCycle := ""
+	service.ConfigureFirstLine(
+		func(_ context.Context, scope Scope, cycle Cycle, distributionID string) error {
+			if scope != (Scope{TenantID: "bank", LegalEntityID: "entity-a"}) ||
+				cycle.FirstLineOwnerID != "owner-1" || distributionID != "distribution-1" {
+				return ErrInvalid
+			}
+			validatedDistribution = distributionID
+			return nil
+		},
+		func(_ context.Context, scope Scope, cycle Cycle) (string, error) {
+			if scope != (Scope{TenantID: "bank", LegalEntityID: "entity-a"}) ||
+				cycle.FirstLineDistributionID != "distribution-1" || cycle.Status != StatusAssessmentOpen {
+				return "", ErrInvalid
+			}
+			resolvedCycle = cycle.ID
+			return "response-final-2", nil
+		},
+	)
+	created, err := service.Create(context.Background(), CreateInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Code: "RCSA-Q4", Name: "Q4 RCSA",
+		TriggerKind: TriggerScheduled, RiskIDs: []string{"risk-a"}, FirstLineOwnerID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	now = now.Add(time.Minute)
+	opened, err := service.BindFirstLineDistribution(context.Background(), BindFirstLineDistributionInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: 1, DistributionID: "distribution-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if validatedDistribution != "distribution-1" || opened.Status != StatusAssessmentOpen ||
+		opened.FirstLineDistributionID != "distribution-1" || opened.Version != 2 ||
+		opened.FirstLineResponseRevisionID != "" {
+		t.Fatalf("opened=%#v", opened)
+	}
+
+	now = now.Add(time.Minute)
+	challengeReady, err := service.CompleteFirstLine(context.Background(), CompleteFirstLineInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: 2, ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolvedCycle != created.Cycle.ID || challengeReady.Status != StatusAwaitingChallenge ||
+		challengeReady.FirstLineResponseRevisionID != "response-final-2" || challengeReady.Version != 3 {
+		t.Fatalf("challengeReady=%#v", challengeReady)
+	}
+	read, err := service.Get(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.Cycle.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if read.Cycle != challengeReady {
+		t.Fatalf("read cycle=%#v want=%#v", read.Cycle, challengeReady)
+	}
+}
+
+func TestFirstLineLifecycleRejectsWrongOwnerAndIncompleteResponse(t *testing.T) {
+	now := time.Date(2026, 10, 3, 12, 30, 0, 0, time.UTC)
+	service := NewService(NewMemoryRepository(), testPopulationResolver{population: Population{
+		Risks: []RiskSnapshot{{RiskID: "risk-a", RiskVersion: 1, Code: "RA", Name: "Risk A"}},
+	}})
+	service.Now = func() time.Time { return now }
+	service.ConfigureFirstLine(
+		func(context.Context, Scope, Cycle, string) error { return nil },
+		func(context.Context, Scope, Cycle) (string, error) { return "", ErrInvalid },
+	)
+	created, err := service.Create(context.Background(), CreateInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Code: "RCSA-Q3", Name: "Q3 RCSA",
+		TriggerKind: TriggerManual, RiskIDs: []string{"risk-a"}, FirstLineOwnerID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.BindFirstLineDistribution(context.Background(), BindFirstLineDistributionInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: 1, DistributionID: "distribution-1", ActorID: "other-owner",
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("wrong-owner bind error=%v", err)
+	}
+	unchanged, err := service.Get(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.Cycle.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unchanged.Cycle.Version != 1 || unchanged.Cycle.Status != StatusDraft {
+		t.Fatalf("wrong-owner bind changed cycle=%#v", unchanged.Cycle)
+	}
+
+	opened, err := service.BindFirstLineDistribution(context.Background(), BindFirstLineDistributionInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: 1, DistributionID: "distribution-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.CompleteFirstLine(context.Background(), CompleteFirstLineInput{
+		TenantID: "bank", LegalEntityID: "entity-a", CycleID: created.Cycle.ID,
+		ExpectedVersion: opened.Version, ActorID: "owner-1",
+	})
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("incomplete response error=%v", err)
+	}
+	after, err := service.Get(context.Background(), Scope{TenantID: "bank", LegalEntityID: "entity-a"}, created.Cycle.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Cycle.Version != 2 || after.Cycle.Status != StatusAssessmentOpen || after.Cycle.FirstLineResponseRevisionID != "" {
+		t.Fatalf("failed completion changed cycle=%#v", after.Cycle)
+	}
+}
+
 func TestCreateRejectsIncompleteOrCrossScopePopulation(t *testing.T) {
 	service := NewService(NewMemoryRepository(), testPopulationResolver{population: Population{
 		Risks: []RiskSnapshot{{RiskID: "risk-a", RiskVersion: 1, Code: "RA", Name: "Risk A"}},
