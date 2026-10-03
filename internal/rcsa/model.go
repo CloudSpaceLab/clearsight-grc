@@ -20,21 +20,21 @@ const (
 )
 
 type Cycle struct {
-	ID                           string      `json:"id"`
-	TenantID                     string      `json:"tenant_id"`
-	LegalEntityID                string      `json:"legal_entity_id"`
-	Code                         string      `json:"code"`
-	Name                         string      `json:"name"`
-	TriggerKind                  TriggerKind `json:"trigger_kind"`
-	FirstLineOwnerID             string      `json:"first_line_owner_principal_id"`
-	Status                       Status      `json:"status"`
-	PopulationChecksum           string      `json:"population_checksum"`
-	FirstLineDistributionID      string      `json:"first_line_distribution_id,omitempty"`
+	ID                          string      `json:"id"`
+	TenantID                    string      `json:"tenant_id"`
+	LegalEntityID               string      `json:"legal_entity_id"`
+	Code                        string      `json:"code"`
+	Name                        string      `json:"name"`
+	TriggerKind                 TriggerKind `json:"trigger_kind"`
+	FirstLineOwnerID            string      `json:"first_line_owner_principal_id"`
+	Status                      Status      `json:"status"`
+	PopulationChecksum          string      `json:"population_checksum"`
+	FirstLineDistributionID     string      `json:"first_line_distribution_id,omitempty"`
 	FirstLineResponseRevisionID string      `json:"first_line_response_revision_id,omitempty"`
 	ChallengeMatterID           string      `json:"challenge_matter_id,omitempty"`
-	Version                      int64       `json:"version"`
-	CreatedAt                    time.Time   `json:"created_at"`
-	UpdatedAt                    time.Time   `json:"updated_at"`
+	Version                     int64       `json:"version"`
+	CreatedAt                   time.Time   `json:"created_at"`
+	UpdatedAt                   time.Time   `json:"updated_at"`
 }
 
 type RiskSnapshot struct {
