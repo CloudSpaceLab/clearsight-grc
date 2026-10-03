@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
@@ -20,8 +21,9 @@ type ReusableFormReader interface {
 type Service struct {
 	repository Repository
 	risks      *risk.Service
-	forms      ReusableFormReader
-	Now        func() time.Time
+	forms         ReusableFormReader
+	distributions *evidence.DistributionService
+	Now           func() time.Time
 }
 
 func NewService(repository Repository, risks *risk.Service, forms ReusableFormReader) *Service {
