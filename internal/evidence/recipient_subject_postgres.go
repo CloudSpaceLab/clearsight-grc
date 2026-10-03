@@ -24,6 +24,8 @@ func (r *PostgresRepository) ResolveSubjectScope(ctx context.Context, tenant, su
 		err = r.pool.QueryRow(ctx, `SELECT p.legal_entity_id::text FROM programs p JOIN tenants t ON t.id=p.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND p.id::text=$2`, tenant, subjectID).Scan(&legalEntityID)
 	case "MATTER":
 		err = r.pool.QueryRow(ctx, `SELECT m.legal_entity_id::text FROM matters m JOIN tenants t ON t.id=m.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND m.id::text=$2`, tenant, subjectID).Scan(&legalEntityID)
+	case "RISK":
+		err = r.pool.QueryRow(ctx, `SELECT r.legal_entity_id::text FROM risks r JOIN tenants t ON t.id=r.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND r.id::text=$2`, tenant, subjectID).Scan(&legalEntityID)
 	case "VENDOR_RELATIONSHIP":
 		err = r.pool.QueryRow(ctx, `SELECT r.legal_entity_id::text FROM third_party_relationships r JOIN tenants t ON t.id=r.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND r.id::text=$2`, tenant, subjectID).Scan(&legalEntityID)
 	default:
@@ -67,6 +69,8 @@ func (r *PostgresRepository) CanReadSubject(ctx context.Context, tenant, princip
 		query = subjectVisibilitySQL("programs", "p")
 	case "MATTER":
 		query = subjectVisibilitySQL("matters", "m")
+	case "RISK":
+		query = subjectVisibilitySQL("risks", "r")
 	case "VENDOR_RELATIONSHIP":
 		query = `SELECT r.business_owner_principal_id::text=$2
 			FROM third_party_relationships r JOIN tenants t ON t.id=r.tenant_id
@@ -87,6 +91,8 @@ func subjectVisibilitySQL(table, alias string) string {
 	if table == "matters" {
 		responsibilityAccess = `COALESCE(` + alias + `.owner_principal_id::text,'')=$2
 			OR EXISTS (SELECT 1 FROM matter_actions assigned_action WHERE assigned_action.tenant_id=` + alias + `.tenant_id AND assigned_action.matter_id=` + alias + `.id AND assigned_action.owner_principal_id::text=$2)`
+	} else if table == "risks" {
+		responsibilityAccess = `COALESCE(` + alias + `.owner_principal_id::text,'')=$2`
 	}
 	return `SELECT (CASE
 		WHEN NOT (` + alias + `.scope ? 'access') THEN true
