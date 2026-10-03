@@ -14,7 +14,11 @@ func (a *API) operationalLossRoutes() []routeSpec {
 			ObjectType: "OPERATIONAL_LOSS", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner,
 			Materiality: 3, ActorField: noActorField,
 		}),
-		material("/api/v1/losses/{id}/intervention", "loss.intervention.open", a.openOperationalLossIntervention, commandPolicy{\n\t\t\tObjectType: "OPERATIONAL_LOSS", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner,\n\t\t\tMateriality: 3, ActorField: noActorField,\n\t\t}),\n		material("/api/v1/losses/{id}/recoveries", "loss.recovery.record", a.recordOperationalLossRecovery, commandPolicy{
+		material("/api/v1/losses/{id}/intervention", "loss.intervention.open", a.openOperationalLossIntervention, commandPolicy{
+			ObjectType: "OPERATIONAL_LOSS", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner,
+			Materiality: 3, ActorField: noActorField,
+		}),
+		material("/api/v1/losses/{id}/recoveries", "loss.recovery.record", a.recordOperationalLossRecovery, commandPolicy{
 			ObjectType: "OPERATIONAL_LOSS", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner,
 			Materiality: 3, ActorField: noActorField,
 		}),
