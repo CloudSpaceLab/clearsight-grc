@@ -204,7 +204,6 @@ func TestRiskHTTPListUsesVerifiedEntityAndBoundedFilters(t *testing.T) {
 	}
 }
 
-
 func TestRiskHTTPOrganizationScopeIncludesAuthorizedDescendants(t *testing.T) {
 	service := risk.NewService(risk.NewMemoryRepository())
 	now := time.Date(2026, 10, 3, 10, 0, 0, 0, time.UTC)
