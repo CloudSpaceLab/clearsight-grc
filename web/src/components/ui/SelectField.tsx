@@ -46,6 +46,7 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
   const allowClose = useRef(false);
   const triggerButton = useRef<HTMLButtonElement>(null);
   const restoreReleaseTimer = useRef<number | undefined>(undefined);
+  const tabCloseTimer = useRef<number | undefined>(undefined);
   const selectRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
     // Keep a modal as the option list's accessibility and dismissal boundary.
@@ -58,7 +59,10 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
     const nextContainer = dialog ?? document.getElementById("cs-overlay-root") ?? undefined;
     setPortalContainer((current) => current === nextContainer ? current : nextContainer);
   }, []);
-  useEffect(() => () => window.clearTimeout(restoreReleaseTimer.current), []);
+  useEffect(() => () => {
+    window.clearTimeout(restoreReleaseTimer.current);
+    window.clearTimeout(tabCloseTimer.current);
+  }, []);
   useLayoutEffect(() => {
     if (!isOpen) return;
     function restoreOpeningPosition(event: Event) {
@@ -93,7 +97,15 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
         event.stopImmediatePropagation();
         finishClose();
         triggerButton.current?.focus();
-      } else if (event.key === "Tab") allowClose.current = true;
+      } else if (event.key === "Tab") {
+        allowClose.current = true;
+        window.clearTimeout(tabCloseTimer.current);
+        // Preserve the browser's native Tab focus movement, then remove the
+        // non-modal listbox even when React Aria does not emit onOpenChange.
+        tabCloseTimer.current = window.setTimeout(() => {
+          if (allowClose.current) finishClose();
+        }, 0);
+      }
     }
     window.addEventListener("keydown", handleWindowKeyDown, true);
     return () => window.removeEventListener("keydown", handleWindowKeyDown, true);
@@ -101,6 +113,8 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
 
   function finishClose() {
     allowClose.current = false;
+    window.clearTimeout(tabCloseTimer.current);
+    tabCloseTimer.current = undefined;
     unchangedOpeningScroll.current = undefined;
     restoringScroll.current = false;
     openScrollPosition.current = undefined;
