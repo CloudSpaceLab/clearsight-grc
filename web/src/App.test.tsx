@@ -51,6 +51,9 @@ vi.mock("./components/VendorsWorkspace", () => ({
 vi.mock("./components/risks/RisksWorkspace", () => ({
   RisksWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Risks</h1><output data-testid="risk-target">{targetID}</output></section>,
 }));
+vi.mock("./components/oversight/GroupOversightWorkspace", () => ({
+  GroupOversightWorkspace: ({ onOpenLegalEntity }: { onOpenLegalEntity: (legalEntityID: string) => void }) => <section><h1>Group posture</h1><button type="button" onClick={() => onOpenLegalEntity("entity-ng-uuid")}>Open current OpCo</button></section>,
+}));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
   reassignCaptureRecipient: vi.fn(),
@@ -86,7 +89,7 @@ vi.mock("./evidenceRequestAdminApi", async (importOriginal) => ({
 
 type RuntimeWithCapabilities = RuntimeContext & {
   demo_mode: boolean;
-  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean; scope_switch?: boolean; identity_read?: boolean };
+  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean; group_oversight?: boolean; scope_switch?: boolean; identity_read?: boolean };
   actor: RuntimeContext["actor"] & { role_codes: string[] };
 };
 
@@ -242,6 +245,29 @@ describe("legal entity scope selector", () => {
     const trigger = within(context).getByRole("button", { name: /Organization scope/ });
     expect(trigger.textContent).toContain("Clear Bank Nigeria");
     expect(within(context).queryByText("Non-production data")).toBeNull();
+  });
+
+  it("opens Group Home from the organization root without changing the legal-entity session", async () => {
+    const scoped = switchableRuntime();
+    scoped.capabilities.oversight_read = true;
+    scoped.capabilities.group_oversight = true;
+    vi.mocked(loadContext).mockResolvedValue(scoped);
+    vi.mocked(switchLegalEntity).mockClear();
+    window.history.replaceState(null, "", "#oversight");
+    render(<App/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    fireEvent.click(within(dialog).getByRole("button", { name: /^Clear Bank$/ }));
+
+    expect(await screen.findByRole("heading", { name: "Group posture" })).toBeTruthy();
+    expect(window.location.hash).toBe("#oversight?scope=group");
+    expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank · Group");
+    expect(switchLegalEntity).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open current OpCo" }));
+    await waitFor(() => expect(window.location.hash).toBe("#oversight"));
+    expect(switchLegalEntity).not.toHaveBeenCalled();
   });
 
   it("shows server-authorized organization scopes even when there is only one legal entity", async () => {
