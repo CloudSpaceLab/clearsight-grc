@@ -55,7 +55,70 @@ export function installVendorAssessmentEvidence() {
       const index = Number(finding[1]);
       return json({ matter: { id: `sample-portfolio-finding-${index}`, type: "VENDOR_DEFICIENCY", title: findingLabels[index], status: "TRIAGE", known_facts: { sample: true, source_file: "Example vendor register.xlsx", source_range: `Example assessment · Finding ${index + 1}`, source_owner: "Morgan Ellis", source_rating: "High", source_period: "Q1 2026" }, due_at: "2026-03-31T16:00:00Z", updated_at: now }, type_label: "Vendor finding", status_label: "Initial review", next_action: "Review finding", actions: [{ id: `sample-portfolio-action-${index}`, title: actionLabels[index], description: "Synthetic example action", status: "PLANNED", due_at: "2026-03-31T16:00:00Z" }], links: [], decisions: [], verification_contracts: [], verification_results: [], response_packages: [], closure: { ready: false, reasons: [] } });
     }
-    if (path === "/api/v1/access/overview") return json({ roles: [{ id: "sample-reviewer-role", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: [] }], can_configure: true });
+    if (path === "/api/v1/access/overview") return json({
+      sign_in: { mode: "OIDC", authentication: "MFA", assurance_level: "AAL2" },
+      actor_principal_id: "sample-access-admin",
+      can_configure: true,
+      can_configure_organization: true,
+      can_configure_escalation: false,
+      sources: [],
+      people: [],
+      groups: [],
+      roles: [{ id: "sample-reviewer-role", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: [] }],
+      legal_entities: [{ id: "sample-entity-ng", code: "BANK-NG", name: "Clear Bank Nigeria" }],
+      bindings: [],
+      positions: [{
+        id: "sample-cro-position",
+        code: "CRO-NG",
+        title: "Chief Risk Officer",
+        function_name: "Risk",
+        department_path: ["BANK", "RISK"],
+        organization_scope_id: "sample-scope-risk",
+        occupant_principal_id: "sample-cro",
+        occupant_name: "Morgan Ellis",
+        occupant_status: "ACTIVE",
+        role_codes: ["CRO"],
+        valid_from: "2026-01-01T00:00:00Z",
+        version: 1,
+      }],
+      organization_scopes: [{
+        id: "sample-scope-risk",
+        legal_entity_id: "sample-entity-ng",
+        code: "RISK",
+        name: "Risk",
+        kind: "DEPARTMENT",
+        department_path: ["BANK", "RISK"],
+        origin: "MANAGED",
+        status: "ACTIVE",
+        valid_from: "2026-01-01T00:00:00Z",
+        version: 2,
+      }, {
+        id: "sample-scope-risk-ops",
+        legal_entity_id: "sample-entity-ng",
+        parent_scope_id: "sample-scope-risk",
+        code: "RISK-OPS",
+        name: "Risk Operations",
+        kind: "DEPARTMENT",
+        department_path: ["BANK", "RISK", "OPERATIONS"],
+        origin: "MANAGED",
+        status: "ACTIVE",
+        valid_from: "2026-01-01T00:00:00Z",
+        version: 1,
+      }],
+      organization_scope_revisions: [{
+        id: "sample-scope-revision",
+        scope_id: "sample-scope-risk-ops",
+        operation: "UPDATE",
+        base_version: 1,
+        proposed_name: "Operational Risk",
+        maker_id: "sample-other-admin",
+        status: "PENDING",
+        impact: { child_scopes: 0, positions: 0, access_mappings: 0, open_matters: 0 },
+        created_at: "2026-10-03T18:00:00Z",
+      }],
+      escalation: { pending_timers: 0, escalated_tasks: 0, unresolved_24h: 0, failed_timers: 0 },
+      escalation_policies: [],
+    });
     if (path === "/api/v1/forms/templates" && method === "GET") return json({ items: [{ template: assessmentEvidenceTemplate, active_version: 4, active_status: "ACTIVE" }] });
     if (path === "/api/v1/forms/responses" && method === "GET" && url.searchParams.get("subject_type") === "VENDOR_RELATIONSHIP") {
       const historical = url.searchParams.has("cursor"), relationshipID = url.searchParams.get("subject_id");
