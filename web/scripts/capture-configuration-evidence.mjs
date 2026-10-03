@@ -82,7 +82,7 @@ async function assertAuthority(page, name) {
 }
 
 async function assertAccessLive(page, name) {
-  await page.getByRole("heading", { name: "Organization & access", exact: true }).waitFor({ state: "visible" });
+  await page.locator("#organization-access-heading").getByText("Organization & access", { exact: true }).waitFor({ state: "visible" });
   await page.getByRole("heading", { name: "Areas", exact: true }).waitFor({ state: "visible" });
   await page.getByRole("button", { name: "Add area", exact: true }).waitFor({ state: "visible" });
   await page.getByText("Pending changes", { exact: true }).waitFor({ state: "visible" });
