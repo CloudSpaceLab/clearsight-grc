@@ -1286,13 +1286,19 @@
           {
             "name": "start_date",
             "in": "query",
-            "schema": { "type": "string", "format": "date" },
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
             "description": "Start of the bounded historical analysis window. Current posture remains current."
           },
           {
             "name": "end_date",
             "in": "query",
-            "schema": { "type": "string", "format": "date" },
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
             "description": "Must be the current reporting date; historical end dates are not supported."
           }
         ],
@@ -1307,13 +1313,19 @@
           {
             "name": "start_date",
             "in": "query",
-            "schema": { "type": "string", "format": "date" },
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
             "description": "Start of the bounded historical analysis window. Current posture remains current."
           },
           {
             "name": "end_date",
             "in": "query",
-            "schema": { "type": "string", "format": "date" },
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
             "description": "Must be the current reporting date; historical end dates are not supported."
           }
         ],
@@ -4468,6 +4480,39 @@
         "responses": {
           "201": {
             "description": "Exact MonitoringCheck revision linked to the current Risk version."
+          }
+        }
+      }
+    },
+    "/api/v1/rcsa/cycles": {
+      "post": {
+        "operationId": "createRCSACycle",
+        "x-clearsight-route-class": "MATERIAL_COMMAND",
+        "responses": {
+          "201": {
+            "description": "Immutable RCSA population cycle created."
+          }
+        }
+      }
+    },
+    "/api/v1/rcsa/cycles/{id}": {
+      "get": {
+        "operationId": "getRCSACycle",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner-visible RCSA cycle and frozen population."
           }
         }
       }
