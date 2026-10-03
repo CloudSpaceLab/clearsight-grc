@@ -43,12 +43,12 @@ func (a *API) groupOversight(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "group_oversight_unavailable", "Group posture is unavailable. Try again.")
 		return
 	}
-	groupName, err := a.groupOversightName(r.Context(), actor)
+	groupRoot, err := a.groupOversightRoot(r.Context(), actor)
 	if err != nil {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "group_oversight_unavailable", "Group posture is unavailable. Try again.")
 		return
 	}
-	group, err := oversight.BuildGroupSnapshot(actor.TenantID, groupName, entities, snapshots)
+	group, err := oversight.BuildGroupSnapshot(groupRoot.ID, groupRoot.Name, entities, snapshots)
 	if err != nil {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "group_oversight_unavailable", "Group posture is unavailable. Try again.")
 		return
@@ -77,17 +77,18 @@ func (a *API) resolveGroupOversightEntities(ctx context.Context, actor identity.
 	return page, nil
 }
 
-func (a *API) groupOversightName(ctx context.Context, actor identity.Actor) (string, error) {
-	if a.deps.RuntimeContext == nil {
-		return "", errGroupOversightUnavailable
+func (a *API) groupOversightRoot(ctx context.Context, actor identity.Actor) (runtimecontext.ScopeNode, error) {
+	resolver, ok := a.deps.RuntimeContext.(runtimecontext.HierarchyResolver)
+	if !ok {
+		return runtimecontext.ScopeNode{}, errGroupOversightUnavailable
 	}
-	display, err := a.deps.RuntimeContext.Resolve(ctx, runtimecontext.Scope{
+	hierarchy, err := resolver.ResolveHierarchy(ctx, runtimecontext.Scope{
 		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
 	})
-	if err != nil || display.TenantName == "" {
-		return "", errGroupOversightUnavailable
+	if err != nil || hierarchy.Root.ID == "" || hierarchy.Root.Name == "" {
+		return runtimecontext.ScopeNode{}, errGroupOversightUnavailable
 	}
-	return display.TenantName, nil
+	return hierarchy.Root, nil
 }
 
 func (a *API) groupOversightAvailable(ctx context.Context, actor identity.Actor) bool {
