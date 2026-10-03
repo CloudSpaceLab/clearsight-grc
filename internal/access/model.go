@@ -45,6 +45,25 @@ type BatchPrincipalResolver interface {
 	ResolvePrincipals(context.Context, string, string, []string) ([]PrincipalResolveOutcome, error)
 }
 
+type OversightLegalEntity struct {
+	ID           string `json:"id"`
+	Code         string `json:"code"`
+	Name         string `json:"name"`
+	Jurisdiction string `json:"jurisdiction,omitempty"`
+}
+
+type OversightScopePage struct {
+	Items   []OversightLegalEntity
+	HasMore bool
+}
+
+// OversightScopeResolver resolves only legal entities where the principal has
+// legal-entity-wide OVERSIGHT_READ. Department-scoped grants are deliberately
+// excluded because Group posture is a cross-entity aggregate.
+type OversightScopeResolver interface {
+	ResolveOversightLegalEntities(context.Context, string, string, int) (OversightScopePage, error)
+}
+
 type ReassignmentRequest struct {
 	TenantID                string
 	LegalEntityID           string
