@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -140,6 +141,25 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 		t.Fatalf("local reader discovered sibling scope: %#v", forbiddenPage.Items)
 	}
 
+	if _, err = pool.Exec(ctx, "ANALYZE organization_scopes"); err != nil {
+		t.Fatal(err)
+	}
+
+	var searchIndexDefinition string
+	if err = pool.QueryRow(ctx, `
+		SELECT indexdef
+		FROM pg_indexes
+		WHERE schemaname='public'
+		  AND tablename='organization_scopes'
+		  AND indexname='organization_scopes_search_idx'
+	`).Scan(&searchIndexDefinition); err != nil {
+		t.Fatal(err)
+	}
+	normalizedIndex := strings.ToLower(searchIndexDefinition)
+	if !strings.Contains(normalizedIndex, "using gin") || !strings.Contains(normalizedIndex, "search_document") {
+		t.Fatalf("organization search index = %q", searchIndexDefinition)
+	}
+
 	var plan []byte
 	if err = pool.QueryRow(ctx, `
 		EXPLAIN (FORMAT JSON)
@@ -154,7 +174,7 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 	`, tenantID, entityID).Scan(&plan); err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(plan, []byte("organization_scopes_search_idx")) {
-		t.Fatalf("organization search plan did not use search index: %s", plan)
+	if bytes.Contains(plan, []byte(`"Node Type": "Seq Scan"`)) || !bytes.Contains(plan, []byte(`"Index Name"`)) {
+		t.Fatalf("organization search plan is not index-backed: %s", plan)
 	}
 }

@@ -13,7 +13,10 @@ var (
 	ErrPrincipalBatchTooLarge = errors.New("principal resolution batch exceeds the supported limit")
 )
 
-const MaxPrincipalBatchSize = 500
+const (
+	MaxPrincipalBatchSize         = 500
+	MaxLegalEntityAccessBatchSize = 500
+)
 
 type Resolution struct {
 	TenantID         string
@@ -31,6 +34,19 @@ type Resolver interface {
 	ResolvePrincipal(context.Context, string, string, string) (Resolution, error)
 }
 
+type LegalEntityAccess struct {
+	LegalEntityID   string
+	LegalEntityCode string
+	PermissionCodes []string
+}
+
+// LegalEntityAccessResolver resolves legal-entity-wide permissions for one
+// verified principal without rotating that principal's active session scope.
+// Department-scoped permissions are deliberately excluded.
+type LegalEntityAccessResolver interface {
+	ResolveLegalEntityAccess(context.Context, string, string, []string) ([]LegalEntityAccess, error)
+}
+
 // PrincipalResolveOutcome preserves input order while keeping an unavailable
 // principal isolated from other display-name resolutions in the same batch.
 type PrincipalResolveOutcome struct {
@@ -43,27 +59,6 @@ type PrincipalResolveOutcome struct {
 // avoids one directory query per stored responsibility on record workspaces.
 type BatchPrincipalResolver interface {
 	ResolvePrincipals(context.Context, string, string, []string) ([]PrincipalResolveOutcome, error)
-}
-
-type OversightLegalEntity struct {
-	ID           string `json:"id"`
-	Code         string `json:"code"`
-	Name         string `json:"name"`
-	Jurisdiction string `json:"jurisdiction,omitempty"`
-}
-
-type OversightScopePage struct {
-	TenantID   string
-	TenantName string
-	Items      []OversightLegalEntity
-	HasMore    bool
-}
-
-// OversightScopeResolver resolves only legal entities where the principal has
-// legal-entity-wide OVERSIGHT_READ. Department-scoped grants are deliberately
-// excluded because Group posture is a cross-entity aggregate.
-type OversightScopeResolver interface {
-	ResolveOversightLegalEntities(context.Context, string, string, int) (OversightScopePage, error)
 }
 
 type ReassignmentRequest struct {

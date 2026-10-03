@@ -120,7 +120,6 @@ type HistoryQuality struct {
 }
 
 type Snapshot struct {
-	SnapshotID          string               `json:"-"`
 	TenantID            string               `json:"-"`
 	LegalEntityID       string               `json:"-"`
 	OrganizationScopeID string               `json:"organization_scope_id,omitempty"`

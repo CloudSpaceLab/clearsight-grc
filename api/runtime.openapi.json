@@ -1358,9 +1358,13 @@
     },
     "/api/v1/oversight/group": {
       "get": {
-        "operationId": "groupOversight",
+        "operationId": "groupOversightSnapshot",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
-        "description": "Read-only Group posture across legal entities where the verified principal has legal-entity-wide oversight access. Record detail remains legal-entity scoped."
+        "responses": {
+          "200": {
+            "description": "Authorized Group oversight projection."
+          }
+        }
       }
     },
     "/api/v1/metrics/home": {

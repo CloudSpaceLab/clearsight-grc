@@ -78,57 +78,6 @@ type Bundle struct {
 	Items              []Metric                  `json:"items"`
 }
 
-type GroupBundle struct {
-	GeneratedAt        time.Time           `json:"generated_at"`
-	PostureAsOf        time.Time           `json:"posture_as_of"`
-	ScopeID            string              `json:"scope_id"`
-	ScopeKind          string              `json:"scope_kind"`
-	Freshness          oversight.Freshness `json:"freshness"`
-	Completeness       Completeness        `json:"completeness"`
-	Population         int                 `json:"population"`
-	Excluded           *int                `json:"excluded,omitempty"`
-	Unknown            *int                `json:"unknown,omitempty"`
-	SourceRevision     string              `json:"source_revision"`
-	DefinitionRevision string              `json:"definition_revision"`
-	Items              []Metric            `json:"items"`
-}
-
-func FromGroupOversight(snapshot oversight.GroupSnapshot) GroupBundle {
-	completeness := CompletenessComplete
-	if snapshot.Coverage.MissingChildren > 0 || snapshot.Coverage.Unknown == nil {
-		completeness = CompletenessUnknown
-	} else if snapshot.Coverage.StaleChildren > 0 || *snapshot.Coverage.Unknown > 0 {
-		completeness = CompletenessPartial
-	}
-	common := func(id, label, filter string, value int) Metric {
-		condition := ConditionClear
-		if value > 0 {
-			condition = ConditionAttention
-		}
-		return Metric{
-			ID: id, Label: label, Value: value, Unit: "COUNT", Condition: condition,
-			Freshness: snapshot.Freshness, Completeness: completeness,
-			Population: snapshot.Coverage.Population, Excluded: snapshot.Coverage.Excluded, Unknown: snapshot.Coverage.Unknown,
-			GeneratedAt: snapshot.GeneratedAt, SourceRevision: snapshot.ContributorRevision,
-			DefinitionRevision: HomeDefinitionRevision, Basis: MetricBasisCurrentPosture,
-			Drill: DrillTarget{Workspace: "group-oversight", Filter: filter, Consistency: DrillCurrentState},
-		}
-	}
-	return GroupBundle{
-		GeneratedAt: snapshot.GeneratedAt, PostureAsOf: snapshot.PostureAsOf,
-		ScopeID: snapshot.ScopeID, ScopeKind: snapshot.ScopeKind,
-		Freshness: snapshot.Freshness, Completeness: completeness,
-		Population: snapshot.Coverage.Population, Excluded: snapshot.Coverage.Excluded, Unknown: snapshot.Coverage.Unknown,
-		SourceRevision: snapshot.ContributorRevision, DefinitionRevision: HomeDefinitionRevision,
-		Items: []Metric{
-			common("critical_high_open", "Critical and high", "critical-high", snapshot.Counts.CriticalHigh),
-			common("overdue_open", "Overdue", "overdue", snapshot.Counts.Overdue),
-			common("routing_gaps", "Routing gaps", "routing-gaps", snapshot.Counts.RoutingFailures),
-			common("outcome_failures", "Outcome failures", "outcome-failures", snapshot.Counts.OutcomeFailures),
-		},
-	}
-}
-
 func FromOversight(snapshot oversight.Snapshot) Bundle {
 	completeness := coverageCompleteness(snapshot.Coverage)
 	if snapshot.OrganizationScopeID != "" {

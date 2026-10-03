@@ -63,7 +63,6 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 			"platform_operations_write": identity.HasPermission(actor, identity.PermissionPlatformOperationsWrite),
 			"audit_export":              identity.HasPermission(actor, identity.PermissionAuditExport),
 			"oversight_read":            identity.HasPermission(actor, identity.PermissionOversightRead),
-			"group_oversight":           a.groupOversightAvailable(r.Context(), actor),
 			"scope_switch":              a.deps.Federation != nil && hierarchy.State == runtimecontext.HierarchyComplete && len(hierarchy.LegalEntities) > 1,
 			"people_read":               identity.HasPermission(actor, identity.PermissionOversightRead) || identity.HasPermission(actor, identity.PermissionIdentityRead),
 		},
