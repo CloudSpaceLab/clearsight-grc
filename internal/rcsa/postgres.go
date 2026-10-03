@@ -119,6 +119,23 @@ func (r *PostgresRepository) Get(ctx context.Context, scope Scope, id string) (A
 	return Aggregate{Cycle: cycle, Risks: risks, Controls: controls}, nil
 }
 
+func (r *PostgresRepository) ResolveLegalEntity(ctx context.Context, tenant, id string) (string, error) {
+	if r == nil || r.pool == nil || strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
+		return "", ErrInvalid
+	}
+	var entity string
+	err := r.pool.QueryRow(ctx, `
+		SELECT c.legal_entity_id::text
+		FROM rcsa_cycles c
+		JOIN tenants t ON t.id=c.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND c.id=$2::uuid`,
+		strings.TrimSpace(tenant), strings.TrimSpace(id)).Scan(&entity)
+	if err != nil {
+		return "", mapPostgresError(err)
+	}
+	return entity, nil
+}
+
 func (r *PostgresRepository) risks(ctx context.Context, cycle Cycle) ([]RiskSnapshot, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT cycle_id::text,risk_id::text,risk_version,code,name,category
