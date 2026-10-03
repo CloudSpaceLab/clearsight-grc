@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oploss"
 )
@@ -136,5 +137,65 @@ func TestOperationalLossHTTPRejectsCrossEntityRead(t *testing.T) {
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/losses/"+value.ID, nil))
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+
+func TestOperationalLossInterventionCreatesAndReusesCanonicalMatter(t *testing.T) {
+	losses := oploss.NewService(oploss.NewMemoryRepository())
+	now := time.Date(2026, 10, 3, 19, 0, 0, 0, time.UTC)
+	losses.Now = func() time.Time { return now }
+	created, err := losses.Create(t.Context(), oploss.CreateInput{
+		TenantID: "bank", LegalEntityID: "entity-a", Code: "LOSS-MATERIAL", Title: "Material settlement loss",
+		EventType: oploss.EventExecutionDeliveryProcess, Cause: "Settlement control failed.",
+		Description: "A duplicate settlement caused a material operational loss.",
+		GrossAmountMinor: 500000000, Currency: "NGN",
+		OccurredAt: now.Add(-2 * time.Hour), DiscoveredAt: now.Add(-time.Hour),
+		OwnerPrincipalID: "owner-1", ActorID: "owner-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matters := continuity.NewService(continuity.NewMemoryRepository())
+	api := &API{deps: Dependencies{OperationalLoss: losses, Continuity: matters}}
+
+	open := func(expected int64) struct {
+		Loss   oploss.Loss      `json:"loss"`
+		Matter continuity.Matter `json:"matter"`
+	} {
+		t.Helper()
+		response := httptest.NewRecorder()
+		request := httptest.NewRequest(
+			http.MethodPost,
+			"/api/v1/losses/"+created.ID+"/intervention",
+			strings.NewReader(fmt.Sprintf(`{"expected_version":%d}`, expected)),
+		)
+		request.SetPathValue("id", created.ID)
+		request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
+			TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "owner-1",
+		}))
+		api.openOperationalLossIntervention(response, request)
+		if response.Code != http.StatusOK {
+			t.Fatalf("intervention status=%d body=%s", response.Code, response.Body.String())
+		}
+		var payload struct {
+			Loss   oploss.Loss      `json:"loss"`
+			Matter continuity.Matter `json:"matter"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+			t.Fatal(err)
+		}
+		return payload
+	}
+
+	first := open(1)
+	if first.Loss.Version != 2 || first.Loss.MatterID == "" || first.Loss.MatterID != first.Matter.ID ||
+		first.Matter.Type != continuity.MatterOperationalLoss ||
+		first.Matter.TriggerKey != "operational-loss:"+created.ID {
+		t.Fatalf("first intervention=%#v", first)
+	}
+	second := open(2)
+	if second.Loss.Version != 2 || second.Matter.ID != first.Matter.ID {
+		t.Fatalf("intervention was not idempotent: first=%#v second=%#v", first, second)
 	}
 }
