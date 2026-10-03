@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadGroupOversight, type GroupChild, type GroupOversightResponse } from "../../groupOversightApi";
-import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
+import { loadGroupOversight, type GroupChild, type GroupOversightSnapshot } from "../../groupOversightApi";
+import { homeMetricDetail, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
+import type { MetricCompleteness } from "../../metricApi";
 import { Button, DataTable, EmptyState, MetricCard, Notice, StatusBadge, type DataColumn } from "../ui";
 import "./group-oversight.css";
 
@@ -9,7 +10,7 @@ type Props = {
   metricFilter?: HomeMetricFilter;
   onMetricFilterChange?: (filter: HomeMetricFilter) => void;
   onOpenLegalEntity: (legalEntityID: string) => void;
-  loadGroup?: (signal?: AbortSignal) => Promise<GroupOversightResponse>;
+  loadGroup?: (signal?: AbortSignal) => Promise<GroupOversightSnapshot>;
 };
 
 type LoadState = "loading" | "live" | "unavailable";
@@ -21,7 +22,7 @@ export function GroupOversightWorkspace({
   onOpenLegalEntity,
   loadGroup = loadGroupOversight,
 }: Props) {
-  const [value, setValue] = useState<GroupOversightResponse>();
+  const [value, setValue] = useState<GroupOversightSnapshot>();
   const [state, setState] = useState<LoadState>("loading");
   const [retry, setRetry] = useState(0);
   const [localFilter, setLocalFilter] = useState<HomeMetricFilter>(metricFilter);
@@ -50,58 +51,58 @@ export function GroupOversightWorkspace({
   }
 
   const rows = useMemo(() => {
-    const items = [...(value?.snapshot.children ?? [])];
+    const items = [...(value?.children ?? [])];
     return items.sort((left, right) => {
       const leftValue = groupMetricValue(left, selected);
       const rightValue = groupMetricValue(right, selected);
       if (leftValue !== rightValue) return rightValue - leftValue;
       if (left.state === "MISSING" && right.state !== "MISSING") return 1;
       if (right.state === "MISSING" && left.state !== "MISSING") return -1;
-      return left.name.localeCompare(right.name);
+      return left.legal_entity_name.localeCompare(right.legal_entity_name);
     });
-  }, [selected, value?.snapshot.children]);
+  }, [selected, value?.children]);
 
   const columns: readonly DataColumn<GroupChild>[] = [
     {
       id: "entity",
       header: "OpCo",
       mobileLayout: "full-width",
-      render: (item) => <span className="group-opco__identity"><strong>{item.name}</strong><small>{item.jurisdiction || item.code || "Legal entity"}</small></span>,
-      accessibleText: (item) => `${item.name}, ${item.jurisdiction || item.code || "Legal entity"}`,
+      render: (item) => <span className="group-opco__identity"><strong>{item.legal_entity_name}</strong><small>{item.jurisdiction || item.legal_entity_code || "Legal entity"}</small></span>,
+      accessibleText: (item) => `${item.legal_entity_name}, ${item.jurisdiction || item.legal_entity_code || "Legal entity"}`,
     },
     {
       id: "critical",
       header: "Critical & high",
       kind: "number",
-      render: (item) => item.counts?.critical_high ?? "—",
-      accessibleText: (item) => item.counts ? String(item.counts.critical_high) : "Unavailable",
+      render: (item) => item.state === "MISSING" ? "—" : item.counts.critical_high,
+      accessibleText: (item) => item.state === "MISSING" ? "Unavailable" : String(item.counts.critical_high),
     },
     {
       id: "overdue",
       header: "Overdue",
       kind: "number",
-      render: (item) => item.counts?.overdue ?? "—",
-      accessibleText: (item) => item.counts ? String(item.counts.overdue) : "Unavailable",
+      render: (item) => item.state === "MISSING" ? "—" : item.counts.overdue,
+      accessibleText: (item) => item.state === "MISSING" ? "Unavailable" : String(item.counts.overdue),
     },
     {
       id: "routing",
       header: "Routing gaps",
       kind: "number",
-      render: (item) => item.counts?.routing_failures ?? "—",
-      accessibleText: (item) => item.counts ? String(item.counts.routing_failures) : "Unavailable",
+      render: (item) => item.state === "MISSING" ? "—" : item.counts.routing_failures,
+      accessibleText: (item) => item.state === "MISSING" ? "Unavailable" : String(item.counts.routing_failures),
     },
     {
       id: "outcomes",
       header: "Outcome failures",
       kind: "number",
-      render: (item) => item.counts?.outcome_failures ?? "—",
-      accessibleText: (item) => item.counts ? String(item.counts.outcome_failures) : "Unavailable",
+      render: (item) => item.state === "MISSING" ? "—" : item.counts.outcome_failures,
+      accessibleText: (item) => item.state === "MISSING" ? "Unavailable" : String(item.counts.outcome_failures),
     },
     {
       id: "quality",
       header: "Data",
       kind: "status",
-      render: (item) => <StatusBadge tone={item.state === "CURRENT" ? "success" : item.state === "STALE" ? "warning" : "neutral"}>{groupChildStateLabel(item.state)}</StatusBadge>,
+      render: (item) => <StatusBadge tone={item.state === "AVAILABLE" ? "success" : item.state === "STALE" ? "warning" : "neutral"}>{groupChildStateLabel(item.state)}</StatusBadge>,
       accessibleText: (item) => groupChildStateLabel(item.state),
     },
   ];
@@ -118,6 +119,8 @@ export function GroupOversightWorkspace({
     </section>;
   }
 
+  const completeness = value ? groupCompleteness(value) : "UNKNOWN";
+
   return <section className="group-oversight-page" aria-labelledby="group-oversight-heading">
     <header className="topbar group-oversight-header">
       <div>
@@ -131,22 +134,22 @@ export function GroupOversightWorkspace({
 
     <div className="oversight-counts" aria-label="Group risk metrics" aria-busy={state === "loading" || undefined}>
       {headlineMetricDefinitions.map((definition) => {
-        const metric = value?.metrics.items.find((item) => item.id === definition.id);
-        if (!metric) return <MetricCard key={definition.id} label={definition.label} value="—" detail={definition.detail} quality="unknown" qualityLabel={state === "loading" ? "Loading" : "Unavailable"}/>;
-        const filter = homeMetricFilter(metric.drill.filter);
-        const active = filter !== "all" && selected === filter;
+        if (!value) return <MetricCard key={definition.id} label={definition.label} value="—" detail={definition.detail} quality="unknown" qualityLabel={state === "loading" ? "Loading" : "Unavailable"}/>;
+        const metricValue = groupHeadlineValue(value, definition.id);
+        const filter = groupFilterForMetric(definition.id);
+        const active = selected === filter;
         return <MetricCard
-          key={metric.id}
-          label={metric.label}
-          value={metric.value}
-          detail={homeMetricDetail(metric.id)}
-          meta={homeMetricMeta(metric)}
-          tone={homeMetricTone(metric)}
-          quality={homeMetricQuality(metric)}
-          actionLabel={filter === "all" ? undefined : active ? "Show all OpCos" : "Compare OpCos"}
+          key={definition.id}
+          label={definition.label}
+          value={metricValue}
+          detail={homeMetricDetail(definition.id)}
+          meta={groupMetricMeta(value)}
+          tone={homeMetricTone({ id: definition.id, condition: metricValue > 0 ? "ATTENTION" : "CLEAR" })}
+          quality={homeMetricQuality({ freshness: value.freshness, completeness })}
+          actionLabel={active ? "Show all OpCos" : "Compare OpCos"}
           isSelected={active}
-          ariaControls={filter === "all" ? undefined : "group-opcos"}
-          onPress={filter === "all" ? undefined : () => chooseMetric(filter)}
+          ariaControls="group-opcos"
+          onPress={() => chooseMetric(filter)}
         />;
       })}
     </div>
@@ -156,15 +159,15 @@ export function GroupOversightWorkspace({
         <div>
           <span className="eyebrow">Legal entities</span>
           <h2 id="group-opcos-heading">{selected === "all" ? "OpCo comparison" : groupFilterLabel(selected)}</h2>
-          <p>{value ? `${value.snapshot.coverage.contributing_children} of ${value.snapshot.coverage.authorized_children} OpCos contributing` : "Loading authorized OpCos…"}</p>
+          <p>{value ? `${value.coverage.included_children} of ${value.coverage.authorized_children} OpCos contributing` : "Loading authorized OpCos…"}</p>
         </div>
       </div>
-      {value?.snapshot.children.length
+      {value?.children.length
         ? <DataTable
           ariaLabel="Group OpCo posture"
           rows={rows}
           rowKey={(item) => item.legal_entity_id}
-          rowName={(item) => `${item.name}, ${groupChildStateLabel(item.state)}`}
+          rowName={(item) => `${item.legal_entity_name}, ${groupChildStateLabel(item.state)}`}
           columns={columns}
           onRowAction={(item) => onOpenLegalEntity(item.legal_entity_id)}
           rowActionLabel="Open OpCo"
@@ -177,19 +180,42 @@ export function GroupOversightWorkspace({
   </section>;
 }
 
-function GroupCoverageNotice({ value }: { value: GroupOversightResponse }) {
-  const coverage = value.snapshot.coverage;
-  if (coverage.missing_children > 0) {
-    return <Notice tone="warning">{coverage.missing_children} {coverage.missing_children === 1 ? "OpCo has" : "OpCos have"} no current snapshot. Group totals are incomplete.</Notice>;
+function GroupCoverageNotice({ value }: { value: GroupOversightSnapshot }) {
+  if (value.coverage.missing_children > 0) {
+    return <Notice tone="warning">{value.coverage.missing_children} {value.coverage.missing_children === 1 ? "OpCo has" : "OpCos have"} no current snapshot. Group totals are incomplete.</Notice>;
   }
-  if (coverage.stale_children > 0) {
-    return <Notice tone="warning">{coverage.stale_children} {coverage.stale_children === 1 ? "OpCo has" : "OpCos have"} stale posture data.</Notice>;
+  if (value.coverage.stale_children > 0) {
+    return <Notice tone="warning">{value.coverage.stale_children} {value.coverage.stale_children === 1 ? "OpCo has" : "OpCos have"} stale posture data.</Notice>;
   }
-  return <p className="group-oversight-quality">{coverage.authorized_children} OpCos · {coverage.population} issues checked</p>;
+  return <p className="group-oversight-quality">{value.coverage.authorized_children} OpCos · {value.record_coverage.population} issues checked</p>;
+}
+
+function groupCompleteness(value: GroupOversightSnapshot): MetricCompleteness {
+  if (value.coverage.missing_children > 0 || value.record_coverage.unknown === undefined) return "UNKNOWN";
+  if (value.coverage.stale_children > 0 || value.record_coverage.unknown > 0) return "PARTIAL";
+  return "COMPLETE";
+}
+
+function groupMetricMeta(value: GroupOversightSnapshot) {
+  return `${value.record_coverage.population} checked · ${knownCount(value.record_coverage.excluded)} excluded · ${knownCount(value.record_coverage.unknown)} unknown`;
+}
+
+function groupHeadlineValue(value: GroupOversightSnapshot, id: string) {
+  if (id === "critical_high_open") return value.counts.critical_high;
+  if (id === "overdue_open") return value.counts.overdue;
+  if (id === "routing_gaps") return value.counts.routing_failures;
+  return value.counts.outcome_failures;
+}
+
+function groupFilterForMetric(id: string): Exclude<HomeMetricFilter, "all"> {
+  if (id === "critical_high_open") return "critical-high";
+  if (id === "overdue_open") return "overdue";
+  if (id === "routing_gaps") return "routing-gaps";
+  return "outcome-failures";
 }
 
 function groupMetricValue(item: GroupChild, filter: HomeMetricFilter) {
-  if (!item.counts || filter === "all") return 0;
+  if (item.state === "MISSING" || filter === "all") return 0;
   if (filter === "critical-high") return item.counts.critical_high;
   if (filter === "overdue") return item.counts.overdue;
   if (filter === "routing-gaps") return item.counts.routing_failures;
@@ -205,7 +231,11 @@ function groupFilterLabel(filter: HomeMetricFilter) {
 }
 
 function groupChildStateLabel(state: GroupChild["state"]) {
-  if (state === "CURRENT") return "Current";
+  if (state === "AVAILABLE") return "Current";
   if (state === "STALE") return "Stale";
   return "No snapshot";
+}
+
+function knownCount(value: number | undefined) {
+  return value === undefined ? "unknown" : String(value);
 }
