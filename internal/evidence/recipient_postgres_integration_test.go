@@ -181,6 +181,94 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 	}
 }
 
+func TestPostgresRiskSubjectScopeAndRecipientAccess(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	const tenantID = "99999999-7777-7777-8777-777777777701"
+	const legalEntityID = "99999999-7777-7777-8777-777777777702"
+	const requesterID = "99999999-7777-7777-8777-777777777703"
+	const ownerID = "99999999-7777-7777-8777-777777777704"
+	const blockedID = "99999999-7777-7777-8777-777777777705"
+	const riskID = "99999999-7777-7777-8777-777777777706"
+	const requesterPosition = "99999999-7777-7777-8777-777777777707"
+	const ownerPosition = "99999999-7777-7777-8777-777777777708"
+	const blockedPosition = "99999999-7777-7777-8777-777777777709"
+	now := time.Date(2026, 10, 3, 9, 30, 0, 0, time.UTC)
+
+	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+
+	mustExecRecipient(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'risk-subject-test','Risk Subject Test')`, tenantID)
+	mustExecRecipient(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'RISK-SCOPE','Risk Scope','NG',$3)`, legalEntityID, tenantID, now.Add(-time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
+		($1::uuid,$4::uuid,'PERSON','RCSA creator','ACTIVE',$5),
+		($2::uuid,$4::uuid,'PERSON','Risk owner','ACTIVE',$5),
+		($3::uuid,$4::uuid,'PERSON','Blocked person','ACTIVE',$5)`, requesterID, ownerID, blockedID, tenantID, now.Add(-time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,valid_from) VALUES
+		($1::uuid,$4::uuid,$5::uuid,'RCSA-CREATOR','RCSA creator',$6::uuid,$9),
+		($2::uuid,$4::uuid,$5::uuid,'RISK-OWNER','Risk owner',$7::uuid,$9),
+		($3::uuid,$4::uuid,$5::uuid,'OTHER','Other person',$8::uuid,$9)`,
+		requesterPosition, ownerPosition, blockedPosition, tenantID, legalEntityID, requesterID, ownerID, blockedID, now.Add(-time.Hour))
+	mustExecRecipient(t, ctx, pool, `INSERT INTO risks(
+		id,tenant_id,legal_entity_id,code,name,statement,impact,scope,owner_principal_id,status,version,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'RCSA-RISK','RCSA risk','A material exposure exists.','Material impact.',
+		       $4::jsonb,$5::uuid,'ACTIVE',1,$6,$6)`,
+		riskID, tenantID, legalEntityID,
+		`{"access":"RESTRICTED","allowed_principal_ids":["99999999-7777-7777-8777-777777777703"]}`, ownerID, now)
+
+	repo := NewPostgresRepository(pool)
+	service := NewService(repo, nil)
+	service.now = func() time.Time { return now }
+
+	scope, err := repo.ResolveSubjectScope(ctx, "risk-subject-test", "RISK", riskID)
+	if err != nil || scope.LegalEntityID != legalEntityID {
+		t.Fatalf("Risk subject scope=%#v err=%v", scope, err)
+	}
+	if allowed, err := repo.CanReadSubject(ctx, "risk-subject-test", requesterID, "RISK", riskID); err != nil || !allowed {
+		t.Fatalf("authorized RCSA creator cannot read Risk: allowed=%v err=%v", allowed, err)
+	}
+	if allowed, err := repo.CanReadSubject(ctx, "risk-subject-test", ownerID, "RISK", riskID); err != nil || !allowed {
+		t.Fatalf("stored Risk owner cannot read restricted Risk: allowed=%v err=%v", allowed, err)
+	}
+	if allowed, err := repo.CanReadSubject(ctx, "risk-subject-test", blockedID, "RISK", riskID); err != nil || allowed {
+		t.Fatalf("unrelated principal gained Risk access: allowed=%v err=%v", allowed, err)
+	}
+
+	created, err := service.CreateRequest(ctx, recipientRequestInput("risk-subject-test", legalEntityID, "RISK", riskID, ownerID, requesterID, now.Add(time.Hour)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.SubjectType != "RISK" || created.SubjectID != riskID || created.LegalEntityID != legalEntityID {
+		t.Fatalf("Risk request = %#v", created)
+	}
+	_, err = service.CreateRequest(ctx, recipientRequestInput("risk-subject-test", legalEntityID, "RISK", riskID, blockedID, requesterID, now.Add(2*time.Hour)))
+	if !errors.Is(err, ErrRecipientInvalid) {
+		t.Fatalf("unrelated principal was assigned restricted Risk request: %v", err)
+	}
+
+	candidates, err := repo.SearchRecipientCandidates(ctx, "risk-subject-test", legalEntityID, created.ID, requesterID, "", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundOwner, foundBlocked := false, false
+	for _, candidate := range candidates {
+		foundOwner = foundOwner || candidate.PrincipalID == ownerID
+		foundBlocked = foundBlocked || candidate.PrincipalID == blockedID
+	}
+	if !foundOwner || foundBlocked {
+		t.Fatalf("Risk recipient candidates owner=%v blocked=%v values=%#v", foundOwner, foundBlocked, candidates)
+	}
+}
+
 func recipientRequestInput(tenant, legalEntityID, subjectType, subjectID, recipient, requester string, deadline time.Time) CreateRequestInput {
 	return CreateRequestInput{
 		TenantID:         tenant,
