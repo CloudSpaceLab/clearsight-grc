@@ -57,10 +57,13 @@ func (r rcsaPopulationResolver) ResolvePopulation(ctx context.Context, scope rcs
 			definition, ok := definitions[catalogLink.DefinitionID]
 			if !ok {
 				definition, err = r.Catalog.GetDefinition(ctx, scope.TenantID, catalogLink.DefinitionID)
-				if err != nil || definition.Status != controlcatalog.DefinitionActive {
+				if err != nil {
 					return rcsa.Population{}, rcsa.ErrInvalid
 				}
 				definitions[catalogLink.DefinitionID] = definition
+			}
+			if definition.Status != controlcatalog.DefinitionActive {
+				continue
 			}
 			program, ok := programs[catalogLink.ProgramID]
 			if !ok {
@@ -71,8 +74,11 @@ func (r rcsaPopulationResolver) ResolvePopulation(ctx context.Context, scope rcs
 				programs[catalogLink.ProgramID] = program
 			}
 			implementation, found := rcsaControlImplementation(program, catalogLink.ImplementationID)
-			if !found || !rcsaImplementationAssessable(implementation, at) {
+			if !found {
 				return rcsa.Population{}, rcsa.ErrInvalid
+			}
+			if !rcsaImplementationAssessable(implementation, at) {
+				continue
 			}
 			population.Controls = append(population.Controls, rcsa.ControlSnapshot{
 				RiskID: current.ID, RiskVersion: current.Version,
