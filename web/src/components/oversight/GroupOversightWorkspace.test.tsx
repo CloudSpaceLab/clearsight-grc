@@ -37,6 +37,7 @@ function fixture(): GroupOversightSnapshot {
         child_projection_version: "oversight-v5",
         counts: { critical_high: 2, overdue: 2, due_soon: 0, routing_failures: 0, unassigned: 0, outcome_failures: 1 },
         coverage: { population: 4, excluded: 0, unknown: 0 },
+        source_high_water: { matters: "2026-10-03T19:59:00Z", workflow_tasks: "2026-10-03T19:58:00Z" },
       },
       {
         legal_entity_id: "entity-b",
@@ -49,13 +50,14 @@ function fixture(): GroupOversightSnapshot {
         child_projection_version: "oversight-v5",
         counts: { critical_high: 3, overdue: 0, due_soon: 1, routing_failures: 1, unassigned: 0, outcome_failures: 2 },
         coverage: { population: 6, excluded: 0, unknown: 0 },
+        source_high_water: { matters: "2026-10-03T19:57:00Z" },
       },
     ],
   };
 }
 
 describe("GroupOversightWorkspace", () => {
-  it("shows canonical metrics and OpCo posture without exposing projection identifiers", async () => {
+  it("keeps revision identifiers hidden until the user opens the exact Group data basis", async () => {
     const onOpenLegalEntity = vi.fn();
     render(<GroupOversightWorkspace
       organizationName="Clear Bank"
@@ -69,6 +71,13 @@ describe("GroupOversightWorkspace", () => {
     expect(screen.getByText("Beta")).toBeTruthy();
     expect(screen.queryByText("snap-secret-a")).toBeNull();
     expect(screen.queryByText("revision-secret")).toBeNull();
+
+    fireEvent.click(screen.getByText("Data basis · 2 contributing OpCos"));
+    expect(screen.getByText("revision-secret")).toBeTruthy();
+    expect(screen.getByText("snap-secret-a")).toBeTruthy();
+    expect(screen.getByText("snap-secret-b")).toBeTruthy();
+    expect(screen.getAllByText("oversight-v5")).toHaveLength(2);
+    expect(screen.getByText(/Matters .* · Workflow Tasks .*/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Open OpCo for Alpha/i }));
     expect(onOpenLegalEntity).toHaveBeenCalledWith("entity-a");
@@ -100,5 +109,7 @@ describe("GroupOversightWorkspace", () => {
     expect(await screen.findByText("1 OpCo has no current snapshot. Group totals are incomplete.")).toBeTruthy();
     expect(screen.getByText("No snapshot")).toBeTruthy();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByText("Data basis · 1 contributing OpCo"));
+    expect(screen.getByText("No snapshot contributed for this OpCo.")).toBeTruthy();
   });
 });
