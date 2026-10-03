@@ -190,6 +190,46 @@ func (s *Service) Get(ctx context.Context, scope Scope, id string) (Aggregate, e
 	return s.repo.Get(ctx, normalized, strings.TrimSpace(id))
 }
 
+func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Page, error) {
+	if s == nil || s.repo == nil {
+		return Page{}, ErrInvalid
+	}
+	normalized, err := normalizeScope(scope)
+	if err != nil {
+		return Page{}, err
+	}
+	filter.Status = Status(strings.ToUpper(strings.TrimSpace(string(filter.Status))))
+	filter.EventType = EventType(strings.ToUpper(strings.TrimSpace(string(filter.EventType))))
+	filter.Currency = strings.ToUpper(strings.TrimSpace(filter.Currency))
+	filter.OrganizationScopeID = strings.TrimSpace(filter.OrganizationScopeID)
+	filter.RiskID = strings.TrimSpace(filter.RiskID)
+	filter.RecoveryStatus = strings.ToUpper(strings.TrimSpace(filter.RecoveryStatus))
+	filter.Search = strings.TrimSpace(filter.Search)
+	filter.Cursor = strings.TrimSpace(filter.Cursor)
+	if filter.Limit <= 0 {
+		filter.Limit = 50
+	} else if filter.Limit > 100 {
+		filter.Limit = 100
+	}
+	if filter.Status != "" && filter.Status != StatusActive && filter.Status != StatusVoided {
+		return Page{}, ErrInvalid
+	}
+	if filter.EventType != "" && !validEventType(filter.EventType) {
+		return Page{}, ErrInvalid
+	}
+	if filter.Currency != "" && !currencyPattern.MatchString(filter.Currency) {
+		return Page{}, ErrInvalid
+	}
+	if filter.RecoveryStatus != "" && filter.RecoveryStatus != "NONE" &&
+		filter.RecoveryStatus != "PARTIAL" && filter.RecoveryStatus != "FULL" {
+		return Page{}, ErrInvalid
+	}
+	if _, err := decodeListCursor(filter.Cursor); err != nil {
+		return Page{}, err
+	}
+	return s.repo.List(ctx, normalized, filter)
+}
+
 func (s *Service) ResolveLegalEntity(ctx context.Context, tenant, id string) (string, error) {
 	if s == nil || s.repo == nil || strings.TrimSpace(tenant) == "" || strings.TrimSpace(id) == "" {
 		return "", ErrInvalid
