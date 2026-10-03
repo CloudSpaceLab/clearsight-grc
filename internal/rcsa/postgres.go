@@ -64,12 +64,15 @@ func (r *PostgresRepository) Create(ctx context.Context, cycle Cycle, risks []Ri
 			INSERT INTO rcsa_cycle_controls(
 				tenant_id,legal_entity_id,cycle_id,risk_id,risk_version,risk_control_link_id,
 				catalog_link_id,definition_id,definition_code,definition_name,program_id,
-				implementation_id,implementation_version,implementation_name)
+				implementation_id,implementation_version,implementation_name,implementation_status,
+				implementation_effective_from,implementation_effective_until)
 			VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::bigint,$6::uuid,
-			       $7::uuid,$8::uuid,$9::text,$10::text,$11::uuid,$12::uuid,$13::bigint,$14::text)`,
+			       $7::uuid,$8::uuid,$9::text,$10::text,$11::uuid,$12::uuid,$13::bigint,$14::text,$15::text,
+			       $16::timestamptz,$17::timestamptz)`,
 			created.TenantID, created.LegalEntityID, created.ID, item.RiskID, item.RiskVersion,
 			item.RiskControlLinkID, item.CatalogLinkID, item.DefinitionID, item.DefinitionCode,
-			item.DefinitionName, item.ProgramID, item.ImplementationID, item.ImplementationVersion, item.ImplementationName); err != nil {
+			item.DefinitionName, item.ProgramID, item.ImplementationID, item.ImplementationVersion, item.ImplementationName,
+			item.ImplementationStatus, item.ImplementationEffectiveFrom, item.ImplementationEffectiveUntil); err != nil {
 			return Aggregate{}, mapPostgresError(err)
 		}
 	}
@@ -161,7 +164,7 @@ func (r *PostgresRepository) controls(ctx context.Context, cycle Cycle) ([]Contr
 	rows, err := r.pool.Query(ctx, `
 		SELECT cycle_id::text,risk_id::text,risk_version,risk_control_link_id::text,catalog_link_id::text,
 		       definition_id::text,definition_code,definition_name,program_id::text,implementation_id::text,
-		       implementation_version,implementation_name
+		       implementation_version,implementation_name,implementation_status,implementation_effective_from,implementation_effective_until
 		FROM rcsa_cycle_controls
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND cycle_id=$3::uuid
 		ORDER BY definition_code,risk_control_link_id`,
@@ -175,7 +178,8 @@ func (r *PostgresRepository) controls(ctx context.Context, cycle Cycle) ([]Contr
 		var value ControlSnapshot
 		if err := rows.Scan(&value.CycleID, &value.RiskID, &value.RiskVersion, &value.RiskControlLinkID,
 			&value.CatalogLinkID, &value.DefinitionID, &value.DefinitionCode, &value.DefinitionName,
-			&value.ProgramID, &value.ImplementationID, &value.ImplementationVersion, &value.ImplementationName); err != nil {
+			&value.ProgramID, &value.ImplementationID, &value.ImplementationVersion, &value.ImplementationName,
+			&value.ImplementationStatus, &value.ImplementationEffectiveFrom, &value.ImplementationEffectiveUntil); err != nil {
 			return nil, err
 		}
 		values = append(values, value)
