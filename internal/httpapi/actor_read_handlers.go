@@ -1,7 +1,10 @@
 package httpapi
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -64,6 +67,46 @@ func (a *API) actorContext(w http.ResponseWriter, r *http.Request) {
 			"people_read":               identity.HasPermission(actor, identity.PermissionOversightRead) || identity.HasPermission(actor, identity.PermissionIdentityRead),
 		},
 	})
+}
+
+func (a *API) actorOrganizationScopeSearch(w http.ResponseWriter, r *http.Request) {
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	search := strings.TrimSpace(r.URL.Query().Get("q"))
+	if len(search) < 2 || len(search) > 120 {
+		httpx.WriteError(w, http.StatusBadRequest, "scope_search_invalid", "Enter at least 2 characters to search organization areas.")
+		return
+	}
+	limit := 30
+	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+		value, parseErr := strconv.Atoi(raw)
+		if parseErr != nil || value < 1 || value > 50 {
+			httpx.WriteError(w, http.StatusBadRequest, "scope_search_invalid", "The area search page size must be between 1 and 50.")
+			return
+		}
+		limit = value
+	}
+	searcher, ok := a.deps.RuntimeContext.(runtimecontext.OrganizationScopeSearcher)
+	if !ok {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "scope_search_unavailable", "Organization area search is unavailable.")
+		return
+	}
+	page, err := searcher.SearchOrganizationScopes(r.Context(), runtimecontext.Scope{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
+	}, search, limit)
+	switch {
+	case errors.Is(err, runtimecontext.ErrInvalid):
+		httpx.WriteError(w, http.StatusBadRequest, "scope_search_invalid", "The organization area search is invalid.")
+	case errors.Is(err, runtimecontext.ErrNotFound):
+		httpx.WriteError(w, http.StatusNotFound, "scope_search_not_found", "No organization area is available in the current legal entity.")
+	case err != nil:
+		httpx.WriteError(w, http.StatusServiceUnavailable, "scope_search_unavailable", "Organization area search is unavailable.")
+	default:
+		httpx.WriteJSON(w, http.StatusOK, page)
+	}
 }
 
 func (a *API) actorToday(w http.ResponseWriter, r *http.Request) {

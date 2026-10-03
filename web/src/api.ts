@@ -31,6 +31,12 @@ export type ScopeHierarchy = {
   current: ScopeNode;
   legal_entities: ScopeNode[];
   organization_scopes?: ScopeNode[];
+  organization_scopes_truncated?: boolean;
+};
+
+export type OrganizationScopeSearchPage = {
+  items: ScopeNode[];
+  has_more: boolean;
 };
 
 export type RuntimeContext = {
@@ -95,6 +101,13 @@ export function loadContext(): Promise<RuntimeContext> {
     throw error;
   });
   return runtimeContext;
+}
+
+export function searchOrganizationScopes(query: string, limit = 30): Promise<OrganizationScopeSearchPage> {
+  const value = query.trim();
+  if (value.length < 2) return Promise.resolve({ items: [], has_more: false });
+  const params = new URLSearchParams({ q: value, limit: String(Math.min(Math.max(limit, 1), 50)) });
+  return request<OrganizationScopeSearchPage>(`/api/v1/context/organization-scopes?${params.toString()}`);
 }
 
 export function loadSessionStatus(): Promise<SessionStatus> {

@@ -13,7 +13,7 @@ import {
   resolveAuthority,
   switchLegalEntity,
 } from "./api";
-import type { RuntimeContext } from "./api";
+import type { RuntimeContext, ScopeNode } from "./api";
 import { CapturePanel, ProgramsView, ReferenceJourneysView, RoutingPanel, TodayView, WorkView, type RoutingLoadState } from "./AppViews";
 import { AdministrationMenu } from "./components/AdministrationMenu";
 import { DemoEnvironmentMenu } from "./components/DemoEnvironmentMenu";
@@ -86,7 +86,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const [runtime, setRuntime] = useState<ProductRuntime | null>(null);
   const [scopeSwitchState, setScopeSwitchState] = useState<"idle" | "changing">("idle");
   const [scopeSwitchError, setScopeSwitchError] = useState("");
-  const [organizationScopeID, setOrganizationScopeID] = useState<string>();
+  const [organizationScope, setOrganizationScope] = useState<ScopeNode>();
   const [activeView, setActiveView] = useState<View>(initialRoute.view);
   const [workTab, setWorkTab] = useState<WorkTab>(initialRoute.workTab ?? "assigned");
   const [target, setTarget] = useState<WorkspaceTarget>(initialRoute.target);
@@ -300,10 +300,14 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     && scopeHierarchy.legal_entities.length > 1
     && Boolean(currentScopeID);
   const organizationScopes = scopeHierarchy?.organization_scopes ?? [];
+  const organizationScopeID = organizationScope?.id;
   const canOpenOrganization = configureEnabled && runtime?.capabilities?.identity_read === true;
-  const activeOrganizationScope = scopeHierarchy?.organization_scopes?.find((node) => node.id === organizationScopeID && node.filterable);
+  const activeOrganizationScope = organizationScope;
+  const programOrganizationScopes = activeOrganizationScope && !organizationScopes.some((node) => node.id === activeOrganizationScope.id)
+    ? [...organizationScopes, activeOrganizationScope]
+    : organizationScopes;
   const showScopeControl = Boolean(scopeHierarchy && currentScopeID)
-    && (canSwitchLegalEntity || organizationScopes.length > 0 || canOpenOrganization);
+    && (canSwitchLegalEntity || organizationScopes.length > 0 || scopeHierarchy?.organization_scopes_truncated === true || canOpenOrganization);
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
     { label: "Portfolio", view: "programs", activeViews: portfolioViews },
@@ -312,15 +316,20 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
 
   useEffect(() => {
-    if (!organizationScopeID) return;
-    const stillAuthorized = scopeHierarchy?.organization_scopes?.some((node) => node.id === organizationScopeID && node.filterable) === true;
-    if (activeView !== "oversight" || !stillAuthorized) setOrganizationScopeID(undefined);
-  }, [activeView, organizationScopeID, scopeHierarchy]);
+    if (!organizationScope) return;
+    if (!supportsOrganizationScope(activeView)) {
+      setOrganizationScope(undefined);
+      return;
+    }
+    if (scopeHierarchy?.organization_scopes_truncated === true) return;
+    const stillAuthorized = scopeHierarchy?.organization_scopes?.some((node) => node.id === organizationScope.id && node.filterable) === true;
+    if (!stillAuthorized) setOrganizationScope(undefined);
+  }, [activeView, organizationScope, scopeHierarchy]);
 
   async function changeLegalEntity(nextID: string | undefined) {
     if (!nextID || !canSwitchLegalEntity || nextID === currentScopeID || scopeSwitchState === "changing") return;
     setScopeSwitchError("");
-    setOrganizationScopeID(undefined);
+    setOrganizationScope(undefined);
     setScopeSwitchState("changing");
     try {
       await switchLegalEntity(nextID);
@@ -331,15 +340,14 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     }
   }
 
-  function changeOrganizationScope(nextID?: string) {
-    if (!nextID) {
-      setOrganizationScopeID(undefined);
+  function changeOrganizationScope(nextScope?: ScopeNode) {
+    if (!nextScope) {
+      setOrganizationScope(undefined);
       return;
     }
-    const node = scopeHierarchy?.organization_scopes?.find((item) => item.id === nextID);
-    if (!node?.filterable) return;
-    setOrganizationScopeID(nextID);
-    if (activeView !== "oversight") navigate("oversight");
+    if (!nextScope.filterable) return;
+    setOrganizationScope(nextScope);
+    if (!supportsOrganizationScope(activeView)) navigate("oversight");
   }
 
   function openOrganizationAccess() {
@@ -497,7 +505,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
               hierarchy={scopeHierarchy}
               currentScopeID={currentScopeID}
               canSwitchLegalEntity={canSwitchLegalEntity}
-              activeOrganizationScopeID={organizationScopeID}
+              activeOrganizationScope={activeOrganizationScope}
               isChanging={scopeSwitchState === "changing"}
               onSelectionChange={(value) => void changeLegalEntity(value)}
               onOrganizationScopeChange={changeOrganizationScope}
@@ -512,7 +520,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       {(activeView === "oversight" || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>}
       {activeView === "oversight" && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
       {activeView === "oversight" && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Home…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
-      {activeView === "programs" && <ProgramsView organizationName={organizationName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={organizationScopes} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
+      {activeView === "programs" && <ProgramsView organizationName={organizationName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "risks" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading risks…</div>}><RisksWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} actorID={runtime?.actor?.id} targetID={target.riskID} onTarget={(id) => navigate("risks", id ? { riskID: id } : {})} onOpenProgram={(programID) => navigate("programs", { programID, programSection: "monitoring" })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")} onOpenProgramControl={(programID, objectiveID) => navigate("programs", { programID, programSection: "requirements-controls", programItem: { kind: "control-objective", id: objectiveID } })}/></Suspense>}
       {activeView === "losses" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading losses…</div>}><LossesWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.lossID} onTarget={(id) => navigate("losses", id ? { lossID: id } : {})} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")}/></Suspense>}
       {activeView === "reports" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading reports…</div>}><ReportsWorkspace organizationName={organizationName} legalEntityName={legalEntityName}/></Suspense>}
@@ -533,6 +541,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     })}</nav>
     {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}>{activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}</FocusedSheet>}
   </div>;
+}
+
+function supportsOrganizationScope(view: View) {
+  return view === "oversight" || view === "programs" || view === "risks";
 }
 
 function isAuthorityObjectType(value: AttentionItem["action_target_type"]): value is "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST" {

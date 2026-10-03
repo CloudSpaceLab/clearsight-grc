@@ -58,11 +58,17 @@ type ScopeNode struct {
 }
 
 type ScopeHierarchy struct {
-	State              HierarchyState `json:"state"`
-	Root               ScopeNode      `json:"root"`
-	Current            ScopeNode      `json:"current"`
-	LegalEntities      []ScopeNode    `json:"legal_entities"`
-	OrganizationScopes []ScopeNode    `json:"organization_scopes,omitempty"`
+	State                       HierarchyState `json:"state"`
+	Root                        ScopeNode      `json:"root"`
+	Current                     ScopeNode      `json:"current"`
+	LegalEntities               []ScopeNode    `json:"legal_entities"`
+	OrganizationScopes          []ScopeNode    `json:"organization_scopes,omitempty"`
+	OrganizationScopesTruncated bool           `json:"organization_scopes_truncated,omitempty"`
+}
+
+type OrganizationScopeSearchPage struct {
+	Items   []ScopeNode `json:"items"`
+	HasMore bool        `json:"has_more"`
 }
 
 type Resolver interface {
@@ -75,6 +81,12 @@ type Resolver interface {
 // request actor's legal-entity context.
 type HierarchyResolver interface {
 	ResolveHierarchy(context.Context, Scope) (ScopeHierarchy, error)
+}
+
+// OrganizationScopeSearcher is an optional bounded discovery capability for
+// authorized areas that are not carried in the compact runtime hierarchy.
+type OrganizationScopeSearcher interface {
+	SearchOrganizationScopes(context.Context, Scope, string, int) (OrganizationScopeSearchPage, error)
 }
 
 func CurrentHierarchy(scope Scope, display DisplayContext, state HierarchyState) ScopeHierarchy {

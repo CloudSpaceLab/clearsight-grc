@@ -69,6 +69,7 @@ func (a *API) routes() []routeSpec {
 		public(http.MethodGet, "/health/ready", a.ready),
 		public(http.MethodGet, "/api/v1/session/status", a.sessionStatus),
 		read("/api/v1/context", a.actorContext),
+		read("/api/v1/context/organization-scopes", a.actorOrganizationScopeSearch),
 		read("/api/v1/today", a.actorToday),
 		read("/api/v1/notifications", a.listNotifications),
 		write(http.MethodPost, "/api/v1/notifications/{id}/read", a.markNotificationRead, nil),

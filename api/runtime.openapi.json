@@ -1257,6 +1257,39 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/context/organization-scopes": {
+      "get": {
+        "operationId": "searchOrganizationScopes",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 120
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized organization areas matching the bounded search."
+          }
+        }
+      }
+    },
     "/api/v1/today": {
       "get": {
         "operationId": "actorToday",
