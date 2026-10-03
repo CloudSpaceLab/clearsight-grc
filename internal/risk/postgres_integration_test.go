@@ -33,6 +33,10 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 	reviewerID := mustRiskID(t)
 	authorizerID := mustRiskID(t)
 	missingPrincipal := mustRiskID(t)
+	parentScopeID := mustRiskID(t)
+	childScopeID := mustRiskID(t)
+	siblingScopeID := mustRiskID(t)
+	otherEntityScopeID := mustRiskID(t)
 	suffix := tenantID[len(tenantID)-8:]
 	entityACode := "RISK-A-" + suffix
 	entityBCode := "RISK-B-" + suffix
@@ -59,12 +63,25 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO organization_scopes(
+			id,tenant_id,legal_entity_id,parent_scope_id,code,name,kind,department_path,origin,status,valid_from
+		) VALUES
+			($1::uuid,$5::uuid,$6::uuid,NULL,$9,'Risk','DEPARTMENT',ARRAY['BANK','RISK'],'MANAGED','ACTIVE',$10),
+			($2::uuid,$5::uuid,$6::uuid,$1::uuid,$11,'Risk Operations','DEPARTMENT',ARRAY['BANK','RISK','OPERATIONS'],'MANAGED','ACTIVE',$10),
+			($3::uuid,$5::uuid,$6::uuid,NULL,$12,'Finance','DEPARTMENT',ARRAY['BANK','FINANCE'],'MANAGED','ACTIVE',$10),
+			($4::uuid,$5::uuid,$7::uuid,NULL,$13,'Other entity risk','DEPARTMENT',ARRAY['BANK','RISK'],'MANAGED','ACTIVE',$10)
+	`, parentScopeID, childScopeID, siblingScopeID, otherEntityScopeID, tenantID, entityA, entityB, ownerID,
+		"RISK-"+suffix, "RISK-OPS-"+suffix, "FIN-"+suffix, "OTHER-RISK-"+suffix, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+
 	repository := NewPostgresRepository(pool)
 	service := NewService(repository)
 	service.Now = func() time.Time { return now }
 
 	created, err := service.Create(ctx, CreateInput{
-		TenantID: "risk-" + suffix, LegalEntityID: entityACode, Code: "NET-" + suffix,
+		TenantID: "risk-" + suffix, LegalEntityID: entityACode, OrganizationScopeID: parentScopeID, Code: "NET-" + suffix,
 		Name: "Network resilience", Category: "Operational resilience",
 		Statement: "Critical network service may exceed approved recovery tolerance.",
 		Cause:     "Primary and recovery paths can become unavailable.", Event: "Network service interruption",
@@ -74,11 +91,18 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.TenantID != tenantID || created.LegalEntityID != entityA || created.Version != 1 {
+	if created.TenantID != tenantID || created.LegalEntityID != entityA || created.OrganizationScopeID != parentScopeID || created.Version != 1 {
 		t.Fatalf("created risk = %#v", created)
 	}
 	if _, err := service.Get(ctx, Scope{TenantID: "risk-" + suffix, LegalEntityID: entityBCode}, created.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-entity risk read error = %v", err)
+	}
+
+	if _, err := service.Create(ctx, CreateInput{
+		TenantID: "risk-" + suffix, LegalEntityID: entityACode, OrganizationScopeID: otherEntityScopeID, Code: "CROSS-" + suffix,
+		Name: "Cross-entity scope", Statement: "Cross-entity scope must be rejected.", Impact: "Invalid attribution.",
+	}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("cross-entity organization scope error = %v", err)
 	}
 
 	now = now.Add(time.Minute)
@@ -191,6 +215,35 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 	}
 	if len(unknownFiltered.Items) != 1 || unknownFiltered.Items[0].Risk.ID != created.ID {
 		t.Fatalf("stale assessment was not exposed as current UNKNOWN: %#v", unknownFiltered)
+	}
+
+	childRiskID := mustRiskID(t)
+	siblingRiskID := mustRiskID(t)
+	unattributedRiskID := mustRiskID(t)
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO risks(id,tenant_id,legal_entity_id,organization_scope_id,code,name,statement,impact,scope,status,version,created_at,updated_at) VALUES
+			($1::uuid,$4::uuid,$5::uuid,$7::uuid,$10,'Child scope risk','Child scope risk.','Material impact.','{}'::jsonb,'ACTIVE',1,$9,$9),
+			($2::uuid,$4::uuid,$5::uuid,$8::uuid,$11,'Sibling scope risk','Sibling scope risk.','Material impact.','{}'::jsonb,'ACTIVE',1,$9,$9),
+			($3::uuid,$4::uuid,$5::uuid,NULL,$12,'Unattributed risk','Unattributed risk.','Material impact.','{}'::jsonb,'ACTIVE',1,$9,$9)
+	`, childRiskID, siblingRiskID, unattributedRiskID, tenantID, entityA, created.ID, childScopeID, siblingScopeID, now,
+		"CHILD-"+suffix, "SIBLING-"+suffix, "UNATTRIBUTED-"+suffix); err != nil {
+		t.Fatal(err)
+	}
+	scoped, err := service.List(ctx, Scope{TenantID: "risk-" + suffix, LegalEntityID: entityACode}, ListFilter{
+		OrganizationScopeID: parentScopeID, OrganizationScopeIDs: []string{parentScopeID, childScopeID}, Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scoped.OrganizationScopeID != parentScopeID || len(scoped.Items) != 2 {
+		t.Fatalf("organization scoped page = %#v", scoped)
+	}
+	seen := map[string]bool{}
+	for _, item := range scoped.Items {
+		seen[item.Risk.ID] = true
+	}
+	if !seen[created.ID] || !seen[childRiskID] || seen[siblingRiskID] || seen[unattributedRiskID] {
+		t.Fatalf("organization scope membership = %#v", seen)
 	}
 }
 
