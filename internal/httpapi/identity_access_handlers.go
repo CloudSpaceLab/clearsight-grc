@@ -66,26 +66,25 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 			"mode": a.deps.IdentityMode, "issuer": a.deps.OIDCIssuer,
 			"authentication": actor.AuthenticationMethod, "assurance_level": actor.AssuranceLevel,
 		},
-		"actor_principal_id":       actor.PrincipalID,
+		"actor_principal_id":         actor.PrincipalID,
 		"can_configure":              canConfigure,
 		"can_configure_organization": canConfigure && identity.HasPermission(actor, identity.PermissionConfigWrite),
 		"can_configure_escalation":   canConfigure && identity.HasPermission(actor, identity.PermissionConfigWrite),
-		"sources":                  overview.Sources,
-		"people":                   overview.People,
-		"groups":                   overview.Groups,
-		"roles":                    overview.Roles,
-		"legal_entities":           overview.LegalEntities,
-		"bindings":                 overview.Bindings,
-		"positions":                overview.Positions,
-		"escalation":               overview.Escalation,
-		"escalation_policies":      policies,
+		"sources":                    overview.Sources,
+		"people":                     overview.People,
+		"groups":                     overview.Groups,
+		"roles":                      overview.Roles,
+		"legal_entities":             overview.LegalEntities,
+		"bindings":                   overview.Bindings,
+		"positions":                  overview.Positions,
+		"escalation":                 overview.Escalation,
+		"escalation_policies":        policies,
 	}
 	payload["organization_scopes"] = overview.OrganizationScopes
 	payload["organization_scopes_truncated"] = overview.OrganizationScopesTruncated
 	payload["organization_scope_revisions"] = overview.OrganizationScopeRevisions
 	httpx.WriteJSON(w, http.StatusOK, payload)
 }
-
 
 type decideOrganizationScopeInput struct {
 	Rationale string `json:"rationale"`
@@ -379,7 +378,6 @@ func identityAdminActor(w http.ResponseWriter, r *http.Request, admin access.Adm
 	}
 	return actor, true
 }
-
 
 func organizationScopeAdminActor(w http.ResponseWriter, r *http.Request, admin access.Administrator) (identity.Actor, bool) {
 	actor, ok := identityAdminActor(w, r, admin)
