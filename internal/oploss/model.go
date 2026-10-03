@@ -8,26 +8,20 @@ type Status string
 
 type RecoveryKind string
 
-const (
-	EventInternalFraud                   EventType = "INTERNAL_FRAUD"
-	EventExternalFraud                   EventType = "EXTERNAL_FRAUD"
-	EventEmploymentPractices             EventType = "EMPLOYMENT_PRACTICES"
-	EventClientProductsBusinessPractices EventType = "CLIENT_PRODUCTS_BUSINESS_PRACTICES"
-	EventDamageToPhysicalAssets          EventType = "DAMAGE_TO_PHYSICAL_ASSETS"
-	EventBusinessDisruptionSystems       EventType = "BUSINESS_DISRUPTION_SYSTEM_FAILURES"
-	EventExecutionDeliveryProcess        EventType = "EXECUTION_DELIVERY_PROCESS_MANAGEMENT"
-	EventOther                           EventType = "OTHER"
-)
+const EventInternalFraud EventType = "INTERNAL_FRAUD"
+const EventExternalFraud EventType = "EXTERNAL_FRAUD"
+const EventEmploymentPractices EventType = "EMPLOYMENT_PRACTICES"
+const EventClientProductsBusinessPractices EventType = "CLIENT_PRODUCTS_BUSINESS_PRACTICES"
+const EventDamageToPhysicalAssets EventType = "DAMAGE_TO_PHYSICAL_ASSETS"
+const EventBusinessDisruptionSystems EventType = "BUSINESS_DISRUPTION_SYSTEM_FAILURES"
+const EventExecutionDeliveryProcess EventType = "EXECUTION_DELIVERY_PROCESS_MANAGEMENT"
+const EventOther EventType = "OTHER"
 
-const (
-	StatusActive Status = "ACTIVE"
-	StatusVoided Status = "VOIDED"
-)
+const StatusActive Status = "ACTIVE"
+const StatusVoided Status = "VOIDED"
 
-const (
-	RecoveryCash     RecoveryKind = "RECOVERY"
-	RecoveryReversal RecoveryKind = "REVERSAL"
-)
+const RecoveryCash RecoveryKind = "RECOVERY"
+const RecoveryReversal RecoveryKind = "REVERSAL"
 
 type Loss struct {
 	ID                  string    `json:"id"`
