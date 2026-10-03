@@ -46,6 +46,7 @@ type CreateProgramInput = {
   type: string;
   owningFunction: string;
   jurisdiction?: string;
+  organizationScopeID?: string;
   scopeDescription?: string;
   ownerCandidateID: string;
   approvalAuthorityCandidateID: string;
@@ -122,6 +123,7 @@ export async function createProgram(input: CreateProgramInput): Promise<ProgramA
     owner_candidate_id: input.ownerCandidateID,
     approval_authority_candidate_id: input.approvalAuthorityCandidateID,
     jurisdiction: input.jurisdiction,
+    organization_scope_id: input.organizationScopeID,
     scope: { description: input.scopeDescription ?? "" },
     effective_from: new Date().toISOString(),
   });
