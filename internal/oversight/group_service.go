@@ -49,14 +49,17 @@ func (s *GroupService) Get(ctx context.Context, actor identity.Actor) (GroupSnap
 			entityIDs = append(entityIDs, child.LegalEntityID)
 		}
 	}
-	resolved, err := s.access.ResolveLegalEntityAccess(ctx, actor.TenantID, actor.PrincipalID, entityIDs)
-	if err != nil {
-		return GroupSnapshot{}, err
-	}
-	allowed := make(map[string]struct{}, len(resolved))
-	for _, value := range resolved {
-		if slices.Contains(identity.NormalizePermissionCodes(value.PermissionCodes), identity.PermissionOversightRead) {
-			allowed[value.LegalEntityID] = struct{}{}
+	allowed := make(map[string]struct{}, len(entityIDs))
+	for start := 0; start < len(entityIDs); start += access.MaxLegalEntityAccessBatchSize {
+		end := min(start+access.MaxLegalEntityAccessBatchSize, len(entityIDs))
+		resolved, err := s.access.ResolveLegalEntityAccess(ctx, actor.TenantID, actor.PrincipalID, entityIDs[start:end])
+		if err != nil {
+			return GroupSnapshot{}, err
+		}
+		for _, value := range resolved {
+			if slices.Contains(identity.NormalizePermissionCodes(value.PermissionCodes), identity.PermissionOversightRead) {
+				allowed[value.LegalEntityID] = struct{}{}
+			}
 		}
 	}
 
