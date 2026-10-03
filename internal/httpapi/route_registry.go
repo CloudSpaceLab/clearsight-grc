@@ -77,6 +77,7 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/people/{person_id}/assignments", a.employeeAssignments),
 		read("/api/v1/people/{person_id}/activity", a.employeeActivity),
 		withPermission(read("/api/v1/oversight", a.oversightSnapshot), identity.PermissionOversightRead),
+		withPermission(read("/api/v1/oversight/group", a.groupOversightSnapshot), identity.PermissionOversightRead),
 		withPermission(read("/api/v1/metrics/home", a.homeMetrics), identity.PermissionOversightRead),
 
 		operation("/api/v1/authority/resolve", a.resolveAuthority, bindJSONIdentity(true)),
