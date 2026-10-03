@@ -7,6 +7,7 @@ import "./group-oversight.css";
 
 type Props = {
   organizationName: string;
+  initialSnapshot?: GroupOversightSnapshot;
   metricFilter?: HomeMetricFilter;
   onMetricFilterChange?: (filter: HomeMetricFilter) => void;
   onOpenLegalEntity: (legalEntityID: string) => void;
@@ -17,19 +18,25 @@ type LoadState = "loading" | "live" | "unavailable";
 
 export function GroupOversightWorkspace({
   organizationName,
+  initialSnapshot,
   metricFilter = "all",
   onMetricFilterChange,
   onOpenLegalEntity,
   loadGroup = loadGroupOversight,
 }: Props) {
-  const [value, setValue] = useState<GroupOversightSnapshot>();
-  const [state, setState] = useState<LoadState>("loading");
+  const [value, setValue] = useState<GroupOversightSnapshot | undefined>(initialSnapshot);
+  const [state, setState] = useState<LoadState>(initialSnapshot ? "live" : "loading");
   const [retry, setRetry] = useState(0);
   const [localFilter, setLocalFilter] = useState<HomeMetricFilter>(metricFilter);
   const selected = onMetricFilterChange ? metricFilter : localFilter;
 
   useEffect(() => { setLocalFilter(metricFilter); }, [metricFilter]);
   useEffect(() => {
+    if (initialSnapshot) {
+      setValue(initialSnapshot);
+      setState("live");
+      return;
+    }
     const controller = new AbortController();
     setState("loading");
     void loadGroup(controller.signal).then((next) => {
@@ -41,7 +48,7 @@ export function GroupOversightWorkspace({
       setState("unavailable");
     });
     return () => controller.abort();
-  }, [loadGroup, retry]);
+  }, [initialSnapshot, loadGroup, retry]);
 
   function chooseMetric(filter: HomeMetricFilter) {
     const next = selected === filter ? "all" : filter;
