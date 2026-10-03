@@ -33,10 +33,10 @@ CREATE TABLE organization_position_revisions (
     FOREIGN KEY (legal_entity_id,tenant_id) REFERENCES legal_entities(id,tenant_id),
     FOREIGN KEY (maker_id,tenant_id) REFERENCES principals(id,tenant_id),
     FOREIGN KEY (checker_id,tenant_id) REFERENCES principals(id,tenant_id),
-    FOREIGN KEY (base_organization_scope_id,tenant_id,legal_entity_id)
-        REFERENCES organization_scopes(id,tenant_id,legal_entity_id),
-    FOREIGN KEY (proposed_organization_scope_id,tenant_id,legal_entity_id)
-        REFERENCES organization_scopes(id,tenant_id,legal_entity_id),
+    FOREIGN KEY (tenant_id,legal_entity_id,base_organization_scope_id)
+        REFERENCES organization_scopes(tenant_id,legal_entity_id,id),
+    FOREIGN KEY (tenant_id,legal_entity_id,proposed_organization_scope_id)
+        REFERENCES organization_scopes(tenant_id,legal_entity_id,id),
     FOREIGN KEY (base_parent_position_id) REFERENCES org_positions(id),
     FOREIGN KEY (proposed_parent_position_id) REFERENCES org_positions(id),
     FOREIGN KEY (base_occupant_principal_id,tenant_id) REFERENCES principals(id,tenant_id),
