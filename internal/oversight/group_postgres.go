@@ -31,7 +31,7 @@ func (r *PostgresRepository) LatestGroup(ctx context.Context, tenantID string) (
 	}
 	var value GroupProjection
 	err := r.pool.QueryRow(ctx, `
-		SELECT run.id::text,tenant.slug,run.generated_at,run.refresh_slot,run.projection_version,
+		SELECT run.id::text,tenant.id::text,run.generated_at,run.refresh_slot,run.projection_version,
 		       run.active_child_count,run.captured_child_count,run.missing_child_count,run.stale_child_count
 		FROM group_oversight_runs run
 		JOIN tenants tenant ON tenant.id=run.tenant_id
