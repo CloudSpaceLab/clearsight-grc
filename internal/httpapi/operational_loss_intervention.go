@@ -153,6 +153,11 @@ func (a *API) ensureOperationalLossMatter(
 func operationalLossMatterMatches(loss oploss.Loss, matter continuity.Matter) bool {
 	return matter.TenantID == loss.TenantID &&
 		matter.LegalEntityID == loss.LegalEntityID &&
+		matter.OrganizationScopeID == loss.OrganizationScopeID &&
 		matter.Type == continuity.MatterOperationalLoss &&
-		(matter.OrganizationScopeID == "" || loss.OrganizationScopeID == "" || matter.OrganizationScopeID == loss.OrganizationScopeID)
+		matter.SourceType == "OPERATIONAL_LOSS" &&
+		matter.SourceID == loss.ID &&
+		matter.TriggerType == "MATERIAL_OPERATIONAL_LOSS" &&
+		matter.TriggerID == loss.ID &&
+		matter.TriggerKey == "operational-loss:"+loss.ID
 }
