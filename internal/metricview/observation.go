@@ -13,25 +13,25 @@ var ErrInvalidObservation = errors.New("metric observation is invalid")
 const ObservationSourceOversightSnapshot = "OVERSIGHT_SNAPSHOT"
 
 type Observation struct {
-	TenantID             string
-	LegalEntityID        string
-	MetricID             string
-	DefinitionRevision   string
-	SourceKind           string
-	SourceID             string
-	SourceRevision       string
-	SourceHighWater      map[string]time.Time
-	GeneratedAt          time.Time
-	PeriodStart          time.Time
-	PeriodEnd            time.Time
-	PostureAsOf          time.Time
-	Value                int
-	Condition            Condition
-	Freshness            oversight.Freshness
-	Completeness         Completeness
-	Population           int
-	Excluded             *int
-	Unknown              *int
+	TenantID           string
+	LegalEntityID      string
+	MetricID           string
+	DefinitionRevision string
+	SourceKind         string
+	SourceID           string
+	SourceRevision     string
+	SourceHighWater    map[string]time.Time
+	GeneratedAt        time.Time
+	PeriodStart        time.Time
+	PeriodEnd          time.Time
+	PostureAsOf        time.Time
+	Value              int
+	Condition          Condition
+	Freshness          oversight.Freshness
+	Completeness       Completeness
+	Population         int
+	Excluded           *int
+	Unknown            *int
 }
 
 func ObservationsFromBundle(
