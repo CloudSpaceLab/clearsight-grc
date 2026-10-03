@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type organizationPositionQuerier interface {
@@ -226,7 +227,7 @@ func applyOrganizationPositionRevision(ctx context.Context, tx pgx.Tx, tenantID,
 			revision.PositionID, tenantID, entityID, revision.Proposed.Code, revision.Proposed.Title,
 			revision.Proposed.FunctionName, revision.Proposed.OrganizationScopeID,
 			revision.Proposed.ParentPositionID, revision.Proposed.OccupantPrincipalID)
-		return mapAdminPgError(err)
+		return mapOrganizationPositionPgError(err)
 	case OrganizationPositionUpdate:
 		current, version, err := organizationPositionState(ctx, tx, tenantID, entityID, revision.PositionID, true)
 		if err != nil {
@@ -249,7 +250,7 @@ func applyOrganizationPositionRevision(ctx context.Context, tx pgx.Tx, tenantID,
 			revision.Proposed.OrganizationScopeID, revision.Proposed.ParentPositionID, revision.Proposed.OccupantPrincipalID,
 			revision.BaseVersion)
 		if err != nil {
-			return mapAdminPgError(err)
+			return mapOrganizationPositionPgError(err)
 		}
 		if tag.RowsAffected() != 1 {
 			return ErrAdminConflict
@@ -497,4 +498,13 @@ func normalizeOrganizationPositionCode(value string) string {
 		return ""
 	}
 	return value
+}
+
+
+func mapOrganizationPositionPgError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "P0001" {
+		return ErrAdminConflict
+	}
+	return mapAdminPgError(err)
 }
