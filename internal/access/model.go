@@ -13,7 +13,10 @@ var (
 	ErrPrincipalBatchTooLarge = errors.New("principal resolution batch exceeds the supported limit")
 )
 
-const MaxPrincipalBatchSize = 500
+const (
+	MaxPrincipalBatchSize         = 500
+	MaxLegalEntityAccessBatchSize = 500
+)
 
 type Resolution struct {
 	TenantID         string
@@ -29,6 +32,19 @@ type Resolution struct {
 type Resolver interface {
 	ResolveOIDC(context.Context, string, string, string, string) (Resolution, error)
 	ResolvePrincipal(context.Context, string, string, string) (Resolution, error)
+}
+
+type LegalEntityAccess struct {
+	LegalEntityID   string
+	LegalEntityCode string
+	PermissionCodes []string
+}
+
+// LegalEntityAccessResolver resolves legal-entity-wide permissions for one
+// verified principal without rotating that principal's active session scope.
+// Department-scoped permissions are deliberately excluded.
+type LegalEntityAccessResolver interface {
+	ResolveLegalEntityAccess(context.Context, string, string, []string) ([]LegalEntityAccess, error)
 }
 
 // PrincipalResolveOutcome preserves input order while keeping an unavailable
