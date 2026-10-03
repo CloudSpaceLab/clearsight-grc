@@ -131,6 +131,7 @@ BEGIN
         UPDATE organization_scopes
         SET parent_scope_id=current_parent_id
         WHERE id=current_scope_id
+          AND origin='LEGACY_DEPARTMENT_PATH'
           AND organization_scopes.parent_scope_id IS DISTINCT FROM current_parent_id;
 
         current_parent_id := current_scope_id;
