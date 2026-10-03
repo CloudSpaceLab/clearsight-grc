@@ -51,6 +51,9 @@ vi.mock("./components/VendorsWorkspace", () => ({
 vi.mock("./components/risks/RisksWorkspace", () => ({
   RisksWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Risks</h1><output data-testid="risk-target">{targetID}</output></section>,
 }));
+vi.mock("./components/losses/LossesWorkspace", () => ({
+  LossesWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Losses</h1><output data-testid="loss-target">{targetID}</output></section>,
+}));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
   reassignCaptureRecipient: vi.fn(),
@@ -330,6 +333,11 @@ describe("scope and Portfolio integration", () => {
 
     expect(await screen.findByRole("heading", { name: "Risks" })).toBeTruthy();
     expect(window.location.hash).toBe("#risks");
+    expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria");
+
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Losses" }));
+    expect(await screen.findByRole("heading", { name: "Losses" })).toBeTruthy();
+    expect(window.location.hash).toBe("#losses");
     expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria");
 
     fireEvent.click(screen.getByRole("button", { name: /Organization scope/ }));
