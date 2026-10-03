@@ -261,7 +261,7 @@ describe("legal entity scope selector", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
     const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
-    fireEvent.click(within(dialog).getByRole("button", { name: /^Clear Bank$/ }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Group, Clear Bank" }));
 
     expect(await screen.findByRole("heading", { name: "Group posture" })).toBeTruthy();
     expect(window.location.hash).toBe("#oversight?scope=group");
