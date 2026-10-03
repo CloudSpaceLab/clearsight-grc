@@ -238,9 +238,67 @@ func (r *PostgresResolver) resolveOrganizationScopes(ctx context.Context, scope 
 				  AND cardinality(b.department_path)=0
 				  AND b.valid_from<=clock_timestamp() AND (b.valid_until IS NULL OR clock_timestamp()<b.valid_until)
 				  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
-			)) AS has_global_scope
+			)) AS has_global_scope,
+			(EXISTS (
+				SELECT 1
+				FROM principal p
+				JOIN org_positions op ON op.tenant_id=p.tenant_id AND op.occupant_principal_id=p.id
+				JOIN position_role_bindings prb ON prb.tenant_id=op.tenant_id AND prb.position_id=op.id
+				JOIN role_templates rt ON rt.tenant_id=prb.tenant_id AND rt.id=prb.role_template_id
+				WHERE op.legal_entity_id=$3::uuid
+				  AND cardinality(op.department_path)=0
+				  AND 'OVERSIGHT_READ'=ANY(rt.capabilities)
+				  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+				  AND prb.valid_from<=clock_timestamp() AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
+				  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+			) OR EXISTS (
+				SELECT 1
+				FROM principal p
+				JOIN scim_users su ON su.tenant_id=p.tenant_id AND su.principal_id=p.id AND su.active AND su.deleted_at IS NULL
+				JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id AND ss.status='ACTIVE'
+				JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
+				JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.deleted_at IS NULL
+				JOIN directory_group_role_bindings b ON b.tenant_id=dg.tenant_id AND b.group_id=dg.id
+				JOIN role_templates rt ON rt.tenant_id=b.tenant_id AND rt.id=b.role_template_id
+				WHERE b.legal_entity_id=$3::uuid
+				  AND cardinality(b.department_path)=0
+				  AND 'OVERSIGHT_READ'=ANY(rt.capabilities)
+				  AND b.valid_from<=clock_timestamp() AND (b.valid_until IS NULL OR clock_timestamp()<b.valid_until)
+				  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+			)) AS has_global_oversight
 		)
-		SELECT s.id::text,s.code,s.name,s.kind,COALESCE(s.parent_scope_id::text,''),s.department_path
+		SELECT s.id::text,s.code,s.name,s.kind,COALESCE(s.parent_scope_id::text,''),s.department_path,
+		       (
+		         g.has_global_oversight
+		         OR EXISTS (
+		           SELECT 1
+		           FROM principal p
+		           JOIN org_positions op ON op.tenant_id=p.tenant_id AND op.occupant_principal_id=p.id
+		           JOIN position_role_bindings prb ON prb.tenant_id=op.tenant_id AND prb.position_id=op.id
+		           JOIN role_templates rt ON rt.tenant_id=prb.tenant_id AND rt.id=prb.role_template_id
+		           WHERE op.legal_entity_id=$3::uuid
+		             AND op.organization_scope_id=s.id
+		             AND 'OVERSIGHT_READ'=ANY(rt.capabilities)
+		             AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+		             AND prb.valid_from<=clock_timestamp() AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
+		             AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+		         )
+		         OR EXISTS (
+		           SELECT 1
+		           FROM principal p
+		           JOIN scim_users su ON su.tenant_id=p.tenant_id AND su.principal_id=p.id AND su.active AND su.deleted_at IS NULL
+		           JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id AND ss.status='ACTIVE'
+		           JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
+		           JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.deleted_at IS NULL
+		           JOIN directory_group_role_bindings b ON b.tenant_id=dg.tenant_id AND b.group_id=dg.id
+		           JOIN role_templates rt ON rt.tenant_id=b.tenant_id AND rt.id=b.role_template_id
+		           WHERE b.legal_entity_id=$3::uuid
+		             AND b.organization_scope_id=s.id
+		             AND 'OVERSIGHT_READ'=ANY(rt.capabilities)
+		             AND b.valid_from<=clock_timestamp() AND (b.valid_until IS NULL OR clock_timestamp()<b.valid_until)
+		             AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+		         )
+		       ) AS filterable
 		FROM organization_scopes s
 		CROSS JOIN global_scope g
 		WHERE s.tenant_id=(SELECT tenant_id FROM principal)
@@ -286,7 +344,7 @@ func (r *PostgresResolver) resolveOrganizationScopes(ctx context.Context, scope 
 	values := make([]ScopeNode, 0, maxOrganizationScopes)
 	for rows.Next() {
 		var item ScopeNode
-		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.Kind, &item.ParentID, &item.DepartmentPath); err != nil {
+		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.Kind, &item.ParentID, &item.DepartmentPath, &item.Filterable); err != nil {
 			return nil, HierarchyUnavailable, fmt.Errorf("scan organization scope: %w", err)
 		}
 		if len(values) < maxOrganizationScopes {
