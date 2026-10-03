@@ -115,14 +115,14 @@ func (a *API) ensureOperationalLossMatter(
 		return continuity.MatterAggregate{}, err
 	}
 	knownFacts, err := json.Marshal(map[string]any{
-		"loss_code":               current.Loss.Code,
-		"event_type":              current.Loss.EventType,
-		"occurred_at":             current.Loss.OccurredAt,
-		"discovered_at":           current.Loss.DiscoveredAt,
-		"currency":                current.Totals.Currency,
-		"gross_amount_minor":      current.Totals.GrossAmountMinor,
-		"recovered_amount_minor":  current.Totals.RecoveredAmountMinor,
-		"net_loss_minor":          current.Totals.NetLossMinor,
+		"loss_code":              current.Loss.Code,
+		"event_type":             current.Loss.EventType,
+		"occurred_at":            current.Loss.OccurredAt,
+		"discovered_at":          current.Loss.DiscoveredAt,
+		"currency":               current.Totals.Currency,
+		"gross_amount_minor":     current.Totals.GrossAmountMinor,
+		"recovered_amount_minor": current.Totals.RecoveredAmountMinor,
+		"net_loss_minor":         current.Totals.NetLossMinor,
 	})
 	if err != nil {
 		return continuity.MatterAggregate{}, err
