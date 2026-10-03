@@ -247,6 +247,10 @@
           "legal_entity_id": {
             "type": "string"
           },
+          "organization_scope_id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "code": {
             "type": "string"
           },
@@ -490,6 +494,10 @@
           },
           "next_cursor": {
             "type": "string"
+          },
+          "organization_scope_id": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -1481,6 +1489,14 @@
                 "BREACHED",
                 "UNKNOWN"
               ]
+            }
+          },
+          {
+            "name": "organization_scope_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -4694,6 +4710,27 @@
             "description": "Cycle completed after terminal independent RCSA challenge Decision."
           }
         }
+      }
+    },
+    "/api/v1/access/organization-scope-revisions": {
+      "post": {
+        "operationId": "proposeOrganizationScope",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/organization-scope-revisions/{id}/approve": {
+      "post": {
+        "operationId": "approveOrganizationScope",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/organization-scope-revisions/{id}/reject": {
+      "post": {
+        "operationId": "rejectOrganizationScope",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
       }
     }
   }
