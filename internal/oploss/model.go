@@ -23,8 +23,8 @@ const (
 )
 
 const (
-	RecoveryCash      RecoveryKind = "RECOVERY"
-	RecoveryReversal  RecoveryKind = "REVERSAL"
+	RecoveryCash     RecoveryKind = "RECOVERY"
+	RecoveryReversal RecoveryKind = "REVERSAL"
 )
 
 type Loss struct {
