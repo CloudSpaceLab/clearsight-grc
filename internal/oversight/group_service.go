@@ -44,10 +44,17 @@ func (s *GroupService) Get(ctx context.Context, actor identity.Actor) (GroupSnap
 		return GroupSnapshot{}, err
 	}
 	entityIDs := make([]string, 0, len(projection.Children))
+	seenChildren := make(map[string]struct{}, len(projection.Children))
 	for _, child := range projection.Children {
-		if strings.TrimSpace(child.LegalEntityID) != "" {
-			entityIDs = append(entityIDs, child.LegalEntityID)
+		entityID := strings.TrimSpace(child.LegalEntityID)
+		if entityID == "" {
+			return GroupSnapshot{}, ErrGroupUnavailable
 		}
+		if _, duplicate := seenChildren[entityID]; duplicate {
+			return GroupSnapshot{}, ErrGroupUnavailable
+		}
+		seenChildren[entityID] = struct{}{}
+		entityIDs = append(entityIDs, entityID)
 	}
 	allowed := make(map[string]struct{}, len(entityIDs))
 	for start := 0; start < len(entityIDs); start += access.MaxLegalEntityAccessBatchSize {
