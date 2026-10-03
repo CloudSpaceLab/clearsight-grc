@@ -72,6 +72,7 @@ func TestOperationalLossHTTPBindsVerifiedScopeAndActor(t *testing.T) {
 		"occurred_at":"2026-10-03T17:00:00Z",
 		"discovered_at":"2026-10-03T18:00:00Z",
 		"owner_principal_id":"spoofed-owner",
+		"matter_id":"client-selected-matter",
 		"actor_id":"spoofed-actor"
 	}`
 	create := httptest.NewRecorder()
@@ -83,8 +84,8 @@ func TestOperationalLossHTTPBindsVerifiedScopeAndActor(t *testing.T) {
 	if err := json.Unmarshal(create.Body.Bytes(), &created); err != nil {
 		t.Fatal(err)
 	}
-	if created.TenantID != "bank" || created.LegalEntityID != "entity-a" || created.OwnerPrincipalID != "loss-owner" {
-		t.Fatalf("created scope/owner = %#v", created)
+	if created.TenantID != "bank" || created.LegalEntityID != "entity-a" || created.OwnerPrincipalID != "loss-owner" || created.MatterID != "" {
+		t.Fatalf("created scope/owner/intervention = %#v", created)
 	}
 
 	now = now.Add(time.Minute)
