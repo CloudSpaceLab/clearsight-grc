@@ -153,8 +153,16 @@ func internalRecipientEligibilityPredicate(principalAlias, tenantExpression, leg
 				  AND eligible_subject.id::text=%[5]s
 				  AND %s
 			)
+			WHEN 'RISK' THEN EXISTS (
+				SELECT 1 FROM risks eligible_subject
+				WHERE eligible_subject.tenant_id=%[2]s
+				  AND eligible_subject.legal_entity_id=%[3]s
+				  AND eligible_subject.id::text=%[5]s
+				  AND (%s OR COALESCE(eligible_subject.owner_principal_id::text,'')=%[1]s.id::text)
+			)
 			ELSE false
 		END`, principalAlias, tenantExpression, legalEntityExpression, subjectTypeExpression, subjectIDExpression,
+		recipientSubjectVisibilityPredicate("eligible_subject", principalAlias+".id::text"),
 		recipientSubjectVisibilityPredicate("eligible_subject", principalAlias+".id::text"),
 		recipientSubjectVisibilityPredicate("eligible_subject", principalAlias+".id::text"))
 }
