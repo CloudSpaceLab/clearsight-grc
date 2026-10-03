@@ -37,8 +37,13 @@ func (a *API) listRisks(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	_, scope, ok := a.riskActorScope(w, r)
+	actor, scope, ok := a.riskActorScope(w, r)
 	if !ok {
+		return
+	}
+	selection, err := a.resolveOrganizationScopeSelection(r.Context(), actor, r.URL.Query().Get("organization_scope_id"), true)
+	if err != nil {
+		writeRiskOrganizationScopeError(w, err, false)
 		return
 	}
 	limit, ok := riskLimit(w, r)
@@ -50,8 +55,10 @@ func (a *API) listRisks(w http.ResponseWriter, r *http.Request) {
 		Category:         strings.TrimSpace(r.URL.Query().Get("category")),
 		OwnerPrincipalID: strings.TrimSpace(r.URL.Query().Get("owner_principal_id")),
 		Search:           strings.TrimSpace(r.URL.Query().Get("search")),
-		AppetitePosition: risk.AppetitePosition(strings.TrimSpace(r.URL.Query().Get("appetite_position"))),
-		Cursor:           strings.TrimSpace(r.URL.Query().Get("cursor")),
+		AppetitePosition:     risk.AppetitePosition(strings.TrimSpace(r.URL.Query().Get("appetite_position"))),
+		OrganizationScopeID:  selection.ID,
+		OrganizationScopeIDs: selection.IDs,
+		Cursor:               strings.TrimSpace(r.URL.Query().Get("cursor")),
 		Limit:            limit,
 	})
 	if err != nil {
@@ -92,8 +99,14 @@ func (a *API) createRisk(w http.ResponseWriter, r *http.Request) {
 		writeRiskError(w, risk.ErrInvalid)
 		return
 	}
+	selection, err := a.resolveOrganizationScopeSelection(r.Context(), actor, input.OrganizationScopeID, false)
+	if err != nil {
+		writeRiskOrganizationScopeError(w, err, true)
+		return
+	}
 	input.TenantID = actor.TenantID
 	input.LegalEntityID = actor.LegalEntityID
+	input.OrganizationScopeID = selection.ID
 	input.ActorID = actor.PrincipalID
 	input.OwnerPrincipalID = actor.PrincipalID
 	value, err := service.Create(r.Context(), input)
@@ -180,6 +193,18 @@ func (a *API) activateRiskAppetite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusCreated, map[string]any{"risk": current, "appetite": statement})
+}
+
+func writeRiskOrganizationScopeError(w http.ResponseWriter, err error, attribution bool) {
+	if errors.Is(err, errOrganizationScopeUnavailable) {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "organization_scope_unavailable", "Organization scope could not be verified. Try again.")
+		return
+	}
+	message := "This organization scope is not available for Risks."
+	if attribution {
+		message = "This organization scope is not available for Risk attribution."
+	}
+	httpx.WriteError(w, http.StatusForbidden, "organization_scope_forbidden", message)
 }
 
 func riskLimit(w http.ResponseWriter, r *http.Request) (int, bool) {
