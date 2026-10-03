@@ -101,6 +101,7 @@ type Dependencies struct {
 	ControlCatalog         *controlcatalog.Service
 	Today                  *today.Service
 	Oversight              *oversight.Service
+	GroupOversight         *oversight.GroupService
 	Workflow               *workflow.Service
 	Onboarding             *onboarding.Service
 	Autonomy               *autonomy.Service
