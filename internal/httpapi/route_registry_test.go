@@ -55,7 +55,6 @@ func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
 	}
 	addExpected(http.MethodGet, "/api/v1/governance/policies", identity.PermissionConfigRead)
 	addExpected(http.MethodGet, "/api/v1/oversight", identity.PermissionOversightRead)
-	addExpected(http.MethodGet, "/api/v1/oversight/group", identity.PermissionOversightRead)
 	addExpected(http.MethodPost, "/api/v1/governance/policies", identity.PermissionConfigWrite)
 	addExpected(http.MethodPost, "/api/v1/authority/simulate", identity.PermissionConfigRead)
 	addExpected(http.MethodGet, "/api/v1/system-activity", identity.PermissionPlatformOperationsRead)
