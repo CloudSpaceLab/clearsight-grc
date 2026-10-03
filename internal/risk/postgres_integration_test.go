@@ -67,11 +67,11 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 		INSERT INTO organization_scopes(
 			id,tenant_id,legal_entity_id,parent_scope_id,code,name,kind,department_path,origin,status,valid_from
 		) VALUES
-			($1::uuid,$5::uuid,$6::uuid,NULL,$9,'Risk','DEPARTMENT',ARRAY['BANK','RISK'],'MANAGED','ACTIVE',$10),
-			($2::uuid,$5::uuid,$6::uuid,$1::uuid,$11,'Risk Operations','DEPARTMENT',ARRAY['BANK','RISK','OPERATIONS'],'MANAGED','ACTIVE',$10),
-			($3::uuid,$5::uuid,$6::uuid,NULL,$12,'Finance','DEPARTMENT',ARRAY['BANK','FINANCE'],'MANAGED','ACTIVE',$10),
-			($4::uuid,$5::uuid,$7::uuid,NULL,$13,'Other entity risk','DEPARTMENT',ARRAY['BANK','RISK'],'MANAGED','ACTIVE',$10)
-	`, parentScopeID, childScopeID, siblingScopeID, otherEntityScopeID, tenantID, entityA, entityB, ownerID,
+			($1::uuid,$5::uuid,$6::uuid,NULL,$8,'Risk','DEPARTMENT',ARRAY['BANK','RISK'],'MANAGED','ACTIVE',$12),
+			($2::uuid,$5::uuid,$6::uuid,$1::uuid,$9,'Risk Operations','DEPARTMENT',ARRAY['BANK','RISK','OPERATIONS'],'MANAGED','ACTIVE',$12),
+			($3::uuid,$5::uuid,$6::uuid,NULL,$10,'Finance','DEPARTMENT',ARRAY['BANK','FINANCE'],'MANAGED','ACTIVE',$12),
+			($4::uuid,$5::uuid,$7::uuid,NULL,$11,'Other entity risk','DEPARTMENT',ARRAY['BANK','RISK'],'MANAGED','ACTIVE',$12)
+	`, parentScopeID, childScopeID, siblingScopeID, otherEntityScopeID, tenantID, entityA, entityB,
 		"RISK-"+suffix, "RISK-OPS-"+suffix, "FIN-"+suffix, "OTHER-RISK-"+suffix, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
