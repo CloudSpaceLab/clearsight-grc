@@ -417,7 +417,6 @@ func (a *PostgresAdministrator) RetireGroupRoleBinding(ctx context.Context, tena
 	return tx.Commit(ctx)
 }
 
-
 func (a *PostgresAdministrator) ProposeOrganizationScope(ctx context.Context, input ProposeOrganizationScopeInput) (OrganizationScopeRevisionSummary, error) {
 	input.TenantID = strings.TrimSpace(input.TenantID)
 	input.LegalEntityID = strings.TrimSpace(input.LegalEntityID)
