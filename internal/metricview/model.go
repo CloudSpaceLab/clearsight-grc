@@ -92,8 +92,8 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 		"routing_gaps":       snapshot.Counts.RoutingFailures,
 		"outcome_failures":   snapshot.Counts.OutcomeFailures,
 	}
-	items := make([]Metric, 0, len(HomeDefinitions))
-	for _, definition := range HomeDefinitions {
+	items := make([]Metric, 0, len(homeDefinitions))
+	for _, definition := range homeDefinitions {
 		value := values[definition.ID]
 		condition := ConditionClear
 		if value > 0 {
