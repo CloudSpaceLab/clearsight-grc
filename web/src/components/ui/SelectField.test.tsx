@@ -64,6 +64,19 @@ describe("SelectField", () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
+  it("closes after Tab without preventing native focus progression", async () => {
+    render(<main><SelectField label="Forms section" value="OPEN" placeholder="Forms section" options={options} onChange={() => undefined}/><button type="button">Send form</button><div id="cs-overlay-root"/></main>);
+    const trigger = screen.getByRole("button", { name: /Forms section/ });
+
+    fireEvent.click(trigger);
+    await screen.findByRole("listbox");
+
+    const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    window.dispatchEvent(tab);
+    expect(tab.defaultPrevented).toBe(false);
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+  });
+
   it("treats Escape captured at the browser boundary as an explicit close", async () => {
     render(<main><SelectField label="Forms section" value="OPEN" placeholder="Forms section" options={options} onChange={() => undefined}/><div id="cs-overlay-root"/></main>);
     const trigger = screen.getByRole("button", { name: /Forms section/ });
