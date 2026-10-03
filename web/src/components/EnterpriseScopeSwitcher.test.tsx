@@ -51,7 +51,7 @@ describe("EnterpriseScopeSwitcher", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank Nigeria" }));
     const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
-    fireEvent.click(within(dialog).getByRole("button", { name: /^Clear Bank$/ }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Group, Clear Bank" }));
 
     expect(onGroupSelectionChange).toHaveBeenCalledWith(true);
     expect(onSelectionChange).not.toHaveBeenCalled();
@@ -71,7 +71,7 @@ describe("EnterpriseScopeSwitcher", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Organization scope, Clear Bank · Group" }));
     const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
-    expect(within(dialog).getByRole("button", { name: /^Clear Bank$/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(dialog).getByRole("button", { name: "Group, Clear Bank" }).getAttribute("aria-pressed")).toBe("true");
 
     fireEvent.click(within(dialog).getByRole("button", { name: /Clear Bank Nigeria/ }));
     expect(onGroupSelectionChange).toHaveBeenCalledWith(false);
