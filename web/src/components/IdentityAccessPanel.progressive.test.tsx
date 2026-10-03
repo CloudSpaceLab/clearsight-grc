@@ -29,6 +29,10 @@ beforeEach(() => {
     roles: [{ id: "role-1", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: ["program_read"] }],
     legal_entities: [],
     bindings: [],
+    organization_scopes: [
+      { id: "scope-risk", legal_entity_id: "entity-1", code: "RISK", name: "RISK", kind: "ORGANIZATION_UNIT", department_path: ["BANK", "RISK"], origin: "LEGACY_DEPARTMENT_PATH", status: "ACTIVE", valid_from: "2026-01-01T00:00:00Z", version: 1 },
+      { id: "scope-operations", legal_entity_id: "entity-1", parent_scope_id: "scope-risk", code: "OPERATIONS", name: "OPERATIONS", kind: "ORGANIZATION_UNIT", department_path: ["BANK", "RISK", "OPERATIONS"], origin: "LEGACY_DEPARTMENT_PATH", status: "ACTIVE", valid_from: "2026-01-01T00:00:00Z", version: 1 },
+    ],
     positions: [
       {
         id: "position-cro",
@@ -36,6 +40,7 @@ beforeEach(() => {
         title: "Chief Risk Officer",
         function_name: "Risk",
         department_path: ["BANK", "RISK"],
+        organization_scope_id: "scope-risk",
         occupant_principal_id: "person-cro",
         occupant_name: "Ada Okafor",
         occupant_status: "ACTIVE",
@@ -49,6 +54,7 @@ beforeEach(() => {
         title: "Program Owner",
         function_name: "Risk Operations",
         department_path: ["BANK", "RISK", "OPERATIONS"],
+        organization_scope_id: "scope-operations",
         parent_position_id: "position-cro",
         parent_position_code: "CRO",
         parent_position_title: "Chief Risk Officer",
@@ -92,7 +98,7 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(screen.getByText("Ada Okafor")).toBeTruthy();
   expect(screen.getByText("PROGRAM_OWNER")).toBeTruthy();
   expect(screen.getByText("Department / area")).toBeTruthy();
-  expect(screen.getByText("Organization areas represented by active positions")).toBeTruthy();
+  expect(screen.getByText("Active organization scopes in this legal entity")).toBeTruthy();
 
   fireEvent.click(screen.getByRole("tab", { name: "Reporting lines" }));
   expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent === "Chidi Eze reports to Ada Okafor")).toBeTruthy();

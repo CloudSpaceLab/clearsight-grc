@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/organization"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -87,6 +88,13 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	}
 
 	result := AdminOverview{}
+	organizationPage, err := organization.NewPostgresRepository(a.pool).List(ctx, tenantID, entityID, 500)
+	if err != nil {
+		return AdminOverview{}, err
+	}
+	result.OrganizationScopes = organizationPage.Items
+	result.OrganizationScopesTruncated = organizationPage.Truncated
+
 	rows, err := a.pool.Query(ctx, `
 		SELECT ss.id::text,ss.code,ss.status,COALESCE(ss.identity_issuer,''),ss.subject_attribute,
 		       (SELECT count(*) FROM scim_users su WHERE su.source_id=ss.id AND su.active AND su.deleted_at IS NULL),
@@ -112,7 +120,7 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	}
 
 	rows, err = a.pool.Query(ctx, `
-		SELECT op.id::text,op.code,op.title,COALESCE(op.function_name,''),op.department_path,
+		SELECT op.id::text,op.code,op.title,COALESCE(op.function_name,''),op.department_path,COALESCE(op.organization_scope_id::text,''),
 		       COALESCE(parent.id::text,''),COALESCE(parent.code,''),COALESCE(parent.title,''),
 		       COALESCE(occupant.id::text,''),COALESCE(occupant.display_name,''),COALESCE(occupant.status,''),
 		       COALESCE(array_agg(DISTINCT rt.code ORDER BY rt.code) FILTER (WHERE rt.id IS NOT NULL),ARRAY[]::text[]),
@@ -133,7 +141,7 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	}
 	for rows.Next() {
 		var value PositionSummary
-		if err := rows.Scan(&value.ID, &value.Code, &value.Title, &value.FunctionName, &value.DepartmentPath, &value.ParentPositionID, &value.ParentPositionCode, &value.ParentPositionTitle, &value.OccupantPrincipalID, &value.OccupantName, &value.OccupantStatus, &value.RoleCodes, &value.ValidFrom, &value.ValidUntil, &value.Version); err != nil {
+		if err := rows.Scan(&value.ID, &value.Code, &value.Title, &value.FunctionName, &value.DepartmentPath, &value.OrganizationScopeID, &value.ParentPositionID, &value.ParentPositionCode, &value.ParentPositionTitle, &value.OccupantPrincipalID, &value.OccupantName, &value.OccupantStatus, &value.RoleCodes, &value.ValidFrom, &value.ValidUntil, &value.Version); err != nil {
 			rows.Close()
 			return AdminOverview{}, err
 		}
@@ -228,7 +236,7 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 
 	rows, err = a.pool.Query(ctx, `
 		SELECT b.id::text,b.group_id::text,dg.display_name,b.role_template_id::text,rt.code,
-		       b.legal_entity_id::text,le.code,b.department_path,b.valid_from,b.valid_until
+		       b.legal_entity_id::text,le.code,b.department_path,COALESCE(b.organization_scope_id::text,''),b.valid_from,b.valid_until
 		FROM directory_group_role_bindings b
 		JOIN directory_groups dg ON dg.tenant_id=b.tenant_id AND dg.id=b.group_id
 		JOIN role_templates rt ON rt.tenant_id=b.tenant_id AND rt.id=b.role_template_id
@@ -241,7 +249,7 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	}
 	for rows.Next() {
 		var value GroupRoleBindingSummary
-		if err := rows.Scan(&value.ID, &value.GroupID, &value.GroupName, &value.RoleTemplateID, &value.RoleCode, &value.LegalEntityID, &value.LegalEntity, &value.DepartmentPath, &value.ValidFrom, &value.ValidUntil); err != nil {
+		if err := rows.Scan(&value.ID, &value.GroupID, &value.GroupName, &value.RoleTemplateID, &value.RoleCode, &value.LegalEntityID, &value.LegalEntity, &value.DepartmentPath, &value.OrganizationScopeID, &value.ValidFrom, &value.ValidUntil); err != nil {
 			rows.Close()
 			return AdminOverview{}, err
 		}

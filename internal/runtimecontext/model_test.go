@@ -33,7 +33,7 @@ func TestIdentifierResolverReturnsOnlyVerifiedIdentifiers(t *testing.T) {
 	if hierarchy.Current.Kind != ScopeKindLegalEntity || hierarchy.Current.ID != scope.LegalEntityID || !hierarchy.Current.Current {
 		t.Fatalf("current = %#v", hierarchy.Current)
 	}
-	if len(hierarchy.LegalEntities) != 1 || hierarchy.LegalEntities[0] != hierarchy.Current {
+	if len(hierarchy.LegalEntities) != 1 || hierarchy.LegalEntities[0].ID != hierarchy.Current.ID || hierarchy.LegalEntities[0].Code != hierarchy.Current.Code || hierarchy.LegalEntities[0].Name != hierarchy.Current.Name {
 		t.Fatalf("legal entities = %#v", hierarchy.LegalEntities)
 	}
 }

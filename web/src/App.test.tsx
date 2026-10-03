@@ -243,17 +243,20 @@ describe("legal entity scope selector", () => {
     expect(within(context).queryByText("Non-production data")).toBeNull();
   });
 
-  it("shows exact department access in Scope even when there is only one legal entity", async () => {
+  it("shows server-authorized organization scopes even when there is only one legal entity", async () => {
     const scoped = switchableRuntime();
+    const entity = scoped.scope_hierarchy!.legal_entities[0]!;
     scoped.scope_hierarchy = {
       ...scoped.scope_hierarchy!,
-      legal_entities: [scoped.scope_hierarchy!.legal_entities[0]!],
+      legal_entities: [entity],
+      organization_scopes: [
+        { id: "scope-bank", code: "BANK", name: "BANK", kind: "ORGANIZATION_UNIT", parent_id: entity.id, department_path: ["BANK"] },
+        { id: "scope-risk", code: "RISK", name: "RISK", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "RISK"] },
+        { id: "scope-operations", code: "OPERATIONS", name: "OPERATIONS", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "OPERATIONS"] },
+        { id: "scope-payments", code: "PAYMENTS", name: "PAYMENTS", kind: "DEPARTMENT", parent_id: "scope-operations", department_path: ["BANK", "OPERATIONS", "PAYMENTS"] },
+      ],
     };
     scoped.capabilities.scope_switch = false;
-    scoped.actor.department_grants = [
-      { path: ["BANK", "OPERATIONS", "PAYMENTS"], permission_codes: ["MATTER_READ"] },
-      { path: ["BANK", "RISK"], permission_codes: ["MATTER_READ"] },
-    ];
     vi.mocked(loadContext).mockResolvedValue(scoped);
     render(<App/>);
 
@@ -263,7 +266,7 @@ describe("legal entity scope selector", () => {
 
     expect(within(dialog).getByText("BANK / OPERATIONS / PAYMENTS")).toBeTruthy();
     expect(within(dialog).getByText("BANK / RISK")).toBeTruthy();
-    expect(within(dialog).getByText(/Home area filtering is not available/)).toBeTruthy();
+    expect(within(dialog).getByText(/Home filtering remains unavailable/)).toBeTruthy();
   });
 
   it("shows only server-authorized legal entities and retains the current selection", async () => {

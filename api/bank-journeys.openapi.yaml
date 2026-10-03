@@ -125,6 +125,9 @@ components:
         legal_entities:
           type: array
           items: { $ref: '#/components/schemas/ScopeNode' }
+        organization_scopes:
+          type: array
+          items: { $ref: '#/components/schemas/ScopeNode' }
     ScopeNode:
       type: object
       required: [id, name, kind]
@@ -134,10 +137,14 @@ components:
         name: { type: string }
         kind:
           type: string
-          enum: [ORGANIZATION, LEGAL_ENTITY]
+          enum: [ORGANIZATION, LEGAL_ENTITY, ORGANIZATION_UNIT, BRANCH, DEPARTMENT, FUNCTION, BUSINESS_UNIT, CRITICAL_SERVICE]
         parent_id: { type: string }
         jurisdiction: { type: string }
+        department_path:
+          type: array
+          items: { type: string }
         current: { type: boolean }
+        filterable: { type: boolean }
     AttentionItem:
       type: object
       required: [id, type, title, why_now, scope, state, evidence, owner, due_at, primary_action]

@@ -33,12 +33,27 @@ export type IdentityGroup = {
 
 export type IdentityRole = { id: string; code: string; name: string; capabilities: string[] };
 export type IdentityLegalEntity = { id: string; code: string; name: string };
+export type OrganizationScope = {
+  id: string;
+  legal_entity_id: string;
+  parent_scope_id?: string;
+  code: string;
+  name: string;
+  kind: "ORGANIZATION_UNIT" | "BRANCH" | "DEPARTMENT" | "FUNCTION" | "BUSINESS_UNIT" | "CRITICAL_SERVICE";
+  department_path: string[];
+  origin: "LEGACY_DEPARTMENT_PATH" | "MANAGED";
+  status: string;
+  valid_from: string;
+  valid_until?: string;
+  version: number;
+};
 export type OrganizationPosition = {
   id: string;
   code: string;
   title: string;
   function_name?: string;
   department_path: string[];
+  organization_scope_id?: string;
   parent_position_id?: string;
   parent_position_code?: string;
   parent_position_title?: string;
@@ -59,6 +74,7 @@ export type GroupRoleBinding = {
   legal_entity_id: string;
   legal_entity: string;
   department_path: string[];
+  organization_scope_id?: string;
   valid_from: string;
   valid_until?: string;
 };
@@ -104,6 +120,8 @@ export type IdentityAccessOverview = {
   legal_entities: IdentityLegalEntity[];
   bindings: GroupRoleBinding[];
   positions: OrganizationPosition[];
+  organization_scopes: OrganizationScope[];
+  organization_scopes_truncated?: boolean;
   escalation: { pending_timers: number; escalated_tasks: number; unresolved_24h: number; failed_timers: number };
   escalation_policies: EscalationPolicy[];
 };
@@ -140,6 +158,7 @@ export async function loadIdentityAccessOverview(): Promise<IdentityAccessOvervi
     legal_entities: overview.legal_entities ?? [],
     bindings: overview.bindings ?? [],
     positions: overview.positions ?? [],
+    organization_scopes: overview.organization_scopes ?? [],
     escalation_policies: overview.escalation_policies ?? [],
   };
 }

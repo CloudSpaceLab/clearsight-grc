@@ -5,7 +5,6 @@ import { Button, PopoverDialog, SearchField, SelectableRecord } from "./ui";
 type Props = {
   hierarchy: ScopeHierarchy;
   currentScopeID: string;
-  organizationAreas?: string[][];
   canSwitchLegalEntity?: boolean;
   isChanging?: boolean;
   onSelectionChange: (legalEntityID: string) => void;
@@ -17,7 +16,6 @@ const searchThreshold = 7;
 export function EnterpriseScopeSwitcher({
   hierarchy,
   currentScopeID,
-  organizationAreas = [],
   canSwitchLegalEntity = true,
   isChanging = false,
   onSelectionChange,
@@ -26,7 +24,7 @@ export function EnterpriseScopeSwitcher({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const current = hierarchy.legal_entities.find((entity) => entity.id === currentScopeID) ?? hierarchy.current;
-  const areas = useMemo(() => uniqueAreas(organizationAreas), [organizationAreas]);
+  const areas = useMemo(() => hierarchy.organization_scopes ?? [], [hierarchy.organization_scopes]);
   const normalizedQuery = query.trim().toLowerCase();
   const visibleEntities = useMemo(() => {
     if (!normalizedQuery) return hierarchy.legal_entities;
@@ -116,12 +114,12 @@ export function EnterpriseScopeSwitcher({
       <section className="enterprise-scope-section enterprise-scope-areas" aria-labelledby="enterprise-areas-heading">
         <div className="enterprise-scope-section__heading">
           <strong id="enterprise-areas-heading">Your organization areas</strong>
-          <small>{areas.length ? "Exact department paths from your current access." : "No department-specific access is assigned."}</small>
+          <small>{areas.length ? "Server-authorized organization scopes for this legal entity." : "No subordinate organization scope is available."}</small>
         </div>
         {areas.length > 0 && <ul className="enterprise-scope-area-list">
-          {areas.map((area) => <li key={area.join("/")}>{area.join(" / ")}</li>)}
+          {areas.map((area) => <li key={area.id}><span>{area.department_path?.join(" / ") || area.name}</span><small>{humanizeScopeKind(area.kind)}</small></li>)}
         </ul>}
-        <p className="enterprise-scope-area-note">Home area filtering is not available until records have an authoritative branch or department scope.</p>
+        <p className="enterprise-scope-area-note">These scopes now have stable IDs. Home filtering remains unavailable until business records are explicitly attributed to them.</p>
       </section>
 
       {onManageOrganization && <div className="enterprise-scope-management">
@@ -131,13 +129,6 @@ export function EnterpriseScopeSwitcher({
   </PopoverDialog>;
 }
 
-function uniqueAreas(values: string[][]) {
-  const areas = new Map<string, string[]>();
-  for (const value of values) {
-    const path = value.map((part) => part.trim()).filter(Boolean);
-    if (!path.length) continue;
-    const key = path.map((part) => part.toUpperCase()).join("/");
-    if (!areas.has(key)) areas.set(key, path);
-  }
-  return [...areas.values()].sort((left, right) => left.join("/").localeCompare(right.join("/")));
+function humanizeScopeKind(value: string) {
+  return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 }
