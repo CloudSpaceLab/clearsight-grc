@@ -61,27 +61,27 @@ func TestPostgresGroupProjectionPreservesChildRevisionsAndAuthorization(t *testi
 	if _, err = pool.Exec(ctx, `
 		INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'group-oversight-test','Group Oversight Test');
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES
-			($4::uuid,$1::uuid,'ENTITY-A','Entity A','NG',$14),
-			($5::uuid,$1::uuid,'ENTITY-B','Entity B','GH',$14),
-			($6::uuid,$1::uuid,'ENTITY-C','Entity C','ZA',$14),
-			($7::uuid,$1::uuid,'ENTITY-D','Entity D','KE',$14);
+			($4::uuid,$1::uuid,'ENTITY-A','Entity A','NG',$12),
+			($5::uuid,$1::uuid,'ENTITY-B','Entity B','GH',$12),
+			($6::uuid,$1::uuid,'ENTITY-C','Entity C','ZA',$12),
+			($7::uuid,$1::uuid,'ENTITY-D','Entity D','KE',$12);
 		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from)
-		VALUES($2::uuid,$1::uuid,'PERSON','Group reader','ACTIVE',$14);
+		VALUES($2::uuid,$1::uuid,'PERSON','Group reader','ACTIVE',$12);
 		INSERT INTO role_templates(id,tenant_id,code,name,capabilities,valid_from)
-		VALUES($3::uuid,$1::uuid,'GROUP_OVERSIGHT','Group oversight',ARRAY['OVERSIGHT_READ'],$14);
+		VALUES($3::uuid,$1::uuid,'GROUP_OVERSIGHT','Group oversight',ARRAY['OVERSIGHT_READ'],$12);
 		INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,occupant_principal_id,department_path,valid_from) VALUES
-			($8::uuid,$1::uuid,$4::uuid,'A-GLOBAL','A global',$2::uuid,ARRAY[]::text[],$14),
-			($9::uuid,$1::uuid,$5::uuid,'B-GLOBAL','B global',$2::uuid,ARRAY[]::text[],$14),
-			($10::uuid,$1::uuid,$6::uuid,'C-DEPT','C department',$2::uuid,ARRAY['BANK','RISK'],$14),
-			($11::uuid,$1::uuid,$7::uuid,'D-GLOBAL','D global',$2::uuid,ARRAY[]::text[],$14);
+			($8::uuid,$1::uuid,$4::uuid,'A-GLOBAL','A global',$2::uuid,ARRAY[]::text[],$12),
+			($9::uuid,$1::uuid,$5::uuid,'B-GLOBAL','B global',$2::uuid,ARRAY[]::text[],$12),
+			($10::uuid,$1::uuid,$6::uuid,'C-DEPT','C department',$2::uuid,ARRAY['BANK','RISK'],$12),
+			($11::uuid,$1::uuid,$7::uuid,'D-GLOBAL','D global',$2::uuid,ARRAY[]::text[],$12);
 		INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from) VALUES
-			($1::uuid,$8::uuid,$3::uuid,$14),
-			($1::uuid,$9::uuid,$3::uuid,$14),
-			($1::uuid,$10::uuid,$3::uuid,$14),
-			($1::uuid,$11::uuid,$3::uuid,$14);
+			($1::uuid,$8::uuid,$3::uuid,$12),
+			($1::uuid,$9::uuid,$3::uuid,$12),
+			($1::uuid,$10::uuid,$3::uuid,$12),
+			($1::uuid,$11::uuid,$3::uuid,$12);
 	`, pgx.QueryExecModeSimpleProtocol,
 		tenantID, principalID, roleID, entityA, entityB, entityC, entityD,
-		positionA, positionB, positionC, positionD, snapshotA, snapshotB, now.Add(-time.Hour)); err != nil {
+		positionA, positionB, positionC, positionD, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -189,7 +189,7 @@ func TestPostgresGroupProjectionPreservesChildRevisionsAndAuthorization(t *testi
 		UPDATE group_oversight_child_facts
 		SET counts='{}'::jsonb
 		WHERE run_id=$1::uuid AND legal_entity_id=$2::uuid
-	`, projection.ID, entityA); err == nil {
+	`, latest.ID, entityA); err == nil {
 		t.Fatal("group child projection mutation was accepted")
 	}
 }
