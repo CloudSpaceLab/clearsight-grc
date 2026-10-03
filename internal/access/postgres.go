@@ -18,6 +18,104 @@ func NewPostgresResolver(pool *pgxpool.Pool) *PostgresResolver {
 	return &PostgresResolver{pool: pool}
 }
 
+func (r *PostgresResolver) ResolveOversightLegalEntities(ctx context.Context, tenantID, principalID string, limit int) (OversightScopePage, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	principalID = strings.TrimSpace(principalID)
+	if r == nil || r.pool == nil || tenantID == "" || principalID == "" {
+		return OversightScopePage{}, ErrPrincipalUnavailable
+	}
+	if limit <= 0 || limit > 256 {
+		limit = 256
+	}
+	rows, err := r.pool.Query(ctx, `
+		WITH selected_tenant AS (
+			SELECT t.id
+			FROM tenants t
+			WHERE t.id::text=$1 OR t.slug=$1
+			LIMIT 1
+		), active_principal AS (
+			SELECT p.id,p.tenant_id
+			FROM principals p
+			JOIN selected_tenant t ON t.id=p.tenant_id
+			WHERE p.id::text=$2
+			  AND p.status='ACTIVE'
+			  AND p.valid_from<=clock_timestamp()
+			  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)
+		)
+		SELECT le.id::text,le.code,le.name,COALESCE(le.jurisdiction,'')
+		FROM legal_entities le
+		JOIN selected_tenant t ON t.id=le.tenant_id
+		CROSS JOIN active_principal p
+		WHERE le.valid_from<=clock_timestamp()
+		  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
+		  AND (
+			EXISTS (
+				SELECT 1
+				FROM org_positions op
+				JOIN position_role_bindings prb ON prb.tenant_id=op.tenant_id AND prb.position_id=op.id
+				JOIN role_templates rt ON rt.tenant_id=prb.tenant_id AND rt.id=prb.role_template_id
+				WHERE op.tenant_id=t.id
+				  AND op.occupant_principal_id=p.id
+				  AND (op.legal_entity_id IS NULL OR op.legal_entity_id=le.id)
+				  AND cardinality(op.department_path)=0
+				  AND 'OVERSIGHT_READ'=ANY(rt.capabilities)
+				  AND op.valid_from<=clock_timestamp()
+				  AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+				  AND prb.valid_from<=clock_timestamp()
+				  AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
+				  AND rt.valid_from<=clock_timestamp()
+				  AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM scim_users su
+				JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id AND ss.status='ACTIVE'
+				JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
+				JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.source_id=su.source_id
+				JOIN directory_group_role_bindings dgrb ON dgrb.tenant_id=dg.tenant_id AND dgrb.group_id=dg.id
+				JOIN role_templates rt ON rt.tenant_id=dgrb.tenant_id AND rt.id=dgrb.role_template_id
+				WHERE su.tenant_id=t.id
+				  AND su.principal_id=p.id
+				  AND su.active
+				  AND su.deleted_at IS NULL
+				  AND dg.deleted_at IS NULL
+				  AND dgrb.legal_entity_id=le.id
+				  AND cardinality(dgrb.department_path)=0
+				  AND 'OVERSIGHT_READ'=ANY(rt.capabilities)
+				  AND dgrb.valid_from<=clock_timestamp()
+				  AND (dgrb.valid_until IS NULL OR clock_timestamp()<dgrb.valid_until)
+				  AND rt.valid_from<=clock_timestamp()
+				  AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+			)
+		  )
+		ORDER BY lower(le.name),le.id
+		LIMIT $3`, tenantID, principalID, limit+1)
+	if err != nil {
+		return OversightScopePage{}, fmt.Errorf("resolve oversight legal entities: %w", err)
+	}
+	defer rows.Close()
+
+	page := OversightScopePage{Items: make([]OversightLegalEntity, 0, limit)}
+	for rows.Next() {
+		var item OversightLegalEntity
+		if err := rows.Scan(&item.ID, &item.Code, &item.Name, &item.Jurisdiction); err != nil {
+			return OversightScopePage{}, fmt.Errorf("scan oversight legal entity: %w", err)
+		}
+		if len(page.Items) == limit {
+			page.HasMore = true
+			continue
+		}
+		page.Items = append(page.Items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return OversightScopePage{}, fmt.Errorf("iterate oversight legal entities: %w", err)
+	}
+	if len(page.Items) == 0 {
+		return OversightScopePage{}, ErrPrincipalUnavailable
+	}
+	return page, nil
+}
+
 func (r *PostgresResolver) CanReassign(ctx context.Context, request ReassignmentRequest) (ReassignmentDecision, error) {
 	request.TenantID = strings.TrimSpace(request.TenantID)
 	request.LegalEntityID = strings.TrimSpace(request.LegalEntityID)
