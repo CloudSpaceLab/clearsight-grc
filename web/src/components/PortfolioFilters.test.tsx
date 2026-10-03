@@ -26,6 +26,18 @@ describe("portfolio filters", () => {
     expect(window.location.hash).toContain("overall_state=CURRENT");
   });
 
+  it("binds Program reads to the active organization scope", async () => {
+    render(<ProgramsWorkspace
+      organizationScopeID="scope-risk"
+      organizationScopes={[
+        { id: "scope-risk", name: "Risk", kind: "DEPARTMENT", department_path: ["BANK", "RISK"], filterable: true },
+        { id: "scope-risk-ops", name: "Risk Operations", kind: "DEPARTMENT", department_path: ["BANK", "RISK", "OPERATIONS"], filterable: true },
+      ]}
+    />);
+    await screen.findByText("No programs in this scope");
+    expect(loadProgramSummaries).toHaveBeenCalledWith(expect.objectContaining({ organizationScopeID: "scope-risk", limit: 20 }));
+  });
+
   it("applies issue type, priority, due and ownership filters together", async () => {
     window.history.replaceState(null, "", "/#work/matters");
     render(<MattersWorkspace/>);
