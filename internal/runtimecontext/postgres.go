@@ -336,9 +336,11 @@ func (r *PostgresResolver) resolveOrganizationScopes(ctx context.Context, scope 
 				JOIN directory_group_members dgm ON dgm.tenant_id=su.tenant_id AND dgm.scim_user_id=su.id
 				JOIN directory_groups dg ON dg.tenant_id=dgm.tenant_id AND dg.id=dgm.group_id AND dg.deleted_at IS NULL
 				JOIN directory_group_role_bindings b ON b.tenant_id=dg.tenant_id AND b.group_id=dg.id
+				JOIN role_templates rt ON rt.tenant_id=b.tenant_id AND rt.id=b.role_template_id
 				JOIN organization_scopes assigned ON assigned.tenant_id=b.tenant_id AND assigned.legal_entity_id=b.legal_entity_id AND assigned.id=b.organization_scope_id
 				WHERE b.legal_entity_id=$3::uuid
 				  AND b.valid_from<=clock_timestamp() AND (b.valid_until IS NULL OR clock_timestamp()<b.valid_until)
+				  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
 				  AND cardinality(s.department_path)<=cardinality(assigned.department_path)
 				  AND assigned.department_path[1:cardinality(s.department_path)]=s.department_path
 			)
