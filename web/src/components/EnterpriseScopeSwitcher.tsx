@@ -187,6 +187,7 @@ export function EnterpriseScopeSwitcher({
         <span className="enterprise-scope-root__marker" aria-hidden="true"/>
         {canSelectGroup && onGroupSelectionChange
           ? <SelectableRecord
+            aria-label={`Group, ${hierarchy.root.name}`}
             title={hierarchy.root.name}
             metadata={isGroupSelected ? "Group · Selected" : "Group"}
             isSelected={isGroupSelected}
