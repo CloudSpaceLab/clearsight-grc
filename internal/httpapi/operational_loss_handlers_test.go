@@ -19,8 +19,8 @@ import (
 
 func TestOperationalLossRoutesUseGovernedAuthorityContracts(t *testing.T) {
 	want := map[string]bool{
-		"POST /api/v1/losses":                 true,
-		"POST /api/v1/losses/{id}":            false,
+		"POST /api/v1/losses":                   true,
+		"POST /api/v1/losses/{id}":              false,
 		"POST /api/v1/losses/{id}/recoveries":   false,
 		"POST /api/v1/losses/{id}/intervention": false,
 	}
@@ -142,7 +142,6 @@ func TestOperationalLossHTTPRejectsCrossEntityRead(t *testing.T) {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 }
-
 
 func TestOperationalLossInterventionCreatesAndReusesCanonicalMatter(t *testing.T) {
 	losses := oploss.NewService(oploss.NewMemoryRepository())
