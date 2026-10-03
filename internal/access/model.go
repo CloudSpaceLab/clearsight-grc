@@ -53,8 +53,10 @@ type OversightLegalEntity struct {
 }
 
 type OversightScopePage struct {
-	Items   []OversightLegalEntity
-	HasMore bool
+	TenantID   string
+	TenantName string
+	Items      []OversightLegalEntity
+	HasMore    bool
 }
 
 // OversightScopeResolver resolves only legal entities where the principal has
