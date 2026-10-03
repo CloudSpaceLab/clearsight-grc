@@ -18,6 +18,7 @@ var (
 type Repository interface {
 	Create(context.Context, Risk, Event) (Risk, error)
 	Get(context.Context, Scope, string) (Risk, error)
+	ResolveScope(context.Context, string, string) (Scope, error)
 	Update(context.Context, Scope, Risk, int64, Event) (Risk, error)
 	AddAssessment(context.Context, Scope, string, int64, Assessment, Event) (Risk, Assessment, error)
 	AddAppetite(context.Context, Scope, string, int64, AppetiteStatement, Event) (Risk, AppetiteStatement, error)
