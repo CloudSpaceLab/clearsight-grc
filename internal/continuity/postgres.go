@@ -60,9 +60,9 @@ func (r *PostgresRepository) CreateProgram(ctx context.Context, program Program,
 		return Program{}, err
 	}
 	defer tx.Rollback(ctx)
-	_, err = tx.Exec(ctx, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,owner_principal_id,authority_principal_id,jurisdiction,scope,effective_from,effective_until,created_at,updated_at,version)
-		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,NULLIF($9,'')::uuid,NULLIF($10,'')::uuid,$11,$12,$13,$14,$15,$15,$16)`,
-		program.ID, program.TenantID, program.LegalEntityID, program.Code, program.Name, program.Type, program.Status, program.OwningFunction, program.OwnerPrincipalID, program.AuthorityPrincipalID, program.Jurisdiction, rawJSON(program.Scope, `{}`), program.EffectiveFrom, program.EffectiveUntil, program.CreatedAt, program.Version)
+	_, err = tx.Exec(ctx, `INSERT INTO programs(id,tenant_id,legal_entity_id,organization_scope_id,code,name,program_type,status,owning_function,owner_principal_id,authority_principal_id,jurisdiction,scope,effective_from,effective_until,created_at,updated_at,version)
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,$5,$6,$7,$8,$9,NULLIF($10,'')::uuid,NULLIF($11,'')::uuid,$12,$13,$14,$15,$16,$16,$17)`,
+		program.ID, program.TenantID, program.LegalEntityID, program.OrganizationScopeID, program.Code, program.Name, program.Type, program.Status, program.OwningFunction, program.OwnerPrincipalID, program.AuthorityPrincipalID, program.Jurisdiction, rawJSON(program.Scope, `{}`), program.EffectiveFrom, program.EffectiveUntil, program.CreatedAt, program.Version)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return Program{}, ErrDuplicate
