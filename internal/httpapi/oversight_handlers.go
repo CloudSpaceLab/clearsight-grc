@@ -19,7 +19,11 @@ func (a *API) oversightSnapshot(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "oversight_unavailable", "Oversight unavailable. Try again.")
 		return
 	}
-	value, err := a.deps.Oversight.GetForPeriod(r.Context(), oversight.Scope{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID}, oversightPeriodRequest(r))
+	scope, ok := a.oversightScopeForRequest(w, r, actor)
+	if !ok {
+		return
+	}
+	value, err := a.deps.Oversight.GetForPeriod(r.Context(), scope, oversightPeriodRequest(r))
 	if writeOversightPeriodError(w, err) {
 		return
 	}

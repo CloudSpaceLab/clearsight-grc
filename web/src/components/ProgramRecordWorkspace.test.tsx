@@ -27,7 +27,18 @@ import { createMatter } from "../continuityCommands";
 import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
 
-vi.mock("../api", () => ({ loadProgram: vi.fn(), loadProgramSummaries: vi.fn(), loadMatterSummaries: vi.fn(), loadEvidenceSources: vi.fn() }));
+vi.mock("../api", () => ({
+  loadContext: vi.fn().mockResolvedValue({
+    tenant: { id: "bank", name: "Clear Bank" },
+    legal_entity: { id: "bank-ng", name: "Clear Bank Nigeria" },
+    actor: { id: "actor", name: "Actor" },
+    mode: "memory",
+  }),
+  loadProgram: vi.fn(),
+  loadProgramSummaries: vi.fn(),
+  loadMatterSummaries: vi.fn(),
+  loadEvidenceSources: vi.fn(),
+}));
 vi.mock("../formsDistributionApi", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../formsDistributionApi")>()),
   loadCompletedResponses: vi.fn(),

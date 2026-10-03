@@ -886,7 +886,7 @@ func (s *Service) CreateMatter(ctx context.Context, input CreateMatterInput) (Ma
 	if input.TriggerType != "" {
 		status = MatterInitialReview
 	}
-	matter := Matter{ID: matterID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, Reference: matterReference(matterID), Type: input.Type, Status: status, Priority: input.Priority, Title: strings.TrimSpace(input.Title), Summary: strings.TrimSpace(input.Summary), Scope: scope, SourceType: input.SourceType, SourceID: input.SourceID, TriggerType: input.TriggerType, TriggerID: input.TriggerID, TriggerKey: input.TriggerKey, KnownFacts: known, MissingFacts: missing, Contradictions: contradictions, OwnerPrincipalID: input.OwnerPrincipalID, RequiredAuthority: input.RequiredAuthority, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
+	matter := Matter{ID: matterID, TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, OrganizationScopeID: strings.TrimSpace(input.OrganizationScopeID), Reference: matterReference(matterID), Type: input.Type, Status: status, Priority: input.Priority, Title: strings.TrimSpace(input.Title), Summary: strings.TrimSpace(input.Summary), Scope: scope, SourceType: input.SourceType, SourceID: input.SourceID, TriggerType: input.TriggerType, TriggerID: input.TriggerID, TriggerKey: input.TriggerKey, KnownFacts: known, MissingFacts: missing, Contradictions: contradictions, OwnerPrincipalID: input.OwnerPrincipalID, RequiredAuthority: input.RequiredAuthority, DueAt: input.DueAt, CreatedAt: now, UpdatedAt: now, Version: 1}
 	event, err := newEvent(input.TenantID, "MATTER", matter.ID, 1, EventMatterCreated, matter, actorFor(input.ActorID), input.ActorID, now)
 	if err != nil {
 		return MatterAggregate{}, err

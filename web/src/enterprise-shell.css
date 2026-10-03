@@ -77,9 +77,14 @@
 .enterprise-scope-section__heading { display: grid; gap: 2px; padding: 0 8px; }
 .enterprise-scope-section__heading strong { color: var(--text); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
 .enterprise-scope-section__heading small { color: var(--muted); font-size: 10px; line-height: 1.35; }
-.enterprise-scope-area-list { display: grid; gap: 3px; margin: 0; padding: 0 8px; list-style: none; }
-.enterprise-scope-area-list li { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 7px 8px; border-radius: 8px; background: var(--surface-2); color: var(--text); font-size: 11px; font-weight: 620; }
-.enterprise-scope-area-note { margin: 0; padding: 0 8px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.enterprise-scope-area-tree,
+.enterprise-scope-area-tree ul { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.enterprise-scope-area-tree { padding: 0 8px; }
+.enterprise-scope-area-tree ul { margin-left: 10px; padding-left: 10px; border-left: 1px solid color-mix(in srgb, var(--border) 82%, transparent); }
+.enterprise-scope-area-node { min-width: 0; }
+.enterprise-scope-area-static { min-width: 0; display: grid; gap: 2px; padding: 7px 8px; border-radius: var(--cs-primitive-radius-8); background: var(--surface-2); }
+.enterprise-scope-area-static span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 11px; font-weight: 620; }
+.enterprise-scope-area-static small { color: var(--muted); font-size: 9px; }
 .enterprise-scope-management { display: flex; justify-content: flex-end; padding: 2px 4px 0; }
 
 @media (max-width: 820px) {

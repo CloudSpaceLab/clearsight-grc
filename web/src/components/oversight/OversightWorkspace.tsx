@@ -12,7 +12,7 @@ type DetailView = "pressure" | "outlook" | "performance";
 export type OversightMetricFilter = HomeMetricFilter;
 type TodayState = "loading" | "live" | "unavailable";
 
-export function OversightWorkspace({ organizationName, legalEntityName, onOpenMatter, loadSnapshot = loadOversight, loadMetrics = loadHomeMetrics, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem }: { organizationName: string; legalEntityName: string; onOpenMatter: (id: string) => void; loadSnapshot?: (period?: ReportingPeriodQuery) => Promise<OversightSnapshot>; loadMetrics?: (period?: ReportingPeriodQuery) => Promise<HomeMetricBundle>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void }) {
+export function OversightWorkspace({ organizationName, legalEntityName, organizationScopeID, organizationScopeName, onOpenMatter, loadSnapshot = loadOversight, loadMetrics = loadHomeMetrics, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem }: { organizationName: string; legalEntityName: string; organizationScopeID?: string; organizationScopeName?: string; onOpenMatter: (id: string) => void; loadSnapshot?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<OversightSnapshot>; loadMetrics?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<HomeMetricBundle>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void }) {
   const [snapshot, setSnapshot] = useState<OversightSnapshot | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [metrics, setMetrics] = useState<HomeMetricBundle | null>(null);
@@ -21,6 +21,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
   const [localMetricFilter, setLocalMetricFilter] = useState<OversightMetricFilter>(metricFilter);
   const [periodState, setPeriodState] = useState<"idle" | "changing">("idle");
   const [periodError, setPeriodError] = useState("");
+  const [activePeriod, setActivePeriod] = useState<ReportingPeriodQuery>();
   const selectedMetricFilter = onMetricFilterChange ? metricFilter : localMetricFilter;
 
   useEffect(() => { setLocalMetricFilter(metricFilter); }, [metricFilter]);
@@ -37,10 +38,13 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     }
   }
 
-  async function load(period?: ReportingPeriodQuery) {
+  async function load(period = activePeriod) {
     setState("loading");
     setMetricState("loading");
-    const [snapshotResult, metricResult] = await Promise.allSettled([loadSnapshot(period), loadMetrics(period)]);
+    const [snapshotResult, metricResult] = await Promise.allSettled([
+      loadSnapshot(period, organizationScopeID),
+      loadMetrics(period, organizationScopeID),
+    ]);
     if (snapshotResult.status === "fulfilled") {
       setSnapshot(snapshotResult.value);
       setState("live");
@@ -57,31 +61,37 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [organizationScopeID]);
 
   async function changePeriod(period: ReportingPeriodQuery) {
     if (periodState === "changing") return;
     setPeriodState("changing");
     setPeriodError("");
-    const [snapshotResult, metricResult] = await Promise.allSettled([loadSnapshot(period), loadMetrics(period)]);
-    if (snapshotResult.status === "fulfilled" && metricResult.status === "fulfilled" && sameReportingPeriod(snapshotResult.value.reporting_period, metricResult.value.reporting_period)) {
+    const [snapshotResult, metricResult] = await Promise.allSettled([
+      loadSnapshot(period, organizationScopeID),
+      loadMetrics(period, organizationScopeID),
+    ]);
+    if (snapshotResult.status === "fulfilled" && metricResult.status === "fulfilled"
+      && sameReportingPeriod(snapshotResult.value.reporting_period, metricResult.value.reporting_period)
+      && sameOrganizationScope(snapshotResult.value, metricResult.value, organizationScopeID)) {
       setSnapshot(snapshotResult.value);
       setMetrics(metricResult.value);
       setState("live");
       setMetricState("live");
+      setActivePeriod(period);
     } else {
       setPeriodError("The reporting period could not be changed. Current data is still shown.");
     }
     setPeriodState("idle");
   }
 
-  if (state === "loading" && metricState === "loading") return <section className="oversight-workspace" aria-busy="true"><header className="oversight-header"><div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Loading current risk posture and assigned work…</p></div></header></section>;
+  if (state === "loading" && metricState === "loading") return <section className="oversight-workspace" aria-busy="true"><header className="oversight-header"><div><span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span><h1>Risk and delivery oversight</h1><p>Loading current risk posture and assigned work…</p></div></header></section>;
 
   const headlineMetrics = <HomeMetricStrip metrics={metrics} state={metricState} selected={selectedMetricFilter} onSelect={selectMetric}/>;
 
   if (state === "unavailable" || !snapshot) return <section className="oversight-workspace">
     <header className="oversight-header">
-      <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Oversight information is unavailable</h1><p>Current risk posture remains separate from detailed analysis.</p></div>
+      <div><span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span><h1>Oversight information is unavailable</h1><p>Current risk posture remains separate from detailed analysis.</p></div>
       {metrics && <OversightPeriodPicker period={metrics.reporting_period} freshness={metrics.freshness} generatedAt={metrics.generated_at} isChanging={periodState === "changing"} error={periodError} onApply={(period) => void changePeriod(period)}/>} 
     </header>
     {headlineMetrics}
@@ -90,11 +100,13 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
     <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
   </section>;
 
-  const coverage = `${snapshot.coverage.population} issues checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
+  const coverage = organizationScopeID
+    ? `${snapshot.coverage.population} issues · ${formatKnown(snapshot.coverage.excluded)} excluded · unassigned area excluded`
+    : `${snapshot.coverage.population} issues checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
   const interventions = filterInterventions(snapshot.interventions, selectedMetricFilter);
   return <section className="oversight-workspace">
     <header className="oversight-header">
-      <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Risk and delivery oversight</h1><p>Review issues requiring intervention, resolution outlook and operating workload for this legal entity.</p></div>
+      <div><span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span><h1>Risk and delivery oversight</h1><p>{organizationScopeID ? `Current issues in ${organizationScopeName || "this area"} and included sub-areas.` : "Current issues across this legal entity."}</p></div>
       <OversightPeriodPicker period={snapshot.reporting_period} freshness={snapshot.freshness} generatedAt={snapshot.generated_at} isChanging={periodState === "changing"} error={periodError} onApply={(period) => void changePeriod(period)}/>
     </header>
 
@@ -115,7 +127,7 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
         <div className={`oversight-priority p${item.priority}`}><span>P{item.priority}</span></div>
         <div><div className="oversight-intervention-title"><strong>{item.title}</strong><span>{humanize(item.category)}</span></div><p>{item.reason}</p><small>{item.owner_name || "No owner recorded"}{item.due_at ? ` · Due ${formatDate(item.due_at)}` : " · No due date recorded"} · {humanize(item.state)}</small></div>
         <div className="oversight-action"><Button size="compact" onPress={() => onOpenMatter(item.target_id)} aria-label={`Review ${item.title}`}>{item.next_action}</Button></div>
-      </article>)}</div> : <EmptyState population={`${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Review the freshness and coverage above before treating this result as complete."/>}
+      </article>)}</div> : <EmptyState population={organizationScopeID ? `${snapshot.coverage.population} attributed issues in ${organizationScopeName || "this scope"}` : `${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Review the freshness and coverage above before treating this result as complete."/>}
     </section>
 
     <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
@@ -124,6 +136,12 @@ export function OversightWorkspace({ organizationName, legalEntityName, onOpenMa
       {selected === "performance" && <OperatingPerformance snapshot={snapshot}/>}
     </div>}</Tabs></div>
   </section>;
+}
+
+function sameOrganizationScope(snapshot: OversightSnapshot, metrics: HomeMetricBundle, requested?: string) {
+  const expected = requested ?? "";
+  return (snapshot.organization_scope_id ?? "") === expected
+    && (metrics.scope_kind === "ORGANIZATION_SCOPE" ? metrics.scope_id : "") === expected;
 }
 
 function sameReportingPeriod(left: ReportingPeriod, right: ReportingPeriod) {

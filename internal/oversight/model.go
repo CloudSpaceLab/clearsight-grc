@@ -33,8 +33,10 @@ const (
 )
 
 type Scope struct {
-	TenantID      string
-	LegalEntityID string
+	TenantID             string
+	LegalEntityID        string
+	OrganizationScopeID  string
+	OrganizationScopeIDs []string
 }
 
 type Coverage struct {
@@ -118,24 +120,25 @@ type HistoryQuality struct {
 }
 
 type Snapshot struct {
-	TenantID          string               `json:"-"`
-	LegalEntityID     string               `json:"-"`
-	GeneratedAt       time.Time            `json:"generated_at"`
-	PeriodStart       time.Time            `json:"period_start"`
-	PeriodEnd         time.Time            `json:"period_end"`
-	ReportingPeriod   ReportingPeriod      `json:"reporting_period"`
-	PostureAsOf       time.Time            `json:"posture_as_of"`
-	ProjectionVersion string               `json:"projection_version"`
-	Freshness         Freshness            `json:"freshness"`
-	SourceHighWater   map[string]time.Time `json:"source_high_water"`
-	Coverage          Coverage             `json:"coverage"`
-	Counts            Counts               `json:"counts"`
-	Interventions     []Intervention       `json:"interventions"`
-	Pressure          []CategoryPressure   `json:"pressure"`
-	Aging             []AgingBucket        `json:"aging"`
-	Performance       []Performance        `json:"performance"`
-	Estimates         []ResolutionEstimate `json:"estimates"`
-	HistoryQuality    HistoryQuality       `json:"history_quality"`
+	TenantID            string               `json:"-"`
+	LegalEntityID       string               `json:"-"`
+	OrganizationScopeID string               `json:"organization_scope_id,omitempty"`
+	GeneratedAt         time.Time            `json:"generated_at"`
+	PeriodStart         time.Time            `json:"period_start"`
+	PeriodEnd           time.Time            `json:"period_end"`
+	ReportingPeriod     ReportingPeriod      `json:"reporting_period"`
+	PostureAsOf         time.Time            `json:"posture_as_of"`
+	ProjectionVersion   string               `json:"projection_version"`
+	Freshness           Freshness            `json:"freshness"`
+	SourceHighWater     map[string]time.Time `json:"source_high_water"`
+	Coverage            Coverage             `json:"coverage"`
+	Counts              Counts               `json:"counts"`
+	Interventions       []Intervention       `json:"interventions"`
+	Pressure            []CategoryPressure   `json:"pressure"`
+	Aging               []AgingBucket        `json:"aging"`
+	Performance         []Performance        `json:"performance"`
+	Estimates           []ResolutionEstimate `json:"estimates"`
+	HistoryQuality      HistoryQuality       `json:"history_quality"`
 }
 
 func estimateConfidence(samples int) string {

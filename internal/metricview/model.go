@@ -80,6 +80,12 @@ type Bundle struct {
 
 func FromOversight(snapshot oversight.Snapshot) Bundle {
 	completeness := coverageCompleteness(snapshot.Coverage)
+	if snapshot.OrganizationScopeID != "" {
+		// A subordinate view never counts unattributed legal-entity records because
+		// that would leak sibling-sensitive totals. Until attribution coverage can
+		// be proven independently, report scoped completeness as unknown.
+		completeness = CompletenessUnknown
+	}
 	common := func(id, label, filter string, value int) Metric {
 		condition := ConditionClear
 		if value > 0 {
@@ -108,14 +114,18 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 		}
 	}
 
+	scopeID, scopeKind := snapshot.LegalEntityID, "LEGAL_ENTITY"
+	if snapshot.OrganizationScopeID != "" {
+		scopeID, scopeKind = snapshot.OrganizationScopeID, "ORGANIZATION_SCOPE"
+	}
 	return Bundle{
 		GeneratedAt:        snapshot.GeneratedAt,
 		PeriodStart:        snapshot.PeriodStart,
 		PeriodEnd:          snapshot.PeriodEnd,
 		ReportingPeriod:    snapshot.ReportingPeriod,
 		PostureAsOf:        snapshot.PostureAsOf,
-		ScopeID:            snapshot.LegalEntityID,
-		ScopeKind:          "LEGAL_ENTITY",
+		ScopeID:            scopeID,
+		ScopeKind:          scopeKind,
 		Freshness:          snapshot.Freshness,
 		Completeness:       completeness,
 		Population:         snapshot.Coverage.Population,

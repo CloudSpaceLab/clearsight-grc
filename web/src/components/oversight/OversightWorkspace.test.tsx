@@ -153,8 +153,8 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
 
   fireEvent.click(screen.getByRole("button", { name: "30 days" }));
 
-  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }));
-  expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" });
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }, undefined));
+  expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }, undefined);
   expect(screen.getByRole("button", { name: /Reporting period/ }).textContent).toContain("Last 30 days");
   expect(screen.getByText("7")).toBeTruthy();
 
@@ -184,6 +184,45 @@ it("submits a custom start date but never offers an editable historical end date
   vi.mocked(metricApi.loadHomeMetrics).mockClear();
 
   fireEvent.click(screen.getByRole("button", { name: "Apply" }));
-  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-07-15", end_date: "2026-09-01" }));
-  expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-07-15", end_date: "2026-09-01" });
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-07-15", end_date: "2026-09-01" }, undefined));
+  expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-07-15", end_date: "2026-09-01" }, undefined);
+});
+
+
+it("reloads both Home reads for an organization scope and excludes unattributed legal-entity work", async () => {
+  const baseSnapshot = await api.loadOversight();
+  const baseMetrics = await metricApi.loadHomeMetrics();
+  api.loadOversight.mockClear();
+  metricApi.loadHomeMetrics.mockClear();
+  const scopedSnapshot = {
+    ...baseSnapshot,
+    organization_scope_id: "scope-risk",
+    coverage: { population: 4, excluded: 0 },
+    counts: { ...baseSnapshot.counts, critical_high: 2 },
+  };
+  const scopedMetrics = {
+    ...baseMetrics,
+    scope_id: "scope-risk",
+    scope_kind: "ORGANIZATION_SCOPE" as const,
+    completeness: "UNKNOWN" as const,
+    population: 4,
+    unknown: undefined,
+    items: baseMetrics.items.map((item: any) => ({ ...item, population: 4, unknown: undefined, completeness: "UNKNOWN" as const })),
+  };
+  vi.mocked(api.loadOversight).mockResolvedValue(scopedSnapshot);
+  vi.mocked(metricApi.loadHomeMetrics).mockResolvedValue(scopedMetrics);
+
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    organizationScopeID="scope-risk"
+    organizationScopeName="BANK / RISK"
+    onOpenMatter={vi.fn()}
+  />);
+
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith(undefined, "scope-risk"));
+  expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith(undefined, "scope-risk");
+  expect(await screen.findByText(/4 issues/)).toBeTruthy();
+  expect(screen.getByText(/unassigned area excluded/)).toBeTruthy();
+  expect(screen.getByText("Current issues in BANK / RISK and included sub-areas.")).toBeTruthy();
 });

@@ -8,6 +8,7 @@ export type OversightSnapshot = {
   period_start: string;
   period_end: string;
   reporting_period: ReportingPeriod;
+  organization_scope_id?: string;
   posture_as_of: string;
   projection_version: string;
   freshness: "CURRENT" | "STALE";
@@ -22,6 +23,6 @@ export type OversightSnapshot = {
   history_quality: { completed_population: number; complete_lifecycle: number; missing_created_event: number; missing_terminal_event: number; excluded_from_durations: number; reassigned_owner_excluded: number; returned_owner_excluded?: number; blocked_owner_excluded?: number; reopened_owner_excluded?: number };
 };
 
-export function loadOversight(period?: ReportingPeriodQuery) {
-  return requestJSON<OversightSnapshot>(apiBase, reportingPeriodPath("/api/v1/oversight", period));
+export function loadOversight(period?: ReportingPeriodQuery, organizationScopeID?: string) {
+  return requestJSON<OversightSnapshot>(apiBase, reportingPeriodPath("/api/v1/oversight", period, organizationScopeID));
 }

@@ -98,6 +98,72 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 	}
 }
 
+func TestPostgresProjectionFiltersAuthorizedOrganizationScopeDescendantsWithoutSiblingLeakage(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	const (
+		tenantID       = "8a686868-6868-7868-8868-686868686801"
+		entityID       = "8a686868-6868-7868-8868-686868686802"
+		riskScope      = "8a686868-6868-7868-8868-686868686803"
+		opsScope       = "8a686868-6868-7868-8868-686868686804"
+		riskChildScope = "8a686868-6868-7868-8868-686868686805"
+	)
+	cleanup := func(cleanCtx context.Context) {
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM matters WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM organization_scopes WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	}
+	cleanup(ctx)
+	t.Cleanup(func() { cleanup(context.Background()) })
+
+	now := time.Now().UTC().Truncate(time.Second)
+	mustOversightExec(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'oversight-org-scope','Oversight organization scope')`, tenantID)
+	mustOversightExec(t, ctx, pool, `INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'ORG-NG','Organization Bank Nigeria','NG',$3)`, entityID, tenantID, now.Add(-time.Hour))
+	mustOversightExec(t, ctx, pool, `INSERT INTO organization_scopes(id,tenant_id,legal_entity_id,code,name,kind,department_path,origin,status,valid_from) VALUES
+		($1::uuid,$4::uuid,$5::uuid,'RISK','Risk','DEPARTMENT',ARRAY['BANK','RISK'],'MANAGED','ACTIVE',$6),
+		($2::uuid,$4::uuid,$5::uuid,'OPS','Operations','DEPARTMENT',ARRAY['BANK','OPERATIONS'],'MANAGED','ACTIVE',$6),
+		($3::uuid,$4::uuid,$5::uuid,'RISK-OPS','Risk Operations','DEPARTMENT',ARRAY['BANK','RISK','OPERATIONS'],'MANAGED','ACTIVE',$6)`, riskScope, opsScope, riskChildScope, tenantID, entityID, now.Add(-time.Hour))
+	for _, item := range []struct {
+		id, ref, title, organizationScope string
+	}{
+		{"8a686868-6868-7868-8868-686868686811", "ORG-RISK", "Risk exact issue", riskScope},
+		{"8a686868-6868-7868-8868-686868686812", "ORG-OPS", "Operations sibling issue", opsScope},
+		{"8a686868-6868-7868-8868-686868686813", "ORG-UNATTRIBUTED", "Unattributed issue", ""},
+		{"8a686868-6868-7868-8868-686868686814", "ORG-RISK-OPS", "Risk child issue", riskChildScope},
+	} {
+		mustOversightExec(t, ctx, pool, `INSERT INTO matters(id,tenant_id,legal_entity_id,organization_scope_id,reference,matter_type,status,priority,title,summary,scope,created_at,updated_at)
+			VALUES($1::uuid,$2::uuid,$3::uuid,NULLIF($4,'')::uuid,$5,'CONTROL_GAP','TRIAGE',5,$6,'Organization scope boundary','{"access":"INTERNAL"}'::jsonb,$7,$7)`,
+			item.id, tenantID, entityID, item.organizationScope, item.ref, item.title, now.Add(-24*time.Hour))
+	}
+
+	value, err := NewPostgresRepository(pool).BuildPeriod(ctx, Scope{
+		TenantID: tenantID, LegalEntityID: entityID, OrganizationScopeID: riskScope, OrganizationScopeIDs: []string{riskScope, riskChildScope},
+	}, now.Add(-90*24*time.Hour), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value.OrganizationScopeID != riskScope || value.Coverage.Population != 2 || value.Coverage.Unknown != nil {
+		t.Fatalf("scoped coverage leaked legal-entity attribution: scope=%s coverage=%#v", value.OrganizationScopeID, value.Coverage)
+	}
+	if value.Counts.CriticalHigh != 2 || len(value.Interventions) != 2 {
+		t.Fatalf("sibling or unattributed Matter leaked: counts=%#v interventions=%#v", value.Counts, value.Interventions)
+	}
+	for _, item := range value.Interventions {
+		if item.Title == "Operations sibling issue" || item.Title == "Unattributed issue" {
+			t.Fatalf("forbidden Matter leaked: %#v", item)
+		}
+	}
+}
+
 func TestPostgresProjectionAttributesHistoryToExactOwnerIntervals(t *testing.T) {
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {

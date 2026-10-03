@@ -14,6 +14,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 func (a *API) continuityService(w http.ResponseWriter) (*continuity.Service, bool) {
@@ -22,6 +23,37 @@ func (a *API) continuityService(w http.ResponseWriter) (*continuity.Service, boo
 		return nil, false
 	}
 	return a.deps.Continuity, true
+}
+
+func (a *API) validateMatterOrganizationScope(w http.ResponseWriter, r *http.Request, requested string) bool {
+	requested = strings.TrimSpace(requested)
+	if requested == "" {
+		return true
+	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return false
+	}
+	resolver, ok := a.deps.RuntimeContext.(runtimecontext.HierarchyResolver)
+	if !ok {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "organization_scope_unavailable", "Organization scope could not be verified. Try again.")
+		return false
+	}
+	hierarchy, err := resolver.ResolveHierarchy(r.Context(), runtimecontext.Scope{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
+	})
+	if err != nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "organization_scope_unavailable", "Organization scope could not be verified. Try again.")
+		return false
+	}
+	for _, node := range hierarchy.OrganizationScopes {
+		if node.ID == requested && node.Filterable {
+			return true
+		}
+	}
+	httpx.WriteError(w, http.StatusForbidden, "organization_scope_forbidden", "This organization scope is not available for issue attribution.")
+	return false
 }
 
 func (a *API) listPrograms(w http.ResponseWriter, r *http.Request) {
@@ -571,6 +603,9 @@ func (a *API) createMatter(w http.ResponseWriter, r *http.Request) {
 	var input continuity.CreateMatterInput
 	if err := httpx.DecodeJSON(w, r, &input); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	if !a.validateMatterOrganizationScope(w, r, input.OrganizationScopeID) {
 		return
 	}
 	value, err := service.CreateMatter(r.Context(), input)

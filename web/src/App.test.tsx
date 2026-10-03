@@ -251,7 +251,7 @@ describe("legal entity scope selector", () => {
       legal_entities: [entity],
       organization_scopes: [
         { id: "scope-bank", code: "BANK", name: "BANK", kind: "ORGANIZATION_UNIT", parent_id: entity.id, department_path: ["BANK"] },
-        { id: "scope-risk", code: "RISK", name: "RISK", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "RISK"] },
+        { id: "scope-risk", code: "RISK", name: "RISK", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "RISK"], filterable: true },
         { id: "scope-operations", code: "OPERATIONS", name: "OPERATIONS", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "OPERATIONS"] },
         { id: "scope-payments", code: "PAYMENTS", name: "PAYMENTS", kind: "DEPARTMENT", parent_id: "scope-operations", department_path: ["BANK", "OPERATIONS", "PAYMENTS"] },
       ],
@@ -266,7 +266,23 @@ describe("legal entity scope selector", () => {
 
     expect(within(dialog).getByText("BANK / OPERATIONS / PAYMENTS")).toBeTruthy();
     expect(within(dialog).getByText("BANK / RISK")).toBeTruthy();
-    expect(within(dialog).getByText(/Home filtering remains unavailable/)).toBeTruthy();
+  });
+
+  it("selects a filterable organization scope from the persistent Scope control", async () => {
+    const scoped = switchableRuntime();
+    scoped.scope_hierarchy!.organization_scopes = [
+      { id: "scope-bank", code: "BANK", name: "BANK", kind: "ORGANIZATION_UNIT", parent_id: scoped.scope_hierarchy!.current.id, department_path: ["BANK"] },
+      { id: "scope-risk", code: "RISK", name: "Risk", kind: "DEPARTMENT", parent_id: "scope-bank", department_path: ["BANK", "RISK"], filterable: true },
+    ];
+    scoped.capabilities.oversight_read = true;
+    vi.mocked(loadContext).mockResolvedValue(scoped);
+    render(<App/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    fireEvent.click(within(dialog).getByRole("button", { name: /BANK \/ RISK/ }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Risk"));
   });
 
   it("shows only server-authorized legal entities and retains the current selection", async () => {
