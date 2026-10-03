@@ -49,6 +49,25 @@ func (r *MemoryRepository) Get(ctx context.Context, scope Scope, id string) (Agg
 	return cloneAggregate(value), nil
 }
 
+func (r *MemoryRepository) ResolveLegalEntity(ctx context.Context, tenant, id string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	tenant = strings.TrimSpace(tenant)
+	id = strings.TrimSpace(id)
+	if tenant == "" || id == "" {
+		return "", ErrInvalid
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, value := range r.cycles {
+		if value.Cycle.TenantID == tenant && value.Cycle.ID == id {
+			return value.Cycle.LegalEntityID, nil
+		}
+	}
+	return "", ErrNotFound
+}
+
 func cycleKey(tenant, entity, id string) string {
 	return tenant + "\x00" + entity + "\x00" + id
 }
