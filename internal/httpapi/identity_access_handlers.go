@@ -67,8 +67,9 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 			"authentication": actor.AuthenticationMethod, "assurance_level": actor.AssuranceLevel,
 		},
 		"actor_principal_id":       actor.PrincipalID,
-		"can_configure":            canConfigure,
-		"can_configure_escalation": canConfigure && identity.HasPermission(actor, identity.PermissionConfigWrite),
+		"can_configure":              canConfigure,
+		"can_configure_organization": canConfigure && identity.HasPermission(actor, identity.PermissionConfigWrite),
+		"can_configure_escalation":   canConfigure && identity.HasPermission(actor, identity.PermissionConfigWrite),
 		"sources":                  overview.Sources,
 		"people":                   overview.People,
 		"groups":                   overview.Groups,
@@ -81,7 +82,69 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	payload["organization_scopes"] = overview.OrganizationScopes
 	payload["organization_scopes_truncated"] = overview.OrganizationScopesTruncated
+	payload["organization_scope_revisions"] = overview.OrganizationScopeRevisions
 	httpx.WriteJSON(w, http.StatusOK, payload)
+}
+
+
+type decideOrganizationScopeInput struct {
+	Rationale string `json:"rationale"`
+}
+
+func (a *API) proposeOrganizationScope(w http.ResponseWriter, r *http.Request) {
+	actor, ok := organizationScopeAdminActor(w, r, a.deps.AccessAdmin)
+	if !ok {
+		return
+	}
+	var input access.ProposeOrganizationScopeInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.TenantID = actor.TenantID
+	input.LegalEntityID = actor.LegalEntityID
+	input.ActorID = actor.PrincipalID
+	revision, err := a.deps.AccessAdmin.ProposeOrganizationScope(r.Context(), input)
+	if err != nil {
+		writeIdentityAccessError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, revision)
+}
+
+func (a *API) approveOrganizationScope(w http.ResponseWriter, r *http.Request) {
+	a.decideOrganizationScope(w, r, true)
+}
+
+func (a *API) rejectOrganizationScope(w http.ResponseWriter, r *http.Request) {
+	a.decideOrganizationScope(w, r, false)
+}
+
+func (a *API) decideOrganizationScope(w http.ResponseWriter, r *http.Request, approve bool) {
+	actor, ok := organizationScopeAdminActor(w, r, a.deps.AccessAdmin)
+	if !ok {
+		return
+	}
+	var input decideOrganizationScopeInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	decision := access.DecideOrganizationScopeInput{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
+		RevisionID: r.PathValue("id"), ActorID: actor.PrincipalID, Rationale: input.Rationale,
+	}
+	var err error
+	if approve {
+		err = a.deps.AccessAdmin.ApproveOrganizationScope(r.Context(), decision)
+	} else {
+		err = a.deps.AccessAdmin.RejectOrganizationScope(r.Context(), decision)
+	}
+	if err != nil {
+		writeIdentityAccessError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *API) createSCIMSource(w http.ResponseWriter, r *http.Request) {
@@ -317,6 +380,19 @@ func identityAdminActor(w http.ResponseWriter, r *http.Request, admin access.Adm
 	return actor, true
 }
 
+
+func organizationScopeAdminActor(w http.ResponseWriter, r *http.Request, admin access.Administrator) (identity.Actor, bool) {
+	actor, ok := identityAdminActor(w, r, admin)
+	if !ok {
+		return identity.Actor{}, false
+	}
+	if !identity.HasPermission(actor, identity.PermissionIdentityConfigure) || !identity.HasPermission(actor, identity.PermissionConfigWrite) {
+		httpx.WriteError(w, http.StatusForbidden, "organization_scope_governance_required", "Identity and governance configuration permissions are required.")
+		return identity.Actor{}, false
+	}
+	return actor, true
+}
+
 func escalationGuardAdminActor(w http.ResponseWriter, r *http.Request, service *governance.Service) (identity.Actor, bool) {
 	actor, err := identity.Require(r.Context())
 	if err != nil {
@@ -372,8 +448,10 @@ func writeIdentityAccessError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, access.ErrAdminNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "identity_access_not_found", "The identity or access object was not found in this scope.")
+	case errors.Is(err, access.ErrAdminMakerChecker):
+		httpx.WriteError(w, http.StatusConflict, "organization_scope_maker_checker", "A different administrator must approve this change.")
 	case errors.Is(err, access.ErrAdminConflict):
-		httpx.WriteError(w, http.StatusConflict, "identity_access_conflict", "The requested identity or access configuration already exists.")
+		httpx.WriteError(w, http.StatusConflict, "identity_access_conflict", "The current state changed or the requested change conflicts with existing configuration.")
 	case errors.Is(err, access.ErrAdminInvalid):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "identity_access_invalid", "The identity or access configuration is invalid.")
 	default:

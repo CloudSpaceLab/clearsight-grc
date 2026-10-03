@@ -121,3 +121,47 @@
   .identity-reporting-list .cs-status-badge { grid-column: 2; justify-self: start; }
   .identity-authority-note { display: grid; }
 }
+
+
+.identity-scope-manager { display: grid; gap: 12px; }
+.identity-scope-manager__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.identity-scope-manager__header > div { display: flex; align-items: baseline; gap: 8px; }
+.identity-scope-manager__header h3 { margin: 0; font-size: .92rem; }
+.identity-scope-manager__header span { color: var(--muted, #667085); font-size: .75rem; }
+.identity-scope-changes { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line, #dfe4ea); border-radius: var(--cs-primitive-radius-10); background: var(--surface-2, #f5f7f9); }
+.identity-scope-changes > strong { font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+.identity-scope-changes ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.identity-scope-changes li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line, #dfe4ea); }
+.identity-scope-changes li:last-child { border-bottom: 0; }
+.identity-scope-changes li > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.identity-scope-changes li b { font-size: .8rem; }
+.identity-scope-changes li span, .identity-scope-changes li small { color: var(--muted, #667085); font-size: .71rem; }
+.identity-scope-changes li > small { grid-column: 3; }
+.identity-scope-change-actions, .identity-scope-row-actions { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.identity-scope-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--line, #dfe4ea); border-radius: var(--cs-primitive-radius-10); }
+.identity-scope-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.identity-scope-table th { padding: 8px 10px; border-bottom: 1px solid var(--line-strong, #cfd5dd); color: var(--muted, #667085); font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-align: left; text-transform: uppercase; }
+.identity-scope-table td { padding: 10px; border-bottom: 1px solid var(--line, #dfe4ea); vertical-align: middle; font-size: .78rem; overflow-wrap: anywhere; }
+.identity-scope-table tbody tr:last-child td { border-bottom: 0; }
+.identity-scope-table td:first-child > strong, .identity-scope-table td:first-child > span { display: block; }
+.identity-scope-table td:first-child > span { margin-top: 2px; color: var(--muted, #667085); font-size: .71rem; }
+.identity-scope-editor { display: grid; gap: 14px; }
+.identity-scope-current { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--line, #dfe4ea); border-radius: var(--cs-primitive-radius-10); background: var(--surface-2, #f5f7f9); }
+.identity-scope-current > span { color: var(--muted, #667085); font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
+.identity-scope-current > strong { font-size: .83rem; overflow-wrap: anywhere; }
+.identity-scope-current > small { color: var(--muted, #667085); font-size: .73rem; line-height: 1.35; }
+.identity-scope-editor-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+
+@media (max-width: 560px) {
+  .identity-scope-manager__header { align-items: flex-start; }
+  .identity-scope-changes li { grid-template-columns: minmax(0, 1fr) auto; }
+  .identity-scope-change-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .identity-scope-changes li > small { grid-column: 1 / -1; }
+  .identity-scope-table, .identity-scope-table tbody, .identity-scope-table tr, .identity-scope-table td { display: block; width: 100%; }
+  .identity-scope-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .identity-scope-table tr { padding: 7px 9px; border-bottom: 1px solid var(--line, #dfe4ea); }
+  .identity-scope-table tbody tr:last-child { border-bottom: 0; }
+  .identity-scope-table td { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 4px 8px; padding: 6px 0; border: 0; }
+  .identity-scope-table td::before { content: attr(data-label); color: var(--muted, #667085); font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+  .identity-scope-row-actions { justify-content: flex-start; }
+}

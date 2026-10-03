@@ -42,6 +42,15 @@ func (*fakeAccessAdministrator) CreateGroupRoleBinding(context.Context, access.C
 func (*fakeAccessAdministrator) RetireGroupRoleBinding(context.Context, string, string, string) error {
 	return nil
 }
+func (*fakeAccessAdministrator) ProposeOrganizationScope(context.Context, access.ProposeOrganizationScopeInput) (access.OrganizationScopeRevisionSummary, error) {
+	return access.OrganizationScopeRevisionSummary{ID: "revision-1", ScopeID: "scope-1", Status: "PENDING"}, nil
+}
+func (*fakeAccessAdministrator) ApproveOrganizationScope(context.Context, access.DecideOrganizationScopeInput) error {
+	return nil
+}
+func (*fakeAccessAdministrator) RejectOrganizationScope(context.Context, access.DecideOrganizationScopeInput) error {
+	return nil
+}
 
 func TestIdentityAccessRoutesSeparateReadFromConfigure(t *testing.T) {
 	now := time.Now().UTC()
@@ -114,5 +123,38 @@ func TestEscalationGuardMutationRequiresIdentityAndGovernanceConfigure(t *testin
 	handler.ServeHTTP(response, request)
 	if response.Code == http.StatusForbidden {
 		t.Fatalf("actor with both configuration permissions should reach governed service validation, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+
+func TestOrganizationScopeChangesRequireIdentityAndGovernanceConfigure(t *testing.T) {
+	now := time.Now().UTC()
+	base := identity.Actor{
+		TenantID: "bank", PrincipalID: "principal", LegalEntityID: "bank-ng", Kind: "PERSON",
+		AuthenticationMethod: "test", AssuranceLevel: "test", SessionID: "session", IssuedAt: now, ExpiresAt: now.Add(time.Hour),
+	}
+	admin := &fakeAccessAdministrator{}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	identityOnly := base
+	identityOnly.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure}
+	handler := New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: identityOnly}, AccessAdmin: admin})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/access/organization-scope-revisions", strings.NewReader(`{"operation":"CREATE","code":"RISK","name":"Risk","kind":"DEPARTMENT"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("identity configure alone must not mutate organization scope, got %d: %s", response.Code, response.Body.String())
+	}
+
+	governed := base
+	governed.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure, identity.PermissionConfigWrite}
+	handler = New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: governed}, AccessAdmin: admin})
+	request = httptest.NewRequest(http.MethodPost, "/api/v1/access/organization-scope-revisions", strings.NewReader(`{"operation":"CREATE","code":"RISK","name":"Risk","kind":"DEPARTMENT"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("governed organization proposal status=%d body=%s", response.Code, response.Body.String())
 	}
 }

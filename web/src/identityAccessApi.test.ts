@@ -9,6 +9,7 @@ describe("loadIdentityAccessOverview", () => {
       sign_in: { mode: "local", assurance_level: "demo" },
       actor_principal_id: "system-admin",
       can_configure: true,
+      can_configure_organization: true,
       can_configure_escalation: true,
       sources: null,
       people: null,
@@ -16,6 +17,8 @@ describe("loadIdentityAccessOverview", () => {
       roles: null,
       legal_entities: null,
       bindings: null,
+      organization_scopes: null,
+      organization_scope_revisions: null,
       escalation: { pending_timers: 0, escalated_tasks: 0, unresolved_24h: 0, failed_timers: 0 },
       escalation_policies: null,
     }), { status: 200, headers: { "Content-Type": "application/json" } })));
@@ -28,6 +31,8 @@ describe("loadIdentityAccessOverview", () => {
     expect(overview.roles).toEqual([]);
     expect(overview.legal_entities).toEqual([]);
     expect(overview.bindings).toEqual([]);
+    expect(overview.organization_scopes).toEqual([]);
+    expect(overview.organization_scope_revisions).toEqual([]);
     expect(overview.escalation_policies).toEqual([]);
   });
 });
