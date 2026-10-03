@@ -32,6 +32,7 @@ func TestPostgresResolverUsesExactVerifiedScope(t *testing.T) {
 		hiddenEntityID    = "8f100000-0000-4000-8000-000000000005"
 		positionID        = "8f100000-0000-4000-8000-000000000006"
 		currentPositionID = "8f100000-0000-4000-8000-000000000007"
+		oversightRoleID   = "8f100000-0000-4000-8000-000000000008"
 		otherTenant       = "8f200000-0000-4000-8000-000000000001"
 	)
 	cleanup := func(cleanCtx context.Context) {
@@ -64,6 +65,15 @@ func TestPostgresResolverUsesExactVerifiedScope(t *testing.T) {
 		($1::uuid,$3::uuid,$4::uuid,'GROUP-RISK-GH','Ghana risk oversight',$5::uuid,ARRAY['BANK','RISK'],$6),
 		($2::uuid,$3::uuid,$7::uuid,'RISK-NG','Nigeria risk oversight',$5::uuid,ARRAY['BANK','RISK'],$6)`,
 		positionID, currentPositionID, tenantID, eligibleEntityID, principalID, now.Add(-time.Hour), entityID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO role_templates(id,tenant_id,code,name,capabilities,valid_from)
+		VALUES($1::uuid,$2::uuid,'RISK_OVERSIGHT','Risk oversight',ARRAY['OVERSIGHT_READ'],$3)`,
+		oversightRoleID, tenantID, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO position_role_bindings(tenant_id,position_id,role_template_id,valid_from)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4)`, tenantID, currentPositionID, oversightRoleID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 
