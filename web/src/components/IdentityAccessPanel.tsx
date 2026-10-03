@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ApiError } from "../http";
 import {
   approveEscalationGuardRevision,
+  approveOrganizationPosition,
   approveOrganizationScope,
   createGroupRoleBinding,
   createIdentitySource,
   loadIdentityAccessOverview,
   previewEscalation,
   proposeEscalationGuardRevision,
+  proposeOrganizationPosition,
   proposeOrganizationScope,
+  rejectOrganizationPosition,
   rejectOrganizationScope,
   retireGroupRoleBinding,
   revokeIdentitySource,
@@ -17,7 +20,9 @@ import {
   type GroupRoleBinding,
   type IdentityAccessOverview,
   type IdentitySource,
+  type OrganizationPositionRevision,
   type OrganizationScopeRevision,
+  type ProposeOrganizationPositionInput,
   type ProposeOrganizationScopeInput,
 } from "../identityAccessApi";
 import "../identity-access.css";
@@ -194,6 +199,30 @@ export function IdentityAccessPanel() {
     });
   }
 
+  async function proposePosition(input: ProposeOrganizationPositionInput) {
+    return run("position-propose", async () => {
+      await proposeOrganizationPosition(input);
+      setNotice("Position change proposed.");
+      await refresh();
+    });
+  }
+
+  async function approvePosition(revision: OrganizationPositionRevision, rationale: string) {
+    return run("position-approve-" + revision.id, async () => {
+      await approveOrganizationPosition(revision.id, rationale);
+      setNotice("Position change approved.");
+      await refresh();
+    });
+  }
+
+  async function rejectPosition(revision: OrganizationPositionRevision, rationale: string) {
+    return run("position-reject-" + revision.id, async () => {
+      await rejectOrganizationPosition(revision.id, rationale);
+      setNotice("Position change rejected.");
+      await refresh();
+    });
+  }
+
   async function proposeGuard(event: FormEvent) {
     event.preventDefault();
     if (!selectedPolicy || !selectedSequence) return;
@@ -268,8 +297,10 @@ export function IdentityAccessPanel() {
     <div className="identity-access-area" role="tabpanel" aria-label={areaLabel(area)}>
       {(area === "positions" || area === "reporting") && <OrganizationInventory
         positions={overview.positions}
+        people={overview.people}
         scopes={overview.organization_scopes}
         revisions={overview.organization_scope_revisions}
+        positionRevisions={overview.organization_position_revisions}
         actorPrincipalID={overview.actor_principal_id}
         canConfigure={overview.can_configure_organization}
         isBusy={isBusy}
@@ -278,6 +309,9 @@ export function IdentityAccessPanel() {
         onProposeScope={proposeScope}
         onApproveScope={approveScope}
         onRejectScope={rejectScope}
+        onProposePosition={proposePosition}
+        onApprovePosition={approvePosition}
+        onRejectPosition={rejectPosition}
       />}
 
       {area === "directory" && <div className="identity-access-grid">
