@@ -56,7 +56,7 @@ export function OrganizationPositionManager({
 
   return <div className="identity-position-manager">
     <div className="identity-scope-manager__header">
-      <div><h3>Positions & roles</h3><span>{allPositions.length} active</span></div>
+      <span>{allPositions.length} active positions</span>
       {canConfigure && <Button size="compact" onPress={() => setEditor({ mode: "add" })}>Add position</Button>}
     </div>
 
