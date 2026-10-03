@@ -41,10 +41,11 @@ const (
 )
 
 type Risk struct {
-	ID               string          `json:"id"`
-	TenantID         string          `json:"tenant_id"`
-	LegalEntityID    string          `json:"legal_entity_id"`
-	Code             string          `json:"code"`
+	ID                  string          `json:"id"`
+	TenantID            string          `json:"tenant_id"`
+	LegalEntityID       string          `json:"legal_entity_id"`
+	OrganizationScopeID string          `json:"organization_scope_id,omitempty"`
+	Code                string          `json:"code"`
 	Name             string          `json:"name"`
 	Category         string          `json:"category"`
 	Statement        string          `json:"statement"`
@@ -141,8 +142,9 @@ type Summary struct {
 }
 
 type Page struct {
-	Items      []Summary `json:"items"`
-	NextCursor string    `json:"next_cursor,omitempty"`
+	Items               []Summary `json:"items"`
+	NextCursor          string    `json:"next_cursor,omitempty"`
+	OrganizationScopeID string    `json:"organization_scope_id,omitempty"`
 }
 
 type Aggregate struct {
@@ -172,20 +174,23 @@ type Scope struct {
 }
 
 type ListFilter struct {
-	Status           Status
-	Category         string
-	OwnerPrincipalID string
-	Search           string
-	AppetitePosition AppetitePosition
-	Cursor           string
-	Limit            int
-	AsOf             time.Time
+	Status               Status
+	Category             string
+	OwnerPrincipalID     string
+	Search               string
+	AppetitePosition     AppetitePosition
+	OrganizationScopeID  string
+	OrganizationScopeIDs []string
+	Cursor               string
+	Limit                int
+	AsOf                 time.Time
 }
 
 type CreateInput struct {
-	TenantID         string          `json:"tenant_id,omitempty"`
-	LegalEntityID    string          `json:"legal_entity_id,omitempty"`
-	Code             string          `json:"code"`
+	TenantID            string          `json:"tenant_id,omitempty"`
+	LegalEntityID       string          `json:"legal_entity_id,omitempty"`
+	OrganizationScopeID string          `json:"organization_scope_id,omitempty"`
+	Code                string          `json:"code"`
 	Name             string          `json:"name"`
 	Category         string          `json:"category,omitempty"`
 	Statement        string          `json:"statement"`
