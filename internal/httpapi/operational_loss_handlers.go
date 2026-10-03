@@ -98,6 +98,7 @@ func (a *API) createOperationalLoss(w http.ResponseWriter, r *http.Request) {
 	input.TenantID = actor.TenantID
 	input.LegalEntityID = actor.LegalEntityID
 	input.OwnerPrincipalID = actor.PrincipalID
+	input.MatterID = ""
 	input.ActorID = actor.PrincipalID
 	value, err := service.Create(r.Context(), input)
 	if err != nil {
@@ -124,7 +125,13 @@ func (a *API) updateOperationalLoss(w http.ResponseWriter, r *http.Request) {
 	input.TenantID = actor.TenantID
 	input.LegalEntityID = actor.LegalEntityID
 	input.LossID = r.PathValue("id")
+	current, err := service.Get(r.Context(), oploss.Scope{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID}, input.LossID)
+	if err != nil {
+		writeOperationalLossError(w, err)
+		return
+	}
 	input.OwnerPrincipalID = ""
+	input.MatterID = current.Loss.MatterID
 	input.ActorID = actor.PrincipalID
 	value, err := service.Update(r.Context(), input)
 	if err != nil {
