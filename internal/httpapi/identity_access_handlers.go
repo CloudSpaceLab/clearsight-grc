@@ -333,11 +333,11 @@ func (a *API) decideOrganizationPositionRole(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	decision := access.DecideOrganizationPositionRoleInput{
-		TenantID: actor.TenantID,
+		TenantID:      actor.TenantID,
 		LegalEntityID: actor.LegalEntityID,
-		RevisionID: r.PathValue("id"),
-		ActorID: actor.PrincipalID,
-		Rationale: input.Rationale,
+		RevisionID:    r.PathValue("id"),
+		ActorID:       actor.PrincipalID,
+		Rationale:     input.Rationale,
 	}
 	var err error
 	if approve {
