@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	ErrMetricMembershipInvalid   = errors.New("metric membership request is invalid")
-	ErrMetricMembershipNotFound  = errors.New("metric membership snapshot is not available")
+	ErrMetricMembershipInvalid  = errors.New("metric membership request is invalid")
+	ErrMetricMembershipNotFound = errors.New("metric membership snapshot is not available")
 )
 
 type Member struct {
