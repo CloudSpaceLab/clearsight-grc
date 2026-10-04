@@ -6,7 +6,7 @@ import (
 )
 
 func TestBuildMatrixKeepsStableColumnsAndPopulation(t *testing.T) {
-	at := time.Date(2026,10,4,18,0,0,0,time.UTC)
+	at := time.Date(2026, 10, 4, 18, 0, 0, 0, time.UTC)
 	matrix := buildMatrix(
 		MatrixRiskAppetite,
 		RiskAppetiteMatrixRevision,
@@ -14,9 +14,9 @@ func TestBuildMatrixKeepsStableColumnsAndPopulation(t *testing.T) {
 		at,
 		appetiteMatrixColumns,
 		[]matrixBucket{
-			{Category:"Operational",State:"BREACHED",Count:2},
-			{Category:"Operational",State:"UNKNOWN",Count:1},
-			{Category:"Cyber",State:"WITHIN",Count:3},
+			{Category: "Operational", State: "BREACHED", Count: 2},
+			{Category: "Operational", State: "UNKNOWN", Count: 1},
+			{Category: "Cyber", State: "WITHIN", Count: 3},
 		},
 	)
 	if matrix.Population != 6 || len(matrix.Rows) != 2 || len(matrix.Columns) != 4 {
@@ -37,7 +37,7 @@ func TestBuildMatrixUsesUncategorizedWithoutInventingUnknownPopulation(t *testin
 		"entity-1",
 		time.Now(),
 		assuranceMatrixColumns,
-		[]matrixBucket{{Category:"",State:"UNKNOWN",Count:4}},
+		[]matrixBucket{{Category: "", State: "UNKNOWN", Count: 4}},
 	)
 	if matrix.Population != 4 || len(matrix.Rows) != 1 || matrix.Rows[0].Label != "Uncategorized" {
 		t.Fatalf("matrix=%#v", matrix)
