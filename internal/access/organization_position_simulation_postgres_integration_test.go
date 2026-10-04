@@ -56,9 +56,9 @@ func TestOrganizationPositionRouteSimulationUsesProposedStateWithoutMutation(t *
 		) VALUES($1::uuid,$2::uuid,$3::uuid,'RISK_MANAGER','Risk Manager',$4::uuid,ARRAY[]::text[],$5,1)`,
 		positionID, tenantID, entityID, occupantA, now.Add(-time.Hour))
 	mustAdminExec(t, ctx, pool, `
-		INSERT INTO routing_policies(id,tenant_id,code,name,status,current_version)
-		VALUES($1::uuid,$2::uuid,'POSITION-SIM','Position simulation','ACTIVE',1)`,
-		policyID, tenantID)
+		INSERT INTO routing_policies(id,tenant_id,legal_entity_id,code,name,status,current_version)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'POSITION-SIM','Position simulation','ACTIVE',1)`,
+		policyID, tenantID, entityID)
 	mustAdminExec(t, ctx, pool, `
 		INSERT INTO effective_authority_routes(
 			tenant_id,source_policy_id,source_rule_id,policy_version,legal_entity_ref,
