@@ -61,6 +61,39 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 	if inserted, err := repository.store(ctx, value, now.Truncate(refreshInterval)); err != nil || !inserted {
 		t.Fatalf("store projection inserted=%t err=%v", inserted, err)
 	}
+	var snapshotID, membershipRevision string
+	if err := pool.QueryRow(ctx, `
+		SELECT id::text,COALESCE(metric_membership_revision,'')
+		FROM oversight_snapshots
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid
+		ORDER BY generated_at DESC,id DESC LIMIT 1`, tenantID, entityID).Scan(&snapshotID, &membershipRevision); err != nil {
+		t.Fatal(err)
+	}
+	if membershipRevision != MetricSnapshotDrillDefinitionRevision {
+		t.Fatalf("membership revision=%q", membershipRevision)
+	}
+	var exactCritical int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*)
+		FROM oversight_snapshot_metric_memberships
+		WHERE oversight_snapshot_id=$1::uuid
+		  AND metric_id=$2
+		  AND definition_revision=$3`,
+		snapshotID, MetricCriticalHighOpen, MetricSnapshotDrillDefinitionRevision,
+	).Scan(&exactCritical); err != nil {
+		t.Fatal(err)
+	}
+	if exactCritical != value.Counts.CriticalHigh || exactCritical != 1 {
+		t.Fatalf("critical membership=%d count=%d", exactCritical, value.Counts.CriticalHigh)
+	}
+	if _, err := pool.Exec(ctx, `
+		UPDATE oversight_snapshot_metric_memberships
+		SET state='CHANGED'
+		WHERE oversight_snapshot_id=$1::uuid AND metric_id=$2`,
+		snapshotID, MetricCriticalHighOpen,
+	); err == nil {
+		t.Fatal("retained metric membership mutation was accepted")
+	}
 	var storedBefore int
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM oversight_snapshots WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid`, tenantID, entityID).Scan(&storedBefore); err != nil {
 		t.Fatal(err)
@@ -83,6 +116,9 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 	loaded, err := NewService(repository).Get(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID})
 	if err != nil || loaded.Counts.CriticalHigh != 1 || loaded.Coverage.Excluded == nil || *loaded.Coverage.Excluded != 1 {
 		t.Fatalf("loaded projection=%#v err=%v", loaded, err)
+	}
+	if loaded.SnapshotID != snapshotID {
+		t.Fatalf("loaded exact source id=%q want=%q", loaded.SnapshotID, snapshotID)
 	}
 	var operatorID string
 	if err := pool.QueryRow(ctx, `INSERT INTO principals(tenant_id,kind,display_name) VALUES($1::uuid,'PERSON','Demo curator') RETURNING id::text`, tenantID).Scan(&operatorID); err != nil {
