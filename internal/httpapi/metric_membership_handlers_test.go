@@ -10,11 +10,15 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 )
 
 type metricMembershipReaderStub struct {
-	page metricview.MemberPage
-	err  error
+	page           metricview.MemberPage
+	err            error
+	retained       oversight.Snapshot
+	retainSourceID string
+	retainErr      error
 	got  struct {
 		tenantID, legalEntityID, organizationScopeID, sourceID, metricID, revision, principalID, cursor string
 		limit                                                                      int
@@ -43,6 +47,11 @@ func (s *metricMembershipReaderStub) ListSnapshotMembers(
 	s.got.cursor = cursor
 	s.got.limit = limit
 	return s.page, s.err
+}
+
+func (s *metricMembershipReaderStub) RetainRuntimeSnapshot(_ context.Context, snapshot oversight.Snapshot) (string, error) {
+	s.retained = snapshot
+	return s.retainSourceID, s.retainErr
 }
 
 func TestHomeMetricMembersBindVerifiedLegalEntityAndExactSource(t *testing.T) {
