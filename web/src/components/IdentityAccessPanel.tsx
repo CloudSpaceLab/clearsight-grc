@@ -16,6 +16,7 @@ import {
   rejectOrganizationPosition,
   rejectLegalEntityDataBoundary,
   rejectOrganizationScope,
+  restoreOrganizationPosition,
   retireGroupRoleBinding,
   revokeIdentitySource,
   rotateIdentitySourceToken,
@@ -236,6 +237,14 @@ export function IdentityAccessPanel() {
     });
   }
 
+  async function restorePosition(revision: OrganizationPositionRevision) {
+    return run("position-restore-" + revision.id, async () => {
+      await restoreOrganizationPosition(revision.id);
+      setNotice("Restore proposed.");
+      await refresh();
+    });
+  }
+
   async function approvePosition(revision: OrganizationPositionRevision, rationale: string) {
     return run("position-approve-" + revision.id, async () => {
       await approveOrganizationPosition(revision.id, rationale);
@@ -330,6 +339,7 @@ export function IdentityAccessPanel() {
         scopes={overview.organization_scopes}
         revisions={overview.organization_scope_revisions}
         positionRevisions={overview.organization_position_revisions}
+        positionHistory={overview.organization_position_history}
         dataBoundary={overview.data_boundary}
         dataBoundaryRevisions={overview.data_boundary_revisions}
         actorPrincipalID={overview.actor_principal_id}
@@ -343,6 +353,7 @@ export function IdentityAccessPanel() {
         onProposePosition={proposePosition}
         onApprovePosition={approvePosition}
         onRejectPosition={rejectPosition}
+        onRestorePosition={restorePosition}
         onProposeDataBoundary={proposeBoundary}
         onApproveDataBoundary={approveBoundary}
         onRejectDataBoundary={rejectBoundary}

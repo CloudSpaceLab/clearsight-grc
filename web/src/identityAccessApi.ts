@@ -97,12 +97,16 @@ export type OrganizationPositionImpact = {
   responsibility_assignments: number;
   authority_grants: number;
   active_role_bindings: number;
+  active_programs_owned: number;
+  open_matters_owned: number;
+  open_actions_owned: number;
 };
 export type OrganizationPositionRevision = {
   id: string;
   position_id: string;
   operation: OrganizationPositionOperation;
   base_version: number;
+  restored_from_revision_id?: string;
   base: OrganizationPositionState;
   proposed: OrganizationPositionState;
   maker_id: string;
@@ -239,6 +243,7 @@ export type IdentityAccessOverview = {
   organization_scopes_truncated?: boolean;
   organization_scope_revisions: OrganizationScopeRevision[];
   organization_position_revisions: OrganizationPositionRevision[];
+  organization_position_history: OrganizationPositionRevision[];
   data_boundary: LegalEntityDataBoundary;
   data_boundary_revisions: LegalEntityDataBoundaryRevision[];
   escalation: { pending_timers: number; escalated_tasks: number; unresolved_24h: number; failed_timers: number };
@@ -280,6 +285,7 @@ export async function loadIdentityAccessOverview(): Promise<IdentityAccessOvervi
     organization_scopes: overview.organization_scopes ?? [],
     organization_scope_revisions: overview.organization_scope_revisions ?? [],
     organization_position_revisions: overview.organization_position_revisions ?? [],
+    organization_position_history: overview.organization_position_history ?? [],
     data_boundary: {
       legal_entity_id: overview.data_boundary?.legal_entity_id ?? "",
       legal_entity_code: overview.data_boundary?.legal_entity_code ?? "",
@@ -312,6 +318,10 @@ export function rejectOrganizationScope(id: string, rationale: string): Promise<
 
 export function proposeOrganizationPosition(input: ProposeOrganizationPositionInput): Promise<OrganizationPositionRevision> {
   return request("/api/v1/access/organization-position-revisions", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function restoreOrganizationPosition(id: string): Promise<OrganizationPositionRevision> {
+  return request(`/api/v1/access/organization-position-revisions/${encodeURIComponent(id)}/restore`, { method: "POST", body: "{}" });
 }
 
 export function approveOrganizationPosition(id: string, rationale: string): Promise<void> {

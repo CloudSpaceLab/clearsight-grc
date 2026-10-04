@@ -18,6 +18,7 @@ const api = vi.hoisted(() => ({
   proposeOrganizationPosition: vi.fn(),
   approveOrganizationPosition: vi.fn(),
   rejectOrganizationPosition: vi.fn(),
+  restoreOrganizationPosition: vi.fn(),
 }));
 
 vi.mock("../identityAccessApi", () => api);
@@ -46,6 +47,7 @@ beforeEach(() => {
     ],
     organization_scope_revisions: [],
     organization_position_revisions: [],
+    organization_position_history: [],
     positions: [
       {
         id: "position-cro",
@@ -161,7 +163,7 @@ it("proposes a new position with occupant and reporting line from the Organizati
     },
     maker_id: "actor-1",
     status: "PENDING",
-    impact: { child_positions: 0, responsibility_assignments: 0, authority_grants: 0, active_role_bindings: 0 },
+    impact: { child_positions: 0, responsibility_assignments: 0, authority_grants: 0, active_role_bindings: 0, active_programs_owned: 0, open_matters_owned: 0, open_actions_owned: 0 },
     created_at: "2026-10-03T12:00:00Z",
   });
 
@@ -225,7 +227,7 @@ it("shows pending position changes for independent approval", async () => {
       },
       maker_id: "maker-1",
       status: "PENDING",
-      impact: { child_positions: 0, responsibility_assignments: 1, authority_grants: 0, active_role_bindings: 1 },
+      impact: { child_positions: 0, responsibility_assignments: 1, authority_grants: 0, active_role_bindings: 1, active_programs_owned: 0, open_matters_owned: 0, open_actions_owned: 0 },
       created_at: "2026-10-03T12:00:00Z",
     }],
   });
@@ -240,6 +242,146 @@ it("shows pending position changes for independent approval", async () => {
   fireEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
 
   await waitFor(() => expect(api.approveOrganizationPosition).toHaveBeenCalledWith("position-revision-2", "Reporting line checked"));
+});
+
+it("shows active work impact before approving an occupant change", async () => {
+  const base = await api.loadIdentityAccessOverview();
+  api.loadIdentityAccessOverview.mockClear();
+  api.loadIdentityAccessOverview.mockResolvedValue({
+    ...base,
+    actor_principal_id: "checker-1",
+    organization_position_revisions: [{
+      id: "position-revision-impact",
+      position_id: "position-owner",
+      operation: "UPDATE",
+      base_version: 4,
+      base: {
+        code: "PROGRAM_OWNER",
+        title: "Program Owner",
+        function_name: "Risk Operations",
+        organization_scope_id: "scope-operations",
+        parent_position_id: "position-cro",
+        occupant_principal_id: "person-owner",
+      },
+      proposed: {
+        code: "PROGRAM_OWNER",
+        title: "Program Owner",
+        function_name: "Risk Operations",
+        organization_scope_id: "scope-operations",
+        parent_position_id: "position-cro",
+        occupant_principal_id: "person-new",
+      },
+      maker_id: "maker-1",
+      status: "PENDING",
+      impact: {
+        child_positions: 0,
+        responsibility_assignments: 1,
+        authority_grants: 0,
+        active_role_bindings: 1,
+        active_programs_owned: 1,
+        open_matters_owned: 2,
+        open_actions_owned: 3,
+      },
+      created_at: "2026-10-03T12:00:00Z",
+    }],
+  });
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByText("Pending position changes");
+  fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+  const dialog = screen.getByRole("dialog", { name: "Approve position change" });
+  expect(within(dialog).getByText(/6 active work items stay with the current owner or assignee/)).toBeTruthy();
+  expect(within(dialog).getByText(/This position change does not reassign work/)).toBeTruthy();
+});
+
+it("proposes a governed restore from applied position history", async () => {
+  const base = await api.loadIdentityAccessOverview();
+  api.loadIdentityAccessOverview.mockClear();
+  api.loadIdentityAccessOverview.mockResolvedValue({
+    ...base,
+    organization_position_history: [{
+      id: "position-history-1",
+      position_id: "position-owner",
+      operation: "UPDATE",
+      base_version: 3,
+      base: {
+        code: "PROGRAM_OWNER",
+        title: "Program Owner",
+        function_name: "Risk Operations",
+        organization_scope_id: "scope-operations",
+        parent_position_id: "position-cro",
+        occupant_principal_id: "person-new",
+      },
+      proposed: {
+        code: "PROGRAM_OWNER",
+        title: "Program Owner",
+        function_name: "Risk Operations",
+        organization_scope_id: "scope-operations",
+        parent_position_id: "position-cro",
+        occupant_principal_id: "person-owner",
+      },
+      maker_id: "maker-1",
+      checker_id: "checker-1",
+      status: "APPLIED",
+      rationale: "Prior approved state",
+      impact: {
+        child_positions: 0,
+        responsibility_assignments: 1,
+        authority_grants: 0,
+        active_role_bindings: 1,
+        active_programs_owned: 1,
+        open_matters_owned: 1,
+        open_actions_owned: 1,
+      },
+      created_at: "2026-10-01T12:00:00Z",
+      decided_at: "2026-10-01T12:05:00Z",
+      applied_at: "2026-10-01T12:05:00Z",
+    }],
+  });
+  api.restoreOrganizationPosition.mockResolvedValue({
+    id: "position-restore-1",
+    position_id: "position-owner",
+    operation: "UPDATE",
+    base_version: 4,
+    restored_from_revision_id: "position-history-1",
+    base: {
+      code: "PROGRAM_OWNER",
+      title: "Program Owner",
+      function_name: "Risk Operations",
+      organization_scope_id: "scope-operations",
+      parent_position_id: "position-cro",
+      occupant_principal_id: "person-new",
+    },
+    proposed: {
+      code: "PROGRAM_OWNER",
+      title: "Program Owner",
+      function_name: "Risk Operations",
+      organization_scope_id: "scope-operations",
+      parent_position_id: "position-cro",
+      occupant_principal_id: "person-owner",
+    },
+    maker_id: "actor-1",
+    status: "PENDING",
+    impact: {
+      child_positions: 0,
+      responsibility_assignments: 1,
+      authority_grants: 0,
+      active_role_bindings: 1,
+      active_programs_owned: 1,
+      open_matters_owned: 1,
+      open_actions_owned: 1,
+    },
+    created_at: "2026-10-03T12:00:00Z",
+  });
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByRole("heading", { name: "Organization & access" });
+  fireEvent.click(screen.getByText("History"));
+  fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+
+  await waitFor(() => expect(api.restoreOrganizationPosition).toHaveBeenCalledWith("position-history-1"));
+  expect(await screen.findByText("Restore proposed.")).toBeTruthy();
 });
 
 it("proposes a new organization area from the Organization tab", async () => {

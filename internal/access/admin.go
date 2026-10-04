@@ -119,38 +119,50 @@ type OrganizationPositionImpact struct {
 	ResponsibilityAssignments int `json:"responsibility_assignments"`
 	AuthorityGrants           int `json:"authority_grants"`
 	ActiveRoleBindings        int `json:"active_role_bindings"`
+	ActiveProgramsOwned       int `json:"active_programs_owned"`
+	OpenMattersOwned          int `json:"open_matters_owned"`
+	OpenActionsOwned          int `json:"open_actions_owned"`
 }
 
 type OrganizationPositionRevisionSummary struct {
-	ID          string                        `json:"id"`
-	PositionID  string                        `json:"position_id"`
-	Operation   OrganizationPositionOperation `json:"operation"`
-	BaseVersion int64                         `json:"base_version"`
-	Base        OrganizationPositionState     `json:"base"`
-	Proposed    OrganizationPositionState     `json:"proposed"`
-	MakerID     string                        `json:"maker_id"`
-	CheckerID   string                        `json:"checker_id,omitempty"`
-	Status      string                        `json:"status"`
-	Rationale   string                        `json:"rationale,omitempty"`
-	Impact      OrganizationPositionImpact    `json:"impact"`
-	CreatedAt   time.Time                     `json:"created_at"`
-	DecidedAt   *time.Time                    `json:"decided_at,omitempty"`
-	AppliedAt   *time.Time                    `json:"applied_at,omitempty"`
+	ID                     string                        `json:"id"`
+	PositionID             string                        `json:"position_id"`
+	Operation              OrganizationPositionOperation `json:"operation"`
+	BaseVersion            int64                         `json:"base_version"`
+	RestoredFromRevisionID string                        `json:"restored_from_revision_id,omitempty"`
+	Base                   OrganizationPositionState     `json:"base"`
+	Proposed               OrganizationPositionState     `json:"proposed"`
+	MakerID                string                        `json:"maker_id"`
+	CheckerID              string                        `json:"checker_id,omitempty"`
+	Status                 string                        `json:"status"`
+	Rationale              string                        `json:"rationale,omitempty"`
+	Impact                 OrganizationPositionImpact    `json:"impact"`
+	CreatedAt              time.Time                     `json:"created_at"`
+	DecidedAt              *time.Time                    `json:"decided_at,omitempty"`
+	AppliedAt              *time.Time                    `json:"applied_at,omitempty"`
 }
 
 type ProposeOrganizationPositionInput struct {
-	TenantID            string                        `json:"tenant_id"`
-	LegalEntityID       string                        `json:"legal_entity_id"`
-	PositionID          string                        `json:"position_id,omitempty"`
-	Operation           OrganizationPositionOperation `json:"operation"`
-	Code                string                        `json:"code,omitempty"`
-	Title               string                        `json:"title,omitempty"`
-	FunctionName        string                        `json:"function_name,omitempty"`
-	OrganizationScopeID string                        `json:"organization_scope_id,omitempty"`
-	ParentPositionID    string                        `json:"parent_position_id,omitempty"`
-	OccupantPrincipalID string                        `json:"occupant_principal_id,omitempty"`
-	ExpectedVersion     int64                         `json:"expected_version,omitempty"`
-	ActorID             string                        `json:"-"`
+	TenantID               string                        `json:"tenant_id"`
+	LegalEntityID          string                        `json:"legal_entity_id"`
+	PositionID             string                        `json:"position_id,omitempty"`
+	Operation              OrganizationPositionOperation `json:"operation"`
+	Code                   string                        `json:"code,omitempty"`
+	Title                  string                        `json:"title,omitempty"`
+	FunctionName           string                        `json:"function_name,omitempty"`
+	OrganizationScopeID    string                        `json:"organization_scope_id,omitempty"`
+	ParentPositionID       string                        `json:"parent_position_id,omitempty"`
+	OccupantPrincipalID    string                        `json:"occupant_principal_id,omitempty"`
+	ExpectedVersion        int64                         `json:"expected_version,omitempty"`
+	ActorID                string                        `json:"-"`
+	RestoredFromRevisionID string                        `json:"-"`
+}
+
+type RestoreOrganizationPositionInput struct {
+	TenantID      string `json:"tenant_id"`
+	LegalEntityID string `json:"legal_entity_id"`
+	RevisionID    string `json:"revision_id"`
+	ActorID       string `json:"-"`
 }
 
 type DecideOrganizationPositionInput struct {
@@ -236,6 +248,7 @@ type AdminOverview struct {
 	OrganizationScopesTruncated   bool                                  `json:"organization_scopes_truncated"`
 	OrganizationScopeRevisions    []OrganizationScopeRevisionSummary    `json:"organization_scope_revisions"`
 	OrganizationPositionRevisions []OrganizationPositionRevisionSummary `json:"organization_position_revisions"`
+	OrganizationPositionHistory   []OrganizationPositionRevisionSummary `json:"organization_position_history"`
 	DataBoundary                  LegalEntityDataBoundary               `json:"data_boundary"`
 	DataBoundaryRevisions         []LegalEntityDataBoundaryRevision     `json:"data_boundary_revisions"`
 	Escalation                    EscalationRuntimeStatus               `json:"escalation"`
@@ -278,6 +291,7 @@ type Administrator interface {
 	ApproveOrganizationScope(context.Context, DecideOrganizationScopeInput) error
 	RejectOrganizationScope(context.Context, DecideOrganizationScopeInput) error
 	ProposeOrganizationPosition(context.Context, ProposeOrganizationPositionInput) (OrganizationPositionRevisionSummary, error)
+	RestoreOrganizationPosition(context.Context, RestoreOrganizationPositionInput) (OrganizationPositionRevisionSummary, error)
 	ApproveOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
 	RejectOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
 }

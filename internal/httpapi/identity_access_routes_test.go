@@ -57,6 +57,9 @@ func (*fakeAccessAdministrator) RejectOrganizationScope(context.Context, access.
 func (*fakeAccessAdministrator) ProposeOrganizationPosition(context.Context, access.ProposeOrganizationPositionInput) (access.OrganizationPositionRevisionSummary, error) {
 	return access.OrganizationPositionRevisionSummary{ID: "position-revision-1", PositionID: "position-1", Status: "PENDING"}, nil
 }
+func (*fakeAccessAdministrator) RestoreOrganizationPosition(_ context.Context, input access.RestoreOrganizationPositionInput) (access.OrganizationPositionRevisionSummary, error) {
+	return access.OrganizationPositionRevisionSummary{ID: "position-restore-1", PositionID: "position-1", Status: "PENDING", RestoredFromRevisionID: input.RevisionID}, nil
+}
 func (*fakeAccessAdministrator) ApproveOrganizationPosition(context.Context, access.DecideOrganizationPositionInput) error {
 	return nil
 }
@@ -222,6 +225,36 @@ func TestOrganizationPositionChangesRequireIdentityAndGovernanceConfigure(t *tes
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("governed position proposal status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestOrganizationPositionRestoreRequiresIdentityAndGovernanceConfigure(t *testing.T) {
+	now := time.Now().UTC()
+	base := identity.Actor{
+		TenantID: "bank", PrincipalID: "principal", LegalEntityID: "bank-ng", Kind: "PERSON",
+		AuthenticationMethod: "test", AssuranceLevel: "test", SessionID: "session", IssuedAt: now, ExpiresAt: now.Add(time.Hour),
+	}
+	admin := &fakeAccessAdministrator{}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	identityOnly := base
+	identityOnly.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure}
+	handler := New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: identityOnly}, AccessAdmin: admin})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/access/organization-position-revisions/revision-1/restore", nil)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("identity configure alone must not restore organization positions, got %d: %s", response.Code, response.Body.String())
+	}
+
+	governed := base
+	governed.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure, identity.PermissionConfigWrite}
+	handler = New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: governed}, AccessAdmin: admin})
+	request = httptest.NewRequest(http.MethodPost, "/api/v1/access/organization-position-revisions/revision-1/restore", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated || !strings.Contains(response.Body.String(), `"restored_from_revision_id":"revision-1"`) {
+		t.Fatalf("governed restore status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 

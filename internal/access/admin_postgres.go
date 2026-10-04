@@ -267,6 +267,10 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	if err != nil {
 		return AdminOverview{}, err
 	}
+	result.OrganizationPositionHistory, err = a.organizationPositionHistory(ctx, tenantID, entityID)
+	if err != nil {
+		return AdminOverview{}, err
+	}
 	result.DataBoundary, err = a.legalEntityDataBoundary(ctx, tenantID, entityID)
 	if err != nil {
 		return AdminOverview{}, err
