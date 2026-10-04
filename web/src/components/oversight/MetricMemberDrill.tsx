@@ -29,8 +29,8 @@ export function MetricMemberDrill({
       id: "record",
       header: "Record",
       mobileLayout: "full-width",
-      render: (item) => <span className="oversight-member-record"><strong>{item.target_title}</strong><small>{recordTypeLabel(item.target_type)}</small></span>,
-      accessibleText: (item) => `${item.target_title}, ${recordTypeLabel(item.target_type)}`,
+      render: (item) => <span className="oversight-member-record"><strong>{item.target_title}</strong><small>{item.accessible ? recordTypeLabel(item.target_type) : "Access changed"}</small></span>,
+      accessibleText: (item) => `${item.target_title}, ${item.accessible ? recordTypeLabel(item.target_type) : "access changed"}`,
     },
     {
       id: "state",
@@ -70,9 +70,11 @@ export function MetricMemberDrill({
       rowName={(item) => `${item.target_title}, ${recordTypeLabel(item.target_type)}`}
       columns={columns}
       onRowAction={(item) => {
+        if (!item.accessible || !item.target_id) return;
         if (item.target_type === "MATTER") onOpenMatter(item.target_id);
         else onOpenProgram?.(item.target_id);
       }}
+      isRowActionDisabled={(item) => !item.accessible || !item.target_id}
       rowActionLabel="Open record"
       isLoading={state === "loading"}
       pagination={(hasPrevious || page.next_cursor) ? {
@@ -84,7 +86,9 @@ export function MetricMemberDrill({
         isLoading: state === "loading",
       } : undefined}
     />
-    {page.items.some((item) => item.target_type === "PROGRAM") && !onOpenProgram &&
+    {page.items.some((item) => !item.accessible) &&
+      <Notice tone="info">Some records are still part of this historical count but their current access has changed.</Notice>}
+    {page.items.some((item) => item.accessible && item.target_type === "PROGRAM") && !onOpenProgram &&
       <Notice tone="warning">Program drill is not available from this surface.</Notice>}
   </>;
 }
