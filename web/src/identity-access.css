@@ -150,6 +150,14 @@
 .identity-scope-current > span { color: var(--muted, #667085); font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
 .identity-scope-current > strong { font-size: .83rem; overflow-wrap: anywhere; }
 .identity-scope-current > small { color: var(--muted, #667085); font-size: .73rem; line-height: 1.35; }
+.identity-position-role-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.identity-position-role-list li { display: grid; grid-template-columns: minmax(86px, .7fr) minmax(0, 1.6fr) auto auto; gap: 8px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line, #dfe4ea); }
+.identity-position-role-list li:last-child { border-bottom: 0; }
+.identity-position-role-code { color: var(--muted, #667085); font-size: .71rem; font-weight: 650; overflow-wrap: anywhere; }
+.identity-position-role-copy { display: grid; gap: 2px; min-width: 0; }
+.identity-position-role-copy strong { font-size: .8rem; }
+.identity-position-role-copy small { color: var(--muted, #667085); font-size: .71rem; line-height: 1.35; }
+
 .identity-scope-editor-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
 
 @media (max-width: 560px) {
@@ -164,4 +172,7 @@
   .identity-scope-table td { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 4px 8px; padding: 6px 0; border: 0; }
   .identity-scope-table td::before { content: attr(data-label); color: var(--muted, #667085); font-size: .68rem; font-weight: 700; text-transform: uppercase; }
   .identity-scope-row-actions { justify-content: flex-start; }
+  .identity-position-role-list li { grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+  .identity-position-role-code, .identity-position-role-copy { grid-column: 1; }
+  .identity-position-role-list li > :nth-last-child(1) { grid-column: 2; grid-row: 1 / span 2; }
 }
