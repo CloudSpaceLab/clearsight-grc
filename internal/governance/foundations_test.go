@@ -197,6 +197,69 @@ func TestMemoryActivationRevalidatesDelegatorAuthorityAndCurrentRecipient(t *tes
 	}
 }
 
+func TestPlannedAbsenceDelegationActivatesOnlyInsideApprovedWindow(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	startsAt := now.Add(time.Hour)
+	endsAt := now.Add(3 * time.Hour)
+	repo := NewMemoryRepositoryWithDelegationCandidates([]DelegationCandidateDirectoryEntry{
+		{PrincipalID: "owner", TenantID: "bank", LegalEntityID: testEntityA, Responsibilities: []string{"ACCOUNTABLE_OWNER"}, Active: true},
+		{PrincipalID: "deputy", TenantID: "bank", LegalEntityID: testEntityA, CanReceive: true, Active: true},
+	})
+	_, _ = repo.CreateDelegation(ctx, Delegation{
+		ID: "planned-absence", TenantID: "bank", LegalEntityID: testEntityA,
+		FromPrincipalID: "owner", ToPrincipalID: "deputy", Responsibility: "ACCOUNTABLE_OWNER",
+		StartsAt: startsAt, EndsAt: endsAt, Status: DelegationApproved, Version: 3,
+	})
+
+	if count, err := repo.ActivateDueDelegations(ctx, now, 10); err != nil || count != 0 {
+		t.Fatalf("delegation activated before approved window: count=%d err=%v", count, err)
+	}
+	stored, _ := repo.GetDelegation(ctx, "bank", "planned-absence")
+	if stored.Status != DelegationApproved {
+		t.Fatalf("future delegation changed before starts_at: %#v", stored)
+	}
+
+	if count, err := repo.ActivateDueDelegations(ctx, startsAt, 10); err != nil || count != 1 {
+		t.Fatalf("due delegation did not activate: count=%d err=%v", count, err)
+	}
+	stored, _ = repo.GetDelegation(ctx, "bank", "planned-absence")
+	if stored.Status != DelegationActive {
+		t.Fatalf("due delegation status=%s", stored.Status)
+	}
+
+	if count, err := repo.ExpireDueDelegations(ctx, endsAt, 10); err != nil || count != 1 {
+		t.Fatalf("delegation did not expire at ends_at: count=%d err=%v", count, err)
+	}
+	stored, _ = repo.GetDelegation(ctx, "bank", "planned-absence")
+	if stored.Status != DelegationExpired {
+		t.Fatalf("expired delegation status=%s", stored.Status)
+	}
+}
+
+func TestPlannedAbsenceDelegationRevalidatesEligibilityAtActivation(t *testing.T) {
+	ctx := context.Background()
+	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
+	repo := NewMemoryRepositoryWithDelegationCandidates([]DelegationCandidateDirectoryEntry{
+		{PrincipalID: "owner", TenantID: "bank", LegalEntityID: testEntityA, Responsibilities: []string{"ACCOUNTABLE_OWNER"}, Active: false},
+		{PrincipalID: "deputy", TenantID: "bank", LegalEntityID: testEntityA, CanReceive: true, Active: true},
+	})
+	_, _ = repo.CreateDelegation(ctx, Delegation{
+		ID: "ineligible-absence", TenantID: "bank", LegalEntityID: testEntityA,
+		FromPrincipalID: "owner", ToPrincipalID: "deputy", Responsibility: "ACCOUNTABLE_OWNER",
+		StartsAt: now.Add(-time.Minute), EndsAt: now.Add(time.Hour), Status: DelegationApproved, Version: 3,
+	})
+
+	count, err := repo.ActivateDueDelegations(ctx, now, 10)
+	if !errors.Is(err, ErrDelegationEligibility) || count != 0 {
+		t.Fatalf("ineligible delegation activation count=%d err=%v", count, err)
+	}
+	stored, _ := repo.GetDelegation(ctx, "bank", "ineligible-absence")
+	if stored.Status != DelegationApproved || stored.Version != 3 {
+		t.Fatalf("failed activation changed delegation: %#v", stored)
+	}
+}
+
 func TestRejectedPolicyProjectsLatestDecisionReasonActorAndVersion(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC)
