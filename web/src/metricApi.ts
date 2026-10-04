@@ -58,9 +58,10 @@ export function loadHomeMetrics(period?: ReportingPeriodQuery, organizationScope
 export type HomeMetricMember = {
   member_id: string;
   target_type: "MATTER" | "PROGRAM";
-  target_id: string;
+  target_id?: string;
   target_title: string;
   state: string;
+  accessible: boolean;
 };
 
 export type HomeMetricMemberPage = {
