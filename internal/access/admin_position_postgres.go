@@ -216,21 +216,17 @@ func applyOrganizationPositionRevision(ctx context.Context, tx pgx.Tx, tenantID,
 		if err := validateOrganizationPositionState(ctx, tx, tenantID, entityID, revision.PositionID, revision.Proposed); err != nil {
 			return err
 		}
-		departmentPath, err := organizationPositionDepartmentPath(ctx, tx, tenantID, entityID, revision.Proposed.OrganizationScopeID)
-		if err != nil {
-			return err
-		}
-		_, err = tx.Exec(ctx, `
+		_, err := tx.Exec(ctx, `
 			INSERT INTO org_positions(
 				id,tenant_id,legal_entity_id,code,title,function_name,organization_scope_id,
 				parent_position_id,occupant_principal_id,department_path,valid_from,version
 			) VALUES(
 				$1::uuid,$2::uuid,$3::uuid,$4,$5,NULLIF($6,''),
-				NULLIF($7,'')::uuid,NULLIF($8,'')::uuid,NULLIF($9,'')::uuid,$10,clock_timestamp(),1
+				NULLIF($7,'')::uuid,NULLIF($8,'')::uuid,NULLIF($9,'')::uuid,ARRAY[]::text[],clock_timestamp(),1
 			)`,
 			revision.PositionID, tenantID, entityID, revision.Proposed.Code, revision.Proposed.Title,
 			revision.Proposed.FunctionName, revision.Proposed.OrganizationScopeID,
-			revision.Proposed.ParentPositionID, revision.Proposed.OccupantPrincipalID, departmentPath)
+			revision.Proposed.ParentPositionID, revision.Proposed.OccupantPrincipalID)
 		return mapOrganizationPositionPgError(err)
 	case OrganizationPositionUpdate:
 		current, version, err := organizationPositionState(ctx, tx, tenantID, entityID, revision.PositionID, true)
@@ -243,20 +239,16 @@ func applyOrganizationPositionRevision(ctx context.Context, tx pgx.Tx, tenantID,
 		if err := validateOrganizationPositionState(ctx, tx, tenantID, entityID, revision.PositionID, revision.Proposed); err != nil {
 			return err
 		}
-		departmentPath, err := organizationPositionDepartmentPath(ctx, tx, tenantID, entityID, revision.Proposed.OrganizationScopeID)
-		if err != nil {
-			return err
-		}
 		tag, err := tx.Exec(ctx, `
 			UPDATE org_positions
 			SET title=$4,function_name=NULLIF($5,''),organization_scope_id=NULLIF($6,'')::uuid,
 			    parent_position_id=NULLIF($7,'')::uuid,occupant_principal_id=NULLIF($8,'')::uuid,
-			    department_path=$9,version=version+1,recorded_at=clock_timestamp()
+			    department_path=ARRAY[]::text[],version=version+1,recorded_at=clock_timestamp()
 			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid
-			  AND valid_until IS NULL AND version=$10`,
+			  AND valid_until IS NULL AND version=$9`,
 			tenantID, entityID, revision.PositionID, revision.Proposed.Title, revision.Proposed.FunctionName,
 			revision.Proposed.OrganizationScopeID, revision.Proposed.ParentPositionID, revision.Proposed.OccupantPrincipalID,
-			departmentPath, revision.BaseVersion)
+			revision.BaseVersion)
 		if err != nil {
 			return mapOrganizationPositionPgError(err)
 		}
@@ -469,24 +461,6 @@ func validateOrganizationPositionState(ctx context.Context, q organizationPositi
 		}
 	}
 	return nil
-}
-
-func organizationPositionDepartmentPath(ctx context.Context, q organizationPositionQuerier, tenantID, entityID, scopeID string) ([]string, error) {
-	if strings.TrimSpace(scopeID) == "" {
-		return []string{}, nil
-	}
-	var path []string
-	err := q.QueryRow(ctx, `
-		SELECT department_path
-		FROM organization_scopes
-		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid
-		  AND status='ACTIVE' AND valid_from<=clock_timestamp()
-		  AND (valid_until IS NULL OR clock_timestamp()<valid_until)`,
-		tenantID, entityID, scopeID).Scan(&path)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, ErrAdminInvalid
-	}
-	return path, err
 }
 
 func organizationPositionImpact(ctx context.Context, q organizationPositionQuerier, tenantID, entityID, positionID string) (OrganizationPositionImpact, error) {
