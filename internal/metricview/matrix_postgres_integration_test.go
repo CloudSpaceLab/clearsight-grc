@@ -31,6 +31,7 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 	riskUnknown := mustMatrixID(t)
 	riskSupported := mustMatrixID(t)
 	riskFailed := mustMatrixID(t)
+	riskPersistent := mustMatrixID(t)
 	programID := mustMatrixID(t)
 	objectiveID := mustMatrixID(t)
 	implementationID := mustMatrixID(t)
@@ -60,6 +61,10 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 		($3::uuid,$5::uuid,$6::uuid,'R-SUPPORTED','Supported risk','Cyber','Supported statement','Material impact','ACTIVE',3,$7,$7),
 		($4::uuid,$5::uuid,$6::uuid,'R-FAILED','Failed risk','Cyber','Failed statement','Material impact','ACTIVE',2,$7,$7)`,
 		riskBreached, riskUnknown, riskSupported, riskFailed, tenantID, entityID, now.Add(-time.Hour))
+	mustExec(`
+		INSERT INTO risks(id,tenant_id,legal_entity_id,code,name,category,statement,impact,status,version,created_at,updated_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'R-PERSISTENT','Persistent control risk','Cyber','Persistent control statement','Material impact','ACTIVE',3,$4,$4)`,
+		riskPersistent, tenantID, entityID, now.Add(-time.Hour))
 	mustExec(`
 		INSERT INTO risk_appetite_statements(
 			id,tenant_id,legal_entity_id,risk_id,risk_version,version,statement,rule,status,effective_from,created_at
@@ -106,11 +111,14 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 		VALUES
 		($1::uuid,$2::uuid,$3::uuid,3,$4::uuid,$8),
 		($1::uuid,$2::uuid,$5::uuid,2,$6::uuid,$8),
-		-- Earlier Risk revisions must not inherit current assurance, even when the linked control is still active.
-		($1::uuid,$2::uuid,$3::uuid,2,$6::uuid,$8),
-		-- Retired implementations are also historical.
+		-- Retired implementations are historical even when the immutable link remains.
 		($1::uuid,$2::uuid,$3::uuid,2,$7::uuid,$8)`,
 		tenantID, entityID, riskSupported, catalogLinkID, riskFailed, failedCatalogLinkID, historicalCatalogLinkID, now.Add(-10*24*time.Hour))
+	mustExec(`
+		-- Active Risk-control relationships persist across later Risk revisions; risk_version records when the link was introduced.
+		INSERT INTO risk_control_links(tenant_id,legal_entity_id,risk_id,risk_version,catalog_link_id,created_at)
+		VALUES($1::uuid,$2::uuid,$3::uuid,2,$4::uuid,$5)`,
+		tenantID, entityID, riskPersistent, catalogLinkID, now.Add(-10*24*time.Hour))
 	mustExec(`
 		INSERT INTO evidence_contracts(
 			id,tenant_id,program_id,control_implementation_id,code,name,claim,
@@ -133,7 +141,7 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if appetite.Population != 4 {
+	if appetite.Population != 5 {
 		t.Fatalf("appetite population=%d rows=%#v", appetite.Population, appetite.Rows)
 	}
 	operational := matrixRowByLabel(t, appetite, "Operational")
@@ -145,11 +153,11 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if assurance.Population != 4 {
+	if assurance.Population != 5 {
 		t.Fatalf("assurance population=%d rows=%#v", assurance.Population, assurance.Rows)
 	}
 	cyber := matrixRowByLabel(t, assurance, "Cyber")
-	if cyber.Cells[0].Count != 1 || cyber.Cells[2].Count != 1 {
+	if cyber.Cells[0].Count != 2 || cyber.Cells[2].Count != 1 {
 		t.Fatalf("cyber assurance=%#v", cyber)
 	}
 	operationalAssurance := matrixRowByLabel(t, assurance, "Operational")
