@@ -124,6 +124,7 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		       COALESCE(parent.id::text,''),COALESCE(parent.code,''),COALESCE(parent.title,''),
 		       COALESCE(occupant.id::text,''),COALESCE(occupant.display_name,''),COALESCE(occupant.status,''),
 		       COALESCE(array_agg(DISTINCT rt.code ORDER BY rt.code) FILTER (WHERE rt.id IS NOT NULL),ARRAY[]::text[]),
+		       COALESCE(array_agg(DISTINCT rt.code ORDER BY rt.code) FILTER (WHERE rt.id IS NOT NULL AND prb.binding_purpose='WORKSPACE_ONLY'),ARRAY[]::text[]),
 		       op.valid_from,op.valid_until,op.version
 		FROM org_positions op
 		LEFT JOIN org_positions parent ON parent.tenant_id=op.tenant_id AND parent.id=op.parent_position_id
@@ -141,7 +142,7 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	}
 	for rows.Next() {
 		var value PositionSummary
-		if err := rows.Scan(&value.ID, &value.Code, &value.Title, &value.FunctionName, &value.DepartmentPath, &value.OrganizationScopeID, &value.ParentPositionID, &value.ParentPositionCode, &value.ParentPositionTitle, &value.OccupantPrincipalID, &value.OccupantName, &value.OccupantStatus, &value.RoleCodes, &value.ValidFrom, &value.ValidUntil, &value.Version); err != nil {
+		if err := rows.Scan(&value.ID, &value.Code, &value.Title, &value.FunctionName, &value.DepartmentPath, &value.OrganizationScopeID, &value.ParentPositionID, &value.ParentPositionCode, &value.ParentPositionTitle, &value.OccupantPrincipalID, &value.OccupantName, &value.OccupantStatus, &value.RoleCodes, &value.WorkspaceRoleCodes, &value.ValidFrom, &value.ValidUntil, &value.Version); err != nil {
 			rows.Close()
 			return AdminOverview{}, err
 		}
