@@ -203,6 +203,31 @@ func (r *PostgresRepository) buildMetricMembers(
 	return values, nil
 }
 
+func applyMetricMemberCounts(snapshot *Snapshot) error {
+	if snapshot == nil {
+		return fmt.Errorf("metric membership snapshot is required")
+	}
+	snapshot.Counts.CriticalHigh = 0
+	snapshot.Counts.Overdue = 0
+	snapshot.Counts.RoutingFailures = 0
+	snapshot.Counts.OutcomeFailures = 0
+	for _, value := range snapshot.MetricMembers {
+		switch value.MetricID {
+		case MetricCriticalHighOpen:
+			snapshot.Counts.CriticalHigh++
+		case MetricOverdueOpen:
+			snapshot.Counts.Overdue++
+		case MetricRoutingGaps:
+			snapshot.Counts.RoutingFailures++
+		case MetricOutcomeFailures:
+			snapshot.Counts.OutcomeFailures++
+		default:
+			return fmt.Errorf("unknown metric membership %q", value.MetricID)
+		}
+	}
+	return validateMetricMemberCounts(*snapshot)
+}
+
 func validateMetricMemberCounts(snapshot Snapshot) error {
 	counts := map[string]int{
 		MetricCriticalHighOpen: 0,
