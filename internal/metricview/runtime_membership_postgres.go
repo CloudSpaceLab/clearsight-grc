@@ -35,7 +35,7 @@ func (r *MembershipRepository) RetainRuntimeSnapshot(ctx context.Context, snapsh
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	if _, err := tx.Exec(ctx, `DELETE FROM metric_runtime_membership_sets WHERE expires_at<=clock_timestamp()`); err != nil {
+	if _, err := tx.Exec(ctx, `DELETE FROM metric_runtime_membership_sets WHERE source_id IN (SELECT source_id FROM metric_runtime_membership_sets WHERE expires_at<=clock_timestamp() ORDER BY expires_at,source_id LIMIT 25)`); err != nil {
 		return "", fmt.Errorf("expire runtime metric memberships: %w", err)
 	}
 
