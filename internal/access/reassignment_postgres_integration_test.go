@@ -159,7 +159,7 @@ func newReassignmentFixture(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 	t.Cleanup(func() {
 		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		for _, table := range []string{"org_positions", "principals", "legal_entities"} {
+		for _, table := range []string{"governance_decisions", "organization_position_revisions", "org_positions", "principals", "legal_entities"} {
 			if _, err := pool.Exec(cleanCtx, `DELETE FROM `+table+` WHERE tenant_id=$1::uuid`, f.tenant); err != nil {
 				t.Errorf("clean %s fixtures: %v", table, err)
 				return
