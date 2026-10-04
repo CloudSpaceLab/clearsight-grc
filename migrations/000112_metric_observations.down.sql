@@ -9,8 +9,8 @@ END;
 $metric_observation_downgrade$;
 
 DROP TABLE IF EXISTS metric_observations;
-DROP INDEX IF EXISTS oversight_snapshots_metric_source_uq;
 DROP FUNCTION IF EXISTS prevent_metric_observation_mutation();
+DROP FUNCTION IF EXISTS validate_metric_observation_source();
 DROP TABLE IF EXISTS metric_definitions;
 DROP FUNCTION IF EXISTS prevent_metric_definition_mutation();
 
