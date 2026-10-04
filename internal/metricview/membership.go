@@ -13,9 +13,10 @@ var (
 type Member struct {
 	MemberID    string `json:"member_id"`
 	TargetType  string `json:"target_type"`
-	TargetID    string `json:"target_id"`
+	TargetID    string `json:"target_id,omitempty"`
 	TargetTitle string `json:"target_title"`
 	State       string `json:"state"`
+	Accessible  bool   `json:"accessible"`
 }
 
 type MemberPage struct {
@@ -30,6 +31,7 @@ type MemberPage struct {
 type MembershipReader interface {
 	ListSnapshotMembers(
 		context.Context,
+		string,
 		string,
 		string,
 		string,
