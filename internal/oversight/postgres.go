@@ -601,13 +601,16 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO oversight_metric_members(
-				snapshot_id,metric_id,member_type,member_id,subject_type,subject_id,
+				snapshot_id,tenant_id,legal_entity_id,source_generated_at,
+				metric_id,member_type,member_id,subject_type,subject_id,
 				reference,title,state,priority,due_at
 			) VALUES(
-				$1::uuid,$2,$3,$4::uuid,$5,$6::uuid,
-				$7,$8,$9,$10,$11
+				$1::uuid,$2::uuid,$3::uuid,$4,
+				$5,$6,$7::uuid,$8,$9::uuid,
+				$10,$11,$12,$13,$14
 			)`,
-			snapshotID, member.MetricID, member.MemberType, member.MemberID,
+			snapshotID, value.TenantID, value.LegalEntityID, value.GeneratedAt,
+			member.MetricID, member.MemberType, member.MemberID,
 			member.SubjectType, member.SubjectID, member.Reference, member.Title,
 			member.State, member.Priority, member.DueAt,
 		); err != nil {
