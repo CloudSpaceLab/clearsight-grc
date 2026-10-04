@@ -78,6 +78,7 @@ export function loadHomeMetricMembers(
   definitionRevision: string,
   cursor?: string,
   limit = 50,
+  signal?: AbortSignal,
 ): Promise<HomeMetricMemberPage> {
   const query = new URLSearchParams({
     source_id: sourceID,
@@ -88,5 +89,6 @@ export function loadHomeMetricMembers(
   return requestJSON<HomeMetricMemberPage>(
     apiBase,
     `/api/v1/metrics/home/${encodeURIComponent(metricID)}/members?${query.toString()}`,
+    signal ? { signal } : undefined,
   );
 }
