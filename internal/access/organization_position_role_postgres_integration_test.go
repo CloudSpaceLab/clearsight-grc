@@ -91,7 +91,7 @@ func TestOrganizationWorkspaceRoleGovernanceKeepsMaterialRolesLocked(t *testing.
 
 	definition := `{
 		"rules":[{
-			"id":"route-role","legal_entity_id":"`+entityID+`","object_type":"MATTER","object_id":"*",
+			"id":"route-role","legal_entity_id":"` + entityID + `","object_type":"MATTER","object_id":"*",
 			"responsibility":"REVIEWER","decision_type":"matter.test","priority":100,
 			"selector":{"kind":"ROLE","ref":"ROUTE_ROLE"}
 		}],
