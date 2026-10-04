@@ -109,6 +109,37 @@ func TestPostgresLegalEntityDataBoundaryMakerCheckerAndIsolation(t *testing.T) {
 		t.Fatalf("stale proposal error=%v", err)
 	}
 
+	rejected, err := admin.ProposeLegalEntityDataBoundary(ctx, ProposeLegalEntityDataBoundaryInput{
+		TenantID: "data-boundary-test", LegalEntityID: entityA,
+		ResidencyRegion: "NG-PRIMARY", DetailTransferMode: DetailTransferAggregateOnly,
+		ExpectedVersion: 1, ActorID: makerID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := admin.RejectLegalEntityDataBoundary(ctx, DecideLegalEntityDataBoundaryInput{
+		TenantID: "data-boundary-test", LegalEntityID: entityA,
+		RevisionID: rejected.ID, ActorID: checkerID, Rationale: "Retain the current allowlist.",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var auditCount int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*)
+		FROM governance_decisions
+		WHERE tenant_id=$1::uuid
+		  AND (
+		    (object_type='LEGAL_ENTITY_DATA_BOUNDARY_REVISION' AND object_id IN ($2::uuid,$3::uuid))
+		    OR
+		    (object_type='LEGAL_ENTITY_DATA_BOUNDARY' AND object_id=$4::uuid)
+		  )`, tenantID, revision.ID, rejected.ID, entityA).Scan(&auditCount); err != nil {
+		t.Fatal(err)
+	}
+	if auditCount != 4 {
+		t.Fatalf("data-boundary governance audit count=%d", auditCount)
+	}
+
 	other, err := admin.legalEntityDataBoundary(ctx, tenantID, entityB)
 	if err != nil {
 		t.Fatal(err)
