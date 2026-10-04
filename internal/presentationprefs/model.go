@@ -8,54 +8,54 @@ import (
 )
 
 var (
-	ErrInvalid = errors.New("presentation preference is invalid")
+	ErrInvalid         = errors.New("presentation preference is invalid")
 	ErrVersionConflict = errors.New("presentation preference changed")
 )
 
 type HomeFocus string
 
 const (
-	HomeFocusAuto HomeFocus = "AUTO"
+	HomeFocusAuto    HomeFocus = "AUTO"
 	HomeFocusPosture HomeFocus = "POSTURE"
-	HomeFocusMyWork HomeFocus = "MY_WORK"
+	HomeFocusMyWork  HomeFocus = "MY_WORK"
 )
 
 type PortfolioLens string
 
 const (
-	PortfolioLensAuto PortfolioLens = "AUTO"
-	PortfolioLensPrograms PortfolioLens = "PROGRAMS"
-	PortfolioLensRisks PortfolioLens = "RISKS"
-	PortfolioLensLosses PortfolioLens = "LOSSES"
-	PortfolioLensVendors PortfolioLens = "VENDORS"
+	PortfolioLensAuto                 PortfolioLens = "AUTO"
+	PortfolioLensPrograms             PortfolioLens = "PROGRAMS"
+	PortfolioLensRisks                PortfolioLens = "RISKS"
+	PortfolioLensLosses               PortfolioLens = "LOSSES"
+	PortfolioLensVendors              PortfolioLens = "VENDORS"
 	PortfolioLensProcessingActivities PortfolioLens = "PROCESSING_ACTIVITIES"
-	PortfolioLensForms PortfolioLens = "FORMS"
+	PortfolioLensForms                PortfolioLens = "FORMS"
 )
 
 type Preferences struct {
-	TenantID string `json:"tenant_id"`
-	PrincipalID string `json:"principal_id"`
-	HomeFocus HomeFocus `json:"home_focus"`
-	PortfolioLens PortfolioLens `json:"portfolio_lens"`
-	EffectiveHomeFocus HomeFocus `json:"effective_home_focus"`
+	TenantID               string        `json:"tenant_id"`
+	PrincipalID            string        `json:"principal_id"`
+	HomeFocus              HomeFocus     `json:"home_focus"`
+	PortfolioLens          PortfolioLens `json:"portfolio_lens"`
+	EffectiveHomeFocus     HomeFocus     `json:"effective_home_focus"`
 	EffectivePortfolioLens PortfolioLens `json:"effective_portfolio_lens"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	Version int64 `json:"version"`
+	UpdatedAt              time.Time     `json:"updated_at,omitempty"`
+	Version                int64         `json:"version"`
 }
 
 type UpdateInput struct {
-	HomeFocus HomeFocus `json:"home_focus"`
-	PortfolioLens PortfolioLens `json:"portfolio_lens"`
-	ExpectedVersion int64 `json:"expected_version"`
+	HomeFocus       HomeFocus     `json:"home_focus"`
+	PortfolioLens   PortfolioLens `json:"portfolio_lens"`
+	ExpectedVersion int64         `json:"expected_version"`
 }
 
 type Stored struct {
-	TenantID string
-	PrincipalID string
-	HomeFocus HomeFocus
+	TenantID      string
+	PrincipalID   string
+	HomeFocus     HomeFocus
 	PortfolioLens PortfolioLens
-	UpdatedAt time.Time
-	Version int64
+	UpdatedAt     time.Time
+	Version       int64
 }
 
 type Repository interface {
