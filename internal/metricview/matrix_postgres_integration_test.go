@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -23,40 +24,22 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 	}
 	defer pool.Close()
 
-	const tenantID = "8f650000-0000-4000-8000-000000000001"
-	const entityID = "8f650000-0000-4000-8000-000000000002"
-	const appetiteID = "8f650000-0000-4000-8000-000000000003"
-	const riskBreached = "8f650000-0000-4000-8000-000000000004"
-	const riskUnknown = "8f650000-0000-4000-8000-000000000005"
-	const riskSupported = "8f650000-0000-4000-8000-000000000006"
-	const riskFailed = "8f650000-0000-4000-8000-000000000007"
-	const programID = "8f650000-0000-4000-8000-000000000008"
-	const objectiveID = "8f650000-0000-4000-8000-000000000009"
-	const implementationID = "8f650000-0000-4000-8000-00000000000a"
-	const definitionID = "8f650000-0000-4000-8000-00000000000b"
-	const catalogLinkID = "8f650000-0000-4000-8000-00000000000c"
-	const contractID = "8f650000-0000-4000-8000-00000000000d"
-	const failedImplementationID = "8f650000-0000-4000-8000-00000000000e"
-	const failedCatalogLinkID = "8f650000-0000-4000-8000-00000000000f"
-	const failedContractID = "8f650000-0000-4000-8000-000000000010"
-
-	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM evidence_assessments WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM evidence_contracts WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM risk_control_links WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM control_catalog_implementation_links WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM control_implementations WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM control_objectives WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM control_definitions WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM programs WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM risk_assessments WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM risk_appetite_statements WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM risks WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE id=$1::uuid`, entityID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	}
-	cleanup(ctx)
-	t.Cleanup(func() { cleanup(context.Background()) })
+	tenantID := mustMatrixID(t)
+	entityID := mustMatrixID(t)
+	appetiteID := mustMatrixID(t)
+	riskBreached := mustMatrixID(t)
+	riskUnknown := mustMatrixID(t)
+	riskSupported := mustMatrixID(t)
+	riskFailed := mustMatrixID(t)
+	programID := mustMatrixID(t)
+	objectiveID := mustMatrixID(t)
+	implementationID := mustMatrixID(t)
+	definitionID := mustMatrixID(t)
+	catalogLinkID := mustMatrixID(t)
+	contractID := mustMatrixID(t)
+	failedImplementationID := mustMatrixID(t)
+	failedCatalogLinkID := mustMatrixID(t)
+	failedContractID := mustMatrixID(t)
 
 	now := time.Now().UTC().Truncate(time.Second)
 	mustExec := func(query string, args ...any) {
@@ -65,7 +48,7 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 			t.Fatal(execErr)
 		}
 	}
-	mustExec(`INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'metric-matrix','Metric Matrix')`, tenantID)
+	mustExec(`INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'Metric Matrix')`, tenantID, "metric-matrix-"+tenantID[len(tenantID)-8:])
 	mustExec(`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,'MATRIX-NG','Matrix Nigeria','NG',$3)`, entityID, tenantID, now.Add(-365*24*time.Hour))
 	mustExec(`
 		INSERT INTO risks(id,tenant_id,legal_entity_id,code,name,category,statement,impact,status,version,created_at,updated_at) VALUES
@@ -173,4 +156,13 @@ func matrixRowByLabel(t *testing.T, matrix Matrix, label string) MatrixRow {
 	}
 	t.Fatalf("matrix row %q missing: %#v", label, matrix.Rows)
 	return MatrixRow{}
+}
+
+func mustMatrixID(t *testing.T) string {
+	t.Helper()
+	value, err := id.NewUUIDv7()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return value
 }
