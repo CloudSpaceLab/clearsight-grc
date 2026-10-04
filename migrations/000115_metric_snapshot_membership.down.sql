@@ -15,6 +15,25 @@ $metric_membership_downgrade$;
 DROP TABLE IF EXISTS oversight_snapshot_metric_memberships;
 DROP FUNCTION IF EXISTS prevent_oversight_metric_membership_mutation();
 
+ALTER TABLE oversight_snapshots DROP COLUMN IF EXISTS metric_membership_revision;
+
+CREATE OR REPLACE FUNCTION validate_metric_observation_source() RETURNS trigger
+LANGUAGE plpgsql
+AS $metric_observation_source$
+BEGIN
+    IF NEW.source_kind <> 'OVERSIGHT_SNAPSHOT' OR NOT EXISTS (
+        SELECT 1
+        FROM oversight_snapshots source
+        WHERE source.id=NEW.source_id
+          AND source.tenant_id=NEW.tenant_id
+          AND source.legal_entity_id=NEW.legal_entity_id
+    ) THEN
+        RAISE EXCEPTION 'Metric observation source does not match tenant/legal entity';
+    END IF;
+    RETURN NEW;
+END;
+$metric_observation_source$;
+
 DROP TRIGGER IF EXISTS metric_definitions_immutable ON metric_definitions;
 DELETE FROM metric_definitions WHERE revision='home-oversight-v3';
 
