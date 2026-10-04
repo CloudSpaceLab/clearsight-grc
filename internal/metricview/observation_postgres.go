@@ -27,6 +27,7 @@ func NewObservationRepository(pool *pgxpool.Pool) *ObservationRepository {
 
 type ObservationMaintainer struct {
 	Repository *ObservationRepository
+	Domain     *DomainMaintainer
 }
 
 type sourceSnapshot struct {
@@ -46,11 +47,18 @@ func (m *ObservationMaintainer) Maintain(ctx context.Context, now time.Time, lim
 	if err := m.Repository.validateDefinitions(ctx); err != nil {
 		return 0, err
 	}
+	completed := 0
+	if m.Domain != nil {
+		domainCompleted, err := m.Domain.Maintain(ctx, now, limit)
+		if err != nil {
+			return 0, err
+		}
+		completed += domainCompleted
+	}
 	sources, err := m.Repository.pendingOversightSnapshots(ctx, limit)
 	if err != nil {
 		return 0, err
 	}
-	completed := 0
 	for _, source := range sources {
 		if err := ctx.Err(); err != nil {
 			return completed, err
@@ -84,18 +92,25 @@ func (r *ObservationRepository) validateDefinitions(ctx context.Context) error {
 	if r == nil || r.pool == nil {
 		return ErrInvalidObservation
 	}
+	if err := r.validateDefinitionRevision(ctx, HomeDefinitionRevision, HomeDefinitionList()); err != nil {
+		return err
+	}
+	return r.validateDefinitionRevision(ctx, DomainDefinitionRevision, DomainDefinitionList())
+}
+
+func (r *ObservationRepository) validateDefinitionRevision(ctx context.Context, revision string, expected []Definition) error {
 	rows, err := r.pool.Query(ctx, `
 		SELECT metric_id,revision,label,unit,basis,condition_rule,aggregation_rule,
 		       drill_workspace,drill_filter,drill_consistency
 		FROM metric_definitions
 		WHERE revision=$1
-		ORDER BY metric_id`, HomeDefinitionRevision)
+		ORDER BY metric_id`, revision)
 	if err != nil {
 		return fmt.Errorf("load metric definitions: %w", err)
 	}
 	defer rows.Close()
 
-	stored := make(map[string]Definition, len(homeDefinitions))
+	stored := make(map[string]Definition, len(expected))
 	for rows.Next() {
 		var definition Definition
 		var basis, conditionRule, aggregationRule, consistency string
@@ -122,12 +137,12 @@ func (r *ObservationRepository) validateDefinitions(ctx context.Context) error {
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("iterate metric definitions: %w", err)
 	}
-	if len(stored) != len(homeDefinitions) {
+	if len(stored) != len(expected) {
 		return ErrDefinitionMismatch
 	}
-	for _, expected := range homeDefinitions {
-		actual, ok := stored[expected.ID]
-		if !ok || actual != expected {
+	for _, definition := range expected {
+		actual, ok := stored[definition.ID]
+		if !ok || actual != definition {
 			return ErrDefinitionMismatch
 		}
 	}
@@ -214,7 +229,7 @@ func (r *ObservationRepository) pendingOversightSnapshots(ctx context.Context, l
 }
 
 func (r *ObservationRepository) storeObservations(ctx context.Context, values []Observation) (bool, error) {
-	if r == nil || r.pool == nil || len(values) != len(homeDefinitions) {
+	if r == nil || r.pool == nil || !validObservationSet(values) {
 		return false, ErrInvalidObservation
 	}
 	tx, err := r.pool.Begin(ctx)
@@ -223,6 +238,55 @@ func (r *ObservationRepository) storeObservations(ctx context.Context, values []
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	inserted, err := storeObservationRows(ctx, tx, values)
+	if err != nil {
+		return false, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+	return inserted, nil
+}
+
+func validObservationSet(values []Observation) bool {
+	if len(values) == 0 {
+		return false
+	}
+	revision := values[0].DefinitionRevision
+	sourceKind := values[0].SourceKind
+	expected := 0
+	switch {
+	case revision == HomeDefinitionRevision && sourceKind == ObservationSourceOversightSnapshot:
+		expected = len(homeDefinitions)
+	case revision == DomainDefinitionRevision && sourceKind == ObservationSourceDomainSnapshot:
+		expected = len(domainDefinitions)
+	default:
+		return false
+	}
+	if len(values) != expected {
+		return false
+	}
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		if value.DefinitionRevision != revision || value.SourceKind != sourceKind {
+			return false
+		}
+		definition, ok := metricDefinition(value.MetricID)
+		if !ok || definition.Revision != revision {
+			return false
+		}
+		if _, duplicate := seen[value.MetricID]; duplicate {
+			return false
+		}
+		seen[value.MetricID] = struct{}{}
+	}
+	return true
+}
+
+func storeObservationRows(ctx context.Context, tx pgx.Tx, values []Observation) (bool, error) {
+	if tx == nil || !validObservationSet(values) {
+		return false, ErrInvalidObservation
+	}
 	inserted := false
 	for _, value := range values {
 		if strings.TrimSpace(value.TenantID) == "" || strings.TrimSpace(value.LegalEntityID) == "" ||
@@ -270,9 +334,6 @@ func (r *ObservationRepository) storeObservations(ctx context.Context, values []
 			return false, err
 		}
 		inserted = inserted || command.RowsAffected() == 1
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return false, err
 	}
 	return inserted, nil
 }
