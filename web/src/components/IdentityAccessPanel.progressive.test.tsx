@@ -173,9 +173,12 @@ it("proposes a new position with occupant and reporting line from the Organizati
   fireEvent.change(within(dialog).getByRole("textbox", { name: /^Code/ }), { target: { value: "RISK_ANALYST" } });
   fireEvent.change(within(dialog).getByRole("textbox", { name: /^Title/ }), { target: { value: "Risk Analyst" } });
   fireEvent.change(within(dialog).getByRole("textbox", { name: /^Function/ }), { target: { value: "Risk" } });
-  fireEvent.change(within(dialog).getByRole("combobox", { name: "Organization area" }), { target: { value: "scope-risk" } });
-  fireEvent.change(within(dialog).getByRole("combobox", { name: "Reports to" }), { target: { value: "position-cro" } });
-  fireEvent.change(within(dialog).getByRole("combobox", { name: "Current occupant" }), { target: { value: "person-new" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: /Organization area/ }));
+  fireEvent.click(await screen.findByRole("option", { name: "BANK / RISK" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: /Reports to/ }));
+  fireEvent.click(await screen.findByRole("option", { name: "Chief Risk Officer" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: /Current occupant/ }));
+  fireEvent.click(await screen.findByRole("option", { name: "Nneka Obi" }));
   fireEvent.click(within(dialog).getByRole("button", { name: "Propose change" }));
 
   await waitFor(() => expect(api.proposeOrganizationPosition).toHaveBeenCalledWith({
