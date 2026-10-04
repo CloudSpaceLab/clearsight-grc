@@ -16,7 +16,7 @@ type metricMembershipReaderStub struct {
 	page metricview.MemberPage
 	err  error
 	got  struct {
-		tenantID, legalEntityID, sourceID, metricID, revision, principalID, cursor string
+		tenantID, legalEntityID, organizationScopeID, sourceID, metricID, revision, principalID, cursor string
 		limit                                                                      int
 	}
 }
@@ -25,6 +25,7 @@ func (s *metricMembershipReaderStub) ListSnapshotMembers(
 	_ context.Context,
 	tenantID string,
 	legalEntityID string,
+	organizationScopeID string,
 	sourceID string,
 	metricID string,
 	revision string,
@@ -34,6 +35,7 @@ func (s *metricMembershipReaderStub) ListSnapshotMembers(
 ) (metricview.MemberPage, error) {
 	s.got.tenantID = tenantID
 	s.got.legalEntityID = legalEntityID
+	s.got.organizationScopeID = organizationScopeID
 	s.got.sourceID = sourceID
 	s.got.metricID = metricID
 	s.got.revision = revision
