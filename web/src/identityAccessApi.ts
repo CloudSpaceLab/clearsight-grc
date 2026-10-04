@@ -149,6 +149,10 @@ export type OrganizationPositionRevision = {
   status: string;
   rationale?: string;
   impact: OrganizationPositionImpact;
+  effective_from?: string;
+  activation_attempts?: number;
+  activation_failed_at?: string;
+  activation_error_code?: string;
   created_at: string;
   decided_at?: string;
   applied_at?: string;
@@ -163,6 +167,32 @@ export type ProposeOrganizationPositionInput = {
   parent_position_id?: string;
   occupant_principal_id?: string;
   expected_version?: number;
+  effective_from?: string;
+};
+
+export type OrganizationPositionRouteSnapshot = {
+  status: "RESOLVED" | "NO_ROUTE" | "AMBIGUOUS_ROUTE";
+  candidate_ids: string[];
+  policy_version?: string;
+};
+export type OrganizationPositionRouteScenario = {
+  object_type: string;
+  object_id: string;
+  responsibility: string;
+  decision_type?: string;
+  materiality: number;
+  current: OrganizationPositionRouteSnapshot;
+  proposed: OrganizationPositionRouteSnapshot;
+  changed: boolean;
+};
+export type OrganizationPositionRouteSimulation = {
+  revision_id: string;
+  position_id: string;
+  source_position_version: number;
+  effective_at: string;
+  checked: number;
+  truncated: boolean;
+  scenarios: OrganizationPositionRouteScenario[];
 };
 
 export type DetailTransferMode = "AGGREGATE_ONLY" | "ALLOWLIST";
@@ -355,6 +385,10 @@ export function rejectOrganizationScope(id: string, rationale: string): Promise<
 
 export function proposeOrganizationPosition(input: ProposeOrganizationPositionInput): Promise<OrganizationPositionRevision> {
   return request("/api/v1/access/organization-position-revisions", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function simulateOrganizationPosition(id: string): Promise<OrganizationPositionRouteSimulation> {
+  return request(`/api/v1/access/organization-position-revisions/${encodeURIComponent(id)}/simulate`, { method: "POST", body: "{}" });
 }
 
 export function restoreOrganizationPosition(id: string): Promise<OrganizationPositionRevision> {
