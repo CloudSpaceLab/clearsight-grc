@@ -197,8 +197,12 @@ func (r *ObservationRepository) maintainTrendRetention(ctx context.Context, now 
 	if r == nil || r.pool == nil {
 		return ErrInvalidObservation
 	}
-	if limit <= 0 || limit > 500 {
+	if limit <= 0 || limit > 250 {
 		limit = 100
+	}
+	maintenanceLimit := limit * len(homeDefinitions)
+	if maintenanceLimit > 1000 {
+		maintenanceLimit = 1000
 	}
 	now = now.UTC()
 	if _, err := r.pool.Exec(ctx, `
@@ -241,7 +245,7 @@ func (r *ObservationRepository) maintainTrendRetention(ctx context.Context, now 
 			source_high_water=EXCLUDED.source_high_water,generated_at=EXCLUDED.generated_at,value=EXCLUDED.value,
 			condition=EXCLUDED.condition,freshness=EXCLUDED.freshness,completeness=EXCLUDED.completeness,
 			population=EXCLUDED.population,excluded=EXCLUDED.excluded,unknown=EXCLUDED.unknown,rolled_at=clock_timestamp()
-		WHERE EXCLUDED.generated_at>metric_observation_daily_rollups.generated_at`, now, limit); err != nil {
+		WHERE EXCLUDED.generated_at>metric_observation_daily_rollups.generated_at`, now, maintenanceLimit); err != nil {
 		return fmt.Errorf("roll up metric observations: %w", err)
 	}
 
@@ -253,7 +257,7 @@ func (r *ObservationRepository) maintainTrendRetention(ctx context.Context, now 
 			WHERE observation.generated_at<$1::timestamptz
 			ORDER BY observation.generated_at,observation.id
 			LIMIT $2
-		)`, now.Add(-RawObservationRetention), limit); err != nil {
+		)`, now.Add(-RawObservationRetention), maintenanceLimit); err != nil {
 		return fmt.Errorf("prune raw metric observations: %w", err)
 	}
 
@@ -273,7 +277,7 @@ func (r *ObservationRepository) maintainTrendRetention(ctx context.Context, now 
 			  )
 			ORDER BY candidate.bucket_date
 			LIMIT $2
-		)`, now.Add(-DailyRollupRetention), limit); err != nil {
+		)`, now.Add(-DailyRollupRetention), maintenanceLimit); err != nil {
 		return fmt.Errorf("prune metric daily rollups: %w", err)
 	}
 	return nil
