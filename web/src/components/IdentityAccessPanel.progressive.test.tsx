@@ -18,6 +18,9 @@ const api = vi.hoisted(() => ({
   proposeOrganizationPosition: vi.fn(),
   approveOrganizationPosition: vi.fn(),
   rejectOrganizationPosition: vi.fn(),
+  proposeOrganizationPositionRole: vi.fn(),
+  approveOrganizationPositionRole: vi.fn(),
+  rejectOrganizationPositionRole: vi.fn(),
 }));
 
 vi.mock("../identityAccessApi", () => api);
@@ -37,7 +40,18 @@ beforeEach(() => {
       { id: "person-new", display_name: "Nneka Obi", status: "ACTIVE" },
     ],
     groups: [{ id: "group-1", display_name: "Risk Operations", source_code: "ENTRA", source_state: "ACTIVE", member_count: 8 }],
-    roles: [{ id: "role-1", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: ["program_read"] }],
+    roles: [
+      {
+        id: "role-1", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: ["program_read"],
+        workspace_editable: true,
+        material_references: { declared_responsibilities: 0, responsibility_assignments: 0, authority_grants: 0, routing_policies: 0, segregation_rules: 0 },
+      },
+      {
+        id: "role-cro", code: "CRO", name: "Chief risk officer", capabilities: ["oversight_read"],
+        workspace_editable: false, workspace_lock_reason: "Used by decision authority",
+        material_references: { declared_responsibilities: 0, responsibility_assignments: 0, authority_grants: 1, routing_policies: 0, segregation_rules: 0 },
+      },
+    ],
     legal_entities: [],
     bindings: [],
     organization_scopes: [
@@ -46,6 +60,7 @@ beforeEach(() => {
     ],
     organization_scope_revisions: [],
     organization_position_revisions: [],
+    organization_position_role_revisions: [],
     positions: [
       {
         id: "position-cro",
@@ -240,6 +255,83 @@ it("shows pending position changes for independent approval", async () => {
   fireEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
 
   await waitFor(() => expect(api.approveOrganizationPosition).toHaveBeenCalledWith("position-revision-2", "Reporting line checked"));
+});
+
+it("proposes only safe workspace roles from the existing position row", async () => {
+  api.proposeOrganizationPositionRole.mockResolvedValue({
+    id: "role-revision-1",
+    position_id: "position-cro",
+    role_template_id: "role-1",
+    role_template_version: 1,
+    operation: "ADD",
+    base_position_version: 3,
+    role_code: "RISK_REVIEWER",
+    role_name: "Risk reviewer",
+    capabilities: ["program_read"],
+    maker_id: "actor-1",
+    status: "PENDING",
+    created_at: "2026-10-04T08:00:00Z",
+  });
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByRole("heading", { name: "Organization & access" });
+
+  const croRow = screen.getByRole("row", { name: /Chief Risk Officer/ });
+  fireEvent.click(within(croRow).getByRole("button", { name: "Manage roles" }));
+  const dialog = screen.getByRole("dialog", { name: "Manage roles · Chief Risk Officer" });
+
+  expect(within(dialog).getByText("Used by decision authority")).toBeTruthy();
+  const materialRole = within(dialog).getByText("Chief risk officer").closest("li");
+  expect(materialRole).toBeTruthy();
+  expect(within(materialRole!).queryByRole("button", { name: "Remove" })).toBeNull();
+
+  const safeRole = within(dialog).getByText("Risk reviewer").closest("li");
+  expect(safeRole).toBeTruthy();
+  fireEvent.click(within(safeRole!).getByRole("button", { name: "Add" }));
+
+  await waitFor(() => expect(api.proposeOrganizationPositionRole).toHaveBeenCalledWith({
+    position_id: "position-cro",
+    role_template_id: "role-1",
+    operation: "ADD",
+    expected_position_version: 3,
+  }));
+  expect(await screen.findByText("Workspace role change proposed.")).toBeTruthy();
+});
+
+it("requires independent approval for a pending workspace role change", async () => {
+  const base = await api.loadIdentityAccessOverview();
+  api.loadIdentityAccessOverview.mockClear();
+  api.loadIdentityAccessOverview.mockResolvedValue({
+    ...base,
+    actor_principal_id: "checker-1",
+    organization_position_role_revisions: [{
+      id: "role-revision-2",
+      position_id: "position-cro",
+      role_template_id: "role-1",
+      role_template_version: 1,
+      operation: "ADD",
+      base_position_version: 3,
+      role_code: "RISK_REVIEWER",
+      role_name: "Risk reviewer",
+      capabilities: ["program_read"],
+      maker_id: "maker-1",
+      status: "PENDING",
+      created_at: "2026-10-04T08:00:00Z",
+    }],
+  });
+  api.approveOrganizationPositionRole.mockResolvedValue(undefined);
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByRole("heading", { name: "Organization & access" });
+
+  const croRow = screen.getByRole("row", { name: /Chief Risk Officer/ });
+  fireEvent.click(within(croRow).getByRole("button", { name: "Manage roles" }));
+  const dialog = screen.getByRole("dialog", { name: "Manage roles · Chief Risk Officer" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Rationale/ }), { target: { value: "Workspace access reviewed" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(api.approveOrganizationPositionRole).toHaveBeenCalledWith("role-revision-2", "Workspace access reviewed"));
 });
 
 it("proposes a new organization area from the Organization tab", async () => {
