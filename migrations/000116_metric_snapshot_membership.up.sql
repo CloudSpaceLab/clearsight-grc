@@ -27,6 +27,10 @@ CREATE TABLE oversight_snapshot_metric_membership_sets (
     definition_revision text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     PRIMARY KEY (oversight_snapshot_id, definition_revision),
+    CONSTRAINT oversight_metric_membership_set_source_fk
+        FOREIGN KEY (oversight_snapshot_id)
+        REFERENCES oversight_snapshots(id)
+        ON DELETE CASCADE,
     CONSTRAINT oversight_metric_membership_set_entity_fk
         FOREIGN KEY (legal_entity_id, tenant_id)
         REFERENCES legal_entities(id, tenant_id)
@@ -71,6 +75,7 @@ CREATE TABLE oversight_snapshot_metric_memberships (
     CONSTRAINT oversight_metric_membership_set_fk
         FOREIGN KEY (oversight_snapshot_id, definition_revision)
         REFERENCES oversight_snapshot_metric_membership_sets(oversight_snapshot_id, definition_revision)
+        ON DELETE CASCADE
 );
 
 CREATE INDEX oversight_snapshot_metric_memberships_drill_idx
@@ -87,11 +92,11 @@ END;
 $oversight_metric_membership$;
 
 CREATE TRIGGER oversight_snapshot_metric_membership_sets_immutable
-    BEFORE UPDATE OR DELETE ON oversight_snapshot_metric_membership_sets
+    BEFORE UPDATE ON oversight_snapshot_metric_membership_sets
     FOR EACH ROW EXECUTE FUNCTION prevent_oversight_metric_membership_mutation();
 
 CREATE TRIGGER oversight_snapshot_metric_memberships_immutable
-    BEFORE UPDATE OR DELETE ON oversight_snapshot_metric_memberships
+    BEFORE UPDATE ON oversight_snapshot_metric_memberships
     FOR EACH ROW EXECUTE FUNCTION prevent_oversight_metric_membership_mutation();
 
 
