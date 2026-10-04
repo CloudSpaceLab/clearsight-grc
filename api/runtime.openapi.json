@@ -2116,6 +2116,26 @@
         }
       }
     },
+    "/api/v1/metrics/matrices/risk-appetite": {
+      "get": {
+        "operationId": "riskAppetiteMatrix",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "responses": {
+          "200": {"description": "Compact active-Risk appetite matrix using the canonical current Risk assessment/appetite semantics."}
+        }
+      }
+    },
+    "/api/v1/metrics/matrices/assurance": {
+      "get": {
+        "operationId": "assuranceCoverageMatrix",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "responses": {
+          "200": {"description": "Compact active-Risk assurance coverage matrix derived from linked Program control evidence."}
+        }
+      }
+    },
     "/api/v1/reports/definitions": {
       "get": {
         "operationId": "listReportDefinitions",
@@ -4368,6 +4388,31 @@
       "get": {
         "operationId": "listWorkflowTasks",
         "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/preferences/presentation": {
+      "get": {
+        "operationId": "presentationPreferences",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "responses": {
+          "200": {"description": "Actor-bound presentation defaults with role-derived effective values."}
+        }
+      },
+      "put": {
+        "operationId": "updatePresentationPreferences",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type":"object"}
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Updated actor-bound presentation defaults."},
+          "409": {"description": "Preference version changed."}
+        }
       }
     },
     "/api/v1/onboarding/guide": {
