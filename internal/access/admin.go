@@ -52,12 +52,12 @@ type GroupSummary struct {
 }
 
 type RoleTemplateSummary struct {
-	ID                   string   `json:"id"`
-	Code                 string   `json:"code"`
-	Name                 string   `json:"name"`
-	Capabilities         []string `json:"capabilities"`
-	Version              int64    `json:"version"`
-	OrganizationEditable bool     `json:"organization_editable"`
+	ID                      string   `json:"id"`
+	Code                    string   `json:"code"`
+	Name                    string   `json:"name"`
+	Capabilities            []string `json:"capabilities"`
+	Version                 int64    `json:"version"`
+	OrganizationEditable    bool     `json:"organization_editable"`
 	OrganizationLockReasons []string `json:"organization_lock_reasons,omitempty"`
 }
 
@@ -128,13 +128,13 @@ type OrganizationPositionRoleRevisionSummary struct {
 }
 
 type ProposeOrganizationPositionRoleInput struct {
-	TenantID               string                            `json:"tenant_id"`
-	LegalEntityID          string                            `json:"legal_entity_id"`
-	PositionID             string                            `json:"position_id"`
-	RoleTemplateID         string                            `json:"role_template_id"`
-	Operation              OrganizationPositionRoleOperation `json:"operation"`
-	ExpectedPositionVersion int64                            `json:"expected_position_version"`
-	ActorID                string                            `json:"-"`
+	TenantID                string                            `json:"tenant_id"`
+	LegalEntityID           string                            `json:"legal_entity_id"`
+	PositionID              string                            `json:"position_id"`
+	RoleTemplateID          string                            `json:"role_template_id"`
+	Operation               OrganizationPositionRoleOperation `json:"operation"`
+	ExpectedPositionVersion int64                             `json:"expected_position_version"`
+	ActorID                 string                            `json:"-"`
 }
 
 type DecideOrganizationPositionRoleInput struct {
