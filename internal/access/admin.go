@@ -212,8 +212,8 @@ type ProposeOrganizationPositionInput struct {
 }
 
 type OrganizationPositionRouteSnapshot struct {
-	Status         string   `json:"status"`
-	CandidateIDs   []string `json:"candidate_ids"`
+	Status        string   `json:"status"`
+	CandidateIDs  []string `json:"candidate_ids"`
 	PolicyVersion string   `json:"policy_version,omitempty"`
 }
 
@@ -233,8 +233,8 @@ type OrganizationPositionRouteSimulation struct {
 	PositionID            string                              `json:"position_id"`
 	SourcePositionVersion int64                               `json:"source_position_version"`
 	EffectiveAt           time.Time                           `json:"effective_at"`
-	Checked                int                                 `json:"checked"`
-	Truncated              bool                                `json:"truncated"`
+	Checked               int                                 `json:"checked"`
+	Truncated             bool                                `json:"truncated"`
 	Scenarios              []OrganizationPositionRouteScenario `json:"scenarios"`
 }
 
