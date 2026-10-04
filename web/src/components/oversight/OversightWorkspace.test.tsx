@@ -179,6 +179,7 @@ it("drills a retained v3 metric to the exact snapshot population with typed reco
         target_id: "8f700000-0000-4000-8000-000000000020",
         target_title: "Assign control gap",
         state: "READY",
+        accessible: true,
       },
       {
         member_id: "8f700000-0000-4000-8000-000000000011",
@@ -186,6 +187,7 @@ it("drills a retained v3 metric to the exact snapshot population with typed reco
         target_id: "8f700000-0000-4000-8000-000000000021",
         target_title: "Assign Program review",
         state: "BLOCKED",
+        accessible: true,
       },
     ],
   });
