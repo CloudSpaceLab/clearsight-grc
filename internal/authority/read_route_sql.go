@@ -60,6 +60,7 @@ func PostgresReadRouteSQL(alias, objectIDColumn, objectType, decisionType, respo
 				  AND ((rd.selector_kind='ROLE' AND (rt.code=rd.selector_ref OR rt.id::text=rd.selector_ref)) OR (rd.selector_kind='ROLE_ID' AND rt.id::text=rd.selector_ref))
 				  AND (op.legal_entity_id IS NULL OR op.legal_entity_id=w.legal_entity_id)
 				  AND rt.valid_from<=$%[2]d AND (rt.valid_until IS NULL OR $%[2]d<rt.valid_until)
+				  AND prb.binding_purpose='GENERAL'
 				  AND prb.valid_from<=$%[2]d AND (prb.valid_until IS NULL OR $%[2]d<prb.valid_until)
 				  AND op.valid_from<=$%[2]d AND (op.valid_until IS NULL OR $%[2]d<op.valid_until)
 				  AND p.status='ACTIVE' AND p.valid_from<=$%[2]d AND (p.valid_until IS NULL OR $%[2]d<p.valid_until)
@@ -103,6 +104,7 @@ func PostgresReadRouteSQL(alias, objectIDColumn, objectType, decisionType, respo
 			SELECT op.occupant_principal_id FROM relevant_grants ag JOIN position_role_bindings prb ON prb.role_template_id=ag.role_template_id
 			JOIN org_positions op ON op.id=prb.position_id WHERE ag.role_template_id IS NOT NULL
 			  AND COALESCE(NULLIF(ag.limits->>'min_materiality','')::integer,0)<=3 AND COALESCE(NULLIF(ag.limits->>'max_materiality','')::integer,5)>=3
+			  AND prb.binding_purpose='GENERAL'
 			  AND prb.valid_from<=$%[2]d AND (prb.valid_until IS NULL OR $%[2]d<prb.valid_until)
 			  AND op.valid_from<=$%[2]d AND (op.valid_until IS NULL OR $%[2]d<op.valid_until)
 		), eligible AS (
@@ -117,6 +119,7 @@ func PostgresReadRouteSQL(alias, objectIDColumn, objectType, decisionType, respo
 			WHERE op.tenant_id=w.tenant_id AND op.occupant_principal_id=e.principal_id AND sr.responsibility='REVIEWER' AND sr.status='ACTIVE'
 			  AND sr.valid_from<=$%[2]d AND (sr.valid_until IS NULL OR $%[2]d<sr.valid_until)
 			  AND op.valid_from<=$%[2]d AND (op.valid_until IS NULL OR $%[2]d<op.valid_until)
+			  AND prb.binding_purpose='GENERAL'
 			  AND prb.valid_from<=$%[2]d AND (prb.valid_until IS NULL OR $%[2]d<prb.valid_until)
 		  )
 	)`, actorParam, atParam)
