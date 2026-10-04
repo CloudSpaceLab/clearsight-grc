@@ -194,7 +194,10 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	reusedSourceID, err := repository.RetainRuntimeSnapshot(ctx, runtimeSnapshot)
+	reusedSnapshot := runtimeSnapshot
+	reusedSnapshot.GeneratedAt = runtimeSnapshot.GeneratedAt.Add(time.Minute)
+	reusedSnapshot.PeriodEnd = runtimeSnapshot.PeriodEnd.Add(time.Minute)
+	reusedSourceID, err := repository.RetainRuntimeSnapshot(ctx, reusedSnapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
