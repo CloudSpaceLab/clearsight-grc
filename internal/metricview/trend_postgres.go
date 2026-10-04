@@ -37,16 +37,14 @@ func (r *ObservationRepository) Trend(ctx context.Context, tenantID, legalEntity
 	if err != nil {
 		return TrendSeries{}, err
 	}
+	if len(series.Points) == 0 {
+		return TrendSeries{}, ErrTrendNotFound
+	}
+	current := series.Points[len(series.Points)-1]
+	series.Current = &current
 	series.Baseline, err = r.comparisonPoint(ctx, tenantID, legalEntityID, metricID, start, true)
 	if err != nil && !errors.Is(err, ErrTrendNotFound) {
 		return TrendSeries{}, err
-	}
-	series.Current, err = r.comparisonPoint(ctx, tenantID, legalEntityID, metricID, end, false)
-	if err != nil && !errors.Is(err, ErrTrendNotFound) {
-		return TrendSeries{}, err
-	}
-	if len(series.Points) == 0 && series.Current == nil {
-		return TrendSeries{}, ErrTrendNotFound
 	}
 	decorateTrendComparison(&series)
 	return series, nil
