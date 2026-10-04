@@ -209,6 +209,7 @@ it("drills a retained v3 metric to the exact snapshot population with typed reco
     "8f700000-0000-4000-8000-000000000001",
     "home-oversight-v3",
     undefined,
+    undefined,
     50,
     expect.any(AbortSignal),
   );
