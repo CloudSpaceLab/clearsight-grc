@@ -103,11 +103,24 @@ func decorateTrendComparison(series *TrendSeries) {
 	default:
 		series.Direction = TrendUnchanged
 	}
-	if trendPointComplete(*series.Current) && trendPointComplete(*series.Baseline) {
+	if trendPointComplete(*series.Current) && trendPointComplete(*series.Baseline) && trendComparisonGapAcceptable(*series) {
 		series.ComparisonQuality = ComparisonComplete
 		return
 	}
 	series.ComparisonQuality = ComparisonLimited
+}
+
+func trendComparisonGapAcceptable(series TrendSeries) bool {
+	if series.Current == nil || series.Baseline == nil {
+		return false
+	}
+	maximumGap := 36 * time.Hour
+	if series.Resolution == TrendResolutionHour {
+		maximumGap = 2 * time.Hour
+	}
+	baselineGap := series.Start.Sub(series.Baseline.At)
+	currentGap := series.End.Sub(series.Current.At)
+	return baselineGap >= 0 && baselineGap <= maximumGap && currentGap >= 0 && currentGap <= maximumGap
 }
 
 func trendPointComplete(point TrendPoint) bool {
