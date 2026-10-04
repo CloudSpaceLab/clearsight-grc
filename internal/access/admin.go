@@ -235,7 +235,7 @@ type OrganizationPositionRouteSimulation struct {
 	EffectiveAt           time.Time                           `json:"effective_at"`
 	Checked               int                                 `json:"checked"`
 	Truncated             bool                                `json:"truncated"`
-	Scenarios              []OrganizationPositionRouteScenario `json:"scenarios"`
+	Scenarios             []OrganizationPositionRouteScenario `json:"scenarios"`
 }
 
 type SimulateOrganizationPositionInput struct {
