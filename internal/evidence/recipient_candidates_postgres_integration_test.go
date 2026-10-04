@@ -51,7 +51,7 @@ func TestPostgresRecipientCandidatesFilterEntitySubjectAndStatusBeforeLimit(t *t
 		($1::uuid,$8::uuid,'PERSON','Requester','ACTIVE',$9),
 		($2::uuid,$8::uuid,'PERSON','Zara Eligible','ACTIVE',$9),
 		($3::uuid,$8::uuid,'PERSON','Ayo Blocked','ACTIVE',$9),
-		($4::uuid,$8::uuid,'PERSON','Bisi Inactive','INACTIVE',$9),
+		($4::uuid,$8::uuid,'PERSON','Bisi Inactive','ACTIVE',$9),
 		($5::uuid,$8::uuid,'PERSON','Chidi Other Entity','ACTIVE',$9),
 		($6::uuid,$8::uuid,'TEAM','Controls Team','ACTIVE',$9),
 		($7::uuid,$8::uuid,'PERSON','Bola Replacement','ACTIVE',$9)`, requesterID, eligibleID, blockedID, inactiveID, otherEntityPrincipalID, teamID, replacementID, tenantID, now.Add(-time.Hour))
@@ -60,9 +60,9 @@ func TestPostgresRecipientCandidatesFilterEntitySubjectAndStatusBeforeLimit(t *t
 		('97777777-7777-7777-8777-777777777712'::uuid,$1::uuid,$2::uuid,'BLOCKED','Blocked',$4::uuid,$10),
 		('97777777-7777-7777-8777-777777777713'::uuid,$1::uuid,$2::uuid,'INACTIVE','Inactive',$5::uuid,$10),
 		('97777777-7777-7777-8777-777777777714'::uuid,$1::uuid,$6::uuid,'OTHER','Other entity',$7::uuid,$10),
-		('97777777-7777-7777-8777-777777777715'::uuid,$1::uuid,$2::uuid,'TEAM','Team',$8::uuid,$10),
-		('97777777-7777-7777-8777-777777777719'::uuid,$1::uuid,$2::uuid,'REQUESTER','Requester',$9::uuid,$10),
-		('97777777-7777-7777-8777-777777777720'::uuid,$1::uuid,$2::uuid,'REPLACEMENT','Replacement',$11::uuid,$10)`, tenantID, entityID, eligibleID, blockedID, inactiveID, otherEntityID, otherEntityPrincipalID, teamID, requesterID, now.Add(-time.Hour), replacementID)
+		('97777777-7777-7777-8777-777777777719'::uuid,$1::uuid,$2::uuid,'REQUESTER','Requester',$8::uuid,$10),
+		('97777777-7777-7777-8777-777777777720'::uuid,$1::uuid,$2::uuid,'REPLACEMENT','Replacement',$9::uuid,$10)`, tenantID, entityID, eligibleID, blockedID, inactiveID, otherEntityID, otherEntityPrincipalID, requesterID, replacementID, now.Add(-time.Hour))
+	mustExecRecipientCandidate(t, ctx, pool, `UPDATE principals SET status='INACTIVE' WHERE id=$1::uuid`, inactiveID)
 	mustExecRecipientCandidate(t, ctx, pool, `INSERT INTO programs(id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,jurisdiction,scope,effective_from) VALUES
 		($1::uuid,$2::uuid,$3::uuid,'CANDIDATES','Candidate visibility','COMPLIANCE','ACTIVE','Compliance','NG',$4::jsonb,$5)`, programID, tenantID, entityID, `{"access":"RESTRICTED","allowed_principal_ids":["`+requesterID+`","`+eligibleID+`","`+replacementID+`","`+otherEntityPrincipalID+`"]}`, now.Add(-time.Hour))
 

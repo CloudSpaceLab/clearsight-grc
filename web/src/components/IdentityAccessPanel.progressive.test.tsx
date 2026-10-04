@@ -15,6 +15,9 @@ const api = vi.hoisted(() => ({
   proposeOrganizationScope: vi.fn(),
   approveOrganizationScope: vi.fn(),
   rejectOrganizationScope: vi.fn(),
+  proposeOrganizationPosition: vi.fn(),
+  approveOrganizationPosition: vi.fn(),
+  rejectOrganizationPosition: vi.fn(),
 }));
 
 vi.mock("../identityAccessApi", () => api);
@@ -28,7 +31,11 @@ beforeEach(() => {
     can_configure_organization: true,
     can_configure_escalation: false,
     sources: [{ id: "source-1", code: "ENTRA", status: "ACTIVE", subject_attribute: "externalId", active_users: 12, active_groups: 2 }],
-    people: [],
+    people: [
+      { id: "person-cro", display_name: "Ada Okafor", status: "ACTIVE" },
+      { id: "person-owner", display_name: "Chidi Eze", status: "ACTIVE" },
+      { id: "person-new", display_name: "Nneka Obi", status: "ACTIVE" },
+    ],
     groups: [{ id: "group-1", display_name: "Risk Operations", source_code: "ENTRA", source_state: "ACTIVE", member_count: 8 }],
     roles: [{ id: "role-1", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: ["program_read"] }],
     legal_entities: [],
@@ -38,6 +45,7 @@ beforeEach(() => {
       { id: "scope-operations", legal_entity_id: "entity-1", parent_scope_id: "scope-risk", code: "OPERATIONS", name: "OPERATIONS", kind: "ORGANIZATION_UNIT", department_path: ["BANK", "RISK", "OPERATIONS"], origin: "LEGACY_DEPARTMENT_PATH", status: "ACTIVE", valid_from: "2026-01-01T00:00:00Z", version: 1 },
     ],
     organization_scope_revisions: [],
+    organization_position_revisions: [],
     positions: [
       {
         id: "position-cro",
@@ -135,6 +143,104 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
 });
 
+
+it("proposes a new position with occupant and reporting line from the Organization tab", async () => {
+  api.proposeOrganizationPosition.mockResolvedValue({
+    id: "position-revision-1",
+    position_id: "position-new",
+    operation: "CREATE",
+    base_version: 0,
+    base: { code: "", title: "" },
+    proposed: {
+      code: "RISK_ANALYST",
+      title: "Risk Analyst",
+      function_name: "Risk",
+      organization_scope_id: "scope-risk",
+      parent_position_id: "position-cro",
+      occupant_principal_id: "person-new",
+    },
+    maker_id: "actor-1",
+    status: "PENDING",
+    impact: { child_positions: 0, responsibility_assignments: 0, authority_grants: 0, active_role_bindings: 0 },
+    created_at: "2026-10-03T12:00:00Z",
+  });
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByRole("heading", { name: "Organization & access" });
+
+  fireEvent.click(screen.getByRole("button", { name: "Add position" }));
+  const dialog = screen.getByRole("dialog", { name: "Add position" });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Code/ }), { target: { value: "RISK_ANALYST" } });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Title/ }), { target: { value: "Risk Analyst" } });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Function/ }), { target: { value: "Risk" } });
+  const organizationArea = within(dialog).getByRole("button", { name: /Organization area/ });
+  fireEvent.keyDown(organizationArea, { key: "ArrowDown" });
+  fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "BANK / RISKOrganization Unit" }));
+  const reportsTo = within(dialog).getByRole("button", { name: /Reports to/ });
+  fireEvent.keyDown(reportsTo, { key: "ArrowDown" });
+  fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "Chief Risk OfficerCRO" }));
+  const occupant = within(dialog).getByRole("button", { name: /Current occupant/ });
+  fireEvent.keyDown(occupant, { key: "ArrowDown" });
+  fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "Nneka ObiActive" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Propose change" }));
+
+  await waitFor(() => expect(api.proposeOrganizationPosition).toHaveBeenCalledWith({
+    operation: "CREATE",
+    code: "RISK_ANALYST",
+    title: "Risk Analyst",
+    function_name: "Risk",
+    organization_scope_id: "scope-risk",
+    parent_position_id: "position-cro",
+    occupant_principal_id: "person-new",
+  }));
+  expect(await screen.findByText("Position change proposed.")).toBeTruthy();
+});
+
+it("shows pending position changes for independent approval", async () => {
+  const base = await api.loadIdentityAccessOverview();
+  api.loadIdentityAccessOverview.mockClear();
+  api.loadIdentityAccessOverview.mockResolvedValue({
+    ...base,
+    actor_principal_id: "checker-1",
+    organization_position_revisions: [{
+      id: "position-revision-2",
+      position_id: "position-owner",
+      operation: "UPDATE",
+      base_version: 4,
+      base: {
+        code: "PROGRAM_OWNER",
+        title: "Program Owner",
+        function_name: "Risk Operations",
+        organization_scope_id: "scope-operations",
+        parent_position_id: "position-cro",
+        occupant_principal_id: "person-owner",
+      },
+      proposed: {
+        code: "PROGRAM_OWNER",
+        title: "Senior Program Owner",
+        function_name: "Risk Operations",
+        organization_scope_id: "scope-operations",
+        parent_position_id: "position-cro",
+        occupant_principal_id: "person-owner",
+      },
+      maker_id: "maker-1",
+      status: "PENDING",
+      impact: { child_positions: 0, responsibility_assignments: 1, authority_grants: 0, active_role_bindings: 1 },
+      created_at: "2026-10-03T12:00:00Z",
+    }],
+  });
+  api.approveOrganizationPosition.mockResolvedValue(undefined);
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByText("Pending position changes");
+
+  fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+  const dialog = screen.getByRole("dialog", { name: "Approve position change" });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Rationale/ }), { target: { value: "Reporting line checked" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(api.approveOrganizationPosition).toHaveBeenCalledWith("position-revision-2", "Reporting line checked"));
+});
 
 it("proposes a new organization area from the Organization tab", async () => {
   api.proposeOrganizationScope.mockResolvedValue({

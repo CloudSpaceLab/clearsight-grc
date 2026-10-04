@@ -4776,6 +4776,27 @@
         "x-clearsight-route-class": "AUTHENTICATED_WRITE",
         "x-clearsight-permission": "IDENTITY_CONFIGURE"
       }
+    },
+    "/api/v1/access/organization-position-revisions": {
+      "post": {
+        "operationId": "proposeOrganizationPosition",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/organization-position-revisions/{id}/approve": {
+      "post": {
+        "operationId": "approveOrganizationPosition",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/organization-position-revisions/{id}/reject": {
+      "post": {
+        "operationId": "rejectOrganizationPosition",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
     }
   }
 }

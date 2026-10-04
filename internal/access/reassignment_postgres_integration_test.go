@@ -37,25 +37,25 @@ func TestPostgresReassignmentRequiresCompleteActiveReportingChain(t *testing.T) 
 		{name: "root at depth twelve", depth: 12, actorIndex: 12, basis: "REPORTING_ANCESTOR"},
 		{name: "current owner", depth: 2, actorIndex: 0, basis: "CURRENT_ASSIGNEE"},
 		{name: "current owner does not derive authority from hierarchy", depth: 2, actorIndex: 0, basis: "CURRENT_ASSIGNEE", mutate: func(t *testing.T, f *reassignmentFixture) {
-			f.exec(t, `UPDATE org_positions SET parent_position_id=$1::uuid WHERE id=$2::uuid`, f.positions[0], f.positions[2])
+			f.execCorrupt(t, `UPDATE org_positions SET parent_position_id=$1::uuid WHERE id=$2::uuid`, f.positions[0], f.positions[2])
 		}},
 		{name: "cycle including candidate", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
-			f.exec(t, `UPDATE org_positions SET parent_position_id=$1::uuid WHERE id=$2::uuid`, f.positions[1], f.positions[2])
+			f.execCorrupt(t, `UPDATE org_positions SET parent_position_id=$1::uuid WHERE id=$2::uuid`, f.positions[1], f.positions[2])
 		}},
 		{name: "cycle back to owner", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
-			f.exec(t, `UPDATE org_positions SET parent_position_id=$1::uuid WHERE id=$2::uuid`, f.positions[0], f.positions[2])
+			f.execCorrupt(t, `UPDATE org_positions SET parent_position_id=$1::uuid WHERE id=$2::uuid`, f.positions[0], f.positions[2])
 		}},
 		{name: "valid chain does not conceal another cyclic owner position", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			var position string
 			if err := f.pool.QueryRow(f.ctx, `INSERT INTO org_positions(tenant_id,legal_entity_id,code,title,occupant_principal_id,valid_from) VALUES($1::uuid,$2::uuid,'SECOND-POSITION','Second test position',$3::uuid,clock_timestamp()-interval '1 day') RETURNING id::text`, f.tenant, f.entity, f.principals[0]).Scan(&position); err != nil {
 				t.Fatal(err)
 			}
-			f.exec(t, `UPDATE org_positions SET parent_position_id=id WHERE id=$1::uuid`, position)
+			f.execCorrupt(t, `UPDATE org_positions SET parent_position_id=id WHERE id=$1::uuid`, position)
 		}},
 		{name: "chain exceeds depth limit beyond candidate", depth: 13, actorIndex: 1},
 		{name: "candidate at truncated depth limit", depth: 13, actorIndex: 12},
 		{name: "foreign entity parent beyond candidate", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
-			f.exec(t, `UPDATE org_positions SET legal_entity_id=$1::uuid WHERE id=$2::uuid`, f.otherEntity, f.positions[2])
+			f.execCorrupt(t, `UPDATE org_positions SET legal_entity_id=$1::uuid WHERE id=$2::uuid`, f.otherEntity, f.positions[2])
 		}},
 		{name: "expired parent beyond candidate", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.positions[2])
@@ -94,7 +94,7 @@ func TestPostgresReassignmentRequiresCompleteActiveReportingChain(t *testing.T) 
 			f.principals[0] = "00000000-0000-0000-0000-000000000000"
 		}},
 		{name: "current owner outside entity", depth: 2, actorIndex: 0, mutate: func(t *testing.T, f *reassignmentFixture) {
-			f.exec(t, `UPDATE org_positions SET legal_entity_id=$1::uuid WHERE id=$2::uuid`, f.otherEntity, f.positions[0])
+			f.execCorrupt(t, `UPDATE org_positions SET legal_entity_id=$1::uuid WHERE id=$2::uuid`, f.otherEntity, f.positions[0])
 		}},
 		{name: "unrelated actor", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET occupant_principal_id=NULL WHERE id=$1::uuid`, f.positions[1])
@@ -188,6 +188,27 @@ func newReassignmentFixture(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 func (f *reassignmentFixture) exec(t *testing.T, sql string, args ...any) {
 	t.Helper()
 	if _, err := f.pool.Exec(f.ctx, sql, args...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (f *reassignmentFixture) execCorrupt(t *testing.T, query string, args ...any) {
+	t.Helper()
+	tx, err := f.pool.Begin(f.ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback(f.ctx) }()
+	if _, err = tx.Exec(f.ctx, `ALTER TABLE org_positions DISABLE TRIGGER organization_position_write_guard`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(f.ctx, query, args...); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(f.ctx, `ALTER TABLE org_positions ENABLE TRIGGER organization_position_write_guard`); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Commit(f.ctx); err != nil {
 		t.Fatal(err)
 	}
 }
