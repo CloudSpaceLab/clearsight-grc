@@ -3,6 +3,7 @@ import { ApiError } from "../http";
 import {
   approveEscalationGuardRevision,
   approveOrganizationPosition,
+  approveOrganizationPositionRole,
   approveLegalEntityDataBoundary,
   approveOrganizationScope,
   createGroupRoleBinding,
@@ -11,9 +12,11 @@ import {
   previewEscalation,
   proposeEscalationGuardRevision,
   proposeOrganizationPosition,
+  proposeOrganizationPositionRole,
   proposeLegalEntityDataBoundary,
   proposeOrganizationScope,
   rejectOrganizationPosition,
+  rejectOrganizationPositionRole,
   rejectLegalEntityDataBoundary,
   rejectOrganizationScope,
   retireGroupRoleBinding,
@@ -24,9 +27,11 @@ import {
   type IdentityAccessOverview,
   type IdentitySource,
   type OrganizationPositionRevision,
+  type OrganizationPositionRoleRevision,
   type LegalEntityDataBoundaryRevision,
   type OrganizationScopeRevision,
   type ProposeOrganizationPositionInput,
+  type ProposeOrganizationPositionRoleInput,
   type ProposeLegalEntityDataBoundaryInput,
   type ProposeOrganizationScopeInput,
 } from "../identityAccessApi";
@@ -252,6 +257,30 @@ export function IdentityAccessPanel() {
     });
   }
 
+  async function proposePositionRole(input: ProposeOrganizationPositionRoleInput) {
+    return run("position-role-propose", async () => {
+      await proposeOrganizationPositionRole(input);
+      setNotice("Workspace role change proposed.");
+      await refresh();
+    });
+  }
+
+  async function approvePositionRole(revision: OrganizationPositionRoleRevision, rationale: string) {
+    return run("position-role-approve-" + revision.id, async () => {
+      await approveOrganizationPositionRole(revision.id, rationale);
+      setNotice("Workspace role change approved.");
+      await refresh();
+    });
+  }
+
+  async function rejectPositionRole(revision: OrganizationPositionRoleRevision, rationale: string) {
+    return run("position-role-reject-" + revision.id, async () => {
+      await rejectOrganizationPositionRole(revision.id, rationale);
+      setNotice("Workspace role change rejected.");
+      await refresh();
+    });
+  }
+
   async function proposeGuard(event: FormEvent) {
     event.preventDefault();
     if (!selectedPolicy || !selectedSequence) return;
@@ -327,6 +356,7 @@ export function IdentityAccessPanel() {
       {(area === "positions" || area === "reporting") && <OrganizationInventory
         positions={overview.positions}
         people={overview.people}
+        roles={overview.roles}
         scopes={overview.organization_scopes}
         revisions={overview.organization_scope_revisions}
         positionRevisions={overview.organization_position_revisions}
@@ -343,6 +373,9 @@ export function IdentityAccessPanel() {
         onProposePosition={proposePosition}
         onApprovePosition={approvePosition}
         onRejectPosition={rejectPosition}
+        onProposePositionRole={proposePositionRole}
+        onApprovePositionRole={approvePositionRole}
+        onRejectPositionRole={rejectPositionRole}
         onProposeDataBoundary={proposeBoundary}
         onApproveDataBoundary={approveBoundary}
         onRejectDataBoundary={rejectBoundary}
