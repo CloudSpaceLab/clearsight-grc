@@ -65,6 +65,7 @@ func (s *effectivePostgresService) Integrity(ctx context.Context, tenantID strin
 				  AND (rt.code=ear.selector_ref OR rt.id::text=ear.selector_ref)
 				  AND rt.valid_from<=clock_timestamp()
 				  AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+				  AND prb.binding_purpose='GENERAL'
 				  AND prb.valid_from<=clock_timestamp()
 				  AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
 				  AND op.valid_from<=clock_timestamp()
