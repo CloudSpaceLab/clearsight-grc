@@ -302,11 +302,10 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 	if _, err := pool.Exec(ctx, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID); err != nil {
 		t.Fatalf("retained metric observation blocked source snapshot retention cleanup: %v", err)
 	}
-	retainedPage, err := members.ListSnapshotMembers(
+	if _, err := members.ListSnapshotMembers(
 		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 10,
-	)
-	if err != nil || retainedPage.Count != 7 {
-		t.Fatalf("retained membership after source cleanup=%#v err=%v", retainedPage, err)
+	); !errors.Is(err, ErrMetricMembershipNotFound) {
+		t.Fatalf("expired source membership remained readable after source cleanup: %v", err)
 	}
 	count, err = repository.countObservationsForSource(ctx, snapshotID)
 	if err != nil {
