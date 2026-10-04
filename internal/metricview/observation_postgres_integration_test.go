@@ -59,10 +59,10 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 			($10::uuid,$1::uuid,'METRIC-GH','Metric Ghana','GH',$4);
 		INSERT INTO oversight_snapshots(
 			id,tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
-			projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
+			projection_version,metric_membership_revision,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
 		) VALUES(
 			$3::uuid,$1::uuid,$2::uuid,$5,$6,$6,$6,
-			$7,$8::jsonb,100,2,3,$9::jsonb
+			$7,'home-oversight-v3',$8::jsonb,100,2,3,$9::jsonb
 		)`,
 		pgx.QueryExecModeSimpleProtocol,
 		tenantID,
@@ -76,6 +76,34 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		string(payload),
 		otherEntityID,
 	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO oversight_snapshot_metric_memberships(
+			oversight_snapshot_id,metric_id,definition_revision,member_id,target_type,target_id,target_title,state
+		)
+		SELECT $1::uuid,'critical_high_open','home-oversight-v3',
+		       md5('metric-critical-' || gs::text)::uuid,'MATTER',md5('metric-critical-target-' || gs::text)::uuid,
+		       'Critical issue ' || gs,'TRIAGE'
+		FROM generate_series(1,7) gs
+		UNION ALL
+		SELECT $1::uuid,'overdue_open','home-oversight-v3',
+		       md5('metric-overdue-' || gs::text)::uuid,'MATTER',md5('metric-overdue-target-' || gs::text)::uuid,
+		       'Overdue issue ' || gs,'TRIAGE'
+		FROM generate_series(1,4) gs
+		UNION ALL
+		SELECT $1::uuid,'routing_gaps','home-oversight-v3',
+		       md5('metric-routing-' || gs::text)::uuid,
+		       CASE WHEN gs=2 THEN 'PROGRAM' ELSE 'MATTER' END,
+		       md5('metric-routing-target-' || gs::text)::uuid,
+		       'Unassigned work ' || gs,'READY'
+		FROM generate_series(1,2) gs
+		UNION ALL
+		SELECT $1::uuid,'outcome_failures','home-oversight-v3',
+		       md5('metric-outcome-' || gs::text)::uuid,'MATTER',md5('metric-outcome-target-' || gs::text)::uuid,
+		       'Failed outcome ' || gs,'VERIFICATION'
+		FROM generate_series(1,1) gs
+	`, snapshotID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -95,6 +123,31 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		now, now.Add(-time.Hour),
 	); err == nil {
 		t.Fatal("metric observation accepted a source snapshot from another legal entity")
+	}
+
+	const legacySnapshotID = "8f500000-0000-4000-8000-000000000005"
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO oversight_snapshots(
+			id,tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
+			projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
+		) VALUES(
+			$1::uuid,$2::uuid,$3::uuid,$4,$5,$5,$5,$6,'{}'::jsonb,0,0,0,'{"counts":{}}'::jsonb
+		)`,
+		legacySnapshotID, tenantID, entityID, now.Add(-90*24*time.Hour), now.Add(-time.Hour), oversight.ProjectionVersion,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO metric_observations(
+			tenant_id,legal_entity_id,metric_id,definition_revision,source_kind,source_id,source_revision,source_high_water,
+			generated_at,period_start,period_end,posture_as_of,value,condition,freshness,completeness,population,excluded,unknown
+		) VALUES(
+			$1::uuid,$2::uuid,'critical_high_open',$3,'OVERSIGHT_SNAPSHOT',$4::uuid,$5,'{}'::jsonb,
+			$6,$7,$6,$6,0,'CLEAR','CURRENT','COMPLETE',0,0,0
+		)`,
+		tenantID, entityID, HomeDefinitionRevision, legacySnapshotID, oversight.ProjectionVersion, now, now.Add(-90*24*time.Hour),
+	); err == nil {
+		t.Fatal("legacy snapshot without retained membership accepted a v3 observation")
 	}
 
 	repository := NewObservationRepository(pool)
