@@ -72,11 +72,17 @@ func TestPostgresReassignmentRequiresCompleteActiveReportingChain(t *testing.T) 
 		{name: "revoked manager position", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.positions[1])
 		}},
-		{name: "inactive owner", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
+		{name: "inactive owner", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE principals SET status='INACTIVE' WHERE id=$1::uuid`, f.principals[0])
 		}},
-		{name: "expired owner", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
+		{name: "expired owner", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE principals SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.principals[0])
+		}},
+		{name: "governed vacancy preserves handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+			f.governOwnerPosition(t, false)
+		}},
+		{name: "governed retirement preserves handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+			f.governOwnerPosition(t, true)
 		}},
 		{name: "revoked owner position", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.positions[0])
@@ -183,6 +189,29 @@ func newReassignmentFixture(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 		}
 	}
 	return f
+}
+
+func (f *reassignmentFixture) governOwnerPosition(t *testing.T, retire bool) {
+	t.Helper()
+	admin := NewPostgresAdministrator(f.pool)
+	operation := OrganizationPositionUpdate
+	if retire {
+		operation = OrganizationPositionRetire
+	}
+	proposal, err := admin.ProposeOrganizationPosition(f.ctx, ProposeOrganizationPositionInput{
+		TenantID: f.tenant, LegalEntityID: f.entity, PositionID: f.positions[0],
+		Operation: operation, Title: "POSITION-0", ParentPositionID: f.positions[1],
+		ExpectedVersion: 1, ActorID: f.principals[1],
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := admin.ApproveOrganizationPosition(f.ctx, DecideOrganizationPositionInput{
+		TenantID: f.tenant, LegalEntityID: f.entity, RevisionID: proposal.ID,
+		ActorID: f.principals[2], Rationale: "governed departure",
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func (f *reassignmentFixture) exec(t *testing.T, sql string, args ...any) {
