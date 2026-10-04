@@ -40,7 +40,7 @@ export type DataTableProps<Row> = {
   responsiveTo?: "viewport" | "container";
 };
 
-export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, selectedKey, onSelectionChange, onRowAction, rowActionLabel = "View details", isLoading = false, pagination, responsiveTo = "viewport" }: DataTableProps<Row>) {
+export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, selectedKey, onSelectionChange, onRowAction, isRowActionDisabled, rowActionLabel = "View details", isLoading = false, pagination, responsiveTo = "viewport" }: DataTableProps<Row>) {
   const activeKey = rows.some((row) => rowKey(row) === selectedKey) ? selectedKey : rows[0] && rowKey(rows[0]);
   return <div className="cs-data-table" data-responsive-to={responsiveTo}>
     <div className="cs-data-table__viewport">
@@ -72,6 +72,7 @@ export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, sele
             {onRowAction && <td className="cs-data-table__action">
               <Button
                 variant="secondary"
+                isDisabled={isRowActionDisabled?.(row) === true}
                 onPress={() => onRowAction(row)}
                 // The visible text stays short and identical across rows; the
                 // accessible name carries which record it acts on, so a screen
