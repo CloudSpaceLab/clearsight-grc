@@ -114,6 +114,19 @@ func TestOrganizationPositionEffectiveActivationIsDueTimeBoundAndFailsClosed(t *
 	if status != "APPLIED" || attempts != 1 || currentOccupant != occupantB {
 		t.Fatalf("activated status=%s attempts=%d occupant=%s", status, attempts, currentOccupant)
 	}
+	var actorType, fromState, toState string
+	var actorIsNull bool
+	if err := pool.QueryRow(ctx, `
+		SELECT actor_type,actor_id IS NULL,from_state,to_state
+		FROM governance_decisions
+		WHERE tenant_id=$1::uuid AND object_type='ORGANIZATION_POSITION' AND object_id=$2::uuid
+		ORDER BY decided_at DESC,id DESC LIMIT 1`,
+		tenantID, positionID).Scan(&actorType, &actorIsNull, &fromState, &toState); err != nil {
+		t.Fatal(err)
+	}
+	if actorType != "SYSTEM" || !actorIsNull || fromState != "SCHEDULED" || toState != "ACTIVE" {
+		t.Fatalf("activation provenance actor=%s null=%v transition=%s->%s", actorType, actorIsNull, fromState, toState)
+	}
 
 	secondEffective := effectiveFrom.Add(time.Hour)
 	stale, err := admin.ProposeOrganizationPosition(ctx, ProposeOrganizationPositionInput{
@@ -148,6 +161,18 @@ func TestOrganizationPositionEffectiveActivationIsDueTimeBoundAndFailsClosed(t *
 	}
 	if status != "FAILED" || attempts != 1 || errorCode != "STALE_OR_CONFLICTING_STATE" {
 		t.Fatalf("stale activation status=%s attempts=%d code=%s", status, attempts, errorCode)
+	}
+	if err := pool.QueryRow(ctx, `
+		SELECT actor_type,actor_id IS NULL,from_state,to_state
+		FROM governance_decisions
+		WHERE tenant_id=$1::uuid AND object_type='ORGANIZATION_POSITION_REVISION' AND object_id=$2::uuid
+		  AND to_state='FAILED'
+		ORDER BY decided_at DESC,id DESC LIMIT 1`,
+		tenantID, stale.ID).Scan(&actorType, &actorIsNull, &fromState, &toState); err != nil {
+		t.Fatal(err)
+	}
+	if actorType != "SYSTEM" || !actorIsNull || fromState != "SCHEDULED" || toState != "FAILED" {
+		t.Fatalf("failure provenance actor=%s null=%v transition=%s->%s", actorType, actorIsNull, fromState, toState)
 	}
 	if title != "Risk Manager interim" || currentOccupant != occupantB {
 		t.Fatalf("failed activation mutated current position: title=%q occupant=%s", title, currentOccupant)
