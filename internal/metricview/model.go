@@ -6,7 +6,10 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 )
 
-const HomeDefinitionRevision = "home-oversight-v2"
+const (
+	LegacyHomeDefinitionRevision = "home-oversight-v2"
+	HomeDefinitionRevision       = "home-oversight-v3"
+)
 
 type MetricBasis string
 
@@ -34,6 +37,9 @@ const (
 	// authorized population. The UI must not imply that a later drill result is
 	// the immutable population that produced an older card.
 	DrillCurrentState DrillConsistency = "CURRENT_STATE"
+	// DrillSnapshotExact means the target is the retained typed population that
+	// produced this metric source snapshot.
+	DrillSnapshotExact DrillConsistency = "SNAPSHOT_EXACT"
 )
 
 type DrillTarget struct {
@@ -54,6 +60,7 @@ type Metric struct {
 	Excluded           *int                `json:"excluded,omitempty"`
 	Unknown            *int                `json:"unknown,omitempty"`
 	GeneratedAt        time.Time           `json:"generated_at"`
+	SourceID           string              `json:"source_id,omitempty"`
 	SourceRevision     string              `json:"source_revision"`
 	DefinitionRevision string              `json:"definition_revision"`
 	Basis              MetricBasis         `json:"basis"`
@@ -73,6 +80,7 @@ type Bundle struct {
 	Population         int                       `json:"population"`
 	Excluded           *int                      `json:"excluded,omitempty"`
 	Unknown            *int                      `json:"unknown,omitempty"`
+	SourceID           string                    `json:"source_id,omitempty"`
 	SourceRevision     string                    `json:"source_revision"`
 	DefinitionRevision string                    `json:"definition_revision"`
 	Items              []Metric                  `json:"items"`
@@ -92,8 +100,12 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 		"routing_gaps":       snapshot.Counts.RoutingFailures,
 		"outcome_failures":   snapshot.Counts.OutcomeFailures,
 	}
-	items := make([]Metric, 0, len(homeDefinitions))
-	for _, definition := range homeDefinitions {
+	definitions := legacyHomeDefinitions
+	if snapshot.SnapshotID != "" && snapshot.MetricMembershipVersion == oversight.MetricMembershipVersion {
+		definitions = homeDefinitions
+	}
+	items := make([]Metric, 0, len(definitions))
+	for _, definition := range definitions {
 		value := values[definition.ID]
 		condition := ConditionClear
 		if value > 0 {
@@ -111,6 +123,7 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 			Excluded:           snapshot.Coverage.Excluded,
 			Unknown:            snapshot.Coverage.Unknown,
 			GeneratedAt:        snapshot.GeneratedAt,
+			SourceID:           snapshot.SnapshotID,
 			SourceRevision:     snapshot.ProjectionVersion,
 			DefinitionRevision: definition.Revision,
 			Basis:              definition.Basis,
@@ -135,8 +148,9 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 		Population:         snapshot.Coverage.Population,
 		Excluded:           snapshot.Coverage.Excluded,
 		Unknown:            snapshot.Coverage.Unknown,
+		SourceID:           snapshot.SnapshotID,
 		SourceRevision:     snapshot.ProjectionVersion,
-		DefinitionRevision: HomeDefinitionRevision,
+		DefinitionRevision: definitions[0].Revision,
 		Items:              items,
 	}
 }
