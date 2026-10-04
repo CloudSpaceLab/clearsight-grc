@@ -28,6 +28,7 @@ export type DataTableProps<Row> = {
   selectedKey?: string;
   onSelectionChange?: (row: Row) => void;
   onRowAction?: (row: Row) => void;
+  isRowActionDisabled?: (row: Row) => boolean;
   /**
    * Visible text for the per-row action. A table that offers a row action must
    * show a control for it: an action reachable only by double-click or a
@@ -40,7 +41,7 @@ export type DataTableProps<Row> = {
   responsiveTo?: "viewport" | "container";
 };
 
-export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, selectedKey, onSelectionChange, onRowAction, rowActionLabel = "View details", isLoading = false, pagination, responsiveTo = "viewport" }: DataTableProps<Row>) {
+export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, selectedKey, onSelectionChange, onRowAction, isRowActionDisabled, rowActionLabel = "View details", isLoading = false, pagination, responsiveTo = "viewport" }: DataTableProps<Row>) {
   const activeKey = rows.some((row) => rowKey(row) === selectedKey) ? selectedKey : rows[0] && rowKey(rows[0]);
   return <div className="cs-data-table" data-responsive-to={responsiveTo}>
     <div className="cs-data-table__viewport">
@@ -55,10 +56,12 @@ export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, sele
             onClick={(event) => {
               if (isRowSurface(event.target)) event.currentTarget.focus();
             }}
-            onDoubleClick={(event) => { if (isRowSurface(event.target)) onRowAction?.(row); }}
+            onDoubleClick={(event) => {
+              if (isRowSurface(event.target) && isRowActionDisabled?.(row) !== true) onRowAction?.(row);
+            }}
             onKeyDown={(event) => {
               if (event.target !== event.currentTarget) return;
-              if (onRowAction && (event.key === " " || event.key === "Enter")) {
+              if (onRowAction && isRowActionDisabled?.(row) !== true && (event.key === " " || event.key === "Enter")) {
                 event.preventDefault(); onRowAction(row);
               }
               if (onSelectionChange && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
@@ -72,6 +75,7 @@ export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, sele
             {onRowAction && <td className="cs-data-table__action">
               <Button
                 variant="secondary"
+                isDisabled={isRowActionDisabled?.(row) === true}
                 onPress={() => onRowAction(row)}
                 // The visible text stays short and identical across rows; the
                 // accessible name carries which record it acts on, so a screen

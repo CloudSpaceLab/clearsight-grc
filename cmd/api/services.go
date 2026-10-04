@@ -19,6 +19,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
@@ -80,6 +81,7 @@ type serviceSet struct {
 	Today                          *today.Service
 	Oversight                      *oversight.Service
 	GroupOversight                 *oversight.GroupService
+	MetricMembership               metricview.MembershipReader
 	Workflow                       *workflow.Service
 	Onboarding                     *onboarding.Service
 	Autonomy                       *autonomy.Service

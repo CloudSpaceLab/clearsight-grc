@@ -33,6 +33,10 @@
 .oversight-attention h2, .oversight-panel h2 { margin: 4px 0; font-size: 1.15rem; }
 .oversight-inline-counts { display: flex; gap: 8px; }
 .oversight-inline-counts span { padding: 5px 8px; border-radius: var(--cs-primitive-radius-full); background: var(--surface-2); color: var(--muted); font-size: .72rem; }
+.oversight-result-count { margin: 10px 0; color: var(--muted); font-size: .76rem; }
+.oversight-member-record { display: grid; min-width: 0; gap: 3px; }
+.oversight-member-record strong { color: var(--text); overflow-wrap: anywhere; }
+.oversight-member-record small { color: var(--muted); font-size: .7rem; }
 .oversight-intervention-list { display: grid; margin-top: 8px; }
 .oversight-intervention-list article { display: grid; grid-template-columns: 42px minmax(0, 1fr) minmax(150px, auto); gap: 13px; align-items: center; padding: 15px 0; border-top: 1px solid var(--border); }
 .oversight-priority { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--cs-primitive-radius-10); background: var(--surface-2); font-size: .72rem; font-weight: 750; }

@@ -2081,6 +2081,25 @@
         }
       }
     },
+    "/api/v1/metrics/home/{metric_id}/members": {
+      "get": {
+        "operationId": "homeMetricMembers",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "parameters": [
+          {"name":"metric_id","in":"path","required":true,"schema":{"type":"string"}},
+          {"name":"source_id","in":"query","required":true,"schema":{"type":"string","format":"uuid"}},
+          {"name":"definition_revision","in":"query","required":true,"schema":{"type":"string"}},
+          {"name":"organization_scope_id","in":"query","schema":{"type":"string","format":"uuid"}},
+          {"name":"cursor","in":"query","schema":{"type":"string","format":"uuid"}},
+          {"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":50}}
+        ],
+        "responses": {
+          "200": {"description": "Exact retained member page for one Home metric snapshot."},
+          "404": {"description": "Source snapshot is not available in the verified legal entity."}
+        }
+      }
+    },
     "/api/v1/reports/definitions": {
       "get": {
         "operationId": "listReportDefinitions",

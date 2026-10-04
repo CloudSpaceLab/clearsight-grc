@@ -6,7 +6,10 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 )
 
-const HomeDefinitionRevision = "home-oversight-v2"
+const (
+	HomeDefinitionRevision             = "home-oversight-v3"
+	HomeCurrentStateDefinitionRevision = "home-oversight-v2"
+)
 
 type MetricBasis string
 
@@ -33,7 +36,8 @@ const (
 	// DrillCurrentState means the target resolves against the current
 	// authorized population. The UI must not imply that a later drill result is
 	// the immutable population that produced an older card.
-	DrillCurrentState DrillConsistency = "CURRENT_STATE"
+	DrillCurrentState   DrillConsistency = "CURRENT_STATE"
+	DrillSourceSnapshot DrillConsistency = "SOURCE_SNAPSHOT"
 )
 
 type DrillTarget struct {
@@ -73,6 +77,7 @@ type Bundle struct {
 	Population         int                       `json:"population"`
 	Excluded           *int                      `json:"excluded,omitempty"`
 	Unknown            *int                      `json:"unknown,omitempty"`
+	SourceID           string                    `json:"source_id,omitempty"`
 	SourceRevision     string                    `json:"source_revision"`
 	DefinitionRevision string                    `json:"definition_revision"`
 	Items              []Metric                  `json:"items"`
@@ -92,8 +97,14 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 		"routing_gaps":       snapshot.Counts.RoutingFailures,
 		"outcome_failures":   snapshot.Counts.OutcomeFailures,
 	}
-	items := make([]Metric, 0, len(homeDefinitions))
-	for _, definition := range homeDefinitions {
+	definitions := homeDefinitions[:]
+	definitionRevision := HomeDefinitionRevision
+	if snapshot.SnapshotID == "" {
+		definitions = homeCurrentStateDefinitions[:]
+		definitionRevision = HomeCurrentStateDefinitionRevision
+	}
+	items := make([]Metric, 0, len(definitions))
+	for _, definition := range definitions {
 		value := values[definition.ID]
 		condition := ConditionClear
 		if value > 0 {
@@ -135,8 +146,9 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 		Population:         snapshot.Coverage.Population,
 		Excluded:           snapshot.Coverage.Excluded,
 		Unknown:            snapshot.Coverage.Unknown,
+		SourceID:           snapshot.SnapshotID,
 		SourceRevision:     snapshot.ProjectionVersion,
-		DefinitionRevision: HomeDefinitionRevision,
+		DefinitionRevision: definitionRevision,
 		Items:              items,
 	}
 }

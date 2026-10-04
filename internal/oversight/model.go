@@ -119,7 +119,17 @@ type HistoryQuality struct {
 	ReopenedOwnerExcluded   int `json:"reopened_owner_excluded"`
 }
 
+type MetricMember struct {
+	MetricID    string
+	MemberID    string
+	TargetType  string
+	TargetID    string
+	TargetTitle string
+	State       string
+}
+
 type Snapshot struct {
+	SnapshotID          string               `json:"-"`
 	TenantID            string               `json:"-"`
 	LegalEntityID       string               `json:"-"`
 	OrganizationScopeID string               `json:"organization_scope_id,omitempty"`
@@ -139,6 +149,7 @@ type Snapshot struct {
 	Performance         []Performance        `json:"performance"`
 	Estimates           []ResolutionEstimate `json:"estimates"`
 	HistoryQuality      HistoryQuality       `json:"history_quality"`
+	MetricMembers       []MetricMember       `json:"-"`
 }
 
 func estimateConfidence(samples int) string {

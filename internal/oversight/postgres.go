@@ -27,9 +27,10 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 
 func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot, error) {
 	var value Snapshot
+	var membershipRevision string
 	var payload, highWater []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
+		SELECT os.id::text,COALESCE(os.metric_membership_revision,''),os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
 		       os.coverage_population,os.coverage_excluded,os.coverage_unknown,os.payload,
 		       t.slug,le.code
 		FROM oversight_snapshots os
@@ -37,7 +38,7 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 		JOIN legal_entities le ON le.tenant_id=os.tenant_id AND le.id=os.legal_entity_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)
 		ORDER BY os.generated_at DESC,os.id DESC LIMIT 1`, scope.TenantID, scope.LegalEntityID).
-		Scan(&value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
+		Scan(&value.SnapshotID, &membershipRevision, &value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
 			&value.Coverage.Population, &value.Coverage.Excluded, &value.Coverage.Unknown, &payload,
 			&value.TenantID, &value.LegalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -45,6 +46,9 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 	}
 	if err != nil {
 		return Snapshot{}, err
+	}
+	if membershipRevision != MetricSnapshotDrillDefinitionRevision {
+		value.SnapshotID = ""
 	}
 	if err := json.Unmarshal(highWater, &value.SourceHighWater); err != nil {
 		return Snapshot{}, fmt.Errorf("decode oversight high-water marks: %w", err)
@@ -85,9 +89,13 @@ func (m *Maintainer) Maintain(ctx context.Context, now time.Time, limit int) (in
 		WHERE le.valid_from<=$1::timestamptz AND (le.valid_until IS NULL OR $1::timestamptz<le.valid_until)
 		  AND NOT EXISTS (
 		    SELECT 1 FROM oversight_snapshots os
-		    WHERE os.tenant_id=le.tenant_id AND os.legal_entity_id=le.id AND os.projection_version=$2 AND os.generated_at>$1::timestamptz-interval '5 minutes'
+		    WHERE os.tenant_id=le.tenant_id
+		      AND os.legal_entity_id=le.id
+		      AND os.projection_version=$2
+		      AND os.metric_membership_revision=$3
+		      AND os.generated_at>$1::timestamptz-interval '5 minutes'
 		  )
-		ORDER BY le.id LIMIT $3`, now, ProjectionVersion, limit)
+		ORDER BY le.id LIMIT $4`, now, ProjectionVersion, MetricSnapshotDrillDefinitionRevision, limit)
 	if err != nil {
 		return 0, err
 	}
@@ -161,16 +169,10 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, period
 		SELECT count(*),
 		       count(*) FILTER (WHERE scope_state='EXCLUDED'),
 		       count(*) FILTER (WHERE scope_state='UNKNOWN'),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND priority>=4),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND due_at<$3::timestamptz),
 		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND due_at>=$3::timestamptz AND due_at<$3::timestamptz+interval '7 days'),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND owner_principal_id IS NULL),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND EXISTS (
-		         SELECT 1 FROM verification_results vr WHERE vr.tenant_id=matters.tenant_id AND vr.matter_id=matters.id AND vr.result IN ('FAIL','INCONCLUSIVE')
-		           AND vr.observed_at=(SELECT max(latest.observed_at) FROM verification_results latest WHERE latest.tenant_id=vr.tenant_id AND latest.matter_id=vr.matter_id AND latest.contract_id=vr.contract_id)
-		       ))
+		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND owner_principal_id IS NULL)
 		FROM scoped matters`, scope.TenantID, scope.LegalEntityID, now, organizationScopeIDs).
-		Scan(&value.Coverage.Population, &excluded, &unknown, &value.Counts.CriticalHigh, &value.Counts.Overdue, &value.Counts.DueSoon, &value.Counts.Unassigned, &value.Counts.OutcomeFailures)
+		Scan(&value.Coverage.Population, &excluded, &unknown, &value.Counts.DueSoon, &value.Counts.Unassigned)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -203,18 +205,11 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, period
 	); err != nil {
 		return Snapshot{}, err
 	}
-	if err := r.pool.QueryRow(ctx, `
-		SELECT count(*) FROM workflow_tasks wt JOIN workflow_instances wi ON wi.tenant_id=wt.tenant_id AND wi.id=wt.workflow_id
-		LEFT JOIN matters m ON wi.subject_type='MATTER' AND m.tenant_id=wi.tenant_id AND m.id=wi.subject_id
-		LEFT JOIN programs p ON wi.subject_type='PROGRAM' AND p.tenant_id=wi.tenant_id AND p.id=wi.subject_id
-		WHERE wt.tenant_id=$1::uuid AND wt.status IN ('READY','BLOCKED','ESCALATED') AND wt.principal_id IS NULL
-		  AND COALESCE(m.legal_entity_id,p.legal_entity_id)=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
-		  AND (
-		    ($3::uuid[] IS NULL AND ((m.id IS NOT NULL AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')))
-		      OR (p.id IS NOT NULL AND (NOT (p.scope ? 'access') OR upper(btrim(p.scope->>'access')) IN ('PUBLIC','INTERNAL')))))
-		    OR ($3::uuid[] IS NOT NULL AND m.id IS NOT NULL AND m.organization_scope_id=ANY($3::uuid[])
-		      AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')))
-		  )`, scope.TenantID, scope.LegalEntityID, organizationScopeIDs).Scan(&value.Counts.RoutingFailures); err != nil {
+	value.MetricMembers, err = r.buildMetricMembers(ctx, scope, now, organizationScopeIDs)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	if err := applyMetricMemberCounts(&value); err != nil {
 		return Snapshot{}, err
 	}
 
@@ -522,6 +517,9 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, period
 }
 
 func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot time.Time) (bool, error) {
+	if err := validateMetricMemberCounts(value); err != nil {
+		return false, err
+	}
 	payload, err := json.Marshal(struct {
 		Counts         Counts               `json:"counts"`
 		Interventions  []Intervention       `json:"interventions"`
@@ -538,9 +536,69 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 	if err != nil {
 		return false, err
 	}
-	command, err := r.pool.Exec(ctx, `
-		INSERT INTO oversight_snapshots(tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload)
-		VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$11,$12::jsonb)
-		ON CONFLICT(tenant_id,legal_entity_id,projection_version,refresh_slot) DO NOTHING`, value.TenantID, value.LegalEntityID, value.PeriodStart, value.PeriodEnd, slot, value.GeneratedAt, value.ProjectionVersion, highWater, value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload)
-	return command.RowsAffected() == 1, err
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var snapshotID string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO oversight_snapshots(
+			tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
+			projection_version,metric_membership_revision,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
+		) VALUES(
+			$1::uuid,$2::uuid,$3,$4,$5,$6,
+			$7,$8,$9::jsonb,$10,$11,$12,$13::jsonb
+		)
+		ON CONFLICT(tenant_id,legal_entity_id,projection_version,refresh_slot) DO NOTHING
+		RETURNING id::text`,
+		value.TenantID, value.LegalEntityID, value.PeriodStart, value.PeriodEnd, slot, value.GeneratedAt,
+		value.ProjectionVersion, MetricSnapshotDrillDefinitionRevision, highWater,
+		value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload,
+	).Scan(&snapshotID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO oversight_snapshot_metric_membership_sets(
+			oversight_snapshot_id,tenant_id,legal_entity_id,definition_revision
+		) VALUES($1::uuid,$2::uuid,$3::uuid,$4)`,
+		snapshotID,
+		value.TenantID,
+		value.LegalEntityID,
+		MetricSnapshotDrillDefinitionRevision,
+	); err != nil {
+		return false, err
+	}
+
+	for _, member := range value.MetricMembers {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO oversight_snapshot_metric_memberships(
+				oversight_snapshot_id,metric_id,definition_revision,member_id,
+				target_type,target_id,target_title,state
+			) VALUES(
+				$1::uuid,$2,$3,$4::uuid,
+				$5,$6::uuid,$7,$8
+			)`,
+			snapshotID,
+			member.MetricID,
+			MetricSnapshotDrillDefinitionRevision,
+			member.MemberID,
+			member.TargetType,
+			member.TargetID,
+			member.TargetTitle,
+			member.State,
+		); err != nil {
+			return false, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
 }

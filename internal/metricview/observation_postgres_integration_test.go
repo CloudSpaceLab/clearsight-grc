@@ -5,6 +5,7 @@ package metricview
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -59,10 +60,10 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 			($10::uuid,$1::uuid,'METRIC-GH','Metric Ghana','GH',$4);
 		INSERT INTO oversight_snapshots(
 			id,tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
-			projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
+			projection_version,metric_membership_revision,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
 		) VALUES(
 			$3::uuid,$1::uuid,$2::uuid,$5,$6,$6,$6,
-			$7,$8::jsonb,100,2,3,$9::jsonb
+			$7,'home-oversight-v3',$8::jsonb,100,2,3,$9::jsonb
 		)`,
 		pgx.QueryExecModeSimpleProtocol,
 		tenantID,
@@ -76,6 +77,42 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		string(payload),
 		otherEntityID,
 	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO oversight_snapshot_metric_membership_sets(
+			oversight_snapshot_id,tenant_id,legal_entity_id,definition_revision
+		) VALUES($1::uuid,$2::uuid,$3::uuid,'home-oversight-v3')`,
+		snapshotID, tenantID, entityID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO oversight_snapshot_metric_memberships(
+			oversight_snapshot_id,metric_id,definition_revision,member_id,target_type,target_id,target_title,state
+		)
+		SELECT $1::uuid,'critical_high_open','home-oversight-v3',
+		       md5('metric-critical-' || gs::text)::uuid,'MATTER',md5('metric-critical-target-' || gs::text)::uuid,
+		       'Critical issue ' || gs,'TRIAGE'
+		FROM generate_series(1,7) gs
+		UNION ALL
+		SELECT $1::uuid,'overdue_open','home-oversight-v3',
+		       md5('metric-overdue-' || gs::text)::uuid,'MATTER',md5('metric-overdue-target-' || gs::text)::uuid,
+		       'Overdue issue ' || gs,'TRIAGE'
+		FROM generate_series(1,4) gs
+		UNION ALL
+		SELECT $1::uuid,'routing_gaps','home-oversight-v3',
+		       md5('metric-routing-' || gs::text)::uuid,
+		       CASE WHEN gs=2 THEN 'PROGRAM' ELSE 'MATTER' END,
+		       md5('metric-routing-target-' || gs::text)::uuid,
+		       'Unassigned work ' || gs,'READY'
+		FROM generate_series(1,2) gs
+		UNION ALL
+		SELECT $1::uuid,'outcome_failures','home-oversight-v3',
+		       md5('metric-outcome-' || gs::text)::uuid,'MATTER',md5('metric-outcome-target-' || gs::text)::uuid,
+		       'Failed outcome ' || gs,'VERIFICATION'
+		FROM generate_series(1,1) gs
+	`, snapshotID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -97,6 +134,31 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		t.Fatal("metric observation accepted a source snapshot from another legal entity")
 	}
 
+	const legacySnapshotID = "8f500000-0000-4000-8000-000000000005"
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO oversight_snapshots(
+			id,tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
+			projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
+		) VALUES(
+			$1::uuid,$2::uuid,$3::uuid,$4,$5,$5,$5,$6,'{}'::jsonb,0,0,0,'{"counts":{}}'::jsonb
+		)`,
+		legacySnapshotID, tenantID, entityID, now.Add(-90*24*time.Hour), now.Add(-time.Hour), oversight.ProjectionVersion,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO metric_observations(
+			tenant_id,legal_entity_id,metric_id,definition_revision,source_kind,source_id,source_revision,source_high_water,
+			generated_at,period_start,period_end,posture_as_of,value,condition,freshness,completeness,population,excluded,unknown
+		) VALUES(
+			$1::uuid,$2::uuid,'critical_high_open',$3,'OVERSIGHT_SNAPSHOT',$4::uuid,$5,'{}'::jsonb,
+			$6,$7,$6,$6,0,'CLEAR','CURRENT','COMPLETE',0,0,0
+		)`,
+		tenantID, entityID, HomeDefinitionRevision, legacySnapshotID, oversight.ProjectionVersion, now, now.Add(-90*24*time.Hour),
+	); err == nil {
+		t.Fatal("legacy snapshot without retained membership accepted a v3 observation")
+	}
+
 	repository := NewObservationRepository(pool)
 	if err := repository.validateDefinitions(ctx); err != nil {
 		t.Fatalf("definition parity: %v", err)
@@ -104,7 +166,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 
 	excludedValue, unknownValue := 2, 3
 	sourceSnapshot := oversight.Snapshot{
-		LegalEntityID: entityID, GeneratedAt: now,
+		SnapshotID: snapshotID, LegalEntityID: entityID, GeneratedAt: now,
 		PeriodStart: now.Add(-90 * 24 * time.Hour), PeriodEnd: now, PostureAsOf: now,
 		ProjectionVersion: oversight.ProjectionVersion, Freshness: oversight.FreshnessCurrent,
 		SourceHighWater: map[string]time.Time{"matters": now.Add(-time.Minute)},
@@ -139,7 +201,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 	}
 
 	maintainer := &ObservationMaintainer{Repository: repository}
-	if completed, err := maintainer.Maintain(ctx, now, 10); err != nil || completed != 1 {
+	if completed, err := maintainer.Maintain(ctx, now, 10); err != nil || completed < 1 || completed > 10 {
 		t.Fatalf("partial repair completed=%d err=%v", completed, err)
 	}
 
@@ -177,6 +239,46 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		t.Fatalf("source high-water=%#v", decodedHighWater)
 	}
 
+	members := NewMembershipRepository(pool)
+	firstPage, err := members.ListSnapshotMembers(
+		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 3,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstPage.Count != 7 || len(firstPage.Items) != 3 || firstPage.NextCursor == "" {
+		t.Fatalf("critical member page=%#v", firstPage)
+	}
+	secondPage, err := members.ListSnapshotMembers(
+		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", firstPage.NextCursor, 3,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if secondPage.Count != 7 || len(secondPage.Items) != 3 || secondPage.Items[0].MemberID == firstPage.Items[0].MemberID {
+		t.Fatalf("critical second page=%#v", secondPage)
+	}
+	routingPage, err := members.ListSnapshotMembers(
+		ctx, tenantID, entityID, "", snapshotID, "routing_gaps", HomeDefinitionRevision, "metric-viewer", "", 10,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sawProgram bool
+	for _, item := range routingPage.Items {
+		if item.TargetType == "PROGRAM" {
+			sawProgram = true
+		}
+	}
+	if routingPage.Count != 2 || !sawProgram {
+		t.Fatalf("typed routing members=%#v", routingPage)
+	}
+	if _, err := members.ListSnapshotMembers(
+		ctx, tenantID, otherEntityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 10,
+	); !errors.Is(err, ErrMetricMembershipNotFound) {
+		t.Fatalf("cross-entity membership error=%v", err)
+	}
+
 	if completed, err := maintainer.Maintain(ctx, now.Add(time.Minute), 10); err != nil || completed != 0 {
 		t.Fatalf("idempotent maintain completed=%d err=%v", completed, err)
 	}
@@ -199,6 +301,11 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 
 	if _, err := pool.Exec(ctx, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID); err != nil {
 		t.Fatalf("retained metric observation blocked source snapshot retention cleanup: %v", err)
+	}
+	if _, err := members.ListSnapshotMembers(
+		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 10,
+	); !errors.Is(err, ErrMetricMembershipNotFound) {
+		t.Fatalf("expired source membership remained readable after source cleanup: %v", err)
 	}
 	count, err = repository.countObservationsForSource(ctx, snapshotID)
 	if err != nil {

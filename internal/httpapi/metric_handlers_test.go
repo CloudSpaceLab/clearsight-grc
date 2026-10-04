@@ -130,3 +130,94 @@ func TestHomeMetricsShareRequestedPeriodAndMarkHeadlineMetricsCurrentPosture(t *
 		}
 	}
 }
+
+func TestHomeMetricsRetainOnDemandPopulationForExactDrill(t *testing.T) {
+	now := time.Date(2026, 10, 4, 14, 30, 0, 0, time.UTC)
+	repo := oversight.NewMemoryRepository(nil).WithPeriodBuilder(func(_ context.Context, scope oversight.Scope, start, end time.Time) (oversight.Snapshot, error) {
+		unknown := 0
+		return oversight.Snapshot{
+			TenantID: scope.TenantID, LegalEntityID: scope.LegalEntityID, GeneratedAt: end,
+			PeriodStart: start, PeriodEnd: end, PostureAsOf: end, ProjectionVersion: oversight.ProjectionVersion,
+			Coverage: oversight.Coverage{Population: 3, Unknown: &unknown},
+			Counts:   oversight.Counts{CriticalHigh: 1},
+			MetricMembers: []oversight.MetricMember{{
+				MetricID: "critical_high_open", MemberID: "8f620000-0000-4000-8000-000000000001",
+				TargetType: "MATTER", TargetID: "8f620000-0000-4000-8000-000000000002",
+				TargetTitle: "Review critical issue", State: "ASSESSMENT",
+			}},
+		}, nil
+	})
+	service := oversight.NewService(repo)
+	service.Now = func() time.Time { return now }
+	members := &metricMembershipReaderStub{retainSourceID: "8f620000-0000-4000-8000-000000000010"}
+	api := &API{deps: Dependencies{Oversight: service, MetricMembership: members}}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/metrics/home?start_date=2026-09-01&end_date=2026-10-04", nil)
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
+		TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "reviewer", ExpiresAt: now.Add(time.Hour),
+	}))
+	response := httptest.NewRecorder()
+
+	api.homeMetrics(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var bundle metricview.Bundle
+	if err := json.Unmarshal(response.Body.Bytes(), &bundle); err != nil {
+		t.Fatal(err)
+	}
+	if bundle.SourceID != members.retainSourceID || bundle.DefinitionRevision != metricview.HomeDefinitionRevision {
+		t.Fatalf("exact runtime bundle=%#v", bundle)
+	}
+	for _, metric := range bundle.Items {
+		if metric.Drill.Consistency != metricview.DrillSourceSnapshot ||
+			metric.DefinitionRevision != metricview.HomeDefinitionRevision {
+			t.Fatalf("metric did not bind exact runtime source: %#v", metric)
+		}
+	}
+	if members.retained.TenantID != "bank" || members.retained.LegalEntityID != "bank-ng" ||
+		members.retained.SnapshotID != "" || len(members.retained.MetricMembers) != 1 ||
+		members.retained.MetricMembers[0].MetricID != "critical_high_open" {
+		t.Fatalf("retained snapshot=%#v", members.retained)
+	}
+}
+
+func TestHomeMetricsKeepLegacySnapshotCurrentStateUntilExactProjectionArrives(t *testing.T) {
+	now := time.Date(2026, 10, 4, 15, 0, 0, 0, time.UTC)
+	unknown := 0
+	repo := oversight.NewMemoryRepository([]oversight.Snapshot{{
+		TenantID: "bank", LegalEntityID: "bank-ng", GeneratedAt: now,
+		PeriodStart: now.Add(-90 * 24 * time.Hour), PeriodEnd: now, PostureAsOf: now,
+		ProjectionVersion: oversight.ProjectionVersion,
+		Coverage:          oversight.Coverage{Population: 2, Unknown: &unknown},
+		Counts:            oversight.Counts{CriticalHigh: 1},
+	}})
+	service := oversight.NewService(repo)
+	service.Now = func() time.Time { return now }
+	members := &metricMembershipReaderStub{retainSourceID: "8f620000-0000-4000-8000-000000000011"}
+	api := &API{deps: Dependencies{Oversight: service, MetricMembership: members}}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/metrics/home", nil)
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
+		TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "reviewer", ExpiresAt: now.Add(time.Hour),
+	}))
+	response := httptest.NewRecorder()
+
+	api.homeMetrics(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var bundle metricview.Bundle
+	if err := json.Unmarshal(response.Body.Bytes(), &bundle); err != nil {
+		t.Fatal(err)
+	}
+	if bundle.SourceID != "" || bundle.DefinitionRevision != metricview.HomeCurrentStateDefinitionRevision {
+		t.Fatalf("legacy bundle=%#v", bundle)
+	}
+	for _, metric := range bundle.Items {
+		if metric.Drill.Consistency != metricview.DrillCurrentState {
+			t.Fatalf("legacy metric unexpectedly claimed exact drill: %#v", metric)
+		}
+	}
+	if members.retained.TenantID != "" {
+		t.Fatalf("legacy snapshot was retained without exact membership: %#v", members.retained)
+	}
+}
