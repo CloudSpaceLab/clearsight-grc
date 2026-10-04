@@ -175,13 +175,13 @@ it("proposes a new position with occupant and reporting line from the Organizati
   fireEvent.change(within(dialog).getByRole("textbox", { name: /^Function/ }), { target: { value: "Risk" } });
   const organizationArea = within(dialog).getByRole("button", { name: /Organization area/ });
   fireEvent.keyDown(organizationArea, { key: "ArrowDown" });
-  fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: /^BANK \/ RISK/ }));
+  fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "BANK / RISKOrganization Unit" }));
   const reportsTo = within(dialog).getByRole("button", { name: /Reports to/ });
   fireEvent.keyDown(reportsTo, { key: "ArrowDown" });
-  fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: /^Chief Risk Officer/ }));
+  fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "Chief Risk OfficerCRO" }));
   const occupant = within(dialog).getByRole("button", { name: /Current occupant/ });
   fireEvent.keyDown(occupant, { key: "ArrowDown" });
-  fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: /^Nneka Obi/ }));
+  fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "Nneka ObiActive" }));
   fireEvent.click(within(dialog).getByRole("button", { name: "Propose change" }));
 
   await waitFor(() => expect(api.proposeOrganizationPosition).toHaveBeenCalledWith({
