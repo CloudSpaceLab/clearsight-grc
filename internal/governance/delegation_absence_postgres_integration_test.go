@@ -117,7 +117,7 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 	if err != nil || planned.Status != DelegationActive {
 		t.Fatalf("planned delegation after start=%#v err=%v", planned, err)
 	}
-	if count, err := repo.ExpireDueDelegations(ctx, now.Add(3*time.Hour), 10); err != nil || count != 1 {
+	if count, err := repo.ExpireDueDelegations(ctx, now.Add(3 * time.Hour), 10); err != nil || count != 1 {
 		t.Fatalf("planned expiry count=%d err=%v", count, err)
 	}
 	planned, err = repo.GetDelegationForEntity(ctx, tenantID, entityID, planned.ID)
@@ -152,7 +152,7 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 
 	future, err := service.CreateDelegation(ctx, CreateDelegationInput{
 		TenantID: tenantID, LegalEntityID: entityID, FromPrincipalID: giverID, ToPrincipalID: recipientID,
-		Responsibility: "AUTHORIZER", Scope: scope, StartsAt: now.Add(2*time.Hour), EndsAt: now.Add(4 * time.Hour),
+		Responsibility: "AUTHORIZER", Scope: scope, StartsAt: now.Add(2 * time.Hour), EndsAt: now.Add(4 * time.Hour),
 		Reason: "future leave", MakerID: makerID,
 	})
 	if err != nil {
@@ -172,7 +172,7 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 		t.Fatal(err)
 	}
 	mustGovernanceExec(t, ctx, pool, `UPDATE principals SET status='INACTIVE' WHERE id=$1::uuid`, giverID)
-	if count, err := repo.ActivateDueDelegations(ctx, now.Add(2*time.Hour), 10); !errors.Is(err, ErrDelegationEligibility) || count != 0 {
+	if count, err := repo.ActivateDueDelegations(ctx, now.Add(2 * time.Hour), 10); !errors.Is(err, ErrDelegationEligibility) || count != 0 {
 		t.Fatalf("ineligible future activation count=%d err=%v", count, err)
 	}
 	future, err = repo.GetDelegationForEntity(ctx, tenantID, entityID, future.ID)
