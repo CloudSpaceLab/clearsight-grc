@@ -28,6 +28,11 @@ func (a *API) homeMetricMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	metricID := strings.TrimSpace(r.PathValue("metric_id"))
+	organizationScopeID := strings.TrimSpace(r.URL.Query().Get("organization_scope_id"))
+	if _, err := a.resolveOrganizationScopeSelection(r.Context(), actor, organizationScopeID, true); err != nil {
+		writeOrganizationScopeRequestError(w, err, "This organization scope is not available for metric detail.")
+		return
+	}
 	sourceID := strings.TrimSpace(r.URL.Query().Get("source_id"))
 	revision := strings.TrimSpace(r.URL.Query().Get("definition_revision"))
 	cursor := strings.TrimSpace(r.URL.Query().Get("cursor"))
@@ -49,6 +54,7 @@ func (a *API) homeMetricMembers(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		actor.TenantID,
 		actor.LegalEntityID,
+		organizationScopeID,
 		sourceID,
 		metricID,
 		revision,
