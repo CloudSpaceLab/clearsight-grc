@@ -165,7 +165,9 @@ func TestOrganizationPositionGovernanceRequiresIndependentApprovalAndProtectsHie
 	mustAdminExec(t, ctx, pool, `
 		INSERT INTO responsibility_assignments(
 			tenant_id,legal_entity_id,position_id,responsibility,object_type,valid_from,policy_version
-		) VALUES($1::uuid,$2::uuid,$3::uuid,'ACCOUNTABLE_OWNER','MATTER',$4,'position-route:v1');
+		) VALUES($1::uuid,$2::uuid,$3::uuid,'ACCOUNTABLE_OWNER','MATTER',$4,'position-route:v1')`,
+		tenantID, entityID, childID, now.Add(-time.Hour))
+	mustAdminExec(t, ctx, pool, `
 		INSERT INTO authority_grants(
 			tenant_id,legal_entity_id,position_id,decision_type,valid_from,policy_version
 		) VALUES($1::uuid,$2::uuid,$3::uuid,'matter.action.add',$4,'position-route:v1')`,
@@ -194,7 +196,9 @@ func TestOrganizationPositionGovernanceRequiresIndependentApprovalAndProtectsHie
 	mustAdminExec(t, ctx, pool, `
 		UPDATE responsibility_assignments
 		SET valid_until=$4
-		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND position_id=$3::uuid AND valid_until IS NULL;
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND position_id=$3::uuid AND valid_until IS NULL`,
+		tenantID, entityID, childID, now)
+	mustAdminExec(t, ctx, pool, `
 		UPDATE authority_grants
 		SET valid_until=$4
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND position_id=$3::uuid AND valid_until IS NULL`,
