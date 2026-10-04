@@ -1,18 +1,18 @@
 BEGIN;
 
-CREATE FUNCTION valid_legal_entity_data_regions(values text[]) RETURNS boolean
+CREATE FUNCTION valid_legal_entity_data_regions(regions text[]) RETURNS boolean
 LANGUAGE sql
 IMMUTABLE
 AS $data_regions$
-    SELECT cardinality(values) <= 64
+    SELECT cardinality(regions) <= 64
        AND NOT EXISTS (
            SELECT 1
-           FROM unnest(values) AS region(value)
+           FROM unnest(regions) AS region(value)
            WHERE value !~ '^[A-Z0-9][A-Z0-9_-]{1,31}$'
        )
-       AND cardinality(values) = (
+       AND cardinality(regions) = (
            SELECT count(DISTINCT value)
-           FROM unnest(values) AS region(value)
+           FROM unnest(regions) AS region(value)
        );
 $data_regions$;
 
