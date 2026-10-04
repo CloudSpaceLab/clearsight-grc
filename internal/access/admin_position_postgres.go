@@ -26,6 +26,7 @@ func (a *PostgresAdministrator) ProposeOrganizationPosition(ctx context.Context,
 	input.ParentPositionID = strings.TrimSpace(input.ParentPositionID)
 	input.OccupantPrincipalID = strings.TrimSpace(input.OccupantPrincipalID)
 	input.ActorID = strings.TrimSpace(input.ActorID)
+	input.RestoredFromRevisionID = strings.TrimSpace(input.RestoredFromRevisionID)
 	if input.TenantID == "" || input.LegalEntityID == "" || input.ActorID == "" {
 		return OrganizationPositionRevisionSummary{}, ErrAdminInvalid
 	}
@@ -102,18 +103,18 @@ func (a *PostgresAdministrator) ProposeOrganizationPosition(ctx context.Context,
 			tenant_id,legal_entity_id,position_id,operation,base_version,
 			base_code,base_title,base_function_name,base_organization_scope_id,base_parent_position_id,base_occupant_principal_id,
 			proposed_code,proposed_title,proposed_function_name,proposed_organization_scope_id,proposed_parent_position_id,proposed_occupant_principal_id,
-			maker_id
+			maker_id,restored_from_revision_id
 		) VALUES(
 			$1::uuid,$2::uuid,$3::uuid,$4,$5,
 			$6,$7,$8,NULLIF($9,'')::uuid,NULLIF($10,'')::uuid,NULLIF($11,'')::uuid,
 			$12,$13,$14,NULLIF($15,'')::uuid,NULLIF($16,'')::uuid,NULLIF($17,'')::uuid,
-			$18::uuid
+			$18::uuid,NULLIF($19,'')::uuid
 		)
 		RETURNING id::text`,
 		tenantID, entityID, positionID, input.Operation, baseVersion,
 		base.Code, base.Title, base.FunctionName, base.OrganizationScopeID, base.ParentPositionID, base.OccupantPrincipalID,
 		proposed.Code, proposed.Title, proposed.FunctionName, proposed.OrganizationScopeID, proposed.ParentPositionID, proposed.OccupantPrincipalID,
-		input.ActorID,
+		input.ActorID, input.RestoredFromRevisionID,
 	).Scan(&revisionID)
 	if err != nil {
 		return OrganizationPositionRevisionSummary{}, mapAdminPgError(err)
@@ -125,6 +126,41 @@ func (a *PostgresAdministrator) ProposeOrganizationPosition(ctx context.Context,
 		return OrganizationPositionRevisionSummary{}, err
 	}
 	return a.organizationPositionRevisionByID(ctx, tenantID, entityID, revisionID)
+}
+
+func (a *PostgresAdministrator) RestoreOrganizationPosition(ctx context.Context, input RestoreOrganizationPositionInput) (OrganizationPositionRevisionSummary, error) {
+	input.TenantID = strings.TrimSpace(input.TenantID)
+	input.LegalEntityID = strings.TrimSpace(input.LegalEntityID)
+	input.RevisionID = strings.TrimSpace(input.RevisionID)
+	input.ActorID = strings.TrimSpace(input.ActorID)
+	if input.TenantID == "" || input.LegalEntityID == "" || input.RevisionID == "" || input.ActorID == "" {
+		return OrganizationPositionRevisionSummary{}, ErrAdminInvalid
+	}
+	tenantID, entityID, err := a.scopeIDs(ctx, input.TenantID, input.LegalEntityID)
+	if err != nil {
+		return OrganizationPositionRevisionSummary{}, err
+	}
+	target, err := a.organizationPositionRevisionByID(ctx, tenantID, entityID, input.RevisionID)
+	if err != nil {
+		return OrganizationPositionRevisionSummary{}, err
+	}
+	if target.Status != "APPLIED" || target.Operation == OrganizationPositionRetire {
+		return OrganizationPositionRevisionSummary{}, ErrAdminConflict
+	}
+	current, version, err := organizationPositionState(ctx, a.pool, tenantID, entityID, target.PositionID, false)
+	if err != nil {
+		return OrganizationPositionRevisionSummary{}, err
+	}
+	if current == target.Proposed {
+		return OrganizationPositionRevisionSummary{}, ErrAdminConflict
+	}
+	return a.ProposeOrganizationPosition(ctx, ProposeOrganizationPositionInput{
+		TenantID: input.TenantID, LegalEntityID: input.LegalEntityID, PositionID: target.PositionID,
+		Operation: OrganizationPositionUpdate, Title: target.Proposed.Title, FunctionName: target.Proposed.FunctionName,
+		OrganizationScopeID: target.Proposed.OrganizationScopeID, ParentPositionID: target.Proposed.ParentPositionID,
+		OccupantPrincipalID: target.Proposed.OccupantPrincipalID, ExpectedVersion: version, ActorID: input.ActorID,
+		RestoredFromRevisionID: target.ID,
+	})
 }
 
 func (a *PostgresAdministrator) ApproveOrganizationPosition(ctx context.Context, input DecideOrganizationPositionInput) error {
@@ -346,7 +382,7 @@ func organizationPositionRevision(ctx context.Context, q organizationPositionQue
 }
 
 const organizationPositionRevisionSelect = `
-	SELECT r.id::text,r.position_id::text,r.operation,r.base_version,
+	SELECT r.id::text,r.position_id::text,r.operation,r.base_version,COALESCE(r.restored_from_revision_id::text,''),
 	       r.base_code,r.base_title,r.base_function_name,COALESCE(r.base_organization_scope_id::text,''),COALESCE(r.base_parent_position_id::text,''),COALESCE(r.base_occupant_principal_id::text,''),
 	       r.proposed_code,r.proposed_title,r.proposed_function_name,COALESCE(r.proposed_organization_scope_id::text,''),COALESCE(r.proposed_parent_position_id::text,''),COALESCE(r.proposed_occupant_principal_id::text,''),
 	       r.maker_id::text,COALESCE(r.checker_id::text,''),r.status,r.rationale,r.created_at,r.decided_at,r.applied_at
@@ -359,7 +395,7 @@ type organizationPositionScanner interface {
 func scanOrganizationPositionRevision(row organizationPositionScanner) (OrganizationPositionRevisionSummary, error) {
 	var value OrganizationPositionRevisionSummary
 	err := row.Scan(
-		&value.ID, &value.PositionID, &value.Operation, &value.BaseVersion,
+		&value.ID, &value.PositionID, &value.Operation, &value.BaseVersion, &value.RestoredFromRevisionID,
 		&value.Base.Code, &value.Base.Title, &value.Base.FunctionName, &value.Base.OrganizationScopeID, &value.Base.ParentPositionID, &value.Base.OccupantPrincipalID,
 		&value.Proposed.Code, &value.Proposed.Title, &value.Proposed.FunctionName, &value.Proposed.OrganizationScopeID, &value.Proposed.ParentPositionID, &value.Proposed.OccupantPrincipalID,
 		&value.MakerID, &value.CheckerID, &value.Status, &value.Rationale, &value.CreatedAt, &value.DecidedAt, &value.AppliedAt,
@@ -466,6 +502,12 @@ func validateOrganizationPositionState(ctx context.Context, q organizationPositi
 func organizationPositionImpact(ctx context.Context, q organizationPositionQuerier, tenantID, entityID, positionID string) (OrganizationPositionImpact, error) {
 	var value OrganizationPositionImpact
 	err := q.QueryRow(ctx, `
+		WITH current_position AS (
+			SELECT occupant_principal_id
+			FROM org_positions
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid
+			  AND valid_from<=clock_timestamp() AND (valid_until IS NULL OR clock_timestamp()<valid_until)
+		)
 		SELECT
 		  (SELECT count(*) FROM org_positions child
 		   WHERE child.tenant_id=$1::uuid AND child.legal_entity_id=$2::uuid
@@ -481,9 +523,26 @@ func organizationPositionImpact(ctx context.Context, q organizationPositionQueri
 		     AND grant_row.valid_from<=clock_timestamp() AND (grant_row.valid_until IS NULL OR clock_timestamp()<grant_row.valid_until)),
 		  (SELECT count(*) FROM position_role_bindings binding
 		   WHERE binding.tenant_id=$1::uuid AND binding.position_id=$3::uuid
-		     AND binding.valid_from<=clock_timestamp() AND (binding.valid_until IS NULL OR clock_timestamp()<binding.valid_until))`,
+		     AND binding.valid_from<=clock_timestamp() AND (binding.valid_until IS NULL OR clock_timestamp()<binding.valid_until)),
+		  (SELECT count(*) FROM programs program,current_position position
+		   WHERE program.tenant_id=$1::uuid AND program.legal_entity_id=$2::uuid
+		     AND program.owner_principal_id=position.occupant_principal_id
+		     AND program.status IN ('ACTIVE','PAUSED')),
+		  (SELECT count(*) FROM matters matter,current_position position
+		   WHERE matter.tenant_id=$1::uuid AND matter.legal_entity_id=$2::uuid
+		     AND matter.owner_principal_id=position.occupant_principal_id
+		     AND matter.status NOT IN ('CLOSED','CANCELLED')),
+		  (SELECT count(*) FROM matter_actions action
+		   JOIN matters matter ON matter.tenant_id=action.tenant_id AND matter.id=action.matter_id
+		   CROSS JOIN current_position position
+		   WHERE action.tenant_id=$1::uuid AND matter.legal_entity_id=$2::uuid
+		     AND action.owner_principal_id=position.occupant_principal_id
+		     AND action.status NOT IN ('IMPLEMENTED','CANCELLED'))`,
 		tenantID, entityID, positionID).
-		Scan(&value.ChildPositions, &value.ResponsibilityAssignments, &value.AuthorityGrants, &value.ActiveRoleBindings)
+		Scan(
+			&value.ChildPositions, &value.ResponsibilityAssignments, &value.AuthorityGrants, &value.ActiveRoleBindings,
+			&value.ActiveProgramsOwned, &value.OpenMattersOwned, &value.OpenActionsOwned,
+		)
 	return value, err
 }
 
