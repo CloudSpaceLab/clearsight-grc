@@ -40,7 +40,7 @@ func TestPresentationPreferencesUpdateIsOptimistic(t *testing.T) {
 	service := presentationprefs.NewService(presentationprefs.NewMemoryRepository())
 	api := &API{deps: Dependencies{PresentationPreferences: service}}
 	update := func(expected int64) *httptest.ResponseRecorder {
-		request := httptest.NewRequest(http.MethodPut, "/api/v1/preferences/presentation", strings.NewReader(`{"home_focus":"MY_WORK","portfolio_lens":"PROGRAMS","expected_version":`+strconv.FormatInt(expected, 10)+`}`))
+		request := httptest.NewRequest(http.MethodPut, "/api/v1/preferences/presentation", strings.NewReader(`{"home_focus":"MY_WORK","portfolio_lens":"PROGRAMS","expected_version":` + strconv.FormatInt(expected, 10) + `}`))
 		request.Header.Set("Content-Type", "application/json")
 		request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
 			TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "cro-1", RoleCodes: []string{"CRO"}, ExpiresAt: time.Now().Add(time.Hour),
