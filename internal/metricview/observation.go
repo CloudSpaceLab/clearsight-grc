@@ -54,7 +54,7 @@ func ObservationsFromBundle(
 	observations := make([]Observation, 0, len(bundle.Items))
 	seen := make(map[string]struct{}, len(bundle.Items))
 	for _, item := range bundle.Items {
-		definition, ok := HomeDefinition(item.ID)
+		definition, ok := HomeDefinitionForRevision(item.ID, item.DefinitionRevision)
 		if !ok || definition.Revision != item.DefinitionRevision || definition.Label != item.Label ||
 			definition.Unit != item.Unit || definition.Basis != item.Basis || definition.Drill != item.Drill {
 			return nil, ErrInvalidObservation
