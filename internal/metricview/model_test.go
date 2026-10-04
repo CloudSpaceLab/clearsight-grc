@@ -27,7 +27,7 @@ func TestFromOversightPreservesPopulationAndSafeDataQuality(t *testing.T) {
 		},
 	})
 
-	if bundle.DefinitionRevision != HomeDefinitionRevision || bundle.SourceRevision != oversight.ProjectionVersion {
+	if bundle.DefinitionRevision != LegacyHomeDefinitionRevision || bundle.SourceRevision != oversight.ProjectionVersion {
 		t.Fatalf("unexpected revisions: %#v", bundle)
 	}
 	if bundle.ScopeID != "entity-ng" || bundle.ScopeKind != "LEGAL_ENTITY" {
@@ -54,6 +54,32 @@ func TestFromOversightPreservesPopulationAndSafeDataQuality(t *testing.T) {
 		}
 		if item.Drill.Consistency != DrillCurrentState || item.Drill.Workspace != "oversight" {
 			t.Fatalf("unexpected drill contract: %#v", item.Drill)
+		}
+	}
+}
+
+func TestFromOversightUsesExactDrillOnlyForMembershipBackedSnapshot(t *testing.T) {
+	now := time.Date(2026, 10, 4, 9, 0, 0, 0, time.UTC)
+	zero := 0
+	bundle := FromOversight(oversight.Snapshot{
+		SnapshotID:              "snapshot-1",
+		MetricMembershipVersion: oversight.MetricMembershipVersion,
+		LegalEntityID:           "entity-ng",
+		GeneratedAt:             now,
+		PeriodStart:             now.Add(-90 * 24 * time.Hour),
+		PeriodEnd:               now,
+		ProjectionVersion:       oversight.ProjectionVersion,
+		Freshness:               oversight.FreshnessCurrent,
+		Coverage:                oversight.Coverage{Population: 4, Unknown: &zero},
+		Counts:                  oversight.Counts{CriticalHigh: 2},
+	})
+	if bundle.SourceID != "snapshot-1" || bundle.DefinitionRevision != HomeDefinitionRevision {
+		t.Fatalf("exact bundle=%#v", bundle)
+	}
+	for _, item := range bundle.Items {
+		if item.SourceID != "snapshot-1" || item.DefinitionRevision != HomeDefinitionRevision ||
+			item.Drill.Consistency != DrillSnapshotExact {
+			t.Fatalf("exact metric=%#v", item)
 		}
 	}
 }
