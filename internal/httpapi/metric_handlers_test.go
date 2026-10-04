@@ -188,8 +188,8 @@ func TestHomeMetricsKeepLegacySnapshotCurrentStateUntilExactProjectionArrives(t 
 		TenantID: "bank", LegalEntityID: "bank-ng", GeneratedAt: now,
 		PeriodStart: now.Add(-90 * 24 * time.Hour), PeriodEnd: now, PostureAsOf: now,
 		ProjectionVersion: oversight.ProjectionVersion,
-		Coverage: oversight.Coverage{Population: 2, Unknown: &unknown},
-		Counts:   oversight.Counts{CriticalHigh: 1},
+		Coverage:          oversight.Coverage{Population: 2, Unknown: &unknown},
+		Counts:            oversight.Counts{CriticalHigh: 1},
 	}})
 	service := oversight.NewService(repo)
 	service.Now = func() time.Time { return now }
