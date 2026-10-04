@@ -70,6 +70,7 @@ func (r *MembershipRepository) ListSnapshotMembers(
 				WHERE source.id=$3::uuid
 				  AND (tenant.id::text=$1 OR tenant.slug=$1)
 				  AND (entity.id::text=$2 OR entity.code=$2)
+				  AND source.metric_membership_revision=$5
 			)`,
 			tenantID, legalEntityID, sourceID, metricID, definitionRevision,
 		).Scan(&sourceExists)
