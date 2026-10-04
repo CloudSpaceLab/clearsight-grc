@@ -7,6 +7,10 @@ ALTER TABLE metric_definitions
     ADD CONSTRAINT metric_definitions_drill_consistency_check
     CHECK (drill_consistency IN ('CURRENT_STATE','SOURCE_SNAPSHOT'));
 
+ALTER TABLE oversight_snapshots
+    ADD COLUMN metric_membership_revision text
+    CHECK (metric_membership_revision IS NULL OR metric_membership_revision='home-oversight-v3');
+
 INSERT INTO metric_definitions(
     metric_id,revision,label,unit,basis,condition_rule,aggregation_rule,
     drill_workspace,drill_filter,drill_consistency
@@ -48,5 +52,42 @@ $oversight_metric_membership$;
 CREATE TRIGGER oversight_snapshot_metric_memberships_immutable
     BEFORE UPDATE OR DELETE ON oversight_snapshot_metric_memberships
     FOR EACH ROW EXECUTE FUNCTION prevent_oversight_metric_membership_mutation();
+
+
+CREATE OR REPLACE FUNCTION validate_metric_observation_source() RETURNS trigger
+LANGUAGE plpgsql
+AS $metric_observation_source$
+DECLARE
+    source_membership_revision text;
+    retained_member_count bigint;
+BEGIN
+    SELECT source.metric_membership_revision
+      INTO source_membership_revision
+      FROM oversight_snapshots source
+     WHERE source.id=NEW.source_id
+       AND source.tenant_id=NEW.tenant_id
+       AND source.legal_entity_id=NEW.legal_entity_id;
+
+    IF NOT FOUND OR NEW.source_kind <> 'OVERSIGHT_SNAPSHOT' THEN
+        RAISE EXCEPTION 'Metric observation source does not match tenant/legal entity';
+    END IF;
+
+    IF NEW.definition_revision='home-oversight-v3' THEN
+        IF source_membership_revision IS DISTINCT FROM 'home-oversight-v3' THEN
+            RAISE EXCEPTION 'Exact metric observation source has no retained membership revision';
+        END IF;
+        SELECT count(*)
+          INTO retained_member_count
+          FROM oversight_snapshot_metric_memberships member
+         WHERE member.oversight_snapshot_id=NEW.source_id
+           AND member.metric_id=NEW.metric_id
+           AND member.definition_revision=NEW.definition_revision;
+        IF retained_member_count <> NEW.value THEN
+            RAISE EXCEPTION 'Exact metric observation membership count does not match value';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$metric_observation_source$;
 
 COMMIT;
