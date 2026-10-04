@@ -198,13 +198,13 @@ func runtimeSnapshotFingerprint(snapshot oversight.Snapshot) (string, error) {
 	payload := struct {
 		TenantID             string                   `json:"tenant_id"`
 		LegalEntityID        string                   `json:"legal_entity_id"`
-		OrganizationScopeID  string                   `json:"organization_scope_id,omitempty"`
+		OrganizationScopeID string                   `json:"organization_scope_id,omitempty"`
 		GeneratedAt          string                   `json:"generated_at"`
 		PeriodStart          string                   `json:"period_start"`
 		PeriodEnd            string                   `json:"period_end"`
 		ProjectionVersion    string                   `json:"projection_version"`
 		Counts               oversight.Counts         `json:"counts"`
-		SourceHighWater      map[string]string         `json:"source_high_water"`
+		SourceHighWater     map[string]string         `json:"source_high_water"`
 		Members              []oversight.MetricMember `json:"members"`
 	}{
 		TenantID:            strings.TrimSpace(snapshot.TenantID),
