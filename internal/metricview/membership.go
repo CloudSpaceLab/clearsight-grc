@@ -3,6 +3,8 @@ package metricview
 import (
 	"context"
 	"errors"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 )
 
 var (
@@ -38,6 +40,11 @@ type MembershipReader interface {
 		string,
 		string,
 		string,
+		string,
 		int,
 	) (MemberPage, error)
+}
+
+type MembershipWriter interface {
+	RetainRuntimeSnapshot(context.Context, oversight.Snapshot) (string, error)
 }
