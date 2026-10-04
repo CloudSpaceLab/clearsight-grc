@@ -72,11 +72,27 @@ func TestPostgresReassignmentRequiresCompleteActiveReportingChain(t *testing.T) 
 		{name: "revoked manager position", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.positions[1])
 		}},
-		{name: "inactive owner", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
+		{name: "inactive owner can be recovered by current manager", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE principals SET status='INACTIVE' WHERE id=$1::uuid`, f.principals[0])
 		}},
-		{name: "expired owner", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
+		{name: "expired owner can be recovered by current manager", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE principals SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.principals[0])
+		}},
+		{name: "governed vacant position keeps handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+			f.governedOwnerTransition(t, "")
+		}},
+		{name: "governed successor keeps departed owner handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+			var successor string
+			if err := f.pool.QueryRow(f.ctx, `
+				INSERT INTO principals(tenant_id,kind,display_name,valid_from)
+				VALUES($1::uuid,'PERSON','Successor',clock_timestamp()-interval '1 day')
+				RETURNING id::text`, f.tenant).Scan(&successor); err != nil {
+				t.Fatal(err)
+			}
+			f.governedOwnerTransition(t, successor)
+		}},
+		{name: "ungoverned vacancy does not invent handoff lineage", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
+			f.exec(t, `UPDATE org_positions SET occupant_principal_id=NULL WHERE id=$1::uuid`, f.positions[0])
 		}},
 		{name: "revoked owner position", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.positions[0])
@@ -153,7 +169,7 @@ func newReassignmentFixture(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 	t.Cleanup(func() {
 		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		for _, table := range []string{"org_positions", "principals", "legal_entities"} {
+		for _, table := range []string{"governance_decisions", "organization_position_revisions", "org_positions", "principals", "legal_entities"} {
 			if _, err := pool.Exec(cleanCtx, `DELETE FROM `+table+` WHERE tenant_id=$1::uuid`, f.tenant); err != nil {
 				t.Errorf("clean %s fixtures: %v", table, err)
 				return
@@ -183,6 +199,30 @@ func newReassignmentFixture(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 		}
 	}
 	return f
+}
+
+func (f *reassignmentFixture) governedOwnerTransition(t *testing.T, occupantPrincipalID string) {
+	t.Helper()
+	if len(f.positions) < 3 || len(f.principals) < 3 {
+		t.Fatal("governed owner transition requires owner, manager and checker positions")
+	}
+	admin := NewPostgresAdministrator(f.pool)
+	revision, err := admin.ProposeOrganizationPosition(f.ctx, ProposeOrganizationPositionInput{
+		TenantID: f.tenant, LegalEntityID: f.entity,
+		PositionID: f.positions[0], Operation: OrganizationPositionUpdate,
+		Title: "POSITION-0", ParentPositionID: f.positions[1],
+		OccupantPrincipalID: occupantPrincipalID, ExpectedVersion: 1,
+		ActorID: f.principals[1],
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := admin.ApproveOrganizationPosition(f.ctx, DecideOrganizationPositionInput{
+		TenantID: f.tenant, LegalEntityID: f.entity, RevisionID: revision.ID,
+		ActorID: f.principals[2], Rationale: "Approved owner transition",
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func (f *reassignmentFixture) exec(t *testing.T, sql string, args ...any) {
