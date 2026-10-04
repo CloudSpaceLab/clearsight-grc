@@ -216,6 +216,7 @@ export type OrganizationPosition = {
   occupant_name?: string;
   occupant_status?: string;
   role_codes: string[];
+  workspace_role_codes?: string[];
   valid_from: string;
   valid_until?: string;
   version: number;
