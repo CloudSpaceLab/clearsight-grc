@@ -113,9 +113,6 @@ CREATE TABLE metric_runtime_membership_sets (
     CONSTRAINT metric_runtime_membership_scope_fk
         FOREIGN KEY (tenant_id, legal_entity_id, organization_scope_id)
         REFERENCES organization_scopes(tenant_id, legal_entity_id, id),
-    CONSTRAINT metric_runtime_membership_definition_fk
-        FOREIGN KEY (definition_revision)
-        REFERENCES metric_definitions(revision),
     CHECK (source_revision=btrim(source_revision) AND source_revision<>''),
     CHECK (request_fingerprint=btrim(request_fingerprint) AND request_fingerprint<>''),
     CHECK (period_start<=period_end),
