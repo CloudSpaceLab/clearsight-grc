@@ -32,6 +32,28 @@ CREATE TABLE oversight_snapshot_metric_membership_sets (
         REFERENCES legal_entities(id, tenant_id)
 );
 
+CREATE FUNCTION validate_oversight_metric_membership_set_source() RETURNS trigger
+LANGUAGE plpgsql
+AS $oversight_metric_membership_set_source$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM oversight_snapshots source
+        WHERE source.id=NEW.oversight_snapshot_id
+          AND source.tenant_id=NEW.tenant_id
+          AND source.legal_entity_id=NEW.legal_entity_id
+          AND source.metric_membership_revision=NEW.definition_revision
+    ) THEN
+        RAISE EXCEPTION 'Metric membership set source does not match marked oversight snapshot';
+    END IF;
+    RETURN NEW;
+END;
+$oversight_metric_membership_set_source$;
+
+CREATE TRIGGER oversight_snapshot_metric_membership_sets_source
+    BEFORE INSERT ON oversight_snapshot_metric_membership_sets
+    FOR EACH ROW EXECUTE FUNCTION validate_oversight_metric_membership_set_source();
+
 CREATE TABLE oversight_snapshot_metric_memberships (
     oversight_snapshot_id uuid NOT NULL,
     metric_id text NOT NULL,
