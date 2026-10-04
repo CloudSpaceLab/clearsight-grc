@@ -48,7 +48,7 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 	}
 
 	repository := NewPostgresRepository(pool)
-	value, err := repository.build(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now, now.Add(-90*24*time.Hour))
+	value, err := repository.buildRetained(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, now, now.Add(-90*24*time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,12 +58,32 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 	if value.Counts.CriticalHigh != 1 || len(value.Interventions) != 1 || value.Interventions[0].Title != "Visible control gap" {
 		t.Fatalf("restricted or unknown record leaked: counts=%#v interventions=%#v", value.Counts, value.Interventions)
 	}
+	if value.MetricMembershipVersion != MetricMembershipVersion || len(value.MetricMembers) != 1 ||
+		value.MetricMembers[0].MetricID != MetricCriticalHighOpen ||
+		value.MetricMembers[0].MemberID != "8a646464-6464-7464-8464-646464646411" {
+		t.Fatalf("retained metric membership=%#v version=%q", value.MetricMembers, value.MetricMembershipVersion)
+	}
 	if inserted, err := repository.store(ctx, value, now.Truncate(refreshInterval)); err != nil || !inserted {
 		t.Fatalf("store projection inserted=%t err=%v", inserted, err)
 	}
 	var storedBefore int
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM oversight_snapshots WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid`, tenantID, entityID).Scan(&storedBefore); err != nil {
 		t.Fatal(err)
+	}
+	var storedMembers int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*)
+		FROM oversight_metric_members member
+		JOIN oversight_snapshots snapshot ON snapshot.id=member.snapshot_id
+		WHERE member.tenant_id=$1::uuid
+		  AND member.legal_entity_id=$2::uuid
+		  AND snapshot.metric_membership_version=$3`,
+		tenantID, entityID, MetricMembershipVersion,
+	).Scan(&storedMembers); err != nil {
+		t.Fatal(err)
+	}
+	if storedMembers != value.Counts.CriticalHigh {
+		t.Fatalf("stored exact membership=%d critical count=%d", storedMembers, value.Counts.CriticalHigh)
 	}
 	customStart := now.Add(-180 * 24 * time.Hour)
 	custom, err := repository.BuildPeriod(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID}, customStart, now)
