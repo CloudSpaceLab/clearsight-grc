@@ -32,6 +32,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/presentationprefs"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/rcsa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
@@ -106,6 +107,7 @@ type Dependencies struct {
 	MetricMembership       metricview.MembershipReader
 	MetricTrends           metricview.TrendReader
 	MetricMatrices         metricview.MatrixReader
+	PresentationPreferences *presentationprefs.Service
 	Workflow               *workflow.Service
 	Onboarding             *onboarding.Service
 	Autonomy               *autonomy.Service
