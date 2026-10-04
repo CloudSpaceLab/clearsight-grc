@@ -88,37 +88,37 @@ type Dependencies struct {
 	ThirdPartyAssessmentSetup        interface {
 		Maintain(context.Context, time.Time, int) (int, error)
 	}
-	SourceCatalog          *sourceaccess.CatalogService
-	DocumentImports        *documentimport.Service
-	RegisterMigrations     *registermigration.Service
-	Coverage               *documentcoverage.Service
-	Continuity             *continuity.Service
-	MatterFormRemediation  *continuity.MatterFormRemediationService
-	Ropa                   *ropa.Service
-	RopaEventsReader       ropa.Repository
-	Reporting              *reporting.Service
-	Risk                   *risk.Service
-	RCSA                   *rcsa.Service
-	OperationalLoss        *oploss.Service
-	ControlCatalog         *controlcatalog.Service
-	Today                  *today.Service
-	Oversight              *oversight.Service
-	GroupOversight         *oversight.GroupService
-	MetricMembership       metricview.MembershipReader
-	MetricTrends           metricview.TrendReader
-	MetricMatrices         metricview.MatrixReader
+	SourceCatalog           *sourceaccess.CatalogService
+	DocumentImports         *documentimport.Service
+	RegisterMigrations      *registermigration.Service
+	Coverage                *documentcoverage.Service
+	Continuity              *continuity.Service
+	MatterFormRemediation   *continuity.MatterFormRemediationService
+	Ropa                    *ropa.Service
+	RopaEventsReader        ropa.Repository
+	Reporting               *reporting.Service
+	Risk                    *risk.Service
+	RCSA                    *rcsa.Service
+	OperationalLoss         *oploss.Service
+	ControlCatalog          *controlcatalog.Service
+	Today                   *today.Service
+	Oversight               *oversight.Service
+	GroupOversight          *oversight.GroupService
+	MetricMembership        metricview.MembershipReader
+	MetricTrends            metricview.TrendReader
+	MetricMatrices          metricview.MatrixReader
 	PresentationPreferences *presentationprefs.Service
-	Workflow               *workflow.Service
-	Onboarding             *onboarding.Service
-	Autonomy               *autonomy.Service
-	AIGovernance           *aigovernance.Service
-	AIGatewayOperations    AIGatewayOperationsReader
-	AIGatewayPublicBaseURL string
-	BankVerticals          *bankverticals.Service
-	BackgroundJobs         *operations.Service
-	Activity               *activity.Service
-	People                 *people.Service
-	AuditExports           *activity.ExportService
+	Workflow                *workflow.Service
+	Onboarding              *onboarding.Service
+	Autonomy                *autonomy.Service
+	AIGovernance            *aigovernance.Service
+	AIGatewayOperations     AIGatewayOperationsReader
+	AIGatewayPublicBaseURL  string
+	BankVerticals           *bankverticals.Service
+	BackgroundJobs          *operations.Service
+	Activity                *activity.Service
+	People                  *people.Service
+	AuditExports            *activity.ExportService
 	MaxArtifactBytes       int64
 }
 
