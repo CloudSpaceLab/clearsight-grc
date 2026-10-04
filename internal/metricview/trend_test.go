@@ -41,7 +41,6 @@ func TestTrendComparisonDirectionAndQuality(t *testing.T) {
 		t.Fatalf("limited comparison=%#v", series)
 	}
 
-
 	series.Current.Unknown = &zero
 	series.Baseline.At = start.Add(-48 * time.Hour)
 	decorateTrendComparison(&series)
