@@ -29,6 +29,8 @@ BEGIN
 END;
 $metric_observation_source$;
 
+DROP TABLE IF EXISTS metric_runtime_memberships;
+DROP TABLE IF EXISTS metric_runtime_membership_sets;
 DROP TABLE IF EXISTS oversight_snapshot_metric_memberships;
 DROP TABLE IF EXISTS oversight_snapshot_metric_membership_sets;
 DROP FUNCTION IF EXISTS validate_oversight_metric_membership_set_source();
