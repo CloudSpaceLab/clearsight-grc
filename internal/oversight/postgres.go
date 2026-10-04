@@ -529,6 +529,9 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, period
 }
 
 func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot time.Time) (bool, error) {
+	if err := validateMetricMemberCounts(value); err != nil {
+		return false, err
+	}
 	payload, err := json.Marshal(struct {
 		Counts         Counts               `json:"counts"`
 		Interventions  []Intervention       `json:"interventions"`
@@ -545,9 +548,56 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 	if err != nil {
 		return false, err
 	}
-	command, err := r.pool.Exec(ctx, `
-		INSERT INTO oversight_snapshots(tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload)
-		VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$11,$12::jsonb)
-		ON CONFLICT(tenant_id,legal_entity_id,projection_version,refresh_slot) DO NOTHING`, value.TenantID, value.LegalEntityID, value.PeriodStart, value.PeriodEnd, slot, value.GeneratedAt, value.ProjectionVersion, highWater, value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload)
-	return command.RowsAffected() == 1, err
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var snapshotID string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO oversight_snapshots(
+			tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
+			projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
+		) VALUES(
+			$1::uuid,$2::uuid,$3,$4,$5,$6,
+			$7,$8::jsonb,$9,$10,$11,$12::jsonb
+		)
+		ON CONFLICT(tenant_id,legal_entity_id,projection_version,refresh_slot) DO NOTHING
+		RETURNING id::text`,
+		value.TenantID, value.LegalEntityID, value.PeriodStart, value.PeriodEnd, slot, value.GeneratedAt,
+		value.ProjectionVersion, highWater, value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload,
+	).Scan(&snapshotID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	for _, member := range value.MetricMembers {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO oversight_snapshot_metric_memberships(
+				oversight_snapshot_id,metric_id,definition_revision,member_id,
+				target_type,target_id,target_title,state
+			) VALUES(
+				$1::uuid,$2,$3,$4::uuid,
+				$5,$6::uuid,$7,$8
+			)`,
+			snapshotID,
+			member.MetricID,
+			MetricSnapshotDrillDefinitionRevision,
+			member.MemberID,
+			member.TargetType,
+			member.TargetID,
+			member.TargetTitle,
+			member.State,
+		); err != nil {
+			return false, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
 }
