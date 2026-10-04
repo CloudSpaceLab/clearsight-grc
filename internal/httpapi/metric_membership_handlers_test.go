@@ -16,8 +16,8 @@ type metricMembershipReaderStub struct {
 	page metricview.MemberPage
 	err  error
 	got  struct {
-		tenantID, legalEntityID, sourceID, metricID, revision, cursor string
-		limit                                                         int
+		tenantID, legalEntityID, sourceID, metricID, revision, principalID, cursor string
+		limit                                                                      int
 	}
 }
 
@@ -28,6 +28,7 @@ func (s *metricMembershipReaderStub) ListSnapshotMembers(
 	sourceID string,
 	metricID string,
 	revision string,
+	principalID string,
 	cursor string,
 	limit int,
 ) (metricview.MemberPage, error) {
@@ -36,6 +37,7 @@ func (s *metricMembershipReaderStub) ListSnapshotMembers(
 	s.got.sourceID = sourceID
 	s.got.metricID = metricID
 	s.got.revision = revision
+	s.got.principalID = principalID
 	s.got.cursor = cursor
 	s.got.limit = limit
 	return s.page, s.err
@@ -48,8 +50,8 @@ func TestHomeMetricMembersBindVerifiedLegalEntityAndExactSource(t *testing.T) {
 		DefinitionRevision: "home-oversight-v3",
 		Count:              2,
 		Items: []metricview.Member{
-			{MemberID: "8f600000-0000-4000-8000-000000000010", TargetType: "MATTER", TargetID: "8f600000-0000-4000-8000-000000000020", TargetTitle: "Assign issue", State: "READY"},
-			{MemberID: "8f600000-0000-4000-8000-000000000011", TargetType: "PROGRAM", TargetID: "8f600000-0000-4000-8000-000000000021", TargetTitle: "Assign Program review", State: "BLOCKED"},
+			{MemberID: "8f600000-0000-4000-8000-000000000010", TargetType: "MATTER", TargetID: "8f600000-0000-4000-8000-000000000020", TargetTitle: "Assign issue", State: "READY", Accessible: true},
+			{MemberID: "8f600000-0000-4000-8000-000000000011", TargetType: "PROGRAM", TargetID: "8f600000-0000-4000-8000-000000000021", TargetTitle: "Assign Program review", State: "BLOCKED", Accessible: true},
 		},
 	}}
 	api := &API{deps: Dependencies{MetricMembership: reader}}
@@ -71,7 +73,7 @@ func TestHomeMetricMembersBindVerifiedLegalEntityAndExactSource(t *testing.T) {
 	}
 	if reader.got.tenantID != "bank" || reader.got.legalEntityID != "bank-ng" ||
 		reader.got.metricID != "routing_gaps" || reader.got.revision != "home-oversight-v3" ||
-		reader.got.limit != 25 {
+		reader.got.principalID != "cro-1" || reader.got.limit != 25 {
 		t.Fatalf("bound request=%#v", reader.got)
 	}
 	var page metricview.MemberPage
