@@ -20,8 +20,14 @@ ALTER TABLE oversight_snapshots
 ALTER TABLE oversight_snapshots
     DROP COLUMN IF EXISTS metric_membership_version;
 
+DROP TRIGGER IF EXISTS metric_definitions_immutable ON metric_definitions;
+
 DELETE FROM metric_definitions
 WHERE revision='home-oversight-v3';
+
+CREATE TRIGGER metric_definitions_immutable
+    BEFORE UPDATE OR DELETE ON metric_definitions
+    FOR EACH ROW EXECUTE FUNCTION prevent_metric_definition_mutation();
 
 ALTER TABLE metric_definitions
     DROP CONSTRAINT metric_definitions_drill_consistency_check;
