@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/jackc/pgx/v5"
 )
 
 const organizationPositionSimulationLimit = 100
@@ -89,13 +90,92 @@ func (a *PostgresAdministrator) SimulateOrganizationPosition(ctx context.Context
 	return result, nil
 }
 
-func organizationPositionRouteInputs(ctx context.Context, q organizationPositionQuerier, tenantID, entityID, positionID, positionCode string, at time.Time) ([]organizationPositionRouteInput, bool, error) {
-	rows, err := q.(interface {
-		Query(context.Context, string, ...any) (interface{ Next() bool }, error)
-	})
-	_ = rows
-	_ = err
-	return nil, false, errors.New("unreachable")
+type organizationPositionRouteQuerier interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+func organizationPositionRouteInputs(ctx context.Context, q organizationPositionRouteQuerier, tenantID, entityID, positionID, positionCode string, at time.Time) ([]organizationPositionRouteInput, bool, error) {
+	rows, err := q.Query(ctx, `
+		WITH current_entity AS (
+			SELECT id,code
+			FROM legal_entities
+			WHERE tenant_id=$1::uuid AND id=$2::uuid
+			  AND valid_from<=$5 AND (valid_until IS NULL OR $5<valid_until)
+		), role_refs AS (
+			SELECT role.id AS role_id,role.id::text AS role_id_text,role.code AS role_code
+			FROM position_role_bindings binding
+			JOIN role_templates role ON role.tenant_id=binding.tenant_id AND role.id=binding.role_template_id
+			WHERE binding.tenant_id=$1::uuid AND binding.position_id=$3::uuid
+			  AND binding.valid_from<=$5 AND (binding.valid_until IS NULL OR $5<binding.valid_until)
+			  AND role.valid_from<=$5 AND (role.valid_until IS NULL OR $5<role.valid_until)
+			  AND (
+			    NOT (binding.scope ? 'legal_entity_id')
+			    OR binding.scope->>'legal_entity_id' IN ('*',$2)
+			  )
+		), scenarios AS (
+			SELECT route.object_type,route.object_id,route.responsibility,route.decision_type,route.min_materiality AS materiality
+			FROM effective_authority_routes route
+			CROSS JOIN current_entity entity
+			WHERE route.tenant_id=$1::uuid
+			  AND route.valid_from<=$5 AND (route.valid_until IS NULL OR $5<route.valid_until)
+			  AND route.legal_entity_ref IN ('*',$2,entity.code)
+			  AND (
+			    (
+			      route.selector_kind IN ('POSITION','POSITION_ID')
+			      AND route.selector_ref IN ($3,$4)
+			    )
+			    OR (
+			      route.selector_kind IN ('ROLE','ROLE_ID')
+			      AND EXISTS (
+			        SELECT 1 FROM role_refs role
+			        WHERE route.selector_ref IN (role.role_code,role.role_id_text)
+			      )
+			    )
+			  )
+			UNION
+			SELECT assignment.object_type,COALESCE(assignment.object_id::text,'*'),assignment.responsibility,
+			       COALESCE(assignment.decision_type,''),0
+			FROM responsibility_assignments assignment
+			WHERE assignment.tenant_id=$1::uuid
+			  AND (assignment.legal_entity_id IS NULL OR assignment.legal_entity_id=$2::uuid)
+			  AND assignment.valid_from<=$5 AND (assignment.valid_until IS NULL OR $5<assignment.valid_until)
+			  AND (
+			    assignment.position_id=$3::uuid
+			    OR assignment.role_template_id IN (SELECT role_id FROM role_refs)
+			  )
+		)
+		SELECT object_type,object_id,responsibility,decision_type,materiality
+		FROM scenarios
+		ORDER BY object_type,object_id,responsibility,decision_type,materiality
+		LIMIT $6`,
+		tenantID, entityID, positionID, positionCode, at, organizationPositionSimulationLimit+1)
+	if err != nil {
+		return nil, false, fmt.Errorf("list organization position route scenarios: %w", err)
+	}
+	defer rows.Close()
+	values := make([]organizationPositionRouteInput, 0, organizationPositionSimulationLimit+1)
+	for rows.Next() {
+		var value organizationPositionRouteInput
+		if err := rows.Scan(&value.ObjectType, &value.ObjectID, &value.Responsibility, &value.DecisionType, &value.Materiality); err != nil {
+			return nil, false, err
+		}
+		value.ObjectType = strings.TrimSpace(value.ObjectType)
+		value.ObjectID = strings.TrimSpace(value.ObjectID)
+		value.Responsibility = strings.TrimSpace(value.Responsibility)
+		value.DecisionType = strings.TrimSpace(value.DecisionType)
+		if value.ObjectType == "" || value.ObjectID == "" || value.Responsibility == "" {
+			return nil, false, ErrAdminConflict
+		}
+		values = append(values, value)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+	truncated := len(values) > organizationPositionSimulationLimit
+	if truncated {
+		values = values[:organizationPositionSimulationLimit]
+	}
+	return values, truncated, nil
 }
 
 func simulateOrganizationPositionRoute(ctx context.Context, service authority.Service, tenantID, entityID string, scenario organizationPositionRouteInput, at time.Time) (OrganizationPositionRouteSnapshot, error) {
