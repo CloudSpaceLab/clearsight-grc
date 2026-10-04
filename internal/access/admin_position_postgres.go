@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -27,6 +28,10 @@ func (a *PostgresAdministrator) ProposeOrganizationPosition(ctx context.Context,
 	input.OccupantPrincipalID = strings.TrimSpace(input.OccupantPrincipalID)
 	input.ActorID = strings.TrimSpace(input.ActorID)
 	input.RestoredFromRevisionID = strings.TrimSpace(input.RestoredFromRevisionID)
+	if input.EffectiveFrom != nil {
+		effectiveFrom := input.EffectiveFrom.UTC()
+		input.EffectiveFrom = &effectiveFrom
+	}
 	if input.TenantID == "" || input.LegalEntityID == "" || input.ActorID == "" {
 		return OrganizationPositionRevisionSummary{}, ErrAdminInvalid
 	}
@@ -103,18 +108,18 @@ func (a *PostgresAdministrator) ProposeOrganizationPosition(ctx context.Context,
 			tenant_id,legal_entity_id,position_id,operation,base_version,
 			base_code,base_title,base_function_name,base_organization_scope_id,base_parent_position_id,base_occupant_principal_id,
 			proposed_code,proposed_title,proposed_function_name,proposed_organization_scope_id,proposed_parent_position_id,proposed_occupant_principal_id,
-			maker_id,restored_from_revision_id
+			maker_id,restored_from_revision_id,effective_from
 		) VALUES(
 			$1::uuid,$2::uuid,$3::uuid,$4,$5,
 			$6,$7,$8,NULLIF($9,'')::uuid,NULLIF($10,'')::uuid,NULLIF($11,'')::uuid,
 			$12,$13,$14,NULLIF($15,'')::uuid,NULLIF($16,'')::uuid,NULLIF($17,'')::uuid,
-			$18::uuid,NULLIF($19,'')::uuid
+			$18::uuid,NULLIF($19,'')::uuid,$20
 		)
 		RETURNING id::text`,
 		tenantID, entityID, positionID, input.Operation, baseVersion,
 		base.Code, base.Title, base.FunctionName, base.OrganizationScopeID, base.ParentPositionID, base.OccupantPrincipalID,
 		proposed.Code, proposed.Title, proposed.FunctionName, proposed.OrganizationScopeID, proposed.ParentPositionID, proposed.OccupantPrincipalID,
-		input.ActorID, input.RestoredFromRevisionID,
+		input.ActorID, input.RestoredFromRevisionID, input.EffectiveFrom,
 	).Scan(&revisionID)
 	if err != nil {
 		return OrganizationPositionRevisionSummary{}, mapAdminPgError(err)
@@ -221,12 +226,33 @@ func (a *PostgresAdministrator) decideOrganizationPosition(ctx context.Context, 
 		return tx.Commit(ctx)
 	}
 
+	now := time.Now().UTC()
+	if revision.EffectiveFrom != nil && revision.EffectiveFrom.After(now) {
+		if err := validateOrganizationPositionRevision(ctx, tx, tenantID, entityID, revision); err != nil {
+			return err
+		}
+		tag, err := tx.Exec(ctx, `
+			UPDATE organization_position_revisions
+			SET status='SCHEDULED',checker_id=$4::uuid,rationale=$5,decided_at=clock_timestamp()
+			WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND status='PENDING'`,
+			tenantID, entityID, revision.ID, input.ActorID, input.Rationale)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() != 1 {
+			return ErrAdminConflict
+		}
+		if err := recordAdminDecision(ctx, tx, input.TenantID, input.ActorID, "ORGANIZATION_POSITION_CHANGE_SCHEDULED", "ORGANIZATION_POSITION_REVISION", revision.ID); err != nil {
+			return err
+		}
+		return tx.Commit(ctx)
+	}
 	if err := applyOrganizationPositionRevision(ctx, tx, tenantID, entityID, revision); err != nil {
 		return err
 	}
 	tag, err := tx.Exec(ctx, `
 		UPDATE organization_position_revisions
-		SET status='APPLIED',checker_id=$4::uuid,rationale=$5,decided_at=clock_timestamp(),applied_at=clock_timestamp()
+		SET status='APPLIED',checker_id=$4::uuid,rationale=$5,decided_at=clock_timestamp(),applied_at=clock_timestamp(),activation_attempts=activation_attempts+1
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND status='PENDING'`,
 		tenantID, entityID, revision.ID, input.ActorID, input.Rationale)
 	if err != nil {
@@ -235,15 +261,57 @@ func (a *PostgresAdministrator) decideOrganizationPosition(ctx context.Context, 
 	if tag.RowsAffected() != 1 {
 		return ErrAdminConflict
 	}
-	eventType := map[OrganizationPositionOperation]string{
-		OrganizationPositionCreate: "ORGANIZATION_POSITION_CREATED",
-		OrganizationPositionUpdate: "ORGANIZATION_POSITION_UPDATED",
-		OrganizationPositionRetire: "ORGANIZATION_POSITION_RETIRED",
-	}[revision.Operation]
-	if err := recordAdminDecision(ctx, tx, input.TenantID, input.ActorID, eventType, "ORGANIZATION_POSITION", revision.PositionID); err != nil {
+	if err := recordAdminDecision(ctx, tx, input.TenantID, input.ActorID, organizationPositionAppliedEventType(revision.Operation), "ORGANIZATION_POSITION", revision.PositionID); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+func validateOrganizationPositionRevision(ctx context.Context, tx pgx.Tx, tenantID, entityID string, revision OrganizationPositionRevisionSummary) error {
+	switch revision.Operation {
+	case OrganizationPositionCreate:
+		return validateOrganizationPositionState(ctx, tx, tenantID, entityID, revision.PositionID, revision.Proposed)
+	case OrganizationPositionUpdate:
+		current, version, err := organizationPositionState(ctx, tx, tenantID, entityID, revision.PositionID, true)
+		if err != nil {
+			return err
+		}
+		if version != revision.BaseVersion || current != revision.Base {
+			return ErrAdminConflict
+		}
+		return validateOrganizationPositionState(ctx, tx, tenantID, entityID, revision.PositionID, revision.Proposed)
+	case OrganizationPositionRetire:
+		current, version, err := organizationPositionState(ctx, tx, tenantID, entityID, revision.PositionID, true)
+		if err != nil {
+			return err
+		}
+		if version != revision.BaseVersion || current != revision.Base {
+			return ErrAdminConflict
+		}
+		impact, err := organizationPositionImpact(ctx, tx, tenantID, entityID, revision.PositionID)
+		if err != nil {
+			return err
+		}
+		if impact.ChildPositions > 0 || impact.ResponsibilityAssignments > 0 || impact.AuthorityGrants > 0 {
+			return ErrAdminConflict
+		}
+		return nil
+	default:
+		return ErrAdminInvalid
+	}
+}
+
+func organizationPositionAppliedEventType(operation OrganizationPositionOperation) string {
+	switch operation {
+	case OrganizationPositionCreate:
+		return "ORGANIZATION_POSITION_CREATED"
+	case OrganizationPositionUpdate:
+		return "ORGANIZATION_POSITION_UPDATED"
+	case OrganizationPositionRetire:
+		return "ORGANIZATION_POSITION_RETIRED"
+	default:
+		return "ORGANIZATION_POSITION_UPDATED"
+	}
 }
 
 func applyOrganizationPositionRevision(ctx context.Context, tx pgx.Tx, tenantID, entityID string, revision OrganizationPositionRevisionSummary) error {
@@ -409,7 +477,8 @@ const organizationPositionRevisionSelect = `
 	SELECT r.id::text,r.position_id::text,r.operation,r.base_version,COALESCE(r.restored_from_revision_id::text,''),
 	       r.base_code,r.base_title,r.base_function_name,COALESCE(r.base_organization_scope_id::text,''),COALESCE(r.base_parent_position_id::text,''),COALESCE(r.base_occupant_principal_id::text,''),
 	       r.proposed_code,r.proposed_title,r.proposed_function_name,COALESCE(r.proposed_organization_scope_id::text,''),COALESCE(r.proposed_parent_position_id::text,''),COALESCE(r.proposed_occupant_principal_id::text,''),
-	       r.maker_id::text,COALESCE(r.checker_id::text,''),r.status,r.rationale,r.created_at,r.decided_at,r.applied_at
+	       r.maker_id::text,COALESCE(r.checker_id::text,''),r.status,r.rationale,r.effective_from,r.activation_attempts,r.activation_failed_at,r.activation_error_code,
+	       r.created_at,r.decided_at,r.applied_at
 	FROM organization_position_revisions r`
 
 type organizationPositionScanner interface {
@@ -422,7 +491,9 @@ func scanOrganizationPositionRevision(row organizationPositionScanner) (Organiza
 		&value.ID, &value.PositionID, &value.Operation, &value.BaseVersion, &value.RestoredFromRevisionID,
 		&value.Base.Code, &value.Base.Title, &value.Base.FunctionName, &value.Base.OrganizationScopeID, &value.Base.ParentPositionID, &value.Base.OccupantPrincipalID,
 		&value.Proposed.Code, &value.Proposed.Title, &value.Proposed.FunctionName, &value.Proposed.OrganizationScopeID, &value.Proposed.ParentPositionID, &value.Proposed.OccupantPrincipalID,
-		&value.MakerID, &value.CheckerID, &value.Status, &value.Rationale, &value.CreatedAt, &value.DecidedAt, &value.AppliedAt,
+		&value.MakerID, &value.CheckerID, &value.Status, &value.Rationale,
+		&value.EffectiveFrom, &value.ActivationAttempts, &value.ActivationFailedAt, &value.ActivationErrorCode,
+		&value.CreatedAt, &value.DecidedAt, &value.AppliedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return OrganizationPositionRevisionSummary{}, ErrAdminNotFound
