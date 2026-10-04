@@ -89,9 +89,13 @@ func (m *Maintainer) Maintain(ctx context.Context, now time.Time, limit int) (in
 		WHERE le.valid_from<=$1::timestamptz AND (le.valid_until IS NULL OR $1::timestamptz<le.valid_until)
 		  AND NOT EXISTS (
 		    SELECT 1 FROM oversight_snapshots os
-		    WHERE os.tenant_id=le.tenant_id AND os.legal_entity_id=le.id AND os.projection_version=$2 AND os.generated_at>$1::timestamptz-interval '5 minutes'
+		    WHERE os.tenant_id=le.tenant_id
+		      AND os.legal_entity_id=le.id
+		      AND os.projection_version=$2
+		      AND os.metric_membership_revision=$3
+		      AND os.generated_at>$1::timestamptz-interval '5 minutes'
 		  )
-		ORDER BY le.id LIMIT $3`, now, ProjectionVersion, limit)
+		ORDER BY le.id LIMIT $4`, now, ProjectionVersion, MetricSnapshotDrillDefinitionRevision, limit)
 	if err != nil {
 		return 0, err
 	}
