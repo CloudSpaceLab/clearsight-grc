@@ -29,7 +29,7 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 	var value Snapshot
 	var payload, highWater []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT os.id::text,os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
+		SELECT os.id::text,os.metric_members_captured,os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
 		       os.coverage_population,os.coverage_excluded,os.coverage_unknown,os.payload,
 		       t.slug,le.code
 		FROM oversight_snapshots os
@@ -530,9 +530,54 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 	if err != nil {
 		return false, err
 	}
-	command, err := r.pool.Exec(ctx, `
-		INSERT INTO oversight_snapshots(tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload)
-		VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$11,$12::jsonb)
-		ON CONFLICT(tenant_id,legal_entity_id,projection_version,refresh_slot) DO NOTHING`, value.TenantID, value.LegalEntityID, value.PeriodStart, value.PeriodEnd, slot, value.GeneratedAt, value.ProjectionVersion, highWater, value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload)
-	return command.RowsAffected() == 1, err
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var snapshotID string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO oversight_snapshots(
+			tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
+			projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload,
+			metric_members_captured
+		)
+		VALUES($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$11,$12::jsonb,true)
+		ON CONFLICT(tenant_id,legal_entity_id,projection_version,refresh_slot) DO NOTHING
+		RETURNING id::text`,
+		value.TenantID, value.LegalEntityID, value.PeriodStart, value.PeriodEnd, slot, value.GeneratedAt,
+		value.ProjectionVersion, highWater, value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload,
+	).Scan(&snapshotID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	for _, member := range value.MetricMembers {
+		if strings.TrimSpace(member.MetricID) == "" || strings.TrimSpace(member.TargetType) == "" ||
+			strings.TrimSpace(member.TargetID) == "" || strings.TrimSpace(member.Label) == "" ||
+			strings.TrimSpace(member.SubjectType) == "" || strings.TrimSpace(member.SubjectID) == "" {
+			return false, ErrInvalid
+		}
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO oversight_metric_members(
+				source_snapshot_id,tenant_id,legal_entity_id,metric_id,
+				target_type,target_id,label,subject_type,subject_id,captured_at
+			) VALUES(
+				$1::uuid,$2::uuid,$3::uuid,$4,
+				$5,$6::uuid,$7,$8,$9::uuid,$10
+			)`,
+			snapshotID, value.TenantID, value.LegalEntityID, member.MetricID,
+			member.TargetType, member.TargetID, member.Label, member.SubjectType, member.SubjectID, value.GeneratedAt,
+		); err != nil {
+			return false, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+	return true, nil
 }
