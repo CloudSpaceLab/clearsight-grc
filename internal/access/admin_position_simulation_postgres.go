@@ -183,7 +183,7 @@ func simulateOrganizationPositionRoute(ctx context.Context, service authority.Se
 		TenantID: tenantID, LegalEntityID: entityID,
 		ObjectType: scenario.ObjectType, ObjectID: scenario.ObjectID,
 		Responsibility: authority.Responsibility(scenario.Responsibility),
-		DecisionType: scenario.DecisionType, Materiality: scenario.Materiality, At: at,
+		DecisionType:   scenario.DecisionType, Materiality: scenario.Materiality, At: at,
 	})
 	if err != nil {
 		if errors.Is(err, authority.ErrAmbiguousRoute) {
