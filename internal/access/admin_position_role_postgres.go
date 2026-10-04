@@ -87,7 +87,7 @@ const organizationRoleTemplateSelect = `
 `
 
 func (a *PostgresAdministrator) organizationRoleTemplates(ctx context.Context, tenantID, entityID string) ([]RoleTemplateSummary, error) {
-	rows, err := a.pool.Query(ctx, organizationRoleTemplateSelect + `
+	rows, err := a.pool.Query(ctx, organizationRoleTemplateSelect+`
 		ORDER BY rt.code
 		LIMIT 100`, tenantID, entityID)
 	if err != nil {
@@ -380,7 +380,7 @@ const organizationPositionRoleRevisionSelect = `
 `
 
 func (a *PostgresAdministrator) organizationPositionRoleRevisions(ctx context.Context, tenantID, entityID string) ([]OrganizationPositionRoleRevisionSummary, error) {
-	rows, err := a.pool.Query(ctx, organizationPositionRoleRevisionSelect + `
+	rows, err := a.pool.Query(ctx, organizationPositionRoleRevisionSelect+`
 		WHERE revision.tenant_id=$1::uuid AND revision.legal_entity_id=$2::uuid AND revision.status='PENDING'
 		ORDER BY revision.created_at,revision.id
 		LIMIT 100`, tenantID, entityID)
@@ -400,7 +400,7 @@ func (a *PostgresAdministrator) organizationPositionRoleRevisions(ctx context.Co
 }
 
 func (a *PostgresAdministrator) organizationPositionRoleRevisionByID(ctx context.Context, tenantID, entityID, revisionID string) (OrganizationPositionRoleRevisionSummary, error) {
-	value, err := scanOrganizationPositionRoleRevision(a.pool.QueryRow(ctx, organizationPositionRoleRevisionSelect + `
+	value, err := scanOrganizationPositionRoleRevision(a.pool.QueryRow(ctx, organizationPositionRoleRevisionSelect+`
 		WHERE revision.tenant_id=$1::uuid AND revision.legal_entity_id=$2::uuid AND revision.id=$3::uuid`,
 		tenantID, entityID, revisionID))
 	if errors.Is(err, pgx.ErrNoRows) {
