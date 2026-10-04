@@ -10,7 +10,7 @@ export type MetricBasis = "CURRENT_POSTURE";
 export type MetricDrillTarget = {
   workspace: string;
   filter: string;
-  consistency: "CURRENT_STATE";
+  consistency: "CURRENT_STATE" | "SOURCE_SNAPSHOT";
 };
 
 export type HomeMetric = {
@@ -44,6 +44,7 @@ export type HomeMetricBundle = {
   population: number;
   excluded?: number;
   unknown?: number;
+  source_id?: string;
   source_revision: string;
   definition_revision: string;
   items: HomeMetric[];
@@ -51,4 +52,41 @@ export type HomeMetricBundle = {
 
 export function loadHomeMetrics(period?: ReportingPeriodQuery, organizationScopeID?: string): Promise<HomeMetricBundle> {
   return requestJSON<HomeMetricBundle>(apiBase, reportingPeriodPath("/api/v1/metrics/home", period, organizationScopeID));
+}
+
+
+export type HomeMetricMember = {
+  member_id: string;
+  target_type: "MATTER" | "PROGRAM";
+  target_id: string;
+  target_title: string;
+  state: string;
+};
+
+export type HomeMetricMemberPage = {
+  source_id: string;
+  metric_id: string;
+  definition_revision: string;
+  count: number;
+  items: HomeMetricMember[];
+  next_cursor?: string;
+};
+
+export function loadHomeMetricMembers(
+  metricID: string,
+  sourceID: string,
+  definitionRevision: string,
+  cursor?: string,
+  limit = 50,
+): Promise<HomeMetricMemberPage> {
+  const query = new URLSearchParams({
+    source_id: sourceID,
+    definition_revision: definitionRevision,
+    limit: String(limit),
+  });
+  if (cursor) query.set("cursor", cursor);
+  return requestJSON<HomeMetricMemberPage>(
+    apiBase,
+    `/api/v1/metrics/home/${encodeURIComponent(metricID)}/members?${query.toString()}`,
+  );
 }
