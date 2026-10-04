@@ -212,8 +212,29 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		          ON version.policy_id=policy.id AND version.version=policy.current_version
 		        WHERE policy.tenant_id=rt.tenant_id AND policy.status='ACTIVE'
 		          AND (
-		            strpos(version.definition::text,to_jsonb(rt.code)::text)>0
-		            OR strpos(version.definition::text,to_jsonb(rt.id::text)::text)>0
+		            EXISTS (
+		              SELECT 1
+		              FROM jsonb_array_elements(COALESCE(version.definition->'rules','[]'::jsonb)) rule(value)
+		              WHERE (
+		                upper(COALESCE(rule.value#>>'{selector,kind}',''))='ROLE'
+		                AND upper(COALESCE(rule.value#>>'{selector,ref}',''))=upper(rt.code)
+		              ) OR (
+		                upper(COALESCE(rule.value#>>'{selector,kind}',''))='ROLE_ID'
+		                AND lower(COALESCE(rule.value#>>'{selector,ref}',''))=lower(rt.id::text)
+		              )
+		            )
+		            OR EXISTS (
+		              SELECT 1
+		              FROM jsonb_array_elements(COALESCE(version.definition->'escalations','[]'::jsonb)) escalation(value)
+		              CROSS JOIN LATERAL jsonb_array_elements(COALESCE(escalation.value->'steps','[]'::jsonb)) step(value)
+		              WHERE EXISTS (
+		                SELECT 1 FROM jsonb_array_elements_text(COALESCE(step.value->'source_roles','[]'::jsonb)) source_role(value)
+		                WHERE upper(source_role.value)=upper(rt.code)
+		              ) OR EXISTS (
+		                SELECT 1 FROM jsonb_array_elements_text(COALESCE(step.value#>'{targets,roles}','[]'::jsonb)) target_role(value)
+		                WHERE upper(target_role.value)=upper(rt.code)
+		              )
+		            )
 		          )),
 		       (SELECT count(*) FROM segregation_rules rule
 		        WHERE rule.tenant_id=rt.tenant_id AND rule.status='ACTIVE'
