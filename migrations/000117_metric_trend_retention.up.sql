@@ -37,6 +37,12 @@ CREATE INDEX metric_daily_rollup_trend_idx
         tenant_id,legal_entity_id,metric_id,definition_revision,bucket_date DESC
     );
 
+CREATE INDEX metric_observations_retention_idx
+    ON metric_observations(generated_at,id);
+
+CREATE INDEX metric_daily_rollup_retention_idx
+    ON metric_observation_daily_rollups(bucket_date,tenant_id,legal_entity_id,metric_id,definition_revision);
+
 DROP TRIGGER metric_observations_immutable ON metric_observations;
 CREATE TRIGGER metric_observations_immutable
     BEFORE UPDATE ON metric_observations
