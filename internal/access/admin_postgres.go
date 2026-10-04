@@ -978,6 +978,16 @@ func recordAdminDecision(ctx context.Context, tx pgx.Tx, tenant, actorID, eventT
 	return err
 }
 
+func recordSystemAdminDecision(ctx context.Context, tx pgx.Tx, tenant, objectType, objectID, fromState, toState, rationale string) error {
+	_, err := tx.Exec(ctx, `
+		INSERT INTO governance_decisions(
+			tenant_id,object_type,object_id,from_state,to_state,actor_type,actor_id,rationale
+		)
+		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2,$3::uuid,$4,$5,'SYSTEM',NULL,$6)`,
+		tenant, objectType, objectID, fromState, toState, rationale)
+	return err
+}
+
 func adminDecisionStates(eventType string) (string, string) {
 	switch eventType {
 	case "SCIM_SOURCE_CREATED", "DIRECTORY_GROUP_ROLE_BOUND", "ORGANIZATION_SCOPE_CREATED", "ORGANIZATION_POSITION_CREATED":
@@ -988,6 +998,8 @@ func adminDecisionStates(eventType string) (string, string) {
 	case "ORGANIZATION_SCOPE_CHANGE_REJECTED", "ORGANIZATION_POSITION_CHANGE_REJECTED",
 		"ORGANIZATION_POSITION_ROLE_CHANGE_REJECTED", "LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_REJECTED":
 		return "PENDING", "REJECTED"
+	case "ORGANIZATION_POSITION_CHANGE_SCHEDULED":
+		return "PENDING", "SCHEDULED"
 	case "LEGAL_ENTITY_DATA_BOUNDARY_APPLIED":
 		return "PENDING", "ACTIVE"
 	case "SCIM_SOURCE_REVOKED":

@@ -185,6 +185,10 @@ type OrganizationPositionRevisionSummary struct {
 	Status                 string                        `json:"status"`
 	Rationale              string                        `json:"rationale,omitempty"`
 	Impact                 OrganizationPositionImpact    `json:"impact"`
+	EffectiveFrom          *time.Time                    `json:"effective_from,omitempty"`
+	ActivationAttempts     int                           `json:"activation_attempts,omitempty"`
+	ActivationFailedAt     *time.Time                    `json:"activation_failed_at,omitempty"`
+	ActivationErrorCode    string                        `json:"activation_error_code,omitempty"`
 	CreatedAt              time.Time                     `json:"created_at"`
 	DecidedAt              *time.Time                    `json:"decided_at,omitempty"`
 	AppliedAt              *time.Time                    `json:"applied_at,omitempty"`
@@ -202,8 +206,43 @@ type ProposeOrganizationPositionInput struct {
 	ParentPositionID       string                        `json:"parent_position_id,omitempty"`
 	OccupantPrincipalID    string                        `json:"occupant_principal_id,omitempty"`
 	ExpectedVersion        int64                         `json:"expected_version,omitempty"`
+	EffectiveFrom          *time.Time                    `json:"effective_from,omitempty"`
 	ActorID                string                        `json:"-"`
 	RestoredFromRevisionID string                        `json:"-"`
+}
+
+type OrganizationPositionRouteSnapshot struct {
+	Status        string   `json:"status"`
+	CandidateIDs  []string `json:"candidate_ids"`
+	PolicyVersion string   `json:"policy_version,omitempty"`
+}
+
+type OrganizationPositionRouteScenario struct {
+	ObjectType     string                            `json:"object_type"`
+	ObjectID       string                            `json:"object_id"`
+	Responsibility string                            `json:"responsibility"`
+	DecisionType   string                            `json:"decision_type,omitempty"`
+	Materiality    int                               `json:"materiality"`
+	Current        OrganizationPositionRouteSnapshot `json:"current"`
+	Proposed       OrganizationPositionRouteSnapshot `json:"proposed"`
+	Changed        bool                              `json:"changed"`
+}
+
+type OrganizationPositionRouteSimulation struct {
+	RevisionID            string                              `json:"revision_id"`
+	PositionID            string                              `json:"position_id"`
+	SourcePositionVersion int64                               `json:"source_position_version"`
+	EffectiveAt           time.Time                           `json:"effective_at"`
+	Checked               int                                 `json:"checked"`
+	Truncated             bool                                `json:"truncated"`
+	Scenarios             []OrganizationPositionRouteScenario `json:"scenarios"`
+}
+
+type SimulateOrganizationPositionInput struct {
+	TenantID      string `json:"tenant_id"`
+	LegalEntityID string `json:"legal_entity_id"`
+	RevisionID    string `json:"revision_id"`
+	ActorID       string `json:"-"`
 }
 
 type RestoreOrganizationPositionInput struct {
@@ -343,6 +382,7 @@ type Administrator interface {
 	RestoreOrganizationPosition(context.Context, RestoreOrganizationPositionInput) (OrganizationPositionRevisionSummary, error)
 	ApproveOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
 	RejectOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
+	SimulateOrganizationPosition(context.Context, SimulateOrganizationPositionInput) (OrganizationPositionRouteSimulation, error)
 	ProposeOrganizationPositionRole(context.Context, ProposeOrganizationPositionRoleInput) (OrganizationPositionRoleRevisionSummary, error)
 	ApproveOrganizationPositionRole(context.Context, DecideOrganizationPositionRoleInput) error
 	RejectOrganizationPositionRole(context.Context, DecideOrganizationPositionRoleInput) error

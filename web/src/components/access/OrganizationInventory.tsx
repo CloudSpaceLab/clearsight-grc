@@ -8,6 +8,7 @@ import type {
   OrganizationPosition,
   OrganizationPositionRevision,
   OrganizationPositionRoleRevision,
+  OrganizationPositionRouteSimulation,
   OrganizationScope,
   OrganizationScopeRevision,
   ProposeLegalEntityDataBoundaryInput,
@@ -41,6 +42,7 @@ type Props = {
   onProposePosition?: (input: ProposeOrganizationPositionInput) => Promise<boolean>;
   onApprovePosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onRejectPosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
+  onSimulatePosition?: (revision: OrganizationPositionRevision) => Promise<OrganizationPositionRouteSimulation | null>;
   onRestorePosition?: (revision: OrganizationPositionRevision) => Promise<boolean>;
   onProposePositionRole?: (input: ProposeOrganizationPositionRoleInput) => Promise<boolean>;
   onApprovePositionRole?: (revision: OrganizationPositionRoleRevision, rationale: string) => Promise<boolean>;
@@ -72,6 +74,7 @@ export function OrganizationInventory({
   onProposePosition,
   onApprovePosition,
   onRejectPosition,
+  onSimulatePosition,
   onRestorePosition,
   onProposePositionRole,
   onApprovePositionRole,
@@ -256,6 +259,7 @@ export function OrganizationInventory({
           onPropose={onProposePosition}
           onApprove={onApprovePosition}
           onReject={onRejectPosition}
+          onSimulate={onSimulatePosition}
           onRestore={onRestorePosition}
           onProposeRole={onProposePositionRole}
           onApproveRole={onApprovePositionRole}

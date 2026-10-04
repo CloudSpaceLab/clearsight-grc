@@ -20,6 +20,7 @@ import {
   rejectLegalEntityDataBoundary,
   rejectOrganizationScope,
   restoreOrganizationPosition,
+  simulateOrganizationPosition,
   retireGroupRoleBinding,
   revokeIdentitySource,
   rotateIdentitySourceToken,
@@ -29,6 +30,7 @@ import {
   type IdentitySource,
   type OrganizationPositionRevision,
   type OrganizationPositionRoleRevision,
+  type OrganizationPositionRouteSimulation,
   type LegalEntityDataBoundaryRevision,
   type OrganizationScopeRevision,
   type ProposeOrganizationPositionInput,
@@ -242,6 +244,19 @@ export function IdentityAccessPanel() {
     });
   }
 
+  async function simulatePosition(revision: OrganizationPositionRevision): Promise<OrganizationPositionRouteSimulation | null> {
+    setBusy("position-simulate-" + revision.id);
+    setNotice("");
+    try {
+      return await simulateOrganizationPosition(revision.id);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Route impact could not be checked.");
+      return null;
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function restorePosition(revision: OrganizationPositionRevision) {
     return run("position-restore-" + revision.id, async () => {
       await restoreOrganizationPosition(revision.id);
@@ -384,6 +399,7 @@ export function IdentityAccessPanel() {
         onProposePosition={proposePosition}
         onApprovePosition={approvePosition}
         onRejectPosition={rejectPosition}
+        onSimulatePosition={simulatePosition}
         onRestorePosition={restorePosition}
         onProposePositionRole={proposePositionRole}
         onApprovePositionRole={approvePositionRole}

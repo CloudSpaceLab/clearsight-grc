@@ -57,6 +57,9 @@ func (*fakeAccessAdministrator) RejectOrganizationScope(context.Context, access.
 func (*fakeAccessAdministrator) ProposeOrganizationPosition(context.Context, access.ProposeOrganizationPositionInput) (access.OrganizationPositionRevisionSummary, error) {
 	return access.OrganizationPositionRevisionSummary{ID: "position-revision-1", PositionID: "position-1", Status: "PENDING"}, nil
 }
+func (*fakeAccessAdministrator) SimulateOrganizationPosition(_ context.Context, input access.SimulateOrganizationPositionInput) (access.OrganizationPositionRouteSimulation, error) {
+	return access.OrganizationPositionRouteSimulation{RevisionID: input.RevisionID, PositionID: "position-1", Checked: 1}, nil
+}
 func (*fakeAccessAdministrator) RestoreOrganizationPosition(_ context.Context, input access.RestoreOrganizationPositionInput) (access.OrganizationPositionRevisionSummary, error) {
 	return access.OrganizationPositionRevisionSummary{ID: "position-restore-1", PositionID: "position-1", Status: "PENDING", RestoredFromRevisionID: input.RevisionID}, nil
 }

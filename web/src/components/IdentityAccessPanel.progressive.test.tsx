@@ -319,7 +319,7 @@ it("shows pending position changes for independent approval", async () => {
   api.approveOrganizationPosition.mockResolvedValue(undefined);
 
   render(<IdentityAccessPanel/>);
-  await screen.findByText("Pending position changes");
+  await screen.findByText("Position changes");
 
   fireEvent.click(screen.getByRole("button", { name: "Approve" }));
   const dialog = screen.getByRole("dialog", { name: "Approve position change" });
@@ -372,7 +372,7 @@ it("shows active work impact before approving an occupant change", async () => {
   });
 
   render(<IdentityAccessPanel/>);
-  await screen.findByText("Pending position changes");
+  await screen.findByText("Position changes");
   fireEvent.click(screen.getByRole("button", { name: "Approve" }));
 
   const dialog = screen.getByRole("dialog", { name: "Approve position change" });
