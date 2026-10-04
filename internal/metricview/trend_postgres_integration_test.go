@@ -97,6 +97,7 @@ func TestMetricTrendRetentionPreservesComparisonAndBoundsRawHistory(t *testing.T
 	insertObservation(oldAt.Add(-time.Hour), 9)
 	insertObservation(oldAt, 8)
 	start := now.Add(-30 * 24 * time.Hour)
+	insertObservation(start.Add(-time.Hour), 6)
 	insertObservation(start, 5)
 	insertObservation(now.Add(-3*time.Hour), 4)
 	currentSnapshotID := insertObservation(now.Add(-time.Hour), 3)
@@ -125,10 +126,10 @@ func TestMetricTrendRetentionPreservesComparisonAndBoundsRawHistory(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if series.Resolution != TrendResolutionDay || series.Baseline == nil || series.Baseline.Value != 8 || series.Current == nil || series.Current.Value != 3 {
+	if series.Resolution != TrendResolutionDay || series.Baseline == nil || series.Baseline.Value != 6 || series.Current == nil || series.Current.Value != 3 {
 		t.Fatalf("trend series=%#v", series)
 	}
-	if series.Delta == nil || *series.Delta != -5 || series.Direction != TrendImproved || series.ComparisonQuality != ComparisonComplete {
+	if series.Delta == nil || *series.Delta != -3 || series.Direction != TrendImproved || series.ComparisonQuality != ComparisonComplete {
 		t.Fatalf("comparison=%#v", series)
 	}
 
