@@ -37,7 +37,7 @@ func TestHomeMetricTrendBindsVerifiedLegalEntityAndPeriod(t *testing.T) {
 		Direction: metricview.TrendImproved, ComparisonQuality: metricview.ComparisonComplete,
 	}}
 	api := &API{deps: Dependencies{MetricTrends: reader}}
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/metrics/home/overdue_open/trend?start_date="+start.Format("2006-01-02")+"&end_date="+today.Format("2006-01-02"), nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/metrics/home/overdue_open/trend?start_date=" + start.Format("2006-01-02") + "&end_date=" + today.Format("2006-01-02"), nil)
 	request.SetPathValue("metric_id", "overdue_open")
 	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
 		TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "cro-1", ExpiresAt: now.Add(time.Hour),
@@ -66,8 +66,8 @@ func TestHomeMetricTrendRejectsOrganizationScopeAndOversizedWindow(t *testing.T)
 	reader := &metricTrendReaderStub{}
 	api := &API{deps: Dependencies{MetricTrends: reader}}
 	for _, rawURL := range []string{
-		"/api/v1/metrics/home/overdue_open/trend?start_date="+today.Add(-30*24*time.Hour).Format("2006-01-02")+"&organization_scope_id=scope-risk",
-		"/api/v1/metrics/home/overdue_open/trend?start_date="+today.Add(-366*24*time.Hour).Format("2006-01-02"),
+		"/api/v1/metrics/home/overdue_open/trend?start_date=" + today.Add(-30*24*time.Hour).Format("2006-01-02") + "&organization_scope_id=scope-risk",
+		"/api/v1/metrics/home/overdue_open/trend?start_date=" + today.Add(-366*24*time.Hour).Format("2006-01-02"),
 	} {
 		request := httptest.NewRequest(http.MethodGet, rawURL, nil)
 		request.SetPathValue("metric_id", "overdue_open")
