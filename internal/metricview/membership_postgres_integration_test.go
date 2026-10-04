@@ -23,15 +23,13 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	}
 	defer pool.Close()
 
-	const (
-		tenantID     = "8f610000-0000-4000-8000-000000000001"
-		entityID     = "8f610000-0000-4000-8000-000000000002"
-		snapshotID   = "8f610000-0000-4000-8000-000000000003"
-		matterID     = "8f610000-0000-4000-8000-000000000004"
-		memberID     = "8f610000-0000-4000-8000-000000000005"
-		principalA   = "8f610000-0000-4000-8000-000000000006"
-		principalB   = "8f610000-0000-4000-8000-000000000007"
-	)
+	const tenantID = "8f610000-0000-4000-8000-000000000001"
+	const entityID = "8f610000-0000-4000-8000-000000000002"
+	const snapshotID = "8f610000-0000-4000-8000-000000000003"
+	const matterID = "8f610000-0000-4000-8000-000000000004"
+	const memberID = "8f610000-0000-4000-8000-000000000005"
+	const principalA = "8f610000-0000-4000-8000-000000000006"
+	const principalB = "8f610000-0000-4000-8000-000000000007"
 	cleanup := func(cleanCtx context.Context) {
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_memberships WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_membership_sets WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
