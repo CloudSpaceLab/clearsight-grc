@@ -80,6 +80,7 @@ func (a *API) routes() []routeSpec {
 		withPermission(read("/api/v1/oversight", a.oversightSnapshot), identity.PermissionOversightRead),
 		read("/api/v1/oversight/group", a.groupOversightSnapshot),
 		withPermission(read("/api/v1/metrics/home", a.homeMetrics), identity.PermissionOversightRead),
+		withPermission(read("/api/v1/metrics/home/drill", a.homeMetricDrill), identity.PermissionOversightRead),
 
 		operation("/api/v1/authority/resolve", a.resolveAuthority, bindJSONIdentity(true)),
 		withPermission(operation("/api/v1/authority/simulate", a.simulateAuthority, bindJSONIdentity(true)), identity.PermissionConfigRead),
