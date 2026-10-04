@@ -579,6 +579,7 @@ func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx conte
 			WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 			  AND (op.legal_entity_id IS NULL OR op.legal_entity_id=(SELECT id FROM current_entity))
 			  AND op.valid_from<=$6 AND (op.valid_until IS NULL OR $6<op.valid_until)
+			  AND prb.binding_purpose='GENERAL'
 			  AND prb.valid_from<=$6 AND (prb.valid_until IS NULL OR $6<prb.valid_until)
 			  AND rt.valid_from<=$6 AND (rt.valid_until IS NULL OR $6<rt.valid_until)
 
