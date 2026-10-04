@@ -67,7 +67,7 @@ type TrendSeries struct {
 	Baseline           *TrendPoint       `json:"baseline,omitempty"`
 	Delta              *int              `json:"delta,omitempty"`
 	Direction          TrendDirection    `json:"direction"`
-	ComparisonQuality  ComparisonQuality `json:"comparison_quality"`
+	ComparisonQuality ComparisonQuality `json:"comparison_quality"`
 }
 
 type TrendReader interface {
