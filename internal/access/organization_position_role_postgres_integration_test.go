@@ -126,11 +126,11 @@ func TestOrganizationWorkspaceRoleGovernanceKeepsMaterialRolesLocked(t *testing.
 		t.Fatalf("workspace role unexpectedly locked: %#v", roles["WORKSPACE_READER"])
 	}
 	for code, reason := range map[string]string{
-		"RESP_ROLE": "RESPONSIBILITY_ASSIGNMENT",
+		"RESP_ROLE":  "RESPONSIBILITY_ASSIGNMENT",
 		"GRANT_ROLE": "AUTHORITY_GRANT",
 		"ROUTE_ROLE": "AUTHORITY_ROUTE",
-		"SEG_ROLE": "SEGREGATION_RULE",
-		"ESC_ROLE": "ESCALATION_ROUTE",
+		"SEG_ROLE":   "SEGREGATION_RULE",
+		"ESC_ROLE":   "ESCALATION_ROUTE",
 	} {
 		role := roles[code]
 		if role.OrganizationEditable || !slices.Contains(role.OrganizationLockReasons, reason) {
