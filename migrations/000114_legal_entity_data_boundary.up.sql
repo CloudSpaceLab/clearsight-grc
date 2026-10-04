@@ -80,4 +80,22 @@ CREATE UNIQUE INDEX legal_entity_data_boundary_pending_idx
 CREATE INDEX legal_entity_data_boundary_revision_queue_idx
     ON legal_entity_data_boundary_revisions(tenant_id, legal_entity_id, status, created_at, id);
 
+ALTER TABLE governance_decisions
+    DROP CONSTRAINT IF EXISTS governance_decisions_object_type_check;
+ALTER TABLE governance_decisions
+    ADD CONSTRAINT governance_decisions_object_type_check
+    CHECK (object_type IN (
+        'ROUTING_POLICY',
+        'DELEGATION',
+        'SEGREGATION_RULE',
+        'SCIM_SOURCE',
+        'DIRECTORY_GROUP_ROLE_BINDING',
+        'ORGANIZATION_SCOPE',
+        'ORGANIZATION_SCOPE_REVISION',
+        'ORGANIZATION_POSITION',
+        'ORGANIZATION_POSITION_REVISION',
+        'LEGAL_ENTITY_DATA_BOUNDARY',
+        'LEGAL_ENTITY_DATA_BOUNDARY_REVISION'
+    ));
+
 COMMIT;
