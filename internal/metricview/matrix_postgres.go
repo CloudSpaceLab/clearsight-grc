@@ -11,14 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const (
-	RiskAppetiteMatrixRevision = "risk-appetite-matrix-v1"
-	AssuranceCoverageMatrixRevision = "assurance-coverage-matrix-v1"
-)
-
-var appetiteMatrixColumns = []string{"WITHIN", "APPROACHING", "BREACHED", "UNKNOWN"}
-var assuranceMatrixColumns = []string{"SUPPORTED", "PARTIAL", "FAILED", "UNKNOWN"}
-
 type MatrixRepository struct {
 	pool *pgxpool.Pool
 }
