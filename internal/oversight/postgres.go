@@ -29,7 +29,7 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 	var value Snapshot
 	var payload, highWater []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
+		SELECT os.id::text,os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
 		       os.coverage_population,os.coverage_excluded,os.coverage_unknown,os.payload,
 		       t.slug,le.code
 		FROM oversight_snapshots os
@@ -37,7 +37,7 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 		JOIN legal_entities le ON le.tenant_id=os.tenant_id AND le.id=os.legal_entity_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)
 		ORDER BY os.generated_at DESC,os.id DESC LIMIT 1`, scope.TenantID, scope.LegalEntityID).
-		Scan(&value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
+		Scan(&value.SnapshotID, &value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
 			&value.Coverage.Population, &value.Coverage.Excluded, &value.Coverage.Unknown, &payload,
 			&value.TenantID, &value.LegalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -215,6 +215,13 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, period
 		    OR ($3::uuid[] IS NOT NULL AND m.id IS NOT NULL AND m.organization_scope_id=ANY($3::uuid[])
 		      AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')))
 		  )`, scope.TenantID, scope.LegalEntityID, organizationScopeIDs).Scan(&value.Counts.RoutingFailures); err != nil {
+		return Snapshot{}, err
+	}
+	value.MetricMembers, err = r.buildMetricMembers(ctx, scope, now, organizationScopeIDs)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	if err := validateMetricMemberCounts(value); err != nil {
 		return Snapshot{}, err
 	}
 
