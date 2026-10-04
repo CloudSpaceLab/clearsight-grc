@@ -196,4 +196,15 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		WHERE metric_id='critical_high_open' AND revision=$1`, HomeDefinitionRevision); err == nil {
 		t.Fatal("metric definition mutation was accepted")
 	}
+
+	if _, err := pool.Exec(ctx, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID); err != nil {
+		t.Fatalf("retained metric observation blocked source snapshot retention cleanup: %v", err)
+	}
+	count, err = repository.countObservationsForSource(ctx, snapshotID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != len(homeDefinitions) {
+		t.Fatalf("retained observation count after source cleanup=%d", count)
+	}
 }
