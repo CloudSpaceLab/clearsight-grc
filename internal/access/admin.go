@@ -103,6 +103,7 @@ type PositionSummary struct {
 	OccupantName        string     `json:"occupant_name,omitempty"`
 	OccupantStatus      string     `json:"occupant_status,omitempty"`
 	RoleCodes           []string   `json:"role_codes"`
+	WorkspaceRoleCodes  []string   `json:"workspace_role_codes"`
 	ValidFrom           time.Time  `json:"valid_from"`
 	ValidUntil          *time.Time `json:"valid_until,omitempty"`
 	Version             int64      `json:"version"`
