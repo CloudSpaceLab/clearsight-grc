@@ -4,11 +4,13 @@ import { OversightWorkspace } from "./OversightWorkspace";
 import type { AttentionItem } from "../../types";
 
 const api = vi.hoisted(() => ({ loadOversight: vi.fn() }));
-const metricApi = vi.hoisted(() => ({ loadHomeMetrics: vi.fn() }));
+const metricApi = vi.hoisted(() => ({ loadHomeMetrics: vi.fn(), loadHomeMetricMembers: vi.fn() }));
 vi.mock("../../oversightApi", () => api);
 vi.mock("../../metricApi", () => metricApi);
 
 beforeEach(() => {
+  metricApi.loadHomeMetricMembers.mockReset();
+  metricApi.loadHomeMetricMembers.mockRejectedValue(new Error("Exact membership not configured"));
   metricApi.loadHomeMetrics.mockResolvedValue({
     generated_at: "2026-09-01T07:55:00Z",
     period_start: "2026-06-03T08:00:00Z",
@@ -57,6 +59,41 @@ function metric(id: string, label: string, value: number, filter: string) {
     freshness: "CURRENT", completeness: "PARTIAL", population: 42, excluded: 1, unknown: 2,
     generated_at: "2026-09-01T07:55:00Z", source_revision: "oversight-v4", definition_revision: "home-oversight-v2", basis: "CURRENT_POSTURE",
     drill: { workspace: "oversight", filter, consistency: "CURRENT_STATE" },
+  };
+}
+
+function exactMetric(id: string, label: string, value: number, filter: string) {
+  return {
+    ...metric(id, label, value, filter),
+    source_revision: "oversight-v5",
+    definition_revision: "home-oversight-v3",
+    drill: { workspace: "oversight", filter, consistency: "SOURCE_SNAPSHOT" },
+  };
+}
+
+function exactMetricBundle() {
+  return {
+    generated_at: "2026-09-01T07:55:00Z",
+    period_start: "2026-06-03T08:00:00Z",
+    period_end: "2026-09-01T08:00:00Z",
+    reporting_period: { start_date: "2026-06-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW", max_days: 365, historical_end_supported: false },
+    posture_as_of: "2026-09-01T07:55:00Z",
+    scope_id: "bank-ng",
+    scope_kind: "LEGAL_ENTITY",
+    freshness: "CURRENT",
+    completeness: "PARTIAL",
+    population: 42,
+    excluded: 1,
+    unknown: 2,
+    source_id: "8f700000-0000-4000-8000-000000000001",
+    source_revision: "oversight-v5",
+    definition_revision: "home-oversight-v3",
+    items: [
+      exactMetric("critical_high_open", "Critical and high", 7, "critical-high"),
+      exactMetric("overdue_open", "Overdue", 4, "overdue"),
+      exactMetric("routing_gaps", "Routing gaps", 2, "routing-gaps"),
+      exactMetric("outcome_failures", "Outcome failures", 1, "outcome-failures"),
+    ],
   };
 }
 
@@ -125,6 +162,94 @@ it("filters interventions from an accessible metric and keeps Today work availab
   expect(onOpenTodayItem).toHaveBeenCalledWith(todayItems[0]);
 });
 
+
+it("drills a retained v3 metric to the exact snapshot population with typed record actions", async () => {
+  const onOpenMatter = vi.fn();
+  const onOpenProgram = vi.fn();
+  metricApi.loadHomeMetrics.mockResolvedValueOnce(exactMetricBundle());
+  metricApi.loadHomeMetricMembers.mockResolvedValueOnce({
+    source_id: "8f700000-0000-4000-8000-000000000001",
+    metric_id: "routing_gaps",
+    definition_revision: "home-oversight-v3",
+    count: 2,
+    items: [
+      {
+        member_id: "8f700000-0000-4000-8000-000000000010",
+        target_type: "MATTER",
+        target_id: "8f700000-0000-4000-8000-000000000020",
+        target_title: "Assign control gap",
+        state: "READY",
+      },
+      {
+        member_id: "8f700000-0000-4000-8000-000000000011",
+        target_type: "PROGRAM",
+        target_id: "8f700000-0000-4000-8000-000000000021",
+        target_title: "Assign Program review",
+        state: "BLOCKED",
+      },
+    ],
+  });
+
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    onOpenMatter={onOpenMatter}
+    onOpenProgram={onOpenProgram}
+    metricFilter="routing-gaps"
+  />);
+
+  expect(await screen.findByText("2 exact records in this metric snapshot.")).toBeTruthy();
+  expect(screen.getByRole("table", { name: "Exact routing gaps snapshot members" })).toBeTruthy();
+  expect(screen.getByText("Assign control gap")).toBeTruthy();
+  expect(screen.getByText("Assign Program review")).toBeTruthy();
+  expect(metricApi.loadHomeMetricMembers).toHaveBeenCalledWith(
+    "routing_gaps",
+    "8f700000-0000-4000-8000-000000000001",
+    "home-oversight-v3",
+    undefined,
+    50,
+    expect.any(AbortSignal),
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: /Open record for Assign control gap/ }));
+  expect(onOpenMatter).toHaveBeenCalledWith("8f700000-0000-4000-8000-000000000020");
+  fireEvent.click(screen.getByRole("button", { name: /Open record for Assign Program review/ }));
+  expect(onOpenProgram).toHaveBeenCalledWith("8f700000-0000-4000-8000-000000000021");
+});
+
+it("fails closed when retained membership count disagrees with the selected card", async () => {
+  metricApi.loadHomeMetrics.mockResolvedValueOnce(exactMetricBundle());
+  metricApi.loadHomeMetricMembers.mockResolvedValueOnce({
+    source_id: "8f700000-0000-4000-8000-000000000001",
+    metric_id: "overdue_open",
+    definition_revision: "home-oversight-v3",
+    count: 3,
+    items: [],
+  });
+
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    onOpenMatter={vi.fn()}
+    metricFilter="overdue"
+  />);
+
+  expect(await screen.findByText("Exact snapshot detail is unavailable. The card value is unchanged.")).toBeTruthy();
+  expect(screen.queryByText(/exact records in this metric snapshot/i)).toBeNull();
+});
+
+it("keeps v2 current-state metric drills on the existing bounded intervention path", async () => {
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    onOpenMatter={vi.fn()}
+    metricFilter="overdue"
+  />);
+
+  await screen.findByRole("heading", { name: "Overdue interventions" });
+  expect(metricApi.loadHomeMetricMembers).not.toHaveBeenCalled();
+  expect(screen.getByText(/ranked issue shown for overdue interventions/i)).toBeTruthy();
+});
 
 it("applies one exact server-backed period to both Home reads and keeps the end date current", async () => {
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
