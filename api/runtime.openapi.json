@@ -2085,6 +2085,7 @@
       "get": {
         "operationId": "homeMetricMembers",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
         "parameters": [
           {"name":"metric_id","in":"path","required":true,"schema":{"type":"string"}},
           {"name":"source_id","in":"query","required":true,"schema":{"type":"string","format":"uuid"}},
