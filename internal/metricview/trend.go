@@ -11,9 +11,9 @@ import (
 
 const (
 	RawObservationRetention = 14 * 24 * time.Hour
-	DailyRollupRetention     = 730 * 24 * time.Hour
-	TrendMaxDays             = 365
-	TrendHourlyMaxDays       = 7
+	DailyRollupRetention    = 730 * 24 * time.Hour
+	TrendMaxDays            = 365
+	TrendHourlyMaxDays      = 7
 )
 
 var (
