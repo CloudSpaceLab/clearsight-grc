@@ -2100,6 +2100,22 @@
         }
       }
     },
+    "/api/v1/metrics/home/{metric_id}/trend": {
+      "get": {
+        "operationId": "homeMetricTrend",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "parameters": [
+          {"name":"metric_id","in":"path","required":true,"schema":{"type":"string"}},
+          {"name":"start_date","in":"query","required":true,"schema":{"type":"string","format":"date"}},
+          {"name":"end_date","in":"query","schema":{"type":"string","format":"date"}}
+        ],
+        "responses": {
+          "200": {"description": "Bounded retained trend and comparison for one Home metric."},
+          "404": {"description": "No retained history is available for the requested metric and period."}
+        }
+      }
+    },
     "/api/v1/reports/definitions": {
       "get": {
         "operationId": "listReportDefinitions",
