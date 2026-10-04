@@ -107,7 +107,7 @@ func (r *MatrixRepository) AssuranceCoverageMatrix(ctx context.Context, tenantID
 	}
 	rows, err := r.pool.Query(ctx, `
 		WITH selected_risks AS (
-			SELECT r.id,r.tenant_id,r.legal_entity_id,r.category
+			SELECT r.id,r.tenant_id,r.legal_entity_id,r.category,r.version
 			FROM risks r
 			JOIN tenants t ON t.id=r.tenant_id
 			JOIN legal_entities le ON le.tenant_id=r.tenant_id AND le.id=r.legal_entity_id
@@ -142,6 +142,7 @@ func (r *MatrixRepository) AssuranceCoverageMatrix(ctx context.Context, tenantID
 				WHERE risk.id=risk_link.risk_id
 				  AND risk.tenant_id=risk_link.tenant_id
 				  AND risk.legal_entity_id=risk_link.legal_entity_id
+				  AND risk.version=risk_link.risk_version
 			)
 		), contract_facts AS (
 			SELECT risk.id risk_id,
