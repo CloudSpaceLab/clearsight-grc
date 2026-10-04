@@ -165,16 +165,10 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, period
 		SELECT count(*),
 		       count(*) FILTER (WHERE scope_state='EXCLUDED'),
 		       count(*) FILTER (WHERE scope_state='UNKNOWN'),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND priority>=4),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND due_at<$3::timestamptz),
 		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND due_at>=$3::timestamptz AND due_at<$3::timestamptz+interval '7 days'),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND owner_principal_id IS NULL),
-		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND EXISTS (
-		         SELECT 1 FROM verification_results vr WHERE vr.tenant_id=matters.tenant_id AND vr.matter_id=matters.id AND vr.result IN ('FAIL','INCONCLUSIVE')
-		           AND vr.observed_at=(SELECT max(latest.observed_at) FROM verification_results latest WHERE latest.tenant_id=vr.tenant_id AND latest.matter_id=vr.matter_id AND latest.contract_id=vr.contract_id)
-		       ))
+		       count(*) FILTER (WHERE scope_state='INCLUDED' AND status NOT IN ('CLOSED','CANCELLED') AND owner_principal_id IS NULL)
 		FROM scoped matters`, scope.TenantID, scope.LegalEntityID, now, organizationScopeIDs).
-		Scan(&value.Coverage.Population, &excluded, &unknown, &value.Counts.CriticalHigh, &value.Counts.Overdue, &value.Counts.DueSoon, &value.Counts.Unassigned, &value.Counts.OutcomeFailures)
+		Scan(&value.Coverage.Population, &excluded, &unknown, &value.Counts.DueSoon, &value.Counts.Unassigned)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -207,25 +201,11 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, period
 	); err != nil {
 		return Snapshot{}, err
 	}
-	if err := r.pool.QueryRow(ctx, `
-		SELECT count(*) FROM workflow_tasks wt JOIN workflow_instances wi ON wi.tenant_id=wt.tenant_id AND wi.id=wt.workflow_id
-		LEFT JOIN matters m ON wi.subject_type='MATTER' AND m.tenant_id=wi.tenant_id AND m.id=wi.subject_id
-		LEFT JOIN programs p ON wi.subject_type='PROGRAM' AND p.tenant_id=wi.tenant_id AND p.id=wi.subject_id
-		WHERE wt.tenant_id=$1::uuid AND wt.status IN ('READY','BLOCKED','ESCALATED') AND wt.principal_id IS NULL
-		  AND COALESCE(m.legal_entity_id,p.legal_entity_id)=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
-		  AND (
-		    ($3::uuid[] IS NULL AND ((m.id IS NOT NULL AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')))
-		      OR (p.id IS NOT NULL AND (NOT (p.scope ? 'access') OR upper(btrim(p.scope->>'access')) IN ('PUBLIC','INTERNAL')))))
-		    OR ($3::uuid[] IS NOT NULL AND m.id IS NOT NULL AND m.organization_scope_id=ANY($3::uuid[])
-		      AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')))
-		  )`, scope.TenantID, scope.LegalEntityID, organizationScopeIDs).Scan(&value.Counts.RoutingFailures); err != nil {
-		return Snapshot{}, err
-	}
 	value.MetricMembers, err = r.buildMetricMembers(ctx, scope, now, organizationScopeIDs)
 	if err != nil {
 		return Snapshot{}, err
 	}
-	if err := validateMetricMemberCounts(value); err != nil {
+	if err := applyMetricMemberCounts(&value); err != nil {
 		return Snapshot{}, err
 	}
 
