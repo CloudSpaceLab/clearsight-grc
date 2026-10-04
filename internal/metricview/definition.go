@@ -27,20 +27,43 @@ var homeDefinitions = [...]Definition{
 	{
 		ID: "critical_high_open", Revision: HomeDefinitionRevision, Label: "Critical and high", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
-		Drill: DrillTarget{Workspace: "oversight", Filter: "critical-high", Consistency: DrillCurrentState},
+		Drill: DrillTarget{Workspace: "oversight", Filter: "critical-high", Consistency: DrillSourceSnapshot},
 	},
 	{
 		ID: "overdue_open", Revision: HomeDefinitionRevision, Label: "Overdue", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
-		Drill: DrillTarget{Workspace: "oversight", Filter: "overdue", Consistency: DrillCurrentState},
+		Drill: DrillTarget{Workspace: "oversight", Filter: "overdue", Consistency: DrillSourceSnapshot},
 	},
 	{
 		ID: "routing_gaps", Revision: HomeDefinitionRevision, Label: "Routing gaps", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
-		Drill: DrillTarget{Workspace: "oversight", Filter: "routing-gaps", Consistency: DrillCurrentState},
+		Drill: DrillTarget{Workspace: "oversight", Filter: "routing-gaps", Consistency: DrillSourceSnapshot},
 	},
 	{
 		ID: "outcome_failures", Revision: HomeDefinitionRevision, Label: "Outcome failures", Unit: "COUNT",
+		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
+		Drill: DrillTarget{Workspace: "oversight", Filter: "outcome-failures", Consistency: DrillSourceSnapshot},
+	},
+}
+
+var homeCurrentStateDefinitions = [...]Definition{
+	{
+		ID: "critical_high_open", Revision: HomeCurrentStateDefinitionRevision, Label: "Critical and high", Unit: "COUNT",
+		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
+		Drill: DrillTarget{Workspace: "oversight", Filter: "critical-high", Consistency: DrillCurrentState},
+	},
+	{
+		ID: "overdue_open", Revision: HomeCurrentStateDefinitionRevision, Label: "Overdue", Unit: "COUNT",
+		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
+		Drill: DrillTarget{Workspace: "oversight", Filter: "overdue", Consistency: DrillCurrentState},
+	},
+	{
+		ID: "routing_gaps", Revision: HomeCurrentStateDefinitionRevision, Label: "Routing gaps", Unit: "COUNT",
+		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
+		Drill: DrillTarget{Workspace: "oversight", Filter: "routing-gaps", Consistency: DrillCurrentState},
+	},
+	{
+		ID: "outcome_failures", Revision: HomeCurrentStateDefinitionRevision, Label: "Outcome failures", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
 		Drill: DrillTarget{Workspace: "oversight", Filter: "outcome-failures", Consistency: DrillCurrentState},
 	},
