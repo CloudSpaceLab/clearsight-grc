@@ -105,7 +105,7 @@ CREATE TABLE metric_runtime_membership_sets (
     tenant_id uuid NOT NULL,
     legal_entity_id uuid NOT NULL,
     organization_scope_id uuid,
-    definition_revision text NOT NULL,
+    definition_revision text NOT NULL CHECK (definition_revision='home-oversight-v3'),
     source_revision text NOT NULL,
     request_fingerprint text NOT NULL,
     generated_at timestamptz NOT NULL,
@@ -121,7 +121,8 @@ CREATE TABLE metric_runtime_membership_sets (
     CHECK (source_revision=btrim(source_revision) AND source_revision<>''),
     CHECK (request_fingerprint=btrim(request_fingerprint) AND request_fingerprint<>''),
     CHECK (period_start<=period_end),
-    CHECK (expires_at>generated_at)
+    CHECK (expires_at>generated_at),
+    UNIQUE (source_id,definition_revision)
 );
 
 CREATE UNIQUE INDEX metric_runtime_membership_fingerprint_idx
@@ -143,8 +144,8 @@ CREATE TABLE metric_runtime_memberships (
     state text NOT NULL,
     PRIMARY KEY (source_id,metric_id,definition_revision,member_id),
     CONSTRAINT metric_runtime_membership_set_fk
-        FOREIGN KEY (source_id)
-        REFERENCES metric_runtime_membership_sets(source_id)
+        FOREIGN KEY (source_id,definition_revision)
+        REFERENCES metric_runtime_membership_sets(source_id,definition_revision)
         ON DELETE CASCADE,
     CONSTRAINT metric_runtime_membership_definition_fk
         FOREIGN KEY (metric_id,definition_revision)
