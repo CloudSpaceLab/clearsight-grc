@@ -19,9 +19,9 @@ type metricMembershipReaderStub struct {
 	retained       oversight.Snapshot
 	retainSourceID string
 	retainErr      error
-	got struct {
+	got            struct {
 		tenantID, legalEntityID, organizationScopeID, sourceID, metricID, revision, principalID, cursor string
-		limit                                                                                          int
+		limit                                                                                           int
 	}
 }
 
