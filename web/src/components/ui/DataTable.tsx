@@ -28,6 +28,7 @@ export type DataTableProps<Row> = {
   selectedKey?: string;
   onSelectionChange?: (row: Row) => void;
   onRowAction?: (row: Row) => void;
+  isRowActionDisabled?: (row: Row) => boolean;
   /**
    * Visible text for the per-row action. A table that offers a row action must
    * show a control for it: an action reachable only by double-click or a
@@ -55,10 +56,12 @@ export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, sele
             onClick={(event) => {
               if (isRowSurface(event.target)) event.currentTarget.focus();
             }}
-            onDoubleClick={(event) => { if (isRowSurface(event.target)) onRowAction?.(row); }}
+            onDoubleClick={(event) => {
+              if (isRowSurface(event.target) && isRowActionDisabled?.(row) !== true) onRowAction?.(row);
+            }}
             onKeyDown={(event) => {
               if (event.target !== event.currentTarget) return;
-              if (onRowAction && (event.key === " " || event.key === "Enter")) {
+              if (onRowAction && isRowActionDisabled?.(row) !== true && (event.key === " " || event.key === "Enter")) {
                 event.preventDefault(); onRowAction(row);
               }
               if (onSelectionChange && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
