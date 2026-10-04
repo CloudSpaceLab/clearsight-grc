@@ -12,6 +12,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const runtimeMembershipTTL = "24 hours"
@@ -72,15 +73,26 @@ func (r *MembershipRepository) RetainRuntimeSnapshot(ctx context.Context, snapsh
 	).Scan(&sourceID)
 	switch {
 	case err == nil:
+		var sourceUUID pgtype.UUID
+		if scanErr := sourceUUID.Scan(sourceID); scanErr != nil || !sourceUUID.Valid {
+			return "", ErrMetricMembershipInvalid
+		}
 		rows := make([][]any, 0, len(snapshot.MetricMembers))
 		for _, member := range snapshot.MetricMembers {
+			var memberUUID, targetUUID pgtype.UUID
+			if scanErr := memberUUID.Scan(member.MemberID); scanErr != nil || !memberUUID.Valid {
+				return "", ErrMetricMembershipInvalid
+			}
+			if scanErr := targetUUID.Scan(member.TargetID); scanErr != nil || !targetUUID.Valid {
+				return "", ErrMetricMembershipInvalid
+			}
 			rows = append(rows, []any{
-				sourceID,
+				sourceUUID,
 				member.MetricID,
 				HomeDefinitionRevision,
-				member.MemberID,
+				memberUUID,
 				member.TargetType,
-				member.TargetID,
+				targetUUID,
 				member.TargetTitle,
 				member.State,
 			})
