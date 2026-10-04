@@ -1,18 +1,51 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadHomeMetrics, type HomeMetricBundle } from "../../metricApi";
+import { loadHomeMetricMembers, loadHomeMetrics, type HomeMetricBundle, type HomeMetricMemberPage } from "../../metricApi";
 import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
 import type { ReportingPeriod, ReportingPeriodQuery } from "../../reportingPeriod";
 import { Button, DataTable, EmptyState, MetricCard, Notice, Tabs } from "../ui";
 import type { AttentionItem } from "../../types";
 import { OversightPeriodPicker } from "./OversightPeriodPicker";
+import { MetricMemberDrill } from "./MetricMemberDrill";
 import "../../oversight.css";
 
 type DetailView = "pressure" | "outlook" | "performance";
 export type OversightMetricFilter = HomeMetricFilter;
 type TodayState = "loading" | "live" | "unavailable";
 
-export function OversightWorkspace({ organizationName, legalEntityName, organizationScopeID, organizationScopeName, onOpenMatter, loadSnapshot = loadOversight, loadMetrics = loadHomeMetrics, metricFilter = "all", onMetricFilterChange, todayItems = [], todayState = "loading", onOpenTodayItem }: { organizationName: string; legalEntityName: string; organizationScopeID?: string; organizationScopeName?: string; onOpenMatter: (id: string) => void; loadSnapshot?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<OversightSnapshot>; loadMetrics?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<HomeMetricBundle>; metricFilter?: OversightMetricFilter; onMetricFilterChange?: (filter: OversightMetricFilter) => void; todayItems?: AttentionItem[]; todayState?: TodayState; onOpenTodayItem?: (item: AttentionItem) => void }) {
+type OversightWorkspaceProps = {
+  organizationName: string;
+  legalEntityName: string;
+  organizationScopeID?: string;
+  organizationScopeName?: string;
+  onOpenMatter: (id: string) => void;
+  onOpenProgram?: (id: string) => void;
+  loadSnapshot?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<OversightSnapshot>;
+  loadMetrics?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<HomeMetricBundle>;
+  loadMetricMembers?: typeof loadHomeMetricMembers;
+  metricFilter?: OversightMetricFilter;
+  onMetricFilterChange?: (filter: OversightMetricFilter) => void;
+  todayItems?: AttentionItem[];
+  todayState?: TodayState;
+  onOpenTodayItem?: (item: AttentionItem) => void;
+};
+
+export function OversightWorkspace({
+  organizationName,
+  legalEntityName,
+  organizationScopeID,
+  organizationScopeName,
+  onOpenMatter,
+  onOpenProgram,
+  loadSnapshot = loadOversight,
+  loadMetrics = loadHomeMetrics,
+  loadMetricMembers = loadHomeMetricMembers,
+  metricFilter = "all",
+  onMetricFilterChange,
+  todayItems = [],
+  todayState = "loading",
+  onOpenTodayItem,
+}: OversightWorkspaceProps) {
   const [snapshot, setSnapshot] = useState<OversightSnapshot | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [metrics, setMetrics] = useState<HomeMetricBundle | null>(null);
@@ -22,9 +55,71 @@ export function OversightWorkspace({ organizationName, legalEntityName, organiza
   const [periodState, setPeriodState] = useState<"idle" | "changing">("idle");
   const [periodError, setPeriodError] = useState("");
   const [activePeriod, setActivePeriod] = useState<ReportingPeriodQuery>();
+  const [memberPage, setMemberPage] = useState<HomeMetricMemberPage | null>(null);
+  const [memberState, setMemberState] = useState<"idle" | "loading" | "live" | "unavailable">("idle");
+  const [memberCursors, setMemberCursors] = useState<string[]>([]);
+  const [memberRetry, setMemberRetry] = useState(0);
   const selectedMetricFilter = onMetricFilterChange ? metricFilter : localMetricFilter;
+  const selectedMetric = selectedMetricFilter === "all"
+    ? undefined
+    : metrics?.items.find((item) => homeMetricFilter(item.drill.filter) === selectedMetricFilter);
+  const exactMetricSourceID = selectedMetric?.drill.consistency === "SOURCE_SNAPSHOT" ? metrics?.source_id : undefined;
+  const exactMetricID = exactMetricSourceID ? selectedMetric?.id : undefined;
+  const exactDefinitionRevision = exactMetricSourceID ? selectedMetric?.definition_revision : undefined;
+  const exactMetricValue = exactMetricSourceID ? selectedMetric?.value : undefined;
+  const exactDrillIdentity = exactMetricSourceID && exactMetricID && exactDefinitionRevision
+    ? `${exactMetricSourceID}:${exactMetricID}:${exactDefinitionRevision}`
+    : "";
+  const memberCursor = memberCursors[memberCursors.length - 1];
 
   useEffect(() => { setLocalMetricFilter(metricFilter); }, [metricFilter]);
+
+  useEffect(() => {
+    setMemberCursors([]);
+    setMemberPage(null);
+    setMemberState(exactDrillIdentity ? "loading" : "idle");
+  }, [exactDrillIdentity]);
+
+  useEffect(() => {
+    if (!exactDrillIdentity || !exactMetricSourceID || !exactMetricID || !exactDefinitionRevision || exactMetricValue === undefined) return;
+    const controller = new AbortController();
+    setMemberState("loading");
+    void loadMetricMembers(
+      exactMetricID,
+      exactMetricSourceID,
+      exactDefinitionRevision,
+      memberCursor,
+      50,
+      controller.signal,
+    ).then((page) => {
+      if (controller.signal.aborted) return;
+      const valid = page.source_id === exactMetricSourceID
+        && page.metric_id === exactMetricID
+        && page.definition_revision === exactDefinitionRevision
+        && page.count === exactMetricValue;
+      if (!valid) {
+        setMemberPage(null);
+        setMemberState("unavailable");
+        return;
+      }
+      setMemberPage(page);
+      setMemberState("live");
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      setMemberPage(null);
+      setMemberState("unavailable");
+    });
+    return () => controller.abort();
+  }, [
+    exactDrillIdentity,
+    exactMetricSourceID,
+    exactMetricID,
+    exactDefinitionRevision,
+    exactMetricValue,
+    memberCursor,
+    memberRetry,
+    loadMetricMembers,
+  ]);
 
   function selectMetric(filter: OversightMetricFilter) {
     if (onMetricFilterChange) onMetricFilterChange(filter);
