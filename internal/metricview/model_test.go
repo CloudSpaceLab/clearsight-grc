@@ -66,7 +66,7 @@ func TestFromOversightUsesExactDrillContractForRetainedSnapshot(t *testing.T) {
 		GeneratedAt: now, PeriodStart: now.Add(-24 * time.Hour), PeriodEnd: now,
 		ProjectionVersion: oversight.ProjectionVersion, Freshness: oversight.FreshnessCurrent,
 		Coverage: oversight.Coverage{Population: 3, Unknown: &unknown},
-		Counts: oversight.Counts{CriticalHigh: 2},
+		Counts:   oversight.Counts{CriticalHigh: 2},
 	})
 	if bundle.SourceID != "snapshot-1" || bundle.DefinitionRevision != HomeDefinitionRevision {
 		t.Fatalf("retained bundle=%#v", bundle)
