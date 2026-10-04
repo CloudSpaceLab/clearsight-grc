@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -58,10 +59,17 @@ func TestGroupOversightHandlerReturnsOnlyAuthorizedAggregateFacts(t *testing.T) 
 	if response.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
-	if !strings.Contains(response.Body.String(), "\"critical_high\":5") ||
-		strings.Contains(response.Body.String(), "Restricted") ||
-		strings.Contains(response.Body.String(), "999") {
-		t.Fatalf("unsafe group response: %s", response.Body.String())
+	var value oversight.GroupSnapshot
+	if err := json.NewDecoder(response.Body).Decode(&value); err != nil {
+		t.Fatal(err)
+	}
+	if value.Counts.CriticalHigh != 5 || len(value.Children) != 2 {
+		t.Fatalf("unsafe group response: %#v", value)
+	}
+	for _, child := range value.Children {
+		if child.LegalEntityID == "entity-c" || child.LegalEntityName == "Restricted" || child.Counts.CriticalHigh == 999 {
+			t.Fatalf("restricted sibling leaked into group response: %#v", child)
+		}
 	}
 }
 
