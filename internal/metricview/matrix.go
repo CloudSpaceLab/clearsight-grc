@@ -20,6 +20,14 @@ const (
 	MatrixAssuranceCoverage MatrixKind = "ASSURANCE_COVERAGE"
 )
 
+const (
+	RiskAppetiteMatrixRevision = "risk-appetite-matrix-v1"
+	AssuranceCoverageMatrixRevision = "assurance-coverage-matrix-v1"
+)
+
+var appetiteMatrixColumns = []string{"WITHIN", "APPROACHING", "BREACHED", "UNKNOWN"}
+var assuranceMatrixColumns = []string{"SUPPORTED", "PARTIAL", "FAILED", "UNKNOWN"}
+
 type MatrixCell struct {
 	State string `json:"state"`
 	Count int `json:"count"`
