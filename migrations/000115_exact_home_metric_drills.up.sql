@@ -25,7 +25,7 @@ ALTER TABLE oversight_snapshots
 
 CREATE TABLE oversight_metric_members (
     snapshot_id uuid NOT NULL REFERENCES oversight_snapshots(id) ON DELETE CASCADE,
-    metric_id text NOT NULL,
+    metric_id text NOT NULL CHECK (metric_id IN ('critical_high_open','overdue_open','routing_gaps','outcome_failures')),
     member_type text NOT NULL CHECK (member_type IN ('MATTER','WORKFLOW_TASK')),
     member_id uuid NOT NULL,
     subject_type text NOT NULL CHECK (subject_type IN ('MATTER','PROGRAM')),
