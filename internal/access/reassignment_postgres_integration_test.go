@@ -94,6 +94,22 @@ func TestPostgresReassignmentRequiresCompleteActiveReportingChain(t *testing.T) 
 		{name: "ungoverned vacancy does not invent handoff lineage", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET occupant_principal_id=NULL WHERE id=$1::uuid`, f.positions[0])
 		}},
+		{name: "multiple departed positions are ambiguous", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
+			f.governedOwnerTransition(t, "")
+			var secondPosition string
+			if err := f.pool.QueryRow(f.ctx, `
+				INSERT INTO org_positions(
+					tenant_id,legal_entity_id,code,title,parent_position_id,occupant_principal_id,valid_from,version
+				) VALUES(
+					$1::uuid,$2::uuid,'SECOND-OWNER-POSITION','Second owner position',$3::uuid,$4::uuid,
+					clock_timestamp()-interval '1 day',1
+				) RETURNING id::text`,
+				f.tenant, f.entity, f.positions[1], f.principals[0],
+			).Scan(&secondPosition); err != nil {
+				t.Fatal(err)
+			}
+			f.governedPositionOccupantTransition(t, secondPosition, "Second owner position", f.positions[1], 1, "")
+		}},
 		{name: "revoked owner position", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.positions[0])
 		}},
@@ -203,15 +219,28 @@ func newReassignmentFixture(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 
 func (f *reassignmentFixture) governedOwnerTransition(t *testing.T, occupantPrincipalID string) {
 	t.Helper()
-	if len(f.positions) < 3 || len(f.principals) < 3 {
-		t.Fatal("governed owner transition requires owner, manager and checker positions")
+	if len(f.positions) < 2 {
+		t.Fatal("governed owner transition requires an owner and manager position")
+	}
+	f.governedPositionOccupantTransition(t, f.positions[0], "POSITION-0", f.positions[1], 1, occupantPrincipalID)
+}
+
+func (f *reassignmentFixture) governedPositionOccupantTransition(
+	t *testing.T,
+	positionID, title, parentPositionID string,
+	expectedVersion int64,
+	occupantPrincipalID string,
+) {
+	t.Helper()
+	if len(f.principals) < 3 {
+		t.Fatal("governed position transition requires distinct maker and checker principals")
 	}
 	admin := NewPostgresAdministrator(f.pool)
 	revision, err := admin.ProposeOrganizationPosition(f.ctx, ProposeOrganizationPositionInput{
 		TenantID: f.tenant, LegalEntityID: f.entity,
-		PositionID: f.positions[0], Operation: OrganizationPositionUpdate,
-		Title: "POSITION-0", ParentPositionID: f.positions[1],
-		OccupantPrincipalID: occupantPrincipalID, ExpectedVersion: 1,
+		PositionID: positionID, Operation: OrganizationPositionUpdate,
+		Title: title, ParentPositionID: parentPositionID,
+		OccupantPrincipalID: occupantPrincipalID, ExpectedVersion: expectedVersion,
 		ActorID: f.principals[1],
 	})
 	if err != nil {
