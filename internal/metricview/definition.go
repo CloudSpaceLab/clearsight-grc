@@ -1,5 +1,7 @@
 package metricview
 
+import "github.com/CloudSpaceLab/clearsight-grc/internal/metricid"
+
 type AggregationRule string
 
 const (
@@ -25,22 +27,22 @@ type Definition struct {
 
 var homeDefinitions = [...]Definition{
 	{
-		ID: "critical_high_open", Revision: HomeDefinitionRevision, Label: "Critical and high", Unit: "COUNT",
+		ID: metricid.CriticalHighOpen, Revision: HomeDefinitionRevision, Label: "Critical and high", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
 		Drill: DrillTarget{Workspace: "oversight", Filter: "critical-high", Consistency: DrillCurrentState},
 	},
 	{
-		ID: "overdue_open", Revision: HomeDefinitionRevision, Label: "Overdue", Unit: "COUNT",
+		ID: metricid.OverdueOpen, Revision: HomeDefinitionRevision, Label: "Overdue", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
 		Drill: DrillTarget{Workspace: "oversight", Filter: "overdue", Consistency: DrillCurrentState},
 	},
 	{
-		ID: "routing_gaps", Revision: HomeDefinitionRevision, Label: "Routing gaps", Unit: "COUNT",
+		ID: metricid.RoutingGaps, Revision: HomeDefinitionRevision, Label: "Routing gaps", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
 		Drill: DrillTarget{Workspace: "oversight", Filter: "routing-gaps", Consistency: DrillCurrentState},
 	},
 	{
-		ID: "outcome_failures", Revision: HomeDefinitionRevision, Label: "Outcome failures", Unit: "COUNT",
+		ID: metricid.OutcomeFailures, Revision: HomeDefinitionRevision, Label: "Outcome failures", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
 		Drill: DrillTarget{Workspace: "oversight", Filter: "outcome-failures", Consistency: DrillCurrentState},
 	},
