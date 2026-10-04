@@ -16,6 +16,7 @@ import {
   rejectOrganizationPosition,
   rejectLegalEntityDataBoundary,
   rejectOrganizationScope,
+  restoreOrganizationPosition,
   retireGroupRoleBinding,
   revokeIdentitySource,
   rotateIdentitySourceToken,
