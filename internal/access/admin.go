@@ -211,6 +211,40 @@ type ProposeOrganizationPositionInput struct {
 	RestoredFromRevisionID string                        `json:"-"`
 }
 
+type OrganizationPositionRouteSnapshot struct {
+	Status         string   `json:"status"`
+	CandidateIDs   []string `json:"candidate_ids"`
+	PolicyVersion string   `json:"policy_version,omitempty"`
+}
+
+type OrganizationPositionRouteScenario struct {
+	ObjectType     string                            `json:"object_type"`
+	ObjectID       string                            `json:"object_id"`
+	Responsibility string                            `json:"responsibility"`
+	DecisionType   string                            `json:"decision_type,omitempty"`
+	Materiality    int                               `json:"materiality"`
+	Current        OrganizationPositionRouteSnapshot `json:"current"`
+	Proposed       OrganizationPositionRouteSnapshot `json:"proposed"`
+	Changed        bool                              `json:"changed"`
+}
+
+type OrganizationPositionRouteSimulation struct {
+	RevisionID            string                              `json:"revision_id"`
+	PositionID            string                              `json:"position_id"`
+	SourcePositionVersion int64                               `json:"source_position_version"`
+	EffectiveAt           time.Time                           `json:"effective_at"`
+	Checked                int                                 `json:"checked"`
+	Truncated              bool                                `json:"truncated"`
+	Scenarios              []OrganizationPositionRouteScenario `json:"scenarios"`
+}
+
+type SimulateOrganizationPositionInput struct {
+	TenantID      string `json:"tenant_id"`
+	LegalEntityID string `json:"legal_entity_id"`
+	RevisionID    string `json:"revision_id"`
+	ActorID       string `json:"-"`
+}
+
 type RestoreOrganizationPositionInput struct {
 	TenantID      string `json:"tenant_id"`
 	LegalEntityID string `json:"legal_entity_id"`
@@ -348,6 +382,7 @@ type Administrator interface {
 	RestoreOrganizationPosition(context.Context, RestoreOrganizationPositionInput) (OrganizationPositionRevisionSummary, error)
 	ApproveOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
 	RejectOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
+	SimulateOrganizationPosition(context.Context, SimulateOrganizationPositionInput) (OrganizationPositionRouteSimulation, error)
 	ProposeOrganizationPositionRole(context.Context, ProposeOrganizationPositionRoleInput) (OrganizationPositionRoleRevisionSummary, error)
 	ApproveOrganizationPositionRole(context.Context, DecideOrganizationPositionRoleInput) error
 	RejectOrganizationPositionRole(context.Context, DecideOrganizationPositionRoleInput) error
