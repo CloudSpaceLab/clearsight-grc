@@ -240,6 +240,22 @@ func (a *API) proposeOrganizationPosition(w http.ResponseWriter, r *http.Request
 	httpx.WriteJSON(w, http.StatusCreated, revision)
 }
 
+func (a *API) restoreOrganizationPosition(w http.ResponseWriter, r *http.Request) {
+	actor, ok := organizationPositionAdminActor(w, r, a.deps.AccessAdmin)
+	if !ok {
+		return
+	}
+	revision, err := a.deps.AccessAdmin.RestoreOrganizationPosition(r.Context(), access.RestoreOrganizationPositionInput{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
+		RevisionID: r.PathValue("id"), ActorID: actor.PrincipalID,
+	})
+	if err != nil {
+		writeIdentityAccessError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, revision)
+}
+
 func (a *API) approveOrganizationPosition(w http.ResponseWriter, r *http.Request) {
 	a.decideOrganizationPosition(w, r, true)
 }
