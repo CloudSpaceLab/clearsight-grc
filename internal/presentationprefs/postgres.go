@@ -51,7 +51,17 @@ func (r *PostgresRepository) Upsert(ctx context.Context, value Stored, expected 
 		)
 		SELECT t.id,$2::uuid,$3,$4,1
 		FROM tenants t
-		WHERE (t.id::text=$1 OR t.slug=$1) AND $5=0
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (
+		    $5=0
+		    OR EXISTS (
+		      SELECT 1
+		      FROM user_presentation_preferences current
+		      WHERE current.tenant_id=t.id
+		        AND current.principal_id=$2::uuid
+		        AND current.version=$5
+		    )
+		  )
 		ON CONFLICT(tenant_id,principal_id) DO UPDATE
 		SET home_focus=EXCLUDED.home_focus,
 		    portfolio_lens=EXCLUDED.portfolio_lens,
