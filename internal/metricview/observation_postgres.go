@@ -36,7 +36,7 @@ type sourceSnapshot struct {
 	Value    oversight.Snapshot
 }
 
-func (m *ObservationMaintainer) Maintain(ctx context.Context, _ time.Time, limit int) (int, error) {
+func (m *ObservationMaintainer) Maintain(ctx context.Context, now time.Time, limit int) (int, error) {
 	if m == nil || m.Repository == nil || m.Repository.pool == nil || ctx == nil {
 		return 0, ErrInvalidObservation
 	}
@@ -73,6 +73,9 @@ func (m *ObservationMaintainer) Maintain(ctx context.Context, _ time.Time, limit
 		if inserted {
 			completed++
 		}
+	}
+	if err := m.Repository.maintainTrendRetention(ctx, now, limit); err != nil {
+		return completed, err
 	}
 	return completed, nil
 }
