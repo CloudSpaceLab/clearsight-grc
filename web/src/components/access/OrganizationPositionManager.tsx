@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
 import type {
   IdentityPerson,
+  IdentityRole,
   OrganizationPosition,
   OrganizationPositionRevision,
+  OrganizationPositionRoleRevision,
   OrganizationScope,
   ProposeOrganizationPositionInput,
+  ProposeOrganizationPositionRoleInput,
 } from "../../identityAccessApi";
 import { Button, FocusedSheet, SelectField, StatusBadge, TextArea, TextField } from "../ui";
 
@@ -17,6 +20,11 @@ type DecisionState = {
   revision: OrganizationPositionRevision;
 };
 
+type RoleDecisionState = {
+  action: "approve" | "reject";
+  revision: OrganizationPositionRoleRevision;
+};
+
 type Props = {
   positions: OrganizationPosition[];
   allPositions: OrganizationPosition[];
@@ -24,6 +32,8 @@ type Props = {
   people: IdentityPerson[];
   revisions: OrganizationPositionRevision[];
   history: OrganizationPositionRevision[];
+  roleRevisions: OrganizationPositionRoleRevision[];
+  roles: IdentityRole[];
   actorPrincipalID: string;
   canConfigure: boolean;
   isBusy?: boolean;
@@ -32,6 +42,9 @@ type Props = {
   onApprove: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onReject: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onRestore?: (revision: OrganizationPositionRevision) => Promise<boolean>;
+  onProposeRole?: (input: ProposeOrganizationPositionRoleInput) => Promise<boolean>;
+  onApproveRole?: (revision: OrganizationPositionRoleRevision, rationale: string) => Promise<boolean>;
+  onRejectRole?: (revision: OrganizationPositionRoleRevision, rationale: string) => Promise<boolean>;
 };
 
 export function OrganizationPositionManager({
@@ -41,6 +54,8 @@ export function OrganizationPositionManager({
   people,
   revisions,
   history,
+  roleRevisions,
+  roles,
   actorPrincipalID,
   canConfigure,
   isBusy = false,
@@ -49,13 +64,23 @@ export function OrganizationPositionManager({
   onApprove,
   onReject,
   onRestore,
+  onProposeRole,
+  onApproveRole,
+  onRejectRole,
 }: Props) {
   const [editor, setEditor] = useState<EditorState>();
   const [decision, setDecision] = useState<DecisionState>();
+  const [rolePosition, setRolePosition] = useState<OrganizationPosition>();
+  const [roleDecision, setRoleDecision] = useState<RoleDecisionState>();
   const pendingByPosition = useMemo(
     () => new Map(revisions.filter((item) => item.status === "PENDING").map((item) => [item.position_id, item])),
     [revisions],
   );
+  const pendingRoleByPosition = useMemo(
+    () => new Map(roleRevisions.filter((item) => item.status === "PENDING").map((item) => [item.position_id, item])),
+    [roleRevisions],
+  );
+  const roleByCode = useMemo(() => new Map(roles.map((role) => [role.code, role])), [roles]);
   const positionByID = useMemo(() => new Map(allPositions.map((position) => [position.id, position])), [allPositions]);
   const restorableHistory = useMemo(
     () => history.filter((item) => item.status === "APPLIED" && item.operation !== "RETIRE" && positionByID.has(item.position_id)).slice(0, 20),
@@ -81,6 +106,26 @@ export function OrganizationPositionManager({
           {canConfigure && !own && <div className="identity-scope-change-actions">
             <Button size="compact" variant="secondary" onPress={() => setDecision({ action: "approve", revision })}>Approve</Button>
             <Button size="compact" variant="quiet" onPress={() => setDecision({ action: "reject", revision })}>Reject</Button>
+          </div>}
+          {own && <small>Awaiting approval</small>}
+        </li>;
+      })}</ul>
+    </div>}
+
+    {roleRevisions.length > 0 && <div className="identity-scope-changes">
+      <strong>Pending workspace role changes</strong>
+      <ul>{roleRevisions.map((revision) => {
+        const own = revision.maker_id === actorPrincipalID;
+        const position = positionByID.get(revision.position_id);
+        return <li key={revision.id}>
+          <div>
+            <b>{revision.operation === "ADD" ? "Add" : "Remove"} {revision.role_code}</b>
+            <span>{position?.title ?? revision.position_id} · {capabilityLabel(revision.capabilities)}</span>
+          </div>
+          <StatusBadge tone="warning">Pending</StatusBadge>
+          {canConfigure && !own && onApproveRole && onRejectRole && <div className="identity-scope-change-actions">
+            <Button size="compact" variant="secondary" onPress={() => setRoleDecision({ action: "approve", revision })}>Approve</Button>
+            <Button size="compact" variant="quiet" onPress={() => setRoleDecision({ action: "reject", revision })}>Reject</Button>
           </div>}
           {own && <small>Awaiting approval</small>}
         </li>;
@@ -114,18 +159,24 @@ export function OrganizationPositionManager({
         <thead><tr><th>Position</th><th>Current occupant</th><th>Workspace roles</th><th>Reports to</th>{canConfigure && <th>Actions</th>}</tr></thead>
         <tbody>{positions.map((position) => {
           const pending = pendingByPosition.get(position.id);
+          const pendingRole = pendingRoleByPosition.get(position.id);
           return <tr key={position.id}>
             <td data-label="Position"><strong>{position.title}</strong><span>{position.code} · {scopeLabel(position, scopeByID)}</span>{pending && <StatusBadge tone="warning">Pending change</StatusBadge>}</td>
             <td data-label="Current occupant">{position.occupant_name
               ? <><strong>{position.occupant_name}</strong><span>{humanize(position.occupant_status || "active")}</span></>
               : <span className="identity-vacancy">Vacant — coverage required</span>}</td>
             <td data-label="Workspace roles"><div className="identity-role-chips">{position.role_codes.length
-              ? position.role_codes.map((role) => <span key={role}>{role}</span>)
-              : <span className="identity-empty-value">No role assigned</span>}</div></td>
+              ? position.role_codes.map((code) => {
+                const role = roleByCode.get(code);
+                const locked = (role?.organization_lock_reasons?.length ?? 0) > 0;
+                return <span key={code} title={locked ? lockReasonLabel(role?.organization_lock_reasons ?? []) : undefined}>{code}{locked ? " · locked" : ""}</span>;
+              })
+              : <span className="identity-empty-value">No role assigned</span>}</div>{pendingRole && <small>Role change pending</small>}</td>
             <td data-label="Reports to"><strong>{position.parent_position_title || "Top-level position"}</strong>{position.parent_position_code && <span>{position.parent_position_code}</span>}</td>
             {canConfigure && <td data-label="Actions"><div className="identity-scope-row-actions">
-              <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || isBusy} onPress={() => setEditor({ mode: "edit", position })}>Edit</Button>
-              <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || isBusy} onPress={() => setEditor({ mode: "retire", position })}>Retire</Button>
+              <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || Boolean(pendingRole) || isBusy} onPress={() => setEditor({ mode: "edit", position })}>Edit</Button>
+              {onProposeRole && <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || Boolean(pendingRole) || isBusy} onPress={() => setRolePosition(position)}>Roles</Button>}
+              <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || Boolean(pendingRole) || isBusy} onPress={() => setEditor({ mode: "retire", position })}>Retire</Button>
             </div></td>}
           </tr>;
         })}</tbody>
@@ -142,6 +193,30 @@ export function OrganizationPositionManager({
       onSubmit={async (input) => {
         const ok = await onPropose(input);
         if (ok) setEditor(undefined);
+      }}
+    />}
+
+    {rolePosition && onProposeRole && <OrganizationPositionRoleEditor
+      position={rolePosition}
+      roles={roles}
+      isBusy={isBusy}
+      onClose={() => setRolePosition(undefined)}
+      onSubmit={async (input) => {
+        const ok = await onProposeRole(input);
+        if (ok) setRolePosition(undefined);
+      }}
+    />}
+
+    {roleDecision && onApproveRole && onRejectRole && <OrganizationPositionRoleDecision
+      state={roleDecision}
+      positionByID={positionByID}
+      isBusy={isBusy}
+      onClose={() => setRoleDecision(undefined)}
+      onSubmit={async (rationale) => {
+        const ok = roleDecision.action === "approve"
+          ? await onApproveRole(roleDecision.revision, rationale)
+          : await onRejectRole(roleDecision.revision, rationale);
+        if (ok) setRoleDecision(undefined);
       }}
     />}
 
