@@ -5,6 +5,7 @@ import type {
   OrganizationPosition,
   OrganizationPositionRevision,
   OrganizationPositionRoleRevision,
+  OrganizationPositionRouteSimulation,
   OrganizationScope,
   ProposeOrganizationPositionInput,
   ProposeOrganizationPositionRoleInput,
@@ -41,6 +42,7 @@ type Props = {
   onPropose: (input: ProposeOrganizationPositionInput) => Promise<boolean>;
   onApprove: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onReject: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
+  onSimulate?: (revision: OrganizationPositionRevision) => Promise<OrganizationPositionRouteSimulation | null>;
   onRestore?: (revision: OrganizationPositionRevision) => Promise<boolean>;
   onProposeRole?: (input: ProposeOrganizationPositionRoleInput) => Promise<boolean>;
   onApproveRole?: (revision: OrganizationPositionRoleRevision, rationale: string) => Promise<boolean>;
@@ -63,6 +65,7 @@ export function OrganizationPositionManager({
   onPropose,
   onApprove,
   onReject,
+  onSimulate,
   onRestore,
   onProposeRole,
   onApproveRole,
@@ -81,11 +84,9 @@ export function OrganizationPositionManager({
     [roleRevisions],
   );
   const roleByCode = useMemo(() => new Map(roles.map((role) => [role.code, role])), [roles]);
+  const peopleByID = useMemo(() => new Map(people.map((person) => [person.id, person.display_name])), [people]);
   const positionByID = useMemo(() => new Map(allPositions.map((position) => [position.id, position])), [allPositions]);
-  const restorableHistory = useMemo(
-    () => history.filter((item) => item.status === "APPLIED" && item.operation !== "RETIRE" && positionByID.has(item.position_id)).slice(0, 20),
-    [history, positionByID],
-  );
+  const visibleHistory = useMemo(() => history.slice(0, 20), [history]);
 
   return <div className="identity-position-manager">
     <div className="identity-scope-manager__header">
@@ -132,24 +133,25 @@ export function OrganizationPositionManager({
       })}</ul>
     </div>}
 
-    {restorableHistory.length > 0 && onRestore && <details className="identity-scope-changes">
-      <summary><strong>History</strong><span>{restorableHistory.length} recent applied change{restorableHistory.length === 1 ? "" : "s"}</span></summary>
-      <ul>{restorableHistory.map((revision) => {
+    {visibleHistory.length > 0 && <details className="identity-scope-changes">
+      <summary><strong>History</strong><span>{visibleHistory.length} recent change{visibleHistory.length === 1 ? "" : "s"}</span></summary>
+      <ul>{visibleHistory.map((revision) => {
         const pending = pendingByPosition.get(revision.position_id);
+        const canRestore = Boolean(onRestore && revision.status === "APPLIED" && revision.operation !== "RETIRE" && positionByID.has(revision.position_id));
         return <li key={revision.id}>
           <div>
             <b>{positionRevisionLabel(revision, positionByID)}</b>
-            <span>{formatDecisionDate(revision.applied_at ?? revision.decided_at ?? revision.created_at)}{revision.restored_from_revision_id ? " · restored" : ""}</span>
+            <span>{positionRevisionHistoryLabel(revision)}</span>
           </div>
-          <StatusBadge tone="success">Applied</StatusBadge>
-          <div className="identity-scope-change-actions">
+          <StatusBadge tone={positionRevisionStatusTone(revision.status)}>{humanize(revision.status)}</StatusBadge>
+          {canRestore && <div className="identity-scope-change-actions">
             <Button
               size="compact"
               variant="quiet"
               isDisabled={Boolean(pending) || Boolean(pendingRoleByPosition.get(revision.position_id)) || isBusy}
-              onPress={() => void onRestore(revision)}
+              onPress={() => void onRestore?.(revision)}
             >Restore</Button>
-          </div>
+          </div>}
         </li>;
       })}</ul>
     </details>}
@@ -223,7 +225,9 @@ export function OrganizationPositionManager({
     {decision && <OrganizationPositionDecision
       state={decision}
       positionByID={positionByID}
+      peopleByID={peopleByID}
       isBusy={isBusy}
+      onSimulate={onSimulate}
       onClose={() => setDecision(undefined)}
       onSubmit={async (rationale) => {
         const ok = decision.action === "approve"
@@ -259,6 +263,7 @@ function OrganizationPositionEditor({
   const [scopeID, setScopeID] = useState(position?.organization_scope_id ?? "");
   const [parentID, setParentID] = useState(position?.parent_position_id ?? "");
   const [occupantID, setOccupantID] = useState(position?.occupant_principal_id ?? "");
+  const [effectiveFrom, setEffectiveFrom] = useState("");
 
   const descendants = position ? positionDescendantIDs(positions, position.id) : new Set<string>();
   const parentOptions = positions
@@ -289,6 +294,7 @@ function OrganizationPositionEditor({
         organization_scope_id: scopeID || undefined,
         parent_position_id: parentID || undefined,
         occupant_principal_id: occupantID || undefined,
+        effective_from: effectiveFromISO(effectiveFrom),
       });
       return;
     }
@@ -302,6 +308,7 @@ function OrganizationPositionEditor({
         parent_position_id: parentID || undefined,
         occupant_principal_id: occupantID || undefined,
         expected_version: position!.version,
+        effective_from: effectiveFromISO(effectiveFrom),
       });
       return;
     }
@@ -309,6 +316,7 @@ function OrganizationPositionEditor({
       operation: "RETIRE",
       position_id: position!.id,
       expected_version: position!.version,
+      effective_from: effectiveFromISO(effectiveFrom),
     });
   }
 
@@ -328,6 +336,7 @@ function OrganizationPositionEditor({
         <SelectField label="Reports to" value={parentID || undefined} placeholder="Top-level position" options={parentOptions} onChange={(value) => setParentID(value ?? "")}/>
         <SelectField label="Current occupant" value={occupantID || undefined} placeholder="Vacant" options={occupantOptions} onChange={(value) => setOccupantID(value ?? "")}/>
       </>}
+      <TextField label="Effective from" type="datetime-local" value={effectiveFrom} onChange={setEffectiveFrom} description="Leave blank to apply immediately after approval."/>
       <div className="identity-scope-editor-actions">
         <Button variant="secondary" onPress={onClose} isDisabled={isBusy}>Cancel</Button>
         <Button variant={state.mode === "retire" ? "destructive" : "primary"} onPress={() => void submit()} isDisabled={invalid} isLoading={isBusy}>
@@ -441,17 +450,23 @@ function OrganizationPositionRoleDecision({
 function OrganizationPositionDecision({
   state,
   positionByID,
+  peopleByID,
   isBusy,
+  onSimulate,
   onClose,
   onSubmit,
 }: {
   state: DecisionState;
   positionByID: Map<string, OrganizationPosition>;
+  peopleByID: Map<string, string>;
   isBusy: boolean;
+  onSimulate?: (revision: OrganizationPositionRevision) => Promise<OrganizationPositionRouteSimulation | null>;
   onClose: () => void;
   onSubmit: (rationale: string) => Promise<void>;
 }) {
   const [rationale, setRationale] = useState("");
+  const [simulation, setSimulation] = useState<OrganizationPositionRouteSimulation | null>();
+  const changedRoutes = simulation?.scenarios.filter((scenario) => scenario.changed) ?? [];
   const title = state.action === "approve" ? "Approve position change" : "Reject position change";
   return <FocusedSheet label={title} onClose={onClose} isDismissable={!isBusy}>
     <div className="cs-sheet-heading"><span className="eyebrow">Organization</span><h2>{title}</h2></div>
@@ -463,6 +478,18 @@ function OrganizationPositionDecision({
       </div>
       {positionOccupantChanged(state.revision) && activeWorkCount(state.revision) > 0 && <div className="inline-notice" role="status">
         {activeWorkCount(state.revision)} active work item{activeWorkCount(state.revision) === 1 ? "" : "s"} stay with the current owner or assignee. This position change does not reassign work.
+      </div>}
+      {state.revision.effective_from && <div className="inline-notice" role="status">Effective {formatDateTime(state.revision.effective_from)} after approval.</div>}
+      {state.action === "approve" && onSimulate && <Button variant="secondary" onPress={() => void onSimulate(state.revision).then(setSimulation)} isDisabled={isBusy}>Check route impact</Button>}
+      {simulation && <div className="identity-scope-changes" role="status">
+        <strong>{simulation.checked} route{simulation.checked === 1 ? "" : "s"} checked</strong>
+        <span>{changedRoutes.length} changed{simulation.truncated ? " · result capped at 100" : ""}</span>
+        {changedRoutes.length > 0 && <ul>{changedRoutes.map((scenario) => <li key={routeScenarioKey(scenario)}>
+          <div>
+            <b>{humanize(scenario.responsibility)} · {humanize(scenario.object_type)}</b>
+            <span>{routeSnapshotLabel(scenario.current, peopleByID)} → {routeSnapshotLabel(scenario.proposed, peopleByID)}</span>
+          </div>
+        </li>)}</ul>}
       </div>}
       <TextArea label="Rationale" value={rationale} onChange={setRationale} rows={3} maxLength={1000} isRequired/>
       <div className="identity-scope-editor-actions">
@@ -511,6 +538,44 @@ function activeWorkCount(revision: OrganizationPositionRevision) {
 
 function positionOccupantChanged(revision: OrganizationPositionRevision) {
   return revision.base.occupant_principal_id !== revision.proposed.occupant_principal_id;
+}
+
+function effectiveFromISO(value: string) {
+  if (!value) return undefined;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.valueOf()) ? undefined : parsed.toISOString();
+}
+
+function positionRevisionHistoryLabel(revision: OrganizationPositionRevision) {
+  if (revision.status === "SCHEDULED" && revision.effective_from) return "Effective " + formatDateTime(revision.effective_from);
+  if (revision.status === "FAILED") return revision.activation_error_code ? humanize(revision.activation_error_code) : "Activation failed";
+  const value = revision.applied_at ?? revision.decided_at ?? revision.created_at;
+  return formatDecisionDate(value) + (revision.restored_from_revision_id ? " · restored" : "");
+}
+
+function positionRevisionStatusTone(status: string): "neutral" | "success" | "warning" | "error" {
+  if (status === "APPLIED") return "success";
+  if (status === "SCHEDULED") return "warning";
+  if (status === "FAILED") return "error";
+  return "neutral";
+}
+
+function routeScenarioKey(scenario: OrganizationPositionRouteSimulation["scenarios"][number]) {
+  return [scenario.object_type, scenario.object_id, scenario.responsibility, scenario.decision_type ?? "", scenario.materiality].join(":");
+}
+
+function routeSnapshotLabel(snapshot: OrganizationPositionRouteSimulation["scenarios"][number]["current"], peopleByID: Map<string, string>) {
+  if (snapshot.status !== "RESOLVED" || snapshot.candidate_ids.length === 0) return humanize(snapshot.status);
+  return snapshot.candidate_ids.map((id) => peopleByID.get(id) ?? shortID(id)).join(", ");
+}
+
+function formatDateTime(value: string) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString();
+}
+
+function shortID(value: string) {
+  return value.length > 12 ? value.slice(0, 8) + "…" + value.slice(-4) : value;
 }
 
 function formatDecisionDate(value: string) {
