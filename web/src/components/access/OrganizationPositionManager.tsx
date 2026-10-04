@@ -1,11 +1,15 @@
 import { useMemo, useState } from "react";
 import type {
   IdentityPerson,
+  IdentityRole,
   OrganizationPosition,
   OrganizationPositionRevision,
+  OrganizationPositionRoleRevision,
   OrganizationScope,
   ProposeOrganizationPositionInput,
+  ProposeOrganizationPositionRoleInput,
 } from "../../identityAccessApi";
+import { OrganizationPositionRoleManager } from "./OrganizationPositionRoleManager";
 import { Button, FocusedSheet, SelectField, StatusBadge, TextArea, TextField } from "../ui";
 
 type EditorState =
@@ -23,6 +27,8 @@ type Props = {
   scopes: OrganizationScope[];
   people: IdentityPerson[];
   revisions: OrganizationPositionRevision[];
+  roles: IdentityRole[];
+  roleRevisions: OrganizationPositionRoleRevision[];
   actorPrincipalID: string;
   canConfigure: boolean;
   isBusy?: boolean;
@@ -30,6 +36,9 @@ type Props = {
   onPropose: (input: ProposeOrganizationPositionInput) => Promise<boolean>;
   onApprove: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onReject: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
+  onProposeRole: (input: ProposeOrganizationPositionRoleInput) => Promise<boolean>;
+  onApproveRole: (revision: OrganizationPositionRoleRevision, rationale: string) => Promise<boolean>;
+  onRejectRole: (revision: OrganizationPositionRoleRevision, rationale: string) => Promise<boolean>;
 };
 
 export function OrganizationPositionManager({
@@ -38,6 +47,8 @@ export function OrganizationPositionManager({
   scopes,
   people,
   revisions,
+  roles,
+  roleRevisions,
   actorPrincipalID,
   canConfigure,
   isBusy = false,
@@ -45,12 +56,20 @@ export function OrganizationPositionManager({
   onPropose,
   onApprove,
   onReject,
+  onProposeRole,
+  onApproveRole,
+  onRejectRole,
 }: Props) {
   const [editor, setEditor] = useState<EditorState>();
   const [decision, setDecision] = useState<DecisionState>();
+  const [rolePositionID, setRolePositionID] = useState<string>();
   const pendingByPosition = useMemo(
     () => new Map(revisions.filter((item) => item.status === "PENDING").map((item) => [item.position_id, item])),
     [revisions],
+  );
+  const pendingRolePositions = useMemo(
+    () => new Set(roleRevisions.filter((item) => item.status === "PENDING").map((item) => item.position_id)),
+    [roleRevisions],
   );
   const positionByID = useMemo(() => new Map(allPositions.map((position) => [position.id, position])), [allPositions]);
 
@@ -84,8 +103,9 @@ export function OrganizationPositionManager({
         <thead><tr><th>Position</th><th>Current occupant</th><th>Workspace roles</th><th>Reports to</th>{canConfigure && <th>Actions</th>}</tr></thead>
         <tbody>{positions.map((position) => {
           const pending = pendingByPosition.get(position.id);
+          const rolePending = pendingRolePositions.has(position.id);
           return <tr key={position.id}>
-            <td data-label="Position"><strong>{position.title}</strong><span>{position.code} · {scopeLabel(position, scopeByID)}</span>{pending && <StatusBadge tone="warning">Pending change</StatusBadge>}</td>
+            <td data-label="Position"><strong>{position.title}</strong><span>{position.code} · {scopeLabel(position, scopeByID)}</span>{pending && <StatusBadge tone="warning">Pending change</StatusBadge>}{rolePending && <StatusBadge tone="warning">Pending role</StatusBadge>}</td>
             <td data-label="Current occupant">{position.occupant_name
               ? <><strong>{position.occupant_name}</strong><span>{humanize(position.occupant_status || "active")}</span></>
               : <span className="identity-vacancy">Vacant — coverage required</span>}</td>
@@ -94,8 +114,9 @@ export function OrganizationPositionManager({
               : <span className="identity-empty-value">No role assigned</span>}</div></td>
             <td data-label="Reports to"><strong>{position.parent_position_title || "Top-level position"}</strong>{position.parent_position_code && <span>{position.parent_position_code}</span>}</td>
             {canConfigure && <td data-label="Actions"><div className="identity-scope-row-actions">
-              <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || isBusy} onPress={() => setEditor({ mode: "edit", position })}>Edit</Button>
-              <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || isBusy} onPress={() => setEditor({ mode: "retire", position })}>Retire</Button>
+              <Button size="compact" variant="quiet" isDisabled={isBusy} onPress={() => setRolePositionID(position.id)}>Manage roles</Button>
+              <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || rolePending || isBusy} onPress={() => setEditor({ mode: "edit", position })}>Edit</Button>
+              <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || rolePending || isBusy} onPress={() => setEditor({ mode: "retire", position })}>Retire</Button>
             </div></td>}
           </tr>;
         })}</tbody>
@@ -113,6 +134,20 @@ export function OrganizationPositionManager({
         const ok = await onPropose(input);
         if (ok) setEditor(undefined);
       }}
+    />}
+
+    {rolePositionID && positionByID.get(rolePositionID) && <OrganizationPositionRoleManager
+      position={positionByID.get(rolePositionID)!}
+      roles={roles}
+      revisions={roleRevisions.filter((revision) => revision.position_id === rolePositionID)}
+      actorPrincipalID={actorPrincipalID}
+      canConfigure={canConfigure}
+      positionChangePending={pendingByPosition.has(rolePositionID)}
+      isBusy={isBusy}
+      onClose={() => setRolePositionID(undefined)}
+      onPropose={onProposeRole}
+      onApprove={onApproveRole}
+      onReject={onRejectRole}
     />}
 
     {decision && <OrganizationPositionDecision
