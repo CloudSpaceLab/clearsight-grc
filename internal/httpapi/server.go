@@ -119,7 +119,7 @@ type Dependencies struct {
 	Activity                *activity.Service
 	People                  *people.Service
 	AuditExports            *activity.ExportService
-	MaxArtifactBytes       int64
+	MaxArtifactBytes        int64
 }
 
 type API struct{ deps Dependencies }
