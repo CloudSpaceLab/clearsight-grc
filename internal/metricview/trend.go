@@ -94,6 +94,7 @@ func trendResolution(start, end time.Time) (TrendResolution, error) {
 func decorateTrendComparison(series *TrendSeries) {
 	if series == nil || series.Current == nil || series.Baseline == nil {
 		if series != nil {
+			series.Delta = nil
 			series.Direction = TrendUnknown
 			series.ComparisonQuality = ComparisonMissing
 		}
