@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -57,7 +58,5 @@ func TestPresentationPreferencesUpdateIsOptimistic(t *testing.T) {
 }
 
 func jsonInt(value int64) string {
-	return strings.TrimSpace(string([]byte{
-		byte('0'+value),
-	}))
+	return strconv.FormatInt(value, 10)
 }
