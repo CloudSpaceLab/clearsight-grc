@@ -131,6 +131,7 @@ func (r *MatrixRepository) AssuranceCoverageMatrix(ctx context.Context, tenantID
 			  ON risk_link.tenant_id=risk.tenant_id
 			 AND risk_link.legal_entity_id=risk.legal_entity_id
 			 AND risk_link.risk_id=risk.id
+			 AND risk_link.risk_version=risk.version
 			LEFT JOIN control_catalog_implementation_links catalog_link
 			  ON catalog_link.id=risk_link.catalog_link_id
 			 AND catalog_link.tenant_id=risk.tenant_id
