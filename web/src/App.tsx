@@ -17,7 +17,7 @@ import type { RuntimeContext, ScopeNode } from "./api";
 import { CapturePanel, ProgramsView, ReferenceJourneysView, RoutingPanel, TodayView, WorkView, type RoutingLoadState } from "./AppViews";
 import { AdministrationMenu } from "./components/AdministrationMenu";
 import { DemoEnvironmentMenu } from "./components/DemoEnvironmentMenu";
-import { DisplayPreferencesMenu } from "./components/DisplayPreferences";
+import { DisplayPreferencesMenu, useDisplayPreferences } from "./components/DisplayPreferences";
 import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
 import { FocusedSheet } from "./components/FocusedSheet";
 import { NavigationIcon } from "./components/NavigationIcon";
@@ -66,6 +66,17 @@ function isPortfolioView(view: View): view is PortfolioView {
   return (portfolioViews as readonly View[]).includes(view);
 }
 
+function portfolioViewFromPreference(value?: string): PortfolioView {
+  switch (value) {
+    case "RISKS": return "risks";
+    case "LOSSES": return "losses";
+    case "VENDORS": return "vendors";
+    case "PROCESSING_ACTIVITIES": return "ropa";
+    case "FORMS": return "forms";
+    default: return "programs";
+  }
+}
+
 type ProductRuntime = RuntimeContext & {
   demo_mode?: boolean;
   capabilities?: {
@@ -84,6 +95,7 @@ type ProductRuntime = RuntimeContext & {
 };
 
 function App({ presentation = "enterprise" }: { presentation?: RuntimePresentation }) {
+  const displayPreferences = useDisplayPreferences();
   const initialRoute = parseRoute(window.location.hash);
   const [runtime, setRuntime] = useState<ProductRuntime | null>(null);
   const [scopeSwitchState, setScopeSwitchState] = useState<"idle" | "changing">("idle");
@@ -316,9 +328,11 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     : organizationScopes;
   const showScopeControl = Boolean(scopeHierarchy && currentScopeID)
     && (canSelectGroup || canSwitchLegalEntity || organizationScopes.length > 0 || scopeHierarchy?.organization_scopes_truncated === true || canOpenOrganization);
+  const preferredPortfolioView = portfolioViewFromPreference(displayPreferences?.presentation?.effective_portfolio_lens);
+  const homeFocus = displayPreferences?.presentation?.effective_home_focus ?? "POSTURE";
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
-    { label: "Portfolio", view: "programs", activeViews: portfolioViews },
+    { label: "Portfolio", view: preferredPortfolioView, activeViews: portfolioViews },
     { label: "Work", view: "work", activeViews: ["work"] },
   ];
   const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
@@ -579,7 +593,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       {activeView === "oversight" && !groupScopeRequested && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
       {activeView === "oversight" && groupScopePending && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Group posture…</div>}
       {activeView === "oversight" && groupScopeActive && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Group posture…</div>}><GroupOversightWorkspace initialSnapshot={groupSnapshot} organizationName={organizationName} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", { oversightScope: "group", ...(metric === "all" ? {} : { oversightMetric: metric }) })} onOpenLegalEntity={openGroupLegalEntity}/></Suspense>}
-      {activeView === "oversight" && !groupScopeRequested && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Home…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} onOpenProgram={(id) => navigate("programs", { programID: id })} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention}/></Suspense>}
+      {activeView === "oversight" && !groupScopeRequested && oversightEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Home…</div>}><OversightWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")} onOpenProgram={(id) => navigate("programs", { programID: id })} metricFilter={target.oversightMetric ?? "all"} onMetricFilterChange={(metric) => navigate("oversight", metric === "all" ? {} : { oversightMetric: metric })} todayItems={items} todayState={connection} onOpenTodayItem={openAttention} homeFocus={homeFocus}/></Suspense>}
       {activeView === "programs" && <ProgramsView organizationName={organizationName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "risks" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading risks…</div>}><RisksWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} actorID={runtime?.actor?.id} targetID={target.riskID} onTarget={(id) => navigate("risks", id ? { riskID: id } : {})} onOpenProgram={(programID) => navigate("programs", { programID, programSection: "monitoring" })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")} onOpenProgramControl={(programID, objectiveID) => navigate("programs", { programID, programSection: "requirements-controls", programItem: { kind: "control-objective", id: objectiveID } })}/></Suspense>}
       {activeView === "losses" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading losses…</div>}><LossesWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.lossID} onTarget={(id) => navigate("losses", id ? { lossID: id } : {})} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")}/></Suspense>}

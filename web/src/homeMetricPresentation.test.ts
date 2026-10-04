@@ -37,4 +37,13 @@ describe("home metric presentation", () => {
     expect(homeMetricDetail("critical_high_open")).toBe("Open priority 4–5 issues");
     expect(homeMetricDetail("unknown")).toBe("Current governed metric");
   });
+
+
+  it("reserves critical tone for the two material adverse metric families", () => {
+    const attention = (id: string) => ({ id, condition: "ATTENTION" as const });
+    expect(homeMetricTone(attention("critical_high_open"))).toBe("error");
+    expect(homeMetricTone(attention("outcome_failures"))).toBe("error");
+    expect(homeMetricTone(attention("overdue_open"))).toBe("warning");
+    expect(homeMetricTone(attention("routing_gaps"))).toBe("warning");
+  });
 });

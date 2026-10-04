@@ -35,8 +35,8 @@ function bootstrapApplication() {
 
   const presentation = runtimePresentation(window.location.search);
   const application = invitationToken !== null
-    ? <ExternalCaptureApp invitationToken={invitationToken}/>
-    : <SessionGate presentation={presentation}><Suspense fallback={<p role="status">Loading the ClearSight workspace…</p>}><App presentation={presentation}/></Suspense></SessionGate>;
+    ? <DisplayPreferencesRoot><ExternalCaptureApp invitationToken={invitationToken}/></DisplayPreferencesRoot>
+    : <SessionGate presentation={presentation}><DisplayPreferencesRoot><Suspense fallback={<p role="status">Loading the ClearSight workspace…</p>}><App presentation={presentation}/></Suspense></DisplayPreferencesRoot></SessionGate>;
 
-  createRoot(root).render(<StrictMode><DisplayPreferencesRoot>{application}</DisplayPreferencesRoot></StrictMode>);
+  createRoot(root).render(<StrictMode>{application}</StrictMode>);
 }

@@ -38,4 +38,19 @@ describe("MetricCard", () => {
 
     expect(screen.getByRole("button", { name: /Routing gaps: 3/ }).getAttribute("aria-pressed")).toBe("true");
   });
+
+
+  it("communicates movement in text rather than relying on tone", () => {
+    render(<MetricCard
+      label="Overdue"
+      value={4}
+      delta="3 lower · Improved"
+      tone="success"
+      quality="current"
+    />);
+
+    const card = screen.getByRole("article", { name: /Overdue: 4.*3 lower · Improved.*Current/ });
+    expect(card).toBeTruthy();
+    expect(screen.getByText("3 lower · Improved")).toBeTruthy();
+  });
 });

@@ -82,6 +82,8 @@ func (a *API) routes() []routeSpec {
 		withPermission(read("/api/v1/metrics/home", a.homeMetrics), identity.PermissionOversightRead),
 		withPermission(read("/api/v1/metrics/home/{metric_id}/members", a.homeMetricMembers), identity.PermissionOversightRead),
 		withPermission(read("/api/v1/metrics/home/{metric_id}/trend", a.homeMetricTrend), identity.PermissionOversightRead),
+		withPermission(read("/api/v1/metrics/matrices/risk-appetite", a.riskAppetiteMatrix), identity.PermissionOversightRead),
+		withPermission(read("/api/v1/metrics/matrices/assurance", a.assuranceCoverageMatrix), identity.PermissionOversightRead),
 
 		operation("/api/v1/authority/resolve", a.resolveAuthority, bindJSONIdentity(true)),
 		withPermission(operation("/api/v1/authority/simulate", a.simulateAuthority, bindJSONIdentity(true)), identity.PermissionConfigRead),
@@ -318,6 +320,9 @@ func (a *API) routes() []routeSpec {
 		write(http.MethodPost, "/api/v1/document-imports/{id}/coverage/suggestions/{suggestion_id}/apply", a.applyDocumentCoverageSuggestion, nil),
 
 		read("/api/v1/workflow/tasks", a.listWorkflowTasks),
+
+		read("/api/v1/preferences/presentation", a.presentationPreferences),
+		write(http.MethodPut, "/api/v1/preferences/presentation", a.updatePresentationPreferences, nil),
 
 		read("/api/v1/onboarding/guide", a.actorOnboardingGuide),
 		readBound("/api/v1/onboarding/state", a.onboardingState, bindActorQuery("principal_id")),

@@ -433,6 +433,38 @@ dd {
   letter-spacing: .08em;
 }
 
+.display-preference-group > label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.display-preference-group > select {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+.display-preference-group > select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.display-preference-group > small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
 .display-preference-group > div {
   display: grid;
   grid-auto-flow: column;

@@ -28,6 +28,7 @@ type OversightWorkspaceProps = {
   todayItems?: AttentionItem[];
   todayState?: TodayState;
   onOpenTodayItem?: (item: AttentionItem) => void;
+  homeFocus?: "POSTURE" | "MY_WORK";
 };
 
 export function OversightWorkspace({
@@ -45,6 +46,7 @@ export function OversightWorkspace({
   todayItems = [],
   todayState = "loading",
   onOpenTodayItem,
+  homeFocus = "POSTURE",
 }: OversightWorkspaceProps) {
   const [snapshot, setSnapshot] = useState<OversightSnapshot | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
@@ -192,10 +194,11 @@ export function OversightWorkspace({
       <div><span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span><h1>Oversight information is unavailable</h1><p>Current risk posture remains separate from detailed analysis.</p></div>
       {metrics && <OversightPeriodPicker period={metrics.reporting_period} freshness={metrics.freshness} generatedAt={metrics.generated_at} isChanging={periodState === "changing"} error={periodError} onApply={(period) => void changePeriod(period)}/>} 
     </header>
+    {homeFocus === "MY_WORK" && <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>}
     {headlineMetrics}
     <Notice tone="warning">Detailed risk analysis is unavailable. Headline metrics remain separate and may still be current.</Notice>
     <div className="workspace-recovery-actions"><Button onPress={() => void load()}>Retry Home data</Button></div>
-    <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
+    {homeFocus !== "MY_WORK" && <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>}
   </section>;
 
   const coverage = organizationScopeID
@@ -214,9 +217,9 @@ export function OversightWorkspace({
       <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><p>{historyQualityLabel(snapshot)}</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
     </details>
 
+    {homeFocus === "MY_WORK" && <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>}
     {headlineMetrics}
-
-    <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
+    {homeFocus !== "MY_WORK" && <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>}
 
     <section id="oversight-attention" className="oversight-attention" aria-labelledby="oversight-attention-heading" tabIndex={-1}>
       <div className="section-header"><div><span className="eyebrow">What needs attention now</span><h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Priority interventions" : metricFilterLabel(selectedMetricFilter)}</h2><p>{selectedMetricFilter === "all" ? "Ranked by overdue state, priority and current deadline." : exactDrillActive ? "Exact retained records counted in this metric snapshot." : "Current intervention records matching the selected measure."}</p></div><div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div></div>

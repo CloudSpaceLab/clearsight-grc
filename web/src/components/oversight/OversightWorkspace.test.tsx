@@ -354,3 +354,28 @@ it("reloads both Home reads for an organization scope and excludes unattributed 
   expect(screen.getByText(/unassigned area excluded/)).toBeTruthy();
   expect(screen.getByText("Current issues in BANK / RISK and included sub-areas.")).toBeTruthy();
 });
+
+
+it("reorders existing Home sections for a my-work-first preference without hiding posture", async () => {
+  const todayItems: AttentionItem[] = [{
+    id: "today-focus", type: "MATTER", title: "Review assigned exception", state: "ACTION_IN_PROGRESS",
+    why_now: "The exception needs a decision.", scope: "Clear Bank Nigeria", evidence: "Current issue", owner: "Ada",
+    due_at: "2026-09-25T10:00:00Z", primary_action: "Review exception", action_target_type: "MATTER", action_target_id: "matter-1",
+  }];
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    onOpenMatter={vi.fn()}
+    todayItems={todayItems}
+    todayState="live"
+    homeFocus="MY_WORK"
+  />);
+
+  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  const workspace = screen.getByRole("heading", { name: "Risk and delivery oversight" }).closest(".oversight-workspace");
+  const text = workspace?.textContent ?? "";
+  expect(text.indexOf("Your assigned work")).toBeGreaterThanOrEqual(0);
+  expect(text.indexOf("Critical and high")).toBeGreaterThanOrEqual(0);
+  expect(text.indexOf("Your assigned work")).toBeLessThan(text.indexOf("Critical and high"));
+  expect(screen.getByRole("button", { name: /Critical and high: 7/ })).toBeTruthy();
+});

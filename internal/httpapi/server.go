@@ -32,6 +32,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/presentationprefs"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/rcsa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
@@ -87,36 +88,38 @@ type Dependencies struct {
 	ThirdPartyAssessmentSetup        interface {
 		Maintain(context.Context, time.Time, int) (int, error)
 	}
-	SourceCatalog          *sourceaccess.CatalogService
-	DocumentImports        *documentimport.Service
-	RegisterMigrations     *registermigration.Service
-	Coverage               *documentcoverage.Service
-	Continuity             *continuity.Service
-	MatterFormRemediation  *continuity.MatterFormRemediationService
-	Ropa                   *ropa.Service
-	RopaEventsReader       ropa.Repository
-	Reporting              *reporting.Service
-	Risk                   *risk.Service
-	RCSA                   *rcsa.Service
-	OperationalLoss        *oploss.Service
-	ControlCatalog         *controlcatalog.Service
-	Today                  *today.Service
-	Oversight              *oversight.Service
-	GroupOversight         *oversight.GroupService
-	MetricMembership       metricview.MembershipReader
-	MetricTrends           metricview.TrendReader
-	Workflow               *workflow.Service
-	Onboarding             *onboarding.Service
-	Autonomy               *autonomy.Service
-	AIGovernance           *aigovernance.Service
-	AIGatewayOperations    AIGatewayOperationsReader
-	AIGatewayPublicBaseURL string
-	BankVerticals          *bankverticals.Service
-	BackgroundJobs         *operations.Service
-	Activity               *activity.Service
-	People                 *people.Service
-	AuditExports           *activity.ExportService
-	MaxArtifactBytes       int64
+	SourceCatalog           *sourceaccess.CatalogService
+	DocumentImports         *documentimport.Service
+	RegisterMigrations      *registermigration.Service
+	Coverage                *documentcoverage.Service
+	Continuity              *continuity.Service
+	MatterFormRemediation   *continuity.MatterFormRemediationService
+	Ropa                    *ropa.Service
+	RopaEventsReader        ropa.Repository
+	Reporting               *reporting.Service
+	Risk                    *risk.Service
+	RCSA                    *rcsa.Service
+	OperationalLoss         *oploss.Service
+	ControlCatalog          *controlcatalog.Service
+	Today                   *today.Service
+	Oversight               *oversight.Service
+	GroupOversight          *oversight.GroupService
+	MetricMembership        metricview.MembershipReader
+	MetricTrends            metricview.TrendReader
+	MetricMatrices          metricview.MatrixReader
+	PresentationPreferences *presentationprefs.Service
+	Workflow                *workflow.Service
+	Onboarding              *onboarding.Service
+	Autonomy                *autonomy.Service
+	AIGovernance            *aigovernance.Service
+	AIGatewayOperations     AIGatewayOperationsReader
+	AIGatewayPublicBaseURL  string
+	BankVerticals           *bankverticals.Service
+	BackgroundJobs          *operations.Service
+	Activity                *activity.Service
+	People                  *people.Service
+	AuditExports            *activity.ExportService
+	MaxArtifactBytes        int64
 }
 
 type API struct{ deps Dependencies }
