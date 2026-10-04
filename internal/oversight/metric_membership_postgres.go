@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	MetricCriticalHighOpen = "critical_high_open"
+	MetricSnapshotDrillDefinitionRevision = "home-oversight-v3"
+	MetricCriticalHighOpen                 = "critical_high_open"
 	MetricOverdueOpen      = "overdue_open"
 	MetricRoutingGaps      = "routing_gaps"
 	MetricOutcomeFailures  = "outcome_failures"
