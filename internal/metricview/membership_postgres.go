@@ -25,6 +25,7 @@ func (r *MembershipRepository) ListSnapshotMembers(
 	sourceID string,
 	metricID string,
 	definitionRevision string,
+	principalID string,
 	cursor string,
 	limit int,
 ) (MemberPage, error) {
@@ -33,9 +34,10 @@ func (r *MembershipRepository) ListSnapshotMembers(
 	sourceID = strings.TrimSpace(sourceID)
 	metricID = strings.TrimSpace(metricID)
 	definitionRevision = strings.TrimSpace(definitionRevision)
+	principalID = strings.TrimSpace(principalID)
 	cursor = strings.TrimSpace(cursor)
 	if r == nil || r.pool == nil || tenantID == "" || legalEntityID == "" || sourceID == "" ||
-		metricID == "" || definitionRevision == "" || limit < 1 || limit > 100 {
+		metricID == "" || definitionRevision == "" || principalID == "" || limit < 1 || limit > 100 {
 		return MemberPage{}, ErrMetricMembershipInvalid
 	}
 
@@ -67,7 +69,12 @@ func (r *MembershipRepository) ListSnapshotMembers(
 	}
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT member.member_id::text,member.target_type,member.target_id::text,member.target_title,member.state
+		SELECT member.member_id::text,
+		       member.target_type,
+		       CASE WHEN visibility.allowed THEN member.target_id::text ELSE '' END,
+		       CASE WHEN visibility.allowed THEN member.target_title ELSE 'Record access changed' END,
+		       CASE WHEN visibility.allowed THEN member.state ELSE 'ACCESS_CHANGED' END,
+		       visibility.allowed
 		FROM oversight_snapshot_metric_membership_sets membership_set
 		JOIN tenants tenant ON tenant.id=membership_set.tenant_id
 		JOIN legal_entities entity
@@ -76,15 +83,67 @@ func (r *MembershipRepository) ListSnapshotMembers(
 		JOIN oversight_snapshot_metric_memberships member
 		  ON member.oversight_snapshot_id=membership_set.oversight_snapshot_id
 		 AND member.definition_revision=membership_set.definition_revision
+		LEFT JOIN matters matter
+		  ON member.target_type='MATTER'
+		 AND matter.tenant_id=membership_set.tenant_id
+		 AND matter.legal_entity_id=membership_set.legal_entity_id
+		 AND matter.id=member.target_id
+		LEFT JOIN programs program
+		  ON member.target_type='PROGRAM'
+		 AND program.tenant_id=membership_set.tenant_id
+		 AND program.legal_entity_id=membership_set.legal_entity_id
+		 AND program.id=member.target_id
+		CROSS JOIN LATERAL (
+		  SELECT CASE member.target_type
+		    WHEN 'MATTER' THEN matter.id IS NOT NULL AND (
+		      CASE
+		        WHEN NOT (matter.scope ? 'access') THEN true
+		        WHEN jsonb_typeof(matter.scope->'access')<>'string' THEN false
+		        WHEN upper(btrim(matter.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
+		        WHEN upper(btrim(matter.scope->>'access'))='RESTRICTED' THEN
+		          CASE
+		            WHEN jsonb_typeof(matter.scope->'allowed_principal_ids')<>'array' THEN false
+		            ELSE
+		              NOT EXISTS (
+		                SELECT 1
+		                FROM jsonb_array_elements(matter.scope->'allowed_principal_ids') entry(value)
+		                WHERE jsonb_typeof(entry.value)<>'string'
+		              )
+		              AND EXISTS (
+		                SELECT 1
+		                FROM jsonb_array_elements_text(matter.scope->'allowed_principal_ids') nonblank(value)
+		                WHERE btrim(nonblank.value)<>''
+		              )
+		              AND EXISTS (
+		                SELECT 1
+		                FROM jsonb_array_elements_text(matter.scope->'allowed_principal_ids') allowed(value)
+		                WHERE btrim(allowed.value)=$6
+		              )
+		          END
+		        ELSE false
+		      END
+		      OR COALESCE(matter.owner_principal_id::text,'')=$6
+		      OR EXISTS (
+		        SELECT 1
+		        FROM matter_actions action
+		        WHERE action.tenant_id=matter.tenant_id
+		          AND action.matter_id=matter.id
+		          AND COALESCE(action.owner_principal_id::text,'')=$6
+		      )
+		    )
+		    WHEN 'PROGRAM' THEN program.id IS NOT NULL
+		    ELSE false
+		  END AS allowed
+		) visibility
 		WHERE membership_set.oversight_snapshot_id=$3::uuid
 		  AND membership_set.definition_revision=$5
 		  AND (tenant.id::text=$1 OR tenant.slug=$1)
 		  AND (entity.id::text=$2 OR entity.code=$2)
 		  AND member.metric_id=$4
-		  AND ($6='' OR member.member_id>$6::uuid)
+		  AND ($7='' OR member.member_id>$7::uuid)
 		ORDER BY member.member_id
-		LIMIT $7`,
-		tenantID, legalEntityID, sourceID, metricID, definitionRevision, cursor, limit+1,
+		LIMIT $8`,
+		tenantID, legalEntityID, sourceID, metricID, definitionRevision, principalID, cursor, limit+1,
 	)
 	if err != nil {
 		return MemberPage{}, fmt.Errorf("list metric snapshot membership: %w", err)
@@ -97,7 +156,7 @@ func (r *MembershipRepository) ListSnapshotMembers(
 	}
 	for rows.Next() {
 		var item Member
-		if err := rows.Scan(&item.MemberID, &item.TargetType, &item.TargetID, &item.TargetTitle, &item.State); err != nil {
+		if err := rows.Scan(&item.MemberID, &item.TargetType, &item.TargetID, &item.TargetTitle, &item.State, &item.Accessible); err != nil {
 			return MemberPage{}, fmt.Errorf("scan metric snapshot membership: %w", err)
 		}
 		if len(page.Items) == limit {
