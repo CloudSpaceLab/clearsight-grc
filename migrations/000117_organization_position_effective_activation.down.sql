@@ -17,6 +17,10 @@ END;
 $$;
 
 DROP INDEX IF EXISTS organization_position_revisions_activation_idx;
+DROP INDEX IF EXISTS organization_position_revisions_pending_idx;
+CREATE UNIQUE INDEX organization_position_revisions_pending_idx
+    ON organization_position_revisions(tenant_id,legal_entity_id,position_id)
+    WHERE status='PENDING';
 
 ALTER TABLE organization_position_revisions
     DROP CONSTRAINT IF EXISTS organization_position_revisions_status_check;
