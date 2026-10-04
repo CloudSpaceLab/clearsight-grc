@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -51,7 +52,7 @@ func TestPostgresLegalEntityDataBoundaryMakerCheckerAndIsolation(t *testing.T) {
 		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
 			($4::uuid,$1::uuid,'PERSON','Boundary maker','ACTIVE',$6),
 			($5::uuid,$1::uuid,'PERSON','Boundary checker','ACTIVE',$6)
-	`, tenantID, entityA, entityB, makerID, checkerID, now.Add(-time.Hour)); err != nil {
+	`, pgx.QueryExecModeSimpleProtocol, tenantID, entityA, entityB, makerID, checkerID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 
