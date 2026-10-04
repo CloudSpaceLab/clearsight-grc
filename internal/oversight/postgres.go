@@ -29,7 +29,7 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 	var value Snapshot
 	var payload, highWater []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
+		SELECT os.id::text,os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
 		       os.coverage_population,os.coverage_excluded,os.coverage_unknown,os.payload,
 		       t.slug,le.code
 		FROM oversight_snapshots os
@@ -203,20 +203,12 @@ func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, period
 	); err != nil {
 		return Snapshot{}, err
 	}
-	if err := r.pool.QueryRow(ctx, `
-		SELECT count(*) FROM workflow_tasks wt JOIN workflow_instances wi ON wi.tenant_id=wt.tenant_id AND wi.id=wt.workflow_id
-		LEFT JOIN matters m ON wi.subject_type='MATTER' AND m.tenant_id=wi.tenant_id AND m.id=wi.subject_id
-		LEFT JOIN programs p ON wi.subject_type='PROGRAM' AND p.tenant_id=wi.tenant_id AND p.id=wi.subject_id
-		WHERE wt.tenant_id=$1::uuid AND wt.status IN ('READY','BLOCKED','ESCALATED') AND wt.principal_id IS NULL
-		  AND COALESCE(m.legal_entity_id,p.legal_entity_id)=$2::uuid AND NOT EXISTS (SELECT 1 FROM demo_record_archives archive WHERE archive.tenant_id=m.tenant_id AND archive.legal_entity_id=m.legal_entity_id AND archive.record_type='MATTER' AND archive.record_id=m.id AND archive.restored_at IS NULL)
-		  AND (
-		    ($3::uuid[] IS NULL AND ((m.id IS NOT NULL AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')))
-		      OR (p.id IS NOT NULL AND (NOT (p.scope ? 'access') OR upper(btrim(p.scope->>'access')) IN ('PUBLIC','INTERNAL')))))
-		    OR ($3::uuid[] IS NOT NULL AND m.id IS NOT NULL AND m.organization_scope_id=ANY($3::uuid[])
-		      AND (NOT (m.scope ? 'access') OR upper(btrim(m.scope->>'access')) IN ('PUBLIC','INTERNAL')))
-		  )`, scope.TenantID, scope.LegalEntityID, organizationScopeIDs).Scan(&value.Counts.RoutingFailures); err != nil {
+	members, err := r.buildMetricMembers(ctx, scope, now, organizationScopeIDs)
+	if err != nil {
 		return Snapshot{}, err
 	}
+	value.MetricMembers = members
+	applyMetricMemberCounts(&value.Counts, members)
 
 	rows, err := r.pool.Query(ctx, `
 		SELECT m.id::text,m.title,m.matter_type,m.status,m.priority,COALESCE(m.owner_principal_id::text,''),COALESCE(p.display_name,''),m.due_at
