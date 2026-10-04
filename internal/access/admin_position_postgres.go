@@ -360,6 +360,30 @@ func (a *PostgresAdministrator) organizationPositionRevisions(ctx context.Contex
 	return values, rows.Err()
 }
 
+func (a *PostgresAdministrator) organizationPositionHistory(ctx context.Context, tenantID, entityID string) ([]OrganizationPositionRevisionSummary, error) {
+	rows, err := a.pool.Query(ctx, organizationPositionRevisionSelect+`
+		WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid AND r.status<>'PENDING'
+		ORDER BY COALESCE(r.decided_at,r.created_at) DESC,r.id DESC
+		LIMIT 100`, tenantID, entityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	values := make([]OrganizationPositionRevisionSummary, 0)
+	for rows.Next() {
+		value, scanErr := scanOrganizationPositionRevision(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		value.Impact, err = organizationPositionImpact(ctx, a.pool, tenantID, entityID, value.PositionID)
+		if err != nil && !errors.Is(err, ErrAdminNotFound) {
+			return nil, err
+		}
+		values = append(values, value)
+	}
+	return values, rows.Err()
+}
+
 func (a *PostgresAdministrator) organizationPositionRevisionByID(ctx context.Context, tenantID, entityID, revisionID string) (OrganizationPositionRevisionSummary, error) {
 	row := a.pool.QueryRow(ctx, organizationPositionRevisionSelect+`
 		WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid AND r.id=$3::uuid`, tenantID, entityID, revisionID)
