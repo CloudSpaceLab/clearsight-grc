@@ -1,5 +1,13 @@
 BEGIN;
 
+ALTER TABLE position_role_bindings
+    ADD COLUMN binding_purpose text NOT NULL DEFAULT 'GENERAL'
+    CHECK (binding_purpose IN ('GENERAL','WORKSPACE_ONLY'));
+
+CREATE UNIQUE INDEX position_role_workspace_active_uidx
+    ON position_role_bindings(tenant_id,position_id,role_template_id)
+    WHERE valid_until IS NULL AND binding_purpose='WORKSPACE_ONLY';
+
 CREATE TABLE organization_position_role_revisions (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id uuid NOT NULL,
