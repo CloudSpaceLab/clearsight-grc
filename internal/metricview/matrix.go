@@ -9,19 +9,19 @@ import (
 )
 
 var (
-	ErrMatrixInvalid = errors.New("metric matrix request is invalid")
+	ErrMatrixInvalid     = errors.New("metric matrix request is invalid")
 	ErrMatrixUnavailable = errors.New("metric matrix is unavailable")
 )
 
 type MatrixKind string
 
 const (
-	MatrixRiskAppetite MatrixKind = "RISK_APPETITE"
+	MatrixRiskAppetite      MatrixKind = "RISK_APPETITE"
 	MatrixAssuranceCoverage MatrixKind = "ASSURANCE_COVERAGE"
 )
 
 const (
-	RiskAppetiteMatrixRevision = "risk-appetite-matrix-v1"
+	RiskAppetiteMatrixRevision      = "risk-appetite-matrix-v1"
 	AssuranceCoverageMatrixRevision = "assurance-coverage-matrix-v1"
 )
 
@@ -30,25 +30,25 @@ var assuranceMatrixColumns = []string{"SUPPORTED", "PARTIAL", "FAILED", "UNKNOWN
 
 type MatrixCell struct {
 	State string `json:"state"`
-	Count int `json:"count"`
+	Count int    `json:"count"`
 }
 
 type MatrixRow struct {
-	Key string `json:"key"`
-	Label string `json:"label"`
-	Total int `json:"total"`
+	Key   string       `json:"key"`
+	Label string       `json:"label"`
+	Total int          `json:"total"`
 	Cells []MatrixCell `json:"cells"`
 }
 
 type Matrix struct {
-	Kind MatrixKind `json:"kind"`
-	DefinitionRevision string `json:"definition_revision"`
-	ScopeID string `json:"scope_id"`
-	ScopeKind string `json:"scope_kind"`
-	GeneratedAt time.Time `json:"generated_at"`
-	Population int `json:"population"`
-	Columns []string `json:"columns"`
-	Rows []MatrixRow `json:"rows"`
+	Kind               MatrixKind  `json:"kind"`
+	DefinitionRevision string      `json:"definition_revision"`
+	ScopeID            string      `json:"scope_id"`
+	ScopeKind          string      `json:"scope_kind"`
+	GeneratedAt        time.Time   `json:"generated_at"`
+	Population         int         `json:"population"`
+	Columns            []string    `json:"columns"`
+	Rows               []MatrixRow `json:"rows"`
 }
 
 type MatrixReader interface {
@@ -58,8 +58,8 @@ type MatrixReader interface {
 
 type matrixBucket struct {
 	Category string
-	State string
-	Count int
+	State    string
+	Count    int
 }
 
 func buildMatrix(kind MatrixKind, revision, scopeID string, at time.Time, columns []string, buckets []matrixBucket) Matrix {
@@ -99,13 +99,13 @@ func buildMatrix(kind MatrixKind, revision, scopeID string, at time.Time, column
 		return strings.ToLower(values[i].Label) < strings.ToLower(values[j].Label)
 	})
 	return Matrix{
-		Kind: kind,
+		Kind:               kind,
 		DefinitionRevision: revision,
-		ScopeID: strings.TrimSpace(scopeID),
-		ScopeKind: "LEGAL_ENTITY",
-		GeneratedAt: at.UTC(),
-		Population: population,
-		Columns: append([]string(nil), columns...),
-		Rows: values,
+		ScopeID:            strings.TrimSpace(scopeID),
+		ScopeKind:          "LEGAL_ENTITY",
+		GeneratedAt:        at.UTC(),
+		Population:         population,
+		Columns:            append([]string(nil), columns...),
+		Rows:               values,
 	}
 }
