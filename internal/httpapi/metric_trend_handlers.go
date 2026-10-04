@@ -74,7 +74,7 @@ func metricTrendPeriod(w http.ResponseWriter, r *http.Request, now time.Time) (t
 		}
 	}
 	start = start.UTC()
-	if !start.Before(end) || end.Sub(start) > metricview.TrendMaxDays*24*time.Hour {
+	if !start.Before(end) || end.Sub(start) >= (metricview.TrendMaxDays+1)*24*time.Hour {
 		httpx.WriteError(w, http.StatusBadRequest, "metric_trend_filter_invalid", "Choose a period of up to 365 days.")
 		return time.Time{}, time.Time{}, false
 	}
