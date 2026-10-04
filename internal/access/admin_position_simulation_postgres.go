@@ -122,7 +122,7 @@ func organizationPositionRouteInputs(ctx context.Context, q organizationPosition
 			  AND (
 			    (
 			      route.selector_kind IN ('POSITION','POSITION_ID')
-			      AND route.selector_ref IN ($3,$4)
+			      AND route.selector_ref IN ($3::text,$4)
 			    )
 			    OR (
 			      route.selector_kind IN ('ROLE','ROLE_ID')
