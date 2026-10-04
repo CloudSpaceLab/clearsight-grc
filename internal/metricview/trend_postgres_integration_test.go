@@ -140,10 +140,10 @@ func TestMetricTrendRetentionPreservesComparisonAndBoundsRawHistory(t *testing.T
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO metric_observation_daily_rollups(
 			tenant_id,legal_entity_id,metric_id,definition_revision,bucket_date,observation_id,source_id,source_revision,
-			source_high_water,generated_at,value,condition,freshness,completeness,population,excluded,unknown
+			source_high_water,generated_at,period_start,period_end,posture_as_of,value,condition,freshness,completeness,population,excluded,unknown
 		) VALUES(
 			$1::uuid,$2::uuid,'overdue_open',$3,($4::timestamptz AT TIME ZONE 'UTC')::date,uuidv7(),uuidv7(),$5,
-			'{}'::jsonb,$4,1,'ATTENTION','CURRENT','COMPLETE',10,0,0
+			'{}'::jsonb,$4,$4-interval '90 days',$4,$4,1,'ATTENTION','CURRENT','COMPLETE',10,0,0
 		)`, tenantID, entityID, HomeDefinitionRevision, now.Add(-731*24*time.Hour), oversight.ProjectionVersion); err != nil {
 		t.Fatal(err)
 	}
