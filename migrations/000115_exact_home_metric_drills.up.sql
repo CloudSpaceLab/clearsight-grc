@@ -24,7 +24,10 @@ ALTER TABLE oversight_snapshots
     CHECK (metric_membership_version IS NULL OR metric_membership_version='home-membership-v1');
 
 CREATE TABLE oversight_metric_members (
-    snapshot_id uuid NOT NULL REFERENCES oversight_snapshots(id) ON DELETE CASCADE,
+    snapshot_id uuid NOT NULL,
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    legal_entity_id uuid NOT NULL,
+    source_generated_at timestamptz NOT NULL,
     metric_id text NOT NULL CHECK (metric_id IN ('critical_high_open','overdue_open','routing_gaps','outcome_failures')),
     member_type text NOT NULL CHECK (member_type IN ('MATTER','WORKFLOW_TASK')),
     member_id uuid NOT NULL,
@@ -37,6 +40,9 @@ CREATE TABLE oversight_metric_members (
     due_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     PRIMARY KEY (snapshot_id, metric_id, member_type, member_id),
+    CONSTRAINT oversight_metric_member_entity_fk
+        FOREIGN KEY (legal_entity_id, tenant_id)
+        REFERENCES legal_entities(id, tenant_id),
     CONSTRAINT oversight_metric_member_shape_check CHECK (
         (member_type='MATTER' AND subject_type='MATTER' AND member_id=subject_id)
         OR member_type='WORKFLOW_TASK'
@@ -44,7 +50,33 @@ CREATE TABLE oversight_metric_members (
 );
 
 CREATE INDEX oversight_metric_members_drill_idx
-    ON oversight_metric_members(snapshot_id, metric_id, member_type, member_id);
+    ON oversight_metric_members(tenant_id, legal_entity_id, snapshot_id, metric_id, member_type, member_id);
+
+CREATE INDEX oversight_metric_members_retention_idx
+    ON oversight_metric_members(source_generated_at, snapshot_id);
+
+CREATE FUNCTION validate_oversight_metric_member_source() RETURNS trigger
+LANGUAGE plpgsql
+AS $oversight_metric_member_source$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM oversight_snapshots source
+        WHERE source.id=NEW.snapshot_id
+          AND source.tenant_id=NEW.tenant_id
+          AND source.legal_entity_id=NEW.legal_entity_id
+          AND source.generated_at=NEW.source_generated_at
+          AND source.metric_membership_version='home-membership-v1'
+    ) THEN
+        RAISE EXCEPTION 'Oversight metric membership source does not match tenant/legal entity';
+    END IF;
+    RETURN NEW;
+END;
+$oversight_metric_member_source$;
+
+CREATE TRIGGER oversight_metric_members_validate_source
+    BEFORE INSERT ON oversight_metric_members
+    FOR EACH ROW EXECUTE FUNCTION validate_oversight_metric_member_source();
 
 CREATE FUNCTION prevent_oversight_metric_member_update() RETURNS trigger
 LANGUAGE plpgsql
