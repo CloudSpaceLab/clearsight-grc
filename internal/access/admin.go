@@ -295,8 +295,9 @@ type AdminOverview struct {
 	OrganizationScopes            []organization.Scope                  `json:"organization_scopes"`
 	OrganizationScopesTruncated   bool                                  `json:"organization_scopes_truncated"`
 	OrganizationScopeRevisions    []OrganizationScopeRevisionSummary    `json:"organization_scope_revisions"`
-	OrganizationPositionRevisions []OrganizationPositionRevisionSummary `json:"organization_position_revisions"`
-	OrganizationPositionHistory   []OrganizationPositionRevisionSummary `json:"organization_position_history"`
+	OrganizationPositionRevisions     []OrganizationPositionRevisionSummary     `json:"organization_position_revisions"`
+	OrganizationPositionHistory       []OrganizationPositionRevisionSummary     `json:"organization_position_history"`
+	OrganizationPositionRoleRevisions []OrganizationPositionRoleRevisionSummary `json:"organization_position_role_revisions"`
 	DataBoundary                  LegalEntityDataBoundary               `json:"data_boundary"`
 	DataBoundaryRevisions         []LegalEntityDataBoundaryRevision     `json:"data_boundary_revisions"`
 	Escalation                    EscalationRuntimeStatus               `json:"escalation"`
