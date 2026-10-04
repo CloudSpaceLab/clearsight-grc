@@ -196,22 +196,8 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		return AdminOverview{}, err
 	}
 
-	rows, err = a.pool.Query(ctx, `
-		SELECT id::text,code,name,capabilities FROM role_templates
-		WHERE tenant_id=$1::uuid AND valid_from<=clock_timestamp() AND (valid_until IS NULL OR clock_timestamp()<valid_until)
-		ORDER BY code LIMIT 100`, tenantID)
+	result.Roles, err = a.organizationRoleTemplates(ctx, tenantID, entityID)
 	if err != nil {
-		return AdminOverview{}, err
-	}
-	for rows.Next() {
-		var value RoleTemplateSummary
-		if err := rows.Scan(&value.ID, &value.Code, &value.Name, &value.Capabilities); err != nil {
-			rows.Close()
-			return AdminOverview{}, err
-		}
-		result.Roles = append(result.Roles, value)
-	}
-	if err := closeRows(rows); err != nil {
 		return AdminOverview{}, err
 	}
 
@@ -268,6 +254,10 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		return AdminOverview{}, err
 	}
 	result.OrganizationPositionHistory, err = a.organizationPositionHistory(ctx, tenantID, entityID)
+	if err != nil {
+		return AdminOverview{}, err
+	}
+	result.OrganizationPositionRoleRevisions, err = a.organizationPositionRoleRevisions(ctx, tenantID, entityID)
 	if err != nil {
 		return AdminOverview{}, err
 	}
