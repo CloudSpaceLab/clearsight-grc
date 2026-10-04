@@ -95,6 +95,63 @@ CREATE TRIGGER oversight_snapshot_metric_memberships_immutable
     FOR EACH ROW EXECUTE FUNCTION prevent_oversight_metric_membership_mutation();
 
 
+CREATE TABLE metric_runtime_membership_sets (
+    source_id uuid PRIMARY KEY DEFAULT uuidv7(),
+    tenant_id uuid NOT NULL,
+    legal_entity_id uuid NOT NULL,
+    organization_scope_id uuid,
+    definition_revision text NOT NULL,
+    source_revision text NOT NULL,
+    request_fingerprint text NOT NULL,
+    generated_at timestamptz NOT NULL,
+    period_start timestamptz NOT NULL,
+    period_end timestamptz NOT NULL,
+    expires_at timestamptz NOT NULL,
+    CONSTRAINT metric_runtime_membership_entity_fk
+        FOREIGN KEY (legal_entity_id, tenant_id)
+        REFERENCES legal_entities(id, tenant_id),
+    CONSTRAINT metric_runtime_membership_scope_fk
+        FOREIGN KEY (tenant_id, legal_entity_id, organization_scope_id)
+        REFERENCES organization_scopes(tenant_id, legal_entity_id, id),
+    CONSTRAINT metric_runtime_membership_definition_fk
+        FOREIGN KEY (definition_revision)
+        REFERENCES metric_definitions(revision),
+    CHECK (source_revision=btrim(source_revision) AND source_revision<>''),
+    CHECK (request_fingerprint=btrim(request_fingerprint) AND request_fingerprint<>''),
+    CHECK (period_start<=period_end),
+    CHECK (expires_at>generated_at)
+);
+
+CREATE UNIQUE INDEX metric_runtime_membership_fingerprint_idx
+    ON metric_runtime_membership_sets(
+        tenant_id,legal_entity_id,COALESCE(organization_scope_id,'00000000-0000-0000-0000-000000000000'::uuid),
+        definition_revision,request_fingerprint
+    );
+CREATE INDEX metric_runtime_membership_expiry_idx
+    ON metric_runtime_membership_sets(expires_at);
+
+CREATE TABLE metric_runtime_memberships (
+    source_id uuid NOT NULL,
+    metric_id text NOT NULL,
+    definition_revision text NOT NULL,
+    member_id uuid NOT NULL,
+    target_type text NOT NULL CHECK (target_type IN ('MATTER','PROGRAM')),
+    target_id uuid NOT NULL,
+    target_title text NOT NULL,
+    state text NOT NULL,
+    PRIMARY KEY (source_id,metric_id,definition_revision,member_id),
+    CONSTRAINT metric_runtime_membership_set_fk
+        FOREIGN KEY (source_id)
+        REFERENCES metric_runtime_membership_sets(source_id)
+        ON DELETE CASCADE,
+    CONSTRAINT metric_runtime_membership_definition_fk
+        FOREIGN KEY (metric_id,definition_revision)
+        REFERENCES metric_definitions(metric_id,revision)
+);
+
+CREATE INDEX metric_runtime_memberships_drill_idx
+    ON metric_runtime_memberships(source_id,metric_id,definition_revision,member_id);
+
 CREATE OR REPLACE FUNCTION validate_metric_observation_source() RETURNS trigger
 LANGUAGE plpgsql
 AS $metric_observation_source$
