@@ -32,12 +32,15 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	const principalA = "8f610000-0000-4000-8000-000000000006"
 	const principalB = "8f610000-0000-4000-8000-000000000007"
 	const organizationScopeID = "8f610000-0000-4000-8000-000000000008"
+	const programID = "8f610000-0000-4000-8000-000000000009"
+	const programMemberID = "8f610000-0000-4000-8000-00000000000a"
 	cleanup := func(cleanCtx context.Context) {
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM metric_runtime_membership_sets WHERE tenant_id=$1::uuid`, tenantID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_memberships WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_membership_sets WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM matters WHERE id=$1::uuid`, matterID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM programs WHERE id=$1::uuid`, programID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM organization_scopes WHERE id=$1::uuid`, organizationScopeID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE id IN ($1::uuid,$2::uuid)`, principalA, principalB)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE id=$1::uuid`, entityID)
@@ -214,5 +217,68 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	if runtimePage.Count != 1 || len(runtimePage.Items) != 1 ||
 		!runtimePage.Items[0].Accessible || runtimePage.Items[0].TargetID != matterID {
 		t.Fatalf("runtime retained member=%#v", runtimePage)
+	}
+
+	mustExec(
+		`INSERT INTO programs(
+			id,tenant_id,legal_entity_id,code,name,program_type,status,owning_function,
+			scope,effective_from,created_at,updated_at,version
+		 ) VALUES(
+			$1::uuid,$2::uuid,$3::uuid,'MEM-PROGRAM','Retained restricted Program','COMPLIANCE','ACTIVE','Risk',
+			jsonb_build_object('access','RESTRICTED','allowed_principal_ids',jsonb_build_array($4::text)),
+			$5,$5,$5,1
+		 )`,
+		programID, tenantID, entityID, principalA, now.Add(-time.Hour),
+	)
+	programSnapshot := oversight.Snapshot{
+		TenantID:          tenantID,
+		LegalEntityID:     entityID,
+		GeneratedAt:       now.Add(time.Second),
+		PeriodStart:       now.Add(-30 * 24 * time.Hour),
+		PeriodEnd:         now,
+		ProjectionVersion: oversight.ProjectionVersion,
+		Counts:            oversight.Counts{RoutingFailures: 1},
+		MetricMembers: []oversight.MetricMember{{
+			MetricID:    "routing_gaps",
+			MemberID:    programMemberID,
+			TargetType:  "PROGRAM",
+			TargetID:    programID,
+			TargetTitle: "Retained restricted Program",
+			State:       "READY",
+		}},
+	}
+	programSourceID, err := repository.RetainRuntimeSnapshot(ctx, programSnapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	programPage, err := repository.ListSnapshotMembers(
+		ctx, tenantID, entityID, "", programSourceID, "routing_gaps", HomeDefinitionRevision, principalA, "", 10,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if programPage.Count != 1 || len(programPage.Items) != 1 || !programPage.Items[0].Accessible ||
+		programPage.Items[0].TargetID != programID {
+		t.Fatalf("initial retained Program member=%#v", programPage)
+	}
+
+	mustExec(
+		`UPDATE programs
+		 SET scope=jsonb_build_object('access','RESTRICTED','allowed_principal_ids',jsonb_build_array($2::text)),
+		     updated_at=$3,
+		     version=version+1
+		 WHERE id=$1::uuid`,
+		programID, principalB, now.Add(3*time.Minute),
+	)
+	redactedProgram, err := repository.ListSnapshotMembers(
+		ctx, tenantID, entityID, "", programSourceID, "routing_gaps", HomeDefinitionRevision, principalA, "", 10,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if redactedProgram.Count != 1 || len(redactedProgram.Items) != 1 || redactedProgram.Items[0].Accessible ||
+		redactedProgram.Items[0].TargetID != "" || redactedProgram.Items[0].TargetTitle != "Record access changed" ||
+		redactedProgram.Items[0].State != "ACCESS_CHANGED" {
+		t.Fatalf("redacted retained Program member=%#v", redactedProgram)
 	}
 }
