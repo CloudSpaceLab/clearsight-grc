@@ -131,7 +131,6 @@ func TestHomeMetricsShareRequestedPeriodAndMarkHeadlineMetricsCurrentPosture(t *
 	}
 }
 
-
 func TestHomeMetricsRetainOnDemandPopulationForExactDrill(t *testing.T) {
 	now := time.Date(2026, 10, 4, 14, 30, 0, 0, time.UTC)
 	repo := oversight.NewMemoryRepository(nil).WithPeriodBuilder(func(_ context.Context, scope oversight.Scope, start, end time.Time) (oversight.Snapshot, error) {
@@ -181,7 +180,6 @@ func TestHomeMetricsRetainOnDemandPopulationForExactDrill(t *testing.T) {
 		t.Fatalf("retained snapshot=%#v", members.retained)
 	}
 }
-
 
 func TestHomeMetricsKeepLegacySnapshotCurrentStateUntilExactProjectionArrives(t *testing.T) {
 	now := time.Date(2026, 10, 4, 15, 0, 0, 0, time.UTC)
