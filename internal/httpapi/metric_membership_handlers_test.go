@@ -17,7 +17,7 @@ type metricMembershipReaderStub struct {
 	err  error
 	got  struct {
 		tenantID, legalEntityID, sourceID, metricID, revision, cursor string
-		limit int
+		limit                                                         int
 	}
 }
 
@@ -43,10 +43,10 @@ func (s *metricMembershipReaderStub) ListSnapshotMembers(
 
 func TestHomeMetricMembersBindVerifiedLegalEntityAndExactSource(t *testing.T) {
 	reader := &metricMembershipReaderStub{page: metricview.MemberPage{
-		SourceID: "8f600000-0000-4000-8000-000000000001",
-		MetricID: "routing_gaps",
+		SourceID:           "8f600000-0000-4000-8000-000000000001",
+		MetricID:           "routing_gaps",
 		DefinitionRevision: "home-oversight-v3",
-		Count: 2,
+		Count:              2,
 		Items: []metricview.Member{
 			{MemberID: "8f600000-0000-4000-8000-000000000010", TargetType: "MATTER", TargetID: "8f600000-0000-4000-8000-000000000020", TargetTitle: "Assign issue", State: "READY"},
 			{MemberID: "8f600000-0000-4000-8000-000000000011", TargetType: "PROGRAM", TargetID: "8f600000-0000-4000-8000-000000000021", TargetTitle: "Assign Program review", State: "BLOCKED"},
