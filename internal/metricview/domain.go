@@ -40,14 +40,14 @@ var domainDefinitions = [...]Definition{
 }
 
 type DomainBundle struct {
-	GeneratedAt        time.Time   `json:"generated_at"`
-	PostureAsOf        time.Time   `json:"posture_as_of"`
-	ScopeID            string      `json:"scope_id"`
-	ScopeKind          string      `json:"scope_kind"`
-	SourceID           string      `json:"source_id"`
-	SourceRevision     string      `json:"source_revision"`
-	DefinitionRevision string      `json:"definition_revision"`
-	Items              []Metric    `json:"items"`
+	GeneratedAt        time.Time `json:"generated_at"`
+	PostureAsOf        time.Time `json:"posture_as_of"`
+	ScopeID            string    `json:"scope_id"`
+	ScopeKind          string    `json:"scope_kind"`
+	SourceID           string    `json:"source_id"`
+	SourceRevision     string    `json:"source_revision"`
+	DefinitionRevision string    `json:"definition_revision"`
+	Items              []Metric  `json:"items"`
 }
 
 type DomainReader interface {
