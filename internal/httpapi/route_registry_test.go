@@ -79,6 +79,7 @@ func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
 	addExpected(http.MethodPost, "/api/v1/access/organization-scope-revisions/{id}/approve", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/organization-scope-revisions/{id}/reject", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/organization-position-revisions", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/organization-position-revisions/{id}/restore", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/organization-position-revisions/{id}/approve", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/organization-position-revisions/{id}/reject", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/escalation-guard-revisions", identity.PermissionIdentityConfigure)
