@@ -77,6 +77,7 @@ export function loadHomeMetricMembers(
   metricID: string,
   sourceID: string,
   definitionRevision: string,
+  organizationScopeID?: string,
   cursor?: string,
   limit = 50,
   signal?: AbortSignal,
@@ -86,6 +87,7 @@ export function loadHomeMetricMembers(
     definition_revision: definitionRevision,
     limit: String(limit),
   });
+  if (organizationScopeID) query.set("organization_scope_id", organizationScopeID);
   if (cursor) query.set("cursor", cursor);
   return requestJSON<HomeMetricMemberPage>(
     apiBase,
