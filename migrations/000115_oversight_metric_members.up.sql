@@ -1,6 +1,9 @@
 BEGIN;
 
 ALTER TABLE oversight_snapshots
+    ADD COLUMN metric_members_captured boolean NOT NULL DEFAULT false;
+
+ALTER TABLE oversight_snapshots
     ADD CONSTRAINT oversight_snapshots_scope_identity_unique
     UNIQUE (id,tenant_id,legal_entity_id);
 
