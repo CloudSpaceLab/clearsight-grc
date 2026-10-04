@@ -43,9 +43,9 @@ export type IdentityRole = {
   code: string;
   name: string;
   capabilities: string[];
-  workspace_editable: boolean;
+  workspace_editable?: boolean;
   workspace_lock_reason?: string;
-  material_references: WorkspaceRoleMaterialReferences;
+  material_references?: WorkspaceRoleMaterialReferences;
 };
 export type IdentityLegalEntity = { id: string; code: string; name: string };
 export type OrganizationScope = {
@@ -315,7 +315,18 @@ export async function loadIdentityAccessOverview(): Promise<IdentityAccessOvervi
     sources: overview.sources ?? [],
     people: overview.people ?? [],
     groups: overview.groups ?? [],
-    roles: overview.roles ?? [],
+    roles: (overview.roles ?? []).map((role) => ({
+      ...role,
+      workspace_editable: role.workspace_editable === true,
+      workspace_lock_reason: role.workspace_editable === true ? role.workspace_lock_reason : role.workspace_lock_reason || "Managed by policy",
+      material_references: role.material_references ?? {
+        declared_responsibilities: 0,
+        responsibility_assignments: 0,
+        authority_grants: 0,
+        routing_policies: 0,
+        segregation_rules: 0,
+      },
+    })),
     legal_entities: overview.legal_entities ?? [],
     bindings: overview.bindings ?? [],
     positions: overview.positions ?? [],
