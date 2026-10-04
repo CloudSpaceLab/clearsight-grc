@@ -41,7 +41,7 @@ export function OrganizationPositionRoleManager({
 }: Props) {
   const [decision, setDecision] = useState<Decision>();
   const [rationale, setRationale] = useState("");
-  const assigned = useMemo(() => new Set(position.role_codes), [position.role_codes]);
+  const assigned = useMemo(() => new Set(position.workspace_role_codes ?? []), [position.workspace_role_codes]);
   const pendingByRoleID = useMemo(
     () => new Map(revisions.filter((revision) => revision.status === "PENDING").map((revision) => [revision.role_template_id, revision])),
     [revisions],
