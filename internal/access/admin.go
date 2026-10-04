@@ -236,6 +236,8 @@ type AdminOverview struct {
 	OrganizationScopesTruncated   bool                                  `json:"organization_scopes_truncated"`
 	OrganizationScopeRevisions    []OrganizationScopeRevisionSummary    `json:"organization_scope_revisions"`
 	OrganizationPositionRevisions []OrganizationPositionRevisionSummary `json:"organization_position_revisions"`
+	DataBoundary                  LegalEntityDataBoundary               `json:"data_boundary"`
+	DataBoundaryRevisions         []LegalEntityDataBoundaryRevision     `json:"data_boundary_revisions"`
 	Escalation                    EscalationRuntimeStatus               `json:"escalation"`
 }
 

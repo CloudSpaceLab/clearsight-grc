@@ -267,6 +267,14 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	if err != nil {
 		return AdminOverview{}, err
 	}
+	result.DataBoundary, err = a.legalEntityDataBoundary(ctx, tenantID, entityID)
+	if err != nil {
+		return AdminOverview{}, err
+	}
+	result.DataBoundaryRevisions, err = a.legalEntityDataBoundaryRevisions(ctx, tenantID, entityID)
+	if err != nil {
+		return AdminOverview{}, err
+	}
 
 	if err := a.pool.QueryRow(ctx, `
 		SELECT

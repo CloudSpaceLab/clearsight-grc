@@ -61,6 +61,12 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	policies := identityEscalationPolicies(r, a.deps.Governance, actor.TenantID)
 	canConfigure := identity.HasPermission(actor, identity.PermissionIdentityConfigure)
+	dataBoundary := overview.DataBoundary
+	if dataBoundary.DetailTransferMode == "" {
+		dataBoundary.LegalEntityID = actor.LegalEntityID
+		dataBoundary.DetailTransferMode = access.DetailTransferAggregateOnly
+		dataBoundary.AllowedDestinationRegions = []string{}
+	}
 	payload := map[string]any{
 		"sign_in": map[string]any{
 			"mode": a.deps.IdentityMode, "issuer": a.deps.OIDCIssuer,
@@ -84,11 +90,73 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 	payload["organization_scopes_truncated"] = overview.OrganizationScopesTruncated
 	payload["organization_scope_revisions"] = overview.OrganizationScopeRevisions
 	payload["organization_position_revisions"] = overview.OrganizationPositionRevisions
+	payload["data_boundary"] = dataBoundary
+	payload["data_boundary_revisions"] = overview.DataBoundaryRevisions
 	httpx.WriteJSON(w, http.StatusOK, payload)
 }
 
 type decideOrganizationScopeInput struct {
 	Rationale string `json:"rationale"`
+}
+
+type decideLegalEntityDataBoundaryInput struct {
+	Rationale string `json:"rationale"`
+}
+
+func (a *API) proposeLegalEntityDataBoundary(w http.ResponseWriter, r *http.Request) {
+	actor, admin, ok := dataBoundaryAdminActor(w, r, a.deps.AccessAdmin)
+	if !ok {
+		return
+	}
+	var input access.ProposeLegalEntityDataBoundaryInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.TenantID = actor.TenantID
+	input.LegalEntityID = actor.LegalEntityID
+	input.ActorID = actor.PrincipalID
+	revision, err := admin.ProposeLegalEntityDataBoundary(r.Context(), input)
+	if err != nil {
+		writeIdentityAccessError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, revision)
+}
+
+func (a *API) approveLegalEntityDataBoundary(w http.ResponseWriter, r *http.Request) {
+	a.decideLegalEntityDataBoundary(w, r, true)
+}
+
+func (a *API) rejectLegalEntityDataBoundary(w http.ResponseWriter, r *http.Request) {
+	a.decideLegalEntityDataBoundary(w, r, false)
+}
+
+func (a *API) decideLegalEntityDataBoundary(w http.ResponseWriter, r *http.Request, approve bool) {
+	actor, admin, ok := dataBoundaryAdminActor(w, r, a.deps.AccessAdmin)
+	if !ok {
+		return
+	}
+	var input decideLegalEntityDataBoundaryInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	decision := access.DecideLegalEntityDataBoundaryInput{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
+		RevisionID: r.PathValue("id"), ActorID: actor.PrincipalID, Rationale: input.Rationale,
+	}
+	var err error
+	if approve {
+		err = admin.ApproveLegalEntityDataBoundary(r.Context(), decision)
+	} else {
+		err = admin.RejectLegalEntityDataBoundary(r.Context(), decision)
+	}
+	if err != nil {
+		writeIdentityAccessError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *API) proposeOrganizationScope(w http.ResponseWriter, r *http.Request) {
@@ -438,6 +506,23 @@ func identityAdminActor(w http.ResponseWriter, r *http.Request, admin access.Adm
 		return identity.Actor{}, false
 	}
 	return actor, true
+}
+
+func dataBoundaryAdminActor(
+	w http.ResponseWriter,
+	r *http.Request,
+	admin access.Administrator,
+) (identity.Actor, access.DataBoundaryAdministrator, bool) {
+	actor, ok := organizationScopeAdminActor(w, r, admin)
+	if !ok {
+		return identity.Actor{}, nil, false
+	}
+	boundaryAdmin, ok := admin.(access.DataBoundaryAdministrator)
+	if !ok {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "data_boundary_unavailable", "Data-boundary administration is unavailable in this runtime.")
+		return identity.Actor{}, nil, false
+	}
+	return actor, boundaryAdmin, true
 }
 
 func organizationScopeAdminActor(w http.ResponseWriter, r *http.Request, admin access.Administrator) (identity.Actor, bool) {
