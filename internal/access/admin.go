@@ -52,10 +52,11 @@ type GroupSummary struct {
 }
 
 type WorkspaceRoleMaterialReferences struct {
-	Responsibilities int `json:"responsibilities"`
-	AuthorityGrants   int `json:"authority_grants"`
-	RoutingPolicies   int `json:"routing_policies"`
-	SegregationRules  int `json:"segregation_rules"`
+	DeclaredResponsibilities    int `json:"declared_responsibilities"`
+	ResponsibilityAssignments   int `json:"responsibility_assignments"`
+	AuthorityGrants             int `json:"authority_grants"`
+	RoutingPolicies             int `json:"routing_policies"`
+	SegregationRules            int `json:"segregation_rules"`
 }
 
 type RoleTemplateSummary struct {
