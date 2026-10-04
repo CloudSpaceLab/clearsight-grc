@@ -4,7 +4,6 @@ package metricview
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -126,4 +125,3 @@ func (r *MembershipRepository) ListSnapshotMembers(
 
 var _ MembershipReader = (*MembershipRepository)(nil)
 
-var _ = errors.Is
