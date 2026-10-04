@@ -285,22 +285,22 @@ type EscalationRuntimeStatus struct {
 }
 
 type AdminOverview struct {
-	Sources                       []SCIMSourceSummary                   `json:"sources"`
-	People                        []PersonSummary                       `json:"people"`
-	Groups                        []GroupSummary                        `json:"groups"`
-	Roles                         []RoleTemplateSummary                 `json:"roles"`
-	LegalEntities                 []LegalEntitySummary                  `json:"legal_entities"`
-	Bindings                      []GroupRoleBindingSummary             `json:"bindings"`
-	Positions                     []PositionSummary                     `json:"positions"`
-	OrganizationScopes            []organization.Scope                  `json:"organization_scopes"`
-	OrganizationScopesTruncated   bool                                  `json:"organization_scopes_truncated"`
-	OrganizationScopeRevisions    []OrganizationScopeRevisionSummary    `json:"organization_scope_revisions"`
+	Sources                           []SCIMSourceSummary                       `json:"sources"`
+	People                            []PersonSummary                           `json:"people"`
+	Groups                            []GroupSummary                            `json:"groups"`
+	Roles                             []RoleTemplateSummary                     `json:"roles"`
+	LegalEntities                     []LegalEntitySummary                      `json:"legal_entities"`
+	Bindings                          []GroupRoleBindingSummary                 `json:"bindings"`
+	Positions                         []PositionSummary                         `json:"positions"`
+	OrganizationScopes                []organization.Scope                      `json:"organization_scopes"`
+	OrganizationScopesTruncated       bool                                      `json:"organization_scopes_truncated"`
+	OrganizationScopeRevisions        []OrganizationScopeRevisionSummary        `json:"organization_scope_revisions"`
 	OrganizationPositionRevisions     []OrganizationPositionRevisionSummary     `json:"organization_position_revisions"`
 	OrganizationPositionHistory       []OrganizationPositionRevisionSummary     `json:"organization_position_history"`
 	OrganizationPositionRoleRevisions []OrganizationPositionRoleRevisionSummary `json:"organization_position_role_revisions"`
-	DataBoundary                  LegalEntityDataBoundary               `json:"data_boundary"`
-	DataBoundaryRevisions         []LegalEntityDataBoundaryRevision     `json:"data_boundary_revisions"`
-	Escalation                    EscalationRuntimeStatus               `json:"escalation"`
+	DataBoundary                      LegalEntityDataBoundary                   `json:"data_boundary"`
+	DataBoundaryRevisions             []LegalEntityDataBoundaryRevision         `json:"data_boundary_revisions"`
+	Escalation                        EscalationRuntimeStatus                   `json:"escalation"`
 }
 
 // OperationalStatus is the bounded exception projection used by actor-facing
