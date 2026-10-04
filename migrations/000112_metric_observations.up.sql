@@ -24,9 +24,6 @@ INSERT INTO metric_definitions(
     ('routing_gaps','home-oversight-v2','Routing gaps','COUNT','CURRENT_POSTURE','ZERO_CLEAR_POSITIVE_ATTENTION','SUM_DISJOINT_COUNTS','oversight','routing-gaps','CURRENT_STATE'),
     ('outcome_failures','home-oversight-v2','Outcome failures','COUNT','CURRENT_POSTURE','ZERO_CLEAR_POSITIVE_ATTENTION','SUM_DISJOINT_COUNTS','oversight','outcome-failures','CURRENT_STATE');
 
-CREATE UNIQUE INDEX oversight_snapshots_metric_source_uq
-    ON oversight_snapshots(id, tenant_id, legal_entity_id);
-
 CREATE TABLE metric_observations (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -55,15 +52,33 @@ CREATE TABLE metric_observations (
     CONSTRAINT metric_observation_definition_fk
         FOREIGN KEY (metric_id, definition_revision)
         REFERENCES metric_definitions(metric_id, revision),
-    CONSTRAINT metric_observation_source_fk
-        FOREIGN KEY (source_id, tenant_id, legal_entity_id)
-        REFERENCES oversight_snapshots(id, tenant_id, legal_entity_id),
     CONSTRAINT metric_observation_period_check CHECK (period_start <= period_end),
     CONSTRAINT metric_observation_source_unique UNIQUE (source_kind, source_id, metric_id, definition_revision)
 );
 
 CREATE INDEX metric_observations_trend_idx
     ON metric_observations(tenant_id, legal_entity_id, metric_id, generated_at DESC, id DESC);
+
+CREATE FUNCTION validate_metric_observation_source() RETURNS trigger
+LANGUAGE plpgsql
+AS $metric_observation_source$
+BEGIN
+    IF NEW.source_kind <> 'OVERSIGHT_SNAPSHOT' OR NOT EXISTS (
+        SELECT 1
+        FROM oversight_snapshots source
+        WHERE source.id=NEW.source_id
+          AND source.tenant_id=NEW.tenant_id
+          AND source.legal_entity_id=NEW.legal_entity_id
+    ) THEN
+        RAISE EXCEPTION 'Metric observation source does not match tenant/legal entity';
+    END IF;
+    RETURN NEW;
+END;
+$metric_observation_source$;
+
+CREATE TRIGGER metric_observations_validate_source
+    BEFORE INSERT ON metric_observations
+    FOR EACH ROW EXECUTE FUNCTION validate_metric_observation_source();
 
 CREATE FUNCTION prevent_metric_definition_mutation() RETURNS trigger
 LANGUAGE plpgsql
