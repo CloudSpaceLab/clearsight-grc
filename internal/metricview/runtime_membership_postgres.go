@@ -45,7 +45,7 @@ func (r *MembershipRepository) RetainRuntimeSnapshot(ctx context.Context, snapsh
 			tenant_id,legal_entity_id,organization_scope_id,definition_revision,
 			source_revision,request_fingerprint,generated_at,period_start,period_end,expires_at
 		)
-		SELECT tenant.id,entity.id,NULLIF($3,'')::uuid,$4,$5,$6,$7,$8,$9,clock_timestamp()+interval '` + runtimeMembershipTTL + `'
+		SELECT tenant.id,entity.id,NULLIF($3,'')::uuid,$4,$5,$6,$7,$8,$9,clock_timestamp()+interval '`+runtimeMembershipTTL+`'
 		FROM tenants tenant
 		JOIN legal_entities entity ON entity.tenant_id=tenant.id
 		WHERE (tenant.id::text=$1 OR tenant.slug=$1)
@@ -133,7 +133,7 @@ func (r *MembershipRepository) RetainRuntimeSnapshot(ctx context.Context, snapsh
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE metric_runtime_membership_sets
-			SET expires_at=GREATEST(expires_at,clock_timestamp()+interval '` + runtimeMembershipTTL + `')
+			SET expires_at=GREATEST(expires_at,clock_timestamp()+interval '`+runtimeMembershipTTL+`')
 			WHERE source_id=$1::uuid`, sourceID); err != nil {
 			return "", fmt.Errorf("extend runtime metric membership: %w", err)
 		}
@@ -202,7 +202,7 @@ func runtimeSnapshotFingerprint(snapshot oversight.Snapshot) (string, error) {
 		PeriodStart         string                   `json:"period_start"`
 		ProjectionVersion   string                   `json:"projection_version"`
 		Counts              oversight.Counts         `json:"counts"`
-		SourceHighWater     map[string]string         `json:"source_high_water"`
+		SourceHighWater     map[string]string        `json:"source_high_water"`
 		Members             []oversight.MetricMember `json:"members"`
 	}{
 		TenantID:            strings.TrimSpace(snapshot.TenantID),
