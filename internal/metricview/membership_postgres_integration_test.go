@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -30,11 +31,14 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	const memberID = "8f610000-0000-4000-8000-000000000005"
 	const principalA = "8f610000-0000-4000-8000-000000000006"
 	const principalB = "8f610000-0000-4000-8000-000000000007"
+	const organizationScopeID = "8f610000-0000-4000-8000-000000000008"
 	cleanup := func(cleanCtx context.Context) {
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM metric_runtime_membership_sets WHERE tenant_id=$1::uuid`, tenantID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_memberships WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_membership_sets WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM matters WHERE id=$1::uuid`, matterID)
+		_, _ = pool.Exec(cleanCtx, `DELETE FROM organization_scopes WHERE id=$1::uuid`, organizationScopeID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE id IN ($1::uuid,$2::uuid)`, principalA, principalB)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE id=$1::uuid`, entityID)
 		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
@@ -154,5 +158,61 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	if responsible.Count != 1 || len(responsible.Items) != 1 || !responsible.Items[0].Accessible ||
 		responsible.Items[0].TargetID != matterID {
 		t.Fatalf("recorded responsibility did not restore drill access: %#v", responsible)
+	}
+
+	mustExec(
+		`INSERT INTO organization_scopes(
+			id,tenant_id,legal_entity_id,code,name,kind,department_path,origin,status,valid_from
+		 ) VALUES(
+			$1::uuid,$2::uuid,$3::uuid,'METRIC-RISK','Risk','FUNCTION',ARRAY['RISK'],'MANAGED','ACTIVE',$4
+		 )`,
+		organizationScopeID, tenantID, entityID, now.Add(-time.Hour),
+	)
+
+	runtimeSnapshot := oversight.Snapshot{
+		TenantID:            tenantID,
+		LegalEntityID:       entityID,
+		OrganizationScopeID: organizationScopeID,
+		GeneratedAt:         now,
+		PeriodStart:         now.Add(-30 * 24 * time.Hour),
+		PeriodEnd:           now,
+		ProjectionVersion:   oversight.ProjectionVersion,
+		Counts:              oversight.Counts{CriticalHigh: 1},
+		MetricMembers: []oversight.MetricMember{{
+			MetricID:    "critical_high_open",
+			MemberID:    memberID,
+			TargetType:  "MATTER",
+			TargetID:    matterID,
+			TargetTitle: "Retained restricted issue",
+			State:       "ASSESSMENT",
+		}},
+	}
+	runtimeSourceID, err := repository.RetainRuntimeSnapshot(ctx, runtimeSnapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reusedSourceID, err := repository.RetainRuntimeSnapshot(ctx, runtimeSnapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runtimeSourceID == "" || reusedSourceID != runtimeSourceID {
+		t.Fatalf("runtime source ids first=%q reused=%q", runtimeSourceID, reusedSourceID)
+	}
+
+	if _, err := repository.ListSnapshotMembers(
+		ctx, tenantID, entityID, "", runtimeSourceID, "critical_high_open", HomeDefinitionRevision, principalA, "", 10,
+	); err != ErrMetricMembershipNotFound {
+		t.Fatalf("unscoped runtime drill error=%v, want ErrMetricMembershipNotFound", err)
+	}
+
+	runtimePage, err := repository.ListSnapshotMembers(
+		ctx, tenantID, entityID, organizationScopeID, runtimeSourceID, "critical_high_open", HomeDefinitionRevision, principalA, "", 10,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runtimePage.Count != 1 || len(runtimePage.Items) != 1 ||
+		!runtimePage.Items[0].Accessible || runtimePage.Items[0].TargetID != matterID {
+		t.Fatalf("runtime retained member=%#v", runtimePage)
 	}
 }
