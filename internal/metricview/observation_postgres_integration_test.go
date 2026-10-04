@@ -5,6 +5,7 @@ package metricview
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -228,6 +229,46 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 	}
 	if !decodedHighWater["matters"].Equal(now.Add(-time.Minute)) {
 		t.Fatalf("source high-water=%#v", decodedHighWater)
+	}
+
+	members := NewMembershipRepository(pool)
+	firstPage, err := members.ListSnapshotMembers(
+		ctx, tenantID, entityID, snapshotID, "critical_high_open", HomeDefinitionRevision, "", 3,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstPage.Count != 7 || len(firstPage.Items) != 3 || firstPage.NextCursor == "" {
+		t.Fatalf("critical member page=%#v", firstPage)
+	}
+	secondPage, err := members.ListSnapshotMembers(
+		ctx, tenantID, entityID, snapshotID, "critical_high_open", HomeDefinitionRevision, firstPage.NextCursor, 3,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if secondPage.Count != 7 || len(secondPage.Items) != 3 || secondPage.Items[0].MemberID == firstPage.Items[0].MemberID {
+		t.Fatalf("critical second page=%#v", secondPage)
+	}
+	routingPage, err := members.ListSnapshotMembers(
+		ctx, tenantID, entityID, snapshotID, "routing_gaps", HomeDefinitionRevision, "", 10,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sawProgram bool
+	for _, item := range routingPage.Items {
+		if item.TargetType == "PROGRAM" {
+			sawProgram = true
+		}
+	}
+	if routingPage.Count != 2 || !sawProgram {
+		t.Fatalf("typed routing members=%#v", routingPage)
+	}
+	if _, err := members.ListSnapshotMembers(
+		ctx, tenantID, otherEntityID, snapshotID, "critical_high_open", HomeDefinitionRevision, "", 10,
+	); !errors.Is(err, ErrMetricMembershipNotFound) {
+		t.Fatalf("cross-entity membership error=%v", err)
 	}
 
 	if completed, err := maintainer.Maintain(ctx, now.Add(time.Minute), 10); err != nil || completed != 0 {
