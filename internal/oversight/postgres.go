@@ -29,7 +29,8 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 	var value Snapshot
 	var payload, highWater []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
+		SELECT os.id::text,COALESCE(os.metric_membership_version,''),
+		       os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
 		       os.coverage_population,os.coverage_excluded,os.coverage_unknown,os.payload,
 		       t.slug,le.code
 		FROM oversight_snapshots os
@@ -37,7 +38,8 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 		JOIN legal_entities le ON le.tenant_id=os.tenant_id AND le.id=os.legal_entity_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)
 		ORDER BY os.generated_at DESC,os.id DESC LIMIT 1`, scope.TenantID, scope.LegalEntityID).
-		Scan(&value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
+		Scan(&value.SnapshotID, &value.MetricMembershipVersion,
+			&value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
 			&value.Coverage.Population, &value.Coverage.Excluded, &value.Coverage.Unknown, &payload,
 			&value.TenantID, &value.LegalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -111,7 +113,7 @@ func (m *Maintainer) Maintain(ctx context.Context, now time.Time, limit int) (in
 		if ctx.Err() != nil {
 			return completed, ctx.Err()
 		}
-		snapshot, err := m.Repository.build(ctx, scope, now, now.Add(-90*24*time.Hour))
+		snapshot, err := m.Repository.buildRetained(ctx, scope, now, now.Add(-90*24*time.Hour))
 		if err != nil {
 			return completed, err
 		}
@@ -132,6 +134,14 @@ func (r *PostgresRepository) BuildPeriod(ctx context.Context, scope Scope, start
 }
 
 func (r *PostgresRepository) build(ctx context.Context, scope Scope, now, periodStart time.Time) (Snapshot, error) {
+	return r.buildWithMetricMembership(ctx, scope, now, periodStart, false)
+}
+
+func (r *PostgresRepository) buildRetained(ctx context.Context, scope Scope, now, periodStart time.Time) (Snapshot, error) {
+	return r.buildWithMetricMembership(ctx, scope, now, periodStart, true)
+}
+
+func (r *PostgresRepository) buildWithMetricMembership(ctx context.Context, scope Scope, now, periodStart time.Time, captureMetricMembership bool) (Snapshot, error) {
 	now = now.UTC()
 	periodStart = periodStart.UTC()
 	organizationScopeIDs := scope.OrganizationScopeIDs
