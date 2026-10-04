@@ -23,6 +23,7 @@ type Props = {
   scopes: OrganizationScope[];
   people: IdentityPerson[];
   revisions: OrganizationPositionRevision[];
+  history: OrganizationPositionRevision[];
   actorPrincipalID: string;
   canConfigure: boolean;
   isBusy?: boolean;
@@ -30,6 +31,7 @@ type Props = {
   onPropose: (input: ProposeOrganizationPositionInput) => Promise<boolean>;
   onApprove: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onReject: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
+  onRestore?: (revision: OrganizationPositionRevision) => Promise<boolean>;
 };
 
 export function OrganizationPositionManager({
@@ -38,6 +40,7 @@ export function OrganizationPositionManager({
   scopes,
   people,
   revisions,
+  history,
   actorPrincipalID,
   canConfigure,
   isBusy = false,
@@ -45,6 +48,7 @@ export function OrganizationPositionManager({
   onPropose,
   onApprove,
   onReject,
+  onRestore,
 }: Props) {
   const [editor, setEditor] = useState<EditorState>();
   const [decision, setDecision] = useState<DecisionState>();
@@ -53,6 +57,10 @@ export function OrganizationPositionManager({
     [revisions],
   );
   const positionByID = useMemo(() => new Map(allPositions.map((position) => [position.id, position])), [allPositions]);
+  const restorableHistory = useMemo(
+    () => history.filter((item) => item.status === "APPLIED" && item.operation !== "RETIRE" && positionByID.has(item.position_id)).slice(0, 20),
+    [history, positionByID],
+  );
 
   return <div className="identity-position-manager">
     <div className="identity-scope-manager__header">
@@ -78,6 +86,28 @@ export function OrganizationPositionManager({
         </li>;
       })}</ul>
     </div>}
+
+    {restorableHistory.length > 0 && onRestore && <details className="identity-scope-changes">
+      <summary><strong>History</strong><span>{restorableHistory.length} recent applied change{restorableHistory.length === 1 ? "" : "s"}</span></summary>
+      <ul>{restorableHistory.map((revision) => {
+        const pending = pendingByPosition.get(revision.position_id);
+        return <li key={revision.id}>
+          <div>
+            <b>{positionRevisionLabel(revision, positionByID)}</b>
+            <span>{formatDecisionDate(revision.applied_at ?? revision.decided_at ?? revision.created_at)}{revision.restored_from_revision_id ? " · restored" : ""}</span>
+          </div>
+          <StatusBadge tone="success">Applied</StatusBadge>
+          <div className="identity-scope-change-actions">
+            <Button
+              size="compact"
+              variant="quiet"
+              isDisabled={Boolean(pending) || isBusy}
+              onPress={() => void onRestore(revision)}
+            >Restore</Button>
+          </div>
+        </li>;
+      })}</ul>
+    </details>}
 
     {positions.length > 0 && <div className="identity-position-table-wrap">
       <table className="identity-position-table">
@@ -256,6 +286,9 @@ function OrganizationPositionDecision({
         <strong>{positionRevisionLabel(state.revision, positionByID)}</strong>
         <small>{positionImpactLabel(state.revision)}</small>
       </div>
+      {positionOccupantChanged(state.revision) && activeWorkCount(state.revision) > 0 && <div className="inline-notice" role="status">
+        {activeWorkCount(state.revision)} active work item{activeWorkCount(state.revision) === 1 ? "" : "s"} stay with the current owner or assignee. This position change does not reassign work.
+      </div>}
       <TextArea label="Rationale" value={rationale} onChange={setRationale} rows={3} maxLength={1000} isRequired/>
       <div className="identity-scope-editor-actions">
         <Button variant="secondary" onPress={onClose} isDisabled={isBusy}>Cancel</Button>
@@ -276,7 +309,21 @@ function positionRevisionLabel(revision: OrganizationPositionRevision, positionB
 
 function positionImpactLabel(revision: OrganizationPositionRevision) {
   const impact = revision.impact;
-  return impact.child_positions + " child positions · " + impact.responsibility_assignments + " responsibilities · " + impact.authority_grants + " authority grants · " + impact.active_role_bindings + " role bindings";
+  const work = activeWorkCount(revision);
+  return impact.child_positions + " reports · " + impact.responsibility_assignments + " responsibilities · " + impact.authority_grants + " authority grants · " + impact.active_role_bindings + " roles · " + work + " active work";
+}
+
+function activeWorkCount(revision: OrganizationPositionRevision) {
+  return revision.impact.active_programs_owned + revision.impact.open_matters_owned + revision.impact.open_actions_owned;
+}
+
+function positionOccupantChanged(revision: OrganizationPositionRevision) {
+  return revision.base.occupant_principal_id !== revision.proposed.occupant_principal_id;
+}
+
+function formatDecisionDate(value: string) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleDateString();
 }
 
 function positionDescendantIDs(positions: OrganizationPosition[], rootID: string) {

@@ -22,6 +22,7 @@ type Props = {
   scopes: OrganizationScope[];
   revisions?: OrganizationScopeRevision[];
   positionRevisions?: OrganizationPositionRevision[];
+  positionHistory?: OrganizationPositionRevision[];
   dataBoundary?: LegalEntityDataBoundary;
   dataBoundaryRevisions?: LegalEntityDataBoundaryRevision[];
   actorPrincipalID?: string;
@@ -35,6 +36,7 @@ type Props = {
   onProposePosition?: (input: ProposeOrganizationPositionInput) => Promise<boolean>;
   onApprovePosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onRejectPosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
+  onRestorePosition?: (revision: OrganizationPositionRevision) => Promise<boolean>;
   onProposeDataBoundary?: (input: ProposeLegalEntityDataBoundaryInput) => Promise<boolean>;
   onApproveDataBoundary?: (revision: LegalEntityDataBoundaryRevision, rationale: string) => Promise<boolean>;
   onRejectDataBoundary?: (revision: LegalEntityDataBoundaryRevision, rationale: string) => Promise<boolean>;
@@ -46,6 +48,7 @@ export function OrganizationInventory({
   scopes,
   revisions = [],
   positionRevisions = [],
+  positionHistory = [],
   dataBoundary,
   dataBoundaryRevisions = [],
   actorPrincipalID = "",
@@ -59,6 +62,7 @@ export function OrganizationInventory({
   onProposePosition,
   onApprovePosition,
   onRejectPosition,
+  onRestorePosition,
   onProposeDataBoundary,
   onApproveDataBoundary,
   onRejectDataBoundary,
@@ -229,6 +233,7 @@ export function OrganizationInventory({
           people={people}
           scopes={scopes}
           revisions={positionRevisions}
+          history={positionHistory}
           actorPrincipalID={actorPrincipalID}
           canConfigure={canConfigure}
           isBusy={isBusy}
@@ -236,6 +241,7 @@ export function OrganizationInventory({
           onPropose={onProposePosition}
           onApprove={onApprovePosition}
           onReject={onRejectPosition}
+          onRestore={onRestorePosition}
         />
         : mode === "reporting"
           ? <ReportingList positions={visible} positionByID={positionByID}/>

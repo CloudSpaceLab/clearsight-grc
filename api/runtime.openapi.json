@@ -4784,6 +4784,14 @@
         "x-clearsight-permission": "IDENTITY_CONFIGURE"
       }
     },
+    "/api/v1/access/organization-position-revisions/{id}/restore": {
+      "post": {
+        "operationId": "restoreOrganizationPosition",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE",
+        "description": "Create a new governed UPDATE proposal from an exact prior applied position revision. Current hierarchy state is unchanged until independent approval."
+      }
+    },
     "/api/v1/access/organization-position-revisions/{id}/approve": {
       "post": {
         "operationId": "approveOrganizationPosition",

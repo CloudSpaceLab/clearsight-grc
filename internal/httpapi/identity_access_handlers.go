@@ -90,6 +90,7 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 	payload["organization_scopes_truncated"] = overview.OrganizationScopesTruncated
 	payload["organization_scope_revisions"] = overview.OrganizationScopeRevisions
 	payload["organization_position_revisions"] = overview.OrganizationPositionRevisions
+	payload["organization_position_history"] = overview.OrganizationPositionHistory
 	payload["data_boundary"] = dataBoundary
 	payload["data_boundary_revisions"] = overview.DataBoundaryRevisions
 	httpx.WriteJSON(w, http.StatusOK, payload)
@@ -233,6 +234,22 @@ func (a *API) proposeOrganizationPosition(w http.ResponseWriter, r *http.Request
 	input.LegalEntityID = actor.LegalEntityID
 	input.ActorID = actor.PrincipalID
 	revision, err := a.deps.AccessAdmin.ProposeOrganizationPosition(r.Context(), input)
+	if err != nil {
+		writeIdentityAccessError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, revision)
+}
+
+func (a *API) restoreOrganizationPosition(w http.ResponseWriter, r *http.Request) {
+	actor, ok := organizationPositionAdminActor(w, r, a.deps.AccessAdmin)
+	if !ok {
+		return
+	}
+	revision, err := a.deps.AccessAdmin.RestoreOrganizationPosition(r.Context(), access.RestoreOrganizationPositionInput{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
+		RevisionID: r.PathValue("id"), ActorID: actor.PrincipalID,
+	})
 	if err != nil {
 		writeIdentityAccessError(w, err)
 		return
