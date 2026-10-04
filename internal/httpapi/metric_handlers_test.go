@@ -181,3 +181,45 @@ func TestHomeMetricsRetainOnDemandPopulationForExactDrill(t *testing.T) {
 		t.Fatalf("retained snapshot=%#v", members.retained)
 	}
 }
+
+
+func TestHomeMetricsKeepLegacySnapshotCurrentStateUntilExactProjectionArrives(t *testing.T) {
+	now := time.Date(2026, 10, 4, 15, 0, 0, 0, time.UTC)
+	unknown := 0
+	repo := oversight.NewMemoryRepository([]oversight.Snapshot{{
+		TenantID: "bank", LegalEntityID: "bank-ng", GeneratedAt: now,
+		PeriodStart: now.Add(-90 * 24 * time.Hour), PeriodEnd: now, PostureAsOf: now,
+		ProjectionVersion: oversight.ProjectionVersion,
+		Coverage: oversight.Coverage{Population: 2, Unknown: &unknown},
+		Counts:   oversight.Counts{CriticalHigh: 1},
+	}})
+	service := oversight.NewService(repo)
+	service.Now = func() time.Time { return now }
+	members := &metricMembershipReaderStub{retainSourceID: "8f620000-0000-4000-8000-000000000011"}
+	api := &API{deps: Dependencies{Oversight: service, MetricMembership: members}}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/metrics/home", nil)
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
+		TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "reviewer", ExpiresAt: now.Add(time.Hour),
+	}))
+	response := httptest.NewRecorder()
+
+	api.homeMetrics(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var bundle metricview.Bundle
+	if err := json.Unmarshal(response.Body.Bytes(), &bundle); err != nil {
+		t.Fatal(err)
+	}
+	if bundle.SourceID != "" || bundle.DefinitionRevision != metricview.HomeCurrentStateDefinitionRevision {
+		t.Fatalf("legacy bundle=%#v", bundle)
+	}
+	for _, metric := range bundle.Items {
+		if metric.Drill.Consistency != metricview.DrillCurrentState {
+			t.Fatalf("legacy metric unexpectedly claimed exact drill: %#v", metric)
+		}
+	}
+	if members.retained.TenantID != "" {
+		t.Fatalf("legacy snapshot was retained without exact membership: %#v", members.retained)
+	}
+}
