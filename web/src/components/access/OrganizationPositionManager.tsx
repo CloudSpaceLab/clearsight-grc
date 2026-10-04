@@ -64,17 +64,19 @@ export function OrganizationPositionManager({
       <strong>Pending position changes</strong>
       <ul>{revisions.map((revision) => {
         const own = revision.maker_id === actorPrincipalID;
+        const vacancyBlocked = vacancyWouldOrphanRoutes(revision);
         return <li key={revision.id}>
           <div>
             <b>{positionRevisionLabel(revision, positionByID)}</b>
             <span>{positionImpactLabel(revision)}</span>
           </div>
-          <StatusBadge tone="warning">Pending</StatusBadge>
+          <StatusBadge tone="warning">{vacancyBlocked ? "Routes need coverage" : "Pending"}</StatusBadge>
           {canConfigure && !own && <div className="identity-scope-change-actions">
-            <Button size="compact" variant="secondary" onPress={() => setDecision({ action: "approve", revision })}>Approve</Button>
+            {!vacancyBlocked && <Button size="compact" variant="secondary" onPress={() => setDecision({ action: "approve", revision })}>Approve</Button>}
             <Button size="compact" variant="quiet" onPress={() => setDecision({ action: "reject", revision })}>Reject</Button>
           </div>}
-          {own && <small>Awaiting approval</small>}
+          {vacancyBlocked && <small>Reassign or retire the active responsibility and authority routes before leaving this position vacant.</small>}
+          {own && !vacancyBlocked && <small>Awaiting approval</small>}
         </li>;
       })}</ul>
     </div>}
@@ -272,6 +274,13 @@ function positionRevisionLabel(revision: OrganizationPositionRevision, positionB
   if (revision.operation === "CREATE") return "Add " + (revision.proposed.title || revision.proposed.code);
   if (revision.operation === "RETIRE") return "Retire " + (current?.title ?? revision.base.title ?? revision.position_id);
   return "Edit " + (current?.title ?? revision.base.title ?? revision.position_id);
+}
+
+function vacancyWouldOrphanRoutes(revision: OrganizationPositionRevision) {
+  return revision.operation === "UPDATE"
+    && Boolean(revision.base.occupant_principal_id)
+    && !revision.proposed.occupant_principal_id
+    && (revision.impact.responsibility_assignments > 0 || revision.impact.authority_grants > 0);
 }
 
 function positionImpactLabel(revision: OrganizationPositionRevision) {
