@@ -31,6 +31,7 @@ func (r *PostgresRepository) SearchDelegationCandidates(ctx context.Context, ten
 					JOIN role_templates rt ON rt.tenant_id=sr.tenant_id AND rt.code=sr.prohibited_role_code
 					  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
 					JOIN position_role_bindings prb ON prb.tenant_id=rt.tenant_id AND prb.role_template_id=rt.id
+					  AND prb.binding_purpose='GENERAL'
 					  AND prb.valid_from<=clock_timestamp() AND (prb.valid_until IS NULL OR clock_timestamp()<prb.valid_until)
 					JOIN org_positions blocked_position ON blocked_position.tenant_id=prb.tenant_id AND blocked_position.id=prb.position_id
 					  AND blocked_position.legal_entity_id=$2::uuid AND blocked_position.occupant_principal_id=p.id
