@@ -5,9 +5,9 @@ package oversight
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricid"
-	"github.com/jackc/pgx/v5"
 )
 
 func (r *PostgresRepository) buildMetricMembers(
@@ -154,5 +154,3 @@ func applyMetricMemberCounts(counts *Counts, members []MetricMember) {
 		}
 	}
 }
-
-var _ pgx.Rows
