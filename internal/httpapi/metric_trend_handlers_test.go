@@ -13,13 +13,13 @@ import (
 )
 
 type metricTrendReaderStub struct {
-	series metricview.TrendSeries
-	err error
-	tenantID string
+	series        metricview.TrendSeries
+	err           error
+	tenantID      string
 	legalEntityID string
-	metricID string
-	start time.Time
-	end time.Time
+	metricID      string
+	start         time.Time
+	end           time.Time
 }
 
 func (s *metricTrendReaderStub) Trend(_ context.Context, tenantID, legalEntityID, metricID string, start, end time.Time) (metricview.TrendSeries, error) {
