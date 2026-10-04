@@ -21,7 +21,8 @@ func (a *API) homeMetricMembers(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "metric_drill_unavailable", "Exact metric detail is unavailable. Try again.")
 		return
 	}
-	if strings.TrimSpace(actor.TenantID) == "" || strings.TrimSpace(actor.LegalEntityID) == "" || actor.LegalEntityID == "*" {
+	if strings.TrimSpace(actor.TenantID) == "" || strings.TrimSpace(actor.LegalEntityID) == "" ||
+		actor.LegalEntityID == "*" || strings.TrimSpace(actor.PrincipalID) == "" {
 		httpx.WriteError(w, http.StatusForbidden, "metric_drill_scope_unavailable", "Choose an eligible legal entity before opening metric detail.")
 		return
 	}
@@ -51,6 +52,7 @@ func (a *API) homeMetricMembers(w http.ResponseWriter, r *http.Request) {
 		sourceID,
 		metricID,
 		revision,
+		actor.PrincipalID,
 		cursor,
 		limit,
 	)
