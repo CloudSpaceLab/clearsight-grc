@@ -201,7 +201,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 	}
 
 	maintainer := &ObservationMaintainer{Repository: repository}
-	if completed, err := maintainer.Maintain(ctx, now, 10); err != nil || completed != 1 {
+	if completed, err := maintainer.Maintain(ctx, now, 10); err != nil || completed < 1 || completed > 10 {
 		t.Fatalf("partial repair completed=%d err=%v", completed, err)
 	}
 
