@@ -241,7 +241,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 
 	members := NewMembershipRepository(pool)
 	firstPage, err := members.ListSnapshotMembers(
-		ctx, tenantID, entityID, snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 3,
+		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 3,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -250,7 +250,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		t.Fatalf("critical member page=%#v", firstPage)
 	}
 	secondPage, err := members.ListSnapshotMembers(
-		ctx, tenantID, entityID, snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", firstPage.NextCursor, 3,
+		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", firstPage.NextCursor, 3,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -259,7 +259,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		t.Fatalf("critical second page=%#v", secondPage)
 	}
 	routingPage, err := members.ListSnapshotMembers(
-		ctx, tenantID, entityID, snapshotID, "routing_gaps", HomeDefinitionRevision, "metric-viewer", "", 10,
+		ctx, tenantID, entityID, "", snapshotID, "routing_gaps", HomeDefinitionRevision, "metric-viewer", "", 10,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -274,7 +274,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		t.Fatalf("typed routing members=%#v", routingPage)
 	}
 	if _, err := members.ListSnapshotMembers(
-		ctx, tenantID, otherEntityID, snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 10,
+		ctx, tenantID, otherEntityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 10,
 	); !errors.Is(err, ErrMetricMembershipNotFound) {
 		t.Fatalf("cross-entity membership error=%v", err)
 	}
@@ -303,7 +303,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		t.Fatalf("retained metric observation blocked source snapshot retention cleanup: %v", err)
 	}
 	retainedPage, err := members.ListSnapshotMembers(
-		ctx, tenantID, entityID, snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 10,
+		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, "metric-viewer", "", 10,
 	)
 	if err != nil || retainedPage.Count != 7 {
 		t.Fatalf("retained membership after source cleanup=%#v err=%v", retainedPage, err)
