@@ -19,6 +19,9 @@ const api = vi.hoisted(() => ({
   approveOrganizationPosition: vi.fn(),
   rejectOrganizationPosition: vi.fn(),
   restoreOrganizationPosition: vi.fn(),
+  proposeOrganizationPositionRole: vi.fn(),
+  approveOrganizationPositionRole: vi.fn(),
+  rejectOrganizationPositionRole: vi.fn(),
 }));
 
 vi.mock("../identityAccessApi", () => api);
@@ -38,7 +41,10 @@ beforeEach(() => {
       { id: "person-new", display_name: "Nneka Obi", status: "ACTIVE" },
     ],
     groups: [{ id: "group-1", display_name: "Risk Operations", source_code: "ENTRA", source_state: "ACTIVE", member_count: 8 }],
-    roles: [{ id: "role-1", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: ["program_read"] }],
+    roles: [
+      { id: "role-1", code: "RISK_REVIEWER", name: "Risk reviewer", capabilities: ["program_read"], version: 2, organization_editable: true, organization_lock_reasons: [] },
+      { id: "role-locked", code: "AUTHORIZER", name: "Authorizer", capabilities: ["approve"], version: 3, organization_editable: false, organization_lock_reasons: ["AUTHORITY_ROUTE"] },
+    ],
     legal_entities: [],
     bindings: [],
     organization_scopes: [
@@ -48,6 +54,7 @@ beforeEach(() => {
     organization_scope_revisions: [],
     organization_position_revisions: [],
     organization_position_history: [],
+    organization_position_role_revisions: [],
     positions: [
       {
         id: "position-cro",
@@ -196,6 +203,84 @@ it("proposes a new position with occupant and reporting line from the Organizati
     occupant_principal_id: "person-new",
   }));
   expect(await screen.findByText("Position change proposed.")).toBeTruthy();
+});
+
+it("governs workspace roles and keeps policy-managed roles read-only", async () => {
+  api.proposeOrganizationPositionRole.mockResolvedValue({
+    id: "role-revision-1",
+    position_id: "position-owner",
+    role_template_id: "role-1",
+    operation: "ADD",
+    base_position_version: 4,
+    base_role_version: 2,
+    role_code: "RISK_REVIEWER",
+    role_name: "Risk reviewer",
+    capabilities: ["program_read"],
+    maker_id: "actor-1",
+    status: "PENDING",
+    created_at: "2026-10-04T10:00:00Z",
+  });
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByRole("heading", { name: "Organization & access" });
+
+  const ownerRow = screen.getByRole("row", { name: /Program Owner/ });
+  fireEvent.click(within(ownerRow).getByRole("button", { name: "Roles" }));
+
+  const dialog = screen.getByRole("dialog", { name: "Workspace roles · Program Owner" });
+  const lockedRole = within(dialog).getByText("Authorizer").closest("li");
+  expect(lockedRole).toBeTruthy();
+  expect(within(lockedRole!).getByText("Policy managed")).toBeTruthy();
+  expect(within(lockedRole!).getByText(/Used by active authority route/)).toBeTruthy();
+  expect(within(lockedRole!).queryByRole("button", { name: /Add|Remove/ })).toBeNull();
+
+  const safeRole = within(dialog).getByText("Risk reviewer").closest("li");
+  expect(safeRole).toBeTruthy();
+  fireEvent.click(within(safeRole!).getByRole("button", { name: "Add" }));
+
+  await waitFor(() => expect(api.proposeOrganizationPositionRole).toHaveBeenCalledWith({
+    position_id: "position-owner",
+    role_template_id: "role-1",
+    operation: "ADD",
+    expected_position_version: 4,
+  }));
+  expect(await screen.findByText("Workspace role change proposed.")).toBeTruthy();
+});
+
+it("shows pending workspace role changes for independent approval", async () => {
+  const base = await api.loadIdentityAccessOverview();
+  api.loadIdentityAccessOverview.mockClear();
+  api.loadIdentityAccessOverview.mockResolvedValue({
+    ...base,
+    actor_principal_id: "checker-1",
+    organization_position_role_revisions: [{
+      id: "role-revision-2",
+      position_id: "position-owner",
+      role_template_id: "role-1",
+      operation: "ADD",
+      base_position_version: 4,
+      base_role_version: 2,
+      role_code: "RISK_REVIEWER",
+      role_name: "Risk reviewer",
+      capabilities: ["program_read"],
+      maker_id: "maker-1",
+      status: "PENDING",
+      created_at: "2026-10-04T10:00:00Z",
+    }],
+  });
+  api.approveOrganizationPositionRole.mockResolvedValue(undefined);
+
+  render(<IdentityAccessPanel/>);
+  await screen.findByText("Pending workspace role changes");
+
+  const pending = screen.getByText("Pending workspace role changes").parentElement!;
+  fireEvent.click(within(pending).getByRole("button", { name: "Approve" }));
+  const dialog = screen.getByRole("dialog", { name: "Approve workspace role change" });
+  expect(within(dialog).getByText(/rechecks the position version/)).toBeTruthy();
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /^Rationale/ }), { target: { value: "Workspace access reviewed" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(api.approveOrganizationPositionRole).toHaveBeenCalledWith("role-revision-2", "Workspace access reviewed"));
 });
 
 it("shows pending position changes for independent approval", async () => {
