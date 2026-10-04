@@ -197,18 +197,58 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	}
 
 	rows, err = a.pool.Query(ctx, `
-		SELECT id::text,code,name,capabilities FROM role_templates
-		WHERE tenant_id=$1::uuid AND valid_from<=clock_timestamp() AND (valid_until IS NULL OR clock_timestamp()<valid_until)
-		ORDER BY code LIMIT 100`, tenantID)
+		SELECT rt.id::text,rt.code,rt.name,rt.capabilities,
+		       cardinality(rt.responsibilities),
+		       (SELECT count(*) FROM responsibility_assignments assignment
+		        WHERE assignment.tenant_id=rt.tenant_id AND assignment.role_template_id=rt.id
+		          AND assignment.valid_from<=clock_timestamp()
+		          AND (assignment.valid_until IS NULL OR clock_timestamp()<assignment.valid_until)),
+		       (SELECT count(*) FROM authority_grants grant_row
+		        WHERE grant_row.tenant_id=rt.tenant_id AND grant_row.role_template_id=rt.id
+		          AND grant_row.valid_from<=clock_timestamp()
+		          AND (grant_row.valid_until IS NULL OR clock_timestamp()<grant_row.valid_until)),
+		       (SELECT count(*) FROM routing_policies policy
+		        JOIN routing_policy_versions version
+		          ON version.policy_id=policy.id AND version.version=policy.current_version
+		        WHERE policy.tenant_id=rt.tenant_id AND policy.status='ACTIVE'
+		          AND (
+		            strpos(version.definition::text,to_jsonb(rt.code)::text)>0
+		            OR strpos(version.definition::text,to_jsonb(rt.id::text)::text)>0
+		          )),
+		       (SELECT count(*) FROM segregation_rules rule
+		        WHERE rule.tenant_id=rt.tenant_id AND rule.status='ACTIVE'
+		          AND rule.prohibited_role_code=rt.code
+		          AND rule.valid_from<=clock_timestamp()
+		          AND (rule.valid_until IS NULL OR clock_timestamp()<rule.valid_until))
+		FROM role_templates rt
+		WHERE rt.tenant_id=$1::uuid
+		  AND rt.valid_from<=clock_timestamp() AND (rt.valid_until IS NULL OR clock_timestamp()<rt.valid_until)
+		ORDER BY rt.code LIMIT 100`, tenantID)
 	if err != nil {
 		return AdminOverview{}, err
 	}
 	for rows.Next() {
-		var value RoleTemplateSummary
-		if err := rows.Scan(&value.ID, &value.Code, &value.Name, &value.Capabilities); err != nil {
+		var (
+			value            RoleTemplateSummary
+			declared         int
+			assignments      int
+			authorityGrants  int
+			routingPolicies  int
+			segregationRules int
+		)
+		if err := rows.Scan(
+			&value.ID, &value.Code, &value.Name, &value.Capabilities,
+			&declared, &assignments, &authorityGrants, &routingPolicies, &segregationRules,
+		); err != nil {
 			rows.Close()
 			return AdminOverview{}, err
 		}
+		value.MaterialReferences = WorkspaceRoleMaterialReferences{
+			DeclaredResponsibilities: declared, ResponsibilityAssignments: assignments,
+			AuthorityGrants: authorityGrants, RoutingPolicies: routingPolicies, SegregationRules: segregationRules,
+		}
+		value.WorkspaceLockReason = workspaceRoleLockReason(value)
+		value.WorkspaceEditable = value.WorkspaceLockReason == ""
 		result.Roles = append(result.Roles, value)
 	}
 	if err := closeRows(rows); err != nil {
@@ -264,6 +304,10 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		return AdminOverview{}, err
 	}
 	result.OrganizationPositionRevisions, err = a.organizationPositionRevisions(ctx, tenantID, entityID)
+	if err != nil {
+		return AdminOverview{}, err
+	}
+	result.OrganizationPositionRoleRevisions, err = a.organizationPositionRoleRevisions(ctx, tenantID, entityID)
 	if err != nil {
 		return AdminOverview{}, err
 	}
@@ -989,17 +1033,20 @@ func adminDecisionStates(eventType string) (string, string) {
 	case "SCIM_SOURCE_CREATED", "DIRECTORY_GROUP_ROLE_BOUND", "ORGANIZATION_SCOPE_CREATED", "ORGANIZATION_POSITION_CREATED":
 		return "NONE", "ACTIVE"
 	case "ORGANIZATION_SCOPE_CHANGE_PROPOSED", "ORGANIZATION_POSITION_CHANGE_PROPOSED",
-		"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_PROPOSED":
+		"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_PROPOSED", "ORGANIZATION_POSITION_ROLE_CHANGE_PROPOSED":
 		return "NONE", "PENDING"
 	case "ORGANIZATION_SCOPE_CHANGE_REJECTED", "ORGANIZATION_POSITION_CHANGE_REJECTED",
-		"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_REJECTED":
+		"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_REJECTED", "ORGANIZATION_POSITION_ROLE_CHANGE_REJECTED":
 		return "PENDING", "REJECTED"
-	case "LEGAL_ENTITY_DATA_BOUNDARY_APPLIED":
+	case "LEGAL_ENTITY_DATA_BOUNDARY_APPLIED", "ORGANIZATION_POSITION_ROLE_CHANGE_APPLIED":
 		return "PENDING", "ACTIVE"
 	case "SCIM_SOURCE_REVOKED":
 		return "ACTIVE", "REVOKED"
-	case "DIRECTORY_GROUP_ROLE_RETIRED", "ORGANIZATION_SCOPE_RETIRED", "ORGANIZATION_POSITION_RETIRED":
+	case "DIRECTORY_GROUP_ROLE_RETIRED", "ORGANIZATION_SCOPE_RETIRED", "ORGANIZATION_POSITION_RETIRED",
+		"ORGANIZATION_POSITION_ROLE_RETIRED":
 		return "ACTIVE", "RETIRED"
+	case "ORGANIZATION_POSITION_ROLE_BOUND":
+		return "NONE", "ACTIVE"
 	default:
 		return "ACTIVE", "ACTIVE"
 	}
