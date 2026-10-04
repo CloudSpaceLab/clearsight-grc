@@ -116,7 +116,6 @@ describe("OrganizationInventory data boundary", () => {
 
 const scope: OrganizationScope = {
   id: "scope-risk",
-  tenant_id: "bank",
   legal_entity_id: "entity-a",
   code: "RISK",
   name: "Risk",
@@ -124,6 +123,7 @@ const scope: OrganizationScope = {
   department_path: ["BANK", "RISK"],
   origin: "MANAGED",
   status: "ACTIVE",
+  valid_from: "2026-01-01T00:00:00Z",
   version: 1,
 };
 
