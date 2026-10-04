@@ -46,8 +46,8 @@ CREATE FUNCTION guard_metric_observation_delete() RETURNS trigger
 LANGUAGE plpgsql
 AS $metric_observation_delete$
 BEGIN
-    IF OLD.generated_at >= clock_timestamp()-interval '180 days' THEN
-        RAISE EXCEPTION 'Metric observation is inside the raw retention window';
+    IF OLD.generated_at >= clock_timestamp()-interval '14 days' THEN
+        RAISE EXCEPTION 'Metric observation is inside the 14-day raw retention window';
     END IF;
     IF NOT EXISTS (
         SELECT 1
