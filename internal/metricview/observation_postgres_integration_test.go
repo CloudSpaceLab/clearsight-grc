@@ -72,8 +72,8 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		now.Add(-90*24*time.Hour),
 		now,
 		oversight.ProjectionVersion,
-		highWater,
-		payload,
+		string(highWater),
+		string(payload),
 		otherEntityID,
 	); err != nil {
 		t.Fatal(err)
