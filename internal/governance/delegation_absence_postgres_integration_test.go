@@ -75,7 +75,7 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 			INSERT INTO responsibility_assignments(
 				tenant_id,legal_entity_id,principal_id,responsibility,object_type,priority,valid_from,valid_until,policy_version
 			) VALUES($1::uuid,$2::uuid,$3::uuid,$4,'LEGAL_ENTITY',100,$5,$6,'absence-test:v1')`,
-			tenantID, entityID, giverID, responsibility, now.Add(-time.Hour), now.Add(24 * time.Hour))
+			tenantID, entityID, giverID, responsibility, now.Add(-time.Hour), now.Add(24*time.Hour))
 	}
 
 	repo := NewPostgresRepository(pool)
@@ -107,7 +107,7 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 	if planned.Status != DelegationApproved {
 		t.Fatalf("planned absence activated early: %#v", planned)
 	}
-	if count, err := repo.ActivateDueDelegations(ctx, now.Add(30 * time.Minute), 10); err != nil || count != 0 {
+	if count, err := repo.ActivateDueDelegations(ctx, now.Add(30*time.Minute), 10); err != nil || count != 0 {
 		t.Fatalf("early planned activation count=%d err=%v", count, err)
 	}
 	if count, err := repo.ActivateDueDelegations(ctx, now.Add(time.Hour), 10); err != nil || count != 1 {
@@ -117,7 +117,7 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 	if err != nil || planned.Status != DelegationActive {
 		t.Fatalf("planned delegation after start=%#v err=%v", planned, err)
 	}
-	if count, err := repo.ExpireDueDelegations(ctx, now.Add(3 * time.Hour), 10); err != nil || count != 1 {
+	if count, err := repo.ExpireDueDelegations(ctx, now.Add(3*time.Hour), 10); err != nil || count != 1 {
 		t.Fatalf("planned expiry count=%d err=%v", count, err)
 	}
 	planned, err = repo.GetDelegationForEntity(ctx, tenantID, entityID, planned.ID)
@@ -172,7 +172,7 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 		t.Fatal(err)
 	}
 	mustGovernanceExec(t, ctx, pool, `UPDATE principals SET status='INACTIVE' WHERE id=$1::uuid`, giverID)
-	if count, err := repo.ActivateDueDelegations(ctx, now.Add(2 * time.Hour), 10); !errors.Is(err, ErrDelegationEligibility) || count != 0 {
+	if count, err := repo.ActivateDueDelegations(ctx, now.Add(2*time.Hour), 10); !errors.Is(err, ErrDelegationEligibility) || count != 0 {
 		t.Fatalf("ineligible future activation count=%d err=%v", count, err)
 	}
 	future, err = repo.GetDelegationForEntity(ctx, tenantID, entityID, future.ID)
