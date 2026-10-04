@@ -21,7 +21,10 @@ func (a staticIdentityAuthenticator) Authenticate(*http.Request) (identity.Actor
 	return a.actor, true, nil
 }
 
-type fakeAccessAdministrator struct{ created bool }
+type fakeAccessAdministrator struct {
+	created  bool
+	boundary access.ProposeLegalEntityDataBoundaryInput
+}
 
 func (a *fakeAccessAdministrator) Overview(context.Context, string, string, int) (access.AdminOverview, error) {
 	return access.AdminOverview{}, nil
@@ -58,6 +61,20 @@ func (*fakeAccessAdministrator) ApproveOrganizationPosition(context.Context, acc
 	return nil
 }
 func (*fakeAccessAdministrator) RejectOrganizationPosition(context.Context, access.DecideOrganizationPositionInput) error {
+	return nil
+}
+func (a *fakeAccessAdministrator) ProposeLegalEntityDataBoundary(_ context.Context, input access.ProposeLegalEntityDataBoundaryInput) (access.LegalEntityDataBoundaryRevision, error) {
+	a.boundary = input
+	return access.LegalEntityDataBoundaryRevision{
+		ID: "boundary-revision-1", LegalEntityID: input.LegalEntityID, BaseVersion: input.ExpectedVersion,
+		ProposedResidencyRegion: input.ResidencyRegion, ProposedDetailTransferMode: input.DetailTransferMode,
+		ProposedDestinationRegions: input.AllowedDestinationRegions, MakerID: input.ActorID, Status: "PENDING",
+	}, nil
+}
+func (*fakeAccessAdministrator) ApproveLegalEntityDataBoundary(context.Context, access.DecideLegalEntityDataBoundaryInput) error {
+	return nil
+}
+func (*fakeAccessAdministrator) RejectLegalEntityDataBoundary(context.Context, access.DecideLegalEntityDataBoundaryInput) error {
 	return nil
 }
 
@@ -100,6 +117,47 @@ func TestIdentityAccessRoutesSeparateReadFromConfigure(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), `"token":"cs_scim_`) {
 		t.Fatalf("create must return a reveal-once provisioning token: %s", response.Body.String())
+	}
+}
+
+func TestDataBoundaryChangeRequiresGovernedCurrentLegalEntity(t *testing.T) {
+	now := time.Now().UTC()
+	base := identity.Actor{
+		TenantID: "bank", PrincipalID: "principal", LegalEntityID: "bank-ng", Kind: "PERSON",
+		AuthenticationMethod: "test", AssuranceLevel: "test", SessionID: "session", IssuedAt: now, ExpiresAt: now.Add(time.Hour),
+	}
+	admin := &fakeAccessAdministrator{}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	identityOnly := base
+	identityOnly.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure}
+	handler := New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: identityOnly}, AccessAdmin: admin})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/access/legal-entity-data-boundary-revisions", strings.NewReader(`{
+		"tenant_id":"spoofed","legal_entity_id":"bank-gh",
+		"residency_region":"NG","detail_transfer_mode":"AGGREGATE_ONLY","expected_version":0
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("identity configure alone must not mutate data boundary, got %d: %s", response.Code, response.Body.String())
+	}
+
+	governed := base
+	governed.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure, identity.PermissionConfigWrite}
+	handler = New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: governed}, AccessAdmin: admin})
+	request = httptest.NewRequest(http.MethodPost, "/api/v1/access/legal-entity-data-boundary-revisions", strings.NewReader(`{
+		"tenant_id":"spoofed","legal_entity_id":"bank-gh",
+		"residency_region":"NG","detail_transfer_mode":"AGGREGATE_ONLY","expected_version":0
+	}`))
+	request.Header.Set("Content-Type", "application/json")
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("governed data-boundary proposal status=%d body=%s", response.Code, response.Body.String())
+	}
+	if admin.boundary.TenantID != "bank" || admin.boundary.LegalEntityID != "bank-ng" || admin.boundary.ActorID != "principal" {
+		t.Fatalf("data-boundary scope/actor was not server-bound: %#v", admin.boundary)
 	}
 }
 

@@ -267,6 +267,14 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 	if err != nil {
 		return AdminOverview{}, err
 	}
+	result.DataBoundary, err = a.legalEntityDataBoundary(ctx, tenantID, entityID)
+	if err != nil {
+		return AdminOverview{}, err
+	}
+	result.DataBoundaryRevisions, err = a.legalEntityDataBoundaryRevisions(ctx, tenantID, entityID)
+	if err != nil {
+		return AdminOverview{}, err
+	}
 
 	if err := a.pool.QueryRow(ctx, `
 		SELECT
@@ -980,10 +988,14 @@ func adminDecisionStates(eventType string) (string, string) {
 	switch eventType {
 	case "SCIM_SOURCE_CREATED", "DIRECTORY_GROUP_ROLE_BOUND", "ORGANIZATION_SCOPE_CREATED", "ORGANIZATION_POSITION_CREATED":
 		return "NONE", "ACTIVE"
-	case "ORGANIZATION_SCOPE_CHANGE_PROPOSED", "ORGANIZATION_POSITION_CHANGE_PROPOSED":
+	case "ORGANIZATION_SCOPE_CHANGE_PROPOSED", "ORGANIZATION_POSITION_CHANGE_PROPOSED",
+		"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_PROPOSED":
 		return "NONE", "PENDING"
-	case "ORGANIZATION_SCOPE_CHANGE_REJECTED", "ORGANIZATION_POSITION_CHANGE_REJECTED":
+	case "ORGANIZATION_SCOPE_CHANGE_REJECTED", "ORGANIZATION_POSITION_CHANGE_REJECTED",
+		"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_REJECTED":
 		return "PENDING", "REJECTED"
+	case "LEGAL_ENTITY_DATA_BOUNDARY_APPLIED":
+		return "PENDING", "ACTIVE"
 	case "SCIM_SOURCE_REVOKED":
 		return "ACTIVE", "REVOKED"
 	case "DIRECTORY_GROUP_ROLE_RETIRED", "ORGANIZATION_SCOPE_RETIRED", "ORGANIZATION_POSITION_RETIRED":

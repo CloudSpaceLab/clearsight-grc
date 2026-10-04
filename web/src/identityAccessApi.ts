@@ -126,6 +126,41 @@ export type ProposeOrganizationPositionInput = {
   expected_version?: number;
 };
 
+export type DetailTransferMode = "AGGREGATE_ONLY" | "ALLOWLIST";
+export type LegalEntityDataBoundary = {
+  legal_entity_id: string;
+  legal_entity_code: string;
+  legal_entity_name: string;
+  jurisdiction?: string;
+  residency_region?: string;
+  detail_transfer_mode: DetailTransferMode;
+  allowed_destination_regions: string[];
+  version: number;
+  configured: boolean;
+  updated_at?: string;
+};
+export type LegalEntityDataBoundaryRevision = {
+  id: string;
+  legal_entity_id: string;
+  base_version: number;
+  proposed_residency_region: string;
+  proposed_detail_transfer_mode: DetailTransferMode;
+  proposed_destination_regions: string[];
+  maker_id: string;
+  checker_id?: string;
+  status: string;
+  rationale?: string;
+  created_at: string;
+  decided_at?: string;
+  applied_at?: string;
+};
+export type ProposeLegalEntityDataBoundaryInput = {
+  residency_region: string;
+  detail_transfer_mode: DetailTransferMode;
+  allowed_destination_regions?: string[];
+  expected_version: number;
+};
+
 export type OrganizationPosition = {
   id: string;
   code: string;
@@ -204,6 +239,8 @@ export type IdentityAccessOverview = {
   organization_scopes_truncated?: boolean;
   organization_scope_revisions: OrganizationScopeRevision[];
   organization_position_revisions: OrganizationPositionRevision[];
+  data_boundary: LegalEntityDataBoundary;
+  data_boundary_revisions: LegalEntityDataBoundaryRevision[];
   escalation: { pending_timers: number; escalated_tasks: number; unresolved_24h: number; failed_timers: number };
   escalation_policies: EscalationPolicy[];
 };
@@ -243,6 +280,19 @@ export async function loadIdentityAccessOverview(): Promise<IdentityAccessOvervi
     organization_scopes: overview.organization_scopes ?? [],
     organization_scope_revisions: overview.organization_scope_revisions ?? [],
     organization_position_revisions: overview.organization_position_revisions ?? [],
+    data_boundary: {
+      legal_entity_id: overview.data_boundary?.legal_entity_id ?? "",
+      legal_entity_code: overview.data_boundary?.legal_entity_code ?? "",
+      legal_entity_name: overview.data_boundary?.legal_entity_name ?? "",
+      jurisdiction: overview.data_boundary?.jurisdiction,
+      residency_region: overview.data_boundary?.residency_region ?? "",
+      detail_transfer_mode: overview.data_boundary?.detail_transfer_mode === "ALLOWLIST" ? "ALLOWLIST" : "AGGREGATE_ONLY",
+      allowed_destination_regions: overview.data_boundary?.allowed_destination_regions ?? [],
+      version: overview.data_boundary?.version ?? 0,
+      configured: overview.data_boundary?.configured === true,
+      updated_at: overview.data_boundary?.updated_at,
+    },
+    data_boundary_revisions: overview.data_boundary_revisions ?? [],
     escalation_policies: overview.escalation_policies ?? [],
   };
 }
@@ -270,6 +320,18 @@ export function approveOrganizationPosition(id: string, rationale: string): Prom
 
 export function rejectOrganizationPosition(id: string, rationale: string): Promise<void> {
   return requestNoContent(apiBase, `/api/v1/access/organization-position-revisions/${encodeURIComponent(id)}/reject`, { method: "POST", body: JSON.stringify({ rationale }) });
+}
+
+export function proposeLegalEntityDataBoundary(input: ProposeLegalEntityDataBoundaryInput): Promise<LegalEntityDataBoundaryRevision> {
+  return request("/api/v1/access/legal-entity-data-boundary-revisions", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function approveLegalEntityDataBoundary(id: string, rationale: string): Promise<void> {
+  return requestNoContent(apiBase, `/api/v1/access/legal-entity-data-boundary-revisions/${encodeURIComponent(id)}/approve`, { method: "POST", body: JSON.stringify({ rationale }) });
+}
+
+export function rejectLegalEntityDataBoundary(id: string, rationale: string): Promise<void> {
+  return requestNoContent(apiBase, `/api/v1/access/legal-entity-data-boundary-revisions/${encodeURIComponent(id)}/reject`, { method: "POST", body: JSON.stringify({ rationale }) });
 }
 
 export function createIdentitySource(input: { code: string; identity_issuer?: string; subject_attribute: "externalId" | "userName" }): Promise<{ source: IdentitySource; token: string }> {

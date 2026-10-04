@@ -33,6 +33,13 @@ describe("loadIdentityAccessOverview", () => {
     expect(overview.bindings).toEqual([]);
     expect(overview.organization_scopes).toEqual([]);
     expect(overview.organization_scope_revisions).toEqual([]);
+    expect(overview.data_boundary).toMatchObject({
+      detail_transfer_mode: "AGGREGATE_ONLY",
+      allowed_destination_regions: [],
+      version: 0,
+      configured: false,
+    });
+    expect(overview.data_boundary_revisions).toEqual([]);
     expect(overview.escalation_policies).toEqual([]);
   });
 });

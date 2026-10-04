@@ -4797,6 +4797,28 @@
         "x-clearsight-route-class": "AUTHENTICATED_WRITE",
         "x-clearsight-permission": "IDENTITY_CONFIGURE"
       }
+    },
+    "/api/v1/access/legal-entity-data-boundary-revisions": {
+      "post": {
+        "operationId": "proposeLegalEntityDataBoundary",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE",
+        "description": "Propose the current legal entity's residency and cross-entity detail-transfer boundary for independent approval."
+      }
+    },
+    "/api/v1/access/legal-entity-data-boundary-revisions/{id}/approve": {
+      "post": {
+        "operationId": "approveLegalEntityDataBoundary",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/legal-entity-data-boundary-revisions/{id}/reject": {
+      "post": {
+        "operationId": "rejectLegalEntityDataBoundary",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
     }
   }
 }
