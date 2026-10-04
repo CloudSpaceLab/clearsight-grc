@@ -103,7 +103,7 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 
 	repository := NewMembershipRepository(pool)
 	page, err := repository.ListSnapshotMembers(
-		ctx, tenantID, entityID, snapshotID, "critical_high_open", HomeDefinitionRevision, principalA, "", 10,
+		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, principalA, "", 10,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +124,7 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	}
 
 	redacted, err := repository.ListSnapshotMembers(
-		ctx, tenantID, entityID, snapshotID, "critical_high_open", HomeDefinitionRevision, principalA, "", 10,
+		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, principalA, "", 10,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -146,7 +146,7 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	}
 
 	responsible, err := repository.ListSnapshotMembers(
-		ctx, tenantID, entityID, snapshotID, "critical_high_open", HomeDefinitionRevision, principalA, "", 10,
+		ctx, tenantID, entityID, "", snapshotID, "critical_high_open", HomeDefinitionRevision, principalA, "", 10,
 	)
 	if err != nil {
 		t.Fatal(err)
