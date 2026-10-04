@@ -167,7 +167,7 @@ func (r *ObservationRepository) comparisonPoint(ctx context.Context, tenantID, l
 		LIMIT 1`
 	row := r.pool.QueryRow(ctx, query, tenantID, legalEntityID, metricID, HomeDefinitionRevision, boundary.UTC())
 	point := TrendPoint{}
-	if err := row.Scan(&point.At,&point.Value,&point.Freshness,&point.Completeness,&point.Population,&point.Excluded,&point.Unknown,&point.SourceRevision); err != nil {
+	if err := row.Scan(&point.At, &point.Value, &point.Freshness, &point.Completeness, &point.Population, &point.Excluded, &point.Unknown, &point.SourceRevision); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrTrendNotFound
 		}
@@ -181,7 +181,7 @@ func scanTrendPoints(rows pgx.Rows) ([]TrendPoint, error) {
 	points := make([]TrendPoint, 0, 180)
 	for rows.Next() {
 		var point TrendPoint
-		if err := rows.Scan(&point.At,&point.Value,&point.Freshness,&point.Completeness,&point.Population,&point.Excluded,&point.Unknown,&point.SourceRevision); err != nil {
+		if err := rows.Scan(&point.At, &point.Value, &point.Freshness, &point.Completeness, &point.Population, &point.Excluded, &point.Unknown, &point.SourceRevision); err != nil {
 			return nil, fmt.Errorf("scan metric trend point: %w", err)
 		}
 		point.At = point.At.UTC()
