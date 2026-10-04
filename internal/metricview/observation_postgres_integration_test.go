@@ -104,7 +104,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 
 	excludedValue, unknownValue := 2, 3
 	sourceSnapshot := oversight.Snapshot{
-		LegalEntityID: entityID, GeneratedAt: now,
+		SnapshotID: snapshotID, LegalEntityID: entityID, GeneratedAt: now,
 		PeriodStart: now.Add(-90 * 24 * time.Hour), PeriodEnd: now, PostureAsOf: now,
 		ProjectionVersion: oversight.ProjectionVersion, Freshness: oversight.FreshnessCurrent,
 		SourceHighWater: map[string]time.Time{"matters": now.Add(-time.Minute)},
