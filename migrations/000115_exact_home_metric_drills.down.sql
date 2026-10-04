@@ -14,6 +14,7 @@ $exact_metric_drill_downgrade$;
 
 DROP TABLE IF EXISTS oversight_metric_members;
 DROP FUNCTION IF EXISTS prevent_oversight_metric_member_update();
+DROP FUNCTION IF EXISTS validate_oversight_metric_member_source();
 
 ALTER TABLE oversight_snapshots
     DROP CONSTRAINT IF EXISTS oversight_snapshots_metric_membership_version_check;
