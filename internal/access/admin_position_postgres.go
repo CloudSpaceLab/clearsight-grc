@@ -406,7 +406,7 @@ func applyOrganizationPositionRevision(ctx context.Context, tx pgx.Tx, tenantID,
 
 func (a *PostgresAdministrator) organizationPositionRevisions(ctx context.Context, tenantID, entityID string) ([]OrganizationPositionRevisionSummary, error) {
 	rows, err := a.pool.Query(ctx, organizationPositionRevisionSelect+`
-		WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid AND r.status='PENDING'
+		WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid AND r.status IN ('PENDING','SCHEDULED')
 		ORDER BY r.created_at,r.id
 		LIMIT 100`, tenantID, entityID)
 	if err != nil {
@@ -430,7 +430,7 @@ func (a *PostgresAdministrator) organizationPositionRevisions(ctx context.Contex
 
 func (a *PostgresAdministrator) organizationPositionHistory(ctx context.Context, tenantID, entityID string) ([]OrganizationPositionRevisionSummary, error) {
 	rows, err := a.pool.Query(ctx, organizationPositionRevisionSelect+`
-		WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid AND r.status<>'PENDING'
+		WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid AND r.status IN ('APPLIED','REJECTED','FAILED')
 		ORDER BY COALESCE(r.decided_at,r.created_at) DESC,r.id DESC
 		LIMIT 100`, tenantID, entityID)
 	if err != nil {
