@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
@@ -127,6 +128,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	ropaService.SetLister(ropaLister)
 	ropaSummaryMaintainer := ropa.NewSummaryMaintainer(ropaRepository, ropaSummaries, ropaService)
 	authorityService := authority.NewEffectivePostgresService(pool)
+	positionActivation := access.NewOrganizationPositionActivationMaintainer(pool)
 	reportingRepository := reporting.NewPostgresRepository(pool)
 	reportingService := reporting.NewService(reportingRepository, store, authorityService)
 	reportingService.WorkerID = cfg.WorkerID
@@ -210,6 +212,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	// reassignment/wrong-recipient/principal-status changes one rebuildable Today
 	// projection without adding another event or worker stack.
 	service.ConfigureClass(evidenceWorkProjectionClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 100})
+	service.ConfigureClass(access.OrganizationPositionActivationWorkClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 50})
 	// Document proposal work is event-driven for normal transitions and gets a
 	// slower bounded authority-convergence pass so routing changes can reassign an
 	// active review without requiring a document mutation.
@@ -246,6 +249,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(matterWorkProjectionClass, lifecycleWork)
 	service.AddMaintainerClass(workflow.MatterEscalationWorkClass, escalationWork)
 	service.AddMaintainerClass(evidenceWorkProjectionClass, evidenceWork)
+	service.AddMaintainerClass(access.OrganizationPositionActivationWorkClass, positionActivation)
 	service.AddMaintainerClass(documentProposalWorkProjectionClass, documentProposalWork)
 	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
 	oversightRepository := oversight.NewPostgresRepository(pool)
