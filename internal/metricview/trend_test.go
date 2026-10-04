@@ -22,9 +22,12 @@ func TestTrendResolutionIsBounded(t *testing.T) {
 
 func TestTrendComparisonDirectionAndQuality(t *testing.T) {
 	zero := 0
+	start := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 10, 4, 12, 0, 0, 0, time.UTC)
 	series := TrendSeries{
-		Baseline: &TrendPoint{Value: 7, Freshness: oversight.FreshnessCurrent, Completeness: CompletenessComplete, Excluded: &zero, Unknown: &zero},
-		Current:  &TrendPoint{Value: 4, Freshness: oversight.FreshnessCurrent, Completeness: CompletenessComplete, Excluded: &zero, Unknown: &zero},
+		Start: start, End: end, Resolution: TrendResolutionDay,
+		Baseline: &TrendPoint{At: start.Add(-time.Hour), Value: 7, Freshness: oversight.FreshnessCurrent, Completeness: CompletenessComplete, Excluded: &zero, Unknown: &zero},
+		Current:  &TrendPoint{At: end.Add(-time.Hour), Value: 4, Freshness: oversight.FreshnessCurrent, Completeness: CompletenessComplete, Excluded: &zero, Unknown: &zero},
 	}
 	decorateTrendComparison(&series)
 	if series.Delta == nil || *series.Delta != -3 || series.Direction != TrendImproved || series.ComparisonQuality != ComparisonComplete {
@@ -36,6 +39,14 @@ func TestTrendComparisonDirectionAndQuality(t *testing.T) {
 	decorateTrendComparison(&series)
 	if series.Direction != TrendImproved || series.ComparisonQuality != ComparisonLimited {
 		t.Fatalf("limited comparison=%#v", series)
+	}
+
+
+	series.Current.Unknown = &zero
+	series.Baseline.At = start.Add(-48 * time.Hour)
+	decorateTrendComparison(&series)
+	if series.ComparisonQuality != ComparisonLimited {
+		t.Fatalf("sparse comparison=%#v", series)
 	}
 
 	series.Baseline = nil
