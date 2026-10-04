@@ -70,6 +70,7 @@ export function OversightWorkspace({
   const exactDrillIdentity = exactMetricSourceID && exactMetricID && exactDefinitionRevision
     ? `${exactMetricSourceID}:${exactMetricID}:${exactDefinitionRevision}`
     : "";
+  const exactDrillActive = exactDrillIdentity !== "";
   const memberCursor = memberCursors[memberCursors.length - 1];
 
   useEffect(() => { setLocalMetricFilter(metricFilter); }, [metricFilter]);
@@ -216,13 +217,30 @@ export function OversightWorkspace({
     <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>
 
     <section id="oversight-attention" className="oversight-attention" aria-labelledby="oversight-attention-heading" tabIndex={-1}>
-      <div className="section-header"><div><span className="eyebrow">What needs attention now</span><h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Priority interventions" : metricFilterLabel(selectedMetricFilter)}</h2><p>{selectedMetricFilter === "all" ? "Ranked by overdue state, priority and current deadline." : "Ranked intervention records matching the selected measure."}</p></div><div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div></div>
-      {selectedMetricFilter !== "all" && <p className="oversight-result-count" aria-live="polite">{interventions.length} ranked {interventions.length === 1 ? "issue" : "issues"} shown for {metricFilterLabel(selectedMetricFilter).toLowerCase()}.</p>}
-      {interventions.length ? <div className="oversight-intervention-list">{interventions.map((item) => <article key={`${item.target_type}-${item.target_id}`}>
-        <div className={`oversight-priority p${item.priority}`}><span>P{item.priority}</span></div>
-        <div><div className="oversight-intervention-title"><strong>{item.title}</strong><span>{humanize(item.category)}</span></div><p>{item.reason}</p><small>{item.owner_name || "No owner recorded"}{item.due_at ? ` · Due ${formatDate(item.due_at)}` : " · No due date recorded"} · {humanize(item.state)}</small></div>
-        <div className="oversight-action"><Button size="compact" onPress={() => onOpenMatter(item.target_id)} aria-label={`Review ${item.title}`}>{item.next_action}</Button></div>
-      </article>)}</div> : <EmptyState population={organizationScopeID ? `${snapshot.coverage.population} attributed issues in ${organizationScopeName || "this scope"}` : `${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Review the freshness and coverage above before treating this result as complete."/>}
+      <div className="section-header"><div><span className="eyebrow">What needs attention now</span><h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Priority interventions" : metricFilterLabel(selectedMetricFilter)}</h2><p>{selectedMetricFilter === "all" ? "Ranked by overdue state, priority and current deadline." : exactDrillActive ? "Exact retained records counted in this metric snapshot." : "Current intervention records matching the selected measure."}</p></div><div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div></div>
+      {selectedMetricFilter !== "all" && exactDrillActive
+        ? <MetricMemberDrill
+          label={selectedMetric?.label ?? metricFilterLabel(selectedMetricFilter)}
+          state={memberState === "idle" ? "loading" : memberState}
+          page={memberPage}
+          hasPrevious={memberCursors.length > 0}
+          onPrevious={() => setMemberCursors((value) => value.slice(0, -1))}
+          onNext={() => {
+            if (!memberPage?.next_cursor) return;
+            setMemberCursors((value) => [...value, memberPage.next_cursor!]);
+          }}
+          onRetry={() => setMemberRetry((value) => value + 1)}
+          onOpenMatter={onOpenMatter}
+          onOpenProgram={onOpenProgram}
+        />
+        : <>
+          {selectedMetricFilter !== "all" && <p className="oversight-result-count" aria-live="polite">{interventions.length} ranked {interventions.length === 1 ? "issue" : "issues"} shown for {metricFilterLabel(selectedMetricFilter).toLowerCase()}.</p>}
+          {interventions.length ? <div className="oversight-intervention-list">{interventions.map((item) => <article key={`${item.target_type}-${item.target_id}`}>
+            <div className={`oversight-priority p${item.priority}`}><span>P{item.priority}</span></div>
+            <div><div className="oversight-intervention-title"><strong>{item.title}</strong><span>{humanize(item.category)}</span></div><p>{item.reason}</p><small>{item.owner_name || "No owner recorded"}{item.due_at ? ` · Due ${formatDate(item.due_at)}` : " · No due date recorded"} · {humanize(item.state)}</small></div>
+            <div className="oversight-action"><Button size="compact" onPress={() => onOpenMatter(item.target_id)} aria-label={`Review ${item.title}`}>{item.next_action}</Button></div>
+          </article>)}</div> : <EmptyState population={organizationScopeID ? `${snapshot.coverage.population} attributed issues in ${organizationScopeName || "this scope"}` : `${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Review the freshness and coverage above before treating this result as complete."/>}
+        </>}
     </section>
 
     <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
@@ -258,7 +276,7 @@ function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: Home
         meta={homeMetricMeta(metric)}
         tone={homeMetricTone(metric)}
         quality={homeMetricQuality(metric)}
-        actionLabel={filter === "all" ? undefined : active ? "Show all priority interventions" : "Review current related interventions"}
+        actionLabel={filter === "all" ? undefined : active ? "Show all priority interventions" : metric.drill.consistency === "SOURCE_SNAPSHOT" ? "Review exact snapshot records" : "Review current related interventions"}
         isSelected={active}
         ariaControls={filter === "all" ? undefined : "oversight-attention"}
         onPress={filter === "all" ? undefined : () => onSelect(active ? "all" : filter)}
@@ -363,4 +381,9 @@ function formatTodayDue(value: string) {
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) return "No deadline";
   return `Due ${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(parsed))}`;
+}
+
+
+function isAbortError(error: unknown) {
+  return typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
 }
