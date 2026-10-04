@@ -3,6 +3,7 @@ package metricview
 import (
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/metricid"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 )
 
