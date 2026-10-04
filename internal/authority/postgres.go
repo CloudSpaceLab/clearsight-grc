@@ -249,6 +249,7 @@ WITH RECURSIVE requests AS (
 		       (rd.selector_kind='ROLE_ID' AND rt.id::text=rd.selector_ref))
 		  AND (le.id::text=r.legal_entity_id OR le.code=r.legal_entity_id)
 		  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id'=le.id::text)
+		  AND prb.binding_purpose='GENERAL'
 		  AND rt.valid_from <= r.at AND (rt.valid_until IS NULL OR r.at < rt.valid_until)
 		  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
 		  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
@@ -307,6 +308,7 @@ WITH RECURSIVE requests AS (
 	JOIN position_role_bindings prb ON prb.role_template_id=g.role_template_id
 	JOIN org_positions op ON op.id=prb.position_id
 	WHERE g.role_template_id IS NOT NULL
+	  AND prb.binding_purpose='GENERAL'
 	  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
 	  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
 ), blocked AS (
@@ -317,6 +319,7 @@ WITH RECURSIVE requests AS (
 	JOIN position_role_bindings prb ON prb.role_template_id=rt.id
 	JOIN org_positions op ON op.id=prb.position_id
 	WHERE sr.valid_from <= r.at AND (sr.valid_until IS NULL OR r.at < sr.valid_until)
+	  AND prb.binding_purpose='GENERAL'
 	  AND rt.valid_from <= r.at AND (rt.valid_until IS NULL OR r.at < rt.valid_until)
 	  AND prb.valid_from <= r.at AND (prb.valid_until IS NULL OR r.at < prb.valid_until)
 	  AND op.valid_from <= r.at AND (op.valid_until IS NULL OR r.at < op.valid_until)
@@ -511,6 +514,7 @@ func (s *postgresService) resolveRouteGroups(ctx context.Context, input ResolveI
 				  AND ((rd.selector_kind='ROLE' AND (rt.code=rd.selector_ref OR rt.id::text=rd.selector_ref)) OR (rd.selector_kind='ROLE_ID' AND rt.id::text=rd.selector_ref))
 				  AND (le.id::text=$2 OR le.code=$2)
 				  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id'=le.id::text)
+				  AND prb.binding_purpose='GENERAL'
 				  AND rt.valid_from <= $8 AND (rt.valid_until IS NULL OR $8 < rt.valid_until)
 				  AND prb.valid_from <= $8 AND (prb.valid_until IS NULL OR $8 < prb.valid_until)
 				  AND op.valid_from <= $8 AND (op.valid_until IS NULL OR $8 < op.valid_until)
@@ -682,6 +686,7 @@ func (s *postgresService) applyGrantBoundary(ctx context.Context, input ResolveI
 			JOIN position_role_bindings prb ON prb.role_template_id=g.role_template_id
 			JOIN org_positions op ON op.id=prb.position_id
 			WHERE g.role_template_id IS NOT NULL
+			  AND prb.binding_purpose='GENERAL'
 			  AND prb.valid_from <= $4 AND (prb.valid_until IS NULL OR $4 < prb.valid_until)
 			  AND op.valid_from <= $4 AND (op.valid_until IS NULL OR $4 < op.valid_until)
 		)
@@ -733,6 +738,7 @@ func (s *postgresService) applySegregationBoundary(ctx context.Context, input Re
 		JOIN segregation_rules sr ON sr.tenant_id=op.tenant_id AND sr.prohibited_role_code=rt.code
 		WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 		  AND sr.responsibility=$2 AND sr.status='ACTIVE'
+		  AND prb.binding_purpose='GENERAL'
 		  AND sr.valid_from <= $3 AND (sr.valid_until IS NULL OR $3 < sr.valid_until)
 		  AND op.valid_from <= $3 AND (op.valid_until IS NULL OR $3 < op.valid_until)
 		  AND prb.valid_from <= $3 AND (prb.valid_until IS NULL OR $3 < prb.valid_until)
