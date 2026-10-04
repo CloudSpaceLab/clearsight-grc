@@ -196,22 +196,8 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		return AdminOverview{}, err
 	}
 
-	rows, err = a.pool.Query(ctx, `
-		SELECT id::text,code,name,capabilities FROM role_templates
-		WHERE tenant_id=$1::uuid AND valid_from<=clock_timestamp() AND (valid_until IS NULL OR clock_timestamp()<valid_until)
-		ORDER BY code LIMIT 100`, tenantID)
+	result.Roles, err = a.organizationRoleTemplates(ctx, tenantID, entityID)
 	if err != nil {
-		return AdminOverview{}, err
-	}
-	for rows.Next() {
-		var value RoleTemplateSummary
-		if err := rows.Scan(&value.ID, &value.Code, &value.Name, &value.Capabilities); err != nil {
-			rows.Close()
-			return AdminOverview{}, err
-		}
-		result.Roles = append(result.Roles, value)
-	}
-	if err := closeRows(rows); err != nil {
 		return AdminOverview{}, err
 	}
 
@@ -268,6 +254,10 @@ func (a *PostgresAdministrator) Overview(ctx context.Context, tenant, legalEntit
 		return AdminOverview{}, err
 	}
 	result.OrganizationPositionHistory, err = a.organizationPositionHistory(ctx, tenantID, entityID)
+	if err != nil {
+		return AdminOverview{}, err
+	}
+	result.OrganizationPositionRoleRevisions, err = a.organizationPositionRoleRevisions(ctx, tenantID, entityID)
 	if err != nil {
 		return AdminOverview{}, err
 	}
@@ -993,17 +983,20 @@ func adminDecisionStates(eventType string) (string, string) {
 	case "SCIM_SOURCE_CREATED", "DIRECTORY_GROUP_ROLE_BOUND", "ORGANIZATION_SCOPE_CREATED", "ORGANIZATION_POSITION_CREATED":
 		return "NONE", "ACTIVE"
 	case "ORGANIZATION_SCOPE_CHANGE_PROPOSED", "ORGANIZATION_POSITION_CHANGE_PROPOSED",
-		"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_PROPOSED":
+		"ORGANIZATION_POSITION_ROLE_CHANGE_PROPOSED", "LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_PROPOSED":
 		return "NONE", "PENDING"
 	case "ORGANIZATION_SCOPE_CHANGE_REJECTED", "ORGANIZATION_POSITION_CHANGE_REJECTED",
-		"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_REJECTED":
+		"ORGANIZATION_POSITION_ROLE_CHANGE_REJECTED", "LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_REJECTED":
 		return "PENDING", "REJECTED"
 	case "LEGAL_ENTITY_DATA_BOUNDARY_APPLIED":
 		return "PENDING", "ACTIVE"
 	case "SCIM_SOURCE_REVOKED":
 		return "ACTIVE", "REVOKED"
-	case "DIRECTORY_GROUP_ROLE_RETIRED", "ORGANIZATION_SCOPE_RETIRED", "ORGANIZATION_POSITION_RETIRED":
+	case "DIRECTORY_GROUP_ROLE_RETIRED", "ORGANIZATION_SCOPE_RETIRED", "ORGANIZATION_POSITION_RETIRED",
+		"ORGANIZATION_POSITION_ROLE_REMOVED":
 		return "ACTIVE", "RETIRED"
+	case "ORGANIZATION_POSITION_ROLE_ADDED":
+		return "NONE", "ACTIVE"
 	default:
 		return "ACTIVE", "ACTIVE"
 	}

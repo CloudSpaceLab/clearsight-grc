@@ -91,6 +91,7 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 	payload["organization_scope_revisions"] = overview.OrganizationScopeRevisions
 	payload["organization_position_revisions"] = overview.OrganizationPositionRevisions
 	payload["organization_position_history"] = overview.OrganizationPositionHistory
+	payload["organization_position_role_revisions"] = overview.OrganizationPositionRoleRevisions
 	payload["data_boundary"] = dataBoundary
 	payload["data_boundary_revisions"] = overview.DataBoundaryRevisions
 	httpx.WriteJSON(w, http.StatusOK, payload)
@@ -284,6 +285,65 @@ func (a *API) decideOrganizationPosition(w http.ResponseWriter, r *http.Request,
 		err = a.deps.AccessAdmin.ApproveOrganizationPosition(r.Context(), decision)
 	} else {
 		err = a.deps.AccessAdmin.RejectOrganizationPosition(r.Context(), decision)
+	}
+	if err != nil {
+		writeIdentityAccessError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *API) proposeOrganizationPositionRole(w http.ResponseWriter, r *http.Request) {
+	actor, ok := organizationPositionAdminActor(w, r, a.deps.AccessAdmin)
+	if !ok {
+		return
+	}
+	var input access.ProposeOrganizationPositionRoleInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.TenantID = actor.TenantID
+	input.LegalEntityID = actor.LegalEntityID
+	input.ActorID = actor.PrincipalID
+	revision, err := a.deps.AccessAdmin.ProposeOrganizationPositionRole(r.Context(), input)
+	if err != nil {
+		writeIdentityAccessError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, revision)
+}
+
+func (a *API) approveOrganizationPositionRole(w http.ResponseWriter, r *http.Request) {
+	a.decideOrganizationPositionRole(w, r, true)
+}
+
+func (a *API) rejectOrganizationPositionRole(w http.ResponseWriter, r *http.Request) {
+	a.decideOrganizationPositionRole(w, r, false)
+}
+
+func (a *API) decideOrganizationPositionRole(w http.ResponseWriter, r *http.Request, approve bool) {
+	actor, ok := organizationPositionAdminActor(w, r, a.deps.AccessAdmin)
+	if !ok {
+		return
+	}
+	var input decideOrganizationPositionInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	decision := access.DecideOrganizationPositionRoleInput{
+		TenantID:      actor.TenantID,
+		LegalEntityID: actor.LegalEntityID,
+		RevisionID:    r.PathValue("id"),
+		ActorID:       actor.PrincipalID,
+		Rationale:     input.Rationale,
+	}
+	var err error
+	if approve {
+		err = a.deps.AccessAdmin.ApproveOrganizationPositionRole(r.Context(), decision)
+	} else {
+		err = a.deps.AccessAdmin.RejectOrganizationPositionRole(r.Context(), decision)
 	}
 	if err != nil {
 		writeIdentityAccessError(w, err)

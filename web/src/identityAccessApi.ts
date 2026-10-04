@@ -31,7 +31,15 @@ export type IdentityGroup = {
   member_count: number;
 };
 
-export type IdentityRole = { id: string; code: string; name: string; capabilities: string[] };
+export type IdentityRole = {
+  id: string;
+  code: string;
+  name: string;
+  capabilities: string[];
+  version: number;
+  organization_editable: boolean;
+  organization_lock_reasons?: string[];
+};
 export type IdentityLegalEntity = { id: string; code: string; name: string };
 export type OrganizationScope = {
   id: string;
@@ -81,6 +89,33 @@ export type ProposeOrganizationScopeInput = {
   name?: string;
   kind?: OrganizationScope["kind"];
   expected_version?: number;
+};
+
+export type OrganizationPositionRoleOperation = "ADD" | "REMOVE";
+export type OrganizationPositionRoleRevision = {
+  id: string;
+  position_id: string;
+  role_template_id: string;
+  operation: OrganizationPositionRoleOperation;
+  base_position_version: number;
+  base_role_version: number;
+  base_binding_id?: string;
+  role_code: string;
+  role_name: string;
+  capabilities: string[];
+  maker_id: string;
+  checker_id?: string;
+  status: string;
+  rationale?: string;
+  created_at: string;
+  decided_at?: string;
+  applied_at?: string;
+};
+export type ProposeOrganizationPositionRoleInput = {
+  position_id: string;
+  role_template_id: string;
+  operation: OrganizationPositionRoleOperation;
+  expected_position_version: number;
 };
 
 export type OrganizationPositionOperation = "CREATE" | "UPDATE" | "RETIRE";
@@ -244,6 +279,7 @@ export type IdentityAccessOverview = {
   organization_scope_revisions: OrganizationScopeRevision[];
   organization_position_revisions: OrganizationPositionRevision[];
   organization_position_history: OrganizationPositionRevision[];
+  organization_position_role_revisions: OrganizationPositionRoleRevision[];
   data_boundary: LegalEntityDataBoundary;
   data_boundary_revisions: LegalEntityDataBoundaryRevision[];
   escalation: { pending_timers: number; escalated_tasks: number; unresolved_24h: number; failed_timers: number };
@@ -286,6 +322,7 @@ export async function loadIdentityAccessOverview(): Promise<IdentityAccessOvervi
     organization_scope_revisions: overview.organization_scope_revisions ?? [],
     organization_position_revisions: overview.organization_position_revisions ?? [],
     organization_position_history: overview.organization_position_history ?? [],
+    organization_position_role_revisions: overview.organization_position_role_revisions ?? [],
     data_boundary: {
       legal_entity_id: overview.data_boundary?.legal_entity_id ?? "",
       legal_entity_code: overview.data_boundary?.legal_entity_code ?? "",
@@ -330,6 +367,18 @@ export function approveOrganizationPosition(id: string, rationale: string): Prom
 
 export function rejectOrganizationPosition(id: string, rationale: string): Promise<void> {
   return requestNoContent(apiBase, `/api/v1/access/organization-position-revisions/${encodeURIComponent(id)}/reject`, { method: "POST", body: JSON.stringify({ rationale }) });
+}
+
+export function proposeOrganizationPositionRole(input: ProposeOrganizationPositionRoleInput): Promise<OrganizationPositionRoleRevision> {
+  return request("/api/v1/access/organization-position-role-revisions", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function approveOrganizationPositionRole(id: string, rationale: string): Promise<void> {
+  return requestNoContent(apiBase, `/api/v1/access/organization-position-role-revisions/${encodeURIComponent(id)}/approve`, { method: "POST", body: JSON.stringify({ rationale }) });
+}
+
+export function rejectOrganizationPositionRole(id: string, rationale: string): Promise<void> {
+  return requestNoContent(apiBase, `/api/v1/access/organization-position-role-revisions/${encodeURIComponent(id)}/reject`, { method: "POST", body: JSON.stringify({ rationale }) });
 }
 
 export function proposeLegalEntityDataBoundary(input: ProposeLegalEntityDataBoundaryInput): Promise<LegalEntityDataBoundaryRevision> {

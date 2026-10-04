@@ -52,10 +52,13 @@ type GroupSummary struct {
 }
 
 type RoleTemplateSummary struct {
-	ID           string   `json:"id"`
-	Code         string   `json:"code"`
-	Name         string   `json:"name"`
-	Capabilities []string `json:"capabilities"`
+	ID                      string   `json:"id"`
+	Code                    string   `json:"code"`
+	Name                    string   `json:"name"`
+	Capabilities            []string `json:"capabilities"`
+	Version                 int64    `json:"version"`
+	OrganizationEditable    bool     `json:"organization_editable"`
+	OrganizationLockReasons []string `json:"organization_lock_reasons,omitempty"`
 }
 
 type LegalEntitySummary struct {
@@ -95,6 +98,51 @@ type PositionSummary struct {
 	ValidFrom           time.Time  `json:"valid_from"`
 	ValidUntil          *time.Time `json:"valid_until,omitempty"`
 	Version             int64      `json:"version"`
+}
+
+type OrganizationPositionRoleOperation string
+
+const (
+	OrganizationPositionRoleAdd    OrganizationPositionRoleOperation = "ADD"
+	OrganizationPositionRoleRemove OrganizationPositionRoleOperation = "REMOVE"
+)
+
+type OrganizationPositionRoleRevisionSummary struct {
+	ID                  string                            `json:"id"`
+	PositionID          string                            `json:"position_id"`
+	RoleTemplateID      string                            `json:"role_template_id"`
+	Operation           OrganizationPositionRoleOperation `json:"operation"`
+	BasePositionVersion int64                             `json:"base_position_version"`
+	BaseRoleVersion     int64                             `json:"base_role_version"`
+	BaseBindingID       string                            `json:"base_binding_id,omitempty"`
+	RoleCode            string                            `json:"role_code"`
+	RoleName            string                            `json:"role_name"`
+	Capabilities        []string                          `json:"capabilities"`
+	MakerID             string                            `json:"maker_id"`
+	CheckerID           string                            `json:"checker_id,omitempty"`
+	Status              string                            `json:"status"`
+	Rationale           string                            `json:"rationale,omitempty"`
+	CreatedAt           time.Time                         `json:"created_at"`
+	DecidedAt           *time.Time                        `json:"decided_at,omitempty"`
+	AppliedAt           *time.Time                        `json:"applied_at,omitempty"`
+}
+
+type ProposeOrganizationPositionRoleInput struct {
+	TenantID                string                            `json:"tenant_id"`
+	LegalEntityID           string                            `json:"legal_entity_id"`
+	PositionID              string                            `json:"position_id"`
+	RoleTemplateID          string                            `json:"role_template_id"`
+	Operation               OrganizationPositionRoleOperation `json:"operation"`
+	ExpectedPositionVersion int64                             `json:"expected_position_version"`
+	ActorID                 string                            `json:"-"`
+}
+
+type DecideOrganizationPositionRoleInput struct {
+	TenantID      string `json:"tenant_id"`
+	LegalEntityID string `json:"legal_entity_id"`
+	RevisionID    string `json:"revision_id"`
+	ActorID       string `json:"-"`
+	Rationale     string `json:"rationale"`
 }
 
 type OrganizationPositionOperation string
@@ -237,21 +285,22 @@ type EscalationRuntimeStatus struct {
 }
 
 type AdminOverview struct {
-	Sources                       []SCIMSourceSummary                   `json:"sources"`
-	People                        []PersonSummary                       `json:"people"`
-	Groups                        []GroupSummary                        `json:"groups"`
-	Roles                         []RoleTemplateSummary                 `json:"roles"`
-	LegalEntities                 []LegalEntitySummary                  `json:"legal_entities"`
-	Bindings                      []GroupRoleBindingSummary             `json:"bindings"`
-	Positions                     []PositionSummary                     `json:"positions"`
-	OrganizationScopes            []organization.Scope                  `json:"organization_scopes"`
-	OrganizationScopesTruncated   bool                                  `json:"organization_scopes_truncated"`
-	OrganizationScopeRevisions    []OrganizationScopeRevisionSummary    `json:"organization_scope_revisions"`
-	OrganizationPositionRevisions []OrganizationPositionRevisionSummary `json:"organization_position_revisions"`
-	OrganizationPositionHistory   []OrganizationPositionRevisionSummary `json:"organization_position_history"`
-	DataBoundary                  LegalEntityDataBoundary               `json:"data_boundary"`
-	DataBoundaryRevisions         []LegalEntityDataBoundaryRevision     `json:"data_boundary_revisions"`
-	Escalation                    EscalationRuntimeStatus               `json:"escalation"`
+	Sources                           []SCIMSourceSummary                       `json:"sources"`
+	People                            []PersonSummary                           `json:"people"`
+	Groups                            []GroupSummary                            `json:"groups"`
+	Roles                             []RoleTemplateSummary                     `json:"roles"`
+	LegalEntities                     []LegalEntitySummary                      `json:"legal_entities"`
+	Bindings                          []GroupRoleBindingSummary                 `json:"bindings"`
+	Positions                         []PositionSummary                         `json:"positions"`
+	OrganizationScopes                []organization.Scope                      `json:"organization_scopes"`
+	OrganizationScopesTruncated       bool                                      `json:"organization_scopes_truncated"`
+	OrganizationScopeRevisions        []OrganizationScopeRevisionSummary        `json:"organization_scope_revisions"`
+	OrganizationPositionRevisions     []OrganizationPositionRevisionSummary     `json:"organization_position_revisions"`
+	OrganizationPositionHistory       []OrganizationPositionRevisionSummary     `json:"organization_position_history"`
+	OrganizationPositionRoleRevisions []OrganizationPositionRoleRevisionSummary `json:"organization_position_role_revisions"`
+	DataBoundary                      LegalEntityDataBoundary                   `json:"data_boundary"`
+	DataBoundaryRevisions             []LegalEntityDataBoundaryRevision         `json:"data_boundary_revisions"`
+	Escalation                        EscalationRuntimeStatus                   `json:"escalation"`
 }
 
 // OperationalStatus is the bounded exception projection used by actor-facing
@@ -294,6 +343,9 @@ type Administrator interface {
 	RestoreOrganizationPosition(context.Context, RestoreOrganizationPositionInput) (OrganizationPositionRevisionSummary, error)
 	ApproveOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
 	RejectOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
+	ProposeOrganizationPositionRole(context.Context, ProposeOrganizationPositionRoleInput) (OrganizationPositionRoleRevisionSummary, error)
+	ApproveOrganizationPositionRole(context.Context, DecideOrganizationPositionRoleInput) error
+	RejectOrganizationPositionRole(context.Context, DecideOrganizationPositionRoleInput) error
 }
 
 func NewProvisioningToken() (string, [32]byte, error) {

@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type {
   DetailTransferMode,
   IdentityPerson,
+  IdentityRole,
   LegalEntityDataBoundary,
   LegalEntityDataBoundaryRevision,
   OrganizationPosition,
   OrganizationPositionRevision,
+  OrganizationPositionRoleRevision,
   OrganizationScope,
   OrganizationScopeRevision,
   ProposeLegalEntityDataBoundaryInput,
   ProposeOrganizationPositionInput,
+  ProposeOrganizationPositionRoleInput,
   ProposeOrganizationScopeInput,
 } from "../../identityAccessApi";
 import { OrganizationPositionManager } from "./OrganizationPositionManager";
@@ -23,6 +26,8 @@ type Props = {
   revisions?: OrganizationScopeRevision[];
   positionRevisions?: OrganizationPositionRevision[];
   positionHistory?: OrganizationPositionRevision[];
+  positionRoleRevisions?: OrganizationPositionRoleRevision[];
+  roles?: IdentityRole[];
   dataBoundary?: LegalEntityDataBoundary;
   dataBoundaryRevisions?: LegalEntityDataBoundaryRevision[];
   actorPrincipalID?: string;
@@ -37,6 +42,9 @@ type Props = {
   onApprovePosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onRejectPosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onRestorePosition?: (revision: OrganizationPositionRevision) => Promise<boolean>;
+  onProposePositionRole?: (input: ProposeOrganizationPositionRoleInput) => Promise<boolean>;
+  onApprovePositionRole?: (revision: OrganizationPositionRoleRevision, rationale: string) => Promise<boolean>;
+  onRejectPositionRole?: (revision: OrganizationPositionRoleRevision, rationale: string) => Promise<boolean>;
   onProposeDataBoundary?: (input: ProposeLegalEntityDataBoundaryInput) => Promise<boolean>;
   onApproveDataBoundary?: (revision: LegalEntityDataBoundaryRevision, rationale: string) => Promise<boolean>;
   onRejectDataBoundary?: (revision: LegalEntityDataBoundaryRevision, rationale: string) => Promise<boolean>;
@@ -49,6 +57,8 @@ export function OrganizationInventory({
   revisions = [],
   positionRevisions = [],
   positionHistory = [],
+  positionRoleRevisions = [],
+  roles = [],
   dataBoundary,
   dataBoundaryRevisions = [],
   actorPrincipalID = "",
@@ -63,6 +73,9 @@ export function OrganizationInventory({
   onApprovePosition,
   onRejectPosition,
   onRestorePosition,
+  onProposePositionRole,
+  onApprovePositionRole,
+  onRejectPositionRole,
   onProposeDataBoundary,
   onApproveDataBoundary,
   onRejectDataBoundary,
@@ -234,6 +247,8 @@ export function OrganizationInventory({
           scopes={scopes}
           revisions={positionRevisions}
           history={positionHistory}
+          roleRevisions={positionRoleRevisions}
+          roles={roles}
           actorPrincipalID={actorPrincipalID}
           canConfigure={canConfigure}
           isBusy={isBusy}
@@ -242,6 +257,9 @@ export function OrganizationInventory({
           onApprove={onApprovePosition}
           onReject={onRejectPosition}
           onRestore={onRestorePosition}
+          onProposeRole={onProposePositionRole}
+          onApproveRole={onApprovePositionRole}
+          onRejectRole={onRejectPositionRole}
         />
         : mode === "reporting"
           ? <ReportingList positions={visible} positionByID={positionByID}/>
