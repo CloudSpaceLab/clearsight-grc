@@ -16,6 +16,8 @@ END;
 $position_role_history$;
 
 DROP TABLE IF EXISTS organization_position_role_revisions;
+DROP INDEX IF EXISTS position_role_workspace_active_uidx;
+ALTER TABLE position_role_bindings DROP COLUMN IF EXISTS binding_purpose;
 
 ALTER TABLE governance_decisions
     DROP CONSTRAINT IF EXISTS governance_decisions_object_type_check;
