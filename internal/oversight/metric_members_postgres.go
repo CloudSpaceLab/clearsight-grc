@@ -41,7 +41,7 @@ func (r *PostgresRepository) buildMetricMembers(
 		), classified AS (
 			SELECT m.id::text,m.reference,m.title,m.status,m.priority,m.due_at,
 			       m.priority>=4 AS critical_high,
-			       m.due_at<$3::timestamptz AS overdue,
+			       COALESCE(m.due_at<$3::timestamptz,false) AS overdue,
 			       EXISTS (
 			         SELECT 1
 			         FROM verification_results vr
@@ -105,8 +105,7 @@ func (r *PostgresRepository) buildMetricMembers(
 	rows, err = r.pool.Query(ctx, `
 		SELECT wt.id::text,wt.title,wt.status,wt.due_at,
 		       wi.subject_type,wi.subject_id::text,
-		       COALESCE(m.reference,p.code,''),
-		       COALESCE(m.title,p.name,wt.title)
+		       COALESCE(m.reference,p.code,'')
 		FROM workflow_tasks wt
 		JOIN workflow_instances wi
 		  ON wi.tenant_id=wt.tenant_id
@@ -161,7 +160,6 @@ func (r *PostgresRepository) buildMetricMembers(
 			&member.SubjectType,
 			&member.SubjectID,
 			&member.Reference,
-			&member.Title,
 		); err != nil {
 			rows.Close()
 			return nil, fmt.Errorf("scan routing-gap metric membership: %w", err)
