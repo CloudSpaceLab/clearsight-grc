@@ -146,7 +146,7 @@ export function OrganizationPositionManager({
             <Button
               size="compact"
               variant="quiet"
-              isDisabled={Boolean(pending) || isBusy}
+              isDisabled={Boolean(pending) || Boolean(pendingRoleByPosition.get(revision.position_id)) || isBusy}
               onPress={() => void onRestore(revision)}
             >Restore</Button>
           </div>
@@ -338,6 +338,106 @@ function OrganizationPositionEditor({
   </FocusedSheet>;
 }
 
+function OrganizationPositionRoleEditor({
+  position,
+  roles,
+  isBusy,
+  onClose,
+  onSubmit,
+}: {
+  position: OrganizationPosition;
+  roles: IdentityRole[];
+  isBusy: boolean;
+  onClose: () => void;
+  onSubmit: (input: ProposeOrganizationPositionRoleInput) => Promise<void>;
+}) {
+  const assigned = useMemo(() => new Set(position.role_codes), [position.role_codes]);
+  return <FocusedSheet label={`Workspace roles · ${position.title}`} onClose={onClose} isDismissable={!isBusy}>
+    <div className="cs-sheet-heading"><span className="eyebrow">Organization</span><h2>Workspace roles</h2></div>
+    <div className="identity-scope-editor">
+      <div className="identity-scope-current">
+        <span>Position</span>
+        <strong>{position.title}</strong>
+        <small>{position.code}</small>
+      </div>
+      <div className="inline-notice" role="note">
+        Only workspace roles can be changed here. Roles used by responsibility, authority, routing, segregation or escalation remain policy-managed.
+      </div>
+      <div className="identity-scope-changes">
+        <ul>{roles.map((role) => {
+          const isAssigned = assigned.has(role.code);
+          const locked = role.organization_editable !== true;
+          return <li key={role.id}>
+            <div>
+              <b>{role.name}</b>
+              <span>{role.code} · {capabilityLabel(role.capabilities)}</span>
+              {locked && <small>{lockReasonLabel(role.organization_lock_reasons ?? [])}</small>}
+            </div>
+            <StatusBadge tone={locked ? "neutral" : isAssigned ? "success" : "neutral"}>
+              {locked ? "Policy managed" : isAssigned ? "Assigned" : "Available"}
+            </StatusBadge>
+            {!locked && <div className="identity-scope-change-actions">
+              <Button
+                size="compact"
+                variant={isAssigned ? "quiet" : "secondary"}
+                isDisabled={isBusy}
+                onPress={() => void onSubmit({
+                  position_id: position.id,
+                  role_template_id: role.id,
+                  operation: isAssigned ? "REMOVE" : "ADD",
+                  expected_position_version: position.version,
+                })}
+              >{isAssigned ? "Remove" : "Add"}</Button>
+            </div>}
+          </li>;
+        })}</ul>
+      </div>
+      <div className="identity-scope-editor-actions">
+        <Button variant="secondary" onPress={onClose} isDisabled={isBusy}>Close</Button>
+      </div>
+    </div>
+  </FocusedSheet>;
+}
+
+function OrganizationPositionRoleDecision({
+  state,
+  positionByID,
+  isBusy,
+  onClose,
+  onSubmit,
+}: {
+  state: RoleDecisionState;
+  positionByID: Map<string, OrganizationPosition>;
+  isBusy: boolean;
+  onClose: () => void;
+  onSubmit: (rationale: string) => Promise<void>;
+}) {
+  const [rationale, setRationale] = useState("");
+  const position = positionByID.get(state.revision.position_id);
+  const action = state.revision.operation === "ADD" ? "Add" : "Remove";
+  const title = state.action === "approve" ? "Approve workspace role change" : "Reject workspace role change";
+  return <FocusedSheet label={title} onClose={onClose} isDismissable={!isBusy}>
+    <div className="cs-sheet-heading"><span className="eyebrow">Organization</span><h2>{title}</h2></div>
+    <div className="identity-scope-editor">
+      <div className="identity-scope-current">
+        <span>Change</span>
+        <strong>{action} {state.revision.role_code}</strong>
+        <small>{position?.title ?? state.revision.position_id} · {capabilityLabel(state.revision.capabilities)}</small>
+      </div>
+      <div className="inline-notice" role="note">
+        Approval rechecks the position version and confirms this role is still outside material responsibility, authority, routing, segregation and escalation policy.
+      </div>
+      <TextArea label="Rationale" value={rationale} onChange={setRationale} rows={3} maxLength={1000} isRequired/>
+      <div className="identity-scope-editor-actions">
+        <Button variant="secondary" onPress={onClose} isDisabled={isBusy}>Cancel</Button>
+        <Button variant={state.action === "reject" ? "destructive" : "primary"} onPress={() => void onSubmit(rationale.trim())} isDisabled={!rationale.trim()} isLoading={isBusy}>
+          {state.action === "approve" ? "Approve" : "Reject"}
+        </Button>
+      </div>
+    </div>
+  </FocusedSheet>;
+}
+
 function OrganizationPositionDecision({
   state,
   positionByID,
@@ -373,6 +473,23 @@ function OrganizationPositionDecision({
       </div>
     </div>
   </FocusedSheet>;
+}
+
+function capabilityLabel(capabilities: string[]) {
+  if (!capabilities.length) return "No workspace capabilities";
+  return capabilities.map(humanize).join(", ");
+}
+
+function lockReasonLabel(reasons: string[]) {
+  if (!reasons.length) return "Managed by policy";
+  const labels: Record<string, string> = {
+    RESPONSIBILITY_ASSIGNMENT: "Used by responsibility routing",
+    AUTHORITY_GRANT: "Used by material authority",
+    AUTHORITY_ROUTE: "Used by active authority route",
+    SEGREGATION_RULE: "Used by segregation control",
+    ESCALATION_ROUTE: "Used by escalation route",
+  };
+  return reasons.map((reason) => labels[reason] ?? humanize(reason)).join(" · ");
 }
 
 function positionRevisionLabel(revision: OrganizationPositionRevision, positionByID: Map<string, OrganizationPosition>) {
