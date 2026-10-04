@@ -131,7 +131,34 @@ func (r *MembershipRepository) ListSnapshotMembers(
 		          AND COALESCE(action.owner_principal_id::text,'')=$6
 		      )
 		    )
-		    WHEN 'PROGRAM' THEN program.id IS NOT NULL
+		    WHEN 'PROGRAM' THEN program.id IS NOT NULL AND (
+		      CASE
+		        WHEN NOT (program.scope ? 'access') THEN true
+		        WHEN jsonb_typeof(program.scope->'access')<>'string' THEN false
+		        WHEN upper(btrim(program.scope->>'access')) IN ('PUBLIC','INTERNAL') THEN true
+		        WHEN upper(btrim(program.scope->>'access'))='RESTRICTED' THEN
+		          CASE
+		            WHEN jsonb_typeof(program.scope->'allowed_principal_ids')<>'array' THEN false
+		            ELSE
+		              NOT EXISTS (
+		                SELECT 1
+		                FROM jsonb_array_elements(program.scope->'allowed_principal_ids') entry(value)
+		                WHERE jsonb_typeof(entry.value)<>'string'
+		              )
+		              AND EXISTS (
+		                SELECT 1
+		                FROM jsonb_array_elements_text(program.scope->'allowed_principal_ids') nonblank(value)
+		                WHERE btrim(nonblank.value)<>''
+		              )
+		              AND EXISTS (
+		                SELECT 1
+		                FROM jsonb_array_elements_text(program.scope->'allowed_principal_ids') allowed(value)
+		                WHERE btrim(allowed.value)=$6
+		              )
+		          END
+		        ELSE false
+		      END
+		    )
 		    ELSE false
 		  END AS allowed
 		) visibility
