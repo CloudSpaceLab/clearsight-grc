@@ -120,6 +120,7 @@ type HistoryQuality struct {
 }
 
 type Snapshot struct {
+	SnapshotID          string               `json:"snapshot_id,omitempty"`
 	TenantID            string               `json:"-"`
 	LegalEntityID       string               `json:"-"`
 	OrganizationScopeID string               `json:"organization_scope_id,omitempty"`
@@ -139,6 +140,7 @@ type Snapshot struct {
 	Performance         []Performance        `json:"performance"`
 	Estimates           []ResolutionEstimate `json:"estimates"`
 	HistoryQuality      HistoryQuality       `json:"history_quality"`
+	MetricMembers       []MetricMember       `json:"-"`
 }
 
 func estimateConfidence(samples int) string {
