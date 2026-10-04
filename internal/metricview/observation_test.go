@@ -12,6 +12,7 @@ func TestObservationsFromBundlePreservesHomeMetricTruth(t *testing.T) {
 	now := time.Date(2026, 10, 4, 0, 0, 0, 0, time.UTC)
 	excluded, unknown := 2, 3
 	snapshot := oversight.Snapshot{
+		SnapshotID: "snapshot-1", MetricMembershipVersion: oversight.MetricMembershipVersion,
 		LegalEntityID: "entity-1", GeneratedAt: now,
 		PeriodStart: now.Add(-90 * 24 * time.Hour), PeriodEnd: now, PostureAsOf: now,
 		ProjectionVersion: oversight.ProjectionVersion, Freshness: oversight.FreshnessCurrent,
@@ -77,7 +78,7 @@ func TestHomeDefinitionsAreUniqueAndExplicitlyAdditive(t *testing.T) {
 		if definition.Revision != HomeDefinitionRevision ||
 			definition.AggregationRule != AggregationSumDisjointCounts ||
 			definition.ConditionRule != ConditionRuleZeroClear ||
-			definition.Drill.Consistency != DrillCurrentState {
+			definition.Drill.Consistency != DrillSnapshotExact {
 			t.Fatalf("definition=%#v", definition)
 		}
 	}
