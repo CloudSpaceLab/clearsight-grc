@@ -38,6 +38,7 @@ describe("OrganizationInventory data boundary", () => {
     const propose = vi.fn().mockResolvedValue(true);
     render(<OrganizationInventory
       positions={[]}
+      people={[]}
       scopes={[]}
       mode="positions"
       dataBoundary={boundary()}
@@ -65,6 +66,7 @@ describe("OrganizationInventory data boundary", () => {
     const reject = vi.fn().mockResolvedValue(true);
     render(<OrganizationInventory
       positions={[]}
+      people={[]}
       scopes={[]}
       mode="positions"
       dataBoundary={boundary({ configured: true, residency_region: "NG", version: 2 })}
@@ -90,6 +92,7 @@ describe("OrganizationInventory data boundary", () => {
   it("does not show approval controls to the maker of the pending boundary", () => {
     render(<OrganizationInventory
       positions={[]}
+      people={[]}
       scopes={[]}
       mode="positions"
       dataBoundary={boundary()}
