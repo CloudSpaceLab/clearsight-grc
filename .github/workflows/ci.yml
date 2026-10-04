@@ -53,9 +53,6 @@ jobs:
           if [ -n "$files" ]; then
             echo "The following Go files require gofmt:"
             echo "$files"
-            for file in $files; do
-              gofmt -d "$file" || true
-            done
             exit 1
           fi
       - name: Unit tests
