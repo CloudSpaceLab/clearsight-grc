@@ -65,6 +65,15 @@ func TestPresentationPreferencesArePrincipalScopedAndVersioned(t *testing.T) {
 		t.Fatalf("other principal read error=%v", err)
 	}
 	if _, err := repository.Upsert(ctx, Stored{
+		TenantID: tenantID, PrincipalID: principalB,
+		HomeFocus: HomeFocusPosture, PortfolioLens: PortfolioLensRisks,
+	}, 1); !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("missing optimistic update error=%v", err)
+	}
+	if _, err := repository.Get(ctx, tenantID, principalB); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing optimistic update created preferences: %v", err)
+	}
+	if _, err := repository.Upsert(ctx, Stored{
 		TenantID: tenantID, PrincipalID: principalA,
 		HomeFocus: HomeFocusMyWork, PortfolioLens: PortfolioLensPrograms,
 	}, 0); !errors.Is(err, ErrVersionConflict) {
