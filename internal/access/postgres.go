@@ -48,14 +48,31 @@ func (r *PostgresResolver) CanReassign(ctx context.Context, request Reassignment
 			  AND le.valid_from<=clock_timestamp()
 			  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
 			LIMIT 1
-		), owner_positions AS (
+		), current_owner_positions AS (
 			SELECT op.id,op.parent_position_id,op.version,ARRAY[op.id] AS visited,0 AS depth
 			FROM org_positions op
 			JOIN selected_scope scope ON scope.tenant_id=op.tenant_id AND scope.legal_entity_id=op.legal_entity_id
 			JOIN principals owner ON owner.tenant_id=op.tenant_id AND owner.id=op.occupant_principal_id
-			WHERE owner.id::text=$4 AND owner.status='ACTIVE'
-			  AND owner.valid_from<=clock_timestamp() AND (owner.valid_until IS NULL OR clock_timestamp()<owner.valid_until)
+			WHERE owner.id::text=$4
 			  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+		), departed_owner_position AS (
+			SELECT op.id,op.parent_position_id,op.version,ARRAY[op.id] AS visited,0 AS depth
+			FROM organization_position_revisions revision
+			JOIN selected_scope scope ON scope.tenant_id=revision.tenant_id AND scope.legal_entity_id=revision.legal_entity_id
+			JOIN org_positions op ON op.tenant_id=revision.tenant_id AND op.legal_entity_id=revision.legal_entity_id AND op.id=revision.position_id
+			WHERE revision.status='APPLIED'
+			  AND revision.base_occupant_principal_id::text=$4
+			  AND (
+			    revision.operation='RETIRE'
+			    OR revision.proposed_occupant_principal_id IS DISTINCT FROM revision.base_occupant_principal_id
+			  )
+			  AND NOT EXISTS (SELECT 1 FROM current_owner_positions)
+			ORDER BY COALESCE(revision.applied_at,revision.decided_at,revision.created_at) DESC,revision.id DESC
+			LIMIT 1
+		), owner_positions AS (
+			SELECT * FROM current_owner_positions
+			UNION ALL
+			SELECT * FROM departed_owner_position
 		), ancestors AS (
 			SELECT * FROM owner_positions
 			UNION ALL
