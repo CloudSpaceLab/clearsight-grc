@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -40,59 +39,48 @@ func (r *MembershipRepository) ListSnapshotMembers(
 		return MemberPage{}, ErrMetricMembershipInvalid
 	}
 
-	var count int
-	err := r.pool.QueryRow(ctx, `
-		SELECT count(*)
-		FROM oversight_snapshots source
-		JOIN tenants tenant ON tenant.id=source.tenant_id
-		JOIN legal_entities entity ON entity.tenant_id=source.tenant_id AND entity.id=source.legal_entity_id
-		JOIN oversight_snapshot_metric_memberships member ON member.oversight_snapshot_id=source.id
-		WHERE source.id=$3::uuid
+	var count, sourceCount int
+	if err := r.pool.QueryRow(ctx, `
+		SELECT count(member.member_id),count(DISTINCT membership_set.oversight_snapshot_id)
+		FROM oversight_snapshot_metric_membership_sets membership_set
+		JOIN tenants tenant ON tenant.id=membership_set.tenant_id
+		JOIN legal_entities entity
+		  ON entity.tenant_id=membership_set.tenant_id
+		 AND entity.id=membership_set.legal_entity_id
+		JOIN metric_definitions definition
+		  ON definition.metric_id=$4
+		 AND definition.revision=membership_set.definition_revision
+		LEFT JOIN oversight_snapshot_metric_memberships member
+		  ON member.oversight_snapshot_id=membership_set.oversight_snapshot_id
+		 AND member.definition_revision=membership_set.definition_revision
+		 AND member.metric_id=$4
+		WHERE membership_set.oversight_snapshot_id=$3::uuid
+		  AND membership_set.definition_revision=$5
 		  AND (tenant.id::text=$1 OR tenant.slug=$1)
-		  AND (entity.id::text=$2 OR entity.code=$2)
-		  AND member.metric_id=$4
-		  AND member.definition_revision=$5`,
+		  AND (entity.id::text=$2 OR entity.code=$2)`,
 		tenantID, legalEntityID, sourceID, metricID, definitionRevision,
-	).Scan(&count)
-	if err != nil {
+	).Scan(&count, &sourceCount); err != nil {
 		return MemberPage{}, fmt.Errorf("count metric snapshot membership: %w", err)
 	}
-
-	var sourceExists bool
-	if count == 0 {
-		err = r.pool.QueryRow(ctx, `
-			SELECT EXISTS(
-				SELECT 1
-				FROM oversight_snapshots source
-				JOIN tenants tenant ON tenant.id=source.tenant_id
-				JOIN legal_entities entity ON entity.tenant_id=source.tenant_id AND entity.id=source.legal_entity_id
-				JOIN metric_definitions definition ON definition.metric_id=$4 AND definition.revision=$5
-				WHERE source.id=$3::uuid
-				  AND (tenant.id::text=$1 OR tenant.slug=$1)
-				  AND (entity.id::text=$2 OR entity.code=$2)
-				  AND source.metric_membership_revision=$5
-			)`,
-			tenantID, legalEntityID, sourceID, metricID, definitionRevision,
-		).Scan(&sourceExists)
-		if err != nil {
-			return MemberPage{}, fmt.Errorf("resolve metric snapshot membership source: %w", err)
-		}
-		if !sourceExists {
-			return MemberPage{}, ErrMetricMembershipNotFound
-		}
+	if sourceCount != 1 {
+		return MemberPage{}, ErrMetricMembershipNotFound
 	}
 
 	rows, err := r.pool.Query(ctx, `
 		SELECT member.member_id::text,member.target_type,member.target_id::text,member.target_title,member.state
-		FROM oversight_snapshot_metric_memberships member
-		JOIN oversight_snapshots source ON source.id=member.oversight_snapshot_id
-		JOIN tenants tenant ON tenant.id=source.tenant_id
-		JOIN legal_entities entity ON entity.tenant_id=source.tenant_id AND entity.id=source.legal_entity_id
-		WHERE source.id=$3::uuid
+		FROM oversight_snapshot_metric_membership_sets membership_set
+		JOIN tenants tenant ON tenant.id=membership_set.tenant_id
+		JOIN legal_entities entity
+		  ON entity.tenant_id=membership_set.tenant_id
+		 AND entity.id=membership_set.legal_entity_id
+		JOIN oversight_snapshot_metric_memberships member
+		  ON member.oversight_snapshot_id=membership_set.oversight_snapshot_id
+		 AND member.definition_revision=membership_set.definition_revision
+		WHERE membership_set.oversight_snapshot_id=$3::uuid
+		  AND membership_set.definition_revision=$5
 		  AND (tenant.id::text=$1 OR tenant.slug=$1)
 		  AND (entity.id::text=$2 OR entity.code=$2)
 		  AND member.metric_id=$4
-		  AND member.definition_revision=$5
 		  AND ($6='' OR member.member_id>$6::uuid)
 		ORDER BY member.member_id
 		LIMIT $7`,
@@ -125,4 +113,3 @@ func (r *MembershipRepository) ListSnapshotMembers(
 }
 
 var _ MembershipReader = (*MembershipRepository)(nil)
-
