@@ -239,6 +239,15 @@ func applyOrganizationPositionRevision(ctx context.Context, tx pgx.Tx, tenantID,
 		if err := validateOrganizationPositionState(ctx, tx, tenantID, entityID, revision.PositionID, revision.Proposed); err != nil {
 			return err
 		}
+		if revision.Base.OccupantPrincipalID != "" && revision.Proposed.OccupantPrincipalID == "" {
+			impact, err := organizationPositionImpact(ctx, tx, tenantID, entityID, revision.PositionID)
+			if err != nil {
+				return err
+			}
+			if impact.ResponsibilityAssignments > 0 || impact.AuthorityGrants > 0 {
+				return ErrAdminConflict
+			}
+		}
 		tag, err := tx.Exec(ctx, `
 			UPDATE org_positions
 			SET title=$4,function_name=NULLIF($5,''),organization_scope_id=NULLIF($6,'')::uuid,
