@@ -107,7 +107,7 @@ type Dependencies struct {
 	MetricMembership       metricview.MembershipReader
 	MetricTrends           metricview.TrendReader
 	MetricMatrices         metricview.MatrixReader
-	PresentationPreferences *presentationprefs.Service
+	PresentationPreferences       *presentationprefs.Service
 	Workflow               *workflow.Service
 	Onboarding             *onboarding.Service
 	Autonomy               *autonomy.Service
