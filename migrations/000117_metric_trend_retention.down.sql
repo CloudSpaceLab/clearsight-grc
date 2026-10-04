@@ -11,6 +11,7 @@ $metric_trend_downgrade$;
 DROP TRIGGER IF EXISTS metric_observations_guard_delete ON metric_observations;
 DROP FUNCTION IF EXISTS guard_metric_observation_delete();
 DROP TABLE IF EXISTS metric_observation_daily_rollups;
+DROP INDEX IF EXISTS metric_observations_retention_idx;
 
 DROP TRIGGER IF EXISTS metric_observations_immutable ON metric_observations;
 CREATE TRIGGER metric_observations_immutable
