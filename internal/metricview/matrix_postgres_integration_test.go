@@ -106,7 +106,9 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 		VALUES
 		($1::uuid,$2::uuid,$3::uuid,3,$4::uuid,$8),
 		($1::uuid,$2::uuid,$5::uuid,2,$6::uuid,$8),
-		-- A retired implementation linked at an earlier valid Risk version is historical.
+		-- Earlier Risk revisions must not inherit current assurance, even when the linked control is still active.
+		($1::uuid,$2::uuid,$3::uuid,2,$6::uuid,$8),
+		-- Retired implementations are also historical.
 		($1::uuid,$2::uuid,$3::uuid,2,$7::uuid,$8)`,
 		tenantID, entityID, riskSupported, catalogLinkID, riskFailed, failedCatalogLinkID, historicalCatalogLinkID, now.Add(-10*24*time.Hour))
 	mustExec(`
