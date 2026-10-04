@@ -104,19 +104,21 @@ export function OrganizationPositionRoleManager({
         <small>These roles control workspace capabilities. Decision, review, authorization and routing roles remain governed by their policy.</small>
       </div>
 
-      <ul className="identity-preview" aria-label="Available position roles">
+      <ul className="identity-position-role-list" aria-label="Available position roles">
         {roles.map((role) => {
           const isAssigned = assigned.has(role.code);
           const pendingRevision = pendingByRoleID.get(role.id);
           const disabled = !role.workspace_editable || Boolean(pendingRevision) || positionChangePending || isBusy;
           return <li key={role.id}>
-            <span>{role.code}</span>
-            <strong>{role.name}</strong>
-            <small>{formatCapabilities(role.capabilities)}</small>
+            <span className="identity-position-role-code">{role.code}</span>
+            <div className="identity-position-role-copy">
+              <strong>{role.name}</strong>
+              <small>{formatCapabilities(role.capabilities)}</small>
+              {!role.workspace_editable && <small>{role.workspace_lock_reason || "Managed by authority policy"}</small>}
+            </div>
             {role.workspace_editable
               ? <StatusBadge tone={isAssigned ? "success" : "neutral"}>{isAssigned ? "Assigned" : "Available"}</StatusBadge>
               : <StatusBadge tone="neutral">Policy managed</StatusBadge>}
-            {!role.workspace_editable && <small>{role.workspace_lock_reason || "Managed by authority policy"}</small>}
             {canConfigure && role.workspace_editable && <Button
               size="compact"
               variant={isAssigned ? "quiet" : "secondary"}
