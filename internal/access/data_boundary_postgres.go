@@ -65,6 +65,10 @@ func (a *PostgresAdministrator) ProposeLegalEntityDataBoundary(ctx context.Conte
 	if err != nil {
 		return LegalEntityDataBoundaryRevision{}, mapAdminPgError(err)
 	}
+	if err := recordAdminDecision(ctx, tx, input.TenantID, input.ActorID,
+		"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_PROPOSED", "LEGAL_ENTITY_DATA_BOUNDARY_REVISION", revisionID); err != nil {
+		return LegalEntityDataBoundaryRevision{}, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return LegalEntityDataBoundaryRevision{}, err
 	}
@@ -141,6 +145,10 @@ func (a *PostgresAdministrator) decideLegalEntityDataBoundary(ctx context.Contex
 		if tag.RowsAffected() != 1 {
 			return ErrAdminConflict
 		}
+		if err := recordAdminDecision(ctx, tx, input.TenantID, input.ActorID,
+			"LEGAL_ENTITY_DATA_BOUNDARY_CHANGE_REJECTED", "LEGAL_ENTITY_DATA_BOUNDARY_REVISION", revision.ID); err != nil {
+			return err
+		}
 		return tx.Commit(ctx)
 	}
 
@@ -158,6 +166,10 @@ func (a *PostgresAdministrator) decideLegalEntityDataBoundary(ctx context.Contex
 	}
 	if tag.RowsAffected() != 1 {
 		return ErrAdminConflict
+	}
+	if err := recordAdminDecision(ctx, tx, input.TenantID, input.ActorID,
+		"LEGAL_ENTITY_DATA_BOUNDARY_APPLIED", "LEGAL_ENTITY_DATA_BOUNDARY", entityID); err != nil {
+		return err
 	}
 	return tx.Commit(ctx)
 }
