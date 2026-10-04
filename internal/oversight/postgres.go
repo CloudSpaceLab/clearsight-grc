@@ -580,6 +580,18 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 		return false, err
 	}
 
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO oversight_snapshot_metric_membership_sets(
+			oversight_snapshot_id,tenant_id,legal_entity_id,definition_revision
+		) VALUES($1::uuid,$2::uuid,$3::uuid,$4)`,
+		snapshotID,
+		value.TenantID,
+		value.LegalEntityID,
+		MetricSnapshotDrillDefinitionRevision,
+	); err != nil {
+		return false, err
+	}
+
 	for _, member := range value.MetricMembers {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO oversight_snapshot_metric_memberships(
