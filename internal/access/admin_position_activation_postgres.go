@@ -107,10 +107,11 @@ func (m *OrganizationPositionActivationMaintainer) activateOne(ctx context.Conte
 		if tag.RowsAffected() != 1 {
 			return false, ErrAdminConflict
 		}
-		if revision.CheckerID != "" {
-			if err := recordAdminDecision(ctx, tx, tenantID, revision.CheckerID, "ORGANIZATION_POSITION_ACTIVATION_FAILED", "ORGANIZATION_POSITION_REVISION", revision.ID); err != nil {
-				return false, err
-			}
+		if err := recordSystemAdminDecision(
+			ctx, tx, tenantID, "ORGANIZATION_POSITION_REVISION", revision.ID,
+			"SCHEDULED", "FAILED", "Position activation failed: "+code,
+		); err != nil {
+			return false, err
 		}
 		if err := tx.Commit(ctx); err != nil {
 			return false, err
@@ -130,10 +131,14 @@ func (m *OrganizationPositionActivationMaintainer) activateOne(ctx context.Conte
 	if tag.RowsAffected() != 1 {
 		return false, ErrAdminConflict
 	}
-	if revision.CheckerID == "" {
-		return false, ErrAdminConflict
+	toState := "ACTIVE"
+	if revision.Operation == OrganizationPositionRetire {
+		toState = "RETIRED"
 	}
-	if err := recordAdminDecision(ctx, tx, tenantID, revision.CheckerID, organizationPositionAppliedEventType(revision.Operation), "ORGANIZATION_POSITION", revision.PositionID); err != nil {
+	if err := recordSystemAdminDecision(
+		ctx, tx, tenantID, "ORGANIZATION_POSITION", revision.PositionID,
+		"SCHEDULED", toState, "Position effective time reached",
+	); err != nil {
 		return false, err
 	}
 	if err := tx.Commit(ctx); err != nil {
