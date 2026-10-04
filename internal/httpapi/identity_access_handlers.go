@@ -90,6 +90,7 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 	payload["organization_scopes_truncated"] = overview.OrganizationScopesTruncated
 	payload["organization_scope_revisions"] = overview.OrganizationScopeRevisions
 	payload["organization_position_revisions"] = overview.OrganizationPositionRevisions
+	payload["organization_position_history"] = overview.OrganizationPositionHistory
 	payload["data_boundary"] = dataBoundary
 	payload["data_boundary_revisions"] = overview.DataBoundaryRevisions
 	httpx.WriteJSON(w, http.StatusOK, payload)
