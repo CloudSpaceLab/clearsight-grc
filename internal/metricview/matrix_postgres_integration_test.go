@@ -40,6 +40,9 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 	failedImplementationID := mustMatrixID(t)
 	failedCatalogLinkID := mustMatrixID(t)
 	failedContractID := mustMatrixID(t)
+	historicalImplementationID := mustMatrixID(t)
+	historicalCatalogLinkID := mustMatrixID(t)
+	historicalContractID := mustMatrixID(t)
 
 	now := time.Now().UTC().Truncate(time.Second)
 	mustExec := func(query string, args ...any) {
@@ -54,7 +57,7 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 		INSERT INTO risks(id,tenant_id,legal_entity_id,code,name,category,statement,impact,status,version,created_at,updated_at) VALUES
 		($1::uuid,$5::uuid,$6::uuid,'R-BREACH','Breached risk','Operational','Breached statement','Material impact','ACTIVE',3,$7,$7),
 		($2::uuid,$5::uuid,$6::uuid,'R-UNKNOWN','Unknown risk','Operational','Unknown statement','Material impact','ACTIVE',1,$7,$7),
-		($3::uuid,$5::uuid,$6::uuid,'R-SUPPORTED','Supported risk','Cyber','Supported statement','Material impact','ACTIVE',2,$7,$7),
+		($3::uuid,$5::uuid,$6::uuid,'R-SUPPORTED','Supported risk','Cyber','Supported statement','Material impact','ACTIVE',3,$7,$7),
 		($4::uuid,$5::uuid,$6::uuid,'R-FAILED','Failed risk','Cyber','Failed statement','Material impact','ACTIVE',2,$7,$7)`,
 		riskBreached, riskUnknown, riskSupported, riskFailed, tenantID, entityID, now.Add(-time.Hour))
 	mustExec(`
@@ -82,9 +85,10 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 		INSERT INTO control_implementations(
 			id,tenant_id,program_id,objective_id,name,description,implementation_type,status,effective_from
 		) VALUES
-		($1::uuid,$3::uuid,$4::uuid,$5::uuid,'Supported control','Supported implementation','CHECKLIST','IMPLEMENTED',$6),
-		($2::uuid,$3::uuid,$4::uuid,$5::uuid,'Failed control','Failed implementation','CHECKLIST','IMPLEMENTED',$6)`,
-		implementationID, failedImplementationID, tenantID, programID, objectiveID, now.Add(-30*24*time.Hour))
+		($1::uuid,$4::uuid,$5::uuid,$6::uuid,'Supported control','Supported implementation','CHECKLIST','IMPLEMENTED',$7),
+		($2::uuid,$4::uuid,$5::uuid,$6::uuid,'Failed control','Failed implementation','CHECKLIST','IMPLEMENTED',$7),
+		($3::uuid,$4::uuid,$5::uuid,$6::uuid,'Historical control','Retired historical implementation','CHECKLIST','RETIRED',$7)`,
+		implementationID, failedImplementationID, historicalImplementationID, tenantID, programID, objectiveID, now.Add(-30*24*time.Hour))
 	mustExec(`
 		INSERT INTO control_definitions(id,tenant_id,code,name,objective,status,version,created_at,updated_at)
 		VALUES($1::uuid,$2::uuid,'MATRIX-CONTROL','Matrix control','Control objective','ACTIVE',1,$3,$3)`,
@@ -93,31 +97,34 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 		INSERT INTO control_catalog_implementation_links(
 			id,tenant_id,legal_entity_id,definition_id,program_id,implementation_id,created_at
 		) VALUES
-		($1::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7::uuid,$8),
-		($2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$9::uuid,$8)`,
-		catalogLinkID, failedCatalogLinkID, tenantID, entityID, definitionID, programID, implementationID, now.Add(-20*24*time.Hour), failedImplementationID)
+		($1::uuid,$4::uuid,$5::uuid,$6::uuid,$7::uuid,$8::uuid,$9),
+		($2::uuid,$4::uuid,$5::uuid,$6::uuid,$7::uuid,$10::uuid,$9),
+		($3::uuid,$4::uuid,$5::uuid,$6::uuid,$7::uuid,$11::uuid,$9)`,
+		catalogLinkID, failedCatalogLinkID, historicalCatalogLinkID, tenantID, entityID, definitionID, programID, implementationID, now.Add(-20*24*time.Hour), failedImplementationID, historicalImplementationID)
 	mustExec(`
 		INSERT INTO risk_control_links(tenant_id,legal_entity_id,risk_id,risk_version,catalog_link_id,created_at)
 		VALUES
-		($1::uuid,$2::uuid,$3::uuid,2,$4::uuid,$7),
-		($1::uuid,$2::uuid,$5::uuid,2,$6::uuid,$7),
-		-- Historical control links must not affect the current Risk-version matrix.
-		($1::uuid,$2::uuid,$3::uuid,1,$6::uuid,$7)`,
-		tenantID, entityID, riskSupported, catalogLinkID, riskFailed, failedCatalogLinkID, now.Add(-10*24*time.Hour))
+		($1::uuid,$2::uuid,$3::uuid,3,$4::uuid,$8),
+		($1::uuid,$2::uuid,$5::uuid,2,$6::uuid,$8),
+		-- A retired implementation linked at an earlier valid Risk version is historical.
+		($1::uuid,$2::uuid,$3::uuid,2,$7::uuid,$8)`,
+		tenantID, entityID, riskSupported, catalogLinkID, riskFailed, failedCatalogLinkID, historicalCatalogLinkID, now.Add(-10*24*time.Hour))
 	mustExec(`
 		INSERT INTO evidence_contracts(
 			id,tenant_id,program_id,control_implementation_id,code,name,claim,
 			freshness_minutes,minimum_coverage,independence_required,contradiction_policy,failure_action,status
 		) VALUES
-		($1::uuid,$3::uuid,$4::uuid,$5::uuid,'SUPPORTED-EVIDENCE','Supported evidence','Supported claim',1440,0.8,false,'REVIEW','FLAG','ACTIVE'),
-		($2::uuid,$3::uuid,$4::uuid,$6::uuid,'FAILED-EVIDENCE','Failed evidence','Failed claim',1440,0.8,false,'REVIEW','FLAG','ACTIVE')`,
-		contractID, failedContractID, tenantID, programID, implementationID, failedImplementationID)
+		($1::uuid,$4::uuid,$5::uuid,$6::uuid,'SUPPORTED-EVIDENCE','Supported evidence','Supported claim',1440,0.8,false,'REVIEW','FLAG','ACTIVE'),
+		($2::uuid,$4::uuid,$5::uuid,$7::uuid,'FAILED-EVIDENCE','Failed evidence','Failed claim',1440,0.8,false,'REVIEW','FLAG','ACTIVE'),
+		($3::uuid,$4::uuid,$5::uuid,$8::uuid,'HISTORICAL-EVIDENCE','Historical evidence','Historical failed claim',1440,0.8,false,'REVIEW','FLAG','ACTIVE')`,
+		contractID, failedContractID, historicalContractID, tenantID, programID, implementationID, failedImplementationID, historicalImplementationID)
 	mustExec(`
 		INSERT INTO evidence_assessments(tenant_id,program_id,contract_id,conclusion,coverage,assessed_at,valid_until)
 		VALUES
-		($1::uuid,$2::uuid,$3::uuid,'SUPPORTED',1,$5,$6),
-		($1::uuid,$2::uuid,$4::uuid,'UNSUPPORTED',1,$5,$6)`,
-		tenantID, programID, contractID, failedContractID, now.Add(-time.Hour), now.Add(24*time.Hour))
+		($1::uuid,$2::uuid,$3::uuid,'SUPPORTED',1,$6,$7),
+		($1::uuid,$2::uuid,$4::uuid,'UNSUPPORTED',1,$6,$7),
+		($1::uuid,$2::uuid,$5::uuid,'UNSUPPORTED',1,$6,$7)`,
+		tenantID, programID, contractID, failedContractID, historicalContractID, now.Add(-time.Hour), now.Add(24*time.Hour))
 
 	repository := NewMatrixRepository(pool)
 	appetite, err := repository.RiskAppetiteMatrix(ctx, tenantID, entityID, now)
