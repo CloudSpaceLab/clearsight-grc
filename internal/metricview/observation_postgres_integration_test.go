@@ -59,10 +59,11 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 			($10::uuid,$1::uuid,'METRIC-GH','Metric Ghana','GH',$4);
 		INSERT INTO oversight_snapshots(
 			id,tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
-			projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
+			projection_version,metric_membership_version,source_high_water,
+			coverage_population,coverage_excluded,coverage_unknown,payload
 		) VALUES(
 			$3::uuid,$1::uuid,$2::uuid,$5,$6,$6,$6,
-			$7,$8::jsonb,100,2,3,$9::jsonb
+			$7,$11,$8::jsonb,100,2,3,$9::jsonb
 		)`,
 		pgx.QueryExecModeSimpleProtocol,
 		tenantID,
@@ -75,6 +76,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		string(highWater),
 		string(payload),
 		otherEntityID,
+		oversight.MetricMembershipVersion,
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -104,6 +106,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 
 	excludedValue, unknownValue := 2, 3
 	sourceSnapshot := oversight.Snapshot{
+		SnapshotID: snapshotID, MetricMembershipVersion: oversight.MetricMembershipVersion,
 		LegalEntityID: entityID, GeneratedAt: now,
 		PeriodStart: now.Add(-90 * 24 * time.Hour), PeriodEnd: now, PostureAsOf: now,
 		ProjectionVersion: oversight.ProjectionVersion, Freshness: oversight.FreshnessCurrent,
