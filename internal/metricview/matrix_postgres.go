@@ -114,10 +114,39 @@ func (r *MatrixRepository) AssuranceCoverageMatrix(ctx context.Context, tenantID
 			WHERE (t.id::text=$1 OR t.slug=$1)
 			  AND (le.id::text=$2 OR le.code=$2)
 			  AND r.status='ACTIVE'
+		), eligible_links AS (
+			SELECT risk_link.risk_id,
+			       implementation.tenant_id,
+			       implementation.program_id,
+			       implementation.id implementation_id,
+			       implementation.status implementation_status
+			FROM risk_control_links risk_link
+			JOIN control_catalog_implementation_links catalog_link
+			  ON catalog_link.id=risk_link.catalog_link_id
+			 AND catalog_link.tenant_id=risk_link.tenant_id
+			 AND catalog_link.legal_entity_id=risk_link.legal_entity_id
+			JOIN control_definitions definition
+			  ON definition.id=catalog_link.definition_id
+			 AND definition.tenant_id=catalog_link.tenant_id
+			 AND definition.status='ACTIVE'
+			JOIN control_implementations implementation
+			  ON implementation.id=catalog_link.implementation_id
+			 AND implementation.tenant_id=catalog_link.tenant_id
+			 AND implementation.program_id=catalog_link.program_id
+			 AND implementation.status NOT IN ('INACTIVE','RETIRED')
+			 AND implementation.effective_from<=$3
+			 AND (implementation.effective_until IS NULL OR $3<implementation.effective_until)
+			WHERE EXISTS (
+				SELECT 1
+				FROM selected_risks risk
+				WHERE risk.id=risk_link.risk_id
+				  AND risk.tenant_id=risk_link.tenant_id
+				  AND risk.legal_entity_id=risk_link.legal_entity_id
+			)
 		), contract_facts AS (
 			SELECT risk.id risk_id,
 			       CASE
-			         WHEN implementation.id IS NULL OR implementation.status<>'IMPLEMENTED' THEN 'UNKNOWN'
+			         WHEN link.implementation_id IS NULL OR link.implementation_status<>'IMPLEMENTED' THEN 'UNKNOWN'
 			         WHEN contract.id IS NULL THEN 'UNKNOWN'
 			         WHEN assessment.id IS NULL THEN 'UNKNOWN'
 			         WHEN assessment.valid_until IS NOT NULL AND NOT ($3<assessment.valid_until) THEN 'UNKNOWN'
@@ -127,23 +156,11 @@ func (r *MatrixRepository) AssuranceCoverageMatrix(ctx context.Context, tenantID
 			         ELSE 'UNKNOWN'
 			       END state
 			FROM selected_risks risk
-			LEFT JOIN risk_control_links risk_link
-			  ON risk_link.tenant_id=risk.tenant_id
-			 AND risk_link.legal_entity_id=risk.legal_entity_id
-			 AND risk_link.risk_id=risk.id
-			 AND risk_link.risk_version=risk.version
-			LEFT JOIN control_catalog_implementation_links catalog_link
-			  ON catalog_link.id=risk_link.catalog_link_id
-			 AND catalog_link.tenant_id=risk.tenant_id
-			 AND catalog_link.legal_entity_id=risk.legal_entity_id
-			LEFT JOIN control_implementations implementation
-			  ON implementation.id=catalog_link.implementation_id
-			 AND implementation.tenant_id=catalog_link.tenant_id
-			 AND implementation.program_id=catalog_link.program_id
+			LEFT JOIN eligible_links link ON link.risk_id=risk.id
 			LEFT JOIN evidence_contracts contract
-			  ON contract.tenant_id=implementation.tenant_id
-			 AND contract.program_id=implementation.program_id
-			 AND contract.control_implementation_id=implementation.id
+			  ON contract.tenant_id=link.tenant_id
+			 AND contract.program_id=link.program_id
+			 AND contract.control_implementation_id=link.implementation_id
 			 AND contract.status='ACTIVE'
 			LEFT JOIN LATERAL (
 				SELECT assessment.*
