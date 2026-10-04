@@ -66,6 +66,15 @@ func (*fakeAccessAdministrator) ApproveOrganizationPosition(context.Context, acc
 func (*fakeAccessAdministrator) RejectOrganizationPosition(context.Context, access.DecideOrganizationPositionInput) error {
 	return nil
 }
+func (*fakeAccessAdministrator) ProposeOrganizationPositionRole(context.Context, access.ProposeOrganizationPositionRoleInput) (access.OrganizationPositionRoleRevisionSummary, error) {
+	return access.OrganizationPositionRoleRevisionSummary{ID: "position-role-revision-1", PositionID: "position-1", RoleTemplateID: "role-1", Status: "PENDING"}, nil
+}
+func (*fakeAccessAdministrator) ApproveOrganizationPositionRole(context.Context, access.DecideOrganizationPositionRoleInput) error {
+	return nil
+}
+func (*fakeAccessAdministrator) RejectOrganizationPositionRole(context.Context, access.DecideOrganizationPositionRoleInput) error {
+	return nil
+}
 func (a *fakeAccessAdministrator) ProposeLegalEntityDataBoundary(_ context.Context, input access.ProposeLegalEntityDataBoundaryInput) (access.LegalEntityDataBoundaryRevision, error) {
 	a.boundary = input
 	return access.LegalEntityDataBoundaryRevision{
