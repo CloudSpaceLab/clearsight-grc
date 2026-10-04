@@ -36,5 +36,15 @@ func (a *API) homeMetrics(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "metrics_unavailable", "Risk metrics are unavailable. Try again.")
 		return
 	}
+	if snapshot.SnapshotID == "" {
+		if writer, ok := a.deps.MetricMembership.(metricview.MembershipWriter); ok {
+			sourceID, retainErr := writer.RetainRuntimeSnapshot(r.Context(), snapshot)
+			if retainErr != nil {
+				httpx.WriteError(w, http.StatusServiceUnavailable, "metric_drill_unavailable", "Exact metric detail is unavailable. Try again.")
+				return
+			}
+			snapshot.SnapshotID = sourceID
+		}
+	}
 	httpx.WriteJSON(w, http.StatusOK, metricview.FromOversight(snapshot))
 }
