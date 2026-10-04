@@ -542,13 +542,13 @@ func (r *PostgresRepository) buildWithMetricMembership(ctx context.Context, scop
 
 func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot time.Time) (bool, error) {
 	payload, err := json.Marshal(struct {
-		Counts         Counts               \`json:"counts"\`
-		Interventions  []Intervention       \`json:"interventions"\`
-		Pressure       []CategoryPressure   \`json:"pressure"\`
-		Aging          []AgingBucket        \`json:"aging"\`
-		Performance    []Performance        \`json:"performance"\`
-		Estimates      []ResolutionEstimate \`json:"estimates"\`
-		HistoryQuality HistoryQuality       \`json:"history_quality"\`
+		Counts         Counts               `json:"counts"`
+		Interventions  []Intervention       `json:"interventions"`
+		Pressure       []CategoryPressure   `json:"pressure"`
+		Aging          []AgingBucket        `json:"aging"`
+		Performance    []Performance        `json:"performance"`
+		Estimates      []ResolutionEstimate `json:"estimates"`
+		HistoryQuality HistoryQuality       `json:"history_quality"`
 	}{value.Counts, value.Interventions, value.Pressure, value.Aging, value.Performance, value.Estimates, value.HistoryQuality})
 	if err != nil {
 		return false, err
@@ -571,7 +571,7 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	var snapshotID string
-	err = tx.QueryRow(ctx, \`
+	err = tx.QueryRow(ctx, `
 		INSERT INTO oversight_snapshots(
 			tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
 			projection_version,metric_membership_version,source_high_water,
@@ -582,7 +582,7 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 			$10,$11,$12,$13::jsonb
 		)
 		ON CONFLICT(tenant_id,legal_entity_id,projection_version,refresh_slot) DO NOTHING
-		RETURNING id::text\`,
+		RETURNING id::text`,
 		value.TenantID, value.LegalEntityID, value.PeriodStart, value.PeriodEnd, slot, value.GeneratedAt,
 		value.ProjectionVersion, value.MetricMembershipVersion, highWater,
 		value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload,
@@ -599,14 +599,14 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 			member.SubjectType == "" || member.SubjectID == "" || member.Title == "" {
 			return false, ErrInvalid
 		}
-		if _, err := tx.Exec(ctx, \`
+		if _, err := tx.Exec(ctx, `
 			INSERT INTO oversight_metric_members(
 				snapshot_id,metric_id,member_type,member_id,subject_type,subject_id,
 				reference,title,state,priority,due_at
 			) VALUES(
 				$1::uuid,$2,$3,$4::uuid,$5,$6::uuid,
 				$7,$8,$9,$10,$11
-			)\`,
+			)`,
 			snapshotID, member.MetricID, member.MemberType, member.MemberID,
 			member.SubjectType, member.SubjectID, member.Reference, member.Title,
 			member.State, member.Priority, member.DueAt,
