@@ -119,13 +119,17 @@ type OrganizationPositionImpact struct {
 	ResponsibilityAssignments int `json:"responsibility_assignments"`
 	AuthorityGrants           int `json:"authority_grants"`
 	ActiveRoleBindings        int `json:"active_role_bindings"`
+	ActiveProgramsOwned       int `json:"active_programs_owned"`
+	OpenMattersOwned          int `json:"open_matters_owned"`
+	OpenActionsOwned          int `json:"open_actions_owned"`
 }
 
 type OrganizationPositionRevisionSummary struct {
-	ID          string                        `json:"id"`
-	PositionID  string                        `json:"position_id"`
-	Operation   OrganizationPositionOperation `json:"operation"`
-	BaseVersion int64                         `json:"base_version"`
+	ID                       string                        `json:"id"`
+	PositionID               string                        `json:"position_id"`
+	Operation                OrganizationPositionOperation `json:"operation"`
+	BaseVersion              int64                         `json:"base_version"`
+	RestoredFromRevisionID   string                        `json:"restored_from_revision_id,omitempty"`
 	Base        OrganizationPositionState     `json:"base"`
 	Proposed    OrganizationPositionState     `json:"proposed"`
 	MakerID     string                        `json:"maker_id"`
@@ -149,8 +153,16 @@ type ProposeOrganizationPositionInput struct {
 	OrganizationScopeID string                        `json:"organization_scope_id,omitempty"`
 	ParentPositionID    string                        `json:"parent_position_id,omitempty"`
 	OccupantPrincipalID string                        `json:"occupant_principal_id,omitempty"`
-	ExpectedVersion     int64                         `json:"expected_version,omitempty"`
-	ActorID             string                        `json:"-"`
+	ExpectedVersion          int64                         `json:"expected_version,omitempty"`
+	ActorID                  string                        `json:"-"`
+	RestoredFromRevisionID   string                        `json:"-"`
+}
+
+type RestoreOrganizationPositionInput struct {
+	TenantID      string `json:"tenant_id"`
+	LegalEntityID string `json:"legal_entity_id"`
+	RevisionID    string `json:"revision_id"`
+	ActorID       string `json:"-"`
 }
 
 type DecideOrganizationPositionInput struct {
@@ -278,6 +290,7 @@ type Administrator interface {
 	ApproveOrganizationScope(context.Context, DecideOrganizationScopeInput) error
 	RejectOrganizationScope(context.Context, DecideOrganizationScopeInput) error
 	ProposeOrganizationPosition(context.Context, ProposeOrganizationPositionInput) (OrganizationPositionRevisionSummary, error)
+	RestoreOrganizationPosition(context.Context, RestoreOrganizationPositionInput) (OrganizationPositionRevisionSummary, error)
 	ApproveOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
 	RejectOrganizationPosition(context.Context, DecideOrganizationPositionInput) error
 }
