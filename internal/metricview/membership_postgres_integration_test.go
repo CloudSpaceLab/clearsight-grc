@@ -43,53 +43,63 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	t.Cleanup(func() { cleanup(context.Background()) })
 
 	now := time.Date(2026, 10, 4, 12, 0, 0, 0, time.UTC)
-	if _, err := pool.Exec(ctx, `
-		INSERT INTO tenants(id,slug,name)
-		VALUES($1::uuid,'metric-membership-access','Metric Membership Access');
-
-		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from)
-		VALUES($2::uuid,$1::uuid,'MEM-NG','Membership Nigeria','NG',$8);
-
-		INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
-			($6::uuid,$1::uuid,'PERSON','Viewer A','ACTIVE',$8),
-			($7::uuid,$1::uuid,'PERSON','Viewer B','ACTIVE',$8);
-
-		INSERT INTO matters(
+	mustExec := func(query string, args ...any) {
+		t.Helper()
+		if _, execErr := pool.Exec(ctx, query, args...); execErr != nil {
+			t.Fatal(execErr)
+		}
+	}
+	mustExec(`INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'metric-membership-access','Metric Membership Access')`, tenantID)
+	mustExec(
+		`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from)
+		 VALUES($1::uuid,$2::uuid,'MEM-NG','Membership Nigeria','NG',$3)`,
+		entityID, tenantID, now.Add(-time.Hour),
+	)
+	mustExec(
+		`INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES
+		 ($1::uuid,$3::uuid,'PERSON','Viewer A','ACTIVE',$4),
+		 ($2::uuid,$3::uuid,'PERSON','Viewer B','ACTIVE',$4)`,
+		principalA, principalB, tenantID, now.Add(-time.Hour),
+	)
+	mustExec(
+		`INSERT INTO matters(
 			id,tenant_id,legal_entity_id,reference,matter_type,status,priority,title,summary,scope,
 			created_at,updated_at,version
-		) VALUES(
-			$4::uuid,$1::uuid,$2::uuid,'MEM-001','CONTROL_GAP','ASSESSMENT',4,
+		 ) VALUES(
+			$1::uuid,$2::uuid,$3::uuid,'MEM-001','CONTROL_GAP','ASSESSMENT',4,
 			'Retained restricted issue','Access can change after the snapshot',
-			jsonb_build_object('access','RESTRICTED','allowed_principal_ids',jsonb_build_array($6::text)),
-			$8,$8,1
-		);
-
-		INSERT INTO oversight_snapshots(
+			jsonb_build_object('access','RESTRICTED','allowed_principal_ids',jsonb_build_array($4::text)),
+			$5,$5,1
+		 )`,
+		matterID, tenantID, entityID, principalA, now.Add(-time.Hour),
+	)
+	mustExec(
+		`INSERT INTO oversight_snapshots(
 			id,tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
 			projection_version,metric_membership_revision,source_high_water,
 			coverage_population,coverage_excluded,coverage_unknown,payload
-		) VALUES(
-			$3::uuid,$1::uuid,$2::uuid,$8,$9,$9,$9,
+		 ) VALUES(
+			$1::uuid,$2::uuid,$3::uuid,$4,$5,$5,$5,
 			'oversight-v5','home-oversight-v3','{}'::jsonb,1,0,0,
 			'{"counts":{"critical_high":1}}'::jsonb
-		);
-
-		INSERT INTO oversight_snapshot_metric_membership_sets(
+		 )`,
+		snapshotID, tenantID, entityID, now.Add(-time.Hour), now,
+	)
+	mustExec(
+		`INSERT INTO oversight_snapshot_metric_membership_sets(
 			oversight_snapshot_id,tenant_id,legal_entity_id,definition_revision
-		) VALUES($3::uuid,$1::uuid,$2::uuid,'home-oversight-v3');
-
-		INSERT INTO oversight_snapshot_metric_memberships(
+		 ) VALUES($1::uuid,$2::uuid,$3::uuid,'home-oversight-v3')`,
+		snapshotID, tenantID, entityID,
+	)
+	mustExec(
+		`INSERT INTO oversight_snapshot_metric_memberships(
 			oversight_snapshot_id,metric_id,definition_revision,member_id,target_type,target_id,target_title,state
-		) VALUES(
-			$3::uuid,'critical_high_open','home-oversight-v3',$5::uuid,'MATTER',$4::uuid,
+		 ) VALUES(
+			$1::uuid,'critical_high_open','home-oversight-v3',$2::uuid,'MATTER',$3::uuid,
 			'Retained restricted issue','ASSESSMENT'
-		)
-	`,
-		tenantID, entityID, snapshotID, matterID, memberID, principalA, principalB,
-		now.Add(-time.Hour), now,
-	); err != nil {
-		t.Fatal(err)
-	}
+		 )`,
+		snapshotID, memberID, matterID,
+	)
 
 	repository := NewMembershipRepository(pool)
 	page, err := repository.ListSnapshotMembers(
