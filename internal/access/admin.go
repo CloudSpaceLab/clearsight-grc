@@ -118,6 +118,7 @@ type OrganizationPositionRoleRevisionSummary struct {
 	ID                  string                            `json:"id"`
 	PositionID          string                            `json:"position_id"`
 	RoleTemplateID      string                            `json:"role_template_id"`
+	RoleTemplateVersion int64                             `json:"role_template_version"`
 	Operation           OrganizationPositionRoleOperation `json:"operation"`
 	BasePositionVersion int64                             `json:"base_position_version"`
 	RoleCode            string                            `json:"role_code"`
