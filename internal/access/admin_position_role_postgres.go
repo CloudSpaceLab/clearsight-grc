@@ -62,9 +62,13 @@ func (a *PostgresAdministrator) ProposeOrganizationPositionRole(ctx context.Cont
 	if err != nil {
 		return OrganizationPositionRoleRevisionSummary{}, err
 	}
+	anyBindingCount, err := activeAnyPositionRoleBindingCount(ctx, tx, tenantID, input.PositionID, input.RoleTemplateID)
+	if err != nil {
+		return OrganizationPositionRoleRevisionSummary{}, err
+	}
 	switch input.Operation {
 	case OrganizationPositionRoleAdd:
-		if bindingCount != 0 {
+		if anyBindingCount != 0 {
 			return OrganizationPositionRoleRevisionSummary{}, ErrAdminConflict
 		}
 	case OrganizationPositionRoleRetire:
@@ -179,9 +183,9 @@ func (a *PostgresAdministrator) decideOrganizationPositionRole(ctx context.Conte
 		}
 		if err := tx.QueryRow(ctx, `
 			INSERT INTO position_role_bindings(
-				tenant_id,position_id,role_template_id,scope,priority,valid_from
+				tenant_id,position_id,role_template_id,scope,priority,binding_purpose,valid_from
 			) VALUES(
-				$1::uuid,$2::uuid,$3::uuid,jsonb_build_object('legal_entity_id',$4::text),0,clock_timestamp()
+				$1::uuid,$2::uuid,$3::uuid,jsonb_build_object('legal_entity_id',$4::text),0,'WORKSPACE_ONLY',clock_timestamp()
 			)
 			RETURNING id::text`, tenantID, revision.PositionID, revision.RoleTemplateID, entityID).Scan(&bindingID); err != nil {
 			return mapAdminPgError(err)
@@ -361,6 +365,7 @@ func activePositionRoleBinding(ctx context.Context, q workspaceRoleQuerier, tena
 		SELECT COALESCE(array_agg(binding.id::text ORDER BY binding.id),ARRAY[]::text[])
 		FROM position_role_bindings binding
 		WHERE binding.tenant_id=$1::uuid AND binding.position_id=$2::uuid AND binding.role_template_id=$3::uuid
+		  AND binding.binding_purpose='WORKSPACE_ONLY'
 		  AND binding.valid_from<=clock_timestamp() AND (binding.valid_until IS NULL OR clock_timestamp()<binding.valid_until)`,
 		tenantID, positionID, roleTemplateID).Scan(&ids)
 	if err != nil {
@@ -370,6 +375,17 @@ func activePositionRoleBinding(ctx context.Context, q workspaceRoleQuerier, tena
 		return "", 0, nil
 	}
 	return ids[0], len(ids), nil
+}
+
+func activeAnyPositionRoleBindingCount(ctx context.Context, q workspaceRoleQuerier, tenantID, positionID, roleTemplateID string) (int, error) {
+	var count int
+	err := q.QueryRow(ctx, `
+		SELECT count(*)
+		FROM position_role_bindings binding
+		WHERE binding.tenant_id=$1::uuid AND binding.position_id=$2::uuid AND binding.role_template_id=$3::uuid
+		  AND binding.valid_from<=clock_timestamp() AND (binding.valid_until IS NULL OR clock_timestamp()<binding.valid_until)`,
+		tenantID, positionID, roleTemplateID).Scan(&count)
+	return count, err
 }
 
 const organizationPositionRoleRevisionSelect = `
