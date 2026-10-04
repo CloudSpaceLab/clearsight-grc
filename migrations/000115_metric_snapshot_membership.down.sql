@@ -14,6 +14,7 @@ $metric_membership_downgrade$;
 
 DROP TABLE IF EXISTS oversight_snapshot_metric_memberships;
 DROP TABLE IF EXISTS oversight_snapshot_metric_membership_sets;
+DROP FUNCTION IF EXISTS validate_oversight_metric_membership_set_source();
 DROP FUNCTION IF EXISTS prevent_oversight_metric_membership_mutation();
 
 ALTER TABLE oversight_snapshots DROP COLUMN IF EXISTS metric_membership_revision;
