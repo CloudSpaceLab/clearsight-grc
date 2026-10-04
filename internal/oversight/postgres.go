@@ -227,6 +227,15 @@ func (r *PostgresRepository) buildWithMetricMembership(ctx context.Context, scop
 		  )`, scope.TenantID, scope.LegalEntityID, organizationScopeIDs).Scan(&value.Counts.RoutingFailures); err != nil {
 		return Snapshot{}, err
 	}
+	if captureMetricMembership {
+		members, err := r.buildMetricMembers(ctx, scope, now, organizationScopeIDs)
+		if err != nil {
+			return Snapshot{}, err
+		}
+		value.MetricMembershipVersion = MetricMembershipVersion
+		value.MetricMembers = members
+		applyMetricMemberCounts(&value)
+	}
 
 	rows, err := r.pool.Query(ctx, `
 		SELECT m.id::text,m.title,m.matter_type,m.status,m.priority,COALESCE(m.owner_principal_id::text,''),COALESCE(p.display_name,''),m.due_at
