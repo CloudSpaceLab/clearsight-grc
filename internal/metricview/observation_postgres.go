@@ -139,7 +139,8 @@ func (r *ObservationRepository) pendingOversightSnapshots(ctx context.Context, l
 		FROM oversight_snapshots os
 		JOIN tenants t ON t.id=os.tenant_id
 		JOIN legal_entities le ON le.tenant_id=os.tenant_id AND le.id=os.legal_entity_id
-		WHERE (
+		WHERE os.metric_membership_revision=$2
+		  AND (
 			SELECT count(*)
 			FROM metric_observations observation
 			WHERE observation.source_kind=$1
