@@ -3,6 +3,7 @@ import { ApiError } from "../http";
 import {
   approveEscalationGuardRevision,
   approveOrganizationPosition,
+  approveLegalEntityDataBoundary,
   approveOrganizationScope,
   createGroupRoleBinding,
   createIdentitySource,
@@ -10,8 +11,10 @@ import {
   previewEscalation,
   proposeEscalationGuardRevision,
   proposeOrganizationPosition,
+  proposeLegalEntityDataBoundary,
   proposeOrganizationScope,
   rejectOrganizationPosition,
+  rejectLegalEntityDataBoundary,
   rejectOrganizationScope,
   retireGroupRoleBinding,
   revokeIdentitySource,
@@ -21,8 +24,10 @@ import {
   type IdentityAccessOverview,
   type IdentitySource,
   type OrganizationPositionRevision,
+  type LegalEntityDataBoundaryRevision,
   type OrganizationScopeRevision,
   type ProposeOrganizationPositionInput,
+  type ProposeLegalEntityDataBoundaryInput,
   type ProposeOrganizationScopeInput,
 } from "../identityAccessApi";
 import "../identity-access.css";
@@ -175,6 +180,30 @@ export function IdentityAccessPanel() {
   }
 
 
+  async function proposeBoundary(input: ProposeLegalEntityDataBoundaryInput) {
+    return run("data-boundary-propose", async () => {
+      await proposeLegalEntityDataBoundary(input);
+      setNotice("Data boundary change proposed.");
+      await refresh();
+    });
+  }
+
+  async function approveBoundary(revision: LegalEntityDataBoundaryRevision, rationale: string) {
+    return run("data-boundary-approve-" + revision.id, async () => {
+      await approveLegalEntityDataBoundary(revision.id, rationale);
+      setNotice("Data boundary approved.");
+      await refresh();
+    });
+  }
+
+  async function rejectBoundary(revision: LegalEntityDataBoundaryRevision, rationale: string) {
+    return run("data-boundary-reject-" + revision.id, async () => {
+      await rejectLegalEntityDataBoundary(revision.id, rationale);
+      setNotice("Data boundary rejected.");
+      await refresh();
+    });
+  }
+
   async function proposeScope(input: ProposeOrganizationScopeInput) {
     return run("scope-propose", async () => {
       await proposeOrganizationScope(input);
@@ -301,6 +330,8 @@ export function IdentityAccessPanel() {
         scopes={overview.organization_scopes}
         revisions={overview.organization_scope_revisions}
         positionRevisions={overview.organization_position_revisions}
+        dataBoundary={overview.data_boundary}
+        dataBoundaryRevisions={overview.data_boundary_revisions}
         actorPrincipalID={overview.actor_principal_id}
         canConfigure={overview.can_configure_organization}
         isBusy={isBusy}
@@ -312,6 +343,9 @@ export function IdentityAccessPanel() {
         onProposePosition={proposePosition}
         onApprovePosition={approvePosition}
         onRejectPosition={rejectPosition}
+        onProposeDataBoundary={proposeBoundary}
+        onApproveDataBoundary={approveBoundary}
+        onRejectDataBoundary={rejectBoundary}
       />}
 
       {area === "directory" && <div className="identity-access-grid">

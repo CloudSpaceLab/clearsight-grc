@@ -1,10 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type {
+  DetailTransferMode,
   IdentityPerson,
+  LegalEntityDataBoundary,
+  LegalEntityDataBoundaryRevision,
   OrganizationPosition,
   OrganizationPositionRevision,
   OrganizationScope,
   OrganizationScopeRevision,
+  ProposeLegalEntityDataBoundaryInput,
   ProposeOrganizationPositionInput,
   ProposeOrganizationScopeInput,
 } from "../../identityAccessApi";
@@ -18,6 +22,8 @@ type Props = {
   scopes: OrganizationScope[];
   revisions?: OrganizationScopeRevision[];
   positionRevisions?: OrganizationPositionRevision[];
+  dataBoundary?: LegalEntityDataBoundary;
+  dataBoundaryRevisions?: LegalEntityDataBoundaryRevision[];
   actorPrincipalID?: string;
   canConfigure?: boolean;
   isBusy?: boolean;
@@ -29,6 +35,9 @@ type Props = {
   onProposePosition?: (input: ProposeOrganizationPositionInput) => Promise<boolean>;
   onApprovePosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
   onRejectPosition?: (revision: OrganizationPositionRevision, rationale: string) => Promise<boolean>;
+  onProposeDataBoundary?: (input: ProposeLegalEntityDataBoundaryInput) => Promise<boolean>;
+  onApproveDataBoundary?: (revision: LegalEntityDataBoundaryRevision, rationale: string) => Promise<boolean>;
+  onRejectDataBoundary?: (revision: LegalEntityDataBoundaryRevision, rationale: string) => Promise<boolean>;
 };
 
 export function OrganizationInventory({
@@ -37,6 +46,8 @@ export function OrganizationInventory({
   scopes,
   revisions = [],
   positionRevisions = [],
+  dataBoundary,
+  dataBoundaryRevisions = [],
   actorPrincipalID = "",
   canConfigure = false,
   isBusy = false,
@@ -48,9 +59,16 @@ export function OrganizationInventory({
   onProposePosition,
   onApprovePosition,
   onRejectPosition,
+  onProposeDataBoundary,
+  onApproveDataBoundary,
+  onRejectDataBoundary,
 }: Props) {
   const [query, setQuery] = useState("");
   const [area, setArea] = useState<string>();
+  const [residencyRegion, setResidencyRegion] = useState("");
+  const [transferMode, setTransferMode] = useState<DetailTransferMode>("AGGREGATE_ONLY");
+  const [destinationRegions, setDestinationRegions] = useState("");
+  const [boundaryRationale, setBoundaryRationale] = useState("");
   const positionByID = useMemo(() => new Map(positions.map((position) => [position.id, position])), [positions]);
   const scopeByID = useMemo(() => new Map(scopes.map((scope) => [scope.id, scope])), [scopes]);
   const areaOptions = useMemo(() => scopes.map((scope) => ({
@@ -59,6 +77,35 @@ export function OrganizationInventory({
     description: scope.kind === "ORGANIZATION_UNIT" ? "Imported organization area" : humanize(scope.kind),
   })), [scopes]);
   const normalizedQuery = query.trim().toLowerCase();
+  const pendingBoundary = dataBoundaryRevisions.find((revision) => revision.status === "PENDING");
+  const pendingBoundaryFromAnotherMaker = Boolean(pendingBoundary && pendingBoundary.maker_id !== actorPrincipalID);
+  const transferModeOptions: ReadonlyArray<{ id: DetailTransferMode; label: string; description: string }> = [
+    { id: "AGGREGATE_ONLY", label: "Aggregate only", description: "No cross-entity record detail." },
+    { id: "ALLOWLIST", label: "Destination allowlist", description: "Detail transfer only to approved regions." },
+  ];
+
+  useEffect(() => {
+    if (pendingBoundary) return;
+    setResidencyRegion(dataBoundary?.residency_region ?? "");
+    setTransferMode(dataBoundary?.detail_transfer_mode ?? "AGGREGATE_ONLY");
+    setDestinationRegions((dataBoundary?.allowed_destination_regions ?? []).join(", "));
+    setBoundaryRationale("");
+  }, [dataBoundary, pendingBoundary]);
+
+  async function submitDataBoundary(event: FormEvent) {
+    event.preventDefault();
+    if (!onProposeDataBoundary) return;
+    const destinations = transferMode === "ALLOWLIST"
+      ? destinationRegions.split(",").map((value) => value.trim()).filter(Boolean)
+      : [];
+    await onProposeDataBoundary({
+      residency_region: residencyRegion,
+      detail_transfer_mode: transferMode,
+      allowed_destination_regions: destinations,
+      expected_version: dataBoundary?.version ?? 0,
+    });
+  }
+
   const visible = useMemo(() => positions.filter((position) => {
     const selectedScope = area ? scopeByID.get(area) : undefined;
     const positionScope = position.organization_scope_id ? scopeByID.get(position.organization_scope_id) : undefined;
@@ -81,6 +128,61 @@ export function OrganizationInventory({
   const vacancies = positions.length - occupied;
 
   return <div className="identity-organization-view">
+    {mode === "positions" && dataBoundary && <article className="config-card identity-data-boundary-card">
+      <div className="section-header identity-card-header">
+        <div>
+          <h3>Data boundary</h3>
+          <p>{dataBoundary.legal_entity_name || "Current legal entity"}</p>
+        </div>
+        <StatusBadge tone={dataBoundary.configured ? "success" : "neutral"}>
+          {dataBoundary.configured ? "Configured" : "Aggregate only"}
+        </StatusBadge>
+      </div>
+
+      <div className="identity-guard-summary configured">
+        <strong>{dataBoundary.residency_region || "Residency region not set"}</strong>
+        <span>{dataBoundary.detail_transfer_mode === "ALLOWLIST"
+          ? `Detail destinations: ${dataBoundary.allowed_destination_regions.join(", ") || "None"}`
+          : "Cross-entity record detail is blocked. Group totals remain aggregate-only."}</span>
+      </div>
+
+      {pendingBoundary && <div className="identity-guard-summary open">
+        <strong>Proposed · {pendingBoundary.proposed_residency_region}</strong>
+        <span>{pendingBoundary.proposed_detail_transfer_mode === "ALLOWLIST"
+          ? `Detail destinations: ${pendingBoundary.proposed_destination_regions.join(", ")}`
+          : "Aggregate only"}</span>
+      </div>}
+
+      {canConfigure && !pendingBoundary && onProposeDataBoundary && <form className="identity-inline-form" onSubmit={(event) => void submitDataBoundary(event)}>
+        <h4>Change data boundary</h4>
+        <label>Residency region<input required maxLength={32} value={residencyRegion} onChange={(event) => setResidencyRegion(event.target.value)} placeholder="NG or EU-WEST"/></label>
+        <SelectField
+          label="Group detail transfer"
+          value={transferMode}
+          placeholder="Choose transfer policy"
+          options={transferModeOptions}
+          allowsEmpty={false}
+          onChange={(value) => value && setTransferMode(value)}
+        />
+        {transferMode === "ALLOWLIST" && <label>Destination regions<input required value={destinationRegions} onChange={(event) => setDestinationRegions(event.target.value)} placeholder="GH, EU-WEST"/></label>}
+        <button className="secondary-button" disabled={isBusy || !residencyRegion.trim() || (transferMode === "ALLOWLIST" && !destinationRegions.trim())} type="submit">Propose change</button>
+      </form>}
+
+      {pendingBoundary && pendingBoundary.maker_id === actorPrincipalID && <div className="identity-guard-summary configured">
+        <strong>Awaiting independent approval</strong>
+        <span>Current boundary remains active.</span>
+      </div>}
+
+      {pendingBoundary && pendingBoundaryFromAnotherMaker && canConfigure && onApproveDataBoundary && onRejectDataBoundary && <form className="identity-inline-form" onSubmit={(event) => event.preventDefault()}>
+        <h4>Review proposed boundary</h4>
+        <label>Decision rationale<input required value={boundaryRationale} onChange={(event) => setBoundaryRationale(event.target.value)} placeholder="Residency and destination regions reviewed"/></label>
+        <div className="identity-guard-actions">
+          <button className="secondary-button" disabled={isBusy || !boundaryRationale.trim()} type="button" onClick={() => void onApproveDataBoundary(pendingBoundary, boundaryRationale)}>Approve</button>
+          <button className="text-button" disabled={isBusy || !boundaryRationale.trim()} type="button" onClick={() => void onRejectDataBoundary(pendingBoundary, boundaryRationale)}>Reject</button>
+        </div>
+      </form>}
+    </article>}
+
     {mode === "positions" && onProposeScope && onApproveScope && onRejectScope && <OrganizationScopeManager
       scopes={scopes}
       revisions={revisions}
