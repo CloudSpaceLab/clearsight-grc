@@ -76,7 +76,7 @@ export function OrganizationPositionManager({
   const [rolePosition, setRolePosition] = useState<OrganizationPosition>();
   const [roleDecision, setRoleDecision] = useState<RoleDecisionState>();
   const pendingByPosition = useMemo(
-    () => new Map(revisions.filter((item) => item.status === "PENDING").map((item) => [item.position_id, item])),
+    () => new Map(revisions.filter((item) => item.status === "PENDING" || item.status === "SCHEDULED").map((item) => [item.position_id, item])),
     [revisions],
   );
   const pendingRoleByPosition = useMemo(
@@ -95,20 +95,22 @@ export function OrganizationPositionManager({
     </div>
 
     {revisions.length > 0 && <div className="identity-scope-changes">
-      <strong>Pending position changes</strong>
+      <strong>Position changes</strong>
       <ul>{revisions.map((revision) => {
         const own = revision.maker_id === actorPrincipalID;
+        const scheduled = revision.status === "SCHEDULED";
         return <li key={revision.id}>
           <div>
             <b>{positionRevisionLabel(revision, positionByID)}</b>
-            <span>{positionImpactLabel(revision)}</span>
+            <span>{scheduled && revision.effective_from ? "Effective " + formatDateTime(revision.effective_from) : positionImpactLabel(revision)}</span>
           </div>
-          <StatusBadge tone="warning">Pending</StatusBadge>
-          {canConfigure && !own && <div className="identity-scope-change-actions">
+          <StatusBadge tone="warning">{scheduled ? "Scheduled" : "Pending"}</StatusBadge>
+          {canConfigure && !own && !scheduled && <div className="identity-scope-change-actions">
             <Button size="compact" variant="secondary" onPress={() => setDecision({ action: "approve", revision })}>Approve</Button>
             <Button size="compact" variant="quiet" onPress={() => setDecision({ action: "reject", revision })}>Reject</Button>
           </div>}
-          {own && <small>Awaiting approval</small>}
+          {own && !scheduled && <small>Awaiting approval</small>}
+          {scheduled && <small>Current configuration remains active until this change applies.</small>}
         </li>;
       })}</ul>
     </div>}
