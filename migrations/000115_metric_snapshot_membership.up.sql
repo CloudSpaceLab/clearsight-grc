@@ -20,8 +20,20 @@ INSERT INTO metric_definitions(
     ('routing_gaps','home-oversight-v3','Routing gaps','COUNT','CURRENT_POSTURE','ZERO_CLEAR_POSITIVE_ATTENTION','SUM_DISJOINT_COUNTS','oversight','routing-gaps','SOURCE_SNAPSHOT'),
     ('outcome_failures','home-oversight-v3','Outcome failures','COUNT','CURRENT_POSTURE','ZERO_CLEAR_POSITIVE_ATTENTION','SUM_DISJOINT_COUNTS','oversight','outcome-failures','SOURCE_SNAPSHOT');
 
+CREATE TABLE oversight_snapshot_metric_membership_sets (
+    oversight_snapshot_id uuid NOT NULL,
+    tenant_id uuid NOT NULL,
+    legal_entity_id uuid NOT NULL,
+    definition_revision text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    PRIMARY KEY (oversight_snapshot_id, definition_revision),
+    CONSTRAINT oversight_metric_membership_set_entity_fk
+        FOREIGN KEY (legal_entity_id, tenant_id)
+        REFERENCES legal_entities(id, tenant_id)
+);
+
 CREATE TABLE oversight_snapshot_metric_memberships (
-    oversight_snapshot_id uuid NOT NULL REFERENCES oversight_snapshots(id) ON DELETE CASCADE,
+    oversight_snapshot_id uuid NOT NULL,
     metric_id text NOT NULL,
     definition_revision text NOT NULL,
     member_id uuid NOT NULL,
@@ -33,7 +45,10 @@ CREATE TABLE oversight_snapshot_metric_memberships (
     PRIMARY KEY (oversight_snapshot_id, metric_id, definition_revision, member_id),
     CONSTRAINT oversight_metric_membership_definition_fk
         FOREIGN KEY (metric_id, definition_revision)
-        REFERENCES metric_definitions(metric_id, revision)
+        REFERENCES metric_definitions(metric_id, revision),
+    CONSTRAINT oversight_metric_membership_set_fk
+        FOREIGN KEY (oversight_snapshot_id, definition_revision)
+        REFERENCES oversight_snapshot_metric_membership_sets(oversight_snapshot_id, definition_revision)
 );
 
 CREATE INDEX oversight_snapshot_metric_memberships_drill_idx
@@ -48,6 +63,10 @@ BEGIN
     RAISE EXCEPTION 'Oversight metric memberships are immutable';
 END;
 $oversight_metric_membership$;
+
+CREATE TRIGGER oversight_snapshot_metric_membership_sets_immutable
+    BEFORE UPDATE OR DELETE ON oversight_snapshot_metric_membership_sets
+    FOR EACH ROW EXECUTE FUNCTION prevent_oversight_metric_membership_mutation();
 
 CREATE TRIGGER oversight_snapshot_metric_memberships_immutable
     BEFORE UPDATE OR DELETE ON oversight_snapshot_metric_memberships
@@ -73,7 +92,14 @@ BEGIN
     END IF;
 
     IF NEW.definition_revision='home-oversight-v3' THEN
-        IF source_membership_revision IS DISTINCT FROM 'home-oversight-v3' THEN
+        IF source_membership_revision IS DISTINCT FROM 'home-oversight-v3' OR NOT EXISTS (
+            SELECT 1
+            FROM oversight_snapshot_metric_membership_sets membership_set
+            WHERE membership_set.oversight_snapshot_id=NEW.source_id
+              AND membership_set.tenant_id=NEW.tenant_id
+              AND membership_set.legal_entity_id=NEW.legal_entity_id
+              AND membership_set.definition_revision=NEW.definition_revision
+        ) THEN
             RAISE EXCEPTION 'Exact metric observation source has no retained membership revision';
         END IF;
         SELECT count(*)
