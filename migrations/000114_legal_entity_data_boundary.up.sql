@@ -63,24 +63,7 @@ CREATE TABLE legal_entity_data_boundary_revisions (
         OR
         (status='APPLIED' AND checker_id IS NOT NULL AND btrim(rationale)<>'' AND decided_at IS NOT NULL AND applied_at IS NOT NULL)
     ),
-    CHECK (proposed_residency_region ~ '^[A-Z0-9][A-Z0-9_-]{1,31}
-    CHECK (valid_legal_entity_data_regions(proposed_destination_regions)),
-    CHECK (
-        (proposed_detail_transfer_mode='AGGREGATE_ONLY' AND cardinality(proposed_destination_regions)=0)
-        OR
-        (proposed_detail_transfer_mode='ALLOWLIST' AND cardinality(proposed_destination_regions)>0)
-    )
-);
-
-CREATE UNIQUE INDEX legal_entity_data_boundary_pending_idx
-    ON legal_entity_data_boundary_revisions(tenant_id, legal_entity_id)
-    WHERE status='PENDING';
-
-CREATE INDEX legal_entity_data_boundary_revision_queue_idx
-    ON legal_entity_data_boundary_revisions(tenant_id, legal_entity_id, status, created_at, id);
-
-COMMIT;
-),
+    CHECK (proposed_residency_region ~ '^[A-Z0-9][A-Z0-9_-]{1,31}$'),
     CHECK (valid_legal_entity_data_regions(proposed_destination_regions)),
     CHECK (
         (proposed_detail_transfer_mode='AGGREGATE_ONLY' AND cardinality(proposed_destination_regions)=0)
