@@ -92,15 +92,20 @@ func TestOrganizationPositionGovernanceRequiresIndependentApprovalAndProtectsHie
 		t.Fatal(err)
 	}
 
-	var rootID string
+	var rootID, rootScopeID string
+	var rootPath []string
 	if err := pool.QueryRow(ctx, `
-		SELECT id::text FROM org_positions
+		SELECT id::text,COALESCE(organization_scope_id::text,''),department_path
+		FROM org_positions
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND code='CRO' AND valid_until IS NULL`,
-		tenantID, entityID).Scan(&rootID); err != nil {
+		tenantID, entityID).Scan(&rootID, &rootScopeID, &rootPath); err != nil {
 		t.Fatal(err)
 	}
 	if rootID != rootRevision.PositionID {
 		t.Fatalf("stable position id=%s revision=%s", rootID, rootRevision.PositionID)
+	}
+	if rootScopeID != scopeID || len(rootPath) != 2 || rootPath[0] != "BANK" || rootPath[1] != "RISK" {
+		t.Fatalf("canonical position area id=%s path=%#v", rootScopeID, rootPath)
 	}
 
 	childRevision, err := admin.ProposeOrganizationPosition(ctx, ProposeOrganizationPositionInput{
