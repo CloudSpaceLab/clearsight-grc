@@ -25,6 +25,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oploss"
@@ -101,6 +102,7 @@ type Dependencies struct {
 	ControlCatalog         *controlcatalog.Service
 	Today                  *today.Service
 	Oversight              *oversight.Service
+	MetricDrills           metricview.DrillReader
 	GroupOversight         *oversight.GroupService
 	Workflow               *workflow.Service
 	Onboarding             *onboarding.Service
