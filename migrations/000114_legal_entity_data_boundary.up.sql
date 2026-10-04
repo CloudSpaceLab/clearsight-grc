@@ -47,7 +47,8 @@ CREATE TABLE legal_entity_data_boundary_revisions (
     proposed_destination_regions text[] NOT NULL DEFAULT ARRAY[]::text[],
     maker_id uuid NOT NULL,
     checker_id uuid,
-    status text NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPLIED','REJECTED')),
+    status text NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING','APPLIED','REJECTED')),
     rationale text NOT NULL DEFAULT '',
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     decided_at timestamptz,
