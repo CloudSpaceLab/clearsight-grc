@@ -342,6 +342,7 @@ func (a *API) routes() []routeSpec {
 		withPermission(write(http.MethodPost, "/api/v1/access/organization-scope-revisions/{id}/approve", a.approveOrganizationScope, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/organization-scope-revisions/{id}/reject", a.rejectOrganizationScope, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/organization-position-revisions", a.proposeOrganizationPosition, nil), identity.PermissionIdentityConfigure),
+		withPermission(operation("/api/v1/access/organization-position-revisions/{id}/simulate", a.simulateOrganizationPosition, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/organization-position-revisions/{id}/restore", a.restoreOrganizationPosition, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/organization-position-revisions/{id}/approve", a.approveOrganizationPosition, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/organization-position-revisions/{id}/reject", a.rejectOrganizationPosition, nil), identity.PermissionIdentityConfigure),
