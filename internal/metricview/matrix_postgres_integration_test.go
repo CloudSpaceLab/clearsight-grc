@@ -100,7 +100,9 @@ func TestMetricMatricesUseCurrentRiskAndProgramEvidenceTruth(t *testing.T) {
 		INSERT INTO risk_control_links(tenant_id,legal_entity_id,risk_id,risk_version,catalog_link_id,created_at)
 		VALUES
 		($1::uuid,$2::uuid,$3::uuid,2,$4::uuid,$7),
-		($1::uuid,$2::uuid,$5::uuid,2,$6::uuid,$7)`,
+		($1::uuid,$2::uuid,$5::uuid,2,$6::uuid,$7),
+		-- Historical control links must not affect the current Risk-version matrix.
+		($1::uuid,$2::uuid,$3::uuid,1,$6::uuid,$7)`,
 		tenantID, entityID, riskSupported, catalogLinkID, riskFailed, failedCatalogLinkID, now.Add(-10*24*time.Hour))
 	mustExec(`
 		INSERT INTO evidence_contracts(
