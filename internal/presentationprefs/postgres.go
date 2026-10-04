@@ -30,7 +30,7 @@ func (r *PostgresRepository) Get(ctx context.Context, tenantID, principalID stri
 		JOIN tenants t ON t.id=pref.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND pref.principal_id=$2::uuid`,
 		tenantID, principalID,
-	).Scan(&value.TenantID,&value.PrincipalID,&value.HomeFocus,&value.PortfolioLens,&value.UpdatedAt,&value.Version)
+	).Scan(&value.TenantID, &value.PrincipalID, &value.HomeFocus, &value.PortfolioLens, &value.UpdatedAt, &value.Version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Stored{}, ErrNotFound
 	}
@@ -59,8 +59,8 @@ func (r *PostgresRepository) Upsert(ctx context.Context, value Stored, expected 
 		    version=user_presentation_preferences.version+1
 		WHERE user_presentation_preferences.version=$5
 		RETURNING tenant_id::text,principal_id::text,home_focus,portfolio_lens,updated_at,version`,
-		value.TenantID,value.PrincipalID,value.HomeFocus,value.PortfolioLens,expected,
-	).Scan(&result.TenantID,&result.PrincipalID,&result.HomeFocus,&result.PortfolioLens,&result.UpdatedAt,&result.Version)
+		value.TenantID, value.PrincipalID, value.HomeFocus, value.PortfolioLens, expected,
+	).Scan(&result.TenantID, &result.PrincipalID, &result.HomeFocus, &result.PortfolioLens, &result.UpdatedAt, &result.Version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Stored{}, ErrVersionConflict
 	}
