@@ -76,7 +76,7 @@ type TrendReader interface {
 
 func trendResolution(start, end time.Time) (TrendResolution, error) {
 	start, end = start.UTC(), end.UTC()
-	if start.IsZero() || end.IsZero() || !start.Before(end) || end.Sub(start) > TrendMaxDays*24*time.Hour {
+	if start.IsZero() || end.IsZero() || !start.Before(end) || end.Sub(start) >= (TrendMaxDays+1)*24*time.Hour {
 		return "", ErrTrendInvalid
 	}
 	if end.Sub(start) <= TrendHourlyMaxDays*24*time.Hour {
