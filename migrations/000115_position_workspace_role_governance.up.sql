@@ -6,6 +6,7 @@ CREATE TABLE organization_position_role_revisions (
     legal_entity_id uuid NOT NULL,
     position_id uuid NOT NULL,
     role_template_id uuid NOT NULL,
+    role_template_version bigint NOT NULL CHECK (role_template_version > 0),
     operation text NOT NULL CHECK (operation IN ('ADD','RETIRE')),
     base_position_version bigint NOT NULL CHECK (base_position_version > 0),
     role_code text NOT NULL,
