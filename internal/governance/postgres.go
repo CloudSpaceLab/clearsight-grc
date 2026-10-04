@@ -697,7 +697,7 @@ func (r *PostgresRepository) ActivateDueDelegations(ctx context.Context, now tim
 		var conflicts int
 		if err := tx.QueryRow(ctx, `SELECT count(*) FROM segregation_rules sr
 			JOIN role_templates rt ON rt.tenant_id=sr.tenant_id AND rt.code=sr.prohibited_role_code AND rt.valid_until IS NULL
-			JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.valid_until IS NULL
+			JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.binding_purpose='GENERAL' AND prb.valid_until IS NULL
 			JOIN org_positions op ON op.id=prb.position_id AND op.valid_until IS NULL
 			WHERE sr.tenant_id=$1::uuid AND sr.status='ACTIVE' AND sr.responsibility=$4
 			  AND op.legal_entity_id=$2::uuid AND op.occupant_principal_id=$3::uuid`, item.TenantID, item.LegalEntityID, item.ToPrincipalID, item.Responsibility).Scan(&conflicts); err != nil {
