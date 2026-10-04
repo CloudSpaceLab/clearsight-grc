@@ -42,7 +42,7 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 	contractID := mustDomainID(t)
 	lossID := mustDomainID(t)
 
-	now := time.Now().UTC().Truncate(time.Second)
+	now := time.Now().UTC().Truncate(time.Hour).Add(30 * time.Minute)
 	mustExec := func(query string, args ...any) {
 		t.Helper()
 		if _, execErr := pool.Exec(ctx, query, args...); execErr != nil {
