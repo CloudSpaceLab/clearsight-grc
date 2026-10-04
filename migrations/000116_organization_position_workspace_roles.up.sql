@@ -32,7 +32,7 @@ CREATE TABLE organization_position_role_revisions (
 );
 
 CREATE UNIQUE INDEX organization_position_role_revisions_pending_idx
-    ON organization_position_role_revisions(tenant_id,legal_entity_id,position_id,role_template_id)
+    ON organization_position_role_revisions(tenant_id,legal_entity_id,position_id)
     WHERE status='PENDING';
 
 CREATE INDEX organization_position_role_revisions_queue_idx
