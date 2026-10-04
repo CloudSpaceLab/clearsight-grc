@@ -27,9 +27,10 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 
 func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot, error) {
 	var value Snapshot
+	var membershipRevision string
 	var payload, highWater []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT os.id::text,os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
+		SELECT os.id::text,COALESCE(os.metric_membership_revision,''),os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
 		       os.coverage_population,os.coverage_excluded,os.coverage_unknown,os.payload,
 		       t.slug,le.code
 		FROM oversight_snapshots os
@@ -37,7 +38,7 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 		JOIN legal_entities le ON le.tenant_id=os.tenant_id AND le.id=os.legal_entity_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND (le.id::text=$2 OR le.code=$2)
 		ORDER BY os.generated_at DESC,os.id DESC LIMIT 1`, scope.TenantID, scope.LegalEntityID).
-		Scan(&value.SnapshotID, &value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
+		Scan(&value.SnapshotID, &membershipRevision, &value.GeneratedAt, &value.PeriodStart, &value.PeriodEnd, &value.ProjectionVersion, &highWater,
 			&value.Coverage.Population, &value.Coverage.Excluded, &value.Coverage.Unknown, &payload,
 			&value.TenantID, &value.LegalEntityID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -45,6 +46,9 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 	}
 	if err != nil {
 		return Snapshot{}, err
+	}
+	if membershipRevision != MetricSnapshotDrillDefinitionRevision {
+		value.SnapshotID = ""
 	}
 	if err := json.Unmarshal(highWater, &value.SourceHighWater); err != nil {
 		return Snapshot{}, fmt.Errorf("decode oversight high-water marks: %w", err)
@@ -558,15 +562,16 @@ func (r *PostgresRepository) store(ctx context.Context, value Snapshot, slot tim
 	err = tx.QueryRow(ctx, `
 		INSERT INTO oversight_snapshots(
 			tenant_id,legal_entity_id,period_start,period_end,refresh_slot,generated_at,
-			projection_version,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
+			projection_version,metric_membership_revision,source_high_water,coverage_population,coverage_excluded,coverage_unknown,payload
 		) VALUES(
 			$1::uuid,$2::uuid,$3,$4,$5,$6,
-			$7,$8::jsonb,$9,$10,$11,$12::jsonb
+			$7,$8,$9::jsonb,$10,$11,$12,$13::jsonb
 		)
 		ON CONFLICT(tenant_id,legal_entity_id,projection_version,refresh_slot) DO NOTHING
 		RETURNING id::text`,
 		value.TenantID, value.LegalEntityID, value.PeriodStart, value.PeriodEnd, slot, value.GeneratedAt,
-		value.ProjectionVersion, highWater, value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload,
+		value.ProjectionVersion, MetricSnapshotDrillDefinitionRevision, highWater,
+		value.Coverage.Population, value.Coverage.Excluded, value.Coverage.Unknown, payload,
 	).Scan(&snapshotID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
