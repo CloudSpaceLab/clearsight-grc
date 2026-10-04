@@ -63,6 +63,15 @@ func (*fakeAccessAdministrator) ApproveOrganizationPosition(context.Context, acc
 func (*fakeAccessAdministrator) RejectOrganizationPosition(context.Context, access.DecideOrganizationPositionInput) error {
 	return nil
 }
+func (*fakeAccessAdministrator) ProposeOrganizationPositionRole(context.Context, access.ProposeOrganizationPositionRoleInput) (access.OrganizationPositionRoleRevisionSummary, error) {
+	return access.OrganizationPositionRoleRevisionSummary{ID: "position-role-revision-1", PositionID: "position-1", RoleTemplateID: "role-1", Status: "PENDING"}, nil
+}
+func (*fakeAccessAdministrator) ApproveOrganizationPositionRole(context.Context, access.DecideOrganizationPositionRoleInput) error {
+	return nil
+}
+func (*fakeAccessAdministrator) RejectOrganizationPositionRole(context.Context, access.DecideOrganizationPositionRoleInput) error {
+	return nil
+}
 func (a *fakeAccessAdministrator) ProposeLegalEntityDataBoundary(_ context.Context, input access.ProposeLegalEntityDataBoundaryInput) (access.LegalEntityDataBoundaryRevision, error) {
 	a.boundary = input
 	return access.LegalEntityDataBoundaryRevision{
@@ -222,6 +231,39 @@ func TestOrganizationPositionChangesRequireIdentityAndGovernanceConfigure(t *tes
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("governed position proposal status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestOrganizationPositionRoleChangesRequireIdentityAndGovernanceConfigure(t *testing.T) {
+	now := time.Now().UTC()
+	base := identity.Actor{
+		TenantID: "bank", PrincipalID: "principal", LegalEntityID: "bank-ng", Kind: "PERSON",
+		AuthenticationMethod: "test", AssuranceLevel: "test", SessionID: "session", IssuedAt: now, ExpiresAt: now.Add(time.Hour),
+	}
+	admin := &fakeAccessAdministrator{}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	payload := `{"operation":"ADD","position_id":"00000000-0000-4000-8000-000000000101","role_template_id":"00000000-0000-4000-8000-000000000102","expected_position_version":1}`
+
+	identityOnly := base
+	identityOnly.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure}
+	handler := New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: identityOnly}, AccessAdmin: admin})
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/access/organization-position-role-revisions", strings.NewReader(payload))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("identity configure alone must not mutate position workspace roles, got %d: %s", response.Code, response.Body.String())
+	}
+
+	governed := base
+	governed.PermissionCodes = []string{identity.PermissionIdentityRead, identity.PermissionIdentityConfigure, identity.PermissionConfigWrite}
+	handler = New(Dependencies{Logger: logger, Identity: staticIdentityAuthenticator{actor: governed}, AccessAdmin: admin})
+	request = httptest.NewRequest(http.MethodPost, "/api/v1/access/organization-position-role-revisions", strings.NewReader(payload))
+	request.Header.Set("Content-Type", "application/json")
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("governed position-role proposal status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 
