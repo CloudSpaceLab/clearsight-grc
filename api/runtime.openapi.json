@@ -4806,6 +4806,29 @@
         "x-clearsight-permission": "IDENTITY_CONFIGURE"
       }
     },
+    "/api/v1/access/organization-position-role-revisions": {
+      "post": {
+        "operationId": "proposeOrganizationPositionRole",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE",
+        "description": "Propose one workspace-only position role add/remove. Roles used by material responsibility, authority, routing, segregation or escalation policy are not editable here."
+      }
+    },
+    "/api/v1/access/organization-position-role-revisions/{id}/approve": {
+      "post": {
+        "operationId": "approveOrganizationPositionRole",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE",
+        "description": "Independently approve a workspace-role change after current position, role, binding and material-policy revalidation."
+      }
+    },
+    "/api/v1/access/organization-position-role-revisions/{id}/reject": {
+      "post": {
+        "operationId": "rejectOrganizationPositionRole",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
     "/api/v1/access/legal-entity-data-boundary-revisions": {
       "post": {
         "operationId": "proposeLegalEntityDataBoundary",
