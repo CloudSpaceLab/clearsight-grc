@@ -93,7 +93,7 @@ func TestMetricTrendRetentionPreservesComparisonAndBoundsRawHistory(t *testing.T
 		return snapshotID
 	}
 
-	oldAt := now.Add(-200 * 24 * time.Hour)
+	oldAt := now.Add(-20 * 24 * time.Hour)
 	insertObservation(oldAt.Add(-time.Hour), 9)
 	insertObservation(oldAt, 8)
 	start := now.Add(-30 * 24 * time.Hour)
@@ -112,7 +112,7 @@ func TestMetricTrendRetentionPreservesComparisonAndBoundsRawHistory(t *testing.T
 		t.Fatal(err)
 	}
 	if oldRaw != 0 {
-		t.Fatalf("old raw observations=%d, want 0", oldRaw)
+		t.Fatalf("raw observations beyond 14 days=%d, want 0", oldRaw)
 	}
 	var rolledValue int
 	if err := pool.QueryRow(ctx, `SELECT value FROM metric_observation_daily_rollups WHERE tenant_id=$1::uuid AND metric_id='overdue_open' AND bucket_date=($2::timestamptz AT TIME ZONE 'UTC')::date`, tenantID, oldAt).Scan(&rolledValue); err != nil {
