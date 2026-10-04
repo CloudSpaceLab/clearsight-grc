@@ -80,6 +80,14 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
+		INSERT INTO oversight_snapshot_metric_membership_sets(
+			oversight_snapshot_id,tenant_id,legal_entity_id,definition_revision
+		) VALUES($1::uuid,$2::uuid,$3::uuid,'home-oversight-v3')`,
+		snapshotID, tenantID, entityID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
 		INSERT INTO oversight_snapshot_metric_memberships(
 			oversight_snapshot_id,metric_id,definition_revision,member_id,target_type,target_id,target_title,state
 		)
@@ -293,6 +301,12 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 
 	if _, err := pool.Exec(ctx, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID); err != nil {
 		t.Fatalf("retained metric observation blocked source snapshot retention cleanup: %v", err)
+	}
+	retainedPage, err := members.ListSnapshotMembers(
+		ctx, tenantID, entityID, snapshotID, "critical_high_open", HomeDefinitionRevision, "", 10,
+	)
+	if err != nil || retainedPage.Count != 7 {
+		t.Fatalf("retained membership after source cleanup=%#v err=%v", retainedPage, err)
 	}
 	count, err = repository.countObservationsForSource(ctx, snapshotID)
 	if err != nil {
