@@ -11,6 +11,9 @@ CREATE TABLE metric_observation_daily_rollups (
     source_revision text NOT NULL,
     source_high_water jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(source_high_water)='object'),
     generated_at timestamptz NOT NULL,
+    period_start timestamptz NOT NULL,
+    period_end timestamptz NOT NULL,
+    posture_as_of timestamptz NOT NULL,
     value bigint NOT NULL CHECK (value >= 0),
     condition text NOT NULL CHECK (condition IN ('CLEAR','ATTENTION')),
     freshness text NOT NULL CHECK (freshness IN ('CURRENT','STALE')),
@@ -19,6 +22,7 @@ CREATE TABLE metric_observation_daily_rollups (
     excluded bigint CHECK (excluded IS NULL OR excluded >= 0),
     unknown bigint CHECK (unknown IS NULL OR unknown >= 0),
     rolled_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    CHECK (period_start<=period_end),
     PRIMARY KEY (tenant_id,legal_entity_id,metric_id,definition_revision,bucket_date),
     CONSTRAINT metric_daily_rollup_entity_fk
         FOREIGN KEY (legal_entity_id,tenant_id)
