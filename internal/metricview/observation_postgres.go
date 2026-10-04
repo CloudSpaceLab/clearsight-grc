@@ -81,18 +81,19 @@ func (r *ObservationRepository) validateDefinitions(ctx context.Context) error {
 	if r == nil || r.pool == nil {
 		return ErrInvalidObservation
 	}
+	expectedDefinitions := AllHomeDefinitionList()
 	rows, err := r.pool.Query(ctx, `
 		SELECT metric_id,revision,label,unit,basis,condition_rule,aggregation_rule,
 		       drill_workspace,drill_filter,drill_consistency
 		FROM metric_definitions
-		WHERE revision=$1
-		ORDER BY metric_id`, HomeDefinitionRevision)
+		WHERE revision=ANY($1::text[])
+		ORDER BY revision,metric_id`, []string{LegacyHomeDefinitionRevision, HomeDefinitionRevision})
 	if err != nil {
 		return fmt.Errorf("load metric definitions: %w", err)
 	}
 	defer rows.Close()
 
-	stored := make(map[string]Definition, len(homeDefinitions))
+	stored := make(map[string]Definition, len(expectedDefinitions))
 	for rows.Next() {
 		var definition Definition
 		var basis, conditionRule, aggregationRule, consistency string
@@ -114,16 +115,16 @@ func (r *ObservationRepository) validateDefinitions(ctx context.Context) error {
 		definition.ConditionRule = ConditionRule(conditionRule)
 		definition.AggregationRule = AggregationRule(aggregationRule)
 		definition.Drill.Consistency = DrillConsistency(consistency)
-		stored[definition.ID] = definition
+		stored[definition.Revision+"\x00"+definition.ID] = definition
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("iterate metric definitions: %w", err)
 	}
-	if len(stored) != len(homeDefinitions) {
+	if len(stored) != len(expectedDefinitions) {
 		return ErrDefinitionMismatch
 	}
-	for _, expected := range homeDefinitions {
-		actual, ok := stored[expected.ID]
+	for _, expected := range expectedDefinitions {
+		actual, ok := stored[expected.Revision+"\x00"+expected.ID]
 		if !ok || actual != expected {
 			return ErrDefinitionMismatch
 		}
@@ -133,7 +134,7 @@ func (r *ObservationRepository) validateDefinitions(ctx context.Context) error {
 
 func (r *ObservationRepository) pendingOversightSnapshots(ctx context.Context, limit int) ([]sourceSnapshot, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT os.id::text,t.id::text,le.id::text,
+		SELECT os.id::text,t.id::text,le.id::text,COALESCE(os.metric_membership_version,''),
 		       os.generated_at,os.period_start,os.period_end,os.projection_version,
 		       os.source_high_water,os.coverage_population,os.coverage_excluded,os.coverage_unknown,os.payload
 		FROM oversight_snapshots os
@@ -144,12 +145,17 @@ func (r *ObservationRepository) pendingOversightSnapshots(ctx context.Context, l
 			FROM metric_observations observation
 			WHERE observation.source_kind=$1
 			  AND observation.source_id=os.id
-			  AND observation.definition_revision=$2
-		) < $3
+			  AND observation.definition_revision=CASE
+			    WHEN os.metric_membership_version=$2 THEN $3
+			    ELSE $4
+			  END
+		) < $5
 		ORDER BY os.generated_at,os.id
-		LIMIT $4`,
+		LIMIT $6`,
 		ObservationSourceOversightSnapshot,
+		oversight.MetricMembershipVersion,
 		HomeDefinitionRevision,
+		LegacyHomeDefinitionRevision,
 		len(homeDefinitions),
 		limit,
 	)
@@ -166,6 +172,7 @@ func (r *ObservationRepository) pendingOversightSnapshots(ctx context.Context, l
 			&source.ID,
 			&source.TenantID,
 			&source.EntityID,
+			&source.Value.MetricMembershipVersion,
 			&source.Value.GeneratedAt,
 			&source.Value.PeriodStart,
 			&source.Value.PeriodEnd,
@@ -178,6 +185,7 @@ func (r *ObservationRepository) pendingOversightSnapshots(ctx context.Context, l
 		); err != nil {
 			return nil, fmt.Errorf("scan pending metric source: %w", err)
 		}
+		source.Value.SnapshotID = source.ID
 		source.Value.TenantID = source.TenantID
 		source.Value.LegalEntityID = source.EntityID
 		source.Value.PostureAsOf = source.Value.GeneratedAt
