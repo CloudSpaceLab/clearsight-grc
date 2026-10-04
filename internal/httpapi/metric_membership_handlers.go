@@ -12,6 +12,14 @@ import (
 )
 
 func (a *API) homeMetricMembers(w http.ResponseWriter, r *http.Request) {
+	a.metricMembers(w, r, true)
+}
+
+func (a *API) domainMetricMembers(w http.ResponseWriter, r *http.Request) {
+	a.metricMembers(w, r, false)
+}
+
+func (a *API) metricMembers(w http.ResponseWriter, r *http.Request, allowOrganizationScope bool) {
 	actor, err := identity.Require(r.Context())
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
@@ -29,8 +37,13 @@ func (a *API) homeMetricMembers(w http.ResponseWriter, r *http.Request) {
 
 	metricID := strings.TrimSpace(r.PathValue("metric_id"))
 	organizationScopeID := strings.TrimSpace(r.URL.Query().Get("organization_scope_id"))
-	if _, err := a.resolveOrganizationScopeSelection(r.Context(), actor, organizationScopeID, true); err != nil {
-		writeOrganizationScopeRequestError(w, err, "This organization scope is not available for metric detail.")
+	if allowOrganizationScope {
+		if _, err := a.resolveOrganizationScopeSelection(r.Context(), actor, organizationScopeID, true); err != nil {
+			writeOrganizationScopeRequestError(w, err, "This organization scope is not available for metric detail.")
+			return
+		}
+	} else if organizationScopeID != "" {
+		httpx.WriteError(w, http.StatusBadRequest, "metric_drill_scope_invalid", "This metric family is currently available at legal-entity scope.")
 		return
 	}
 	sourceID := strings.TrimSpace(r.URL.Query().Get("source_id"))
