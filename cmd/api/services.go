@@ -83,6 +83,7 @@ type serviceSet struct {
 	GroupOversight                 *oversight.GroupService
 	MetricMembership               metricview.MembershipReader
 	MetricTrends                   metricview.TrendReader
+	MetricMatrices                 metricview.MatrixReader
 	Workflow                       *workflow.Service
 	Onboarding                     *onboarding.Service
 	Autonomy                       *autonomy.Service
