@@ -110,7 +110,7 @@ func organizationPositionRouteInputs(ctx context.Context, q organizationPosition
 			  AND role.valid_from<=$5 AND (role.valid_until IS NULL OR $5<role.valid_until)
 			  AND (
 			    NOT (binding.scope ? 'legal_entity_id')
-			    OR binding.scope->>'legal_entity_id' IN ('*',$2)
+			    OR binding.scope->>'legal_entity_id' IN ('*',$2::text)
 			  )
 		), scenarios AS (
 			SELECT route.object_type,route.object_id,route.responsibility,route.decision_type,route.min_materiality AS materiality
@@ -118,7 +118,7 @@ func organizationPositionRouteInputs(ctx context.Context, q organizationPosition
 			CROSS JOIN current_entity entity
 			WHERE route.tenant_id=$1::uuid
 			  AND route.valid_from<=$5 AND (route.valid_until IS NULL OR $5<route.valid_until)
-			  AND route.legal_entity_ref IN ('*',$2,entity.code)
+			  AND route.legal_entity_ref IN ('*',$2::text,entity.code)
 			  AND (
 			    (
 			      route.selector_kind IN ('POSITION','POSITION_ID')
