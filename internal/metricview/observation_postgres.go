@@ -178,6 +178,7 @@ func (r *ObservationRepository) pendingOversightSnapshots(ctx context.Context, l
 		); err != nil {
 			return nil, fmt.Errorf("scan pending metric source: %w", err)
 		}
+		source.Value.SnapshotID = source.ID
 		source.Value.TenantID = source.TenantID
 		source.Value.LegalEntityID = source.EntityID
 		source.Value.PostureAsOf = source.Value.GeneratedAt
