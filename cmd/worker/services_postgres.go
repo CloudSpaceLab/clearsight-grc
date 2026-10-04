@@ -254,7 +254,11 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service.AddMaintainerClass(aiGovernanceRetentionClass, aiGovernanceRetention)
 	oversightRepository := oversight.NewPostgresRepository(pool)
 	service.AddMaintainerClass(oversightProjectionClass, &oversight.Maintainer{Repository: oversightRepository})
-	service.AddMaintainerClass(metricObservationProjectionClass, &metricview.ObservationMaintainer{Repository: metricview.NewObservationRepository(pool)})
+	metricObservations := metricview.NewObservationRepository(pool)
+	service.AddMaintainerClass(metricObservationProjectionClass, &metricview.ObservationMaintainer{
+		Repository: metricObservations,
+		Domain:     metricview.NewDomainMaintainer(metricObservations),
+	})
 	service.AddMaintainerClass(groupOversightProjectionClass, &oversight.GroupMaintainer{Repository: oversightRepository})
 	service.AddMaintainerClass(ropaSummaryProjectionClass, &ropaSummaryProjectionMaintainer{pool: pool, maintainer: ropaSummaryMaintainer})
 	service.AddMaintainerClass(reportRunClass, reporting.NewRunMaintainer(reportingRepository, reportingService))
