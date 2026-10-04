@@ -185,6 +185,10 @@ type OrganizationPositionRevisionSummary struct {
 	Status                 string                        `json:"status"`
 	Rationale              string                        `json:"rationale,omitempty"`
 	Impact                 OrganizationPositionImpact    `json:"impact"`
+	EffectiveFrom          *time.Time                    `json:"effective_from,omitempty"`
+	ActivationAttempts     int                           `json:"activation_attempts,omitempty"`
+	ActivationFailedAt     *time.Time                    `json:"activation_failed_at,omitempty"`
+	ActivationErrorCode    string                        `json:"activation_error_code,omitempty"`
 	CreatedAt              time.Time                     `json:"created_at"`
 	DecidedAt              *time.Time                    `json:"decided_at,omitempty"`
 	AppliedAt              *time.Time                    `json:"applied_at,omitempty"`
@@ -202,6 +206,7 @@ type ProposeOrganizationPositionInput struct {
 	ParentPositionID       string                        `json:"parent_position_id,omitempty"`
 	OccupantPrincipalID    string                        `json:"occupant_principal_id,omitempty"`
 	ExpectedVersion        int64                         `json:"expected_version,omitempty"`
+	EffectiveFrom          *time.Time                    `json:"effective_from,omitempty"`
 	ActorID                string                        `json:"-"`
 	RestoredFromRevisionID string                        `json:"-"`
 }
