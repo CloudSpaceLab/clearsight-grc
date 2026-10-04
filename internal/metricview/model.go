@@ -86,16 +86,24 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 		// be proven independently, report scoped completeness as unknown.
 		completeness = CompletenessUnknown
 	}
-	common := func(id, label, filter string, value int) Metric {
+	values := map[string]int{
+		"critical_high_open": snapshot.Counts.CriticalHigh,
+		"overdue_open":       snapshot.Counts.Overdue,
+		"routing_gaps":       snapshot.Counts.RoutingFailures,
+		"outcome_failures":   snapshot.Counts.OutcomeFailures,
+	}
+	items := make([]Metric, 0, len(homeDefinitions))
+	for _, definition := range homeDefinitions {
+		value := values[definition.ID]
 		condition := ConditionClear
 		if value > 0 {
 			condition = ConditionAttention
 		}
-		return Metric{
-			ID:                 id,
-			Label:              label,
+		items = append(items, Metric{
+			ID:                 definition.ID,
+			Label:              definition.Label,
 			Value:              value,
-			Unit:               "COUNT",
+			Unit:               definition.Unit,
 			Condition:          condition,
 			Freshness:          snapshot.Freshness,
 			Completeness:       completeness,
@@ -104,14 +112,10 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 			Unknown:            snapshot.Coverage.Unknown,
 			GeneratedAt:        snapshot.GeneratedAt,
 			SourceRevision:     snapshot.ProjectionVersion,
-			DefinitionRevision: HomeDefinitionRevision,
-			Basis:              MetricBasisCurrentPosture,
-			Drill: DrillTarget{
-				Workspace:   "oversight",
-				Filter:      filter,
-				Consistency: DrillCurrentState,
-			},
-		}
+			DefinitionRevision: definition.Revision,
+			Basis:              definition.Basis,
+			Drill:              definition.Drill,
+		})
 	}
 
 	scopeID, scopeKind := snapshot.LegalEntityID, "LEGAL_ENTITY"
@@ -133,12 +137,7 @@ func FromOversight(snapshot oversight.Snapshot) Bundle {
 		Unknown:            snapshot.Coverage.Unknown,
 		SourceRevision:     snapshot.ProjectionVersion,
 		DefinitionRevision: HomeDefinitionRevision,
-		Items: []Metric{
-			common("critical_high_open", "Critical and high", "critical-high", snapshot.Counts.CriticalHigh),
-			common("overdue_open", "Overdue", "overdue", snapshot.Counts.Overdue),
-			common("routing_gaps", "Routing gaps", "routing-gaps", snapshot.Counts.RoutingFailures),
-			common("outcome_failures", "Outcome failures", "outcome-failures", snapshot.Counts.OutcomeFailures),
-		},
+		Items:              items,
 	}
 }
 
