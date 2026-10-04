@@ -303,6 +303,7 @@ func policyConflicts(ctx context.Context, querier policyConflictQuerier, policy 
 				WHERE rt.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 				  AND rt.code=$2 AND le.id=$3::uuid
 				  AND (NOT (prb.scope ? 'legal_entity_id') OR prb.scope->>'legal_entity_id'=le.id::text)
+				  AND prb.binding_purpose='GENERAL'
 				  AND rt.valid_from<=statement_timestamp() AND (rt.valid_until IS NULL OR statement_timestamp()<rt.valid_until)
 				  AND prb.valid_from<=statement_timestamp() AND (prb.valid_until IS NULL OR statement_timestamp()<prb.valid_until)
 				  AND op.valid_from<=statement_timestamp() AND (op.valid_until IS NULL OR statement_timestamp()<op.valid_until)
@@ -471,7 +472,7 @@ func (r *PostgresRepository) HasDelegationCycle(ctx context.Context, d Delegatio
 	return exists, err
 }
 func (r *PostgresRepository) DelegationConflicts(ctx context.Context, tenantID, principalID, responsibility string) ([]ConflictFinding, error) {
-	rows, err := r.pool.Query(ctx, `SELECT sr.code,'Delegate occupies prohibited role '||rt.code||' for responsibility '||sr.responsibility FROM segregation_rules sr JOIN role_templates rt ON rt.tenant_id=sr.tenant_id AND rt.code=sr.prohibited_role_code AND rt.valid_until IS NULL JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.valid_until IS NULL JOIN org_positions op ON op.id=prb.position_id AND op.valid_until IS NULL WHERE sr.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND sr.status='ACTIVE' AND sr.responsibility=$3 AND op.occupant_principal_id=$2::uuid`, tenantID, principalID, responsibility)
+	rows, err := r.pool.Query(ctx, `SELECT sr.code,'Delegate occupies prohibited role '||rt.code||' for responsibility '||sr.responsibility FROM segregation_rules sr JOIN role_templates rt ON rt.tenant_id=sr.tenant_id AND rt.code=sr.prohibited_role_code AND rt.valid_until IS NULL JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.binding_purpose='GENERAL' AND prb.valid_until IS NULL JOIN org_positions op ON op.id=prb.position_id AND op.valid_until IS NULL WHERE sr.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1) AND sr.status='ACTIVE' AND sr.responsibility=$3 AND op.occupant_principal_id=$2::uuid`, tenantID, principalID, responsibility)
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +560,7 @@ func (r *PostgresRepository) ActivateDelegation(ctx context.Context, tenantID, l
 	var conflicts int
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM segregation_rules sr
 		JOIN role_templates rt ON rt.tenant_id=sr.tenant_id AND rt.code=sr.prohibited_role_code AND rt.valid_until IS NULL
-		JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.valid_until IS NULL
+		JOIN position_role_bindings prb ON prb.role_template_id=rt.id AND prb.binding_purpose='GENERAL' AND prb.valid_until IS NULL
 		JOIN org_positions op ON op.id=prb.position_id AND op.valid_until IS NULL
 		WHERE sr.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 		  AND sr.status='ACTIVE' AND sr.responsibility=$4 AND op.legal_entity_id=$2::uuid
@@ -617,6 +618,7 @@ func delegationParticipantsEligible(ctx context.Context, tx pgx.Tx, tenantID, le
 						SELECT prb.role_template_id FROM position_role_bindings prb
 						JOIN org_positions op ON op.tenant_id=prb.tenant_id AND op.id=prb.position_id
 						WHERE prb.tenant_id=ra.tenant_id AND op.legal_entity_id=$2::uuid AND op.occupant_principal_id=$3::uuid
+						  AND prb.binding_purpose='GENERAL'
 						  AND prb.valid_from<=$6 AND (prb.valid_until IS NULL OR $6<prb.valid_until)
 						  AND op.valid_from<=$6 AND (op.valid_until IS NULL OR $6<op.valid_until)
 					)
