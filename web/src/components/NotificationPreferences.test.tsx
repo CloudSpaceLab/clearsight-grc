@@ -27,7 +27,7 @@ describe("NotificationPreferences", () => {
 
     expect(await screen.findByText("Critical required")).toBeTruthy();
     const digest = screen.getByRole("checkbox", { name: "Daily digest" });
-    expect(digest.getAttribute("data-selected")).not.toBeNull();
+    expect((digest as HTMLInputElement).checked).toBe(true);
 
     fireEvent.click(digest);
     fireEvent.click(screen.getByRole("button", { name: "Save email preferences" }));
@@ -45,11 +45,11 @@ describe("NotificationPreferences", () => {
     render(<NotificationPreferences load={load} save={save}/>);
 
     await screen.findByDisplayValue("07:00");
-    fireEvent.change(screen.getByLabelText("Digest time"), { target: { value: "08:30" } });
+    fireEvent.input(screen.getByLabelText("Digest time"), { target: { value: "08:30" } });
     fireEvent.change(screen.getByLabelText("Time zone"), { target: { value: "UTC" } });
     fireEvent.click(screen.getByRole("checkbox", { name: "Quiet hours" }));
-    fireEvent.change(screen.getByLabelText("Starts"), { target: { value: "21:30" } });
-    fireEvent.change(screen.getByLabelText("Ends"), { target: { value: "06:15" } });
+    fireEvent.input(screen.getByLabelText("Starts"), { target: { value: "21:30" } });
+    fireEvent.input(screen.getByLabelText("Ends"), { target: { value: "06:15" } });
     fireEvent.click(screen.getByRole("button", { name: "Save email preferences" }));
 
     await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({
