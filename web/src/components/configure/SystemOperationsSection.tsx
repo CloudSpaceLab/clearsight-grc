@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { loadBackgroundJobs, loadProjectionHealth, reconcileProgramState, retryBackgroundJob } from "../../api";
-import type { BackgroundJobSnapshot, ProjectionHealth, ReconcileResult } from "../../operationsTypes";
+import { loadBackgroundJobs, loadNotificationDeliveryHealth, loadProjectionHealth, reconcileProgramState, retryBackgroundJob } from "../../api";
+import type { BackgroundJobSnapshot, NotificationDeliveryHealth, ProjectionHealth, ReconcileResult } from "../../operationsTypes";
+import { NotificationDeliveryHealthCard } from "../NotificationDeliveryHealthCard";
 import { ProjectionHealthCard } from "../ProjectionHealthCard";
 import { Button, Notice, Tabs, TextArea } from "../ui";
 import { SystemActivityPanel } from "./SystemActivityPanel";
@@ -19,19 +20,34 @@ export function SystemOperationsSection({ canReconcile }: { canReconcile: boolea
   const [health, setHealth] = useState<ProjectionHealth | null>(null);
   const [state, setState] = useState<LoadState>("loading");
   const [jobs, setJobs] = useState<BackgroundJobSnapshot | null>(null);
+  const [notificationHealth, setNotificationHealth] = useState<NotificationDeliveryHealth | null>(null);
+  const [notificationState, setNotificationState] = useState<LoadState>("loading");
   const [recovery, setRecovery] = useState<{ jobID: string; rationale: string } | null>(null);
   const [recoveryMessage, setRecoveryMessage] = useState("");
 
   const loadHealth = useCallback(async () => {
     setState("loading");
-    try {
-      const [items, background] = await Promise.all([loadProjectionHealth(), loadBackgroundJobs()]);
-      setHealth(items[0] ?? null);
-      setJobs(background);
+    setNotificationState("loading");
+    const [projectionResult, jobsResult, notificationResult] = await Promise.allSettled([
+      loadProjectionHealth(),
+      loadBackgroundJobs(),
+      loadNotificationDeliveryHealth(),
+    ]);
+    if (projectionResult.status === "fulfilled" && jobsResult.status === "fulfilled") {
+      setHealth(projectionResult.value[0] ?? null);
+      setJobs(jobsResult.value);
       setState("live");
-    } catch {
+    } else {
       setHealth(null);
+      setJobs(null);
       setState("unavailable");
+    }
+    if (notificationResult.status === "fulfilled") {
+      setNotificationHealth(notificationResult.value);
+      setNotificationState("live");
+    } else {
+      setNotificationHealth(null);
+      setNotificationState("unavailable");
     }
   }, []);
 
@@ -61,6 +77,7 @@ export function SystemOperationsSection({ canReconcile }: { canReconcile: boolea
   function healthView() {
     return <div className="system-operations-health">
       <ProjectionHealthCard health={health} state={state} canReconcile={canReconcile} onReconcile={reconcile}/>
+      <NotificationDeliveryHealthCard health={notificationHealth} state={notificationState}/>
       <section className="configure-card" aria-labelledby="terminal-jobs-heading">
         <div><h3 id="terminal-jobs-heading">Failed background work</h3><p>{terminalJobs.length ? `${terminalJobs.length} stored jobs require a recovery decision.` : "No terminal background job is recorded in the current tenant."}</p></div>
         {recoveryMessage && <Notice tone="success">{recoveryMessage}</Notice>}
