@@ -11,7 +11,7 @@ import { loadFormTemplatePage } from "./formsApi";
 import { loadNotifications } from "./notificationApi";
 import { loadGroupOversight, type GroupOversightSnapshot } from "./groupOversightApi";
 
-const { listEvidenceRecipientCandidates } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn() }));
+const { listEvidenceRecipientCandidates, subscribeInvalidations } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn(), subscribeInvalidations: vi.fn() }));
 
 vi.mock("./formsApi", () => ({
   loadFormTemplatePage: vi.fn().mockResolvedValue({ items: [] }),
@@ -28,6 +28,7 @@ vi.mock("./notificationApi", () => ({
 vi.mock("./groupOversightApi", () => ({
   loadGroupOversight: vi.fn(),
 }));
+vi.mock("./invalidationApi", () => ({ subscribeInvalidations }));
 
 vi.mock("./components/RoleAwareOnboarding", async () => {
   const React = await import("react");
@@ -230,6 +231,27 @@ beforeEach(() => {
   vi.mocked(loadGroupOversight).mockRejectedValue(new Error("Group posture unavailable"));
   vi.mocked(loadNotifications).mockReset();
   vi.mocked(loadNotifications).mockResolvedValue({ items: [], unread_count: 0, as_of: "2026-10-02T09:00:00Z" });
+  subscribeInvalidations.mockReset();
+  subscribeInvalidations.mockReturnValue(() => {});
+});
+
+describe("realtime invalidation integration", () => {
+  it("reloads Today after an actor invalidation without a page reload", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadToday)
+      .mockResolvedValueOnce({ items: [], generated_at: "2026-08-07T15:00:00Z" })
+      .mockResolvedValueOnce({ items: [evidenceAttention("request-live")], generated_at: "2026-08-07T15:01:00Z" });
+
+    render(<App/>);
+    await waitFor(() => expect(subscribeInvalidations).toHaveBeenCalledTimes(1));
+    const handler = subscribeInvalidations.mock.calls[0]?.[0] as ((event: { revision: string }) => void) | undefined;
+    expect(handler).toBeTruthy();
+
+    act(() => handler?.({ revision: "rev-2" }));
+
+    await waitFor(() => expect(loadToday).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Confirm assigned evidence")).toBeTruthy();
+  });
 });
 
 describe("notification shell integration", () => {
