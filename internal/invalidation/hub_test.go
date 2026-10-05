@@ -1,6 +1,7 @@
 package invalidation
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -38,5 +39,44 @@ func TestHubCoalescesSlowSubscriberToLatestRevision(t *testing.T) {
 	event := <-events
 	if event.Revision != "rev-2" {
 		t.Fatalf("revision=%q want rev-2", event.Revision)
+	}
+}
+
+
+func TestHubHandlesLargeActorBurstWithoutCrossScopeLeak(t *testing.T) {
+	hub := NewHub()
+	const actors = 500
+	channels := make([]<-chan Event, 0, actors)
+	cancels := make([]func(), 0, actors)
+	for index := 0; index < actors; index++ {
+		events, cancel := hub.Subscribe(Scope{
+			TenantID: "tenant", LegalEntityID: "entity", PrincipalID: fmt.Sprintf("person-%04d", index),
+		})
+		channels = append(channels, events)
+		cancels = append(cancels, cancel)
+	}
+	defer func() {
+		for _, cancel := range cancels {
+			cancel()
+		}
+	}()
+
+	for revision := 1; revision <= 5; revision++ {
+		for index := 0; index < actors; index++ {
+			hub.Publish(Event{
+				TenantID: "tenant", LegalEntityID: "entity", PrincipalID: fmt.Sprintf("person-%04d", index),
+				Revision: fmt.Sprintf("rev-%d", revision),
+			})
+		}
+	}
+	for index, events := range channels {
+		select {
+		case event := <-events:
+			if event.Revision != "rev-5" || event.PrincipalID != fmt.Sprintf("person-%04d", index) {
+				t.Fatalf("actor %d received %#v", index, event)
+			}
+		case <-time.After(time.Second):
+			t.Fatalf("actor %d did not receive burst invalidation", index)
+		}
 	}
 }
