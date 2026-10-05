@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -225,3 +226,28 @@ func nullableNotificationUUID(value string) any {
 
 var _ notificationRepository = (*PostgresRepository)(nil)
 var _ inAppNotificationWriter = (*PostgresRepository)(nil)
+
+
+func (r *PostgresRepository) LoadCurrentEscalationPrincipal(ctx context.Context, event workflowruntime.OutboxEvent, taskID string) (string, error) {
+	if r == nil || r.pool == nil {
+		return "", ErrNotificationUnavailable
+	}
+	var principalID string
+	err := r.pool.QueryRow(ctx, `
+		SELECT COALESCE(task.principal_id::text,'')
+		FROM workflow_tasks task
+		JOIN tenants tenant ON tenant.id=task.tenant_id
+		WHERE (tenant.id::text=$1 OR tenant.slug=$1)
+		  AND task.id=$2::uuid
+		  AND task.workflow_id=$3::uuid
+		  AND task.status='ESCALATED'`,
+		event.TenantID, taskID, event.AggregateID,
+	).Scan(&principalID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("load current escalation principal: %w", err)
+	}
+	return strings.TrimSpace(principalID), nil
+}
