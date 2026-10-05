@@ -704,6 +704,17 @@ func (s *Service) ListResults(ctx context.Context, actor Actor, checkID string, 
 	return s.repo.ListResults(ctx, actor.TenantID, checkID, limit)
 }
 
+func (s *Service) ListResultRevisions(ctx context.Context, actor Actor, checkID string, version int64, limit int) ([]MonitoringResult, error) {
+	if err := validateActor(actor); err != nil {
+		return nil, err
+	}
+	checkID = strings.TrimSpace(checkID)
+	if checkID == "" || version < 1 {
+		return nil, errors.Join(ErrInvalid, fmt.Errorf("monitoring check and version are required"))
+	}
+	return s.repo.ListResultRevisions(ctx, actor.TenantID, checkID, version, limit)
+}
+
 func (s *Service) LatestResultRevision(ctx context.Context, actor Actor, checkID string, version int64) (MonitoringResult, error) {
 	if err := validateActor(actor); err != nil {
 		return MonitoringResult{}, err
