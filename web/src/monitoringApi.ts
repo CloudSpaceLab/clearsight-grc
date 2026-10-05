@@ -93,8 +93,10 @@ export function startFormCollection(form: FormTemplate, input: { programID: stri
   });
 }
 
-export async function loadMonitoringResults(checkID: string): Promise<MonitoringResult[]> {
-  return (await scoped<{ items: MonitoringResult[] }>(`/api/v1/monitoring-checks/${encodeURIComponent(checkID)}/results?limit=20`)).items;
+export async function loadMonitoringResults(checkID: string, version?: number): Promise<MonitoringResult[]> {
+  const query = new URLSearchParams({ limit: "20" });
+  if (version !== undefined) query.set("version", String(version));
+  return (await scoped<{ items: MonitoringResult[] }>(`/api/v1/monitoring-checks/${encodeURIComponent(checkID)}/results?${query.toString()}`)).items;
 }
 
 export function evaluateMonitoringSource(check: MonitoringCheck): Promise<MonitoringResult> {
