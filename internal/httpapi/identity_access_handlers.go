@@ -21,14 +21,15 @@ type escalationPreviewInput struct {
 }
 
 type escalationPreviewStep struct {
-	Index          int      `json:"index"`
-	After          string   `json:"after"`
-	Responsibility string   `json:"responsibility"`
-	Scope          string   `json:"scope"`
-	DepartmentPath []string `json:"department_path,omitempty"`
-	SourceRoles    []string `json:"source_roles,omitempty"`
-	TargetRoles    []string `json:"target_roles,omitempty"`
-	TargetGroupIDs []string `json:"target_group_ids,omitempty"`
+	Index             int      `json:"index"`
+	After             string   `json:"after"`
+	Responsibility    string   `json:"responsibility"`
+	Scope             string   `json:"scope"`
+	DepartmentPath    []string `json:"department_path,omitempty"`
+	SourceRoles       []string `json:"source_roles,omitempty"`
+	TargetRoles       []string `json:"target_roles,omitempty"`
+	TargetGroupIDs    []string `json:"target_group_ids,omitempty"`
+	TargetPositionIDs []string `json:"target_position_ids,omitempty"`
 }
 
 type approveEscalationGuardInput struct {
@@ -605,7 +606,7 @@ func (a *API) previewEscalation(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "invalid_department_path", err.Error())
 		return
 	}
-	policies, err := a.deps.Governance.ListPolicies(r.Context(), actor.TenantID)
+	policies, err := a.deps.Governance.ListPoliciesForEntity(r.Context(), actor.TenantID, actor.LegalEntityID, 100)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "governance_failed", "Escalation policies could not be loaded.")
 		return
@@ -637,7 +638,7 @@ func (a *API) previewEscalation(w http.ResponseWriter, r *http.Request) {
 			for index, step := range sequence.Steps {
 				preview := escalationPreviewStep{
 					Index: index, After: step.After.String(), Responsibility: step.Responsibility, Scope: "LEGAL_ENTITY",
-					SourceRoles: append([]string(nil), step.SourceRoles...), TargetRoles: append([]string(nil), step.TargetRoles...), TargetGroupIDs: append([]string(nil), step.TargetGroupIDs...),
+					SourceRoles: append([]string(nil), step.SourceRoles...), TargetRoles: append([]string(nil), step.TargetRoles...), TargetGroupIDs: append([]string(nil), step.TargetGroupIDs...), TargetPositionIDs: append([]string(nil), step.TargetPositionIDs...),
 				}
 				if step.DepartmentLevelsUp != nil {
 					preview.Scope = "DEPARTMENT"
