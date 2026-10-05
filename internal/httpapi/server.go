@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigateway"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -121,6 +122,7 @@ type Dependencies struct {
 	BankVerticals           *bankverticals.Service
 	BackgroundJobs          *operations.Service
 	Activity                *activity.Service
+	AttentionDeliveries     attention.DeliveryReader
 	People                  *people.Service
 	AuditExports            *activity.ExportService
 	MaxArtifactBytes        int64
