@@ -195,3 +195,23 @@ func TestLoadVendorRefreshMaintenanceBounds(t *testing.T) {
 		t.Fatalf("unexpected vendor refresh configuration: %#v", cfg)
 	}
 }
+
+
+func TestLoadNotificationRetention(t *testing.T) {
+	t.Setenv("CLEARSIGHT_NOTIFICATION_RETENTION", "90d")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.NotificationRetention != 90*24*time.Hour {
+		t.Fatalf("notification retention=%s", cfg.NotificationRetention)
+	}
+}
+
+func TestLoadRejectsUnsafeNotificationRetention(t *testing.T) {
+	t.Setenv("CLEARSIGHT_NOTIFICATION_RETENTION", "7d")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "CLEARSIGHT_NOTIFICATION_RETENTION") {
+		t.Fatalf("expected notification retention rejection, got %v", err)
+	}
+}
