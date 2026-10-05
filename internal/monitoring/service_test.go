@@ -585,8 +585,13 @@ func TestServiceEvaluatesSubmissionAgainstExactActiveRevisions(t *testing.T) {
 	service := NewService(repo, &recordingRequestCreator{})
 	service.now = func() time.Time { return now }
 	service.newID = func() (string, error) { return "result-1", nil }
+	reportingStart := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	reportingEnd := time.Date(2026, 7, 31, 23, 59, 59, 0, time.UTC)
 	service.ConfigureEvidenceReader(recordingEvidenceReader{
-		request:    evidence.Request{ID: "request-1", TenantID: "bank-a", SubjectType: "PROGRAM", SubjectID: "program-1", FormTemplateID: form.ID, FormTemplateVersion: form.Version, KnownFacts: map[string]string{"legal_entity_id": "entity-a"}},
+		request: evidence.Request{
+			ID: "request-1", TenantID: "bank-a", SubjectType: "PROGRAM", SubjectID: "program-1", FormTemplateID: form.ID, FormTemplateVersion: form.Version,
+			KnownFacts: map[string]string{"legal_entity_id": "entity-a"}, CollectionPeriodStart: &reportingStart, CollectionPeriodEnd: &reportingEnd,
+		},
 		submission: evidence.Submission{ID: "submission-1", TenantID: "bank-a", RequestID: "request-1", Channel: "INTERNAL", Answers: map[string]formcontract.AnswerValue{
 			"secure": formcontract.TextAnswer("No"),
 			"loss":   formcontract.TextAnswer("1250000.00"),
@@ -601,6 +606,10 @@ func TestServiceEvaluatesSubmissionAgainstExactActiveRevisions(t *testing.T) {
 	if measurement == nil || measurement.Unit != MeasurementMoney || measurement.Currency != "NGN" || measurement.Value != "1250000.00" ||
 		measurement.Condition != MeasurementConditionBreached || len(measurement.Limits) != 1 || measurement.Limits[0].Expected != "1000000" {
 		t.Fatalf("native form measurement = %#v", measurement)
+	}
+	if measurement.ReportingPeriodStart == nil || measurement.ReportingPeriodEnd == nil ||
+		!measurement.ReportingPeriodStart.Equal(reportingStart) || !measurement.ReportingPeriodEnd.Equal(reportingEnd) {
+		t.Fatalf("native form reporting period = %#v", measurement)
 	}
 	stored, err := repo.ListResults(context.Background(), "bank-a", check.ID, 10)
 	if err != nil || len(stored) != 1 || stored[0].InputReferenceID != "submission-1" || len(stored[0].SubmissionProvenance) == 0 {
