@@ -397,8 +397,10 @@ function nextDelay(value?: string) {
   if (!value) return "1h";
   const match = value.trim().match(/^(\d+)(m|h)$/i);
   if (!match) return "24h";
-  const amount = Number(match[1]);
-  return match[2].toLowerCase() === "m" ? `${Math.max(60, amount * 2)}m` : `${Math.max(1, amount * 2)}h`;
+  const [, rawAmount, unit] = match;
+  if (!rawAmount || !unit) return "24h";
+  const amount = Number(rawAmount);
+  return unit.toLowerCase() === "m" ? `${Math.max(60, amount * 2)}m` : `${Math.max(1, amount * 2)}h`;
 }
 
 function formatDuration(nanoseconds: number) {
