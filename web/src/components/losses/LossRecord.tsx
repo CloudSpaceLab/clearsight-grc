@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getLoss, openLossIntervention } from "../../lossApi";
 import type { LossAggregate, LossRecovery } from "../../lossTypes";
 import { apiErrorKind } from "../../http";
+import { NotificationHistorySection } from "../NotificationHistorySection";
 import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
 import { formatLossDate, formatLossMoney, lossEventLabel, lossStatusLabel, lossStatusTone, recoveryStatusLabel, recoveryStatusTone } from "./lossPresentation";
 
@@ -165,6 +166,8 @@ export function LossRecord({
         columns={recoveryColumns}
       /> : <EmptyState population={loss.title} title="No recoveries" description="No recovery has been recorded for this loss."/>}
     </section>
+
+    <NotificationHistorySection subject="LOSS" subjectID={loss.id} label="operational loss"/>
   </section>;
 }
 
