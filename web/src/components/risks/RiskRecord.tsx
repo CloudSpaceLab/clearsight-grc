@@ -165,7 +165,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
 
     <Surface>
       <dl className="risk-record__state" role="group" aria-label="Current risk state">
-        <div><dt>Current rating</dt><dd><StatusBadge tone={assessmentRatingTone(latestAssessment)}>{assessmentRatingLabel(latestAssessment)}</StatusBadge></dd></div>
+        <div><dt>Current rating</dt><dd><StatusBadge tone={assessmentRatingTone(latestAssessment, risk.version)}>{assessmentRatingLabel(latestAssessment, risk.version)}</StatusBadge></dd></div>
         <div><dt>Appetite</dt><dd><StatusBadge tone={currentAppetiteTone(risk.version, latestAssessment, aggregate.active_appetite)}>{currentAppetiteLabel(risk.version, latestAssessment, aggregate.active_appetite)}</StatusBadge></dd></div>
         <div><dt>Status</dt><dd><StatusBadge tone={riskStatusTone(risk.status)}>{riskStatusLabel(risk.status)}</StatusBadge></dd></div>
         <div><dt>Owner</dt><dd>{risk.owner_principal_id ? "Assigned" : "Not assigned"}</dd></div>
