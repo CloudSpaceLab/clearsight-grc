@@ -71,21 +71,21 @@ func TestCurrentRiskIndicatorStatePreservesUnknownSemantics(t *testing.T) {
 func TestCurrentRiskIndicatorStateUsesNativeLimitBeforeConcernBand(t *testing.T) {
 	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
 	check := monitoring.MonitoringCheck{
-		ID: "check-native",
-		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 2},
+		ID:               "check-native",
+		Lifecycle:        monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 2},
 		FreshnessMinutes: 60,
 		MinimumCoverage:  1,
 	}
 	result := monitoring.MonitoringResult{
-		MonitoringCheckID: check.ID,
+		MonitoringCheckID:      check.ID,
 		MonitoringCheckVersion: check.Version,
-		EvaluatedAt: now.Add(-time.Minute),
+		EvaluatedAt:            now.Add(-time.Minute),
 		Evaluation: monitoring.Evaluation{
-			Band: monitoring.RiskLow,
+			Band:     monitoring.RiskLow,
 			Coverage: 1,
 			Measurement: &monitoring.NativeMeasurement{
-				Unit: monitoring.MeasurementPercent,
-				Value: "98.70",
+				Unit:   monitoring.MeasurementPercent,
+				Value:  "98.70",
 				Limits: []monitoring.MeasurementLimit{{Operator: monitoring.OperatorGreaterOrEqual, Expected: "99.50"}},
 			},
 		},
