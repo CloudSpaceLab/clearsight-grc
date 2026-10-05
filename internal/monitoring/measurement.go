@@ -136,7 +136,10 @@ func validateFormMeasurementField(spec MeasurementSpec, fields []TemplateField) 
 
 func sourceMeasurementHasRule(spec MeasurementSpec, rules []SourceRule) bool {
 	for _, rule := range rules {
-		if rule.Field == spec.Field && measurementLimitOperator(rule.Operator) && strings.TrimSpace(rule.Expected) != "" {
+		if rule.Field != spec.Field || !measurementLimitOperator(rule.Operator) {
+			continue
+		}
+		if _, ok := parseExactDecimal(rule.Expected); ok {
 			return true
 		}
 	}
@@ -177,9 +180,16 @@ func captureSourceMeasurement(spec *MeasurementSpec, rules []SourceRule, resolut
 	if !ok || scalar.Kind == sourceaccess.ScalarNull {
 		return nil, nil
 	}
+	if scalar.Kind != sourceaccess.ScalarNumber {
+		return nil, fmt.Errorf("measurement field %s is no longer numeric", spec.Field)
+	}
 	actual := strings.TrimSpace(scalar.Text)
-	if _, ok := parseExactDecimal(actual); !ok {
+	parsed, ok := parseExactDecimal(actual)
+	if !ok {
 		return nil, fmt.Errorf("measurement field %s requires a numeric value", spec.Field)
+	}
+	if err := validateNativeMeasurementValue(*spec, parsed); err != nil {
+		return nil, err
 	}
 	value := MeasurementDefinition(spec, rules)
 	value.Value = actual
@@ -200,8 +210,12 @@ func captureFormMeasurement(spec *MeasurementSpec, answers map[string]formcontra
 		return nil, nil
 	}
 	actual := strings.TrimSpace(*answer.Text)
-	if _, ok := parseExactDecimal(actual); !ok {
+	parsed, ok := parseExactDecimal(actual)
+	if !ok {
 		return nil, fmt.Errorf("measurement field %s requires a numeric answer", spec.Field)
+	}
+	if err := validateNativeMeasurementValue(*spec, parsed); err != nil {
+		return nil, err
 	}
 	value := MeasurementDefinition(spec, nil)
 	value.Value = actual
@@ -249,6 +263,16 @@ func EvaluateNativeMeasurementCondition(measurement *NativeMeasurement) (Measure
 		}
 	}
 	return MeasurementConditionWithin, nil
+}
+
+func validateNativeMeasurementValue(spec MeasurementSpec, value *big.Rat) error {
+	if spec.Unit == MeasurementCount && !value.IsInt() {
+		return fmt.Errorf("count measurement field %s requires a whole number", spec.Field)
+	}
+	if spec.Unit == MeasurementDuration && value.Sign() < 0 {
+		return fmt.Errorf("duration measurement field %s cannot be negative", spec.Field)
+	}
+	return nil
 }
 
 func measurementLimitOperator(value SourceOperator) bool {
