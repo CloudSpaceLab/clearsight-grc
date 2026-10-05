@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { loadProgramSummaries } from "../../api";
+import { concernScoreText } from "../../concernScorePresentation";
 import { loadMonitoringChecks } from "../../monitoringApi";
 import type { MonitoringCheck } from "../../monitoringTypes";
 import { linkRiskIndicator, type LinkRiskIndicatorResponse } from "../../riskApi";
@@ -135,8 +136,8 @@ export function RiskIndicatorsSection({
       id: "indicator",
       header: "Indicator",
       mobileLayout: "full-width",
-      render: (item) => <span className="risk-record__stack"><strong>{item.link.kind} · {item.check_name}</strong><small>{item.check_code}</small></span>,
-      accessibleText: (item) => `${item.link.kind}, ${item.check_name}, ${item.check_code}`,
+      render: (item) => <span className="risk-record__stack"><strong>{item.link.kind} · {item.check_name}</strong><small>{item.check_code}</small><small>{item.owner_display_name ? `Owner: ${item.owner_display_name}` : "Owner name unavailable"}</small></span>,
+      accessibleText: (item) => `${item.link.kind}, ${item.check_name}, ${item.check_code}. ${item.owner_display_name ? `Owner: ${item.owner_display_name}` : "Owner name unavailable"}`,
     },
     {
       id: "program",
@@ -153,10 +154,10 @@ export function RiskIndicatorsSection({
     },
     {
       id: "score",
-      header: "Score",
+      header: "Concern score",
       kind: "number",
-      render: (item) => item.score === undefined ? "—" : `${formatScore(item.score)} / ${item.denominator}`,
-      accessibleText: (item) => item.score === undefined ? "No current score" : `${formatScore(item.score)} of ${item.denominator} risk points`,
+      render: (item) => <span className="risk-record__stack"><span>{concernScoreText(item.score, "compact")}</span>{item.state === "UNKNOWN" && item.score != null && Number.isFinite(item.score) && item.score >= 0 && item.score <= 100 && <small>Last recorded</small>}</span>,
+      accessibleText: (item) => `${concernScoreText(item.score)}${item.state === "UNKNOWN" ? ". Current state unknown." : ""}`,
     },
     {
       id: "coverage",
@@ -213,7 +214,7 @@ export function RiskIndicatorsSection({
     <div className="section-header">
       <div>
         <h2 id="risk-indicators-heading">Indicators</h2>
-        <p>KRI/KCI state from existing governed Program monitoring. Missing, stale or incomplete results stay unknown.</p>
+        <p>Linked indicators and their latest results.</p>
       </div>
       {canLink && !linkMode && <Button variant="secondary" size="compact" onPress={() => setLinkMode(true)}>Link indicator</Button>}
     </div>
@@ -248,7 +249,7 @@ export function RiskIndicatorsSection({
           allowsEmpty={false}
         />
         {selectedCheck && <p className="risk-indicator-link__contract">
-          Measurement: <strong>0–100 risk points</strong>. Current state comes from check v{selectedCheck.version}, minimum coverage {formatPercent(selectedCheck.minimum_coverage)}, freshness {selectedCheck.freshness_minutes} minutes.
+          Concern score: <strong>0–100 points</strong>. Check v{selectedCheck.version}, minimum coverage {formatPercent(selectedCheck.minimum_coverage)}, freshness {selectedCheck.freshness_minutes} minutes.
         </p>}
         {error && <Notice tone="error">{error}</Notice>}
         <div className="risk-record__link-actions">
@@ -288,10 +289,6 @@ function indicatorTone(state: RiskIndicatorDetail["state"]): StatusTone {
   if (state === "WATCH") return "warning";
   if (state === "BREACH") return "error";
   return "unknown";
-}
-
-function formatScore(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function formatPercent(value: number) {

@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { createFormMonitoringCheck, createMonitoringLinkedIssue, createSourceMonitoringCheck, evaluateMonitoringSource, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionFormTemplate, transitionMonitoringCheck } from "../monitoringApi";
 import type { CollectionPolicy, CollectionSummary, FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "../monitoringTypes";
 import type { ProgramAggregate } from "../types";
+import { concernScoreText } from "../concernScorePresentation";
 import { DataSourceBuilder } from "./DataSourceBuilder";
 import type { SourceBinding } from "../sourceConfigApi";
 import type { ProgramOperation } from "../programOperationsApi";
@@ -34,7 +35,7 @@ function statusLabel(status: LifecycleStatus) {
 }
 
 function riskLabel(result: MonitoringResult) {
-  return result.evaluation.score == null ? "Not assessed" : `${Math.round(result.evaluation.score)}% risk`;
+  return concernScoreText(result.evaluation.score);
 }
 
 function bandLabel(result: MonitoringResult) {
@@ -231,8 +232,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     try {
       const result = await evaluateMonitoringSource(check);
       setLatestResults((current) => ({ ...current, [check.id]: result }));
-      const score = result.evaluation.score == null ? "not assessed" : `${Math.round(result.evaluation.score)}% risk`;
-      setNotice(`${check.name}: ${score} · ${result.evaluation.band.toLowerCase().replaceAll("_", " ")}.`);
+      setNotice(`${check.name}: ${riskLabel(result)} · ${result.evaluation.band.toLowerCase().replaceAll("_", " ")}.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The source could not be evaluated.");
     } finally { setBusy(""); }

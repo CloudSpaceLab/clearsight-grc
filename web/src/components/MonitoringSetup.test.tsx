@@ -152,7 +152,7 @@ describe("monitoring setup", () => {
     expect(screen.getAllByRole("heading", { name: form.name })).toHaveLength(1);
   });
 
-  it("shows the latest risk and coverage for each monitoring check", async () => {
+  it("shows the latest concern score and coverage without implying probability", async () => {
     vi.mocked(loadFormTemplates).mockResolvedValue([{
       id: "form-1", tenant_id: "bank-1", code: "RESET", name: "Password reset review", purpose: "Confirm safeguards",
       fields: [{ id: "identity", label: "Was identity verified?", type: "single_select", required: true, options: ["Yes", "No"] }],
@@ -170,7 +170,8 @@ describe("monitoring setup", () => {
 
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={[]}/>);
 
-    expect(await screen.findByText("100% risk")).toBeTruthy();
+    expect(await screen.findByText("100 / 100 concern points")).toBeTruthy();
+    expect(screen.queryByText("100% risk")).toBeNull();
     expect(screen.getByText("100% coverage")).toBeTruthy();
     expect(screen.getByText("Critical")).toBeTruthy();
     fireEvent.click(screen.getByText("Review result"));
