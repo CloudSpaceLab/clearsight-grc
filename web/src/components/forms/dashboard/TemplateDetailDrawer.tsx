@@ -10,13 +10,15 @@ type Props = {
   item?: FormLibraryItem;
   requestedID?: string;
   busy: string | null;
+  loading?: boolean;
+  error?: boolean;
   onClose: () => void;
-  onClearFilters: () => void;
+  onRetry: () => void;
   onEdit: () => void;
   onTransition: (to: LifecycleStatus) => void;
 };
 
-export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClearFilters, onEdit, onTransition }: Props) {
+export function TemplateDetailDrawer({ item, requestedID, busy, loading = false, error = false, onClose, onRetry, onEdit, onTransition }: Props) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const close = useCallback(() => onCloseRef.current(), []);
@@ -33,11 +35,11 @@ export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClear
       <span>Form detail</span>
     </div>
     {item ? <TemplateDetail item={item} busy={busy} onEdit={onEdit} onTransition={onTransition}/>
-      : <div className="forms-detail-drawer-body">
+      : <div className="forms-detail-drawer-body" aria-live="polite">
         <span className="forms-detail-kicker">Selected template</span>
-        <h2>Template isn’t in this view</h2>
-        <p>Clear the active filters to bring the selected template back into the current result set.</p>
-        <Button onPress={onClearFilters}>Clear filters</Button>
+        <h2>{loading ? "Loading form…" : "Form unavailable"}</h2>
+        {!loading && <p>{error ? "The form could not be loaded." : "This form is not available in the current legal entity."}</p>}
+        {!loading && error && <Button onPress={onRetry}>Retry</Button>}
       </div>}
   </FocusedSheet>;
 }
