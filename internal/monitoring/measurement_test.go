@@ -47,7 +47,8 @@ func TestCaptureSourceMeasurementKeepsNativeValueAndLimits(t *testing.T) {
 		t.Fatalf("capture measurement: %v", err)
 	}
 	if measurement == nil || measurement.Value != "98.70" || len(measurement.Limits) != 1 ||
-		measurement.Limits[0].Operator != OperatorGreaterOrEqual || measurement.Limits[0].Expected != "99.50" {
+		measurement.Limits[0].Operator != OperatorGreaterOrEqual || measurement.Limits[0].Expected != "99.50" ||
+		measurement.Condition != MeasurementConditionBreached {
 		t.Fatalf("unexpected measurement: %#v", measurement)
 	}
 }
