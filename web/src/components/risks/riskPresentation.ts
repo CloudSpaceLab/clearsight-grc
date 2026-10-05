@@ -140,9 +140,8 @@ export function formatRiskDate(value: string | undefined): string {
 }
 
 export function scopeEntries(scope: Record<string, unknown>): Array<{ label: string; value: string }> {
-  const hiddenSourceKeys = new Set(["sample", "seed_package", "source_group", "source_sha256", "source_range"]);
   return Object.entries(scope)
-    .filter(([key, value]) => !hiddenSourceKeys.has(key) && value !== null && value !== undefined && value !== "")
+    .filter(([key, value]) => key !== "sample" && key !== "seed_package" && !key.startsWith("source_") && value !== null && value !== undefined && value !== "")
     .slice(0, 12)
     .map(([key, value]) => ({ label: humanizeKey(key), value: readableValue(value) }));
 }
