@@ -118,6 +118,31 @@ func TestMemoryRepositoryStoresChecksAndAppendOnlyResults(t *testing.T) {
 	}
 }
 
+func TestMemoryRepositoryListsResultHistoryForExactCheckRevision(t *testing.T) {
+	repo := NewMemoryRepository()
+	baseTime := time.Date(2026, 10, 5, 10, 0, 0, 0, time.UTC)
+	results := []MonitoringResult{
+		{ID: "result-v1", TenantID: "bank-a", ProgramID: "program-a", MonitoringCheckID: "check-a", MonitoringCheckVersion: 1, InputKind: InputSource, InputReferenceID: "receipt-v1", InputReferenceVersion: 1, Evaluation: Evaluation{Band: RiskLow, Coverage: 1}, EvaluatedAt: baseTime, EvaluatorVersion: "risk-v1", CreatedAt: baseTime},
+		{ID: "result-v2-old", TenantID: "bank-a", ProgramID: "program-a", MonitoringCheckID: "check-a", MonitoringCheckVersion: 2, InputKind: InputSource, InputReferenceID: "receipt-v2-old", InputReferenceVersion: 1, Evaluation: Evaluation{Band: RiskHigh, Coverage: 1}, EvaluatedAt: baseTime.Add(time.Hour), EvaluatorVersion: "risk-v1", CreatedAt: baseTime.Add(time.Hour)},
+		{ID: "result-v2-new", TenantID: "bank-a", ProgramID: "program-a", MonitoringCheckID: "check-a", MonitoringCheckVersion: 2, InputKind: InputSource, InputReferenceID: "receipt-v2-new", InputReferenceVersion: 1, Evaluation: Evaluation{Band: RiskModerate, Coverage: 1}, EvaluatedAt: baseTime.Add(2 * time.Hour), EvaluatorVersion: "risk-v1", CreatedAt: baseTime.Add(2 * time.Hour)},
+	}
+	for _, result := range results {
+		if _, err := repo.AppendResult(t.Context(), result); err != nil {
+			t.Fatal(err)
+		}
+	}
+	history, err := repo.ListResultRevisions(t.Context(), "bank-a", "check-a", 2, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(history) != 2 || history[0].ID != "result-v2-new" || history[1].ID != "result-v2-old" {
+		t.Fatalf("history = %#v", history)
+	}
+	if crossTenant, err := repo.ListResultRevisions(t.Context(), "bank-b", "check-a", 2, 10); err != nil || len(crossTenant) != 0 {
+		t.Fatalf("cross-tenant history = %#v, err=%v", crossTenant, err)
+	}
+}
+
 func TestMemoryRepositoryLoadsResultByExactTenantAndID(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
