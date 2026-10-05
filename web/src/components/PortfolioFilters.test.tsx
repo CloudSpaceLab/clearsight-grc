@@ -53,3 +53,13 @@ describe("portfolio filters", () => {
     expect(within(chips).getByText("Overdue")).toBeTruthy();
   });
 });
+
+
+it("reloads the issue list when the actor invalidation revision changes", async () => {
+  window.history.replaceState(null, "", "/#work/matters");
+  const { rerender } = render(<MattersWorkspace refreshToken="rev-1"/>);
+  await waitFor(() => expect(loadMatterSummaries).toHaveBeenCalledTimes(1));
+
+  rerender(<MattersWorkspace refreshToken="rev-2"/>);
+  await waitFor(() => expect(loadMatterSummaries).toHaveBeenCalledTimes(2));
+});

@@ -14,6 +14,7 @@ export type OversightMetricFilter = HomeMetricFilter;
 type TodayState = "loading" | "live" | "unavailable";
 
 type OversightWorkspaceProps = {
+  refreshToken?: string;
   organizationName: string;
   legalEntityName: string;
   organizationScopeID?: string;
@@ -32,6 +33,7 @@ type OversightWorkspaceProps = {
 };
 
 export function OversightWorkspace({
+  refreshToken,
   organizationName,
   legalEntityName,
   organizationScopeID,
@@ -161,7 +163,7 @@ export function OversightWorkspace({
     }
   }
 
-  useEffect(() => { void load(); }, [organizationScopeID]);
+  useEffect(() => { void load(); }, [organizationScopeID, refreshToken]);
 
   async function changePeriod(period: ReportingPeriodQuery) {
     if (periodState === "changing") return;
