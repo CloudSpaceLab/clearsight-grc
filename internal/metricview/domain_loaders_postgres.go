@@ -95,7 +95,8 @@ func loadIndicatorBreachMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 		         WHEN result.id IS NULL THEN 'UNKNOWN'
 		         WHEN result.evaluated_at < $3-(check_config.freshness_minutes*interval '1 minute') THEN 'UNKNOWN'
 		         WHEN NULLIF(result.evaluation->>'coverage','')::numeric < check_config.minimum_coverage THEN 'UNKNOWN'
-		         WHEN result.evaluation->>'band' IN ('HIGH','CRITICAL') THEN 'BREACH'
+		         WHEN result.evaluation->>'band'='CRITICAL' THEN 'CRITICAL'
+		         WHEN result.evaluation->>'band'='HIGH' THEN 'HIGH'
 		         WHEN result.evaluation->>'band'='MODERATE' THEN 'WATCH'
 		         WHEN result.evaluation->>'band'='LOW' THEN 'NORMAL'
 		         ELSE 'UNKNOWN'
@@ -137,7 +138,7 @@ func loadIndicatorBreachMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 		if state == "UNKNOWN" {
 			result.Unknown++
 		}
-		if state == "BREACH" {
+		if state == "HIGH" || state == "CRITICAL" {
 			result.Members = append(result.Members, domainMetricMember{MemberID: memberID, TargetType: "RISK", TargetID: riskID, Title: title, State: state})
 		}
 	}

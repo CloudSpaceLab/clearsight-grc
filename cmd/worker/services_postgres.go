@@ -9,6 +9,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -185,12 +186,13 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 		pool.Close()
 		return workerSet{}, err
 	}
+	attentionEpisodes := attention.NewEpisodeProjector(pool)
 	inAppNotifications := workflow.NewInAppNotificationProjector(workflowRepository, workflowRepository)
 	addressVerificationSubmission := thirdparty.NewAddressVerificationSubmissionConsumer(runtimeRepository, evidenceService, continuityService)
 	vendorWorkSubmission := newVendorWorkSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	publisher := workflowruntime.NewCompositePublisher(
 		sourceEventCheckpoint, sourceHealth, collectionSubmissions, actionWork, lifecycleWork, escalationWork,
-		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, staffNotifications, inAppNotifications, addressVerificationSubmission, vendorWorkSubmission,
+		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, staffNotifications, attentionEpisodes, inAppNotifications, addressVerificationSubmission, vendorWorkSubmission,
 		formProposalGeneration, formCommunicationWorker, formpolicy.ScoredResponsePublisher{Handler: formPolicyExecutor},
 		workflowruntime.LogPublisher{Logger: logger},
 	)

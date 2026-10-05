@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 )
@@ -76,5 +77,43 @@ func TestInAppNotificationProjectorSkipsSupersededAssignment(t *testing.T) {
 	}
 	if len(repo.records) != 0 {
 		t.Fatalf("superseded assignment produced notification: %#v", repo.records)
+	}
+}
+
+func TestInAppNotificationProjectorRendersSafeAttentionIntent(t *testing.T) {
+	riskID := "20000000-0000-4000-8000-000000000010"
+	principalID := "40000000-0000-4000-8000-000000000010"
+	entityID := "50000000-0000-4000-8000-000000000010"
+	episodeID := "60000000-0000-4000-8000-000000000010"
+	sourceID := "70000000-0000-4000-8000-000000000010"
+	event := workflowruntime.OutboxEvent{
+		ID: "10000000-0000-4000-8000-000000000010", TenantID: "bank",
+		AggregateType: attention.EpisodeAggregateType, AggregateID: episodeID, EventType: attention.EventEpisodeWorsened,
+		Payload: []byte(`{"episode_id":"` + episodeID + `","legal_entity_id":"` + entityID +
+			`","principal_id":"` + principalID + `","condition":"indicator_breaches","condition_state":"CRITICAL","subject_type":"RISK","subject_id":"` +
+			riskID + `","source_id":"` + sourceID + `","notice_sequence":2}`),
+		OccurredAt: time.Date(2026, 10, 5, 8, 0, 0, 0, time.UTC),
+	}
+	repo := &inAppProjectionRepoStub{}
+	projector := NewInAppNotificationProjector(repo, repo)
+	if err := projector.Publish(context.Background(), event); err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.records) != 1 {
+		t.Fatalf("records = %#v", repo.records)
+	}
+	record := repo.records[0]
+	if record.Kind != "ATTENTION_INDICATOR_BREACHES_WORSENED" ||
+		record.Title != "Risk indicator worsened" ||
+		record.Summary != "Open the record to review current state." {
+		t.Fatalf("record = %#v", record)
+	}
+	if record.SubjectType != "RISK" || record.SubjectID != riskID ||
+		record.PrincipalID != principalID || record.LegalEntityID != entityID ||
+		record.ActionPath != "#risks/"+riskID {
+		t.Fatalf("target = %#v", record)
+	}
+	if strings.Contains(record.Title, "CRITICAL") || strings.Contains(record.Summary, sourceID) {
+		t.Fatalf("raw condition/source metadata leaked into presentation: %#v", record)
 	}
 }

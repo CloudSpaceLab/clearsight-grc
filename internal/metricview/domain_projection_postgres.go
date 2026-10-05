@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -171,6 +172,27 @@ func maintainDomainScope(ctx context.Context, pool *pgxpool.Pool, scope domainSc
 	}
 	if _, err := storeObservationRows(ctx, tx, observations); err != nil {
 		return false, err
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO outbox_events(
+			tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at
+		)
+		SELECT tenant.id,$2,$3::uuid,$4,
+		       jsonb_build_object(
+		         'source_id',$3::text,
+		         'legal_entity_id',$5::text,
+		         'definition_revision',$6::text,
+		         'source_revision',$7::text
+		       ),$8,$8,$8
+		FROM tenants tenant
+		WHERE tenant.id::text=$1 OR tenant.slug=$1
+		ON CONFLICT(tenant_id,aggregate_type,aggregate_id,event_type)
+		WHERE aggregate_type='DOMAIN_METRIC_SNAPSHOT'
+		DO NOTHING`,
+		scope.TenantID, attention.SourceAggregateType, sourceID, attention.SourceEventType,
+		scope.LegalEntityID, DomainDefinitionRevision, DomainSourceRevision, at.UTC(),
+	); err != nil {
+		return false, fmt.Errorf("publish domain metric snapshot event: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return false, err
