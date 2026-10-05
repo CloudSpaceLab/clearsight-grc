@@ -42,7 +42,7 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 	contractID := mustDomainID(t)
 	lossID := mustDomainID(t)
 
-	now := time.Now().UTC().Truncate(time.Hour).Add(30 * time.Minute)
+	now := time.Now().UTC().Truncate(DomainSnapshotInterval).Add(2 * time.Minute)
 	mustExec := func(query string, args ...any) {
 		t.Helper()
 		if _, execErr := pool.Exec(ctx, query, args...); execErr != nil {
@@ -169,12 +169,19 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 	if !inserted {
 		t.Fatal("expected first domain metric snapshot to be inserted")
 	}
-	inserted, err = maintainDomainScope(ctx, pool, domainScope{TenantID: tenantID, LegalEntityID: entityID}, now.Add(10*time.Minute))
+	inserted, err = maintainDomainScope(ctx, pool, domainScope{TenantID: tenantID, LegalEntityID: entityID}, now.Add(time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if inserted {
-		t.Fatal("same UTC hour must reuse the retained domain snapshot")
+		t.Fatal("same five-minute bucket must reuse the retained domain snapshot")
+	}
+	inserted, err = maintainDomainScope(ctx, pool, domainScope{TenantID: tenantID, LegalEntityID: entityID}, now.Add(4*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !inserted {
+		t.Fatal("next five-minute bucket must capture refreshed domain posture")
 	}
 
 	bundle, err := NewDomainRepository(pool).LatestDomainMetrics(ctx, tenantID, entityID)
@@ -184,7 +191,7 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 	if bundle.SourceID == "" || bundle.DefinitionRevision != DomainDefinitionRevision || len(bundle.Items) != len(domainDefinitions) {
 		t.Fatalf("bundle=%#v", bundle)
 	}
-	for _, metricID := range []string{"risks_outside_appetite", "indicator_breaches", "assurance_failures", "losses_without_intervention"} {
+	for _, metricID := range []string{"risks_outside_appetite", "indicator_breaches", "assurance_failures", "losses_without_issue"} {
 		item := domainMetricByID(t, bundle, metricID)
 		if item.Value != 1 || item.Population != 1 || item.Unknown == nil || *item.Unknown != 0 ||
 			item.Excluded == nil || *item.Excluded != 0 || item.Completeness != CompletenessComplete {
@@ -201,7 +208,7 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 		{"risks_outside_appetite", "RISK", riskID},
 		{"indicator_breaches", "RISK", riskID},
 		{"assurance_failures", "RISK", riskID},
-		{"losses_without_intervention", "LOSS", lossID},
+		{"losses_without_issue", "LOSS", lossID},
 	} {
 		page, err := members.ListSnapshotMembers(
 			ctx, tenantID, entityID, "", bundle.SourceID, tc.metricID, DomainDefinitionRevision, principalID, "", 10,
