@@ -10,6 +10,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -212,7 +213,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,
 		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRelationshipLinkRepo, ThirdPartyWorkRepo: thirdPartyWorkRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdparty.NewMemoryActivationRepository(thirdPartyRepo), ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, OperationalLoss: operationalLossService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService,
-		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()), PresentationPreferences: presentationprefs.NewService(presentationprefs.NewMemoryRepository()), NotificationPreferences: notificationprefs.NewService(notificationprefs.NewMemoryRepository()),
+		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewMemoryRepository()), PresentationPreferences: presentationprefs.NewService(presentationprefs.NewMemoryRepository()), NotificationPreferences: notificationprefs.NewService(notificationprefs.NewMemoryRepository()), NotificationDelivery: attention.NewMemoryDeliveryReader(),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewMemoryRepository()), Close: func() {},
 		RuntimeContext: runtimecontext.IdentifierResolver{}, Invalidations: invalidation.NewHub(),
 	}, nil
