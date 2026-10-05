@@ -62,7 +62,9 @@ function groupExactDecimal(value: string) {
   const trimmed = value.trim();
   const match = /^([+-]?)(\d+)(?:\.(\d+))?$/.exec(trimmed);
   if (!match) return trimmed;
-  const [, sign, integer, fraction] = match;
+  const sign = match[1] ?? "";
+  const integer = match[2] ?? "";
+  const fraction = match[3];
   const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return `${sign}${grouped}${fraction ? `.${fraction}` : ""}`;
 }
