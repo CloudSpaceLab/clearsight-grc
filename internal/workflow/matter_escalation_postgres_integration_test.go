@@ -139,9 +139,9 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 	// next level for the same task/sequence/baseline.
 	restarted := &MatterEscalationCoordinator{
 		Repo: NewPostgresRepository(pool), Runtime: workflowruntime.NewPostgresRepository(pool),
-		Authority: authority.NewEffectivePostgresService(pool),
+		Authority:  authority.NewEffectivePostgresService(pool),
 		Continuity: continuity.NewService(continuity.NewCurrentPostgresRepository(pool)),
-		Now: func() time.Time { return current },
+		Now:        func() time.Time { return current },
 	}
 	if _, err := restarted.Maintain(ctx, now.Add(-time.Second), 20); err != nil {
 		t.Fatalf("restart scheduling: %v", err)
