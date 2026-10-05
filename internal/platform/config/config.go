@@ -25,6 +25,7 @@ type Config struct {
 	IdleTimeout                           time.Duration
 	WorkerID                              string
 	WorkerPoll                            time.Duration
+	NotificationRetention                 time.Duration
 	VendorRefreshBatchSize                int
 	VendorRefreshCadence                  time.Duration
 	VendorRefreshLease                    time.Duration
@@ -87,6 +88,7 @@ func Load() (Config, error) {
 		IdleTimeout:                           60 * time.Second,
 		WorkerID:                              env("CLEARSIGHT_WORKER_ID", "worker-local"),
 		WorkerPoll:                            time.Second,
+		NotificationRetention:                 180 * 24 * time.Hour,
 		VendorRefreshBatchSize:                100,
 		VendorRefreshCadence:                  15 * time.Minute,
 		VendorRefreshLease:                    time.Minute,
@@ -136,6 +138,9 @@ func Load() (Config, error) {
 	if cfg.WorkerPoll, err = duration("CLEARSIGHT_WORKER_POLL", cfg.WorkerPoll); err != nil {
 		return Config{}, err
 	}
+	if cfg.NotificationRetention, err = duration("CLEARSIGHT_NOTIFICATION_RETENTION", cfg.NotificationRetention); err != nil {
+		return Config{}, err
+	}
 	if cfg.VendorRefreshBatchSize, err = intValue("CLEARSIGHT_VENDOR_REFRESH_BATCH_SIZE", cfg.VendorRefreshBatchSize); err != nil {
 		return Config{}, err
 	}
@@ -183,6 +188,9 @@ func Load() (Config, error) {
 	}
 	if cfg.WorkerPoll <= 0 || cfg.CaptureSessionTTL < time.Minute || cfg.CaptureSessionTTL > time.Hour {
 		return Config{}, fmt.Errorf("worker poll must be positive and capture session ttl must be 1-60 minutes")
+	}
+	if cfg.NotificationRetention < 30*24*time.Hour || cfg.NotificationRetention > 10*365*24*time.Hour {
+		return Config{}, fmt.Errorf("CLEARSIGHT_NOTIFICATION_RETENTION must be between 30 days and 10 years")
 	}
 	if cfg.VendorRefreshBatchSize < 1 || cfg.VendorRefreshBatchSize > 500 || cfg.VendorRefreshCadence < time.Minute || cfg.VendorRefreshCadence > 24*time.Hour || cfg.VendorRefreshLease < time.Second || cfg.VendorRefreshLease > time.Hour || cfg.VendorRefreshDocumentLead < 0 || cfg.VendorRefreshDocumentLead > 365*24*time.Hour || cfg.VendorRefreshFactConfirmationInterval < 24*time.Hour || cfg.VendorRefreshFactConfirmationInterval > 10*365*24*time.Hour {
 		return Config{}, fmt.Errorf("vendor refresh maintenance requires batch 1-500, cadence 1 minute-24 hours, lease 1 second-1 hour, document lead 0-365 days and fact confirmation 1 day-10 years")
