@@ -124,7 +124,8 @@ it("shows Indicator state and explains unknown data without exposing principal i
   const table = screen.getByRole("table", { name: "Risk indicators" });
   expect(within(table).getByText("KRI · Recovery health")).toBeTruthy();
   expect(within(table).getByText("Unknown")).toBeTruthy();
-  expect(within(table).getByText("62 / 100")).toBeTruthy();
+  expect(within(table).getByText("62 / 100 concern")).toBeTruthy();
+  expect(within(table).getByText("Native value unavailable")).toBeTruthy();
   expect(within(table).getByText("Latest monitoring result is stale.")).toBeTruthy();
   expect(screen.queryByText("owner-1")).toBeNull();
 });
@@ -262,4 +263,31 @@ it("opens the source Program from a linked Indicator", () => {
 
   fireEvent.click(screen.getByRole("button", { name: /Open Program/ }));
   expect(onOpenProgram).toHaveBeenCalledWith("program-1");
+});
+
+
+it("shows the native Indicator value and approved limit ahead of concern points", () => {
+  render(<RiskIndicatorsSection
+    risk={risk}
+    actorID="viewer-1"
+    indicators={[detail.link]}
+    details={[{
+      ...detail,
+      state: "BREACH",
+      native_measurement: {
+        field: "success_rate",
+        label: "Success rate",
+        unit: "PERCENT",
+        precision: 2,
+        value: "98.70",
+        limits: [{ operator: "GREATER_OR_EQUAL", expected: "99.50" }],
+      },
+    }]}
+    detailsComplete
+    onReload={vi.fn()}
+  />);
+  const table = screen.getByRole("table", { name: "Risk indicators" });
+  expect(within(table).getByText("98.70%")).toBeTruthy();
+  expect(within(table).getByText("Limit ≥ 99.50%")).toBeTruthy();
+  expect(within(table).getByText("62 / 100 concern")).toBeTruthy();
 });

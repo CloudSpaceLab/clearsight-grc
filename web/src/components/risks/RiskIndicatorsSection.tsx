@@ -7,6 +7,7 @@ import { linkRiskIndicator, type LinkRiskIndicatorResponse } from "../../riskApi
 import type { RiskIndicatorDetail, RiskIndicatorKind, RiskIndicatorLink, RiskRecord } from "../../riskTypes";
 import type { ProgramSummary, SummaryPage } from "../../summaryTypes";
 import { Button, DataTable, EmptyState, Notice, SearchField, SelectField, StatusBadge, type DataColumn, type StatusTone } from "../ui";
+import { IndicatorValue, indicatorValueAccessibleText } from "../indicators/IndicatorValue";
 
 type Props = {
   risk: RiskRecord;
@@ -152,11 +153,11 @@ export function RiskIndicatorsSection({
       accessibleText: (item) => indicatorStateLabel(item.state),
     },
     {
-      id: "score",
-      header: "Score",
-      kind: "number",
-      render: (item) => item.score === undefined ? "—" : `${formatScore(item.score)} / ${item.denominator}`,
-      accessibleText: (item) => item.score === undefined ? "No current score" : `${formatScore(item.score)} of ${item.denominator} risk points`,
+      id: "value",
+      header: "Observed value",
+      mobileLayout: "full-width",
+      render: (item) => <IndicatorValue measurement={item.native_measurement} score={item.score} denominator={item.denominator}/>,
+      accessibleText: (item) => indicatorValueAccessibleText(item.native_measurement, item.score, item.denominator),
     },
     {
       id: "coverage",

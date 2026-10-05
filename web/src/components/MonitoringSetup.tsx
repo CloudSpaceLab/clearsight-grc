@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { createFormMonitoringCheck, createMonitoringLinkedIssue, createSourceMonitoringCheck, evaluateMonitoringSource, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionFormTemplate, transitionMonitoringCheck } from "../monitoringApi";
+import type { SourceCheckConfig } from "../monitoringApi";
 import type { CollectionPolicy, CollectionSummary, FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "../monitoringTypes";
 import type { ProgramAggregate } from "../types";
 import { DataSourceBuilder } from "./DataSourceBuilder";
@@ -34,7 +35,7 @@ function statusLabel(status: LifecycleStatus) {
 }
 
 function riskLabel(result: MonitoringResult) {
-  return result.evaluation.score == null ? "Not assessed" : `${Math.round(result.evaluation.score)}% risk`;
+  return result.evaluation.score == null ? "Not assessed" : `${Math.round(result.evaluation.score)} concern points`;
 }
 
 function bandLabel(result: MonitoringResult) {
@@ -181,7 +182,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     }
   }
 
-  async function addSourceCheck(binding: SourceBinding, config: { code: string; name: string; claim: string; field: string; expected: string }) {
+  async function addSourceCheck(binding: SourceBinding, config: SourceCheckConfig) {
     if (!canDefineCheck) return;
     setBusy(binding.binding_id); setError("");
     try {

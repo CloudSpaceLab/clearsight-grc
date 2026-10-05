@@ -1,0 +1,15 @@
+@layer features {
+  .indicator-value {
+    display: grid;
+    min-inline-size: 9rem;
+    gap: var(--cs-primitive-space-1);
+  }
+  .indicator-value strong {
+    color: var(--cs-text-strong);
+    font-variant-numeric: tabular-nums;
+  }
+  .indicator-value small {
+    color: var(--cs-text-muted);
+    line-height: 1.35;
+  }
+}
