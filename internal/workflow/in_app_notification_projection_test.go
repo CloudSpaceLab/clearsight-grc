@@ -80,7 +80,6 @@ func TestInAppNotificationProjectorSkipsSupersededAssignment(t *testing.T) {
 	}
 }
 
-
 func TestInAppNotificationProjectorRendersSafeAttentionIntent(t *testing.T) {
 	riskID := "20000000-0000-4000-8000-000000000010"
 	principalID := "40000000-0000-4000-8000-000000000010"
