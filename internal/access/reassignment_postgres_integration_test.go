@@ -72,43 +72,38 @@ func TestPostgresReassignmentRequiresCompleteActiveReportingChain(t *testing.T) 
 		{name: "revoked manager position", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.positions[1])
 		}},
-		{name: "inactive owner can be recovered by current manager", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+		{name: "inactive owner", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE principals SET status='INACTIVE' WHERE id=$1::uuid`, f.principals[0])
 		}},
-		{name: "expired owner can be recovered by current manager", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+		{name: "expired owner", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE principals SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.principals[0])
 		}},
-		{name: "governed vacant position keeps handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
-			f.governedOwnerTransition(t, "")
+		{name: "governed vacancy preserves handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+			f.governOwnerPosition(t, false)
 		}},
-		{name: "governed successor keeps departed owner handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+		{name: "governed retirement preserves handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+			f.governOwnerPosition(t, true)
+		}},
+		{name: "governed successor preserves handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
 			var successor string
-			if err := f.pool.QueryRow(f.ctx, `
-				INSERT INTO principals(tenant_id,kind,display_name,valid_from)
-				VALUES($1::uuid,'PERSON','Successor',clock_timestamp()-interval '1 day')
-				RETURNING id::text`, f.tenant).Scan(&successor); err != nil {
+			if err := f.pool.QueryRow(f.ctx, `INSERT INTO principals(tenant_id,kind,display_name,valid_from) VALUES($1::uuid,'PERSON','Successor',clock_timestamp()-interval '1 day') RETURNING id::text`, f.tenant).Scan(&successor); err != nil {
 				t.Fatal(err)
 			}
-			f.governedOwnerTransition(t, successor)
+			f.governPositionTransition(t, f.positions[0], "POSITION-0", f.positions[1], 1, successor, false)
 		}},
-		{name: "ungoverned vacancy does not invent handoff lineage", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
-			f.exec(t, `UPDATE org_positions SET occupant_principal_id=NULL WHERE id=$1::uuid`, f.positions[0])
+		{name: "ungoverned vacancy remains fail closed", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
+			f.execCorrupt(t, `UPDATE org_positions SET occupant_principal_id=NULL WHERE id=$1::uuid`, f.positions[0])
 		}},
-		{name: "multiple departed positions are ambiguous", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
-			f.governedOwnerTransition(t, "")
+		{name: "multiple governed former positions are ambiguous", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			var secondPosition string
 			if err := f.pool.QueryRow(f.ctx, `
-				INSERT INTO org_positions(
-					tenant_id,legal_entity_id,code,title,parent_position_id,occupant_principal_id,valid_from,version
-				) VALUES(
-					$1::uuid,$2::uuid,'SECOND-OWNER-POSITION','Second owner position',$3::uuid,$4::uuid,
-					clock_timestamp()-interval '1 day',1
-				) RETURNING id::text`,
-				f.tenant, f.entity, f.positions[1], f.principals[0],
-			).Scan(&secondPosition); err != nil {
+				INSERT INTO org_positions(tenant_id,legal_entity_id,code,title,parent_position_id,occupant_principal_id,valid_from,version)
+				VALUES($1::uuid,$2::uuid,'SECOND-OWNER-POSITION','Second owner position',$3::uuid,$4::uuid,clock_timestamp()-interval '1 day',1)
+				RETURNING id::text`, f.tenant, f.entity, f.positions[1], f.principals[0]).Scan(&secondPosition); err != nil {
 				t.Fatal(err)
 			}
-			f.governedPositionOccupantTransition(t, secondPosition, "Second owner position", f.positions[1], 1, "")
+			f.governOwnerPosition(t, false)
+			f.governPositionTransition(t, secondPosition, "Second owner position", f.positions[1], 1, "", false)
 		}},
 		{name: "revoked owner position", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.positions[0])
@@ -217,38 +212,35 @@ func newReassignmentFixture(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 	return f
 }
 
-func (f *reassignmentFixture) governedOwnerTransition(t *testing.T, occupantPrincipalID string) {
+func (f *reassignmentFixture) governOwnerPosition(t *testing.T, retire bool) {
 	t.Helper()
-	if len(f.positions) < 2 {
-		t.Fatal("governed owner transition requires an owner and manager position")
-	}
-	f.governedPositionOccupantTransition(t, f.positions[0], "POSITION-0", f.positions[1], 1, occupantPrincipalID)
+	f.governPositionTransition(t, f.positions[0], "POSITION-0", f.positions[1], 1, "", retire)
 }
 
-func (f *reassignmentFixture) governedPositionOccupantTransition(
+func (f *reassignmentFixture) governPositionTransition(
 	t *testing.T,
 	positionID, title, parentPositionID string,
 	expectedVersion int64,
 	occupantPrincipalID string,
+	retire bool,
 ) {
 	t.Helper()
-	if len(f.principals) < 3 {
-		t.Fatal("governed position transition requires distinct maker and checker principals")
-	}
 	admin := NewPostgresAdministrator(f.pool)
-	revision, err := admin.ProposeOrganizationPosition(f.ctx, ProposeOrganizationPositionInput{
-		TenantID: f.tenant, LegalEntityID: f.entity,
-		PositionID: positionID, Operation: OrganizationPositionUpdate,
-		Title: title, ParentPositionID: parentPositionID,
-		OccupantPrincipalID: occupantPrincipalID, ExpectedVersion: expectedVersion,
-		ActorID: f.principals[1],
+	operation := OrganizationPositionUpdate
+	if retire {
+		operation = OrganizationPositionRetire
+	}
+	proposal, err := admin.ProposeOrganizationPosition(f.ctx, ProposeOrganizationPositionInput{
+		TenantID: f.tenant, LegalEntityID: f.entity, PositionID: positionID,
+		Operation: operation, Title: title, ParentPositionID: parentPositionID,
+		OccupantPrincipalID: occupantPrincipalID, ExpectedVersion: expectedVersion, ActorID: f.principals[1],
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := admin.ApproveOrganizationPosition(f.ctx, DecideOrganizationPositionInput{
-		TenantID: f.tenant, LegalEntityID: f.entity, RevisionID: revision.ID,
-		ActorID: f.principals[2], Rationale: "Approved owner transition",
+		TenantID: f.tenant, LegalEntityID: f.entity, RevisionID: proposal.ID,
+		ActorID: f.principals[2], Rationale: "governed departure",
 	}); err != nil {
 		t.Fatal(err)
 	}
