@@ -134,6 +134,11 @@ func captureSourceMeasurement(spec *MeasurementSpec, rules []SourceRule, resolut
 	}
 	value := MeasurementDefinition(spec, rules)
 	value.Value = actual
+	condition, err := EvaluateNativeMeasurementCondition(value)
+	if err != nil {
+		return nil, err
+	}
+	value.Condition = condition
 	return value, nil
 }
 
@@ -154,15 +159,7 @@ func captureFormMeasurement(spec *MeasurementSpec, answers map[string]formcontra
 	return value, nil
 }
 
-type NativeMeasurementCondition string
-
-const (
-	MeasurementConditionWithin  NativeMeasurementCondition = "WITHIN"
-	MeasurementConditionBreached NativeMeasurementCondition = "BREACHED"
-	MeasurementConditionUnknown  NativeMeasurementCondition = "UNKNOWN"
-)
-
-func NativeMeasurementCondition(measurement *NativeMeasurement) (NativeMeasurementCondition, error) {
+func EvaluateNativeMeasurementCondition(measurement *NativeMeasurement) (MeasurementCondition, error) {
 	if measurement == nil || strings.TrimSpace(measurement.Value) == "" || len(measurement.Limits) == 0 {
 		return MeasurementConditionUnknown, nil
 	}
