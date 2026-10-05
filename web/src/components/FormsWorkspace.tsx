@@ -130,6 +130,10 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       setDirectItemState("idle");
       return () => { active = false; };
     }
+    if (state === "loading") {
+      setDirectItemState("loading");
+      return () => { active = false; };
+    }
     setDirectItem((current) => current?.template.id === targetID ? current : null);
     setDirectItemState("loading");
     void loadFormTemplateItem(targetID).then((item) => {
@@ -142,7 +146,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       setDirectItemState("error");
     });
     return () => { active = false; };
-  }, [targetID, selectedInPage?.template.id, directItemAttempt]);
+  }, [targetID, selectedInPage?.template.id, directItemAttempt, state]);
 
   useEffect(() => {
     if (navigationLocation) changeSection(readFormsSection(navigationLocation.hash));
@@ -554,8 +558,10 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         busy={busy}
         loading={Boolean(targetID && !selected && directItemState !== "error")}
         error={directItemState === "error"}
+        canClearFilters={customView}
         onClose={() => choose(undefined)}
         onRetry={() => setDirectItemAttempt((attempt) => attempt + 1)}
+        onClearFilters={clearFiltersAndTarget}
         onEdit={() => { if (selected) openEdit(selected); }}
         onTransition={(to) => { if (selected) void transition(selected, to); }}
       />
