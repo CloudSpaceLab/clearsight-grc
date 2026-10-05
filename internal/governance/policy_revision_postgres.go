@@ -112,6 +112,35 @@ func (r *PostgresRepository) PendingPolicyRevision(ctx context.Context, tenantID
 	return revision, nil
 }
 
+func (r *PostgresRepository) GetPolicyVersion(ctx context.Context, tenantID, legalEntityID, policyID string, version int) (RoutingPolicyRevision, error) {
+	var revision RoutingPolicyRevision
+	var approvedAt, effectiveFrom, effectiveUntil *time.Time
+	err := r.pool.QueryRow(ctx, `
+		SELECT rp.id::text,t.slug,rpv.legal_entity_id::text,rpv.version,rp.current_version,rpv.definition,rpv.checksum,
+		       COALESCE(rpv.created_by::text,''),rpv.created_at,COALESCE(rpv.approved_by::text,''),
+		       rpv.approved_at,rpv.effective_from,rpv.effective_until
+		FROM routing_policies rp
+		JOIN tenants t ON t.id=rp.tenant_id
+		JOIN routing_policy_versions rpv ON rpv.policy_id=rp.id
+		WHERE rp.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+		  AND rp.legal_entity_id=$2::uuid AND rp.id::text=$3 AND rpv.version=$4`,
+		tenantID, legalEntityID, policyID, version).Scan(
+		&revision.PolicyID, &revision.TenantID, &revision.LegalEntityID, &revision.Version, &revision.BaseVersion,
+		&revision.Definition, &revision.Checksum, &revision.MakerID, &revision.CreatedAt,
+		&revision.ApprovedBy, &approvedAt, &effectiveFrom, &effectiveUntil,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return RoutingPolicyRevision{}, ErrNotFound
+	}
+	if err != nil {
+		return RoutingPolicyRevision{}, err
+	}
+	revision.ApprovedAt = approvedAt
+	revision.EffectiveFrom = effectiveFrom
+	revision.EffectiveUntil = effectiveUntil
+	return revision, nil
+}
+
 func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantID, policyID string, expected int64, revisionVersion int, actor, rationale string, at time.Time) (RoutingPolicy, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -187,7 +216,7 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 	if len(findings) > 0 {
 		return RoutingPolicy{}, fmt.Errorf("%w: %s", ErrConflict, findings[0].Summary)
 	}
-	findings, err = escalationReferenceConflicts(ctx, tx, tenantID, revisionDefinition)
+	findings, err = escalationReferenceConflicts(ctx, tx, tenantID, legalEntityID, revisionDefinition)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
@@ -236,17 +265,18 @@ func (r *PostgresRepository) ActivatePolicyRevision(ctx context.Context, tenantI
 	return r.GetPolicyForEntity(ctx, tenantID, legalEntityID, policyID)
 }
 
-func (r *PostgresRepository) EscalationReferenceConflicts(ctx context.Context, tenantID string, definition []byte) ([]ConflictFinding, error) {
-	return escalationReferenceConflicts(ctx, r.pool, tenantID, definition)
+func (r *PostgresRepository) EscalationReferenceConflicts(ctx context.Context, tenantID, legalEntityID string, definition []byte) ([]ConflictFinding, error) {
+	return escalationReferenceConflicts(ctx, r.pool, tenantID, legalEntityID, definition)
 }
 
-func escalationReferenceConflicts(ctx context.Context, querier policyConflictQuerier, tenantID string, definition []byte) ([]ConflictFinding, error) {
+func escalationReferenceConflicts(ctx context.Context, querier policyConflictQuerier, tenantID, legalEntityID string, definition []byte) ([]ConflictFinding, error) {
 	sequences, err := ParseEscalationSequences(json.RawMessage(definition))
 	if err != nil {
 		return nil, err
 	}
 	roleSet := map[string]struct{}{}
 	groupSet := map[string]struct{}{}
+	positionSet := map[string]struct{}{}
 	for _, sequence := range sequences {
 		for _, step := range sequence.Steps {
 			for _, role := range step.SourceRoles {
@@ -257,6 +287,9 @@ func escalationReferenceConflicts(ctx context.Context, querier policyConflictQue
 			}
 			for _, groupID := range step.TargetGroupIDs {
 				groupSet[groupID] = struct{}{}
+			}
+			for _, positionID := range step.TargetPositionIDs {
+				positionSet[positionID] = struct{}{}
 			}
 		}
 	}
@@ -271,6 +304,11 @@ func escalationReferenceConflicts(ctx context.Context, querier policyConflictQue
 		groups = append(groups, groupID)
 	}
 	sort.Strings(groups)
+	positions := make([]string, 0, len(positionSet))
+	for positionID := range positionSet {
+		positions = append(positions, positionID)
+	}
+	sort.Strings(positions)
 
 	findings := make([]ConflictFinding, 0)
 	for _, role := range roles {
@@ -299,6 +337,21 @@ func escalationReferenceConflicts(ctx context.Context, querier policyConflictQue
 		}
 		if count != 1 {
 			findings = append(findings, ConflictFinding{Code: "ESCALATION_GROUP_REFERENCE", Summary: fmt.Sprintf("Escalation directory group %s is not active in the tenant.", groupID)})
+		}
+	}
+	for _, positionID := range positions {
+		var count int
+		if err := querier.QueryRow(ctx, `
+			SELECT count(*)
+			FROM org_positions op
+			WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+			  AND op.legal_entity_id=$2::uuid AND op.id::text=$3
+			  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)`,
+			tenantID, legalEntityID, positionID).Scan(&count); err != nil {
+			return nil, err
+		}
+		if count != 1 {
+			findings = append(findings, ConflictFinding{Code: "ESCALATION_POSITION_REFERENCE", Summary: fmt.Sprintf("Escalation position %s is not active in this legal entity.", positionID)})
 		}
 	}
 	return findings, nil
