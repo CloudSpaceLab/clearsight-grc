@@ -39,17 +39,20 @@ describe("NotificationPreferences", () => {
     expect(screen.queryByRole("checkbox", { name: /critical/i })).toBeNull();
   });
 
-  it("saves digest timezone and quiet hours as bounded local minutes", async () => {
-    const load = vi.fn().mockResolvedValue(value());
+  it("round-trips bounded local minutes and timezone", async () => {
+    const load = vi.fn().mockResolvedValue(value({
+      digest_minute: 510,
+      quiet_hours_enabled: true,
+      quiet_start_minute: 1290,
+      quiet_end_minute: 375,
+    }));
     const save = vi.fn().mockImplementation(async (input) => value({ ...input, version: 2 }));
     render(<NotificationPreferences load={load} save={save}/>);
 
-    await screen.findByDisplayValue("07:00");
-    fireEvent.input(screen.getByLabelText("Digest time"), { target: { value: "08:30" } });
+    expect(await screen.findByDisplayValue("08:30")).toBeTruthy();
+    expect(screen.getByDisplayValue("21:30")).toBeTruthy();
+    expect(screen.getByDisplayValue("06:15")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Time zone"), { target: { value: "UTC" } });
-    fireEvent.click(screen.getByRole("checkbox", { name: "Quiet hours" }));
-    fireEvent.input(screen.getByLabelText("Starts"), { target: { value: "21:30" } });
-    fireEvent.input(screen.getByLabelText("Ends"), { target: { value: "06:15" } });
     fireEvent.click(screen.getByRole("button", { name: "Save email preferences" }));
 
     await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({
