@@ -169,6 +169,16 @@ func (r *MemoryRepository) ActivatePolicy(_ context.Context, tenantID, legalEnti
 	if policy.EffectiveFrom == nil {
 		policy.EffectiveFrom = &at
 	}
+	for i := range r.revisions[k] {
+		if r.revisions[k][i].Version != policy.CurrentVersion {
+			continue
+		}
+		r.revisions[k][i].ApprovedBy = actor
+		r.revisions[k][i].ApprovedAt = &at
+		if r.revisions[k][i].EffectiveFrom == nil {
+			r.revisions[k][i].EffectiveFrom = &at
+		}
+	}
 	r.policies[k] = policy
 	return policy, nil
 }
