@@ -36,7 +36,7 @@ type Intent struct {
 	SubjectType     string `json:"subject_type"`
 	SubjectID       string `json:"subject_id"`
 	SourceID        string `json:"source_id"`
-	NoticeSequence  int    `json:"notice_sequence"`
+	NoticeSequence int    `json:"notice_sequence"`
 }
 
 func DecodeSourceEvent(event workflowruntime.OutboxEvent) (SourceEvent, bool, error) {
