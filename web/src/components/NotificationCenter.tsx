@@ -130,7 +130,7 @@ function mergeNotifications(current: InAppNotification[], next: InAppNotificatio
 }
 
 function safeNotificationPath(value: string) {
-  return /^#(?:oversight|work|programs|vendors|ropa|forms|people|configure|imports|reports)(?:[/?#]|$)/.test(value) && !/[\r\n]/.test(value);
+  return /^#(?:oversight|work|programs|risks|losses|vendors|ropa|forms|people|configure|imports|reports)(?:[/?#]|$)/.test(value) && !/[\r\n]/.test(value);
 }
 
 function openNotificationPath(path: string) {

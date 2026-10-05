@@ -82,6 +82,23 @@ describe("NotificationCenter", () => {
     expect(screen.queryByText("More notifications could not be loaded. The current list remains available.")).toBeNull();
   });
 
+  it("opens canonical risk and loss record paths", async () => {
+    const loadPage = vi.fn()
+      .mockResolvedValueOnce(page({ items: [item({ action_path: "#risks/22222222-2222-4222-8222-222222222222" })] }))
+      .mockResolvedValueOnce(page({ items: [item({ action_path: "#losses/33333333-3333-4333-8333-333333333333" })] }));
+    const onOpenPath = vi.fn();
+    const first = render(<NotificationCenter loadPage={loadPage} markRead={vi.fn().mockResolvedValue(item())} onOpenPath={onOpenPath}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Notifications, 1 unread" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(onOpenPath).toHaveBeenLastCalledWith("#risks/22222222-2222-4222-8222-222222222222");
+    first.unmount();
+
+    render(<NotificationCenter loadPage={loadPage} markRead={vi.fn().mockResolvedValue(item())} onOpenPath={onOpenPath}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Notifications, 1 unread" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(onOpenPath).toHaveBeenLastCalledWith("#losses/33333333-3333-4333-8333-333333333333");
+  });
+
   it("does not offer an unsafe notification path", async () => {
     const loadPage = vi.fn().mockResolvedValue(page({ items: [item({ action_path: "https://example.test/phish" })] }));
     render(<NotificationCenter loadPage={loadPage} markRead={vi.fn()} onOpenPath={vi.fn()}/>);
