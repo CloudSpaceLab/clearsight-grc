@@ -41,7 +41,7 @@ function operatorSymbol(operator: SourceOperator) {
   }
 }
 function formatMeasurement(value: string, measurement: MonitoringNativeMeasurement) {
-  const numeric = groupExactDecimal(value);
+  const numeric = groupExactDecimal(value, measurement.precision ?? 0);
   switch (measurement.unit) {
     case "PERCENT": return `${numeric}%`;
     case "MONEY": return `${measurement.currency ?? "Currency"} ${numeric}`;
@@ -58,13 +58,14 @@ function durationLabel(unit: MonitoringNativeMeasurement["duration_unit"]) {
     default: return "duration";
   }
 }
-function groupExactDecimal(value: string) {
+function groupExactDecimal(value: string, minimumFractionDigits: number) {
   const trimmed = value.trim();
   const match = /^([+-]?)(\d+)(?:\.(\d+))?$/.exec(trimmed);
   if (!match) return trimmed;
   const sign = match[1] ?? "";
   const integer = match[2] ?? "";
-  const fraction = match[3];
+  const sourceFraction = match[3] ?? "";
+  const fraction = sourceFraction.padEnd(Math.max(sourceFraction.length, minimumFractionDigits), "0");
   const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return `${sign}${grouped}${fraction ? `.${fraction}` : ""}`;
 }
