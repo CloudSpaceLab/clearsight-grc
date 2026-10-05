@@ -66,3 +66,26 @@ func TestFormMeasurementRequiresCompatibleTypedField(t *testing.T) {
 		t.Fatalf("form measurement = %#v, err=%v", measurement, err)
 	}
 }
+
+func TestNativeMeasurementConditionUsesExactLimits(t *testing.T) {
+	within, err := NativeMeasurementCondition(&NativeMeasurement{
+		Unit: MeasurementPercent, Value: "99.50",
+		Limits: []MeasurementLimit{{Operator: OperatorGreaterOrEqual, Expected: "99.500"}},
+	})
+	if err != nil || within != MeasurementConditionWithin {
+		t.Fatalf("within condition = %s, err=%v", within, err)
+	}
+
+	breached, err := NativeMeasurementCondition(&NativeMeasurement{
+		Unit: MeasurementPercent, Value: "99.499999999999999999",
+		Limits: []MeasurementLimit{{Operator: OperatorGreaterOrEqual, Expected: "99.5"}},
+	})
+	if err != nil || breached != MeasurementConditionBreached {
+		t.Fatalf("breached condition = %s, err=%v", breached, err)
+	}
+
+	unknown, err := NativeMeasurementCondition(&NativeMeasurement{Unit: MeasurementPercent, Value: "99.5"})
+	if err != nil || unknown != MeasurementConditionUnknown {
+		t.Fatalf("unknown condition = %s, err=%v", unknown, err)
+	}
+}
