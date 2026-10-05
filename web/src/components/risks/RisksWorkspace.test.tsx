@@ -271,7 +271,8 @@ it("does not present a stale assessment as the current appetite position", async
   render(<RiskRegister onOpenRisk={vi.fn()} loadPage={vi.fn().mockResolvedValue(stalePage)}/>);
 
   const register = await screen.findByRole("table", { name: "Risk register" });
-  expect(within(register).getByText("Reassessment needed")).toBeTruthy();
+  expect(within(register).getAllByText("Reassessment needed")).toHaveLength(2);
+  expect(within(register).queryByText("High")).toBeNull();
   expect(within(register).queryByText("Outside appetite")).toBeNull();
 
   render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, risk: { ...risk, version: 4 } })}/>);
