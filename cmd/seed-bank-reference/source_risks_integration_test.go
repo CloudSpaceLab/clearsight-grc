@@ -6,6 +6,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func TestPersistedITExceptionsReconcileIntoCurrentERMRisksRepeatSafely(t *testing.T) {
@@ -102,9 +104,7 @@ func TestPersistedITExceptionsReconcileIntoCurrentERMRisksRepeatSafely(t *testin
 	}
 }
 
-func insertPersistedITException(t *testing.T, ctx context.Context, pool interface {
-	Exec(context.Context, string, ...any) (any, error)
-}, tenantID, entityID, recordKey, riskID, assessment, description, category, implication, affectedArea string) {
+func insertPersistedITException(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, entityID, recordKey, riskID, assessment, description, category, implication, affectedArea string) {
 	t.Helper()
 	fields := []sourceRecordField{
 		{Label: "RISK ID", Value: riskID},
