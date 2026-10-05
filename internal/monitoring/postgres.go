@@ -310,9 +310,9 @@ func (r *PostgresRepository) FormLibraryItem(ctx context.Context, tenantID, lega
 		return FormLibraryItem{}, mapPostgresError(err)
 	}
 	return FormLibraryItem{
-		Template: value,
+		Template:      value,
 		ActiveVersion: activeVersion,
-		ActiveStatus: LifecycleStatus(activeStatus),
+		ActiveStatus:  LifecycleStatus(activeStatus),
 	}, nil
 }
 
