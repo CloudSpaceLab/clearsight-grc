@@ -21,6 +21,7 @@ type CriticalEmailContext struct {
 	RecipientName         string
 	RecipientAddress      string
 	CurrentNoticeSequence int
+	StillEligible         bool
 }
 
 type EmailDeliveryRecord struct {
@@ -74,6 +75,15 @@ func (c *CriticalEmailConsumer) Publish(ctx context.Context, event workflowrunti
 		return nil
 	}
 	now := c.now().UTC()
+	if !value.StillEligible {
+		claimed, err := c.repository.ClaimCriticalEmail(ctx, event, intent, EmailDeliveryRecord{
+			Status: "NOTICE_SUPERSEDED", AttemptedAt: now,
+		})
+		if err != nil || !claimed {
+			return err
+		}
+		return nil
+	}
 	address := strings.TrimSpace(value.RecipientAddress)
 	if !canonicalMailbox(address) {
 		claimed, err := c.repository.ClaimCriticalEmail(ctx, event, intent, EmailDeliveryRecord{
