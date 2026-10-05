@@ -177,6 +177,30 @@ describe("monitoring setup", () => {
     expect(screen.getByText("Was identity verified?")).toBeTruthy();
   });
 
+  it("shows the native connected-data value separately from concern and loads the exact check revision", async () => {
+    vi.mocked(loadMonitoringChecks).mockResolvedValue([{
+      id: "check-source", tenant_id: "bank-1", program_id: "program-1", code: "MOBILE-SUCCESS", name: "Mobile success rate", claim: "Mobile transaction success remains above the approved limit.", input_kind: "SOURCE",
+      binding_id: "binding-1", binding_version: 1, source_rules: [{ id: "minimum", field: "success_rate", operator: "GREATER_OR_EQUAL", expected: "99.5", risk_points: 100, critical: true }],
+      measurement: { field: "success_rate", unit: "PERCENT", precision: 2 },
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1,
+      failure_action: "RECOMMEND_MATTER", status: "ACTIVE", is_current: true, version: 4, created_at: "2026-10-05T08:00:00Z", updated_at: "2026-10-05T08:00:00Z",
+    }]);
+    vi.mocked(loadMonitoringResults).mockResolvedValue([{
+      id: "result-native", monitoring_check_id: "check-source", monitoring_check_version: 4, evaluated_at: "2026-10-05T10:00:00Z",
+      evaluation: {
+        score: 100, band: "CRITICAL", coverage: 1,
+        measurement: { field: "success_rate", unit: "PERCENT", precision: 2, value: "98.70", limits: [{ operator: "GREATER_OR_EQUAL", expected: "99.5" }] },
+      },
+    }]);
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources={false} operations={[]}/>);
+
+    expect(await screen.findByText("98.70%")).toBeTruthy();
+    expect(screen.getByText("Limit ≥ 99.5%")).toBeTruthy();
+    expect(screen.getByText("100 / 100 concern")).toBeTruthy();
+    expect(loadMonitoringResults).toHaveBeenCalledWith("check-source", 4);
+  });
+
   it("creates a channel Program from business fields without technical identifiers", async () => {
     vi.mocked(createProgram).mockResolvedValue(program);
     const onCreated = vi.fn();
