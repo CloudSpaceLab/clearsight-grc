@@ -23,11 +23,14 @@ func TestNormalizeMeasurementSpecRequiresUnitMetadata(t *testing.T) {
 			}
 		})
 	}
-	valid, err := normalizeMeasurementSpec(&MeasurementSpec{Field: " loss ", Label: " Net loss ", Unit: MeasurementMoney, Currency: "ngn", Precision: 2})
+	valid, err := normalizeMeasurementSpec(&MeasurementSpec{
+		Field: " loss ", Label: " Net loss ", Unit: MeasurementMoney, Currency: "ngn", Precision: 2,
+		Limits: []MeasurementLimit{{Operator: OperatorLessOrEqual, Expected: " 1000000.00 "}},
+	})
 	if err != nil {
 		t.Fatalf("normalize measurement: %v", err)
 	}
-	if valid.Field != "loss" || valid.Label != "Net loss" || valid.Currency != "NGN" {
+	if valid.Field != "loss" || valid.Label != "Net loss" || valid.Currency != "NGN" || len(valid.Limits) != 1 || valid.Limits[0].Expected != "1000000.00" {
 		t.Fatalf("unexpected normalized measurement: %#v", valid)
 	}
 }
@@ -54,7 +57,10 @@ func TestCaptureSourceMeasurementKeepsNativeValueAndLimits(t *testing.T) {
 }
 
 func TestFormMeasurementRequiresCompatibleTypedField(t *testing.T) {
-	money := MeasurementSpec{Field: "loss", Unit: MeasurementMoney, Currency: "NGN", Precision: 2}
+	money := MeasurementSpec{
+		Field: "loss", Unit: MeasurementMoney, Currency: "NGN", Precision: 2,
+		Limits: []MeasurementLimit{{Operator: OperatorLessOrEqual, Expected: "1000000"}},
+	}
 	if err := validateFormMeasurementField(money, []TemplateField{{ID: "loss", Type: formcontract.TypeLongText}}); err == nil {
 		t.Fatal("long-text historical field must not become a money measurement")
 	}
@@ -63,7 +69,7 @@ func TestFormMeasurementRequiresCompatibleTypedField(t *testing.T) {
 	}
 	text := "1250000.00"
 	measurement, err := captureFormMeasurement(&money, map[string]formcontract.AnswerValue{"loss": {Text: &text}})
-	if err != nil || measurement == nil || measurement.Value != text {
+	if err != nil || measurement == nil || measurement.Value != text || measurement.Condition != MeasurementConditionBreached {
 		t.Fatalf("form measurement = %#v, err=%v", measurement, err)
 	}
 }
@@ -88,5 +94,23 @@ func TestNativeMeasurementConditionUsesExactLimits(t *testing.T) {
 	unknown, err := EvaluateNativeMeasurementCondition(&NativeMeasurement{Unit: MeasurementPercent, Value: "99.5"})
 	if err != nil || unknown != MeasurementConditionUnknown {
 		t.Fatalf("unknown condition = %s, err=%v", unknown, err)
+	}
+}
+
+func TestNormalizeMeasurementSpecRejectsInvalidNativeLimits(t *testing.T) {
+	for _, spec := range []MeasurementSpec{
+		{Field: "value", Unit: MeasurementCount, Limits: []MeasurementLimit{{Operator: OperatorPresent, Expected: "1"}}},
+		{Field: "value", Unit: MeasurementCount, Limits: []MeasurementLimit{{Operator: OperatorGreaterOrEqual, Expected: "not-a-number"}}},
+		{Field: "value", Unit: MeasurementCount, Limits: []MeasurementLimit{
+			{Operator: OperatorGreaterOrEqual, Expected: "1"},
+			{Operator: OperatorLessOrEqual, Expected: "2"},
+			{Operator: OperatorNotEquals, Expected: "1.5"},
+			{Operator: OperatorEquals, Expected: "2"},
+			{Operator: OperatorGreaterThan, Expected: "0"},
+		}},
+	} {
+		if _, err := normalizeMeasurementSpec(&spec); err == nil {
+			t.Fatalf("invalid native limit was accepted: %#v", spec)
+		}
 	}
 }
