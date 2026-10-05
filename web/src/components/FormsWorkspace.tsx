@@ -103,7 +103,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const lastSuccessfulRefresh = useRef(0);
 
   const selectedInPage = useMemo(() => page.items.find((item) => item.template.id === targetID), [page.items, targetID]);
-  const selected = selectedInPage ?? (directItem?.template.id === targetID ? directItem : undefined);
+  const selected: FormLibraryItem | undefined = selectedInPage ?? (directItem && directItem.template.id === targetID ? directItem : undefined);
   const selectedItems = useMemo(() => page.items.filter((item) => selectedIDs.has(item.template.id)), [page.items, selectedIDs]);
   const bulkTransition = selectedItems.length > 0 && selectedItems.every((item) => item.template.status === "DRAFT"
     && isTemplateApprovalReady(item.template)
