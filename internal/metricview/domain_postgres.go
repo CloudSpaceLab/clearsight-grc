@@ -15,7 +15,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const DomainSnapshotFreshness = 2 * time.Hour
+const (
+	DomainSnapshotInterval  = 5 * time.Minute
+	DomainSnapshotFreshness = 15 * time.Minute
+)
 
 type DomainRepository struct {
 	pool *pgxpool.Pool
@@ -93,7 +96,7 @@ func (m *DomainMaintainer) Maintain(ctx context.Context, now time.Time, limit in
 }
 
 func pendingDomainScopes(ctx context.Context, pool *pgxpool.Pool, now time.Time, limit int) ([]domainScope, error) {
-	bucket := now.UTC().Truncate(time.Hour)
+	bucket := now.UTC().Truncate(DomainSnapshotInterval)
 	rows, err := pool.Query(ctx, `
 		SELECT tenant.id::text,entity.id::text
 		FROM legal_entities entity
@@ -144,7 +147,7 @@ func maintainDomainScope(ctx context.Context, pool *pgxpool.Pool, scope domainSc
 		loadOutsideAppetiteMetric,
 		loadIndicatorBreachMetric,
 		loadAssuranceFailureMetric,
-		loadLossInterventionMetric,
+		loadLossWithoutIssueMetric,
 	}
 	for _, load := range loaders {
 		result, err := load(ctx, tx, scope, at)
@@ -166,7 +169,7 @@ func maintainDomainScope(ctx context.Context, pool *pgxpool.Pool, scope domainSc
 		ON CONFLICT(tenant_id,legal_entity_id,definition_revision,bucket_start) DO NOTHING
 		RETURNING id::text`,
 		scope.TenantID, scope.LegalEntityID, DomainDefinitionRevision, DomainSourceRevision,
-		highWaterJSON, at.UTC().Truncate(time.Hour), at.UTC(),
+		highWaterJSON, at.UTC().Truncate(DomainSnapshotInterval), at.UTC(),
 	).Scan(&sourceID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
@@ -225,10 +228,29 @@ func domainSourceHighWater(ctx context.Context, tx pgx.Tx, scope domainScope) (m
 			'risk_assessments',(SELECT max(a.created_at) FROM risk_assessments a WHERE a.tenant_id=$1::uuid AND a.legal_entity_id=$2::uuid),
 			'risk_appetite',(SELECT max(a.created_at) FROM risk_appetite_statements a WHERE a.tenant_id=$1::uuid AND a.legal_entity_id=$2::uuid),
 			'risk_indicators',(SELECT max(l.created_at) FROM risk_indicator_links l WHERE l.tenant_id=$1::uuid AND l.legal_entity_id=$2::uuid),
+			'programs',(SELECT max(program.updated_at) FROM programs program WHERE program.tenant_id=$1::uuid AND program.legal_entity_id=$2::uuid),
+			'monitoring_checks',(SELECT max(check_config.updated_at)
+				FROM monitoring_checks check_config
+				JOIN programs program ON program.tenant_id=check_config.tenant_id AND program.id=check_config.program_id
+				WHERE check_config.tenant_id=$1::uuid AND program.legal_entity_id=$2::uuid),
 			'monitoring_results',(SELECT max(result.created_at)
 				FROM monitoring_results result
 				JOIN programs program ON program.tenant_id=result.tenant_id AND program.id=result.program_id
 				WHERE result.tenant_id=$1::uuid AND program.legal_entity_id=$2::uuid),
+			'control_definitions',(SELECT max(definition.updated_at)
+				FROM control_definitions definition
+				JOIN control_catalog_implementation_links catalog_link
+				  ON catalog_link.tenant_id=definition.tenant_id AND catalog_link.definition_id=definition.id
+				WHERE definition.tenant_id=$1::uuid AND catalog_link.legal_entity_id=$2::uuid),
+			'control_implementations',(SELECT max(implementation.updated_at)
+				FROM control_implementations implementation
+				JOIN programs program ON program.tenant_id=implementation.tenant_id AND program.id=implementation.program_id
+				WHERE implementation.tenant_id=$1::uuid AND program.legal_entity_id=$2::uuid),
+			'risk_controls',(SELECT max(link.created_at) FROM risk_control_links link WHERE link.tenant_id=$1::uuid AND link.legal_entity_id=$2::uuid),
+			'evidence_contracts',(SELECT max(contract.updated_at)
+				FROM evidence_contracts contract
+				JOIN programs program ON program.tenant_id=contract.tenant_id AND program.id=contract.program_id
+				WHERE contract.tenant_id=$1::uuid AND program.legal_entity_id=$2::uuid),
 			'assurance_assessments',(SELECT max(assessment.created_at)
 				FROM evidence_assessments assessment
 				JOIN programs program ON program.tenant_id=assessment.tenant_id AND program.id=assessment.program_id
@@ -480,8 +502,8 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 	return result, rows.Err()
 }
 
-func loadLossInterventionMetric(ctx context.Context, tx pgx.Tx, scope domainScope, _ time.Time) (domainMetricResult, error) {
-	definition, _ := DomainDefinition("losses_without_intervention")
+func loadLossWithoutIssueMetric(ctx context.Context, tx pgx.Tx, scope domainScope, _ time.Time) (domainMetricResult, error) {
+	definition, _ := DomainDefinition("losses_without_issue")
 	rows, err := tx.Query(ctx, `
 		SELECT loss.id::text,loss.title,loss.matter_id IS NULL
 		FROM operational_losses loss
@@ -490,19 +512,19 @@ func loadLossInterventionMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 		  AND loss.status='ACTIVE'
 		ORDER BY loss.id`, scope.TenantID, scope.LegalEntityID)
 	if err != nil {
-		return domainMetricResult{}, fmt.Errorf("load loss-intervention metric: %w", err)
+		return domainMetricResult{}, fmt.Errorf("load loss-without-issue metric: %w", err)
 	}
 	defer rows.Close()
 	result := domainMetricResult{Definition: definition, Members: []domainMetricMember{}}
 	for rows.Next() {
 		var id, title string
-		var needsIntervention bool
-		if err := rows.Scan(&id, &title, &needsIntervention); err != nil {
+		var withoutIssue bool
+		if err := rows.Scan(&id, &title, &withoutIssue); err != nil {
 			return domainMetricResult{}, err
 		}
 		result.Population++
-		if needsIntervention {
-			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "LOSS", TargetID: id, Title: title, State: "NEEDS_INTERVENTION"})
+		if withoutIssue {
+			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "LOSS", TargetID: id, Title: title, State: "WITHOUT_ISSUE"})
 		}
 	}
 	return result, rows.Err()
