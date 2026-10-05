@@ -11,6 +11,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -50,6 +51,7 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 		policyVersion = "97777777-7777-7777-8777-777777777720"
 		workflowID    = "97777777-7777-7777-8777-777777777721"
 		taskID        = "97777777-7777-7777-8777-777777777722"
+		vacantPosID   = "97777777-7777-7777-8777-777777777723"
 	)
 	const tenantSlug = "eia4-escalation-test"
 	now := time.Date(2026, 8, 10, 18, 0, 0, 0, time.UTC)
@@ -76,6 +78,8 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 		($3::uuid,$9::uuid,$10::uuid,'OPS-RISK','Other risk manager',$7::uuid,ARRAY['BANK','OPERATIONS'],$11),
 		($4::uuid,$9::uuid,$10::uuid,'CRO','Chief risk officer',$8::uuid,ARRAY['BANK'],$11)`,
 		ownerPosID, parentPosID, otherPosID, croPosID, ownerID, parentRiskID, otherRiskID, croID, tenantID, entityID, now.Add(-24*time.Hour))
+	mustExecEscalation(t, ctx, pool, `INSERT INTO org_positions(id,tenant_id,legal_entity_id,code,title,department_path,valid_from)
+		VALUES($1::uuid,$2::uuid,$3::uuid,'VACANT-RISK','Vacant risk manager',ARRAY['BANK','RISK'],$4)`, vacantPosID, tenantID, entityID, now.Add(-24*time.Hour))
 	mustExecEscalation(t, ctx, pool, `INSERT INTO position_role_bindings(id,tenant_id,position_id,role_template_id,valid_from) VALUES
 		($1::uuid,$9::uuid,$5::uuid,$6::uuid,$10),
 		($2::uuid,$9::uuid,$7::uuid,$8::uuid,$10),
@@ -129,6 +133,55 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 	}
 	if processed, err := coordinator.Maintain(ctx, now.Add(-time.Second), 20); err != nil || processed != 1 {
 		t.Fatalf("schedule first escalation: processed=%d err=%v", processed, err)
+	}
+
+	// A replacement worker sees the durable timer and must not create a second
+	// next level for the same task/sequence/baseline.
+	restarted := &MatterEscalationCoordinator{
+		Repo: NewPostgresRepository(pool), Runtime: workflowruntime.NewPostgresRepository(pool),
+		Authority: authority.NewEffectivePostgresService(pool),
+		Continuity: continuity.NewService(continuity.NewCurrentPostgresRepository(pool)),
+		Now: func() time.Time { return current },
+	}
+	if _, err := restarted.Maintain(ctx, now.Add(-time.Second), 20); err != nil {
+		t.Fatalf("restart scheduling: %v", err)
+	}
+	var readyTimers int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM workflow_timers WHERE tenant_id=$1::uuid AND task_id=$2::uuid AND timer_type='MATTER_ESCALATION' AND state='READY'`, tenantID, taskID).Scan(&readyTimers); err != nil {
+		t.Fatal(err)
+	}
+	if readyTimers != 1 {
+		t.Fatalf("worker restart created duplicate next timers: %d", readyTimers)
+	}
+
+	// Draft simulation uses current authority and directory state without
+	// mutating work. It surfaces a multi-candidate conflict, a vacant target and
+	// a missing route as explicit outcomes.
+	draft := governance.EscalationSequence{
+		ID: "preview-overdue", Trigger: "OVERDUE", TerminalHandling: "KEEP_OPEN", RecoveryAction: "REVIEW_ROUTE",
+		Steps: []governance.EscalationStep{
+			{After: 0, Responsibility: "ESCALATION_OWNER"},
+			{After: time.Minute, Responsibility: "ESCALATION_OWNER", TargetPositionIDs: []string{vacantPosID}},
+			{After: 2 * time.Minute, Responsibility: "SIGNATORY"},
+		},
+	}
+	simulation, err := coordinator.SimulateEscalation(ctx, EscalationSimulationInput{
+		TenantID: tenantSlug, LegalEntityID: entityID, PolicyID: policyID,
+		SequenceID: draft.ID, DraftSequence: &draft, Limit: 10, At: now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if simulation.Checked != 1 || len(simulation.Scenarios) != 1 || len(simulation.Scenarios[0].Steps) != 3 {
+		t.Fatalf("unexpected escalation simulation: %#v", simulation)
+	}
+	statuses := []string{
+		simulation.Scenarios[0].Steps[0].Status,
+		simulation.Scenarios[0].Steps[1].Status,
+		simulation.Scenarios[0].Steps[2].Status,
+	}
+	if statuses[0] != "CANDIDATE_SET" || statuses[1] != "TARGET_CONSTRAINT_NO_MATCH" || statuses[2] != "NO_ROUTE" {
+		t.Fatalf("unsafe recipient states were not visible: %#v", statuses)
 	}
 
 	firstEvent := fireEscalationTimer(t, ctx, pool, tenantID, tenantSlug, taskID, 0, now)
