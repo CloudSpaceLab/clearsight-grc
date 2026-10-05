@@ -5,6 +5,7 @@ export type RiskBand = "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "NOT_ASSESSED"
 export type SourceOperator = "EQUALS" | "NOT_EQUALS" | "GREATER_THAN" | "GREATER_OR_EQUAL" | "LESS_THAN" | "LESS_OR_EQUAL" | "PRESENT" | "MAX_AGE_MINUTES";
 export type MonitoringMeasurementUnit = "COUNT" | "PERCENT" | "DURATION" | "MONEY";
 export type MonitoringDurationUnit = "SECONDS" | "MINUTES" | "HOURS" | "DAYS";
+export type MonitoringMeasurementLimit = { operator: SourceOperator; expected: string };
 export type MonitoringMeasurementSpec = {
   field: string;
   label?: string;
@@ -12,8 +13,8 @@ export type MonitoringMeasurementSpec = {
   currency?: string;
   duration_unit?: MonitoringDurationUnit;
   precision?: number;
+  limits?: MonitoringMeasurementLimit[];
 };
-export type MonitoringMeasurementLimit = { operator: SourceOperator; expected: string };
 export type MonitoringMeasurementCondition = "WITHIN" | "BREACHED" | "UNKNOWN";
 export type MonitoringNativeMeasurement = MonitoringMeasurementSpec & { value?: string; limits?: MonitoringMeasurementLimit[]; condition?: MonitoringMeasurementCondition };
 export type MonitoringSourceRule = { id: string; field: string; operator: SourceOperator; expected?: string; risk_points: number; critical?: boolean };
