@@ -144,7 +144,11 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	coverageService := documentcoverage.NewService(documentcoverage.NewPostgresRepository(pool), documentService, continuityService)
 	verticals := bankverticals.NewService(continuityService, evidenceService)
 	verticals.ConfigureMonitoring(monitoringService)
-	workflowService := workflow.NewService(workflow.NewPostgresRepository(pool))
+	workflowRepository := workflow.NewPostgresRepository(pool)
+	workflowService := workflow.NewService(workflowRepository)
+	escalationSimulation := &workflow.MatterEscalationCoordinator{
+		Repo: workflowRepository, Runtime: runtimeRepo, Authority: authorityService, Continuity: continuityService,
+	}
 	accessAdmin := access.NewPostgresAdministrator(pool)
 	accessResolver := access.NewPostgresResolver(pool)
 	backgroundJobs := operations.NewService(continuityRepo, runtimeRepo)
@@ -179,7 +183,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,
 		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, OperationalLoss: operationalLossService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService, GroupOversight: groupOversightService, MetricMembership: metricMembership, MetricTrends: metricTrends, MetricMatrices: metricMatrices, DomainMetrics: domainMetrics, PresentationPreferences: presentationPreferences, NotificationPreferences: notificationPreferences,
-		Workflow: workflowService, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
+		Workflow: workflowService, EscalationSimulation: escalationSimulation, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewPostgresRepository(pool)),
 		Access: accessResolver, AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 		RuntimeContext: runtimecontext.NewPostgresResolver(pool),
