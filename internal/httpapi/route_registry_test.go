@@ -88,6 +88,10 @@ func TestAdministrativePermissionsLiveInRouteRegistry(t *testing.T) {
 	addExpected(http.MethodPost, "/api/v1/access/organization-position-role-revisions/{id}/reject", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/escalation-guard-revisions", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/escalation-guard-revisions/{policy_id}/{version}/approve", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/escalation-sequence-revisions", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/escalation-sequence-revisions/{policy_id}/{version}/approve", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/escalation-sequence-revisions/{policy_id}/restore", identity.PermissionIdentityConfigure)
+	addExpected(http.MethodPost, "/api/v1/access/escalations/simulate", identity.PermissionIdentityConfigure)
 	addExpected(http.MethodPost, "/api/v1/access/escalations/preview", identity.PermissionIdentityRead)
 
 	seen := map[string]string{}
