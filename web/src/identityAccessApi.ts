@@ -374,6 +374,7 @@ export type EscalationSimulation = {
   policy_code: string;
   active_version: number;
   sequence_version: number;
+  draft: boolean;
   sequence_id: string;
   trigger: string;
   checked: number;
@@ -514,7 +515,17 @@ export function restoreEscalationSequenceRevision(policyID: string, input: { sou
   return request(`/api/v1/access/escalation-sequence-revisions/${encodeURIComponent(policyID)}/restore`, { method: "POST", body: JSON.stringify(input) });
 }
 
-export function simulateEscalation(input: { policy_id: string; sequence_id: string; revision_version?: number; limit?: number }): Promise<EscalationSimulation> {
+export function simulateEscalation(input: {
+  policy_id: string;
+  sequence_id: string;
+  revision_version?: number;
+  draft?: {
+    steps: EscalationSequenceStepInput[];
+    terminal_handling?: string;
+    recovery_action?: string;
+  };
+  limit?: number;
+}): Promise<EscalationSimulation> {
   return request("/api/v1/access/escalations/simulate", { method: "POST", body: JSON.stringify(input) });
 }
 
