@@ -6,6 +6,7 @@ import { appearanceStorageKey } from "./forms/formsAppearance";
 import { FormsWorkspace } from "./FormsWorkspace";
 
 const api = vi.hoisted(() => ({
+  loadFormTemplateItem: vi.fn(),
   loadFormTemplatePage: vi.fn(),
   loadFormTemplateRevision: vi.fn(),
   loadReusableFormTemplateRefs: vi.fn(),
@@ -79,6 +80,8 @@ const starter: StarterTemplate = {
 beforeEach(() => {
   window.history.replaceState(null, "", "#forms");
   window.localStorage.clear();
+  api.loadFormTemplateItem.mockReset();
+  api.loadFormTemplateItem.mockImplementation(async (id: string) => ({ ...draftItem, template: { ...draftItem.template, id } }));
   api.loadFormTemplatePage.mockReset();
   api.loadFormTemplatePage.mockImplementation(async (query: { search?: string }) => query.search === "outsourcing" ? { items: [] } : { items: [draftItem] });
   api.loadFormTemplateRevision.mockReset();
