@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { loadNotifications, markNotificationRead, type InAppNotification, type NotificationPage } from "../notificationApi";\nimport { NotificationPreferences } from "./NotificationPreferences";
+import { loadNotifications, markNotificationRead, type InAppNotification, type NotificationPage } from "../notificationApi";
+import { NotificationPreferences } from "./NotificationPreferences";
 import { Button, EmptyState, FocusedSheet, IconButton, Notice, StatusBadge } from "./ui";
 import "../notification-center.css";
 
