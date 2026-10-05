@@ -106,16 +106,21 @@ func validateFormMeasurementField(spec MeasurementSpec, fields []TemplateField) 
 	return fmt.Errorf("measurement field is not present in the form")
 }
 
-func sourceMeasurementHasRule(spec MeasurementSpec, rules []SourceRule) bool {
+func validateSourceMeasurementRules(spec MeasurementSpec, rules []SourceRule) error {
+	found := false
 	for _, rule := range rules {
 		if rule.Field != spec.Field || !measurementLimitOperator(rule.Operator) {
 			continue
 		}
-		if _, ok := parseExactDecimal(rule.Expected); ok {
-			return true
+		found = true
+		if _, ok := parseExactDecimal(rule.Expected); !ok {
+			return fmt.Errorf("measurement field %s has a non-numeric source limit", spec.Field)
 		}
 	}
-	return false
+	if !found {
+		return fmt.Errorf("measurement field must have an active numeric source rule")
+	}
+	return nil
 }
 
 func MeasurementDefinition(spec *MeasurementSpec, rules []SourceRule) *NativeMeasurement {
