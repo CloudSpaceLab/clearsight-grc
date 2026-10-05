@@ -76,6 +76,7 @@ type MeasurementSpec struct {
 	Currency     string                  `json:"currency,omitempty"`
 	DurationUnit MeasurementDurationUnit `json:"duration_unit,omitempty"`
 	Precision    int                     `json:"precision,omitempty"`
+	Limits       []MeasurementLimit      `json:"limits,omitempty"`
 }
 
 type MeasurementLimit struct {
