@@ -289,6 +289,33 @@ func (r *PostgresRepository) ListFormLibrary(ctx context.Context, filter FormLib
 	return page, nil
 }
 
+func (r *PostgresRepository) FormLibraryItem(ctx context.Context, tenantID, legalEntityID, id string) (FormLibraryItem, error) {
+	if tenantID == "" || legalEntityID == "" || id == "" {
+		return FormLibraryItem{}, ErrInvalid
+	}
+	var activeVersion int64
+	var activeStatus string
+	value, err := scanFormWithExtra(r.pool.QueryRow(ctx, `
+		SELECT `+formProjection+`,COALESCE(active.version,0),COALESCE(active.status,'')
+		FROM monitoring_form_templates f
+		JOIN tenants t ON t.id=f.tenant_id
+		LEFT JOIN monitoring_form_templates active
+		  ON active.tenant_id=f.tenant_id AND active.id=f.id AND active.is_current
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND f.legal_entity_id=$2::uuid
+		  AND f.id=$3::uuid
+		ORDER BY f.version DESC
+		LIMIT 1`, tenantID, legalEntityID, id), &activeVersion, &activeStatus)
+	if err != nil {
+		return FormLibraryItem{}, mapPostgresError(err)
+	}
+	return FormLibraryItem{
+		Template: value,
+		ActiveVersion: activeVersion,
+		ActiveStatus: LifecycleStatus(activeStatus),
+	}, nil
+}
+
 func (r *PostgresRepository) ListSavedFormViews(ctx context.Context, tenantID, legalEntityID, principalID string) ([]SavedFormView, error) {
 	if tenantID == "" || legalEntityID == "" || principalID == "" {
 		return nil, ErrInvalid
