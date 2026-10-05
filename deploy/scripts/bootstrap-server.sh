@@ -52,9 +52,12 @@ fi
 sudo -u postgres psql -XAtqc 'select pg_reload_conf()' | grep -qx t
 
 umask 077
+demo_session_secret="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+[[ ${#demo_session_secret} -eq 64 ]]
 cat > "$root/config/app.env" <<EOF
 CLEARSIGHT_ENV=development
 CLEARSIGHT_DEMO_MODE=true
+CLEARSIGHT_DEMO_SESSION_SECRET=$demo_session_secret
 CLEARSIGHT_DEMO_ALLOW_UNSCANNED_ARTIFACTS=true
 CLEARSIGHT_IDENTITY_MODE=development
 CLEARSIGHT_COMMAND_AUTHORIZATION=audit
@@ -67,6 +70,7 @@ CLEARSIGHT_DEMO_LEGAL_ENTITY_ID=00000000-0000-4000-8000-000000000002
 CLEARSIGHT_DEMO_PRINCIPAL_ID=00000000-0000-4000-8000-000000000101
 DATABASE_URL=postgres://clearsight:$database_password@127.0.0.1:5432/clearsight?sslmode=disable
 EOF
+unset demo_session_secret
 chmod 0600 "$root/config/app.env"
 
 install -m 0755 "$script_dir/ci-entrypoint.sh" /usr/local/sbin/clearsight-ci-entrypoint

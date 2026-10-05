@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { loadContext, loadDemoAccounts, loadSessionStatus, loginDemo, logoutDemo, type DemoAccount, type RuntimeContext } from "../api";
-import { apiErrorKind } from "../http";
+import { apiErrorKind, SESSION_ENDED_EVENT } from "../http";
 import type { RuntimePresentation } from "../runtimePresentation";
 import { DemoLoginPage } from "./DemoLoginPage";
 
@@ -25,6 +25,7 @@ export function SessionGate({ children }: { children: ReactNode; presentation?: 
   const [demoMode, setDemoMode] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [currentAccountLabel, setCurrentAccountLabel] = useState("Demo account");
+  const entering = useRef(false);
 
   async function rememberContext(context: SessionRuntime) {
     const isDemo = context.demo_mode === true;
@@ -46,66 +47,77 @@ export function SessionGate({ children }: { children: ReactNode; presentation?: 
   }
 
   async function enter() {
-    setState("checking");
-    setLoginError("");
-    let status;
+    if (entering.current) return;
+    entering.current = true;
     try {
-      status = await loadSessionStatus();
-    } catch {
-      setDemoMode(false);
-      setState("ready");
-      return;
-    }
-
-    if (status && !status.authenticated && status.demo_login_available) {
-      const available = await loadDemoAccounts().catch(() => []);
-      setAccounts(available);
-      setDemoMode(true);
-      setState(available.length ? "login" : "ready");
-      return;
-    }
-
-    if (status?.authenticated) {
+      setState("checking");
+      setLoginError("");
+      let status;
       try {
-        await rememberContext(await loadContext() as SessionRuntime);
-      } catch (error) {
-        if (apiErrorKind(error) === "unauthorized" && status.demo_login_available) {
-          const available = await loadDemoAccounts().catch(() => []);
-          setAccounts(available);
-          setDemoMode(true);
-          setState(available.length ? "login" : "ready");
-          return;
-        }
-        setDemoMode(false);
-      }
-      setState("ready");
-      return;
-    }
-
-    try {
-      await rememberContext(await loadContext() as SessionRuntime);
-      setState("ready");
-      return;
-    } catch (error) {
-      if (apiErrorKind(error) !== "unauthorized") {
+        status = await loadSessionStatus();
+      } catch {
         setDemoMode(false);
         setState("ready");
         return;
       }
-    }
 
-    const available = await loadDemoAccounts().catch(() => []);
-    if (!available.length) {
-      setDemoMode(false);
-      setState("ready");
-      return;
+      if (status && !status.authenticated && status.demo_login_available) {
+        const available = await loadDemoAccounts().catch(() => []);
+        setAccounts(available);
+        setDemoMode(true);
+        setState(available.length ? "login" : "ready");
+        return;
+      }
+
+      if (status?.authenticated) {
+        try {
+          await rememberContext(await loadContext() as SessionRuntime);
+        } catch (error) {
+          if (apiErrorKind(error) === "unauthorized" && status.demo_login_available) {
+            const available = await loadDemoAccounts().catch(() => []);
+            setAccounts(available);
+            setDemoMode(true);
+            setState(available.length ? "login" : "ready");
+            return;
+          }
+          setDemoMode(false);
+        }
+        setState("ready");
+        return;
+      }
+
+      try {
+        await rememberContext(await loadContext() as SessionRuntime);
+        setState("ready");
+        return;
+      } catch (error) {
+        if (apiErrorKind(error) !== "unauthorized") {
+          setDemoMode(false);
+          setState("ready");
+          return;
+        }
+      }
+
+      const available = await loadDemoAccounts().catch(() => []);
+      if (!available.length) {
+        setDemoMode(false);
+        setState("ready");
+        return;
+      }
+      setAccounts(available);
+      setDemoMode(true);
+      setState("login");
+    } finally {
+      entering.current = false;
     }
-    setAccounts(available);
-    setDemoMode(true);
-    setState("login");
   }
 
-  useEffect(() => { void enter(); }, []);
+  useEffect(() => {
+    const handleSessionEnded = () => { void enter(); };
+    void enter();
+    window.addEventListener(SESSION_ENDED_EVENT, handleSessionEnded);
+    return () => window.removeEventListener(SESSION_ENDED_EVENT, handleSessionEnded);
+  }, []);
 
   async function switchAccount(account: DemoAccount) {
     try {

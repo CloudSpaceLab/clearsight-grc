@@ -26,6 +26,20 @@ esac
 
 exec 9>"$lock"
 flock -n 9
+demo_session_line="$(grep -E '^CLEARSIGHT_DEMO_SESSION_SECRET=' "$config" | tail -1 || true)"
+if [[ -n "$demo_session_line" ]]; then
+  demo_session_secret="${demo_session_line#*=}"
+  [[ ${#demo_session_secret} -ge 32 ]] || {
+    echo "CLEARSIGHT_DEMO_SESSION_SECRET must contain at least 32 characters" >&2
+    exit 1
+  }
+else
+  demo_session_secret="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+  [[ ${#demo_session_secret} -eq 64 ]]
+  printf '\nCLEARSIGHT_DEMO_SESSION_SECRET=%s\n' "$demo_session_secret" >> "$config"
+  chmod 0600 "$config"
+fi
+unset demo_session_line demo_session_secret
 (( $(df --output=avail -B1 "$root" | tail -1) >= 5368709120 )) || {
   echo "less than 5 GiB available" >&2
   exit 1

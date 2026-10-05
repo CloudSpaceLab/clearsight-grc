@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { loadContext, loadDemoAccounts, loadSessionStatus, loginDemo, logoutDemo, type RuntimeContext } from "../api";
-import { ApiError } from "../http";
+import { ApiError, SESSION_ENDED_EVENT } from "../http";
 import type { RuntimePresentation } from "../runtimePresentation";
 import { DemoEnvironmentMenu } from "./DemoEnvironmentMenu";
 import { SessionGate } from "./SessionGate";
@@ -155,6 +155,20 @@ it("returns to demo role login when the session expires before context loads", a
 
   expect(await screen.findByRole("heading", { name: "Choose a demo account" })).not.toBeNull();
   expect(screen.queryByText("Workspace")).toBeNull();
+});
+
+it("returns to demo login when a protected request reports an ended session", async () => {
+  vi.mocked(loadSessionStatus)
+    .mockResolvedValueOnce({ authenticated: true, demo_login_available: true })
+    .mockResolvedValueOnce({ authenticated: false, demo_login_available: true });
+
+  renderSession();
+  expect(await screen.findByText("Workspace")).toBeTruthy();
+
+  window.dispatchEvent(new Event(SESSION_ENDED_EVENT));
+
+  expect(await screen.findByRole("heading", { name: "Choose a demo account" })).toBeTruthy();
+  expect(loadSessionStatus).toHaveBeenCalledTimes(2);
 });
 
 it("keeps demo account switching available in the enterprise presentation", async () => {

@@ -95,7 +95,8 @@ class DeploymentConfigTest(unittest.TestCase):
         for value in ("5368709120", 'for component in api worker web', 'image="clearsight-$component:$sha"',
                       "scripts/migrate.sh", "compose -p clearsight", "13281/health/ready",
                       "13280/healthz", '"$release/scripts/verify-hosted-release.sh" "$sha"',
-                      "state/current-sha", "com.cloudspacelab.clearsight=true"):
+                      "state/current-sha", "com.cloudspacelab.clearsight=true",
+                      "CLEARSIGHT_DEMO_SESSION_SECRET", "/dev/urandom"):
             self.assertIn(value, script)
         for forbidden in ("docker system prune", "docker volume prune", "down -v",
                           "systemctl restart postgresql"):
@@ -112,7 +113,8 @@ class DeploymentConfigTest(unittest.TestCase):
         script = self.read("deploy/scripts/bootstrap-server.sh")
         for value in ("CREATE ROLE clearsight", "CREATE DATABASE clearsight OWNER clearsight",
                       "/opt/clearsight-grc", "/etc/nginx/conf.d/clearsight.conf", "nginx -t",
-                      "host clearsight clearsight 127.0.0.1/32 scram-sha-256"):
+                      "host clearsight clearsight 127.0.0.1/32 scram-sha-256",
+                      "CLEARSIGHT_DEMO_SESSION_SECRET", "/dev/urandom"):
             self.assertIn(value, script)
         for forbidden in ("DROP DATABASE", "DROP ROLE", "systemctl restart postgresql",
                           "docker system prune"):

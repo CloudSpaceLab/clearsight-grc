@@ -30,7 +30,8 @@ The CCO includes `COMPLIANCE_OFFICER` so the source-role escalation guard can be
 - when demo mode is disabled the routes are absent and return 404;
 - demo credentials are intentionally visible because they are fixed non-production fixtures, never customer credentials;
 - successful login creates an HttpOnly, SameSite=Lax, HMAC-signed cookie with an eight-hour lifetime;
-- the signing key is generated in-process, so process restart invalidates existing demo sessions;
+- hosted demo releases keep a stable signing secret in the protected host configuration, so an API restart does not invalidate an otherwise valid demo session;
+- local demo development may leave `CLEARSIGHT_DEMO_SESSION_SECRET` empty; that fallback intentionally uses a process-local key and restart-invalidates disposable local sessions;
 - tampered and expired demo sessions fail closed;
 - bounded bearer/capture credentials are never interpreted as a staff demo identity;
 - explicit development demo headers remain supported for automated fixtures/tests;
@@ -41,6 +42,8 @@ The CCO includes `COMPLIANCE_OFFICER` so the source-role escalation guard can be
 The top-level `DemoAuthGate` first calls the public `/api/v1/session/status` endpoint. Its response contains only `authenticated` and `demo_login_available` booleans: it never exposes a tenant, principal, role, legal entity or permission. A signed-out demo browser can therefore load the role catalogue without intentionally probing the protected `/api/v1/context` endpoint and producing a 401. Once authenticated, the gate loads the normal runtime context. Session discovery is required by the current release; the browser does not probe an older context-first route when it is unavailable.
 
 In a non-demo deployment the catalogue endpoints remain absent, so the gate does not invent a demo login or alter the configured production identity flow. The protected context endpoint still returns 401 for an unauthenticated caller.
+
+If a protected staff request returns 401 after the workspace has opened, the session gate immediately re-checks session status. Demo users are returned to the account chooser when the session has actually ended instead of leaving individual workspaces in repeated unauthorized load failures.
 
 The compact `Viewing as` account control is available in every non-production presentation and lists the other available demo accounts. Choosing one logs out the current demo session and unmounts the full application before signing in to the selected account. This deliberately clears cached Today work, evidence, configuration, routing and other role-dependent UI state rather than trying to selectively reset individual stores.
 
@@ -55,6 +58,8 @@ The sign-in surface shows each role once and uses the server-supplied credential
 - System Administrator can reach development-only Identity & Access administration;
 - CCO exposes the Compliance Officer source-role demonstration;
 - tampered/expired cookies do not authenticate;
+- hosted demo sessions remain valid across API process replacement when their eight-hour lifetime has not expired;
+- a protected 401 returns an ended demo session to the account chooser;
 - logout expires the cookie;
 - `/api/v1/demo/*` is absent outside demo mode;
 - the login surface passes strict TypeScript, rendered-state/axe checks and the normal production web build.

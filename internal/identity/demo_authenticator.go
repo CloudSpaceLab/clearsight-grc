@@ -68,16 +68,32 @@ type DemoAuthenticator struct {
 }
 
 func NewDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string) (*DemoAuthenticator, error) {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return nil, fmt.Errorf("generate demo session key: %w", err)
+	}
+	return newDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID, key)
+}
+
+func NewDemoAuthenticatorWithSecret(tenantID, defaultPrincipalID, legalEntityID, secret string) (*DemoAuthenticator, error) {
+	secret = strings.TrimSpace(secret)
+	if len(secret) < 32 {
+		return nil, fmt.Errorf("demo session secret must contain at least 32 characters")
+	}
+	return newDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID, []byte(secret))
+}
+
+func newDemoAuthenticator(tenantID, defaultPrincipalID, legalEntityID string, key []byte) (*DemoAuthenticator, error) {
 	tenantID = strings.TrimSpace(tenantID)
 	defaultPrincipalID = strings.TrimSpace(defaultPrincipalID)
 	legalEntityID = strings.TrimSpace(legalEntityID)
 	if tenantID == "" || defaultPrincipalID == "" || legalEntityID == "" {
 		return nil, fmt.Errorf("demo tenant, principal and legal entity are required")
 	}
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		return nil, fmt.Errorf("generate demo session key: %w", err)
+	if len(key) < 32 {
+		return nil, fmt.Errorf("demo session key must contain at least 32 bytes")
 	}
+	key = append([]byte(nil), key...)
 	accounts := []DemoAccount{
 		{Label: "Chief Risk Officer", Username: "cro@demo.clearsight.local", Password: "demo", PrincipalID: defaultPrincipalID, RoleCodes: []string{"CRO", "EXECUTIVE"}},
 		{Label: "Chief Compliance Officer", Username: "cco@demo.clearsight.local", Password: "demo", PrincipalID: "role-cco", RoleCodes: []string{"CCO", "EXECUTIVE", "COMPLIANCE_OFFICER"}},

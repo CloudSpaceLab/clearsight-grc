@@ -1,5 +1,7 @@
 export type ApiErrorKind = "unauthorized" | "forbidden" | "not_found" | "conflict" | "validation" | "unavailable" | "unknown";
 
+export const SESSION_ENDED_EVENT = "clearsight:session-ended";
+
 type ErrorEnvelope = { message?: string; error?: string | { code?: string; message?: string } };
 
 export class ApiError extends Error {
@@ -58,11 +60,22 @@ async function responseError(response: Response): Promise<ApiError> {
 }
 
 async function fetchResponse(url: string, init?: RequestInit): Promise<Response> {
-  try { return await fetch(url, init); }
-  catch (cause) {
+  try {
+    const response = await fetch(url, init);
+    if (response.status === 401 && typeof window !== "undefined" && !isDemoSessionEndpoint(url)) {
+      window.dispatchEvent(new Event(SESSION_ENDED_EVENT));
+    }
+    return response;
+  } catch (cause) {
     if (init?.signal?.aborted || cause && typeof cause === "object" && "name" in cause && cause.name === "AbortError") throw cause;
     throw new ApiError(0, "Connection lost. Check the record before trying again.", "connection_lost");
   }
+}
+
+function isDemoSessionEndpoint(url: string): boolean {
+  if (typeof window === "undefined") return false;
+  const path = new URL(url, window.location.origin).pathname;
+  return path === "/api/v1/demo/login" || path === "/api/v1/demo/logout";
 }
 
 function recoveryMessage(status: number): string {

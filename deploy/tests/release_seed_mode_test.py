@@ -84,6 +84,10 @@ class ReleaseSeedModeTests(unittest.TestCase):
             self.assertIn(required, names)
         self.assertFalse(any(name == "docker" and args[0] == "run" for name, args in self.invocations))
         self.assertEqual((self.root / "state/current-sha").read_text().strip(), SHA)
+        session_lines = [line for line in (self.root / "config/app.env").read_text().splitlines()
+                         if line.startswith("CLEARSIGHT_DEMO_SESSION_SECRET=")]
+        self.assertEqual(len(session_lines), 1)
+        self.assertEqual(len(session_lines[0].split("=", 1)[1]), 64)
 
     def test_reference_default_retains_seed_failure_gate(self):
         result = self.run_release(TEST_SEED_EXIT="88")

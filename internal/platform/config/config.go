@@ -51,6 +51,7 @@ type Config struct {
 	OIDCSecureCookies                     bool
 	CommandAuthorizationMode              string
 	DemoMode                              bool
+	DemoSessionSecret                     string
 	DemoAllowUnscannedArtifacts           bool
 	DocumentImportAllowUnscannedAnalysis  bool
 	VendorBrandDiscoveryEnabled           bool
@@ -107,6 +108,7 @@ func Load() (Config, error) {
 		OIDCSecureCookies:                     production,
 		CommandAuthorizationMode:              strings.ToLower(env("CLEARSIGHT_COMMAND_AUTHORIZATION", defaultCommandMode)),
 		DemoMode:                              !production,
+		DemoSessionSecret:                     env("CLEARSIGHT_DEMO_SESSION_SECRET", ""),
 		DocumentImportAllowUnscannedAnalysis:  !production,
 		VendorBrandDiscoveryEnabled:           !production,
 		DemoTenantID:                          env("CLEARSIGHT_DEMO_TENANT_ID", "bank-demo"),
@@ -214,6 +216,9 @@ func Load() (Config, error) {
 	}
 	if len(cfg.DemoRoleCodes) > 32 {
 		return Config{}, fmt.Errorf("CLEARSIGHT_DEMO_ROLE_CODES supports at most 32 role codes")
+	}
+	if cfg.DemoSessionSecret != "" && len(cfg.DemoSessionSecret) < 32 {
+		return Config{}, fmt.Errorf("CLEARSIGHT_DEMO_SESSION_SECRET must contain at least 32 characters")
 	}
 	switch cfg.IdentityMode {
 	case "development":
