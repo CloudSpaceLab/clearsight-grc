@@ -133,9 +133,9 @@ func (s *Service) AddAssessment(ctx context.Context, input AssessmentInput) (Ris
 	if assessedAt.IsZero() {
 		assessedAt = now
 	}
-	assessedBy := strings.TrimSpace(input.AssessedBy)
-	if assessedBy == "" {
-		assessedBy = strings.TrimSpace(input.ActorID)
+	assessedBy := strings.TrimSpace(input.ActorID)
+	if input.AssessedBy != nil {
+		assessedBy = strings.TrimSpace(*input.AssessedBy)
 	}
 	assessment := Assessment{
 		RiskID: current.ID, RiskVersion: current.Version + 1,
