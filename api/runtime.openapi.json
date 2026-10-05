@@ -4467,6 +4467,31 @@
         }
       }
     },
+    "/api/v1/preferences/notifications": {
+      "get": {
+        "operationId": "notificationPreferences",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "responses": {
+          "200": {"description": "Actor-bound notification preferences and mandatory channel policy."}
+        }
+      },
+      "put": {
+        "operationId": "updateNotificationPreferences",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"type":"object"}
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Updated actor-bound optional notification preferences."},
+          "409": {"description": "Preference version changed."}
+        }
+      }
+    },
     "/api/v1/onboarding/guide": {
       "get": {
         "operationId": "actorOnboardingGuide",
