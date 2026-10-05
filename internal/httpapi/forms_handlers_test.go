@@ -71,6 +71,7 @@ func TestActiveFormLibraryRevisionCanBeRevisedByCurrentOwner(t *testing.T) {
 func TestFormsRoutesAreRegisteredAndClassified(t *testing.T) {
 	want := map[string]routeClass{
 		"GET /api/v1/forms/templates":                             routeAuthenticatedRead,
+		"GET /api/v1/forms/templates/{id}":                        routeAuthenticatedRead,
 		"POST /api/v1/forms/templates":                            routeMaterialCommand,
 		"GET /api/v1/forms/templates/{id}/revisions/{version}":    routeAuthenticatedRead,
 		"POST /api/v1/forms/templates/{id}/revisions":             routeMaterialCommand,
@@ -146,6 +147,12 @@ func TestFormsCreateListAndExactRevisionUseSignedScope(t *testing.T) {
 	handler.ServeHTTP(listResponse, httptest.NewRequest(http.MethodGet, "/api/v1/forms/templates?search=vendor&limit=25", nil))
 	if listResponse.Code != http.StatusOK || !bytes.Contains(listResponse.Body.Bytes(), []byte(created.ID)) {
 		t.Fatalf("list returned %d: %s", listResponse.Code, listResponse.Body.String())
+	}
+
+	detailResponse := httptest.NewRecorder()
+	handler.ServeHTTP(detailResponse, httptest.NewRequest(http.MethodGet, "/api/v1/forms/templates/"+created.ID, nil))
+	if detailResponse.Code != http.StatusOK || !bytes.Contains(detailResponse.Body.Bytes(), []byte(`"id":"`+created.ID+`"`)) || !bytes.Contains(detailResponse.Body.Bytes(), []byte(`"operations"`)) {
+		t.Fatalf("exact detail returned %d: %s", detailResponse.Code, detailResponse.Body.String())
 	}
 
 	exactResponse := httptest.NewRecorder()
