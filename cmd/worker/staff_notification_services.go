@@ -31,6 +31,14 @@ func buildAttentionEmailWorker(cfg config.Config, pool *pgxpool.Pool) (workflowr
 	return attention.NewCriticalEmailConsumer(attention.NewCriticalEmailPostgresRepository(pool), delivery, applicationURL), nil
 }
 
+func buildDailyDigestWorker(cfg config.Config, pool *pgxpool.Pool) (*attention.DigestMaintainer, error) {
+	delivery, applicationURL, err := buildGovernedEmailDelivery(cfg)
+	if err != nil || delivery == nil {
+		return nil, err
+	}
+	return attention.NewDigestMaintainer(attention.NewDigestPostgresRepository(pool), delivery, applicationURL), nil
+}
+
 func buildGovernedEmailDelivery(cfg config.Config) (*evidence.InvitationDeliveryService, string, error) {
 	smtpConfig, err := config.LoadSMTPConfig(cfg.Environment)
 	if err != nil {
