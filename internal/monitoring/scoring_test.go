@@ -115,7 +115,6 @@ func TestEvaluateSourceStaleOrPartialInputIsNotAssessed(t *testing.T) {
 	}
 }
 
-
 func TestCompareScalarKeepsExactDecimalOrdering(t *testing.T) {
 	passed, err := compareScalar(
 		sourceaccess.Scalar{Kind: sourceaccess.ScalarNumber, Text: "9007199254740993"},
