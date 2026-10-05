@@ -61,6 +61,19 @@
 .oversight-panel table { width: 100%; border-collapse: collapse; font-size: .76rem; }
 .oversight-panel th { padding: 8px; border-bottom: 1px solid var(--border-strong); color: var(--muted); text-align: left; }
 .oversight-panel td { padding: 10px 8px; border-bottom: 1px solid var(--border); }
+
+@media (min-width: 701px) {
+  .oversight-pressure-table table { table-layout: fixed; }
+  .oversight-pressure-table th:first-child,
+  .oversight-pressure-table td:first-child { width: 44%; }
+  .oversight-pressure-table th[data-kind="number"],
+  .oversight-pressure-table td[data-kind="number"] {
+    width: 14%;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .oversight-pressure-table th[data-kind="number"] { white-space: nowrap; }
+}
 .oversight-aging { display: grid; gap: 15px; margin-top: 18px; }
 .oversight-aging > div > div { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: .76rem; }
 .oversight-aging progress { width: 100%; height: 8px; border: 0; border-radius: var(--cs-primitive-radius-full); accent-color: var(--cyan); }
