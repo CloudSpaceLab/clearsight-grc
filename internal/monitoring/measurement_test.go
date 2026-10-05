@@ -35,9 +35,12 @@ func TestNormalizeMeasurementSpecRequiresUnitMetadata(t *testing.T) {
 func TestCaptureSourceMeasurementKeepsNativeValueAndLimits(t *testing.T) {
 	spec := &MeasurementSpec{Field: "success_rate", Label: "Success rate", Unit: MeasurementPercent, Precision: 2}
 	rules := []SourceRule{{ID: "minimum", Field: "success_rate", Operator: OperatorGreaterOrEqual, Expected: "99.50", RiskPoints: 100}}
+	record := sourceaccess.Record{
+		"success_rate": {Kind: sourceaccess.ScalarNumber, Text: "98.70"},
+	}
 	measurement, err := captureSourceMeasurement(spec, rules, evidence.SourceResolution{
-		State: evidence.SourceResolutionCurrent,
-		Records: []sourceaccess.Record{{"success_rate": {Kind: sourceaccess.ScalarNumber, Text: "98.70"}}},
+		State:   evidence.SourceResolutionCurrent,
+		Records: []sourceaccess.Record{record},
 		Receipt: &sourceaccess.OperationReceipt{Completeness: sourceaccess.CompletenessComplete},
 	})
 	if err != nil {
