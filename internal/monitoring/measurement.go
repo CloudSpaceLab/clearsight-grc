@@ -21,6 +21,7 @@ func normalizeMeasurementSpec(input *MeasurementSpec) (*MeasurementSpec, error) 
 	value.Field = strings.TrimSpace(value.Field)
 	value.Label = strings.TrimSpace(value.Label)
 	value.Currency = strings.ToUpper(strings.TrimSpace(value.Currency))
+	value.Limits = append([]MeasurementLimit(nil), value.Limits...)
 	if value.Field == "" {
 		return nil, fmt.Errorf("measurement field is required")
 	}
@@ -45,6 +46,18 @@ func normalizeMeasurementSpec(input *MeasurementSpec) (*MeasurementSpec, error) 
 		}
 	default:
 		return nil, fmt.Errorf("measurement unit is invalid")
+	}
+	if len(value.Limits) > 4 {
+		return nil, fmt.Errorf("measurement may define at most four limits")
+	}
+	for index := range value.Limits {
+		value.Limits[index].Expected = strings.TrimSpace(value.Limits[index].Expected)
+		if !measurementLimitOperator(value.Limits[index].Operator) || value.Limits[index].Expected == "" {
+			return nil, fmt.Errorf("measurement limit is invalid")
+		}
+		if _, ok := parseExactDecimal(value.Limits[index].Expected); !ok {
+			return nil, fmt.Errorf("measurement limit requires a numeric value")
+		}
 	}
 	return &value, nil
 }
@@ -105,6 +118,10 @@ func MeasurementDefinition(spec *MeasurementSpec, rules []SourceRule) *NativeMea
 	value := &NativeMeasurement{
 		Field: spec.Field, Label: spec.Label, Unit: spec.Unit, Currency: spec.Currency,
 		DurationUnit: spec.DurationUnit, Precision: spec.Precision,
+		Limits: append([]MeasurementLimit(nil), spec.Limits...),
+	}
+	if len(value.Limits) > 0 {
+		return value
 	}
 	for _, rule := range rules {
 		if rule.Field != spec.Field || !measurementLimitOperator(rule.Operator) {
@@ -156,6 +173,11 @@ func captureFormMeasurement(spec *MeasurementSpec, answers map[string]formcontra
 	}
 	value := MeasurementDefinition(spec, nil)
 	value.Value = actual
+	condition, err := EvaluateNativeMeasurementCondition(value)
+	if err != nil {
+		return nil, err
+	}
+	value.Condition = condition
 	return value, nil
 }
 
