@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oploss"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
@@ -64,6 +65,12 @@ func (a *API) listOperationalLosses(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, page)
 }
 
+type operationalLossRead struct {
+	oploss.Aggregate
+	NotificationHistory []attention.NotificationHistoryItem `json:"notification_history"`
+	NotificationHistoryComplete bool `json:"notification_history_complete"`
+}
+
 func (a *API) getOperationalLoss(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.operationalLossService(w)
 	if !ok {
@@ -78,7 +85,16 @@ func (a *API) getOperationalLoss(w http.ResponseWriter, r *http.Request) {
 		writeOperationalLossError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, value)
+	read := operationalLossRead{Aggregate: value, NotificationHistory: []attention.NotificationHistoryItem{}, NotificationHistoryComplete: a.deps.AttentionDeliveries != nil}
+	if a.deps.AttentionDeliveries != nil {
+		history, historyErr := a.deps.AttentionDeliveries.RecordHistory(r.Context(), scope.TenantID, scope.LegalEntityID, "LOSS", value.Loss.ID, 30)
+		if historyErr != nil {
+			read.NotificationHistoryComplete = false
+		} else {
+			read.NotificationHistory = history
+		}
+	}
+	httpx.WriteJSON(w, http.StatusOK, read)
 }
 
 func (a *API) createOperationalLoss(w http.ResponseWriter, r *http.Request) {
