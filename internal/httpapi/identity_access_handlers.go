@@ -750,7 +750,7 @@ func identityEscalationPolicies(r *http.Request, service *governance.Service, te
 		}
 		item := map[string]any{
 			"policy_id": policy.ID, "code": policy.Code, "name": policy.Name,
-			"version": policy.CurrentVersion, "record_version": policy.Version, "sequences": sequences,
+			"version": policy.CurrentVersion, "record_version": policy.Version, "effective_from": policy.EffectiveFrom, "sequences": sequences,
 		}
 		if revision, revisionErr := service.PendingPolicyRevision(r.Context(), tenant, policy.ID); revisionErr == nil {
 			if pendingSequences, parseErr := governance.ParseEscalationSequences(revision.Definition); parseErr == nil {
