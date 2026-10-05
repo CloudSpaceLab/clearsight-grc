@@ -1,7 +1,7 @@
 import { requestJSON, requestVoid } from "./http";
 import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceReviewSubmission, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
-import type { BackgroundJobSnapshot, JobRecoveryReceipt, ProjectionHealth, ReconcileResult } from "./operationsTypes";
+import type { BackgroundJobSnapshot, JobRecoveryReceipt, NotificationDeliveryHealth, ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
 import { normalizeProgramAggregate } from "./programAggregate";
 
@@ -261,6 +261,10 @@ export async function reconcileProgramState(): Promise<ReconcileResult> {
 
 export function loadBackgroundJobs(): Promise<BackgroundJobSnapshot> {
   return scopedRequest<BackgroundJobSnapshot>("/api/v1/operations/background-jobs", { limit: 100 });
+}
+
+export function loadNotificationDeliveryHealth(): Promise<NotificationDeliveryHealth> {
+  return scopedRequest<NotificationDeliveryHealth>("/api/v1/operations/notification-delivery");
 }
 
 export async function retryBackgroundJob(jobID: string, queue: string, expectedAttempts: number, rationale: string): Promise<JobRecoveryReceipt> {
