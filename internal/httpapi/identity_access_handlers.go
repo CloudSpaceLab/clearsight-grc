@@ -10,6 +10,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
 type escalationPreviewInput struct {
@@ -59,7 +60,7 @@ func (a *API) identityAccessOverview(w http.ResponseWriter, r *http.Request) {
 		writeIdentityAccessError(w, err)
 		return
 	}
-	policies := identityEscalationPolicies(r, a.deps.Governance, actor.TenantID)
+	policies := identityEscalationPolicies(r, a.deps.Governance, actor.TenantID, actor.LegalEntityID)
 	canConfigure := identity.HasPermission(actor, identity.PermissionIdentityConfigure)
 	dataBoundary := overview.DataBoundary
 	if dataBoundary.DetailTransferMode == "" {
@@ -479,7 +480,7 @@ func (a *API) proposeEscalationGuardRevision(w http.ResponseWriter, r *http.Requ
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	input.TenantID, input.ActorID = actor.TenantID, actor.PrincipalID
+	input.TenantID, input.LegalEntityID, input.ActorID = actor.TenantID, actor.LegalEntityID, actor.PrincipalID
 	revision, err := a.deps.Governance.ProposeEscalationGuardRevision(r.Context(), input)
 	if err != nil {
 		writeEscalationGuardError(w, err)
@@ -504,7 +505,7 @@ func (a *API) approveEscalationGuardRevision(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	policy, err := a.deps.Governance.ApprovePolicyRevision(r.Context(), governance.ApprovePolicyRevisionInput{
-		TenantID: actor.TenantID, PolicyID: strings.TrimSpace(r.PathValue("policy_id")), RevisionVersion: revisionVersion,
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PolicyID: strings.TrimSpace(r.PathValue("policy_id")), RevisionVersion: revisionVersion,
 		ActorID: actor.PrincipalID, ExpectedPolicyVersion: input.ExpectedPolicyVersion, Rationale: input.Rationale,
 	})
 	if err != nil {
@@ -512,6 +513,76 @@ func (a *API) approveEscalationGuardRevision(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, policy)
+}
+
+func (a *API) proposeEscalationSequenceRevision(w http.ResponseWriter, r *http.Request) {
+	actor, ok := escalationGuardAdminActor(w, r, a.deps.Governance)
+	if !ok {
+		return
+	}
+	var input governance.EscalationSequenceRevisionInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.TenantID, input.LegalEntityID, input.ActorID = actor.TenantID, actor.LegalEntityID, actor.PrincipalID
+	revision, err := a.deps.Governance.ProposeEscalationSequenceRevision(r.Context(), input)
+	if err != nil {
+		writeEscalationGuardError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, revision)
+}
+
+func (a *API) proposeEscalationRollback(w http.ResponseWriter, r *http.Request) {
+	actor, ok := escalationGuardAdminActor(w, r, a.deps.Governance)
+	if !ok {
+		return
+	}
+	var input governance.EscalationRollbackInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	input.TenantID, input.LegalEntityID, input.PolicyID, input.ActorID = actor.TenantID, actor.LegalEntityID, strings.TrimSpace(r.PathValue("policy_id")), actor.PrincipalID
+	revision, err := a.deps.Governance.ProposeEscalationRollback(r.Context(), input)
+	if err != nil {
+		writeEscalationGuardError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusCreated, revision)
+}
+
+type escalationSimulationInput struct {
+	PolicyID        string `json:"policy_id"`
+	SequenceID      string `json:"sequence_id"`
+	RevisionVersion int    `json:"revision_version,omitempty"`
+	Limit           int    `json:"limit,omitempty"`
+}
+
+func (a *API) simulateEscalation(w http.ResponseWriter, r *http.Request) {
+	actor, ok := escalationGuardAdminActor(w, r, a.deps.Governance)
+	if !ok {
+		return
+	}
+	if a.deps.EscalationSimulation == nil {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "escalation_simulation_unavailable", "Escalation simulation is unavailable in this runtime.")
+		return
+	}
+	var input escalationSimulationInput
+	if err := httpx.DecodeJSON(w, r, &input); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	result, err := a.deps.EscalationSimulation.SimulateEscalation(r.Context(), workflow.EscalationSimulationInput{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
+		PolicyID: input.PolicyID, SequenceID: input.SequenceID, RevisionVersion: input.RevisionVersion, Limit: input.Limit,
+	})
+	if err != nil {
+		writeEscalationGuardError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, result)
 }
 
 func (a *API) previewEscalation(w http.ResponseWriter, r *http.Request) {
@@ -659,11 +730,11 @@ func escalationGuardAdminActor(w http.ResponseWriter, r *http.Request, service *
 	return actor, true
 }
 
-func identityEscalationPolicies(r *http.Request, service *governance.Service, tenant string) []map[string]any {
+func identityEscalationPolicies(r *http.Request, service *governance.Service, tenant, legalEntityID string) []map[string]any {
 	if service == nil {
 		return []map[string]any{}
 	}
-	policies, err := service.ListPolicies(r.Context(), tenant)
+	policies, err := service.ListPoliciesForEntity(r.Context(), tenant, legalEntityID, 100)
 	if err != nil {
 		return []map[string]any{}
 	}
@@ -673,7 +744,7 @@ func identityEscalationPolicies(r *http.Request, service *governance.Service, te
 			continue
 		}
 		sequences, err := governance.ParseEscalationSequences(policy.Definition)
-		if err != nil || len(sequences) == 0 {
+		if err != nil {
 			continue
 		}
 		item := map[string]any{
