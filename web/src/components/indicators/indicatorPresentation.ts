@@ -44,3 +44,13 @@ export function nativeConditionTone(value: "WITHIN" | "BREACHED" | "UNKNOWN" | u
   if (value === "BREACHED") return "error";
   return "unknown";
 }
+
+export function formatIndicatorPeriod(start?: string, end?: string) {
+  if (!start || !end) return "Point-in-time observation";
+  const from = new Date(start);
+  const through = new Date(end);
+  if (Number.isNaN(from.valueOf()) || Number.isNaN(through.valueOf())) return "Reporting period unavailable";
+  const formatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+  if (from.toISOString().slice(0, 10) === through.toISOString().slice(0, 10)) return formatter.format(from);
+  return `${formatter.format(from)} – ${formatter.format(through)}`;
+}
