@@ -59,6 +59,20 @@
 .identity-preview .identity-guard-line { margin-top: 2px; }
 .identity-preview .identity-guard-line b { color: inherit; font-weight: 650; }
 .identity-footnote { margin: 12px 0 0; }
+.identity-guard-choices { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.identity-guard-choices legend { margin-bottom: 6px; color: var(--text, #182230); font-size: .78rem; font-weight: 650; }
+.identity-guard-choices legend span { color: var(--muted, #667085); font-weight: 450; }
+.identity-guard-choice-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; max-height: 188px; overflow: auto; padding: 2px; }
+.identity-escalation-simulation { display: grid; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line, #e5e7eb); }
+.identity-escalation-scenario { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line, #e5e7eb); border-radius: 10px; }
+.identity-escalation-scenario .section-header { align-items: flex-start; }
+.identity-escalation-scenario .section-header > div { display: grid; gap: 3px; min-width: 0; }
+.identity-escalation-scenario .section-header small { color: var(--muted, #667085); font-size: .74rem; }
+.identity-escalation-scenario ol { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.identity-escalation-scenario li { display: grid; grid-template-columns: minmax(120px, .7fr) minmax(140px, 1fr) auto; gap: 5px 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line, #e5e7eb); }
+.identity-escalation-scenario li:last-child { border-bottom: 0; }
+.identity-escalation-scenario li > span, .identity-escalation-scenario li > small { color: var(--muted, #667085); font-size: .74rem; }
+.identity-escalation-scenario li > small { grid-column: 2 / -1; }
 
 .identity-organization-view { display: grid; gap: 14px; }
 .identity-organization-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
@@ -104,6 +118,9 @@
 @media (max-width: 560px) {
   .identity-access-panel { padding: 16px; border-radius: 14px; }
   .identity-directory-columns, .identity-metrics { grid-template-columns: 1fr 1fr; }
+  .identity-guard-choice-list { grid-template-columns: 1fr; }
+  .identity-escalation-scenario li { grid-template-columns: 1fr; }
+  .identity-escalation-scenario li > small { grid-column: 1; }
   .identity-row { grid-template-columns: 1fr; }
   .identity-row mark { justify-self: start; }
   .identity-organization-summary { grid-template-columns: 1fr 1fr; }
