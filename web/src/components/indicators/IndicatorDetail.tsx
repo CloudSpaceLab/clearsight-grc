@@ -24,11 +24,13 @@ export function IndicatorDetail({
 }: Props) {
   const [state, setState] = useState<LoadState>("loading");
   const [results, setResults] = useState<MonitoringResult[]>([]);
+  const [selectedResult, setSelectedResult] = useState<MonitoringResult>();
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let active = true;
     setState("loading");
+    setSelectedResult(undefined);
     void loadResults(indicator.check_id, indicator.check_version).then((value) => {
       if (!active) return;
       setResults(value);
@@ -122,8 +124,43 @@ export function IndicatorDetail({
         rowKey={(item) => item.id}
         rowName={(item) => `${formatIndicatorDate(item.evaluated_at)}, ${monitoringBandLabel(item.evaluation.band)}`}
         columns={columns}
+        onRowAction={setSelectedResult}
+        rowActionLabel="Review observation"
         isLoading={state === "loading"}
       />}
+      {selectedResult && <Surface>
+        <div className="indicator-detail__observation">
+          <div className="section-header">
+            <div>
+              <h4>Observation detail</h4>
+              <p>{formatIndicatorDate(selectedResult.evaluated_at)} · check revision {selectedResult.monitoring_check_version}</p>
+            </div>
+            <Button variant="quiet" size="compact" onPress={() => setSelectedResult(undefined)}>Close</Button>
+          </div>
+          <dl className="indicator-detail__observation-facts">
+            <div><dt>Value</dt><dd><IndicatorValue measurement={selectedResult.evaluation.measurement} score={selectedResult.evaluation.score} denominator={100}/></dd></div>
+            <div><dt>Condition</dt><dd>{selectedResult.evaluation.measurement
+              ? <StatusBadge tone={nativeConditionTone(selectedResult.evaluation.measurement.condition)}>{nativeConditionLabel(selectedResult.evaluation.measurement.condition)}</StatusBadge>
+              : "Native value unavailable"}</dd></div>
+            <div><dt>Concern</dt><dd>{monitoringBandLabel(selectedResult.evaluation.band)}</dd></div>
+            <div><dt>Coverage</dt><dd>{formatIndicatorCoverage(selectedResult.evaluation.coverage)}</dd></div>
+          </dl>
+          <ObservationExceptions result={selectedResult}/>
+        </div>
+      </Surface>}
     </section>
+  </div>;
+}
+
+
+function ObservationExceptions({ result }: { result: MonitoringResult }) {
+  const exceptions = (result.evaluation.rule_results ?? []).filter((rule) => rule.outcome !== "PASS");
+  if (!exceptions.length) return <p className="indicator-detail__observation-clear">No failed or indeterminate checks were recorded for this observation.</p>;
+  return <div className="indicator-detail__exceptions">
+    <h5>Exceptions</h5>
+    <ul>{exceptions.map((rule) => <li key={`${rule.rule_id ?? "rule"}:${rule.field_id}`}>
+      <strong>{rule.field_id}</strong>
+      <span>{rule.reason}</span>
+    </li>)}</ul>
   </div>;
 }
