@@ -19,6 +19,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/invalidation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
@@ -98,6 +99,7 @@ type serviceSet struct {
 	AuditExports                   *activity.ExportService
 	Access                         access.Resolver
 	RuntimeContext                 runtimecontext.Resolver
+	Invalidations                  invalidation.Stream
 	AccessAdmin                    access.Administrator
 	SessionStore                   scs.Store
 	SCIM                           *scimapi.Service
