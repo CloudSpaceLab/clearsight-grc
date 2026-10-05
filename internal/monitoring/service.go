@@ -630,8 +630,10 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
 			}
 		}
-		if measurement != nil && !sourceMeasurementHasRule(*measurement, input.SourceRules) {
-			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("measurement field must have an active source rule"))
+		if measurement != nil {
+			if err := validateSourceMeasurementRules(*measurement, input.SourceRules); err != nil {
+				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
+			}
 		}
 		if _, err := s.validateSourceBinding(ctx, actor, input.BindingID, input.BindingVersion); err != nil {
 			return MonitoringCheck{}, err
