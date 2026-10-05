@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -9,6 +10,10 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
 )
+
+type escalationNotificationStateLoader interface {
+	LoadCurrentEscalationPrincipal(context.Context, workflowruntime.OutboxEvent, string) (string, error)
+}
 
 type InAppNotificationProjector struct {
 	loader assignmentNotificationContextLoader
@@ -22,6 +27,9 @@ func NewInAppNotificationProjector(loader assignmentNotificationContextLoader, w
 func (p *InAppNotificationProjector) Publish(ctx context.Context, event workflowruntime.OutboxEvent) error {
 	if p == nil || p.loader == nil || p.writer == nil {
 		return ErrNotificationUnavailable
+	}
+	if event.AggregateType == "WORKFLOW" && event.EventType == "WORK_ESCALATED" {
+		return p.projectEscalation(ctx, event)
 	}
 	intent, attentionRelevant, err := attention.DecodeIntent(event)
 	if err != nil {
@@ -65,6 +73,45 @@ func (p *InAppNotificationProjector) project(ctx context.Context, event workflow
 		OutboxEventID: event.ID, Kind: assignment.NotificationKind,
 		Title: title, Summary: summary, SubjectType: "MATTER", SubjectID: value.MatterID,
 		ActionPath: "#work/matters/" + url.PathEscape(value.MatterID), OccurredAt: event.OccurredAt,
+	})
+}
+
+func (p *InAppNotificationProjector) projectEscalation(ctx context.Context, event workflowruntime.OutboxEvent) error {
+	var payload struct {
+		TaskID        string `json:"task_id"`
+		MatterID      string `json:"matter_id"`
+		LegalEntityID string `json:"legal_entity_id"`
+		PrincipalID   string `json:"principal_id"`
+	}
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("decode work escalation notification: %w", err)
+	}
+	payload.TaskID = strings.TrimSpace(payload.TaskID)
+	payload.MatterID = strings.TrimSpace(payload.MatterID)
+	payload.LegalEntityID = strings.TrimSpace(payload.LegalEntityID)
+	payload.PrincipalID = strings.TrimSpace(payload.PrincipalID)
+	if !validNotificationUUID(payload.TaskID) || !validNotificationUUID(payload.MatterID) ||
+		!validNotificationUUID(payload.LegalEntityID) || !validNotificationUUID(payload.PrincipalID) ||
+		!validNotificationUUID(event.ID) {
+		return fmt.Errorf("work escalation notification identity is invalid")
+	}
+	stateLoader, ok := p.loader.(escalationNotificationStateLoader)
+	if !ok {
+		return ErrNotificationUnavailable
+	}
+	currentPrincipal, err := stateLoader.LoadCurrentEscalationPrincipal(ctx, event, payload.TaskID)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(currentPrincipal) != payload.PrincipalID {
+		return nil
+	}
+	return p.writer.StoreInAppNotification(ctx, inAppNotificationRecord{
+		TenantID: event.TenantID, LegalEntityID: payload.LegalEntityID, PrincipalID: payload.PrincipalID,
+		OutboxEventID: event.ID, Kind: "WORK_ESCALATED",
+		Title: "Overdue work escalated to you", Summary: "Open Work to review the current record.",
+		SubjectType: "MATTER", SubjectID: payload.MatterID,
+		ActionPath: "#work/matters/" + url.PathEscape(payload.MatterID), OccurredAt: event.OccurredAt,
 	})
 }
 
