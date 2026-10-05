@@ -2087,16 +2087,65 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "x-clearsight-permission": "OVERSIGHT_READ",
         "parameters": [
-          {"name":"metric_id","in":"path","required":true,"schema":{"type":"string"}},
-          {"name":"source_id","in":"query","required":true,"schema":{"type":"string","format":"uuid"}},
-          {"name":"definition_revision","in":"query","required":true,"schema":{"type":"string"}},
-          {"name":"organization_scope_id","in":"query","schema":{"type":"string","format":"uuid"}},
-          {"name":"cursor","in":"query","schema":{"type":"string","format":"uuid"}},
-          {"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":50}}
+          {
+            "name": "metric_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "definition_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization_scope_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Exact retained member page for one Home metric snapshot."},
-          "404": {"description": "Source snapshot is not available in the verified legal entity."}
+          "200": {
+            "description": "Exact retained member page for one Home metric snapshot."
+          },
+          "404": {
+            "description": "Source snapshot is not available in the verified legal entity."
+          }
         }
       }
     },
@@ -2106,13 +2155,39 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "x-clearsight-permission": "OVERSIGHT_READ",
         "parameters": [
-          {"name":"metric_id","in":"path","required":true,"schema":{"type":"string"}},
-          {"name":"start_date","in":"query","required":true,"schema":{"type":"string","format":"date"}},
-          {"name":"end_date","in":"query","schema":{"type":"string","format":"date"}}
+          {
+            "name": "metric_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Bounded retained trend and comparison for one Home metric."},
-          "404": {"description": "No retained history is available for the requested metric and period."}
+          "200": {
+            "description": "Bounded retained trend and comparison for one Home metric."
+          },
+          "404": {
+            "description": "No retained history is available for the requested metric and period."
+          }
         }
       }
     },
@@ -2122,8 +2197,12 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "x-clearsight-permission": "OVERSIGHT_READ",
         "responses": {
-          "200": {"description": "Latest retained cross-domain Risk, indicator, assurance and operational-loss metrics."},
-          "503": {"description": "Cross-domain metrics are not available yet."}
+          "200": {
+            "description": "Latest retained cross-domain Risk, indicator, assurance and operational-loss metrics."
+          },
+          "503": {
+            "description": "Cross-domain metrics are not available yet."
+          }
         }
       }
     },
@@ -2133,7 +2212,9 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "x-clearsight-permission": "OVERSIGHT_READ",
         "responses": {
-          "200": {"description": "Exact retained membership for the requested cross-domain metric source revision."}
+          "200": {
+            "description": "Exact retained membership for the requested cross-domain metric source revision."
+          }
         }
       }
     },
@@ -2143,7 +2224,9 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "x-clearsight-permission": "OVERSIGHT_READ",
         "responses": {
-          "200": {"description": "Retained hourly or daily history for the requested cross-domain metric."}
+          "200": {
+            "description": "Retained hourly or daily history for the requested cross-domain metric."
+          }
         }
       }
     },
@@ -2153,7 +2236,9 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "x-clearsight-permission": "OVERSIGHT_READ",
         "responses": {
-          "200": {"description": "Compact active-Risk appetite matrix using the canonical current Risk assessment/appetite semantics."}
+          "200": {
+            "description": "Compact active-Risk appetite matrix using the canonical current Risk assessment/appetite semantics."
+          }
         }
       }
     },
@@ -2163,7 +2248,9 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "x-clearsight-permission": "OVERSIGHT_READ",
         "responses": {
-          "200": {"description": "Compact active-Risk assurance coverage matrix derived from linked Program control evidence."}
+          "200": {
+            "description": "Compact active-Risk assurance coverage matrix derived from linked Program control evidence."
+          }
         }
       }
     },
@@ -4426,7 +4513,9 @@
         "operationId": "presentationPreferences",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "responses": {
-          "200": {"description": "Actor-bound presentation defaults with role-derived effective values."}
+          "200": {
+            "description": "Actor-bound presentation defaults with role-derived effective values."
+          }
         }
       },
       "put": {
@@ -4436,13 +4525,19 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {"type":"object"}
+              "schema": {
+                "type": "object"
+              }
             }
           }
         },
         "responses": {
-          "200": {"description": "Updated actor-bound presentation defaults."},
-          "409": {"description": "Preference version changed."}
+          "200": {
+            "description": "Updated actor-bound presentation defaults."
+          },
+          "409": {
+            "description": "Preference version changed."
+          }
         }
       }
     },
@@ -4451,7 +4546,9 @@
         "operationId": "notificationPreferences",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "responses": {
-          "200": {"description": "Actor-bound notification preferences and mandatory channel policy."}
+          "200": {
+            "description": "Actor-bound notification preferences and mandatory channel policy."
+          }
         }
       },
       "put": {
@@ -4461,13 +4558,19 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {"type":"object"}
+              "schema": {
+                "type": "object"
+              }
             }
           }
         },
         "responses": {
-          "200": {"description": "Updated actor-bound optional notification preferences."},
-          "409": {"description": "Preference version changed."}
+          "200": {
+            "description": "Updated actor-bound optional notification preferences."
+          },
+          "409": {
+            "description": "Preference version changed."
+          }
         }
       }
     },
@@ -4703,25 +4806,97 @@
         "operationId": "listOperationalLosses",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "parameters": [
-          {"name":"status","in":"query","schema":{"type":"string","enum":["ACTIVE","VOIDED"]}},
-          {"name":"event_type","in":"query","schema":{"type":"string"}},
-          {"name":"currency","in":"query","schema":{"type":"string"}},
-          {"name":"organization_scope_id","in":"query","schema":{"type":"string","format":"uuid"}},
-          {"name":"risk_id","in":"query","schema":{"type":"string","format":"uuid"}},
-          {"name":"recovery_status","in":"query","schema":{"type":"string","enum":["NONE","PARTIAL","FULL"]}},
-          {"name":"search","in":"query","schema":{"type":"string"}},
-          {"name":"cursor","in":"query","schema":{"type":"string"}},
-          {"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":50}}
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "VOIDED"
+              ]
+            }
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization_scope_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "risk_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "recovery_status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NONE",
+                "PARTIAL",
+                "FULL"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Exact legal-entity operational loss page."}
+          "200": {
+            "description": "Exact legal-entity operational loss page."
+          }
         }
       },
       "post": {
         "operationId": "createOperationalLoss",
         "x-clearsight-route-class": "MATERIAL_COMMAND",
         "responses": {
-          "201": {"description": "Created governed operational loss."}
+          "201": {
+            "description": "Created governed operational loss."
+          }
         }
       }
     },
@@ -4730,20 +4905,40 @@
         "operationId": "getOperationalLoss",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
         "parameters": [
-          {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Operational loss with recovery ledger and derived totals."}
+          "200": {
+            "description": "Operational loss with recovery ledger and derived totals."
+          }
         }
       },
       "post": {
         "operationId": "updateOperationalLoss",
         "x-clearsight-route-class": "MATERIAL_COMMAND",
         "parameters": [
-          {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Updated governed operational loss."}
+          "200": {
+            "description": "Updated governed operational loss."
+          }
         }
       }
     },
@@ -4752,10 +4947,20 @@
         "operationId": "openOperationalLossIntervention",
         "x-clearsight-route-class": "MATERIAL_COMMAND",
         "parameters": [
-          {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Canonical operational-loss Matter created or reused and linked."}
+          "200": {
+            "description": "Canonical operational-loss Matter created or reused and linked."
+          }
         }
       }
     },
@@ -4764,10 +4969,20 @@
         "operationId": "recordOperationalLossRecovery",
         "x-clearsight-route-class": "MATERIAL_COMMAND",
         "parameters": [
-          {"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
-          "201": {"description": "Append-only recovery or recovery reversal recorded."}
+          "201": {
+            "description": "Append-only recovery or recovery reversal recorded."
+          }
         }
       }
     },
@@ -4992,6 +5207,34 @@
       "post": {
         "operationId": "rejectLegalEntityDataBoundary",
         "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/escalation-sequence-revisions": {
+      "post": {
+        "operationId": "proposeEscalationSequenceRevision",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/escalation-sequence-revisions/{policy_id}/{version}/approve": {
+      "post": {
+        "operationId": "approveEscalationSequenceRevision",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/escalation-sequence-revisions/{policy_id}/restore": {
+      "post": {
+        "operationId": "restoreEscalationSequenceRevision",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/escalations/simulate": {
+      "post": {
+        "operationId": "simulateEscalation",
+        "x-clearsight-route-class": "AUTHENTICATED_OPERATION",
         "x-clearsight-permission": "IDENTITY_CONFIGURE"
       }
     }
