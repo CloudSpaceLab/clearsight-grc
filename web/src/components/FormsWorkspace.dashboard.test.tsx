@@ -5,6 +5,7 @@ import type { FormLibraryItem } from "../formsTypes";
 import { FormsWorkspace } from "./FormsWorkspace";
 
 const api = vi.hoisted(() => ({
+  loadFormTemplateItem: vi.fn(),
   loadFormTemplatePage: vi.fn(),
   loadFormTemplateRevision: vi.fn(),
   loadReusableFormTemplateRefs: vi.fn(),
@@ -58,6 +59,7 @@ beforeEach(() => {
   window.history.replaceState(null, "", "#forms");
   window.localStorage.clear();
   for (const mock of Object.values(api)) mock.mockReset();
+  api.loadFormTemplateItem.mockImplementation(async (id: string) => ({ ...item, template: { ...item.template, id } }));
   api.loadFormTemplatePage.mockResolvedValue({ items: [item] });
   api.loadFormTemplateRevision.mockResolvedValue(item.template);
   api.loadReusableFormTemplateRefs.mockResolvedValue([]);
