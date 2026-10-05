@@ -90,6 +90,8 @@ export function NotificationCenter({
           <p>Recent work changes delivered to your signed-in account.</p>
         </header>
 
+        <NotificationPreferences/>
+
         {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading notifications…</div>}
         {state === "unavailable" && <EmptyState
           population="Notifications"
@@ -131,7 +133,7 @@ function mergeNotifications(current: InAppNotification[], next: InAppNotificatio
 }
 
 function safeNotificationPath(value: string) {
-  return /^#(?:oversight|work|programs|vendors|ropa|forms|people|configure|imports|reports)(?:[/?#]|$)/.test(value) && !/[\r\n]/.test(value);
+  return /^#(?:oversight|work|programs|risks|losses|vendors|ropa|forms|people|configure|imports|reports)(?:[/?#]|$)/.test(value) && !/[\r\n]/.test(value);
 }
 
 function openNotificationPath(path: string) {
