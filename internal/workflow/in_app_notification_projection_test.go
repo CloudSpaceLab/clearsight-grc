@@ -12,8 +12,13 @@ import (
 )
 
 type inAppProjectionRepoStub struct {
-	context assignmentNotificationContext
-	records []inAppNotificationRecord
+	context                    assignmentNotificationContext
+	currentEscalationPrincipal string
+	records                    []inAppNotificationRecord
+}
+
+func (s *inAppProjectionRepoStub) LoadCurrentEscalationPrincipal(context.Context, workflowruntime.OutboxEvent, string) (string, error) {
+	return s.currentEscalationPrincipal, nil
 }
 
 func (s *inAppProjectionRepoStub) LoadAssignmentNotification(context.Context, workflowruntime.OutboxEvent, assignmentNotificationEvent) (assignmentNotificationContext, error) {
@@ -115,5 +120,43 @@ func TestInAppNotificationProjectorRendersSafeAttentionIntent(t *testing.T) {
 	}
 	if strings.Contains(record.Title, "CRITICAL") || strings.Contains(record.Summary, sourceID) {
 		t.Fatalf("raw condition/source metadata leaked into presentation: %#v", record)
+	}
+}
+
+
+func TestInAppNotificationProjectorProjectsCurrentEscalationOnly(t *testing.T) {
+	matterID := "20000000-0000-4000-8000-000000000020"
+	taskID := "30000000-0000-4000-8000-000000000020"
+	principalID := "40000000-0000-4000-8000-000000000020"
+	entityID := "50000000-0000-4000-8000-000000000020"
+	workflowID := "60000000-0000-4000-8000-000000000020"
+	event := workflowruntime.OutboxEvent{
+		ID: "10000000-0000-4000-8000-000000000020", TenantID: "bank",
+		AggregateType: "WORKFLOW", AggregateID: workflowID, EventType: "WORK_ESCALATED",
+		Payload: []byte(`{"task_id":"` + taskID + `","matter_id":"` + matterID + `","legal_entity_id":"` + entityID + `","principal_id":"` + principalID + `"}`),
+		OccurredAt: time.Date(2026, 10, 5, 9, 0, 0, 0, time.UTC),
+	}
+	repo := &inAppProjectionRepoStub{currentEscalationPrincipal: principalID}
+	projector := NewInAppNotificationProjector(repo, repo)
+	if err := projector.Publish(context.Background(), event); err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.records) != 1 {
+		t.Fatalf("records=%#v", repo.records)
+	}
+	record := repo.records[0]
+	if record.Kind != "WORK_ESCALATED" || record.PrincipalID != principalID ||
+		record.SubjectType != "MATTER" || record.SubjectID != matterID ||
+		record.ActionPath != "#work/matters/"+matterID {
+		t.Fatalf("record=%#v", record)
+	}
+
+	repo.records = nil
+	repo.currentEscalationPrincipal = "40000000-0000-4000-8000-000000000099"
+	if err := projector.Publish(context.Background(), event); err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.records) != 0 {
+		t.Fatalf("superseded escalation produced notification: %#v", repo.records)
 	}
 }
