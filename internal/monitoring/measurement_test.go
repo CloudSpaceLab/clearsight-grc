@@ -173,11 +173,11 @@ func TestNativeMeasurementConditionSupportsTwoSidedRange(t *testing.T) {
 		{Operator: OperatorGreaterOrEqual, Expected: "40"},
 		{Operator: OperatorLessOrEqual, Expected: "60"},
 	}
-	within, err := EvaluateNativeMeasurementCondition(&NativeMeasurement{Unit: MeasurementCount, Value: "60", Limits: limits})
+	within, err := EvaluateNativeMeasurementCondition(&NativeMeasurement{Unit: MeasurementPercent, Value: "60", Limits: limits})
 	if err != nil || within != MeasurementConditionWithin {
 		t.Fatalf("upper boundary condition = %s, err=%v", within, err)
 	}
-	breached, err := EvaluateNativeMeasurementCondition(&NativeMeasurement{Unit: MeasurementCount, Value: "60.0001", Limits: limits})
+	breached, err := EvaluateNativeMeasurementCondition(&NativeMeasurement{Unit: MeasurementPercent, Value: "60.0001", Limits: limits})
 	if err != nil || breached != MeasurementConditionBreached {
 		t.Fatalf("outside range condition = %s, err=%v", breached, err)
 	}
