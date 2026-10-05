@@ -50,63 +50,64 @@ export function SessionGate({ children }: { children: ReactNode; presentation?: 
     if (entering.current) return;
     entering.current = true;
     try {
-    setState("checking");
-    setLoginError("");
-    let status;
-    try {
-      status = await loadSessionStatus();
-    } catch {
-      setDemoMode(false);
-      setState("ready");
-      return;
-    }
-
-    if (status && !status.authenticated && status.demo_login_available) {
-      const available = await loadDemoAccounts().catch(() => []);
-      setAccounts(available);
-      setDemoMode(true);
-      setState(available.length ? "login" : "ready");
-      return;
-    }
-
-    if (status?.authenticated) {
+      setState("checking");
+      setLoginError("");
+      let status;
       try {
-        await rememberContext(await loadContext() as SessionRuntime);
-      } catch (error) {
-        if (apiErrorKind(error) === "unauthorized" && status.demo_login_available) {
-          const available = await loadDemoAccounts().catch(() => []);
-          setAccounts(available);
-          setDemoMode(true);
-          setState(available.length ? "login" : "ready");
-          return;
-        }
-        setDemoMode(false);
-      }
-      setState("ready");
-      return;
-    }
-
-    try {
-      await rememberContext(await loadContext() as SessionRuntime);
-      setState("ready");
-      return;
-    } catch (error) {
-      if (apiErrorKind(error) !== "unauthorized") {
+        status = await loadSessionStatus();
+      } catch {
         setDemoMode(false);
         setState("ready");
         return;
       }
-    }
 
-    const available = await loadDemoAccounts().catch(() => []);
-    if (!available.length) {
-      setDemoMode(false);
-      setState("ready");
-      return;
-    }
-    setAccounts(available);
-    setDemoMode(true);
-    setState("login");    } finally {
+      if (status && !status.authenticated && status.demo_login_available) {
+        const available = await loadDemoAccounts().catch(() => []);
+        setAccounts(available);
+        setDemoMode(true);
+        setState(available.length ? "login" : "ready");
+        return;
+      }
+
+      if (status?.authenticated) {
+        try {
+          await rememberContext(await loadContext() as SessionRuntime);
+        } catch (error) {
+          if (apiErrorKind(error) === "unauthorized" && status.demo_login_available) {
+            const available = await loadDemoAccounts().catch(() => []);
+            setAccounts(available);
+            setDemoMode(true);
+            setState(available.length ? "login" : "ready");
+            return;
+          }
+          setDemoMode(false);
+        }
+        setState("ready");
+        return;
+      }
+
+      try {
+        await rememberContext(await loadContext() as SessionRuntime);
+        setState("ready");
+        return;
+      } catch (error) {
+        if (apiErrorKind(error) !== "unauthorized") {
+          setDemoMode(false);
+          setState("ready");
+          return;
+        }
+      }
+
+      const available = await loadDemoAccounts().catch(() => []);
+      if (!available.length) {
+        setDemoMode(false);
+        setState("ready");
+        return;
+      }
+      setAccounts(available);
+      setDemoMode(true);
+      setState("login");
+    } finally {
       entering.current = false;
     }
   }
