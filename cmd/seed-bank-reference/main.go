@@ -109,6 +109,8 @@ func main() {
 	})
 	installedJourneys, err := installer.InstallSample(ctx, seed)
 	fatalIf(err)
+	sourceRisks, err := reconcilePersistedSourceRisks(ctx, pool, seed)
+	fatalIf(err)
 	operatingDemo, err := installer.EnsureOperatingDemo(ctx, seed)
 	fatalIf(err)
 	programID := referenceProgramID(installedJourneys)
@@ -169,6 +171,7 @@ func main() {
 		"reference_vendor_id":              referenceVendor.Vendor.ID,
 		"reference_vendor_relationship_id": referenceVendor.Relationship.ID,
 		"operating_demo":                   operatingDemo,
+		"source_risk_reconciliation":       sourceRisks,
 		"operating_vendor_count":           len(operatingVendors),
 		"operating_form_samples":           formSamples,
 		"oversight_projection":             oversightSnapshot.ProjectionVersion,
