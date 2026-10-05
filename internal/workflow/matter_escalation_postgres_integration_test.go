@@ -190,6 +190,7 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 		t.Fatal(err)
 	}
 	assertEscalatedTask(t, ctx, pool, taskID, "ACCOUNTABLE_OWNER", ownerID, "0", "ROUTED")
+	assertEscalationNotificationIntentCount(t, ctx, pool, tenantID, taskID, 1)
 
 	secondEvent := fireEscalationTimer(t, ctx, pool, tenantID, tenantSlug, taskID, 1, now.Add(time.Minute))
 	current = now.Add(time.Minute)
@@ -197,6 +198,7 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 		t.Fatal(err)
 	}
 	assertEscalatedTask(t, ctx, pool, taskID, "ESCALATION_OWNER", parentRiskID, "1", "ROUTED")
+	assertEscalationNotificationIntentCount(t, ctx, pool, tenantID, taskID, 2)
 
 	// The normal lifecycle projector may reconcile current work between escalation
 	// levels. The trigger must preserve the active overlay when the canonical
@@ -219,6 +221,7 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 	if afterReplay != beforeReplay {
 		t.Fatalf("replayed escalation event changed task version: before=%d after=%d", beforeReplay, afterReplay)
 	}
+	assertEscalationNotificationIntentCount(t, ctx, pool, tenantID, taskID, 2)
 
 	thirdEvent := fireEscalationTimer(t, ctx, pool, tenantID, tenantSlug, taskID, 2, now.Add(2*time.Minute))
 	current = now.Add(2 * time.Minute)
@@ -226,6 +229,7 @@ func TestMatterEscalationExecutesOrderedDepartmentSequenceAndCancelsOnCompletion
 		t.Fatal(err)
 	}
 	assertEscalatedTask(t, ctx, pool, taskID, "AUTHORIZER", croID, "2", "ROUTED")
+	assertEscalationNotificationIntentCount(t, ctx, pool, tenantID, taskID, 3)
 
 	var pendingStep int
 	if err := pool.QueryRow(ctx, `SELECT (payload->>'step_index')::int FROM workflow_timers WHERE tenant_id=$1::uuid AND task_id=$2::uuid AND timer_type='MATTER_ESCALATION' AND state='READY'`, tenantID, taskID).Scan(&pendingStep); err != nil {
@@ -282,7 +286,25 @@ func assertEscalatedTask(t *testing.T, ctx context.Context, pool *pgxpool.Pool, 
 	}
 }
 
+func assertEscalationNotificationIntentCount(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, taskID string, want int) {
+	t.Helper()
+	var count int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*)
+		FROM outbox_events
+		WHERE tenant_id=$1::uuid
+		  AND aggregate_type='WORKFLOW'
+		  AND event_type='WORK_ESCALATED'
+		  AND payload->>'task_id'=$2`, tenantID, taskID).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != want {
+		t.Fatalf("escalation notification intents=%d want %d", count, want)
+	}
+}
+
 func cleanupEscalationFixture(ctx context.Context, pool *pgxpool.Pool, tenantID, policyID string) {
+	_, _ = pool.Exec(ctx, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM workflow_timers WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM inbox_receipts WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM workflow_events WHERE tenant_id=$1::uuid`, tenantID)
