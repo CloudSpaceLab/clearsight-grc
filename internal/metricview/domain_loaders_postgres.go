@@ -270,4 +270,3 @@ func loadLossWithoutIssueMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 	}
 	return result, rows.Err()
 }
-
