@@ -46,6 +46,15 @@ func (s *Service) ProposeEscalationSequenceRevision(ctx context.Context, input E
 		return RoutingPolicyRevision{}, pendingErr
 	}
 
+	sequences, err := ParseEscalationSequences(baseDefinition)
+	if err != nil {
+		return RoutingPolicyRevision{}, err
+	}
+	for _, existing := range sequences {
+		if existing.ID == input.SequenceID && existing.Trigger != "OVERDUE" {
+			return RoutingPolicyRevision{}, fmt.Errorf("%w: sequence %s belongs to trigger %s and cannot be changed through the OVERDUE editor", ErrConflict, input.SequenceID, existing.Trigger)
+		}
+	}
 	sequence, err := canonicalEscalationSequence(input)
 	if err != nil {
 		return RoutingPolicyRevision{}, err
