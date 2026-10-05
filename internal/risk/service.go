@@ -129,14 +129,22 @@ func (s *Service) AddAssessment(ctx context.Context, input AssessmentInput) (Ris
 		return Risk{}, Assessment{}, ErrVersionConflict
 	}
 	now := s.now()
+	assessedAt := input.AssessedAt.UTC()
+	if assessedAt.IsZero() {
+		assessedAt = now
+	}
+	assessedBy := strings.TrimSpace(input.AssessedBy)
+	if assessedBy == "" {
+		assessedBy = strings.TrimSpace(input.ActorID)
+	}
 	assessment := Assessment{
 		RiskID: current.ID, RiskVersion: current.Version + 1,
 		Kind: input.Kind, MethodCode: strings.TrimSpace(input.MethodCode), MethodVersion: strings.TrimSpace(input.MethodVersion),
 		Dimensions: normalizedJSON(input.Dimensions), Assumptions: normalizedJSON(input.Assumptions),
 		EvidenceReferences: normalizedJSONArray(input.EvidenceReferences), Confidence: normalizedConfidence(input.Confidence),
-		AssessedBy: strings.TrimSpace(input.ActorID), AppetiteStatementID: strings.TrimSpace(input.AppetiteStatementID),
+		AssessedBy: assessedBy, AppetiteStatementID: strings.TrimSpace(input.AppetiteStatementID),
 		AppetitePosition: input.AppetitePosition, AppetiteRationale: strings.TrimSpace(input.AppetiteRationale),
-		AssessedAt: now, CreatedAt: now,
+		AssessedAt: assessedAt, CreatedAt: now,
 	}
 	if assessment.AppetiteStatementID == "" {
 		if assessment.AppetitePosition != AppetiteUnknown {
