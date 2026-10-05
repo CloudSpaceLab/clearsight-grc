@@ -631,6 +631,28 @@ func (r *PostgresRepository) ListResults(ctx context.Context, tenant, checkID st
 	return values, rows.Err()
 }
 
+func (r *PostgresRepository) ListResultRevisions(ctx context.Context, tenant, checkID string, version int64, limit int) ([]MonitoringResult, error) {
+	rows, err := r.pool.Query(ctx, resultSelect+`
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND r.monitoring_check_id=$2::uuid
+		  AND r.monitoring_check_version=$3::bigint
+		ORDER BY r.evaluated_at DESC,r.id DESC
+		LIMIT $4`, tenant, checkID, version, boundedLimit(limit))
+	if err != nil {
+		return nil, mapPostgresError(err)
+	}
+	defer rows.Close()
+	values := make([]MonitoringResult, 0)
+	for rows.Next() {
+		value, scanErr := scanResult(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	return values, rows.Err()
+}
+
 func (r *PostgresRepository) LatestResultRevision(ctx context.Context, tenant, checkID string, version int64) (MonitoringResult, error) {
 	value, err := scanResult(r.pool.QueryRow(ctx, resultSelect+`
 		WHERE (t.id::text=$1 OR t.slug=$1)
