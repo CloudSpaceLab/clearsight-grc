@@ -226,6 +226,18 @@ func (s *Service) ListFormLibrary(ctx context.Context, filter FormLibraryFilter)
 	return s.repo.ListFormLibrary(ctx, filter)
 }
 
+func (s *Service) GetFormLibraryItem(ctx context.Context, formID string) (FormLibraryItem, error) {
+	actor, err := s.requireFormActor(ctx)
+	if err != nil {
+		return FormLibraryItem{}, err
+	}
+	formID = strings.TrimSpace(formID)
+	if formID == "" {
+		return FormLibraryItem{}, errors.Join(ErrInvalid, fmt.Errorf("form is required"))
+	}
+	return s.repo.FormLibraryItem(ctx, actor.TenantID, actor.LegalEntityID, formID)
+}
+
 func (s *Service) ListStarterTemplates(ctx context.Context) ([]StarterTemplate, error) {
 	if _, err := s.requireFormActor(ctx); err != nil {
 		return nil, err
