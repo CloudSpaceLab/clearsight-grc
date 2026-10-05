@@ -54,6 +54,8 @@ type escalationTimerPayload struct {
 	Trigger             string   `json:"trigger"`
 	StepIndex           int      `json:"step_index"`
 	BaselineDueAt       string   `json:"baseline_due_at"`
+	TerminalHandling    string   `json:"terminal_handling,omitempty"`
+	RecoveryAction      string   `json:"recovery_action,omitempty"`
 	BaseDepartmentPath  []string `json:"base_department_path,omitempty"`
 	BaseDepartmentState string   `json:"base_department_state,omitempty"`
 }
@@ -130,6 +132,7 @@ func (c *MatterEscalationCoordinator) Maintain(ctx context.Context, now time.Tim
 			Kind: "MATTER_ESCALATION", TaskID: task.ID, WorkflowID: task.WorkflowID,
 			PolicyVersion: policyVersion, SequenceID: sequence.ID, Trigger: sequence.Trigger,
 			StepIndex: 0, BaselineDueAt: task.DueAt.UTC().Format(time.RFC3339Nano),
+			TerminalHandling: sequence.TerminalHandling, RecoveryAction: sequence.RecoveryAction,
 		}
 		if err := c.scheduleStep(ctx, task.TenantID, task.WorkflowID, task.ID, payload, sequence.Steps[0]); err != nil {
 			return processed, fmt.Errorf("schedule escalation for task %s: %w", task.ID, err)
@@ -758,9 +761,15 @@ func (c *MatterEscalationCoordinator) scheduleNext(ctx context.Context, tenant s
 	if err != nil {
 		return err
 	}
+	if payload.TerminalHandling == "" {
+		payload.TerminalHandling = sequence.TerminalHandling
+	}
+	if payload.RecoveryAction == "" {
+		payload.RecoveryAction = sequence.RecoveryAction
+	}
 	next := payload.StepIndex + 1
 	if next >= len(sequence.Steps) {
-		return nil
+		return c.recordTerminalEscalation(ctx, tenant, payload)
 	}
 	payload.StepIndex = next
 	return c.scheduleStep(ctx, tenant, payload.WorkflowID, payload.TaskID, payload, sequence.Steps[next])
@@ -771,6 +780,7 @@ func (c *MatterEscalationCoordinator) scheduleStep(ctx context.Context, tenant, 
 	if baseline.IsZero() {
 		return fmt.Errorf("escalation baseline due_at is invalid")
 	}
+	dueAt := baseline.Add(step.After)
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -779,12 +789,84 @@ func (c *MatterEscalationCoordinator) scheduleStep(ctx context.Context, tenant, 
 	if err != nil {
 		return err
 	}
-	_, err = c.Runtime.ScheduleTimer(ctx, workflowruntime.Timer{
+	if _, err = c.Runtime.ScheduleTimer(ctx, workflowruntime.Timer{
 		ID: timerID, TenantID: tenant, WorkflowID: workflowID, TaskID: taskID,
-		Type: matterEscalationTimerType, DueAt: baseline.Add(step.After),
+		Type: matterEscalationTimerType, DueAt: dueAt,
 		DedupeKey: escalationDedupeKey(payload), Payload: raw,
+	}); err != nil {
+		return err
+	}
+	return c.recordScheduledEscalation(ctx, tenant, taskID, payload, dueAt)
+}
+
+func (c *MatterEscalationCoordinator) recordScheduledEscalation(ctx context.Context, tenant, taskID string, payload escalationTimerPayload, dueAt time.Time) error {
+	overlay, err := json.Marshal(map[string]string{
+		"escalation_sequence_id":         payload.SequenceID,
+		"escalation_policy_version":      payload.PolicyVersion,
+		"escalation_next_step_index":     strconv.Itoa(payload.StepIndex),
+		"escalation_next_due_at":         dueAt.UTC().Format(time.RFC3339Nano),
+		"escalation_terminal_handling":   payload.TerminalHandling,
+		"escalation_recovery_action":     payload.RecoveryAction,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	_, err = c.Repo.pool.Exec(ctx, `
+		UPDATE workflow_tasks
+		SET context=context || $3::jsonb,updated_at=$4,version=version+1
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+		  AND id=$2::uuid AND status NOT IN ('COMPLETED','CANCELLED')
+		  AND COALESCE(context->>'authority_policy_version','')=$5
+		  AND (
+		    COALESCE(context->>'escalation_next_step_index','')<>$6
+		    OR COALESCE(context->>'escalation_next_due_at','')<>$7
+		    OR COALESCE(context->>'escalation_recovery_action','')<>$8
+		  )`,
+		tenant, taskID, string(overlay), c.currentTime(), payload.PolicyVersion,
+		strconv.Itoa(payload.StepIndex), dueAt.UTC().Format(time.RFC3339Nano), payload.RecoveryAction)
+	if err != nil {
+		return fmt.Errorf("record scheduled escalation state: %w", err)
+	}
+	return nil
+}
+
+func (c *MatterEscalationCoordinator) recordTerminalEscalation(ctx context.Context, tenant string, payload escalationTimerPayload) error {
+	overlay, err := json.Marshal(map[string]string{
+		"escalation_terminal":            "true",
+		"escalation_terminal_handling":   payload.TerminalHandling,
+		"escalation_recovery_action":     payload.RecoveryAction,
+	})
+	if err != nil {
+		return err
+	}
+	tx, err := c.Repo.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	tag, err := tx.Exec(ctx, `
+		UPDATE workflow_tasks
+		SET context=(context - 'escalation_next_step_index' - 'escalation_next_due_at') || $3::jsonb,
+		    updated_at=$4,version=version+1
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+		  AND id=$2::uuid AND status NOT IN ('COMPLETED','CANCELLED')
+		  AND COALESCE(context->>'authority_policy_version','')=$5
+		  AND COALESCE(context->>'escalation_terminal','')<>'true'`,
+		tenant, payload.TaskID, string(overlay), c.currentTime(), payload.PolicyVersion)
+	if err != nil {
+		return fmt.Errorf("record terminal escalation state: %w", err)
+	}
+	if tag.RowsAffected() > 0 {
+		_, err = tx.Exec(ctx, `
+			INSERT INTO workflow_events(tenant_id,workflow_id,event_type,safe_metadata,occurred_at)
+			VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'WORK_ESCALATION_TERMINAL',
+			       jsonb_build_object('task_id',$3::text,'sequence_id',$4::text,'step_index',$5::int,'recovery_action',$6::text),$7)`,
+			tenant, payload.WorkflowID, payload.TaskID, payload.SequenceID, payload.StepIndex, payload.RecoveryAction, c.currentTime())
+		if err != nil {
+			return fmt.Errorf("record terminal escalation event: %w", err)
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 func escalationOverlay(payload escalationTimerPayload, step governance.EscalationStep, status string, targetDepartment []string) map[string]string {
@@ -809,6 +891,9 @@ func escalationOverlay(payload escalationTimerPayload, step governance.Escalatio
 		"escalation_source_roles":           string(sourceRolesJSON),
 		"escalation_target_roles":           string(targetRolesJSON),
 		"escalation_target_groups":          string(targetGroupsJSON),
+		"escalation_target_positions":       string(targetPositionsJSON),
+		"escalation_terminal_handling":      payload.TerminalHandling,
+		"escalation_recovery_action":        payload.RecoveryAction,
 	}
 }
 
