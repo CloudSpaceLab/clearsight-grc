@@ -379,3 +379,15 @@ it("reorders existing Home sections for a my-work-first preference without hidin
   expect(text.indexOf("Your assigned work")).toBeLessThan(text.indexOf("Critical and high"));
   expect(screen.getByRole("button", { name: /Critical and high: 7/ })).toBeTruthy();
 });
+
+
+it("reloads Home projections when the actor invalidation revision changes", async () => {
+  const { rerender } = render(<OversightWorkspace refreshToken="rev-1" organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledTimes(1));
+  expect(metricApi.loadHomeMetrics).toHaveBeenCalledTimes(1);
+
+  rerender(<OversightWorkspace refreshToken="rev-2" organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledTimes(2));
+  expect(metricApi.loadHomeMetrics).toHaveBeenCalledTimes(2);
+});
