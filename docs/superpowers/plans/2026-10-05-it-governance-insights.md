@@ -674,6 +674,23 @@ No second recovery-plan workflow.
 
 ---
 
+# 10.5 Presentation semantics dependency
+
+IT Governance must consume the semantic-presentation architecture tracked by #346 rather than rendering every domain through generic Program/response/Matter chrome.
+
+Required mapping for this program:
+
+- Projects / Assets / ITSM populations → **REGISTER**;
+- service/channel/patch/SLA/budget threshold measures → **INDICATOR**;
+- resilience review/test periods → **CYCLE** once #271 owns the governed service/BIA state;
+- material source exceptions → **CASE / INTERVENTION** through existing Matters;
+- continuing IT governance Programs remain **PROGRAM** context, not the primary visual representation of source populations;
+- operational losses remain the existing **LEDGER** presentation and link into IT Governance Insights by metric/drill rather than being re-rendered as generic Matters.
+
+The Program response viewer remains the exact evidence/provenance surface. It must not become the primary KRI, RCSA, BIA, project, asset or channel-management surface when a semantic presentation exists.
+
+For KRI/KCI and IT operational measures, show the source/native value, unit and approved threshold as the primary value. Any normalized 0–100 concern/risk score remains secondary cross-domain context.
+
 # 11. Tranche T6 — IT Governance Insights
 
 This should compose with #266/#274 rather than create a new dashboard shell.
