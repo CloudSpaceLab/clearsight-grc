@@ -7,6 +7,7 @@ import {
   createLibraryFormRevision,
   deleteSavedFormView,
   instantiateStarterTemplate,
+  loadFormTemplateItem,
   loadFormTemplatePage,
   loadFormTemplateRevision,
   loadReusableFormTemplateRefs,
@@ -66,6 +67,9 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const [query, setQuery] = useState<FormTemplateQuery>(() => readFormsQuery(window.location.hash, initialSearch));
   const [page, setPage] = useState<FormTemplatePage>({ items: [] });
   const [state, setState] = useState<LoadState>("loading");
+  const [directItem, setDirectItem] = useState<FormLibraryItem | null>(null);
+  const [directItemState, setDirectItemState] = useState<"idle" | "loading" | "error">("idle");
+  const [directItemAttempt, setDirectItemAttempt] = useState(0);
   const [revalidating, setRevalidating] = useState(false);
   const [starters, setStarters] = useState<StarterTemplate[]>([]);
   const [reusableTemplates, setReusableTemplates] = useState<ReusableFormTemplateRef[]>([]);
@@ -98,7 +102,8 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
   const requestAbort = useRef<AbortController | null>(null);
   const lastSuccessfulRefresh = useRef(0);
 
-  const selected = useMemo(() => page.items.find((item) => item.template.id === targetID), [page.items, targetID]);
+  const selectedInPage = useMemo(() => page.items.find((item) => item.template.id === targetID), [page.items, targetID]);
+  const selected = selectedInPage ?? (directItem?.template.id === targetID ? directItem : undefined);
   const selectedItems = useMemo(() => page.items.filter((item) => selectedIDs.has(item.template.id)), [page.items, selectedIDs]);
   const bulkTransition = selectedItems.length > 0 && selectedItems.every((item) => item.template.status === "DRAFT"
     && isTemplateApprovalReady(item.template)
@@ -117,6 +122,27 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     && page.items.length <= (query.limit ?? 25);
 
   useEffect(() => setAppearance(readAppearance(appearanceKey)), [appearanceKey]);
+
+  useEffect(() => {
+    let active = true;
+    if (!targetID || selectedInPage?.template.id === targetID) {
+      setDirectItem(null);
+      setDirectItemState("idle");
+      return () => { active = false; };
+    }
+    setDirectItem((current) => current?.template.id === targetID ? current : null);
+    setDirectItemState("loading");
+    void loadFormTemplateItem(targetID).then((item) => {
+      if (!active) return;
+      setDirectItem(item);
+      setDirectItemState("idle");
+    }).catch(() => {
+      if (!active) return;
+      setDirectItem(null);
+      setDirectItemState("error");
+    });
+    return () => { active = false; };
+  }, [targetID, selectedInPage?.template.id, directItemAttempt]);
 
   useEffect(() => {
     if (navigationLocation) changeSection(readFormsSection(navigationLocation.hash));
@@ -422,6 +448,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
     try {
       await transitionFormTemplateRevision(item.template.id, item.template.version, to);
       setNotice(to === "PENDING_APPROVAL" ? "Sent for approval." : to === "ACTIVE" ? "Revision active." : "State updated.");
+      if (!selectedInPage && targetID === item.template.id) setDirectItemAttempt((attempt) => attempt + 1);
       await Promise.all([refresh(), refreshReusableTemplates()]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The form state could not be changed.");
@@ -525,8 +552,10 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
         item={selected}
         requestedID={targetID}
         busy={busy}
+        loading={Boolean(targetID && !selected && directItemState !== "error")}
+        error={directItemState === "error"}
         onClose={() => choose(undefined)}
-        onClearFilters={clearFiltersAndTarget}
+        onRetry={() => setDirectItemAttempt((attempt) => attempt + 1)}
         onEdit={() => { if (selected) openEdit(selected); }}
         onTransition={(to) => { if (selected) void transition(selected, to); }}
       />
