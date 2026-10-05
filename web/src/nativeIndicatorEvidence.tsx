@@ -126,8 +126,6 @@ export function NativeIndicatorEvidencePage() {
     <IndicatorDetail
       indicator={indicator}
       loadResults={async () => history}
-      onOpenProgram={() => undefined}
-      onOpenMatter={() => undefined}
     />
   </main>;
 }
