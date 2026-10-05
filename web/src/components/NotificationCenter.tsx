@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { loadNotifications, markNotificationRead, type InAppNotification, type NotificationPage } from "../notificationApi";
+import { NotificationPreferences } from "./NotificationPreferences";
 import { Button, EmptyState, FocusedSheet, IconButton, Notice, StatusBadge } from "./ui";
 import "../notification-center.css";
 
@@ -88,6 +89,8 @@ export function NotificationCenter({
           <h2>Notifications</h2>
           <p>Recent work changes delivered to your signed-in account.</p>
         </header>
+
+        <NotificationPreferences/>
 
         {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading notifications…</div>}
         {state === "unavailable" && <EmptyState
