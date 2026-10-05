@@ -69,6 +69,7 @@ func TestCriticalEmailSendsOnlyCriticalOpenOrWorsen(t *testing.T) {
 			RecipientName:         "Risk Officer",
 			RecipientAddress:      "risk@example.test",
 			CurrentNoticeSequence: 2,
+			StillEligible:         true,
 		},
 		claimResult: true,
 	}
@@ -107,6 +108,7 @@ func TestCriticalEmailClaimPreventsDuplicateAndUnknownOutcomeIsTerminal(t *testi
 			RecipientName:         "Risk Officer",
 			RecipientAddress:      "risk@example.test",
 			CurrentNoticeSequence: 1,
+			StillEligible:         true,
 		},
 		claimResult: false,
 	}
@@ -130,5 +132,30 @@ func TestCriticalEmailClaimPreventsDuplicateAndUnknownOutcomeIsTerminal(t *testi
 	}
 	if got := repo.records[len(repo.records)-1].Status; got != "DELIVERY_OUTCOME_UNKNOWN" {
 		t.Fatalf("status=%s", got)
+	}
+}
+
+
+func TestCriticalEmailSuppressesSupersededRecipient(t *testing.T) {
+	now := time.Date(2026, 10, 5, 20, 0, 0, 0, time.UTC)
+	repo := &criticalEmailRepoStub{
+		value: CriticalEmailContext{
+			BrandName: "Meridian Bank", RecipientName: "Former Risk Officer",
+			RecipientAddress: "former@example.test", CurrentNoticeSequence: 1, StillEligible: false,
+		},
+		claimResult: true,
+	}
+	delivery := &criticalEmailDeliveryStub{}
+	consumer := NewCriticalEmailConsumer(repo, delivery, "https://clearsight.example.test")
+	consumer.now = func() time.Time { return now }
+
+	if err := consumer.Publish(context.Background(), attentionEmailEvent(EventEpisodeOpened, "CRITICAL", 1)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 0 {
+		t.Fatalf("superseded recipient reached SMTP: calls=%d", delivery.calls)
+	}
+	if len(repo.claims) != 1 || repo.claims[0].Status != "NOTICE_SUPERSEDED" {
+		t.Fatalf("claims=%#v", repo.claims)
 	}
 }
