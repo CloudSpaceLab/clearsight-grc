@@ -52,35 +52,30 @@ func (r *PostgresResolver) CanReassign(ctx context.Context, request Reassignment
 			SELECT op.id,op.parent_position_id,op.version,ARRAY[op.id] AS visited,0 AS depth
 			FROM org_positions op
 			JOIN selected_scope scope ON scope.tenant_id=op.tenant_id AND scope.legal_entity_id=op.legal_entity_id
-			WHERE op.occupant_principal_id::text=$4
+			JOIN principals owner ON owner.tenant_id=op.tenant_id AND owner.id=op.occupant_principal_id
+			WHERE owner.id::text=$4
 			  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
-		), historical_owner_position_candidates AS (
+		), departed_owner_position_candidates AS (
 			SELECT DISTINCT revision.position_id
 			FROM organization_position_revisions revision
-			JOIN selected_scope scope
-			  ON scope.tenant_id=revision.tenant_id AND scope.legal_entity_id=revision.legal_entity_id
-			JOIN org_positions current_position
-			  ON current_position.tenant_id=revision.tenant_id
-			 AND current_position.legal_entity_id=revision.legal_entity_id
-			 AND current_position.id=revision.position_id
-			WHERE NOT EXISTS (SELECT 1 FROM current_owner_positions)
-			  AND revision.status='APPLIED'
-			  AND revision.operation='UPDATE'
+			JOIN selected_scope scope ON scope.tenant_id=revision.tenant_id AND scope.legal_entity_id=revision.legal_entity_id
+			WHERE revision.status='APPLIED'
 			  AND revision.base_occupant_principal_id::text=$4
-			  AND revision.proposed_occupant_principal_id IS DISTINCT FROM revision.base_occupant_principal_id
-			  AND current_position.valid_from<=clock_timestamp()
-			  AND (current_position.valid_until IS NULL OR clock_timestamp()<current_position.valid_until)
-		), historical_owner_positions AS (
+			  AND (
+			    revision.operation='RETIRE'
+			    OR revision.proposed_occupant_principal_id IS DISTINCT FROM revision.base_occupant_principal_id
+			  )
+			  AND NOT EXISTS (SELECT 1 FROM current_owner_positions)
+		), departed_owner_position AS (
 			SELECT op.id,op.parent_position_id,op.version,ARRAY[op.id] AS visited,0 AS depth
-			FROM historical_owner_position_candidates candidate
+			FROM departed_owner_position_candidates candidate
 			JOIN org_positions op ON op.id=candidate.position_id
 			JOIN selected_scope scope ON scope.tenant_id=op.tenant_id AND scope.legal_entity_id=op.legal_entity_id
-			WHERE (SELECT count(*) FROM historical_owner_position_candidates)=1
-			  AND op.valid_from<=clock_timestamp() AND (op.valid_until IS NULL OR clock_timestamp()<op.valid_until)
+			WHERE (SELECT count(*) FROM departed_owner_position_candidates)=1
 		), owner_positions AS (
 			SELECT * FROM current_owner_positions
 			UNION ALL
-			SELECT * FROM historical_owner_positions
+			SELECT * FROM departed_owner_position
 		), ancestors AS (
 			SELECT * FROM owner_positions
 			UNION ALL
