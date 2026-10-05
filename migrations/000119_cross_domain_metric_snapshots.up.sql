@@ -7,7 +7,7 @@ INSERT INTO metric_definitions(
     ('risks_outside_appetite','enterprise-domain-v1','Outside appetite','COUNT','CURRENT_POSTURE','ZERO_CLEAR_POSITIVE_ATTENTION','SUM_DISJOINT_COUNTS','risks','outside-appetite','SOURCE_SNAPSHOT'),
     ('indicator_breaches','enterprise-domain-v1','Indicator breaches','COUNT','CURRENT_POSTURE','ZERO_CLEAR_POSITIVE_ATTENTION','SUM_DISJOINT_COUNTS','risks','indicator-breach','SOURCE_SNAPSHOT'),
     ('assurance_failures','enterprise-domain-v1','Assurance failures','COUNT','CURRENT_POSTURE','ZERO_CLEAR_POSITIVE_ATTENTION','SUM_DISJOINT_COUNTS','risks','assurance-failed','SOURCE_SNAPSHOT'),
-    ('losses_without_intervention','enterprise-domain-v1','Losses needing intervention','COUNT','CURRENT_POSTURE','ZERO_CLEAR_POSITIVE_ATTENTION','SUM_DISJOINT_COUNTS','losses','needs-intervention','SOURCE_SNAPSHOT');
+    ('losses_without_issue','enterprise-domain-v1','Losses without issue','COUNT','CURRENT_POSTURE','ZERO_CLEAR_POSITIVE_ATTENTION','SUM_DISJOINT_COUNTS','losses','without-issue','SOURCE_SNAPSHOT');
 
 CREATE TABLE domain_metric_snapshots (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
@@ -24,8 +24,8 @@ CREATE TABLE domain_metric_snapshots (
     CONSTRAINT domain_metric_snapshot_entity_fk
         FOREIGN KEY (legal_entity_id,tenant_id)
         REFERENCES legal_entities(id,tenant_id),
-    CHECK (bucket_start=date_trunc('hour',bucket_start)),
-    CHECK (generated_at>=bucket_start AND generated_at<bucket_start+interval '1 hour')
+    CHECK (bucket_start=date_bin(interval '5 minutes',bucket_start,timestamptz '2000-01-01 00:00:00+00')),
+    CHECK (generated_at>=bucket_start AND generated_at<bucket_start+interval '5 minutes')
 );
 
 CREATE INDEX domain_metric_snapshots_retention_idx
