@@ -74,7 +74,6 @@ func TestDailyDigestMissingContactIsFinalWithoutSMTP(t *testing.T) {
 	}
 }
 
-
 func TestDailyDigestSkipsEmptySummary(t *testing.T) {
 	now := time.Date(2026, 10, 5, 7, 0, 3, 0, time.UTC)
 	repo := &digestRepoStub{
