@@ -107,6 +107,8 @@ const expectedNames = [
   "178-import-selected-light-1440x900",
   "179-import-selected-dark-1440x900",
   "180-import-selected-light-mobile-390x844",
+  "181-native-indicator-light-1440x900",
+  "182-native-indicator-dark-mobile-390x844",
   ...formsEvidenceScenarios.map((scenario) => scenario.name),
 ];
 const requiredStates = [
@@ -127,6 +129,8 @@ const requiredStates = [
   "external-field-visit-review",
   "external-field-visit-receipt",
   "document-selected-before-import",
+  "native-indicator-detail",
+  "native-indicator-detail-mobile",
   "lifecycle-work-mobile-expanded",
   "operating-actions-desktop",
   "operating-actions-mobile",
