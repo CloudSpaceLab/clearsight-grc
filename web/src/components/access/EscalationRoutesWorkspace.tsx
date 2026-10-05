@@ -318,7 +318,7 @@ export function EscalationRoutesWorkspace({ overview, isBusy, onBusy, onNotice, 
 
         {simulation && <SimulationResults value={simulation}/>}
       </>}
-      <p className="identity-footnote">Escalation changes assignment only when the current authority route resolves one eligible recipient. It does not grant approval, review, challenge, authorization or signing authority.</p>
+      <p className="identity-footnote">Escalation reassigns work only to one eligible recipient. Approval, review, challenge, authorization and signing permissions are unchanged.</p>
     </article>
   </div>;
 }
