@@ -4,6 +4,7 @@ import type { FormLibraryItem, SavedFormView } from "../formsTypes";
 import { FormsWorkspace } from "./FormsWorkspace";
 
 const api = vi.hoisted(() => ({
+  loadFormTemplateItem: vi.fn(),
   loadFormTemplatePage: vi.fn(),
   loadFormTemplateRevision: vi.fn(),
   loadReusableFormTemplateRefs: vi.fn(),
@@ -56,6 +57,10 @@ const savedView: SavedFormView = {
 beforeEach(() => {
   window.history.replaceState(null, "", "#forms");
   Object.values(api).forEach((mock) => mock.mockReset());
+  api.loadFormTemplateItem.mockImplementation((id: string) => Promise.resolve({
+    ...draftItem,
+    template: { ...draftItem.template, id },
+  }));
   api.loadFormTemplatePage.mockResolvedValue({ items: [draftItem] });
   api.loadFormTemplateRevision.mockResolvedValue(draftItem.template);
   api.loadReusableFormTemplateRefs.mockResolvedValue([]);
@@ -144,6 +149,27 @@ describe("Forms workspace location state", () => {
     await act(async () => finishPage({ items: [old] }));
     expect(screen.queryByRole("button", { name: "Details for Old additional template" })).toBeNull();
     expect(screen.getByRole("button", { name: "Details for Current template" })).toBeTruthy();
+  });
+
+  it("loads a deep-linked template by stable id when it is outside the current page", async () => {
+    const outsidePage = {
+      ...draftItem,
+      template: {
+        ...draftItem.template,
+        id: "program-form",
+        code: "PROGRAM-COLLECTION",
+        name: "Program collection form",
+      },
+    };
+    api.loadFormTemplateItem.mockResolvedValueOnce(outsidePage);
+    api.loadFormTemplatePage.mockResolvedValueOnce({ items: [draftItem], next_cursor: "next-page" });
+
+    render(<FormsWorkspace targetID="program-form"/>);
+
+    expect(await screen.findByRole("heading", { name: "Program collection form" })).toBeTruthy();
+    expect(api.loadFormTemplateItem).toHaveBeenCalledWith("program-form");
+    expect(screen.queryByText("Template isn’t in this view")).toBeNull();
+    expect(screen.getByRole("button", { name: "Details for Vendor due diligence" })).toBeTruthy();
   });
 
   it("opens Documents from a direct section URL and re-fetches after remount", async () => {
