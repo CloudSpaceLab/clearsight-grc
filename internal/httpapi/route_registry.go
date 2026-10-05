@@ -72,6 +72,7 @@ func (a *API) routes() []routeSpec {
 		read("/api/v1/context/organization-scopes", a.actorOrganizationScopeSearch),
 		read("/api/v1/today", a.actorToday),
 		read("/api/v1/notifications", a.listNotifications),
+		read("/api/v1/updates/stream", a.invalidationStream),
 		write(http.MethodPost, "/api/v1/notifications/{id}/read", a.markNotificationRead, nil),
 		read("/api/v1/people/{person_id}", a.employeeProfile),
 		read("/api/v1/people/{person_id}/work", a.employeeWork),
