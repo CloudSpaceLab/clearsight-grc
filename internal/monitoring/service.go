@@ -739,7 +739,7 @@ func (s *Service) Result(ctx context.Context, actor Actor, resultID string) (Mon
 	return s.repo.Result(ctx, actor.TenantID, strings.TrimSpace(resultID))
 }
 
-func copyUTC(value *time.Time) *time.Time {
+func copyMeasurementTimeUTC(value *time.Time) *time.Time {
 	if value == nil {
 		return nil
 	}
@@ -880,8 +880,8 @@ func (s *Service) evaluateFormSubmission(ctx context.Context, check MonitoringCh
 		return MonitoringResult{}, err
 	}
 	if measurement != nil {
-		measurement.ReportingPeriodStart = copyUTC(request.CollectionPeriodStart)
-		measurement.ReportingPeriodEnd = copyUTC(request.CollectionPeriodEnd)
+		measurement.ReportingPeriodStart = copyMeasurementTimeUTC(request.CollectionPeriodStart)
+		measurement.ReportingPeriodEnd = copyMeasurementTimeUTC(request.CollectionPeriodEnd)
 	}
 	evaluation.Measurement = measurement
 	provenance, err := json.Marshal(map[string]any{
