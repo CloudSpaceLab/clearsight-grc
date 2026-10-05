@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import type { MonitoringResult } from "../../monitoringTypes";
 import type { RiskIndicatorDetail } from "../../riskTypes";
@@ -68,6 +68,14 @@ const history: MonitoringResult[] = [
         limits: [{ operator: "GREATER_OR_EQUAL", expected: "99.50" }],
         condition: "BREACHED",
       },
+      rule_results: [{
+        rule_id: "minimum-success",
+        field_id: "success_rate",
+        outcome: "FAIL",
+        points: 100,
+        critical: true,
+        reason: "Observed success rate is below the approved limit.",
+      }],
     },
   },
   {
@@ -109,6 +117,12 @@ it("shows the native value, responsibility and exact revision history", async ()
   expect(within(table).getByText("Within limit")).toBeTruthy();
   expect(within(table).getByText("Critical concern")).toBeTruthy();
   expect(within(table).getByText("Low concern")).toBeTruthy();
+
+  fireEvent.click(within(table).getAllByRole("button", { name: /Review observation for/ })[0]!);
+  expect(screen.getByRole("heading", { name: "Observation detail" })).toBeTruthy();
+  expect(screen.getByText("Observed success rate is below the approved limit.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(screen.queryByRole("heading", { name: "Observation detail" })).toBeNull();
 });
 
 it("shows a money Indicator without converting it to concern points", async () => {
