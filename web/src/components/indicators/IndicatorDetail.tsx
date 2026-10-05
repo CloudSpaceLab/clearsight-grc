@@ -4,7 +4,7 @@ import type { MonitoringResult } from "../../monitoringTypes";
 import type { RiskIndicatorDetail } from "../../riskTypes";
 import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
 import { IndicatorValue, indicatorValueAccessibleText } from "./IndicatorValue";
-import { formatIndicatorCoverage, formatIndicatorDate, indicatorStateLabel, indicatorTone, monitoringBandLabel, nativeConditionLabel, nativeConditionTone } from "./indicatorPresentation";
+import { formatIndicatorCoverage, formatIndicatorDate, formatIndicatorPeriod, indicatorStateLabel, indicatorTone, monitoringBandLabel, nativeConditionLabel, nativeConditionTone } from "./indicatorPresentation";
 import "./indicator.css";
 
 type Props = {
@@ -49,6 +49,12 @@ export function IndicatorDetail({
       header: "Observed",
       render: (item) => formatIndicatorDate(item.evaluated_at),
       accessibleText: (item) => formatIndicatorDate(item.evaluated_at),
+    },
+    {
+      id: "period",
+      header: "Business period",
+      render: (item) => formatIndicatorPeriod(item.evaluation.measurement?.reporting_period_start, item.evaluation.measurement?.reporting_period_end),
+      accessibleText: (item) => formatIndicatorPeriod(item.evaluation.measurement?.reporting_period_start, item.evaluation.measurement?.reporting_period_end),
     },
     {
       id: "value",
@@ -97,6 +103,7 @@ export function IndicatorDetail({
     </Surface>
 
     <dl className="cs-sheet-facts">
+      <div><dt>Business period</dt><dd>{formatIndicatorPeriod(indicator.native_measurement?.reporting_period_start, indicator.native_measurement?.reporting_period_end)}</dd></div>
       <div><dt>Program</dt><dd>{indicator.program_name}</dd></div>
       <div><dt>Owner</dt><dd>{indicator.owner_display_name || "Not assigned"}</dd></div>
       <div><dt>Reviewer</dt><dd>{indicator.reviewer_display_name || "Not assigned"}</dd></div>
@@ -144,6 +151,7 @@ export function IndicatorDetail({
               : "Native value unavailable"}</dd></div>
             <div><dt>Concern</dt><dd>{monitoringBandLabel(selectedResult.evaluation.band)}</dd></div>
             <div><dt>Coverage</dt><dd>{formatIndicatorCoverage(selectedResult.evaluation.coverage)}</dd></div>
+            <div><dt>Business period</dt><dd>{formatIndicatorPeriod(selectedResult.evaluation.measurement?.reporting_period_start, selectedResult.evaluation.measurement?.reporting_period_end)}</dd></div>
           </dl>
           <ObservationExceptions result={selectedResult}/>
         </div>
