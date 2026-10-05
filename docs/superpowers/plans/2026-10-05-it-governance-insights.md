@@ -1,148 +1,90 @@
 # IT Governance Insights implementation plan
 
-**Issue:** #344  
-**Plan branch base:** `main@a482a594e266cebf9102acb9599120a360245a80`  
-**Source/metric architecture audit:** `ca12fa5f327c445726b00fae0853e53ce022b7e2`; the 45-commit delta to the branch base was reviewed and is confined mainly to response-browser and notification-preference work, with no conflicting IT-governance source/metric architecture change.  
-**Scope:** Fidelity-style IT Governance dashboard requirements without parallel Project/ITSM/CMDB/finance/HR products.
+Issue: #344. Delivery: PR #345, documentation only.
 
-## 1. Outcome
+Plan branch base: `a482a594e266cebf9102acb9599120a360245a80`. The earlier source/metric audit used `ca12fa5f327c445726b00fae0853e53ce022b7e2`; its delta to this base was reviewed. Reconcile current main before each implementation PR.
 
-ClearSight should provide one IT Governance operating view over authoritative enterprise sources while retaining its current product model:
+Companion: [Semantic domain presentation plan](2026-10-05-semantic-domain-presentation.md), issue #346. That plan owns native Indicator, RCSA Cycle and type-aware Matter presentation. This plan owns external source composition and the IT Governance use cases consuming those presentations. Do not build parallel implementations.
 
-- **Home** — material posture and immediate intervention;
-- **Portfolio** — persistent governed objects only;
-- **Work** — existing governed intervention queue;
-- **Insights** — IT Governance analysis over canonical metrics and source-backed registers;
-- **Reports** — reproducible governed packs;
-- **Configure** — source, mapping and authority administration.
+## 1. Outcome and product boundary
 
-The source systems continue to own operational detail:
+Meet the Fidelity IT Governance requirements across projects, ITSM, change/release, assets, budget, disaster recovery, channels and staffing while preserving ClearSight's existing operating model.
 
-- ManageEngine: incidents/problems/changes;
-- Jira/Azure DevOps/PMO: projects and delivery state;
-- ERP: budget/actual/commitments;
-- Sparx/file export: architecture artifacts;
-- Axonius/HardCat/ManageEngine: assets;
-- Veeam/ASR/Zerto: backup/recovery observations;
-- NIBSS/Switch/channel monitoring: transaction/service observations;
-- HR/SCIM sources: people/employment lifecycle.
+ClearSight owns governance interpretation, approved thresholds, Risks/Controls, service/BIA targets where implemented, evidence, decisions, interventions, metric observations and reproducible reports. The specialist systems retain their operational populations and transaction detail:
 
-ClearSight owns only the governance interpretation, thresholds, approved service/risk/control state, evidence, decisions, interventions, metric observations and reporting provenance.
+| Population | Source authority | ClearSight presentation |
+| --- | --- | --- |
+| Projects and delivery | Jira / Azure DevOps / PMO | Source-backed register; delivery/financial Indicators |
+| Incidents, problems, changes | ManageEngine | Source-backed register; SLA/change Indicators; Matters only for intervention |
+| Release/deployment outcomes | ManageEngine / Azure DevOps | Shared change/release register and Indicators |
+| Architecture exports | Sparx EA / approved file service | Exact ChangeID artifact lookup |
+| Assets | Axonius / HardCat / ManageEngine | Source-backed register; patch/lifecycle Indicators |
+| Budget, actuals, commitments | ERP | Financial measures by existing organization/project scope |
+| Backup/test observations | Veeam / ASR / Zerto | Indicators against #271 governed service/BIA targets |
+| Channel performance | Core banking monitoring / NIBSS / Switch | Bounded aggregate series and Indicators |
+| Employment/recruitment | HR source | Staffing aggregates; existing people/positions provide governance context |
 
----
+SCIM account activation/deactivation is not automatically an employment join/exit. Position count, occupied positions and distinct people are different measures. The supplied organogram is organization input, not another budget or staffing hierarchy.
 
-# 2. Existing implementation that must be reused
+Target shell under #266: Home, Work, Portfolio, Insights and Configure. Reports retain their existing authorized destination and deep links until an equivalent route and approved consolidation exist. This plan does not authorize hiding Reports or adding eight primary destinations.
 
-Do not start implementation until each tranche confirms that these current contracts still satisfy the requirement.
+## 2. Reuse inventory and verified limitations
 
-## 2.1 Sources and source execution
+### Sources and checks
 
-Existing:
+Reuse `internal/evidence` Source Registry and health; `internal/sourceaccess` Connection/View/Binding revisions; `internal/assurance` typed conditions and source-side evaluation; and `internal/monitoring` form/source checks, coverage, freshness, owners/reviewers and adverse-result handling.
 
-- `internal/evidence` — business Source identity, ownership, health and freshness;
-- `internal/sourceaccess` — revisioned Connection / View / Binding catalog;
-- `POSTGRES`, `REST_JSON`, `TABULAR_ARTIFACT`, `WEBHOOK_EVENT` adapters;
-- source operations `INSPECT`, `PAGE`, `LOOKUP`, `AGGREGATE`, `CHANGES`;
-- exact Binding mapping, parameter/output schema, freshness and completeness;
-- checkpoint/retry infrastructure;
-- exact operation receipts and schema fingerprints;
-- source catalog HTTP APIs already registered under `/api/v1/config/...`.
+PostgreSQL, REST/JSON, tabular-artifact and webhook/event adapter code exists. INSPECT/PAGE/LOOKUP/AGGREGATE/CHANGES are contract capabilities, not a promise that every adapter implements all operations. Verify exact adapter/version capabilities, authentication, pagination, rate limits and historical semantics for each bank source. A generic REST adapter does not prove a deployed ManageEngine/Azure/ERP integration.
 
-Important current limitation:
+Existing bindings already retain selected fields, keys, mapping, parameter/output schemas, limits, freshness and completeness. The current Configure surface does not expose the full catalog; production activation must be re-audited rather than inferred from lifecycle enum values or seed installers.
 
-- Configure → Data & integrations does not expose the catalog;
-- source catalog draft/revision state exists, but a complete user-facing activation/maker-checker lifecycle is not yet an operational product flow.
+### Governance records and UI
 
-Do not create another connector registry.
+Reuse Programs, Matters, Actions, Decisions, Evidence, verification, Risks/appetite, reusable Controls, KRI/KCI links, RCSA cycles, operational Losses, organization hierarchy and positions. Reuse the dedicated Risk/Loss/Vendor/Processing Activity views and shared response browser. Do not copy every external row into Program or Matter.
 
-## 2.2 Connected checks / continuous assurance
+Current KRI links expose a normalized monitoring risk score, not arbitrary native quantities. Historical imported form fields may be long text even when typed static fixtures look correct. The semantic plan specifies reviewed mapping, score-only fallback, period and quality handling.
 
-Existing:
+### Metrics, attention and reports
 
-- `internal/assurance` logical types, schema profiling and hints;
-- typed condition compilation;
-- PostgreSQL source-side predicate evaluation;
-- explicit MATCH/CLEAR/UNKNOWN and schema/source failure semantics;
-- lexical recognition already covers status, risk/severity, owner, RTO/RPO/MAO, patch/CVE/CVSS/EDR, backup/restore/recovery-test and expiry fields;
-- `internal/monitoring` source/form checks with exact Binding ID/version, rules, thresholds, freshness, coverage, owner/reviewer and maker-checker lifecycle;
-- adverse monitoring results can converge into one canonical Matter rather than one ticket per source row.
+Reuse `internal/metricview` definitions, exact count memberships, observations, trends, rollups, matrices and safe Group foundations. The baseline durable metric vocabulary is count/current-posture oriented. Non-count measures require one deliberate compatible extension, not another KPI engine.
 
-Do not create ProjectMonitor / AssetMonitor / ChangeMonitor / ChannelMonitor packages.
+Reuse #269 episodes/delivery and the existing runtime, timers, outbox/inbox. Reuse the governed report engine, immutable definitions/runs, CSV/NDJSON/XLSX, checksums and protected downloads. Source-backed metric/report datasets, scheduling and bank-specific acceptance remain actual work.
 
-## 2.3 Governance records
+## 3. Implementation constraints
 
-Existing:
+- No Project-management engine, ITSM/CAB engine, CMDB, finance ledger, channel transaction warehouse or HR system.
+- No second source registry, scheduler, workflow, notification, metric, reporting or generic dashboard framework.
+- No raw-population replication by default and no full-population browser aggregation.
+- No automatic one-source-row to one-Matter or one-Program conversion.
+- No new schema merely to select a presentation. Any genuine history/identity/performance gap needs documented ownership, retention and reconstruction before migration.
+- Source failure, schema drift, missing periods and incomplete population cannot become green or zero.
+- Presentation never grants authority, manufactures domain facts or hides required commands/evidence.
+- No separate correlation service while explicit source identity and mappings suffice; do not assume identity/cardinality that production data has not established.
+- Use approved deterministic data interpretation first. AI does not generate material status or arbitrary source SQL.
 
-- Program — ongoing governed responsibility, requirements, controls, evidence and checks;
-- Matter — typed intervention record, including INCIDENT, EXCEPTION, CONTROL_GAP, RISK_SITUATION, KRI_BREACH, OPERATIONAL_LOSS and AUDIT_FINDING;
-- Action / Decision / verification / evidence;
-- canonical Risks, appetite, reusable Controls, KRI/KCI, RCSA and operational losses;
-- Group / OpCo / organization scopes;
-- governed positions, reporting lines, vacancy/delegation and handoff.
+## 4. Shared ownership with #346
 
-Do not copy every project/incident/asset into a Program or Matter.
+| Responsibility | Owning implementation |
+| --- | --- |
+| Source onboarding, catalog UI, operational source reader | #344 / #57 |
+| Native values, units and compatible measure persistence | One shared `metricview` extension: #344 T4b with #346 S1 |
+| Native Indicator value/limit/trend presentation | #346; #344 reuses it for IT metrics |
+| RCSA list/detail and semantic cycle presentation | #346 / #270 |
+| Type-aware Matter context and safe canonical-parent navigation | #346 |
+| Source-backed Project/ITSM/Asset register | #344, reusing DataTable and #346 visual contracts |
+| Critical Service/BIA/tolerance authority | #271; #344 adds recovery telemetry composition |
+| Insights navigation/report composition | #266 / #274; one shell/engine |
+| Attention/notification state | #269, not a view-owned copy |
 
-## 2.4 Metrics and reporting
+Delivery priority for semantic work is KRI/KCI, then RCSA, then Matter context. Local form-backed Indicators and RCSA need not wait for all eight IT source integrations. Small Loss name/filter fixes may run in parallel. Use the existing canonical Loss ledger for loss metrics and drills; never recreate it as an external finance module.
 
-Existing metric engine:
+## 5. Source mapping and identity contract
 
-- immutable metric definitions;
-- exact observation source/revision;
-- exact snapshot drill membership for existing count metrics;
-- trends and daily rollups;
-- risk/appetite and assurance matrices;
-- Group-safe aggregate foundations.
+### 5.1 Exact Binding metadata
 
-Current constraint:
+Use existing `BindingRevision.Mapping` for a bounded, versioned interpretation schema. Keep source data shape distinct from UI presentation pattern; neither creates a new persisted presentation object.
 
-- the metric contract is intentionally narrow: current values are integer/count-oriented and the durable definition vocabulary is currently `COUNT` + current-posture/zero-clear/sum semantics.
-
-Therefore:
-
-- **do not build a second KPI engine for budget, percentages or durations**;
-- first use the current metric engine for exact count/condition metrics;
-- extend `metricview` once, deliberately and backwards-compatibly, when the first non-count measure is required.
-
-Existing report engine already supplies:
-
-- governed definitions;
-- maker/reviewer/authorizer;
-- immutable revision/checksum;
-- XLSX/CSV/NDJSON;
-- source boundary/as-of/provenance;
-- bounded async generation;
-- protected download.
-
-Do not create a second management-pack engine.
-
----
-
-# 3. Architecture constraints
-
-These are release blockers, not preferences.
-
-1. No new top-level module for any of the eight dashboard pillars.
-2. No new durable table until an existing Source/Binding/Program/Matter/Metric/Report contract is proven insufficient.
-3. No external full-population copy into ClearSight by default.
-4. No browser aggregation of large source populations.
-5. No one-source-row → one-Matter behavior by default.
-6. No separate cross-system ID service while the customer's common ChangeID is valid.
-7. No duplicated organization hierarchy.
-8. No duplicated report scheduler or notification engine.
-9. Source failure/schema drift/incomplete reads must never become a green/zero state.
-10. AI can summarize or predict only from exact governed facts and never becomes material authority.
-
----
-
-# 4. Source binding profiles
-
-Issue #344 needs a small interpretation contract, not a new source model.
-
-Use the existing `BindingRevision.Mapping` JSON.
-
-## 4.1 Mapping schema
-
-Introduce a versioned application-level schema, for example:
+Example, to validate against actual source fields:
 
 ```json
 {
@@ -161,243 +103,63 @@ Introduce a versioned application-level schema, for example:
     "budget_amount": "budget",
     "actual_spend": "actual_spend"
   },
-  "units": {
-    "budget_amount": "NGN",
-    "actual_spend": "NGN"
-  }
+  "units": { "budget_amount": "NGN", "actual_spend": "NGN" }
 }
 ```
 
-Supported `shape` values in the first release:
+Initial data shapes: REGISTER, METRIC_SERIES and ARTIFACT_LOOKUP. Initial bounded lens codes: PROJECTS, ITSM_INCIDENTS, ITSM_CHANGES, RELEASES, ASSETS, IT_FINANCIALS, DR_TELEMETRY, CHANNEL_PERFORMANCE, WORKFORCE and ARCHITECTURE_ARTIFACTS. Add problem records only as a real source consumer, not an empty module.
 
-- `REGISTER` — bounded row population;
-- `METRIC_SERIES` — source already provides bounded aggregate values/periods;
-- `ARTIFACT_LOOKUP` — exact-key lookup such as Sparx ChangeID → HTML artifact.
+A small parser belongs in the existing source consumer boundary, or a focused `internal/itgovernance` package if that is the smallest viable composition. Reject unsupported schema/lens/shape; require selected-field/schema membership, stable keys where needed and explicit unit/type semantics. Do not create a generic ontology or duplicate existing mapping infrastructure.
 
-Do not add a table for these profiles. They remain part of the exact Binding revision and therefore inherit Binding provenance.
+### 5.2 Semantic roles
 
-## 4.2 Lens vocabulary
+| Family | Initial roles |
+| --- | --- |
+| Common | external_id, display_name, organization_ref, owner_ref, status, severity, observed_at, updated_at |
+| Project/change | change_id, project_manager, planned_start, planned_end, actual_end, rag_status, budget_amount, actual_spend, committed_spend, forecast_at_completion, sprint_velocity, backlog_size, benefit_status, change_type, change_risk, approval_state, implementation_result, release_id |
+| ITSM | incident_id, incident_priority, sla_target, sla_breached, major_incident, root_cause_category, opened_at, resolved_at |
+| Asset | asset_id, asset_type, location, lifecycle_status, patch_age, patch_compliant, support_end, criticality |
+| Resilience | service_ref, rto_target, rpo_target, actual_recovery_time, backup_status, last_dr_test_at, dr_test_result |
+| Channel | channel, reporting_period, transaction_count, failed_transactions, success_rate, downtime_minutes |
+| Workforce | person_ref, position_ref, employment_state, joined_at, exited_at, vacancy_state, recruitment_state |
 
-Initial bounded lens codes:
+Mappings interpret explicitly approved source facts; they cannot widen the activated Binding, infer authority or silently convert source declarations into ClearSight-approved targets. Currency, duration and reporting-period semantics must be validated, not guessed from labels. An unknown unit or organization match remains unresolved.
 
-- `PROJECTS`
-- `ITSM_INCIDENTS`
-- `ITSM_CHANGES`
-- `RELEASES`
-- `ASSETS`
-- `IT_FINANCIALS`
-- `DR_TELEMETRY`
-- `CHANNEL_PERFORMANCE`
-- `WORKFORCE`
-- `ARCHITECTURE_ARTIFACTS`
+### 5.3 ChangeID and related records
 
-A binding may expose only selected/safe fields already allowed by its activated contract.
+Use ChangeID as the supplied cross-source change reference where validated. Retain native project/release/cost-record keys: one project may contain multiple changes, and one change may have several releases, artifacts or spend entries. Do not join many-to-many tables in a way that duplicates budgets or incidents.
 
-## 4.3 Validation
+Namespaced keys include source and verified tenant/legal entity. Preserve exact source case/format unless an approved mapping specifies normalization. Missing, duplicate or ambiguous keys block automatic linkage; no fuzzy name matching. Introduce alias/reconciliation state only if real source history proves it necessary.
 
-Add a focused parser/validator, preferably under a small `internal/itgovernance` package.
+## 6. Tranches T0–T3: source access and initial consumers
 
-It should:
+### T0 — prove the contract before extending storage
 
-- reject unknown schema versions;
-- reject unknown lens/shape;
-- ensure mapped source fields are present in `Binding.SelectedFields` and the exact View schema;
-- enforce stable-key requirements for REGISTER/ARTIFACT_LOOKUP;
-- validate unit metadata;
-- reject duplicate semantic roles where singular;
-- never inspect or expose credentials/connection definitions.
+Read current catalog, assurance, monitoring, metric, report and organization APIs. Document actual capability gaps. Add focused mapping/schema tests for Project, ITSM, Asset, Channel and Workforce examples; no speculative framework or presentation types without consumers.
 
-No generic ontology engine.
+Candidate paths: `internal/itgovernance/mapping.go` and tests only if existing packages cannot host the consumer cleanly; a compact architecture note when implementation begins. No new production table expected. PR #345 provides planning, not those tests or runtime changes.
 
----
+Exit: five representative source shapes validate through the same binding contract; missing keys/types/units/scope fail explicitly; no duplicate source engine.
 
-# 5. Tranche T0 — implementation contract and tests only
+### T1 — make the current Source Catalog operable
 
-**Goal:** prove that current contracts can represent the Fidelity requirements before changing schema.
+Reuse registered catalog list/create/inspect/preview/where-used routes. First verify whether a complete safe activation path exists. If missing, extend current revision lifecycle and authority machinery, not a new approval engine.
 
-### Files
+Required controls: maker/checker, exact base revision, valid parent connection/view, current schema fingerprint, verified capabilities, one effective current revision, effective dates, audited pause/retire and rollback by new revision. Inventory and pending drafts remain visible when the remote source is unavailable.
 
-Create:
+Under Configure → Data & integrations, add modular inventory/detail/preview/usage compositions. Reuse DataTable, StatusBadge, Notice, FocusedSheet and existing form controls. Do not pre-create a file/component for every catalog noun unless the actual screen requires it. Preserve Program-level `DataSourceBuilder` as the simple contextual source path.
 
-- `internal/itgovernance/mapping.go`
-- `internal/itgovernance/mapping_test.go`
-- `docs/architecture/it-governance-source-lenses.md`
+Secrets remain opaque deployment-owned references. Do not render credentials or secret references. Preview obeys field/row/byte/time limits; current authority controls lifecycle actions.
 
-Modify only if needed:
+Exit: supported source setup is usable; exact revision and where-used survive navigation/reload; unavailable/forbidden/conflict/mobile states pass.
 
-- `docs/architecture/durable-schema-ownership.md` — documentation only; no durable row expected in T0.
-- issue #344 with exact progress.
+### T2 — one operational source-backed register reader
 
-### Tests
+Ordinary consumers must not call the admin preview API or gain CONFIG_READ. Resolve only recognized, current, approved bindings within verified source/legal-entity scope, then enforce explicit aggregate and row-detail permission separately.
 
-Create deterministic source schemas for:
+Binding discovery uses existing Purpose/Mapping and source ownership with bounded queries; add an index only if query plans justify it. Do not add a lens registry table or allow arbitrary browser Binding IDs/SQL.
 
-1. Project:
-   - ChangeID
-   - project name/manager
-   - RAG
-   - dates
-   - budget/actual
-2. ITSM:
-   - incident/change ID
-   - priority
-   - SLA
-   - change type/result
-3. Asset:
-   - asset ID/type
-   - criticality
-   - lifecycle
-   - patch posture
-4. Channel:
-   - channel/period
-   - transactions/failures/success rate/downtime
-5. Workforce:
-   - person/position
-   - active/joined/exited/recruitment state
-
-Acceptance:
-
-- all five validate through one mapping contract;
-- no persistence;
-- no UI;
-- no new workflow/source/report abstraction.
-
-**Commit:** `docs/it-governance mapping contract`
-
----
-
-# 6. Tranche T1 — make the existing Source Catalog operable
-
-**Goal:** ClearSight administrators can use the source infrastructure that already exists.
-
-## 6.1 Backend
-
-First re-audit current #57/source-access lifecycle before writing code.
-
-Use current routes where possible:
-
-- Source list/create;
-- Connection revision list/create;
-- View revision list/create;
-- inspect;
-- Binding revision list/create;
-- preview;
-- where-used.
-
-If production activation is still missing, add only the minimal current-revision lifecycle necessary for Connection/View/Binding:
-
-```text
-DRAFT
-→ PENDING_APPROVAL
-→ ACTIVE
-→ PAUSED / RETIRED
-```
-
-Requirements:
-
-- maker/checker;
-- exact base/revision fencing;
-- parent must be current/active before child activation;
-- schema fingerprint must still match;
-- verified adapter capabilities must match activation;
-- one current effective revision;
-- rollback = new revision, never mutation.
-
-Prefer extending sourceaccess lifecycle semantics; do not use a new policy engine.
-
-## 6.2 Frontend
-
-Modify:
-
-- `web/src/components/configure/DataIntegrationsSection.tsx`
-
-Create modular components under:
-
-- `web/src/components/configure/sources/`
-
-Suggested modules:
-
-- `SourceInventory.tsx`
-- `SourceConnectionList.tsx`
-- `SourceViewList.tsx`
-- `SourceBindingList.tsx`
-- `SourceRevisionDetail.tsx`
-- `SourcePreview.tsx`
-- `SourceUsage.tsx`
-
-Reuse shared DataTable, StatusBadge, Notice, EmptyState, FocusedSheet/Popover/Dialog primitives.
-
-Do not replace the existing narrow Program `DataSourceBuilder`; it remains the simple contextual path for basic HTTPS status checks.
-
-## 6.3 UX
-
-The administrator should be able to answer:
-
-- Which sources exist?
-- Is this source current/stale/degraded/unavailable?
-- Which connection/view/binding revision is active?
-- What fields are exposed?
-- What does one bounded preview look like?
-- Which Programs/checks/forms consume this Binding?
-- Is there a pending revision?
-
-No network-transport jargon on the first level.
-
-## 6.4 Acceptance
-
-- exact revision survives reload/deep link;
-- source outage does not make configuration inventory disappear;
-- secret refs are never rendered;
-- preview respects Binding field/row/byte/time limits;
-- mobile/320px/200%/keyboard/axe states;
-- no source lifecycle action is available without current authority.
-
-**Commit sequence:**
-
-1. source lifecycle/backend gaps only;
-2. typed web API;
-3. inventory/read UI;
-4. revision/preview/write UI;
-5. tests/evidence.
-
----
-
-# 7. Tranche T2 — operational source-backed lens reader
-
-**Goal:** management users can inspect bounded authoritative source populations without gaining CONFIG_READ and without using the admin preview API as a product read.
-
-Do **not** expose arbitrary Binding IDs directly to ordinary oversight users.
-
-## 7.1 Consumer authorization
-
-Create an IT Governance read service that resolves only current active bindings whose mapping declares one of the recognized IT Governance lenses.
-
-Authorization contract:
-
-- verified tenant/legal entity;
-- `OVERSIGHT_READ` for Insights management views;
-- source must belong to current legal entity unless consuming an already-authorized Group projection;
-- aggregate access does not grant row/detail access across entities;
-- selected fields remain bounded by Binding;
-- no connection/secret/config details in response.
-
-If a Portfolio use case later requires broader specialist access, add that deliberately after representative role review. Do not broaden T2 pre-emptively.
-
-## 7.2 Binding discovery
-
-Add the smallest catalog query needed to locate current bindings by purpose/lens for one legal entity.
-
-Prefer:
-
-- existing Binding `Purpose` plus validated Mapping lens;
-- join through Evidence Source to legal entity;
-- bounded list.
-
-If a query/index is required, add one focused index on existing catalog columns. Do not add a source-lens table.
-
-## 7.3 API
-
-Suggested bounded routes:
+Proposed route family, subject to existing route review:
 
 ```text
 GET /api/v1/insights/it-governance/lenses
@@ -405,599 +167,154 @@ GET /api/v1/insights/it-governance/{lens}/records
 GET /api/v1/insights/it-governance/{lens}/records/{key}
 ```
 
-The first route returns availability/quality only.
+Response: safe mapped columns/rows, exact Binding/source provenance, generated/observed time, capabilities, quality, explicit next cursor and permitted detail target. No connection configuration. Cursor binds scope, filter, selected revision and ordering; reject stale or cross-scope reuse.
 
-The record page returns:
+Server-side search/filter/sort is capability driven. Unsupported operations remain unavailable; never fetch the entire REST/artifact population to imitate them. Row-level access is checked before returned counts/pages; Group aggregate access never authorizes child records.
 
-- binding ID/version only as provenance metadata;
-- generated/observed time;
-- source freshness;
-- completeness;
-- safe mapped fields;
-- opaque next cursor;
-- no connection definition;
-- no arbitrary source query.
+Use one shared DataTable-based register composition with small typed domain columns. Source quality and drill identity are shared. Verify Projects, ITSM incidents and Assets as three different consumers before broader expansion.
 
-For REST/JSON or tabular sources where true source-side search/sort is unavailable, do not download the entire population to simulate it. Expose only capabilities the Binding can satisfy.
+Exit: bounded source-backed pages, safe failure/recovery, no replicated operational row tables, no per-row network loops and no client totals masquerading as full population.
 
-## 7.4 Shared web composition
+### T3 — Projects, ITSM, change/release and architecture
 
-Create one shared component family, e.g.:
+Projects show supplied identity, manager, organization, RAG, dates, budget/actual/forecast, velocity/backlog and benefits where available. A project becomes a Program only when ClearSight actually governs continuing requirements/checks, not because a row exists.
 
-- `SourceBackedRegister.tsx`
-- `SourceQualityLine.tsx`
-- `SourceRecordDetail.tsx`
+ITSM retains the complete external denominator; only material governance exceptions create/link Matters under approved policy. Change and release share the source-backed reader. Preserve Standard/Normal/Emergency, implementation/backout outcome, approval state and affected application/service. Do not clone CAB or deployment workflows.
 
-The component is reused by Project, ITSM and Asset views; domain-specific column definitions remain small configuration objects.
+Relationships use explicit source/domain identifiers and verified scope. Add durable links only where existing metadata cannot represent required many-to-many history; do not scan all Matters or infer links from titles.
 
-## 7.5 Acceptance
+Architecture lookup uses an approved ARTIFACT_LOOKUP Binding keyed by ChangeID. Resolve a bounded artifact/version reference server-side; do not guess filenames in the browser. Missing or ambiguous artifacts remain explicit. Reuse protected document delivery where supported; verify generated HTML is safe before claiming the existing viewer covers it. Use allowlisted source roots, traversal and egress checks, authorization on fetch, and an isolated/sandboxed viewer with a restrictive content policy. Do not execute untrusted exported HTML in the application origin or expose arbitrary file-server paths.
 
-Prove three materially different populations before continuing:
+Exit: source row → correct architecture/reference → authorized existing Risk/Matter → return to original source view without duplicated business state.
 
-- Projects;
-- ITSM incidents;
-- Assets.
+## 7. Tranche T4: metrics and shared native measures
 
-Each must show:
+### T4a — count and adverse-population metrics
 
-- exact source revision;
-- explicit freshness/completeness;
-- bounded pages;
-- safe source outage state;
-- no copied durable row table in ClearSight.
+Reuse existing count semantics where appropriate: at-risk/overdue projects, SLA-breached/major unresolved incidents, failed/emergency/high-risk changes, critical patch exceptions, unsupported assets, channels outside tolerance and proven critical vacancies. Do not treat every positive count as bad: total active projects/assets/transactions are neutral context, not zero-clear alert metrics.
 
-**Commit sequence:**
+Extend observation source validation deliberately for external-backed observations. Receipts must identify Evidence Source, Connection/View/Binding revisions, schema fingerprint, observation time, condition/definition revision, completeness and scope. No arbitrary source rows inside metric value columns.
 
-1. consumer resolver + auth tests;
-2. read API;
-3. shared web register;
-4. Project/ITSM/Asset fixtures and rendered review.
+Exact historical drill needs retained safe membership or a genuinely reproducible immutable source snapshot. A cursor alone is not proof. If reconstruction is unavailable, label CURRENT_STATE and never claim same-snapshot parity. Retention must cover the advertised drill/report horizon. Retain only the minimum approved member/aggregate evidence, not raw transaction populations.
 
----
+### T4b — native values, coordinated with #346 S1
 
-# 8. Tranche T3 — Projects, ITSM and Change/Release views
+Implement once in `metricview` and the existing observation/check owners when the first native consumer requires it; it need not wait for all sources or T5 resilience. Keep existing COUNT API behavior compatible.
 
-## 8.1 Projects
+Measure families: COUNT, RATIO/PERCENT, DURATION, MONEY; preserve legacy RISK_POINTS explicitly. Persist exact numeric representation with scale/unit/currency. Ratios retain numerator/denominator where known; aggregation uses valid disjoint source populations. Unknown/zero denominator, signed variance, reversals, currencies and missing samples need defined semantics.
 
-Do not add `projects` table.
+Threshold definitions need direction (high/low/outside-range), boundary equality, effective revision and scope. Business condition is separate from quality and last-known state. Current score-only checks must not fabricate native values or probabilities. Approved native limits and normalized concern bands are different concepts.
 
-Source-backed Project view should present only governance-relevant fields:
+Use one shared native-value/limit and trend/table composition from #346 for KRI, ITSM, channel, patch, duration and financial measures. Do not create separate renderers or chart dependencies per category. Trend gaps stay visible; threshold/population/definition changes prevent invalid comparisons.
 
-- ChangeID;
-- name;
-- manager;
-- organization;
-- RAG;
-- start/target/end;
-- budget/actual/forecast where supplied;
-- velocity/backlog where supplied;
-- linked governance exceptions.
+### Initial measure families
 
-A Project source row is not automatically a Program.
+| Pillar | Measures and denominator requirements |
+| --- | --- |
+| Portfolio | Active/late/red-amber projects, schedule variance, budget/forecast variance, benefits state; retain source RAG and planned/current dates |
+| ITSM | Opened/resolved, SLA breaches over eligible incidents, major/aged unresolved, root-cause distribution; explicit exclusions and SLA cohort |
+| Change/release | Implemented/failed/backed-out/emergency/high-risk changes, approval exceptions; success rate over defined implemented population |
+| Assets | Managed/in-scope asset count, patch compliance over eligible observed assets, critical exceptions, unsupported assets, control-evidence gaps |
+| Finance | Budget, actual, commitments, forecast, variance amount/rate; explicit fiscal period, currency and organization/project attribution |
+| Resilience | #271 critical-service population, tolerance failures, BIA/test freshness, RTO/RPO comparison, backup/evidence gaps |
+| Channels | Total/failed transactions, success rate and downtime by channel/time bucket; avoid duplicate intervals and averaging rates |
+| Workforce | Approved/occupied positions, distinct people, vacancies, recruitment, joins/exits and aggregate attrition with approved denominator/source |
 
-### ClearSight relationship
+Do not average RAG/risk ratings, sum unlike currencies, assume account deactivation means exit or score individual employee attrition. Taxonomy/rules are approved business definitions, not UI defaults.
 
-Where a project has a governed Program/Risk/Matter, link by the existing source/external key in read composition or an existing record's source metadata. Add a durable explicit link only after a real many-to-many/history requirement is demonstrated.
+Exit: Home, Insights and Reports agree for the same metric/scope/definition/source revision. Values, units, period, denominator, exclusions, quality, condition, trend direction and drill consistency are explicit.
 
-## 8.2 ITSM
+## 8. Tranche T5: resilience composition
 
-Use source views for full denominators and records.
+#271 owns Critical Service identity/classification, approved BIA, impact tolerance, RTO/RPO, dependencies, plans, exercises and verified recovery outcomes. #344 consumes those records and adds source-backed backup/test observations.
 
-Use canonical Matters only for governance intervention.
+Do not build a second DR domain or assume that a CRITICAL_SERVICE organization label already provides a complete BIA model. Source rto/rpo declarations cannot silently replace approved targets. Compare exact target revision with current observation; failed/inconclusive results route through existing Matter/Outcome paths.
 
-Example:
+The primary view is a service record with Indicator/Cycle presentation. Raw BIA/DR submissions remain evidence, not a substitute for service/tolerance state. This integration does not block other source or semantic slices.
 
-```text
-12,482 incidents in ManageEngine
-        ↓ source-backed ITSM register/metrics
-552 SLA breaches
-17 major incidents
-6 material governance interventions
-        ↓
-6 Matters / Work items
-```
+## 9. Tranche T6: IT Governance Insights presentation
 
-Do not import 12,482 Matters.
+Consume the #266/#274 shell and the detailed [#346 presentation plan](2026-10-05-semantic-domain-presentation.md). Do not build an IT-only dashboard framework or re-render KRI/RCSA/Loss as generic Program responses.
 
-## 8.3 Change and release
+- Registers: Projects, Assets, ITSM/Changes/Releases and relevant source populations.
+- Indicators: Native KRI/KCI, SLA, patch, channel, duration and budget measures; concern score secondary.
+- Ledger: Existing operational Loss record and recovery history.
+- Cycle: Existing RCSA and later approved service/audit/certification cycles.
+- Cases: Material interventions with type-aware context over common Matter work.
+- Programs: Continuing IT governance configuration/evidence context.
 
-Change and release are presentation lenses over the same source substrate.
+Overview shows at most four stable high-signal headline cards selected by role/lens, then progressively disclosed Portfolio delivery, Service & change, Assets, Financials, Resilience, Channels and Workforce. Do not render every section/chart at once. Load details lazily and keep the dominant action unobstructed.
 
-Required fields:
+Use one identity/scope/period header. Native values, threshold and condition precede technical revisions. Tables retain numeric alignment and business columns. Color must accompany explicit status; Active, Submitted, Linked and Recovered are not interchangeable with verified closure or acceptable risk.
 
-- ChangeID;
-- type: Standard / Normal / Emergency;
-- risk;
-- approval state;
-- planned/actual implementation;
-- success/failure/backout;
-- affected service/application;
-- release ID where present.
+Reuse existing scope and date controls. Add Month/Quarter/Year and appropriate fiscal/custom periods through that contract only where required; define reporting-period versus current-posture semantics. Do not implement another date picker. Preserve scope/filter/period/back-navigation across Risk/Indicator/Cycle/Loss, source detail, Work and evidence.
 
-A failed/high-risk change can link to a Matter/Risk when intervention is required.
+Type-aware Matter context cannot hide existing evidence, decisions, responses or a required outcome action. Legacy/unknown types retain a safe full fallback. Canonical Loss authoring must be usable before any generic loss-entry redirection; no navigation removal based on a missing replacement.
 
-No CAB workflow is added.
+Exit: users see the business object immediately; stale/incomplete data is recognizable; exact source/evidence remains accessible without dominating every first viewport. One missing pillar does not blank unrelated views.
 
-## 8.4 Sparx architecture lookup
+## 10. Tranche T7: management packs and delivery
 
-Use an `ARTIFACT_LOOKUP` Binding keyed by ChangeID.
+Extend existing report datasets/sections only when current canonical datasets and metric reads cannot express the required pack. Programs/Matters reports do not by themselves provide native source/KRI/financial populations.
 
-Initial implementation should prefer governed tabular/file metadata or a fixed safe REST/file service.
+Candidate pack definitions: CIO IT Governance, IT Governance Committee, Portfolio delivery, ITSM/change, Asset/cyber posture, DR/resilience, Channels and IT workforce. These are definitions over shared machinery, not eight report products.
 
-The returned record contains only a safe artifact reference.
+Every run retains exact definition/checksum, scope, reporting period, as-of boundary, source/metric revisions, currency/unit semantics and quality. Scheduled runs use existing runtime/timer classes. Revalidate authority on execution/download/distribution; consume #269 provider/delivery receipts where available. No new report scheduler or mail engine.
 
-Opening the artifact must:
+Measure the >=80% manual-reporting objective against a representative baseline: active source-export, reconciliation, preparation and rework minutes for the same pack/scope. Preserve required human review; no claim based on feature count or screenshot. Repeat after implementation with quality/completeness checks.
 
-- use the current artifact/document authorization path where possible;
-- reject path traversal;
-- not infer filenames in the browser;
-- verify exact source/binding provenance.
+## 11. Tranche T8: AI summaries and predictive pilots
 
-## 8.5 Acceptance
+Start only after deterministic source/metric acceptance. The product remains usable without AI.
 
-From one Project/Change row a user can:
+First deliver a concise source-grounded summary of exact metrics, material changes, top interventions and quality limitations. Separate fact, pattern, recommendation and uncertainty. Retain workload/model/provider, prompt/policy revision, inputs, scope/period and generated time through existing governance boundaries.
 
-- understand delivery/change posture;
-- open the exact architecture artifact;
-- open an existing Risk/Matter when linked;
-- never see a fabricated “ClearSight project status” different from source truth.
+Deterministic grouping precedes AI labels for recurring delays, root causes, failed changes and degradation. Prediction pilots (delivery delay, change failure, channel/service degradation, budget anomaly) require sufficient history, holdout/back-testing, calibration and measured quality against a baseline. No individual employee attrition predictions.
 
----
+Predictions do not silently modify RAG, appetite, approval or other material status. No arbitrary model-generated queries or unreviewed execution.
 
-# 9. Tranche T4 — IT governance metrics
+## 12. Execution, test and release plan
 
-Do this in two bounded steps.
+### Dependency sequence
 
-## T4a — count/condition metrics using current metric semantics
+1. T0 contract and #346 S0 evidence/primary-record decisions.
+2. T1 source administration and T2 bounded operational reader.
+3. T3 first Project/ITSM/Asset consumers and safe architecture lookup.
+4. T4a count metrics and the shared T4b/#346 S1 native measure slice as soon as its first consumer needs it.
+5. #346 S2 KRI view, S3 RCSA and S4 Matter context; local semantic delivery does not wait for every source.
+6. #271/T5 resilience in parallel when its domain is ready.
+7. T6 progressively enabled IT Governance sections using shipped shared presentations.
+8. T7 reproducible packs/scheduling and measured preparation-time reduction.
+9. T8 summaries and separately gated prediction pilots.
 
-Start only with metrics naturally represented by current count semantics:
+Small Loss/Risk read refinements may run alongside this sequence. Do not create fixture-only dashboard cards before their real source contracts; honest unavailable states remain acceptable during staged rollout.
 
-- projects at material delivery risk;
-- overdue projects;
-- major unresolved incidents;
-- SLA-breached incidents;
-- emergency changes;
-- failed/backed-out changes;
-- high-risk changes;
-- critical patch exceptions;
-- unsupported critical assets;
-- critical services outside tolerance once #271 exists;
-- channels outside tolerance;
-- critical vacancies where source-backed.
+### Focused PR boundaries
 
-Reuse:
+Contract tests/architecture; source lifecycle gap if still present; Configure inventory; approved revision/preview commands; operational reader; shared register and three consumers; ChangeID/artifact lookup; count metrics; one shared native measure implementation; semantic Indicator/RCSA/Matter slices; Insights composition; reports/scheduling; AI.
 
-- immutable metric definition;
-- observation/trend retention;
-- exact source revision;
-- exact drill identity.
+Within each PR separate small commits for tests/contracts, backend/client, shared presentation, consumer and rendered evidence. Read main and reconcile merged overlaps before every slice. No force-push or unrelated edits. Documentation approval is not merge/deploy authorization.
 
-For source-backed observations, extend the observation source contract deliberately. Do not store arbitrary external rows in `metric_observations`.
+### Correctness, security and performance
 
-A source-backed metric source receipt must identify:
+- Verified tenant/entity scope and authorization before population counts/pages. Aggregate permission does not grant detail access.
+- Exact revisions, schema drift, stale cursors, changed limits, unavailable sources, partial data, duplicate events, source key collisions and many-to-many joins.
+- Count/rate/duration/money validation, currency scale, signed variance, zeros/unknowns, disjoint aggregation and historical reconstruction.
+- Source/form measurement mapping, duplicate/amended returns, unknown periods and long-text imports; no hand-typed fixture substitute for persisted-source proof.
+- RCSA frozen population and real progress; Matter required-step visibility; no loss entry-point regression.
+- Protected artifact resolution, traversal/egress restrictions and isolated HTML behavior; no source payload/secret leakage in logs or notifications.
+- Dashboard reads use maintained observations, not synchronous broad source scans. Source predicates/aggregates push down only where capabilities exist.
+- Bound source concurrency, timeouts, retries, row/byte limits and cancellation. Report ClearSight overhead separately from external-system latency; p95 <=1s bounded reads is a target to validate, not a blanket source guarantee.
+- Production-shaped fixtures: 10k project/change records, million-scale asset source, high-volume channel aggregates without raw-copy, existing large-hierarchy scope proofs and independent degradation of unrelated views.
 
-- Evidence Source;
-- exact Connection/View/Binding revisions;
-- source schema fingerprint;
-- observation time;
-- completeness;
-- exact condition definition;
-- retained exact member identity only where safe/necessary.
+### UI and human acceptance
 
-If exact member retention would duplicate a huge population, store only the adverse member set or use source-snapshot lookup semantics with an immutable source cursor/revision that can actually reconstruct the population. If neither is possible, mark drill consistency as CURRENT_STATE and do not claim exact historical parity.
+Reuse shared components in the app shell; capture exact-head before/after at desktop light/dark, 390/320px, keyboard and actual browser 200% zoom. Label reflow proxies separately. Include long names, large amounts, empty/stale/partial/unknown/forbidden/conflict/unavailable states, chart table alternatives, focus and primary-action obstruction.
 
-## T4b — typed measures only when first required
+Do not substitute accessibility automation for visual inspection or bank-user task testing. Keep confidential source-bearing captures out of public CI. Measure whether users can identify native value/limit/quality, distinguish financial recovery from closed remediation, identify cycle handoff and return from evidence without losing context.
 
-Budget, rates and durations cannot be forced into `COUNT`.
+### Data-model budget and completion
 
-Extend `metricview` rather than introduce a separate KPI engine.
+No presentation/archetype tables or Project/Incident/Change/Asset/Budget/Channel/HR replicas by default. Genuine source activation, numeric-history, reference or performance extensions need explicit owner, retention and reconstruction evidence; do not hide authoritative data in JSON merely to claim zero new tables. #271 owns necessary resilience domain storage.
 
-Required measure families only:
-
-- COUNT;
-- RATIO/PERCENT;
-- DURATION;
-- MONEY.
-
-Design requirements:
-
-- exact decimal/integer semantics; no float persistence;
-- explicit currency for MONEY;
-- explicit numerator/denominator for a ratio where available;
-- aggregation rule per measure;
-- no summing percentages;
-- no averaging RAG/risk ratings;
-- backwards-compatible existing count JSON/API behavior.
-
-Prefer source-provided bounded aggregate values for:
-
-- budget/actual;
-- transaction totals;
-- success rate;
-- downtime.
-
-Do not scan millions of transactions in ClearSight to calculate a dashboard value when the source system can provide a governed aggregate view.
-
-## Metrics acceptance
-
-For every metric:
-
-- value;
-- unit;
-- scope;
-- period/current-posture basis;
-- freshness;
-- completeness;
-- population/denominator where meaningful;
-- source revision;
-- aggregation rule;
-- drill contract;
-- trend direction.
-
-Home, Insights and Reports must consume the same definition/revision.
-
----
-
-# 10. Tranche T5 — resilience integration
-
-Do not implement DR as a #344 subsystem.
-
-Consume #271 once it provides:
-
-- Critical Service;
-- BIA;
-- approved impact tolerance;
-- RTO/RPO;
-- dependencies;
-- exercises/tests;
-- verified recovery outcome.
-
-#344 adds only source composition:
-
-- Veeam/ASR/Zerto Source/Binding;
-- backup status;
-- last test;
-- actual recovery time;
-- current recovery observation;
-- resilience metric projection.
-
-Governance truth:
-
-```text
-Approved RTO/RPO/BIA      → #271 / ClearSight authoritative
-Observed backup/test      → external recovery source
-Tolerance comparison      → governed metric/check
-Material failure          → existing Matter/Work/Outcome
-```
-
-No second recovery-plan workflow.
-
----
-
-# 10.5 Presentation semantics dependency
-
-IT Governance must consume the semantic-presentation architecture tracked by #346 rather than rendering every domain through generic Program/response/Matter chrome.
-
-Required mapping for this program:
-
-- Projects / Assets / ITSM populations → **REGISTER**;
-- service/channel/patch/SLA/budget threshold measures → **INDICATOR**;
-- resilience review/test periods → **CYCLE** once #271 owns the governed service/BIA state;
-- material source exceptions → **CASE / INTERVENTION** through existing Matters;
-- continuing IT governance Programs remain **PROGRAM** context, not the primary visual representation of source populations;
-- operational losses remain the existing **LEDGER** presentation and link into IT Governance Insights by metric/drill rather than being re-rendered as generic Matters.
-
-The Program response viewer remains the exact evidence/provenance surface. It must not become the primary KRI, RCSA, BIA, project, asset or channel-management surface when a semantic presentation exists.
-
-For KRI/KCI and IT operational measures, show the source/native value, unit and approved threshold as the primary value. Any normalized 0–100 concern/risk score remains secondary cross-domain context.
-
-# 11. Tranche T6 — IT Governance Insights
-
-This should compose with #266/#274 rather than create a new dashboard shell.
-
-## 11.1 Navigation
-
-Add **Insights** to the bounded operating navigation when the #266 route is ready.
-
-IT Governance is one Insights lens, not a primary nav destination.
-
-## 11.2 First viewport
-
-Maximum four headline cards.
-
-Candidate role-aware selection:
-
-- projects at risk;
-- critical service/channel breaches;
-- failed/high-risk changes;
-- material budget variance or critical control exposure.
-
-Cards require:
-
-- exact value;
-- semantic state;
-- freshness/completeness;
-- direct drill.
-
-## 11.3 Sections
-
-Progressive disclosure:
-
-1. Portfolio delivery
-2. Service & change
-3. Asset / cyber posture
-4. Financials
-5. Resilience
-6. Channels
-7. Workforce
-
-Each section starts with 2–4 meaningful measures and one compact source-backed table/trend where useful.
-
-Do not show every source field or every KPI.
-
-## 11.4 Scope / period
-
-Reuse existing:
-
-- Group/OpCo/entity/organization scope;
-- reporting period;
-- metric trend semantics.
-
-Organization hierarchy is the common dimension for budget, people, risk and project views.
-
-Do not build a finance/org tree.
-
-## 11.5 RAG
-
-RAG is source/governance state, not decorative color.
-
-Every red/amber state must have text/icon and drill explanation.
-
----
-
-# 12. Tranche T7 — report packs and measured manual-effort reduction
-
-## 12.1 Reuse report engine
-
-Do not create “dashboard export”.
-
-Add pack/report definitions over the same IT Governance metrics and source-backed datasets.
-
-Candidate packs:
-
-- CIO IT Governance;
-- IT Governance Committee;
-- Portfolio delivery;
-- ITSM & change;
-- Asset/cyber posture;
-- DR/resilience;
-- Channels;
-- IT workforce/capacity.
-
-## 12.2 Scheduling
-
-Use existing runtime/timer infrastructure.
-
-A scheduled run is still an ordinary governed report run bound to:
-
-- definition checksum/version;
-- exact period;
-- scope;
-- metric/source revisions;
-- completeness.
-
-Delivery should consume #269's external delivery/provider receipt capability when available.
-
-## 12.3 80% objective
-
-Do not claim success from feature count.
-
-Baseline one representative monthly/quarterly IT Governance pack:
-
-- current manual preparation active minutes;
-- number of manual source exports;
-- number of reconciliation steps;
-- review/rework time.
-
-Repeat with ClearSight.
-
-Acceptance target:
-
-- ≥80% reduction in active preparation effort;
-- source review/approval time may remain human;
-- no quality/completeness regression.
-
----
-
-# 13. Tranche T8 — AI summaries and predictive pilots
-
-Start only after deterministic metric/source acceptance.
-
-## 13.1 First AI capability
-
-Generate a bounded executive summary from:
-
-- exact metric observations;
-- material movement;
-- top interventions;
-- source freshness/unknowns;
-- linked approved facts.
-
-Output must distinguish:
-
-- fact;
-- detected pattern;
-- recommendation;
-- uncertainty.
-
-Store/reconstruct:
-
-- workload;
-- model/provider;
-- prompt/policy revision;
-- exact source/metric revisions;
-- generated time.
-
-## 13.2 Pattern detection
-
-Allowed before predictive scoring:
-
-- recurring delay categories;
-- recurring incident root causes;
-- repeated failed/emergency change patterns;
-- repeated service degradation.
-
-Use deterministic grouping first. AI may label/summarize clusters.
-
-## 13.3 Predictive pilots
-
-Only after history and back-testing are adequate:
-
-- project delivery risk;
-- change failure probability;
-- channel/service degradation;
-- budget forecast anomaly.
-
-No employee attrition probability.
-
-A prediction is advisory and cannot silently modify Project RAG, Risk appetite, change approval or any material status.
-
----
-
-# 14. Testing matrix
-
-Every tranche adds focused tests; do not wait for end-to-end release.
-
-## Backend
-
-- legal-entity isolation;
-- unauthorized Binding/lens access;
-- stale Binding revision;
-- schema drift;
-- source timeout;
-- partial/incomplete result;
-- large result boundedness;
-- duplicate webhook/source event;
-- current vs historical source revision;
-- Group aggregate without sibling-detail leakage;
-- exact metric drill parity where claimed;
-- ratio/money aggregation correctness when T4b lands.
-
-## Frontend
-
-For each major surface:
-
-- loading;
-- live/current;
-- stale;
-- partial;
-- unknown;
-- empty;
-- unavailable;
-- forbidden;
-- conflict/revision changed;
-- narrow mobile;
-- 320px reflow;
-- 200%;
-- keyboard;
-- forced colors where current release gate requires;
-- no horizontal overflow.
-
-## Performance
-
-Production-shaped fixtures:
-
-- 10k projects/change rows;
-- 1m+ asset population with source-side filtering;
-- high-volume channel metric source without raw transaction copy;
-- >500 organization areas / existing 20k hierarchy proof reused;
-- source outage while unrelated lens remains responsive;
-- metric observation/trend reads remain bounded.
-
----
-
-# 15. Data-model budget
-
-Expected new durable tables before T5: **zero**, except where a proven source-catalog lifecycle gap cannot be expressed by current revision tables.
-
-Possible later schema changes:
-
-1. source catalog index/transition metadata — existing tables only;
-2. metricview typed-measure extension — existing metric definitions/observations plus minimum necessary columns/constraints;
-3. #271 owns its own first-class resilience records.
-
-Do not create:
-
-- projects;
-- incidents;
-- changes;
-- releases;
-- assets;
-- budgets;
-- channel_transactions;
-- staffing_events;
-
-inside ClearSight merely to satisfy dashboard presentation.
-
-If a later requirement proposes one of these, the PR must first document why Source Access + existing governed records cannot satisfy reconstruction, performance or authority.
-
----
-
-# 16. Recommended execution order
-
-Dependency order:
-
-1. **T0 mapping contract**
-2. **T1 Source Catalog administration / minimum activation gap**
-3. **T2 operational source-backed reader**
-4. **T3 Projects + ITSM/change + architecture lookup**
-5. **T4a count metrics**
-6. **#271 / T5 resilience composition in parallel where possible**
-7. **T4b typed metric measures**
-8. **T6 Insights**
-9. **T7 management packs/scheduling**
-10. **T8 AI**
-
-Do not start T6 with fixture-only dashboard cards while T2/T4 source truth is absent.
-
----
-
-# 17. Small-commit / PR strategy
-
-Keep changes independently reviewable.
-
-Recommended PRs:
-
-- **PR A:** T0 mapping contract + architecture note.
-- **PR B:** Source catalog lifecycle gap, if still required after re-audit.
-- **PR C:** Configure source inventory/read-only.
-- **PR D:** Configure source revision/preview/write operations.
-- **PR E:** IT Governance operational source reader.
-- **PR F:** Shared source-backed register + Project/ITSM/Asset proof.
-- **PR G:** Projects/change/release + ChangeID/Sparx lookup.
-- **PR H:** count metric projection/drills.
-- **PR I:** typed measure extension.
-- **PR J:** IT Governance Insights composition.
-- **PR K:** reports/scheduling.
-- **PR L:** AI summary/pilot.
-
-Each PR must reconcile current `main` first and avoid reimplementing work that merged while the program was in progress.
-
----
-
-# 18. Release definition
-
-The program is ready for stakeholder acceptance when:
-
-1. an administrator can configure approved source bindings without deployment-file edits for supported adapters;
-2. a CIO/risk user can open IT Governance Insights and see truthful posture across the requested pillars;
-3. source-backed records remain in their authoritative systems;
-4. material adverse conditions converge into existing Risk/Matter/Work flows;
-5. exact counts drill correctly and non-exact historical drills are labelled honestly;
-6. organization filters use the existing hierarchy;
-7. ChangeID opens the correct architecture artifact;
-8. #271 provides authoritative resilience targets;
-9. report packs reproduce the same metrics/source revisions;
-10. manual report preparation reduction is measured at ≥80%;
-11. source outage/schema drift produces stale/unknown/degraded state, never false green;
-12. no parallel Project, ITSM, CMDB, finance, HR, workflow, source, metric, notification or report platform was introduced.
+Release requires reproducible metric/report truth, exact or honestly labelled current-state drill, valid source/organization mappings, safe architecture access, usable semantic views, retained legacy links, tested authority/degraded behavior, representative-user evidence and measured reporting-effort improvement. Record merged commit, executed tests and deployed acceptance separately. #344/#346 remain open until their implementation gates pass.
