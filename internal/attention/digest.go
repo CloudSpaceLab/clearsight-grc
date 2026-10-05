@@ -40,7 +40,8 @@ type DigestMaintainer struct {
 
 func NewDigestMaintainer(repository DigestRepository, delivery governedEmailDelivery, applicationURL string) *DigestMaintainer {
 	return &DigestMaintainer{
-		repository: repository, delivery: delivery,
+		repository:     repository,
+		delivery:       delivery,
 		applicationURL: strings.TrimRight(strings.TrimSpace(applicationURL), "/"),
 	}
 }
@@ -90,10 +91,14 @@ func (m *DigestMaintainer) deliver(ctx context.Context, now time.Time, candidate
 	}
 
 	request, err := evidence.BuildDailyDigestRequest(address, evidence.DailyDigestContext{
-		BrandName: candidate.BrandName, RecipientName: candidate.RecipientName,
-		HomeURL: m.applicationURL + "/#home",
-		MaterialChanges: candidate.MaterialChanges, AssignedWork: candidate.AssignedWork,
-		DueSoon: candidate.DueSoon, Worsened: candidate.Worsened, Cleared: candidate.Cleared,
+		BrandName:       candidate.BrandName,
+		RecipientName:   candidate.RecipientName,
+		HomeURL:         m.applicationURL + "/#home",
+		MaterialChanges: candidate.MaterialChanges,
+		AssignedWork:    candidate.AssignedWork,
+		DueSoon:         candidate.DueSoon,
+		Worsened:        candidate.Worsened,
+		Cleared:         candidate.Cleared,
 	})
 	if err != nil {
 		_ = m.repository.RecordDigest(ctx, candidate, EmailDeliveryRecord{
