@@ -656,6 +656,18 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
 
   const auth = workflowRuntime().authRequest({ pathname, method, input: parseBody(init), ErrorType: StaticDemoHTTPError });
   if (auth.handled) { if (auth.actor) currentStaticActor = auth.actor; return clone(auth.body) as T; }
+  if (/^\/api\/v1\/(risks|losses)\/[^/]+\/notification-history$/.test(pathname) && method === "GET") {
+    return clone({ items: [], as_of: new Date().toISOString() }) as T;
+  }
+  if (pathname === "/api/v1/operations/notification-delivery" && method === "GET") {
+    const now = new Date();
+    return clone({
+      as_of: now.toISOString(),
+      window_start: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      delivered: 0, retrying: 0, failed: 0, outcome_unknown: 0, contact_unavailable: 0,
+      classes: [], failures: [],
+    }) as T;
+  }
   if (pathname === "/api/v1/context") {
     const productionUnavailable = fixture === "today-unavailable";
     const noConfig = fixture === "no-config-access";
