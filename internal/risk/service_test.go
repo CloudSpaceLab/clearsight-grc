@@ -69,12 +69,13 @@ func TestRiskAssessmentCanPreserveTrustedSourceAssessmentTimeAndAssessor(t *test
 	service.Now = func() time.Time { return now }
 	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-SOURCE")
 	sourceTime := time.Date(2025, 10, 29, 0, 0, 0, 0, time.UTC)
+	sourceAssessor := "assessor-1"
 
 	updated, assessment, err := service.AddAssessment(ctx, AssessmentInput{
 		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: created.Version,
 		Kind: AssessmentCurrent, MethodCode: "SOURCE-REGISTER", MethodVersion: "v1",
 		Dimensions: json.RawMessage(`{"risk_level":"High"}`), AppetitePosition: AppetiteUnknown,
-		ActorID: "importer-1", AssessedBy: "assessor-1", AssessedAt: sourceTime,
+		ActorID: "importer-1", AssessedBy: &sourceAssessor, AssessedAt: sourceTime,
 	})
 	if err != nil {
 		t.Fatal(err)
