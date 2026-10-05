@@ -74,6 +74,67 @@ func (r *DigestPostgresRepository) DueDigests(ctx context.Context, now time.Time
 			      )
 			  )
 		),
+		accessible_entities AS (
+			SELECT e.tenant_id,e.principal_id,le.id AS legal_entity_id
+			FROM eligible e
+			JOIN legal_entities le ON le.tenant_id=e.tenant_id
+			WHERE le.valid_from<=$1
+			  AND (le.valid_until IS NULL OR $1<le.valid_until)
+			  AND (
+			    EXISTS (
+			      SELECT 1
+			      FROM org_positions position
+			      WHERE position.tenant_id=e.tenant_id
+			        AND position.occupant_principal_id=e.principal_id
+			        AND (position.legal_entity_id IS NULL OR position.legal_entity_id=le.id)
+			        AND position.valid_from<=$1
+			        AND (position.valid_until IS NULL OR $1<position.valid_until)
+			    )
+			    OR EXISTS (
+			      SELECT 1
+			      FROM scim_users user_row
+			      JOIN scim_sources source
+			        ON source.tenant_id=user_row.tenant_id
+			       AND source.id=user_row.source_id
+			       AND source.status='ACTIVE'
+			      JOIN directory_group_members membership
+			        ON membership.tenant_id=user_row.tenant_id
+			       AND membership.scim_user_id=user_row.id
+			      JOIN directory_groups directory_group
+			        ON directory_group.tenant_id=membership.tenant_id
+			       AND directory_group.id=membership.group_id
+			       AND directory_group.source_id=user_row.source_id
+			       AND directory_group.deleted_at IS NULL
+			      JOIN directory_group_role_bindings binding
+			        ON binding.tenant_id=directory_group.tenant_id
+			       AND binding.group_id=directory_group.id
+			       AND binding.legal_entity_id=le.id
+			      JOIN role_templates role
+			        ON role.tenant_id=binding.tenant_id
+			       AND role.id=binding.role_template_id
+			      WHERE user_row.tenant_id=e.tenant_id
+			        AND user_row.principal_id=e.principal_id
+			        AND user_row.active
+			        AND user_row.deleted_at IS NULL
+			        AND binding.valid_from<=$1
+			        AND (binding.valid_until IS NULL OR $1<binding.valid_until)
+			        AND role.valid_from<=$1
+			        AND (role.valid_until IS NULL OR $1<role.valid_until)
+			    )
+			  )
+		),
+		current_work AS (
+			SELECT wt.tenant_id,wt.principal_id,wt.status,wt.due_at,
+			       COALESCE(m.legal_entity_id,request.legal_entity_id) AS legal_entity_id
+			FROM workflow_tasks wt
+			JOIN workflow_instances wi
+			  ON wi.tenant_id=wt.tenant_id AND wi.id=wt.workflow_id
+			LEFT JOIN matters m
+			  ON wi.subject_type='MATTER' AND m.tenant_id=wi.tenant_id AND m.id=wi.subject_id
+			LEFT JOIN capture_requests request
+			  ON wi.subject_type='EVIDENCE_REQUEST' AND request.tenant_id=wi.tenant_id AND request.id=wi.subject_id
+			WHERE wt.status IN ('READY','IN_PROGRESS','BLOCKED','ESCALATED')
+		),
 		summaries AS (
 			SELECT e.tenant_id,e.principal_id,e.local_now,e.display_name,
 			       COALESCE((
@@ -88,22 +149,52 @@ func (r *DigestPostgresRepository) DueDigests(ctx context.Context, now time.Time
 			       ),'') AS recipient_address,
 			       (SELECT count(*) FROM in_app_notifications n
 			        WHERE n.tenant_id=e.tenant_id AND n.principal_id=e.principal_id
-			          AND n.occurred_at>$1-interval '24 hours') AS material_changes,
-			       (SELECT count(*) FROM workflow_tasks wt
-			        WHERE wt.tenant_id=e.tenant_id AND wt.principal_id=e.principal_id
-			          AND wt.status IN ('READY','IN_PROGRESS','BLOCKED','ESCALATED')) AS assigned_work,
-			       (SELECT count(*) FROM workflow_tasks wt
-			        WHERE wt.tenant_id=e.tenant_id AND wt.principal_id=e.principal_id
-			          AND wt.status IN ('READY','IN_PROGRESS','BLOCKED','ESCALATED')
-			          AND wt.due_at>=$1 AND wt.due_at<$1+interval '7 days') AS due_soon,
+			          AND n.occurred_at>$1-interval '24 hours'
+			          AND EXISTS (
+			            SELECT 1 FROM accessible_entities access
+			            WHERE access.tenant_id=n.tenant_id
+			              AND access.principal_id=n.principal_id
+			              AND access.legal_entity_id=n.legal_entity_id
+			          )) AS material_changes,
+			       (SELECT count(*) FROM current_work work
+			        WHERE work.tenant_id=e.tenant_id AND work.principal_id=e.principal_id
+			          AND work.legal_entity_id IS NOT NULL
+			          AND EXISTS (
+			            SELECT 1 FROM accessible_entities access
+			            WHERE access.tenant_id=work.tenant_id
+			              AND access.principal_id=work.principal_id
+			              AND access.legal_entity_id=work.legal_entity_id
+			          )) AS assigned_work,
+			       (SELECT count(*) FROM current_work work
+			        WHERE work.tenant_id=e.tenant_id AND work.principal_id=e.principal_id
+			          AND work.legal_entity_id IS NOT NULL
+			          AND work.due_at>=$1 AND work.due_at<$1+interval '7 days'
+			          AND EXISTS (
+			            SELECT 1 FROM accessible_entities access
+			            WHERE access.tenant_id=work.tenant_id
+			              AND access.principal_id=work.principal_id
+			              AND access.legal_entity_id=work.legal_entity_id
+			          )) AS due_soon,
 			       (SELECT count(*) FROM in_app_notifications n
 			        WHERE n.tenant_id=e.tenant_id AND n.principal_id=e.principal_id
 			          AND n.occurred_at>$1-interval '24 hours'
-			          AND n.notification_kind LIKE 'ATTENTION\_%\_WORSENED' ESCAPE '\') AS worsened,
+			          AND n.notification_kind LIKE 'ATTENTION\_%\_WORSENED' ESCAPE '\'
+			          AND EXISTS (
+			            SELECT 1 FROM accessible_entities access
+			            WHERE access.tenant_id=n.tenant_id
+			              AND access.principal_id=n.principal_id
+			              AND access.legal_entity_id=n.legal_entity_id
+			          )) AS worsened,
 			       (SELECT count(*) FROM in_app_notifications n
 			        WHERE n.tenant_id=e.tenant_id AND n.principal_id=e.principal_id
 			          AND n.occurred_at>$1-interval '24 hours'
-			          AND n.notification_kind LIKE 'ATTENTION\_%\_CLEARED' ESCAPE '\') AS cleared
+			          AND n.notification_kind LIKE 'ATTENTION\_%\_CLEARED' ESCAPE '\'
+			          AND EXISTS (
+			            SELECT 1 FROM accessible_entities access
+			            WHERE access.tenant_id=n.tenant_id
+			              AND access.principal_id=n.principal_id
+			              AND access.legal_entity_id=n.legal_entity_id
+			          )) AS cleared
 			FROM eligible e
 		)
 		SELECT s.tenant_id::text,s.principal_id::text,s.local_now::date,s.display_name,s.recipient_address,
