@@ -113,7 +113,9 @@ it("leads with exact interventions and provides table alternatives for oversight
   fireEvent.click(screen.getByText("Data freshness"));
   expect(screen.getByText("Continuity Events")).toBeTruthy();
   expect(screen.getByText("12 of 14 completed issues have complete lifecycle events · 2 excluded because an opened or closed event is missing · employee handling time follows each recorded owner assignment; reassignment, return, blocked and reopen counts remain visible separately")).toBeTruthy();
-  expect(screen.getByRole("table", { name: "Risk pressure by issue type" })).toBeTruthy();
+  const pressureTable = screen.getByRole("table", { name: "Risk pressure by issue type" });
+  expect(pressureTable.closest(".oversight-pressure-table")).toBeTruthy();
+  expect(Array.from(pressureTable.querySelectorAll("thead th"), (header) => header.textContent)).toEqual(["Issue type", "Critical", "High", "Other", "Overdue"]);
   expect(screen.queryByText(/employee score/i)).toBeNull();
 
   fireEvent.click(screen.getByRole("button", { name: "Review Verify vendor address" }));
