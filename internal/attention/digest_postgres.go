@@ -99,11 +99,11 @@ func (r *DigestPostgresRepository) DueDigests(ctx context.Context, now time.Time
 			       (SELECT count(*) FROM in_app_notifications n
 			        WHERE n.tenant_id=e.tenant_id AND n.principal_id=e.principal_id
 			          AND n.occurred_at>$1-interval '24 hours'
-			          AND n.notification_kind LIKE 'ATTENTION_%_WORSENED' ESCAPE '\\') AS worsened,
+			          AND n.notification_kind LIKE 'ATTENTION\_%\_WORSENED' ESCAPE '\') AS worsened,
 			       (SELECT count(*) FROM in_app_notifications n
 			        WHERE n.tenant_id=e.tenant_id AND n.principal_id=e.principal_id
 			          AND n.occurred_at>$1-interval '24 hours'
-			          AND n.notification_kind LIKE 'ATTENTION_%_CLEARED' ESCAPE '\\') AS cleared
+			          AND n.notification_kind LIKE 'ATTENTION\_%\_CLEARED' ESCAPE '\') AS cleared
 			FROM eligible e
 		)
 		SELECT s.tenant_id::text,s.principal_id::text,s.local_now::date,s.display_name,s.recipient_address,
