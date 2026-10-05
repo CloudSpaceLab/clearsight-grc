@@ -61,6 +61,32 @@ func TestRiskAssessmentRequiresCurrentApplicableAppetite(t *testing.T) {
 	}
 }
 
+func TestRiskAssessmentCanPreserveTrustedSourceAssessmentTimeAndAssessor(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	created := createTestRisk(t, service, ctx, "bank", "entity-a", "RISK-SOURCE")
+	sourceTime := time.Date(2025, 10, 29, 0, 0, 0, 0, time.UTC)
+
+	updated, assessment, err := service.AddAssessment(ctx, AssessmentInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: created.ID, ExpectedRiskVersion: created.Version,
+		Kind: AssessmentCurrent, MethodCode: "SOURCE-REGISTER", MethodVersion: "v1",
+		Dimensions: json.RawMessage(`{"risk_level":"High"}`), AppetitePosition: AppetiteUnknown,
+		ActorID: "importer-1", AssessedBy: "assessor-1", AssessedAt: sourceTime,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !assessment.AssessedAt.Equal(sourceTime) || assessment.AssessedBy != "assessor-1" {
+		t.Fatalf("source assessment metadata changed: %#v", assessment)
+	}
+	if !assessment.CreatedAt.Equal(now) || !updated.UpdatedAt.Equal(now) {
+		t.Fatalf("command audit time changed: risk=%s assessment=%s now=%s", updated.UpdatedAt, assessment.CreatedAt, now)
+	}
+}
+
 func TestExpiredNewerAppetiteDoesNotReactivateOlderStatement(t *testing.T) {
 	ctx := context.Background()
 	repo := NewMemoryRepository()
