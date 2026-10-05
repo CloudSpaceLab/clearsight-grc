@@ -31,13 +31,14 @@ export async function loadMonitoringChecks(programID: string): Promise<Monitorin
   return (await scoped<{ items: MonitoringCheck[] }>(`/api/v1/programs/${encodeURIComponent(programID)}/monitoring-checks?limit=100`)).items;
 }
 
-export function createFormMonitoringCheck(programID: string, form: FormTemplate, policy: CollectionPolicy): Promise<MonitoringCheck> {
+export function createFormMonitoringCheck(programID: string, form: FormTemplate, policy: CollectionPolicy, measurement?: MonitoringMeasurementSpec): Promise<MonitoringCheck> {
   return scoped<MonitoringCheck>(`/api/v1/programs/${encodeURIComponent(programID)}/monitoring-checks`, {
     method: "POST",
     body: JSON.stringify({
       code: `${form.code}-CHECK`, name: form.name, claim: form.purpose, input_kind: "FORM",
       form_template_id: form.id, form_template_version: form.version,
       collection_policy: policy,
+      measurement,
       thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 },
       freshness_minutes: 10080, minimum_coverage: 1, failure_action: "REVIEW",
     }),
