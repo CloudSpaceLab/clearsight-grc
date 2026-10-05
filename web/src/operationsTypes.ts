@@ -96,3 +96,34 @@ export type AuditExportReceipt = {
   completed_at?: string;
   expires_at: string;
 };
+
+export type NotificationDeliveryClassHealth = {
+  delivery_class: string;
+  delivered: number;
+  retrying: number;
+  failed: number;
+  outcome_unknown: number;
+  contact_unavailable: number;
+  last_attempt_at?: string;
+  last_delivered_at?: string;
+};
+
+export type NotificationDeliveryFailure = {
+  delivery_class: string;
+  status: string;
+  failure_code?: string;
+  count: number;
+  last_attempt_at: string;
+};
+
+export type NotificationDeliveryHealth = {
+  as_of: string;
+  window_start: string;
+  delivered: number;
+  retrying: number;
+  failed: number;
+  outcome_unknown: number;
+  contact_unavailable: number;
+  classes: NotificationDeliveryClassHealth[];
+  failures: NotificationDeliveryFailure[];
+};
