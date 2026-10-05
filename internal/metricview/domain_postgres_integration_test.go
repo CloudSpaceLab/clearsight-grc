@@ -265,7 +265,6 @@ func mustDomainID(t *testing.T) string {
 	return value
 }
 
-
 func bundleSourceID(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, entityID string, at time.Time) string {
 	t.Helper()
 	var sourceID string
