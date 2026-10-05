@@ -97,7 +97,7 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 			source_rules,thresholds,freshness_minutes,minimum_coverage,owner_principal_id,reviewer_principal_id,
 			failure_action,status,is_current,effective_from,version,created_by,submitted_by,approved_by,created_at,updated_at
 		) VALUES($1::uuid,$2::uuid,$3::uuid,'DM-KRI','Domain KRI','Risk score remains acceptable','FORM',$4::uuid,1,
-		         '[]'::jsonb,'{}'::jsonb,1440,0.8,$5::uuid,$5::uuid,'MATTER','ACTIVE',true,$6,1,
+		         '[]'::jsonb,'{}'::jsonb,1440,0.8,$5::uuid,$5::uuid,'RECOMMEND_MATTER','ACTIVE',true,$6,1,
 		         $5::uuid,$5::uuid,$5::uuid,$6,$6)`,
 		checkID, tenantID, programID, formID, principalID, now.Add(-24*time.Hour))
 	mustExec(`
@@ -112,7 +112,7 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 			id,tenant_id,legal_entity_id,risk_id,risk_version,program_id,monitoring_check_id,
 			monitoring_check_version,kind,measurement,linked_by,created_at
 		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,2,$5::uuid,$6::uuid,1,'KRI',
-		         '{"kind":"RISK_SCORE_0_100"}'::jsonb,$7::uuid,$8)`,
+		         'MONITORING_RISK_SCORE',$7::uuid,$8)`,
 		indicatorLinkID, tenantID, entityID, riskID, programID, checkID, principalID, now.Add(-time.Hour))
 
 	mustExec(`
@@ -153,8 +153,12 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 
 	mustExec(`
 		INSERT INTO operational_losses(
-			id,tenant_id,legal_entity_id,code,title,category,occurred_at,discovered_at,owner_principal_id,status,version,created_at,updated_at
-		) VALUES($1::uuid,$2::uuid,$3::uuid,'DM-LOSS','Domain metric loss','PROCESS',$4,$4,$5::uuid,'ACTIVE',1,$4,$4)`,
+			id,tenant_id,legal_entity_id,code,title,event_type,cause,description,gross_amount_minor,currency,
+			occurred_at,discovered_at,owner_principal_id,status,version,created_at,updated_at
+		) VALUES(
+			$1::uuid,$2::uuid,$3::uuid,'DM-LOSS','Domain metric loss','EXECUTION_DELIVERY_PROCESS_MANAGEMENT',
+			'Processing failure','Material processing loss',100000,'NGN',$4,$4,$5::uuid,'ACTIVE',1,$4,$4
+		)`,
 		lossID, tenantID, entityID, now.Add(-2*time.Hour), principalID)
 
 	observationRepository := NewObservationRepository(pool)
@@ -205,7 +209,7 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s members: %v", tc.metricID, err)
 		}
-		if page.Total != 1 || len(page.Items) != 1 || page.Items[0].TargetType != tc.targetType || page.Items[0].TargetID != tc.targetID {
+		if page.Count != 1 || len(page.Items) != 1 || page.Items[0].TargetType != tc.targetType || page.Items[0].TargetID != tc.targetID {
 			t.Fatalf("%s page=%#v", tc.metricID, page)
 		}
 	}
