@@ -263,6 +263,7 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/matters/{id}/responses/{response_id}/transition", "matter.response.transition", a.transitionMatterResponse, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilitySignatory, Materiality: 4}),
 
 		withPermission(read("/api/v1/operations/projections", a.projectionHealth), identity.PermissionPlatformOperationsRead),
+		withPermission(read("/api/v1/operations/notification-delivery", a.notificationDeliveryHealth), identity.PermissionPlatformOperationsRead),
 		withPermission(materialService("/api/v1/operations/projections/reconcile", "projection.reconcile", a.reconcileProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityReviewer, Materiality: 3, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
 		withPermission(material("/api/v1/operations/projections/rebuild", "projection.rebuild", a.rebuildProgramState, commandPolicy{ObjectType: "PROJECTION", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}), identity.PermissionPlatformOperationsWrite),
 		withPermission(read("/api/v1/operations/background-jobs", a.backgroundJobs), identity.PermissionPlatformJobsRead),
