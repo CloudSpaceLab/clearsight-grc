@@ -28,14 +28,14 @@ type SourceEvent struct {
 }
 
 type Intent struct {
-	EpisodeID       string `json:"episode_id"`
-	LegalEntityID   string `json:"legal_entity_id"`
-	PrincipalID     string `json:"principal_id"`
-	Condition       string `json:"condition"`
-	ConditionState  string `json:"condition_state"`
-	SubjectType     string `json:"subject_type"`
-	SubjectID       string `json:"subject_id"`
-	SourceID        string `json:"source_id"`
+	EpisodeID      string `json:"episode_id"`
+	LegalEntityID  string `json:"legal_entity_id"`
+	PrincipalID    string `json:"principal_id"`
+	Condition      string `json:"condition"`
+	ConditionState string `json:"condition_state"`
+	SubjectType    string `json:"subject_type"`
+	SubjectID      string `json:"subject_id"`
+	SourceID       string `json:"source_id"`
 	NoticeSequence int    `json:"notice_sequence"`
 }
 
