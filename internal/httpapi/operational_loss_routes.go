@@ -6,6 +6,7 @@ func (a *API) operationalLossRoutes() []routeSpec {
 	return []routeSpec{
 		read("/api/v1/losses", a.listOperationalLosses),
 		read("/api/v1/losses/{id}", a.getOperationalLoss),
+		read("/api/v1/losses/{id}/notification-history", a.operationalLossNotificationHistory),
 		material("/api/v1/losses", "loss.create", a.createOperationalLoss, commandPolicy{
 			ObjectType: "OPERATIONAL_LOSS", Responsibility: authority.ResponsibilityOwner,
 			Materiality: 3, BindLegalEntity: true, ActorField: noActorField,
