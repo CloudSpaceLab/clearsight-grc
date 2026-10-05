@@ -109,8 +109,9 @@ export function assessmentKindLabel(kind: RiskAssessmentKind): string {
   return labels[kind];
 }
 
-export function assessmentRatingLabel(assessment: RiskAssessment | undefined): string {
+export function assessmentRatingLabel(assessment: RiskAssessment | undefined, riskVersion?: number): string {
   if (!assessment) return "Not assessed";
+  if (riskVersion !== undefined && assessment.risk_version !== riskVersion) return "Reassessment needed";
   for (const key of ["risk_level", "rating", "band"] as const) {
     const value = assessment.dimensions?.[key];
     if (typeof value === "string" && value.trim()) return readableRating(value);
@@ -118,8 +119,8 @@ export function assessmentRatingLabel(assessment: RiskAssessment | undefined): s
   return "See assessment";
 }
 
-export function assessmentRatingTone(assessment: RiskAssessment | undefined): StatusTone {
-  const value = assessmentRatingLabel(assessment).toUpperCase();
+export function assessmentRatingTone(assessment: RiskAssessment | undefined, riskVersion?: number): StatusTone {
+  const value = assessmentRatingLabel(assessment, riskVersion).toUpperCase();
   if (value === "CRITICAL" || value === "SEVERE") return "error";
   if (value === "HIGH") return "warning";
   if (value === "MODERATE" || value === "MEDIUM") return "info";
