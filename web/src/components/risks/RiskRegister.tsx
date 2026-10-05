@@ -105,7 +105,7 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       id: "rating",
       header: "Rating",
       kind: "status",
-      render: (item) => <StatusBadge tone={assessmentRatingTone(item.latest_assessment)}>{assessmentRatingLabel(item.latest_assessment)}</StatusBadge>,
+      render: (item) => <StatusBadge tone={assessmentRatingTone(item.latest_assessment, item.risk.version)}>{assessmentRatingLabel(item.latest_assessment, item.risk.version)}</StatusBadge>,
       accessibleText: (item) => assessmentRatingLabel(item.latest_assessment),
     },
     {
