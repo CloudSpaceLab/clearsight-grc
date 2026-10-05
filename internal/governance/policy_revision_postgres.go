@@ -84,7 +84,7 @@ func (r *PostgresRepository) PendingPolicyRevision(ctx context.Context, tenantID
 	var revision RoutingPolicyRevision
 	var approvedAt, effectiveFrom, effectiveUntil *time.Time
 	err := r.pool.QueryRow(ctx, `
-		SELECT rp.id::text,t.slug,rpv.legal_entity_id::text,rpv.version,rp.current_version,rpv.definition,rpv.checksum,
+		SELECT rp.id::text,t.slug,rpv.legal_entity_id::text,rpv.version,GREATEST(rpv.version-1,0),rpv.definition,rpv.checksum,
 		       COALESCE(rpv.created_by::text,''),rpv.created_at,COALESCE(rpv.approved_by::text,''),
 		       rpv.approved_at,rpv.effective_from,rpv.effective_until
 		FROM routing_policies rp
