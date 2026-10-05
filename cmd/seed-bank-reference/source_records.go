@@ -239,7 +239,7 @@ func sourceRiskProjection(group sourceRecordGroup, record sourceRecord) (sourceR
 	}
 	projection.HasAssessment = true
 	projection.AssessedAt = assessedAt
-	projection.Dimensions = sourceJSON(map[string]any{"risk_level": rating, "source_assessment": assessmentName, "source_sha256": group.SourceSHA256, "source_range": record.SourceRange})
+	projection.Dimensions = sourceJSON(map[string]any{"risk_level": rating, "source_assessment": assessmentName})
 	projection.Assumptions = sourceJSON(map[string]any{"source_import": true, "rating_preserved_as_recorded": true, "normalized_scoring_not_inferred": true})
 	projection.EvidenceReferences = sourceJSON([]map[string]string{{"source_file": group.SourceFile, "source_sha256": group.SourceSHA256, "source_sheet": group.SourceSheet, "source_range": record.SourceRange}})
 	return projection, true, nil
@@ -322,10 +322,10 @@ func ensureSourceRisk(ctx context.Context, pool *pgxpool.Pool, service *risk.Ser
 		if assessment.MethodCode != sourceRiskAssessmentMethod {
 			continue
 		}
-		var dimensions map[string]any
-		if json.Unmarshal(assessment.Dimensions, &dimensions) != nil ||
-			dimensions["source_sha256"] != group.SourceSHA256 ||
-			dimensions["source_range"] != record.SourceRange {
+		var references []map[string]any
+		if json.Unmarshal(assessment.EvidenceReferences, &references) != nil || len(references) != 1 ||
+			references[0]["source_sha256"] != group.SourceSHA256 ||
+			references[0]["source_range"] != record.SourceRange {
 			return risk.Risk{}, true, false, fmt.Errorf("source risk %s already has a different imported assessment", projection.Code)
 		}
 		return aggregate.Risk, true, false, nil
@@ -370,6 +370,91 @@ func validateSourceRiskIdentity(current risk.Risk, projection sourceRiskProjecti
 		return fmt.Errorf("source risk %s baseline changed; review it instead of overwriting", projection.Code)
 	}
 	return nil
+}
+
+type persistedSourceRiskFacts struct {
+	SourceFile     string              `json:"source_file"`
+	SourceSHA256   string              `json:"source_sha256"`
+	SourceSheet    string              `json:"source_sheet"`
+	SourceRange    string              `json:"source_range"`
+	SourceRating   string              `json:"source_rating"`
+	SourceOwner    string              `json:"source_owner"`
+	SourceAssessor string              `json:"source_assessor"`
+	SourceFields   []sourceRecordField `json:"source_fields"`
+}
+
+func persistedSourceRiskRecord(triggerKey string, knownFacts json.RawMessage) (sourceRecordGroup, sourceRecord, error) {
+	const prefix = sourceRecordPackage + ":it-risk-exceptions-"
+	if !strings.HasPrefix(triggerKey, prefix) {
+		return sourceRecordGroup{}, sourceRecord{}, fmt.Errorf("unsupported persisted source risk trigger %q", triggerKey)
+	}
+	var facts persistedSourceRiskFacts
+	if err := json.Unmarshal(knownFacts, &facts); err != nil {
+		return sourceRecordGroup{}, sourceRecord{}, err
+	}
+	recordKey := strings.TrimPrefix(triggerKey, sourceRecordPackage+":")
+	if facts.SourceFile == "" || len(facts.SourceSHA256) != 64 || facts.SourceRange == "" || len(facts.SourceFields) == 0 {
+		return sourceRecordGroup{}, sourceRecord{}, fmt.Errorf("persisted source risk %s is missing source lineage", recordKey)
+	}
+	group := sourceRecordGroup{
+		Key: "it-risk-exceptions", SourceFile: facts.SourceFile, SourceSHA256: facts.SourceSHA256,
+		SourceSheet: facts.SourceSheet,
+	}
+	record := sourceRecord{
+		Key: recordKey, SourceRange: facts.SourceRange, Fields: facts.SourceFields,
+		Owner: facts.SourceOwner, Assessor: facts.SourceAssessor, Rating: facts.SourceRating,
+	}
+	return group, record, nil
+}
+
+func reconcilePersistedSourceRisks(ctx context.Context, pool *pgxpool.Pool, seed bankverticals.SeedConfig) (sourceRecordReceipt, error) {
+	var receipt sourceRecordReceipt
+	if pool == nil {
+		return receipt, fmt.Errorf("source risk reconciliation requires a database")
+	}
+	rows, err := pool.Query(ctx, `
+		SELECT m.trigger_key,m.known_facts
+		FROM matters m
+		JOIN tenants t ON t.id=m.tenant_id
+		JOIN legal_entities le ON le.id=m.legal_entity_id AND le.tenant_id=m.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND m.trigger_type='SOURCE_REGISTER_IMPORT'
+		  AND m.trigger_key LIKE $3
+		ORDER BY m.trigger_key
+		LIMIT 100`,
+		seed.TenantID, seed.LegalEntityID, sourceRecordPackage+":it-risk-exceptions-%")
+	if err != nil {
+		return receipt, err
+	}
+	defer rows.Close()
+
+	service := risk.NewService(risk.NewPostgresRepository(pool))
+	for rows.Next() {
+		var triggerKey string
+		var knownFacts json.RawMessage
+		if err = rows.Scan(&triggerKey, &knownFacts); err != nil {
+			return receipt, err
+		}
+		group, record, parseErr := persistedSourceRiskRecord(triggerKey, knownFacts)
+		if parseErr != nil {
+			return receipt, parseErr
+		}
+		_, candidate, assessmentCreated, riskErr := ensureSourceRisk(ctx, pool, service, seed, group, record)
+		if riskErr != nil {
+			return receipt, fmt.Errorf("reconcile %s: %w", record.Key, riskErr)
+		}
+		if candidate {
+			receipt.Risks++
+		}
+		if assessmentCreated {
+			receipt.RiskAssessments++
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return receipt, err
+	}
+	return receipt, nil
 }
 
 func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, seed bankverticals.SeedConfig) (sourceRecordReceipt, error) {
