@@ -83,6 +83,14 @@ type MeasurementLimit struct {
 	Expected string         `json:"expected"`
 }
 
+type MeasurementCondition string
+
+const (
+	MeasurementConditionWithin   MeasurementCondition = "WITHIN"
+	MeasurementConditionBreached MeasurementCondition = "BREACHED"
+	MeasurementConditionUnknown  MeasurementCondition = "UNKNOWN"
+)
+
 type NativeMeasurement struct {
 	Field        string                  `json:"field"`
 	Label        string                  `json:"label,omitempty"`
@@ -92,6 +100,7 @@ type NativeMeasurement struct {
 	Precision    int                     `json:"precision,omitempty"`
 	Value        string                  `json:"value,omitempty"`
 	Limits       []MeasurementLimit      `json:"limits,omitempty"`
+	Condition    MeasurementCondition    `json:"condition,omitempty"`
 }
 
 type RuleOutcome string
