@@ -90,11 +90,11 @@ func loadIndicatorBreachMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 		)
 		SELECT link.id::text,risk.id::text,risk.name,
 		       CASE
-		         WHEN check.revision_id IS NULL OR check.status<>'ACTIVE' OR NOT check.is_current THEN 'UNKNOWN'
+		         WHEN check_config.revision_id IS NULL OR check_config.status<>'ACTIVE' OR NOT check_config.is_current THEN 'UNKNOWN'
 		         WHEN program.id IS NULL OR program.status<>'ACTIVE' THEN 'UNKNOWN'
 		         WHEN result.id IS NULL THEN 'UNKNOWN'
-		         WHEN result.evaluated_at < $3-(check.freshness_minutes*interval '1 minute') THEN 'UNKNOWN'
-		         WHEN NULLIF(result.evaluation->>'coverage','')::numeric < check.minimum_coverage THEN 'UNKNOWN'
+		         WHEN result.evaluated_at < $3-(check_config.freshness_minutes*interval '1 minute') THEN 'UNKNOWN'
+		         WHEN NULLIF(result.evaluation->>'coverage','')::numeric < check_config.minimum_coverage THEN 'UNKNOWN'
 		         WHEN result.evaluation->>'band' IN ('HIGH','CRITICAL') THEN 'BREACH'
 		         WHEN result.evaluation->>'band'='MODERATE' THEN 'WATCH'
 		         WHEN result.evaluation->>'band'='LOW' THEN 'NORMAL'
@@ -102,11 +102,11 @@ func loadIndicatorBreachMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 		       END state
 		FROM current_links link
 		JOIN risks risk ON risk.id=link.risk_id AND risk.tenant_id=$1::uuid AND risk.legal_entity_id=$2::uuid
-		LEFT JOIN monitoring_checks check
-		  ON check.tenant_id=$1::uuid
-		 AND check.id=link.monitoring_check_id
-		 AND check.version=link.monitoring_check_version
-		 AND check.program_id=link.program_id
+		LEFT JOIN monitoring_checks check_config
+		  ON check_config.tenant_id=$1::uuid
+		 AND check_config.id=link.monitoring_check_id
+		 AND check_config.version=link.monitoring_check_version
+		 AND check_config.program_id=link.program_id
 		LEFT JOIN programs program
 		  ON program.tenant_id=$1::uuid
 		 AND program.id=link.program_id
