@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -115,5 +116,51 @@ func TestInAppNotificationProjectorRendersSafeAttentionIntent(t *testing.T) {
 	}
 	if strings.Contains(record.Title, "CRITICAL") || strings.Contains(record.Summary, sourceID) {
 		t.Fatalf("raw condition/source metadata leaked into presentation: %#v", record)
+	}
+}
+
+
+type largeAssignmentProjectionRepoStub struct {
+	records int
+}
+
+func (*largeAssignmentProjectionRepoStub) LoadAssignmentNotification(_ context.Context, event workflowruntime.OutboxEvent, assignment assignmentNotificationEvent) (assignmentNotificationContext, error) {
+	return assignmentNotificationContext{
+		LegalEntityID:      "50000000-0000-4000-8000-000000000099",
+		CurrentPrincipalID: assignment.PrincipalID,
+		MatterID:           event.AggregateID,
+	}, nil
+}
+
+func (s *largeAssignmentProjectionRepoStub) StoreInAppNotification(_ context.Context, _ inAppNotificationRecord) error {
+	s.records++
+	return nil
+}
+
+func TestInAppNotificationProjectorHandlesLargeAssignmentBurst(t *testing.T) {
+	repo := &largeAssignmentProjectionRepoStub{}
+	projector := NewInAppNotificationProjector(repo, repo)
+	occurredAt := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+
+	const total = 1000
+	for index := 1; index <= total; index++ {
+		matterID := fmt.Sprintf("20000000-0000-4000-8000-%012x", index)
+		principalID := fmt.Sprintf("40000000-0000-4000-8000-%012x", index)
+		eventID := fmt.Sprintf("10000000-0000-4000-8000-%012x", index)
+		event := workflowruntime.OutboxEvent{
+			ID: eventID, TenantID: "bank",
+			AggregateType: "MATTER", AggregateID: matterID, EventType: continuity.EventMatterOwnerChanged,
+			Payload: []byte(fmt.Sprintf(
+				`{"matter":{"id":%q},"owner_principal_id":%q,"previous_owner_principal_id":"40000000-0000-4000-8000-ffffffffffff"}`,
+				matterID, principalID,
+			)),
+			OccurredAt: occurredAt,
+		}
+		if err := projector.Publish(context.Background(), event); err != nil {
+			t.Fatalf("assignment %d: %v", index, err)
+		}
+	}
+	if repo.records != total {
+		t.Fatalf("records=%d want %d", repo.records, total)
 	}
 }
