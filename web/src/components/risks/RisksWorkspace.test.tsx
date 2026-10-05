@@ -140,6 +140,22 @@ it("binds the register read to the selected organization scope", async () => {
   expect(loadPage).toHaveBeenCalledWith(expect.objectContaining({ organizationScopeID: "scope-risk", limit: 25 }), expect.any(AbortSignal));
 });
 
+it("keeps a source rating separate from appetite when no appetite statement exists", async () => {
+  const sourceAssessment = {
+    ...assessment,
+    appetite_statement_id: undefined,
+    appetite_position: "UNKNOWN" as const,
+    appetite_rationale: "No source appetite statement was supplied.",
+  };
+  const sourcePage: RiskPage = { items: [{ risk, latest_assessment: sourceAssessment }] };
+  render(<RiskRegister onOpenRisk={vi.fn()} loadPage={vi.fn().mockResolvedValue(sourcePage)}/>);
+
+  const table = await screen.findByRole("table", { name: "Risk register" });
+  expect(within(table).getByText("High")).toBeTruthy();
+  expect(within(table).getByText("No current appetite")).toBeTruthy();
+  expect(within(table).queryByText("Outside appetite")).toBeNull();
+});
+
 it("opens the exact Risk from the visible row action", async () => {
   const onOpenRisk = vi.fn();
   render(<RiskRegister onOpenRisk={onOpenRisk} loadPage={vi.fn().mockResolvedValue(page)}/>);
@@ -277,7 +293,8 @@ it("does not present a stale assessment as the current appetite position", async
 
   render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, risk: { ...risk, version: 4 } })}/>);
   const currentState = await screen.findByRole("group", { name: "Current risk state" });
-  expect(within(currentState).getByText("Reassessment needed")).toBeTruthy();
+  expect(within(currentState).getAllByText("Reassessment needed")).toHaveLength(2);
+  expect(within(currentState).queryByText("High")).toBeNull();
   expect(within(currentState).queryByText("Outside appetite")).toBeNull();
 });
 
