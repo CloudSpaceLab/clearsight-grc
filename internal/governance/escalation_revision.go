@@ -114,7 +114,7 @@ func (s *Service) ApprovePolicyRevision(ctx context.Context, input ApprovePolicy
 	if len(findings) > 0 {
 		return RoutingPolicy{}, fmt.Errorf("%w: %s", ErrConflict, findings[0].Summary)
 	}
-	findings, err = s.repo.EscalationReferenceConflicts(ctx, input.TenantID, revision.Definition)
+	findings, err = s.repo.EscalationReferenceConflicts(ctx, input.TenantID, input.LegalEntityID, revision.Definition)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
