@@ -105,6 +105,14 @@ Operational success and failure receipts use `Notice` rather than feature-owned 
 
 ## Structural patterns
 
+### Native Indicators — 5 October 2026
+
+KRI/KCI and operational threshold measures lead with the native business value, unit and approved limit when an exact Monitoring Check revision defines them. The normalized 0–100 concern score remains visible supporting context and must not be relabelled as a percentage, probability or native KPI. Freshness and coverage are independent quality states; stale or incomplete data never becomes a reassuring Normal state.
+
+Risk Indicator rows open the exact Indicator context first. That focused detail preserves the current state, native value, owner/reviewer, Program relationship and recent observations from the same Monitoring Check revision. The Program remains one step deeper for continuing governance and evidence. Older check revisions are excluded from the current Indicator history unless a historical reconstruction explicitly selects them.
+
+Native values reuse the shared table, badge, sheet and responsive contracts. Count, percent, duration and money retain exact stored values rather than browser floating-point arithmetic. No new colour system, chart library, KRI module or primary navigation item is introduced.
+
 ### Form response results — 5 October 2026
 
 Program submitted data and Forms responses share a filter rail and a result toolbar for literal title search, stored-score priority, bounded batch size and optional columns. At 900px the rail becomes a closed Filters disclosure; at 420px toolbar fields stack. Result tables opt into the existing container replacement. Form identity and the response-review action remain mandatory. Query changes discard old cursor pages; empty search results retain reset/recovery. Scores never establish document validity or completed review. Shared DataTable columns can expose an onSort button and ascending/descending aria-sort; the owner controls ordering and pagination. No new density mode, palette or motion. Decision and proof: `docs/design/2026-10-05-response-browser.md`.
