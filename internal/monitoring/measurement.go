@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
@@ -11,7 +12,38 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
-var currencyCodePattern = regexp.MustCompile(`^[A-Z]{3}$`)
+var (
+	currencyCodePattern = regexp.MustCompile(`^[A-Z]{3}package monitoring
+
+import (
+	"fmt"
+	"math/big"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
+)
+
+)
+	exactDecimalPattern = regexp.MustCompile(`^([+-]?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?package monitoring
+
+import (
+	"fmt"
+	"math/big"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
+)
+
+)
+)
 
 func normalizeMeasurementSpec(input *MeasurementSpec) (*MeasurementSpec, error) {
 	if input == nil {
@@ -229,6 +261,38 @@ func measurementLimitOperator(value SourceOperator) bool {
 }
 
 func parseExactDecimal(value string) (*big.Rat, bool) {
-	parsed, ok := new(big.Rat).SetString(strings.TrimSpace(value))
-	return parsed, ok
+	value = strings.TrimSpace(value)
+	if value == "" || len(value) > 128 {
+		return nil, false
+	}
+	match := exactDecimalPattern.FindStringSubmatch(value)
+	if match == nil {
+		return nil, false
+	}
+	exponent := 0
+	if match[4] != "" {
+		parsedExponent, err := strconv.Atoi(match[4])
+		if err != nil || parsedExponent < -100 || parsedExponent > 100 {
+			return nil, false
+		}
+		exponent = parsedExponent
+	}
+	digits := match[2] + match[3]
+	numerator := new(big.Int)
+	if _, ok := numerator.SetString(digits, 10); !ok {
+		return nil, false
+	}
+	if match[1] == "-" {
+		numerator.Neg(numerator)
+	}
+	scale := len(match[3]) - exponent
+	if scale <= 0 {
+		numerator.Mul(numerator, pow10(-scale))
+		return new(big.Rat).SetInt(numerator), true
+	}
+	return new(big.Rat).SetFrac(numerator, pow10(scale)), true
+}
+
+func pow10(exponent int) *big.Int {
+	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(exponent)), nil)
 }
