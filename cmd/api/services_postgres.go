@@ -30,7 +30,8 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/people"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/notificationprefs"\n\t"github.com/CloudSpaceLab/clearsight-grc/internal/presentationprefs"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/notificationprefs"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/presentationprefs"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/rcsa"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/registermigration"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
@@ -156,7 +157,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	metricTrends := metricview.NewObservationRepository(pool)
 	metricMatrices := metricview.NewMatrixRepository(pool)
 	domainMetrics := metricview.NewDomainRepository(pool)
-	presentationPreferences := presentationprefs.NewService(presentationprefs.NewPostgresRepository(pool))\n\tnotificationPreferences := notificationprefs.NewService(notificationprefs.NewPostgresRepository(pool))
+	presentationPreferences := presentationprefs.NewService(presentationprefs.NewPostgresRepository(pool))
+	notificationPreferences := notificationprefs.NewService(notificationprefs.NewPostgresRepository(pool))
 	groupOversightService := oversight.NewGroupService(oversightRepository, accessResolver)
 	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
 	scimService, err := scimapi.New(scimapi.NewPostgresRepository(pool), logger)
