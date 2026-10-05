@@ -54,6 +54,8 @@ type escalationTimerPayload struct {
 	Trigger             string   `json:"trigger"`
 	StepIndex           int      `json:"step_index"`
 	BaselineDueAt       string   `json:"baseline_due_at"`
+	TerminalHandling    string   `json:"terminal_handling,omitempty"`
+	RecoveryAction      string   `json:"recovery_action,omitempty"`
 	BaseDepartmentPath  []string `json:"base_department_path,omitempty"`
 	BaseDepartmentState string   `json:"base_department_state,omitempty"`
 }
@@ -130,6 +132,7 @@ func (c *MatterEscalationCoordinator) Maintain(ctx context.Context, now time.Tim
 			Kind: "MATTER_ESCALATION", TaskID: task.ID, WorkflowID: task.WorkflowID,
 			PolicyVersion: policyVersion, SequenceID: sequence.ID, Trigger: sequence.Trigger,
 			StepIndex: 0, BaselineDueAt: task.DueAt.UTC().Format(time.RFC3339Nano),
+			TerminalHandling: sequence.TerminalHandling, RecoveryAction: sequence.RecoveryAction,
 		}
 		if err := c.scheduleStep(ctx, task.TenantID, task.WorkflowID, task.ID, payload, sequence.Steps[0]); err != nil {
 			return processed, fmt.Errorf("schedule escalation for task %s: %w", task.ID, err)
@@ -252,7 +255,7 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 	step := sequence.Steps[payload.StepIndex]
 	if len(step.SourceRoles) > 0 {
 		source := []authority.Principal{{ID: task.Principal}}
-		source, err = c.filterEscalationTargetPrincipals(ctx, tenant, legalEntity, source, step.SourceRoles, nil, now)
+		source, err = c.filterEscalationTargetPrincipals(ctx, tenant, legalEntity, source, step.SourceRoles, nil, nil, now)
 		if err != nil {
 			return err
 		}
@@ -308,9 +311,9 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 			return err
 		}
 	}
-	if len(step.TargetRoles) > 0 || len(step.TargetGroupIDs) > 0 {
+	if len(step.TargetRoles) > 0 || len(step.TargetGroupIDs) > 0 || len(step.TargetPositionIDs) > 0 {
 		beforeConstraint := len(principals)
-		principals, err = c.filterEscalationTargetPrincipals(ctx, tenant, legalEntity, principals, step.TargetRoles, step.TargetGroupIDs, now)
+		principals, err = c.filterEscalationTargetPrincipals(ctx, tenant, legalEntity, principals, step.TargetRoles, step.TargetGroupIDs, step.TargetPositionIDs, now)
 		if err != nil {
 			return err
 		}
@@ -523,8 +526,8 @@ func (c *MatterEscalationCoordinator) filterDepartmentPrincipals(ctx context.Con
 	return filtered, nil
 }
 
-func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx context.Context, tenant, legalEntity string, candidates []authority.Principal, roleCodes, groupIDs []string, at time.Time) ([]authority.Principal, error) {
-	if len(candidates) == 0 || (len(roleCodes) == 0 && len(groupIDs) == 0) {
+func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx context.Context, tenant, legalEntity string, candidates []authority.Principal, roleCodes, groupIDs, positionIDs []string, at time.Time) ([]authority.Principal, error) {
+	if len(candidates) == 0 || (len(roleCodes) == 0 && len(groupIDs) == 0 && len(positionIDs) == 0) {
 		return candidates, nil
 	}
 	candidateIDs := make([]string, 0, len(candidates))
@@ -542,6 +545,9 @@ func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx conte
 	if groupIDs == nil {
 		groupIDs = []string{}
 	}
+	if positionIDs == nil {
+		positionIDs = []string{}
+	}
 	encodedCandidates, err := json.Marshal(candidateIDs)
 	if err != nil {
 		return nil, err
@@ -554,6 +560,10 @@ func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx conte
 	if err != nil {
 		return nil, err
 	}
+	encodedPositions, err := json.Marshal(positionIDs)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := c.Repo.pool.Query(ctx, `
 		WITH requested(id) AS (
 			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($3::jsonb)
@@ -561,13 +571,15 @@ func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx conte
 			SELECT DISTINCT value FROM jsonb_array_elements_text($4::jsonb)
 		), requested_groups(id) AS (
 			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($5::jsonb)
+		), requested_positions(id) AS (
+			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($6::jsonb)
 		), current_entity(id) AS (
 			SELECT le.id
 			FROM tenants t
 			JOIN legal_entities le ON le.tenant_id=t.id
 			WHERE (t.id::text=$1 OR t.slug=$1)
 			  AND (le.id::text=$2 OR le.code=$2)
-			  AND le.valid_from<=$6 AND (le.valid_until IS NULL OR $6<le.valid_until)
+			  AND le.valid_from<=$7 AND (le.valid_until IS NULL OR $7<le.valid_until)
 			LIMIT 1
 		), role_matches(principal_id) AS (
 			SELECT DISTINCT requested.id
@@ -578,9 +590,9 @@ func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx conte
 			JOIN requested_roles rr ON rr.code=rt.code
 			WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 			  AND (op.legal_entity_id IS NULL OR op.legal_entity_id=(SELECT id FROM current_entity))
-			  AND op.valid_from<=$6 AND (op.valid_until IS NULL OR $6<op.valid_until)
-			  AND prb.valid_from<=$6 AND (prb.valid_until IS NULL OR $6<prb.valid_until)
-			  AND rt.valid_from<=$6 AND (rt.valid_until IS NULL OR $6<rt.valid_until)
+			  AND op.valid_from<=$7 AND (op.valid_until IS NULL OR $7<op.valid_until)
+			  AND prb.valid_from<=$7 AND (prb.valid_until IS NULL OR $7<prb.valid_until)
+			  AND rt.valid_from<=$7 AND (rt.valid_until IS NULL OR $7<rt.valid_until)
 
 			UNION
 
@@ -594,8 +606,16 @@ func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx conte
 			JOIN role_templates rt ON rt.tenant_id=dgrb.tenant_id AND rt.id=dgrb.role_template_id
 			JOIN requested_roles rr ON rr.code=rt.code
 			WHERE su.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
-			  AND dgrb.valid_from<=$6 AND (dgrb.valid_until IS NULL OR $6<dgrb.valid_until)
-			  AND rt.valid_from<=$6 AND (rt.valid_until IS NULL OR $6<rt.valid_until)
+			  AND dgrb.valid_from<=$7 AND (dgrb.valid_until IS NULL OR $7<dgrb.valid_until)
+			  AND rt.valid_from<=$7 AND (rt.valid_until IS NULL OR $7<rt.valid_until)
+		), position_matches(principal_id) AS (
+			SELECT DISTINCT requested.id
+			FROM requested
+			JOIN org_positions op ON op.occupant_principal_id=requested.id
+			JOIN requested_positions rp ON rp.id=op.id
+			WHERE op.tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+			  AND op.legal_entity_id=(SELECT id FROM current_entity)
+			  AND op.valid_from<=$7 AND (op.valid_until IS NULL OR $7<op.valid_until)
 		), group_matches(principal_id) AS (
 			SELECT DISTINCT requested.id
 			FROM requested
@@ -609,10 +629,11 @@ func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx conte
 		SELECT DISTINCT requested.id::text
 		FROM requested
 		WHERE EXISTS (SELECT 1 FROM role_matches rm WHERE rm.principal_id=requested.id)
-		   OR EXISTS (SELECT 1 FROM group_matches gm WHERE gm.principal_id=requested.id)`,
-		tenant, legalEntity, string(encodedCandidates), string(encodedRoles), string(encodedGroups), at)
+		   OR EXISTS (SELECT 1 FROM group_matches gm WHERE gm.principal_id=requested.id)
+		   OR EXISTS (SELECT 1 FROM position_matches pm WHERE pm.principal_id=requested.id)`,
+		tenant, legalEntity, string(encodedCandidates), string(encodedRoles), string(encodedGroups), string(encodedPositions), at)
 	if err != nil {
-		return nil, fmt.Errorf("apply escalation role/group target boundary: %w", err)
+		return nil, fmt.Errorf("apply escalation target boundary: %w", err)
 	}
 	defer rows.Close()
 	allowed := make(map[string]struct{}, len(candidates))
@@ -740,9 +761,15 @@ func (c *MatterEscalationCoordinator) scheduleNext(ctx context.Context, tenant s
 	if err != nil {
 		return err
 	}
+	if payload.TerminalHandling == "" {
+		payload.TerminalHandling = sequence.TerminalHandling
+	}
+	if payload.RecoveryAction == "" {
+		payload.RecoveryAction = sequence.RecoveryAction
+	}
 	next := payload.StepIndex + 1
 	if next >= len(sequence.Steps) {
-		return nil
+		return c.recordTerminalEscalation(ctx, tenant, payload)
 	}
 	payload.StepIndex = next
 	return c.scheduleStep(ctx, tenant, payload.WorkflowID, payload.TaskID, payload, sequence.Steps[next])
@@ -753,6 +780,7 @@ func (c *MatterEscalationCoordinator) scheduleStep(ctx context.Context, tenant, 
 	if baseline.IsZero() {
 		return fmt.Errorf("escalation baseline due_at is invalid")
 	}
+	dueAt := baseline.Add(step.After)
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -761,12 +789,84 @@ func (c *MatterEscalationCoordinator) scheduleStep(ctx context.Context, tenant, 
 	if err != nil {
 		return err
 	}
-	_, err = c.Runtime.ScheduleTimer(ctx, workflowruntime.Timer{
+	if _, err = c.Runtime.ScheduleTimer(ctx, workflowruntime.Timer{
 		ID: timerID, TenantID: tenant, WorkflowID: workflowID, TaskID: taskID,
-		Type: matterEscalationTimerType, DueAt: baseline.Add(step.After),
+		Type: matterEscalationTimerType, DueAt: dueAt,
 		DedupeKey: escalationDedupeKey(payload), Payload: raw,
+	}); err != nil {
+		return err
+	}
+	return c.recordScheduledEscalation(ctx, tenant, taskID, payload, dueAt)
+}
+
+func (c *MatterEscalationCoordinator) recordScheduledEscalation(ctx context.Context, tenant, taskID string, payload escalationTimerPayload, dueAt time.Time) error {
+	overlay, err := json.Marshal(map[string]string{
+		"escalation_sequence_id":       payload.SequenceID,
+		"escalation_policy_version":    payload.PolicyVersion,
+		"escalation_next_step_index":   strconv.Itoa(payload.StepIndex),
+		"escalation_next_due_at":       dueAt.UTC().Format(time.RFC3339Nano),
+		"escalation_terminal_handling": payload.TerminalHandling,
+		"escalation_recovery_action":   payload.RecoveryAction,
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	_, err = c.Repo.pool.Exec(ctx, `
+		UPDATE workflow_tasks
+		SET context=context || $3::jsonb,updated_at=$4,version=version+1
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+		  AND id=$2::uuid AND status NOT IN ('COMPLETED','CANCELLED')
+		  AND COALESCE(context->>'authority_policy_version','')=$5
+		  AND (
+		    COALESCE(context->>'escalation_next_step_index','')<>$6
+		    OR COALESCE(context->>'escalation_next_due_at','')<>$7
+		    OR COALESCE(context->>'escalation_recovery_action','')<>$8
+		  )`,
+		tenant, taskID, string(overlay), c.currentTime(), payload.PolicyVersion,
+		strconv.Itoa(payload.StepIndex), dueAt.UTC().Format(time.RFC3339Nano), payload.RecoveryAction)
+	if err != nil {
+		return fmt.Errorf("record scheduled escalation state: %w", err)
+	}
+	return nil
+}
+
+func (c *MatterEscalationCoordinator) recordTerminalEscalation(ctx context.Context, tenant string, payload escalationTimerPayload) error {
+	overlay, err := json.Marshal(map[string]string{
+		"escalation_terminal":          "true",
+		"escalation_terminal_handling": payload.TerminalHandling,
+		"escalation_recovery_action":   payload.RecoveryAction,
+	})
+	if err != nil {
+		return err
+	}
+	tx, err := c.Repo.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	tag, err := tx.Exec(ctx, `
+		UPDATE workflow_tasks
+		SET context=(context - 'escalation_next_step_index' - 'escalation_next_due_at') || $3::jsonb,
+		    updated_at=$4,version=version+1
+		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
+		  AND id=$2::uuid AND status NOT IN ('COMPLETED','CANCELLED')
+		  AND COALESCE(context->>'authority_policy_version','')=$5
+		  AND COALESCE(context->>'escalation_terminal','')<>'true'`,
+		tenant, payload.TaskID, string(overlay), c.currentTime(), payload.PolicyVersion)
+	if err != nil {
+		return fmt.Errorf("record terminal escalation state: %w", err)
+	}
+	if tag.RowsAffected() > 0 {
+		_, err = tx.Exec(ctx, `
+			INSERT INTO workflow_events(tenant_id,workflow_id,event_type,safe_metadata,occurred_at)
+			VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'WORK_ESCALATION_TERMINAL',
+			       jsonb_build_object('task_id',$3::text,'sequence_id',$4::text,'step_index',$5::int,'recovery_action',$6::text),$7)`,
+			tenant, payload.WorkflowID, payload.TaskID, payload.SequenceID, payload.StepIndex, payload.RecoveryAction, c.currentTime())
+		if err != nil {
+			return fmt.Errorf("record terminal escalation event: %w", err)
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 func escalationOverlay(payload escalationTimerPayload, step governance.EscalationStep, status string, targetDepartment []string) map[string]string {
@@ -775,6 +875,7 @@ func escalationOverlay(payload escalationTimerPayload, step governance.Escalatio
 	sourceRolesJSON, _ := json.Marshal(step.SourceRoles)
 	targetRolesJSON, _ := json.Marshal(step.TargetRoles)
 	targetGroupsJSON, _ := json.Marshal(step.TargetGroupIDs)
+	targetPositionsJSON, _ := json.Marshal(step.TargetPositionIDs)
 	return map[string]string{
 		"escalation_trigger":                payload.Trigger,
 		"escalation_sequence_id":            payload.SequenceID,
@@ -790,6 +891,9 @@ func escalationOverlay(payload escalationTimerPayload, step governance.Escalatio
 		"escalation_source_roles":           string(sourceRolesJSON),
 		"escalation_target_roles":           string(targetRolesJSON),
 		"escalation_target_groups":          string(targetGroupsJSON),
+		"escalation_target_positions":       string(targetPositionsJSON),
+		"escalation_terminal_handling":      payload.TerminalHandling,
+		"escalation_recovery_action":        payload.RecoveryAction,
 	}
 }
 
