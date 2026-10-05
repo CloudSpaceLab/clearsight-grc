@@ -424,7 +424,8 @@ func validateAssessment(value Assessment) error {
 	if value.RiskID == "" || value.RiskVersion <= 1 || !validAssessmentKind(value.Kind) ||
 		value.MethodCode == "" || value.MethodVersion == "" || !validJSONObject(value.Dimensions) ||
 		!validJSONObject(value.Assumptions) || !validJSONArray(value.EvidenceReferences) ||
-		!validAppetitePosition(value.AppetitePosition) || value.AssessedAt.IsZero() {
+		!validAppetitePosition(value.AppetitePosition) || value.AssessedAt.IsZero() || value.CreatedAt.IsZero() ||
+		value.AssessedAt.After(value.CreatedAt) {
 		return ErrInvalid
 	}
 	if value.Confidence != nil && (*value.Confidence < 0 || *value.Confidence > 1) {
