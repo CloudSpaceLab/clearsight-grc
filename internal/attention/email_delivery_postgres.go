@@ -36,7 +36,50 @@ func (r *CriticalEmailPostgresRepository) LoadCriticalEmailContext(ctx context.C
 		         ORDER BY su.updated_at DESC,su.id
 		         LIMIT 1
 		       ),''),
-		       episode.notice_sequence
+		       episode.notice_sequence,
+		       EXISTS (
+		         SELECT 1
+		         FROM (
+		           SELECT risk.owner_principal_id AS principal_id
+		           FROM risks risk
+		           WHERE episode.subject_type='RISK'
+		             AND risk.tenant_id=episode.tenant_id
+		             AND risk.legal_entity_id=episode.legal_entity_id
+		             AND risk.id=episode.subject_id
+		           UNION
+		           SELECT check_config.owner_principal_id
+		           FROM risk_indicator_links link
+		           JOIN monitoring_checks check_config
+		             ON check_config.tenant_id=link.tenant_id
+		            AND check_config.id=link.monitoring_check_id
+		            AND check_config.version=link.monitoring_check_version
+		            AND check_config.program_id=link.program_id
+		           WHERE episode.condition_key='indicator_breaches'
+		             AND link.tenant_id=episode.tenant_id
+		             AND link.legal_entity_id=episode.legal_entity_id
+		             AND link.id=episode.member_id
+		           UNION
+		           SELECT check_config.reviewer_principal_id
+		           FROM risk_indicator_links link
+		           JOIN monitoring_checks check_config
+		             ON check_config.tenant_id=link.tenant_id
+		            AND check_config.id=link.monitoring_check_id
+		            AND check_config.version=link.monitoring_check_version
+		            AND check_config.program_id=link.program_id
+		           WHERE episode.condition_key='indicator_breaches'
+		             AND link.tenant_id=episode.tenant_id
+		             AND link.legal_entity_id=episode.legal_entity_id
+		             AND link.id=episode.member_id
+		           UNION
+		           SELECT loss.owner_principal_id
+		           FROM operational_losses loss
+		           WHERE episode.subject_type='LOSS'
+		             AND loss.tenant_id=episode.tenant_id
+		             AND loss.legal_entity_id=episode.legal_entity_id
+		             AND loss.id=episode.subject_id
+		         ) current_recipient
+		         WHERE current_recipient.principal_id=$4::uuid
+		       )
 		FROM attention_episodes episode
 		JOIN tenants tenant ON tenant.id=episode.tenant_id
 		JOIN legal_entities le ON le.tenant_id=episode.tenant_id AND le.id=episode.legal_entity_id
@@ -46,7 +89,7 @@ func (r *CriticalEmailPostgresRepository) LoadCriticalEmailContext(ctx context.C
 		  AND episode.legal_entity_id=$3::uuid
 		  AND p.status='ACTIVE'`,
 		event.TenantID, intent.EpisodeID, intent.LegalEntityID, intent.PrincipalID,
-	).Scan(&value.LegalEntityID, &value.BrandName, &value.RecipientName, &value.RecipientAddress, &value.CurrentNoticeSequence)
+	).Scan(&value.LegalEntityID, &value.BrandName, &value.RecipientName, &value.RecipientAddress, &value.CurrentNoticeSequence, &value.StillEligible)
 	if err != nil {
 		return CriticalEmailContext{}, fmt.Errorf("load critical attention email context: %w", err)
 	}
