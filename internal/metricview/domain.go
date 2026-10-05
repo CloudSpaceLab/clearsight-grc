@@ -33,9 +33,9 @@ var domainDefinitions = [...]Definition{
 		Drill: DrillTarget{Workspace: "risks", Filter: "assurance-failed", Consistency: DrillSourceSnapshot},
 	},
 	{
-		ID: "losses_without_intervention", Revision: DomainDefinitionRevision, Label: "Losses needing intervention", Unit: "COUNT",
+		ID: "losses_without_issue", Revision: DomainDefinitionRevision, Label: "Losses without issue", Unit: "COUNT",
 		Basis: MetricBasisCurrentPosture, ConditionRule: ConditionRuleZeroClear, AggregationRule: AggregationSumDisjointCounts,
-		Drill: DrillTarget{Workspace: "losses", Filter: "needs-intervention", Consistency: DrillSourceSnapshot},
+		Drill: DrillTarget{Workspace: "losses", Filter: "without-issue", Consistency: DrillSourceSnapshot},
 	},
 }
 
