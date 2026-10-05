@@ -209,7 +209,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	service := workflowruntime.NewService(runtimeRepository, lifecycle, publisher, cfg.WorkerID)
 	configureWorkerRuntime(service, cfg, logger)
 	if dailyDigests != nil {
-		service.ConfigureClass(attention.DigestWorkClass, workflowruntime.WorkClassOptions{Poll: 15 * time.Second, Batch: 50, Timeout: 20 * time.Second, Lease: 30 * time.Second})
+		service.ConfigureClass(attention.DigestWorkClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 50, Timeout: 20 * time.Second, Lease: 30 * time.Second})
 		service.AddMaintainerClass(attention.DigestWorkClass, dailyDigests)
 	}
 	if err := configureArtifactScanWorker(service, cfg, logger, evidenceRepository, store); err != nil {
