@@ -1,7 +1,8 @@
 # IT Governance Insights implementation plan
 
 **Issue:** #344  
-**Baseline audited:** `main@ca12fa5f327c445726b00fae0853e53ce022b7e2`  
+**Plan branch base:** `main@a482a594e266cebf9102acb9599120a360245a80`  
+**Source/metric architecture audit:** `ca12fa5f327c445726b00fae0853e53ce022b7e2`; the 45-commit delta to the branch base was reviewed and is confined mainly to response-browser and notification-preference work, with no conflicting IT-governance source/metric architecture change.  
 **Scope:** Fidelity-style IT Governance dashboard requirements without parallel Project/ITSM/CMDB/finance/HR products.
 
 ## 1. Outcome
