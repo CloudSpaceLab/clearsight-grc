@@ -262,7 +262,7 @@ func (p *EpisodeProjector) observeMember(ctx context.Context, tx pgx.Tx, source 
 	if _, err := tx.Exec(ctx, `
 		UPDATE attention_episodes
 		SET last_source_id=$5::uuid,last_condition_state=$6,last_observed_at=$7,
-		    notice_sequence=$8,updated_at=$7
+		    notice_sequence=$8,updated_at=clock_timestamp()
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid
 		  AND id=$3::uuid AND state='OPEN' AND member_id=$4::uuid`,
 		source.TenantID, source.LegalEntityID, episode.ID, member.MemberID,
@@ -299,7 +299,7 @@ func (p *EpisodeProjector) clearEpisode(ctx context.Context, tx pgx.Tx, source s
 	tag, err := tx.Exec(ctx, `
 		UPDATE attention_episodes
 		SET state='CLEARED',last_source_id=$4::uuid,last_observed_at=$5,cleared_at=$5,
-		    notice_sequence=$6,updated_at=$5
+		    notice_sequence=$6,updated_at=clock_timestamp()
 		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND id=$3::uuid AND state='OPEN'`,
 		source.TenantID, source.LegalEntityID, episode.ID, source.ID, source.GeneratedAt, sequence)
 	if err != nil {
