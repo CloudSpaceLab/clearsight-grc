@@ -21,9 +21,11 @@ const (
 )
 
 type EscalationSequence struct {
-	ID      string
-	Trigger string
-	Steps   []EscalationStep
+	ID               string
+	Trigger          string
+	TerminalHandling string
+	RecoveryAction   string
+	Steps            []EscalationStep
 }
 
 type EscalationStep struct {
@@ -33,6 +35,7 @@ type EscalationStep struct {
 	SourceRoles        []string
 	TargetRoles        []string
 	TargetGroupIDs     []string
+	TargetPositionIDs  []string
 }
 
 type escalationEnvelope struct {
@@ -40,9 +43,11 @@ type escalationEnvelope struct {
 }
 
 type escalationSequenceDefinition struct {
-	ID      string                     `json:"id"`
-	Trigger string                     `json:"trigger"`
-	Steps   []escalationStepDefinition `json:"steps"`
+	ID               string                     `json:"id"`
+	Trigger          string                     `json:"trigger"`
+	TerminalHandling string                     `json:"terminal_handling,omitempty"`
+	RecoveryAction   string                     `json:"recovery_action,omitempty"`
+	Steps            []escalationStepDefinition `json:"steps"`
 }
 
 type escalationStepDefinition struct {
@@ -54,8 +59,9 @@ type escalationStepDefinition struct {
 }
 
 type escalationTargetDefinition struct {
-	Roles  []string `json:"roles,omitempty"`
-	Groups []string `json:"groups,omitempty"`
+	Roles     []string `json:"roles,omitempty"`
+	Groups    []string `json:"groups,omitempty"`
+	Positions []string `json:"positions,omitempty"`
 }
 
 func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence, error) {
@@ -95,7 +101,22 @@ func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence,
 			return nil, fmt.Errorf("escalation sequence %s must contain 1-%d steps", id, maxEscalationSteps)
 		}
 
-		sequence := EscalationSequence{ID: id, Trigger: trigger, Steps: make([]EscalationStep, 0, len(value.Steps))}
+		terminalHandling := strings.ToUpper(strings.TrimSpace(value.TerminalHandling))
+		if terminalHandling == "" {
+			terminalHandling = "KEEP_OPEN"
+		}
+		if terminalHandling != "KEEP_OPEN" {
+			return nil, fmt.Errorf("escalation sequence %s has unsupported terminal handling", id)
+		}
+		recoveryAction := strings.ToUpper(strings.TrimSpace(value.RecoveryAction))
+		if recoveryAction == "" {
+			recoveryAction = "REVIEW_ROUTE"
+		}
+		if !supportedEscalationRecoveryAction(recoveryAction) {
+			return nil, fmt.Errorf("escalation sequence %s has unsupported recovery action", id)
+		}
+
+		sequence := EscalationSequence{ID: id, Trigger: trigger, TerminalHandling: terminalHandling, RecoveryAction: recoveryAction, Steps: make([]EscalationStep, 0, len(value.Steps))}
 		var previous time.Duration
 		for index, step := range value.Steps {
 			after, err := time.ParseDuration(strings.TrimSpace(step.After))
@@ -121,7 +142,7 @@ func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence,
 				return nil, fmt.Errorf("escalation sequence %s step %d source_roles cannot be empty", id, index+1)
 			}
 
-			var targetRoles, targetGroups []string
+			var targetRoles, targetGroups, targetPositions []string
 			if step.Targets != nil {
 				targetRoles, err = normalizeEscalationRoles(step.Targets.Roles, maxEscalationRoleTargets)
 				if err != nil {
@@ -131,8 +152,12 @@ func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence,
 				if err != nil {
 					return nil, fmt.Errorf("escalation sequence %s step %d target groups: %w", id, index+1, err)
 				}
-				if len(targetRoles) == 0 && len(targetGroups) == 0 {
-					return nil, fmt.Errorf("escalation sequence %s step %d targets must contain at least one role or group", id, index+1)
+				targetPositions, err = normalizeEscalationPositionIDs(step.Targets.Positions)
+				if err != nil {
+					return nil, fmt.Errorf("escalation sequence %s step %d target positions: %w", id, index+1, err)
+				}
+				if len(targetRoles) == 0 && len(targetGroups) == 0 && len(targetPositions) == 0 {
+					return nil, fmt.Errorf("escalation sequence %s step %d targets must contain at least one role, group or position", id, index+1)
 				}
 			}
 
@@ -143,6 +168,7 @@ func ParseEscalationSequences(definition json.RawMessage) ([]EscalationSequence,
 				SourceRoles:        sourceRoles,
 				TargetRoles:        targetRoles,
 				TargetGroupIDs:     targetGroups,
+				TargetPositionIDs:  targetPositions,
 			})
 			previous = after
 		}
@@ -190,18 +216,26 @@ func normalizeEscalationRoles(values []string, limit int) ([]string, error) {
 }
 
 func normalizeEscalationGroupIDs(values []string) ([]string, error) {
-	if len(values) > maxEscalationGroupTargets {
-		return nil, fmt.Errorf("supports at most %d group selectors", maxEscalationGroupTargets)
+	return normalizeEscalationUUIDs(values, maxEscalationGroupTargets, "group", "ClearSight directory group")
+}
+
+func normalizeEscalationPositionIDs(values []string) ([]string, error) {
+	return normalizeEscalationUUIDs(values, maxEscalationGroupTargets, "position", "organization position")
+}
+
+func normalizeEscalationUUIDs(values []string, limit int, selector, object string) ([]string, error) {
+	if len(values) > limit {
+		return nil, fmt.Errorf("supports at most %d %s selectors", limit, selector)
 	}
 	result := make([]string, 0, len(values))
 	seen := make(map[string]struct{}, len(values))
 	for _, value := range values {
 		value = strings.ToLower(strings.TrimSpace(value))
 		if !validUUID(value) {
-			return nil, fmt.Errorf("group selectors must be ClearSight directory group UUIDs")
+			return nil, fmt.Errorf("%s selectors must be %s UUIDs", selector, object)
 		}
 		if _, exists := seen[value]; exists {
-			return nil, fmt.Errorf("group selectors must be unique")
+			return nil, fmt.Errorf("%s selectors must be unique", selector)
 		}
 		seen[value] = struct{}{}
 		result = append(result, value)
@@ -224,6 +258,15 @@ func validUUID(value string) bool {
 func supportedEscalationTrigger(value string) bool {
 	switch value {
 	case "OVERDUE", "NO_ROUTE", "AUTHORITY_INSUFFICIENT", "MATERIALITY_INCREASE", "RECIPIENT_UNAVAILABLE", "CONFLICT":
+		return true
+	default:
+		return false
+	}
+}
+
+func supportedEscalationRecoveryAction(value string) bool {
+	switch value {
+	case "REVIEW_ROUTE", "REASSIGN_OWNER", "RESOLVE_WORK":
 		return true
 	default:
 		return false
