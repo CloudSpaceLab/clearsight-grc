@@ -465,13 +465,27 @@ func (a *API) listMonitoringResults(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, _, _, err := a.bindMonitoringCheck(r, service, r.PathValue("id"), 0)
+	version, err := strconv.ParseInt(r.URL.Query().Get("version"), 10, 64)
+	if r.URL.Query().Get("version") == "" {
+		version = 0
+		err = nil
+	}
+	if err != nil || version < 0 {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Monitoring check version is invalid.")
+		return
+	}
+	actor, check, _, err := a.bindMonitoringCheck(r, service, r.PathValue("id"), version)
 	if err != nil {
 		writeMonitoringScopeError(w, err)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	values, err := service.ListResults(r.Context(), actor, r.PathValue("id"), limit)
+	var values []monitoring.MonitoringResult
+	if version > 0 {
+		values, err = service.ListResultRevisions(r.Context(), actor, check.ID, check.Version, limit)
+	} else {
+		values, err = service.ListResults(r.Context(), actor, check.ID, limit)
+	}
 	if err != nil {
 		writeMonitoringError(w, err)
 		return
