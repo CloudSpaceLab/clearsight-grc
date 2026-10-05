@@ -3,7 +3,7 @@ BEGIN;
 CREATE TABLE notification_email_deliveries (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    legal_entity_id uuid NOT NULL,
+    legal_entity_id uuid,
     episode_id uuid,
     notice_sequence integer CHECK (notice_sequence > 0),
     digest_date date,
@@ -27,12 +27,14 @@ CREATE TABLE notification_email_deliveries (
     FOREIGN KEY (principal_id,tenant_id) REFERENCES principals(id,tenant_id),
     CHECK (
         (delivery_class='ATTENTION_CRITICAL'
+         AND legal_entity_id IS NOT NULL
          AND episode_id IS NOT NULL
          AND notice_sequence IS NOT NULL
          AND digest_date IS NULL
          AND source_event_id IS NOT NULL)
         OR
         (delivery_class='DAILY_DIGEST'
+         AND legal_entity_id IS NULL
          AND episode_id IS NULL
          AND notice_sequence IS NULL
          AND digest_date IS NOT NULL
