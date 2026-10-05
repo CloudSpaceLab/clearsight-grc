@@ -134,3 +134,36 @@ func TestParseExactDecimalRejectsNonDecimalSyntaxAndKeepsExponentExact(t *testin
 		t.Fatal("unbounded exponent must fail closed")
 	}
 }
+
+func TestCaptureSourceMeasurementRejectsTypeDriftAndInvalidCount(t *testing.T) {
+	countSpec := &MeasurementSpec{Field: "failures", Unit: MeasurementCount}
+	rules := []SourceRule{{ID: "max", Field: "failures", Operator: OperatorLessOrEqual, Expected: "5", RiskPoints: 100}}
+
+	_, err := captureSourceMeasurement(countSpec, rules, evidence.SourceResolution{
+		State: evidence.SourceResolutionCurrent,
+		Records: []sourceaccess.Record{{"failures": {Kind: sourceaccess.ScalarString, Text: "3"}}},
+		Receipt: &sourceaccess.OperationReceipt{Completeness: sourceaccess.CompletenessComplete},
+	})
+	if err == nil {
+		t.Fatal("numeric-looking string source must not be coerced into a native measurement")
+	}
+
+	_, err = captureSourceMeasurement(countSpec, rules, evidence.SourceResolution{
+		State: evidence.SourceResolutionCurrent,
+		Records: []sourceaccess.Record{{"failures": {Kind: sourceaccess.ScalarNumber, Text: "3.5"}}},
+		Receipt: &sourceaccess.OperationReceipt{Completeness: sourceaccess.CompletenessComplete},
+	})
+	if err == nil {
+		t.Fatal("fractional count measurement must fail closed")
+	}
+
+	durationSpec := &MeasurementSpec{Field: "downtime", Unit: MeasurementDuration, DurationUnit: DurationMinutes}
+	_, err = captureSourceMeasurement(durationSpec, []SourceRule{{ID: "max", Field: "downtime", Operator: OperatorLessOrEqual, Expected: "30", RiskPoints: 100}}, evidence.SourceResolution{
+		State: evidence.SourceResolutionCurrent,
+		Records: []sourceaccess.Record{{"downtime": {Kind: sourceaccess.ScalarNumber, Text: "-1"}}},
+		Receipt: &sourceaccess.OperationReceipt{Completeness: sourceaccess.CompletenessComplete},
+	})
+	if err == nil {
+		t.Fatal("negative duration measurement must fail closed")
+	}
+}
