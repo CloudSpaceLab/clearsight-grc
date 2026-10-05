@@ -160,9 +160,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   }, [presentation]);
 
   useEffect(() => {
-    if (runtime?.demo_mode === true || !runtime?.actor.id || !runtime.tenant.id || !runtime.legal_entity.id) return;
+    if (runtime?.demo_mode === true || runtime?.mode.startsWith("static-") || !runtime?.actor.id || !runtime.tenant.id || !runtime.legal_entity.id) return;
     return subscribeInvalidations(({ revision }) => setInvalidationRevision(revision));
-  }, [runtime?.demo_mode, runtime?.actor.id, runtime?.tenant.id, runtime?.legal_entity.id]);
+  }, [runtime?.actor.id, runtime?.demo_mode, runtime?.legal_entity.id, runtime?.mode, runtime?.tenant.id]);
 
   useEffect(() => {
     if (!invalidationRevision) return;
