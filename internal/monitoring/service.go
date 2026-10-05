@@ -105,6 +105,7 @@ type CreateCheckInput struct {
 	BindingID               string            `json:"binding_id,omitempty"`
 	BindingVersion          int64             `json:"binding_version,omitempty"`
 	SourceRules             []SourceRule      `json:"source_rules,omitempty"`
+	Measurement             *MeasurementSpec  `json:"measurement,omitempty"`
 	Thresholds              Thresholds        `json:"thresholds"`
 	FreshnessMinutes        int               `json:"freshness_minutes"`
 	MinimumCoverage         float64           `json:"minimum_coverage"`
@@ -576,6 +577,11 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 	if input.FreshnessMinutes < 1 || input.FreshnessMinutes > 525600 || input.MinimumCoverage < 0 || input.MinimumCoverage > 1 {
 		return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("freshness and minimum coverage are invalid"))
 	}
+	measurement, err := normalizeMeasurementSpec(input.Measurement)
+	if err != nil {
+		return MonitoringCheck{}, errors.Join(ErrInvalid, err)
+	}
+	input.Measurement = measurement
 	if input.FailureAction == "" {
 		input.FailureAction = FailureReview
 	}
@@ -602,6 +608,11 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		if !hasFormFieldScoring(form.Fields) {
 			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("the active form revision has no scored questions; create and approve a scored revision before adding a monitoring check"))
 		}
+		if measurement != nil {
+			if err := validateFormMeasurementField(*measurement, form.Fields); err != nil {
+				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
+			}
+		}
 		policy, err := normalizeCollectionPolicy(input.CollectionPolicy)
 		if err != nil {
 			return MonitoringCheck{}, err
@@ -615,6 +626,9 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 			if err := validateSourceRule(rule); err != nil {
 				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
 			}
+		}
+		if measurement != nil && !sourceMeasurementHasRule(*measurement, input.SourceRules) {
+			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("measurement field must have an active source rule"))
 		}
 		if _, err := s.validateSourceBinding(ctx, actor, input.BindingID, input.BindingVersion); err != nil {
 			return MonitoringCheck{}, err
@@ -634,6 +648,7 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion,
 		CollectionPolicy: input.CollectionPolicy,
 		BindingID:        strings.TrimSpace(input.BindingID), BindingVersion: input.BindingVersion, SourceRules: append([]SourceRule(nil), input.SourceRules...),
+		Measurement: input.Measurement,
 		Thresholds: input.Thresholds, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage,
 		OwnerPrincipalID: strings.TrimSpace(input.OwnerPrincipalID), ReviewerPrincipalID: strings.TrimSpace(input.ReviewerPrincipalID), FailureAction: input.FailureAction,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
@@ -762,6 +777,11 @@ func (s *Service) EvaluateSource(ctx context.Context, actor Actor, input Evaluat
 	if err != nil {
 		return MonitoringResult{}, err
 	}
+	measurement, err := captureSourceMeasurement(check.Measurement, check.SourceRules, resolution)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	evaluation.Measurement = measurement
 	receipt, err := json.Marshal(page.Receipt)
 	if err != nil {
 		return MonitoringResult{}, err
@@ -833,6 +853,11 @@ func (s *Service) evaluateFormSubmission(ctx context.Context, check MonitoringCh
 	if err != nil {
 		return MonitoringResult{}, err
 	}
+	measurement, err := captureFormMeasurement(check.Measurement, submission.Answers)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	evaluation.Measurement = measurement
 	provenance, err := json.Marshal(map[string]any{
 		"request_id": request.ID, "channel": submission.Channel, "submitted_by": submission.SubmittedBy,
 		"submitted_at": submission.SubmittedAt.UTC(), "answer_provenance": submission.AnswerProvenance,

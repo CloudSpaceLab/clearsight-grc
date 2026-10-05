@@ -116,3 +116,21 @@ func TestMonitoringMigrationIncludesCollectionRenewal(t *testing.T) {
 		t.Fatal("collection renewal migration must reuse the shared capture origin contract")
 	}
 }
+
+
+func TestMonitoringNativeMeasurementMigration(t *testing.T) {
+	up, err := os.ReadFile("../../migrations/000122_monitoring_native_measurements.up.sql")
+	if err != nil {
+		t.Fatalf("read native measurement migration: %v", err)
+	}
+	down, err := os.ReadFile("../../migrations/000122_monitoring_native_measurements.down.sql")
+	if err != nil {
+		t.Fatalf("read native measurement rollback: %v", err)
+	}
+	if !strings.Contains(string(up), "ADD COLUMN measurement jsonb") || !strings.Contains(string(up), "jsonb_typeof(measurement)='object'") {
+		t.Fatal("native measurement migration must add one optional object contract")
+	}
+	if !strings.Contains(string(down), "DROP COLUMN measurement") {
+		t.Fatal("native measurement rollback must remove the measurement column")
+	}
+}

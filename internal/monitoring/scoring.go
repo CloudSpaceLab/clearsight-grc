@@ -116,20 +116,21 @@ func compareScalar(value sourceaccess.Scalar, rule SourceRule, now time.Time) (b
 		}
 		return !observed.After(now) && now.Sub(observed) <= time.Duration(maximum)*time.Minute, nil
 	case OperatorGreaterThan, OperatorGreaterOrEqual, OperatorLessThan, OperatorLessOrEqual:
-		left, leftErr := strconv.ParseFloat(actual, 64)
-		right, rightErr := strconv.ParseFloat(expected, 64)
-		if leftErr != nil || rightErr != nil {
+		left, leftOK := parseExactDecimal(actual)
+		right, rightOK := parseExactDecimal(expected)
+		if !leftOK || !rightOK {
 			return false, fmt.Errorf("rule %s requires numeric values", rule.ID)
 		}
+		comparison := left.Cmp(right)
 		switch rule.Operator {
 		case OperatorGreaterThan:
-			return left > right, nil
+			return comparison > 0, nil
 		case OperatorGreaterOrEqual:
-			return left >= right, nil
+			return comparison >= 0, nil
 		case OperatorLessThan:
-			return left < right, nil
+			return comparison < 0, nil
 		default:
-			return left <= right, nil
+			return comparison <= 0, nil
 		}
 	default:
 		return false, fmt.Errorf("rule %s operator is unsupported", rule.ID)

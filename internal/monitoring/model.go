@@ -51,6 +51,49 @@ type SourceRule struct {
 	Critical   bool           `json:"critical,omitempty"`
 }
 
+type MeasurementUnit string
+
+const (
+	MeasurementCount    MeasurementUnit = "COUNT"
+	MeasurementPercent  MeasurementUnit = "PERCENT"
+	MeasurementDuration MeasurementUnit = "DURATION"
+	MeasurementMoney    MeasurementUnit = "MONEY"
+)
+
+type MeasurementDurationUnit string
+
+const (
+	DurationSeconds MeasurementDurationUnit = "SECONDS"
+	DurationMinutes MeasurementDurationUnit = "MINUTES"
+	DurationHours   MeasurementDurationUnit = "HOURS"
+	DurationDays    MeasurementDurationUnit = "DAYS"
+)
+
+type MeasurementSpec struct {
+	Field        string                  `json:"field"`
+	Label        string                  `json:"label,omitempty"`
+	Unit         MeasurementUnit         `json:"unit"`
+	Currency     string                  `json:"currency,omitempty"`
+	DurationUnit MeasurementDurationUnit `json:"duration_unit,omitempty"`
+	Precision    int                     `json:"precision,omitempty"`
+}
+
+type MeasurementLimit struct {
+	Operator SourceOperator `json:"operator"`
+	Expected string         `json:"expected"`
+}
+
+type NativeMeasurement struct {
+	Field        string                  `json:"field"`
+	Label        string                  `json:"label,omitempty"`
+	Unit         MeasurementUnit         `json:"unit"`
+	Currency     string                  `json:"currency,omitempty"`
+	DurationUnit MeasurementDurationUnit `json:"duration_unit,omitempty"`
+	Precision    int                     `json:"precision,omitempty"`
+	Value        string                  `json:"value,omitempty"`
+	Limits       []MeasurementLimit      `json:"limits,omitempty"`
+}
+
 type RuleOutcome string
 
 const (
@@ -69,11 +112,12 @@ type RuleResult struct {
 }
 
 type Evaluation struct {
-	Score            *float64     `json:"score,omitempty"`
-	Band             RiskBand     `json:"band"`
-	Coverage         float64      `json:"coverage"`
-	CriticalFailures []RuleResult `json:"critical_failures,omitempty"`
-	RuleResults      []RuleResult `json:"rule_results"`
+	Score            *float64          `json:"score,omitempty"`
+	Band             RiskBand          `json:"band"`
+	Coverage         float64           `json:"coverage"`
+	CriticalFailures []RuleResult      `json:"critical_failures,omitempty"`
+	RuleResults      []RuleResult      `json:"rule_results"`
+	Measurement      *NativeMeasurement `json:"measurement,omitempty"`
 }
 
 type LifecycleStatus string
@@ -160,6 +204,7 @@ type MonitoringCheck struct {
 	BindingID               string            `json:"binding_id,omitempty"`
 	BindingVersion          int64             `json:"binding_version,omitempty"`
 	SourceRules             []SourceRule      `json:"source_rules,omitempty"`
+	Measurement             *MeasurementSpec  `json:"measurement,omitempty"`
 	Thresholds              Thresholds        `json:"thresholds"`
 	FreshnessMinutes        int               `json:"freshness_minutes"`
 	MinimumCoverage         float64           `json:"minimum_coverage"`

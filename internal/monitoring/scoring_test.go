@@ -114,3 +114,18 @@ func TestEvaluateSourceStaleOrPartialInputIsNotAssessed(t *testing.T) {
 		})
 	}
 }
+
+
+func TestCompareScalarKeepsExactDecimalOrdering(t *testing.T) {
+	passed, err := compareScalar(
+		sourceaccess.Scalar{Kind: sourceaccess.ScalarNumber, Text: "9007199254740993"},
+		SourceRule{ID: "precise", Field: "value", Operator: OperatorGreaterThan, Expected: "9007199254740992"},
+		time.Now().UTC(),
+	)
+	if err != nil {
+		t.Fatalf("compare exact decimal: %v", err)
+	}
+	if !passed {
+		t.Fatal("exact decimal comparison collapsed distinct integer values")
+	}
+}
