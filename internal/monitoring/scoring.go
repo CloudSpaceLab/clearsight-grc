@@ -101,10 +101,24 @@ func compareScalar(value sourceaccess.Scalar, rule SourceRule, now time.Time) (b
 	switch rule.Operator {
 	case OperatorPresent:
 		return actual != "", nil
-	case OperatorEquals:
-		return normalizedComparable(actual, value.Kind) == normalizedComparable(expected, value.Kind), nil
-	case OperatorNotEquals:
-		return normalizedComparable(actual, value.Kind) != normalizedComparable(expected, value.Kind), nil
+	case OperatorEquals, OperatorNotEquals:
+		if value.Kind == sourceaccess.ScalarNumber {
+			left, leftOK := parseExactDecimal(actual)
+			right, rightOK := parseExactDecimal(expected)
+			if !leftOK || !rightOK {
+				return false, fmt.Errorf("rule %s requires numeric values", rule.ID)
+			}
+			equal := left.Cmp(right) == 0
+			if rule.Operator == OperatorEquals {
+				return equal, nil
+			}
+			return !equal, nil
+		}
+		equal := normalizedComparable(actual, value.Kind) == normalizedComparable(expected, value.Kind)
+		if rule.Operator == OperatorEquals {
+			return equal, nil
+		}
+		return !equal, nil
 	case OperatorMaxAgeMinutes:
 		maximum, err := strconv.Atoi(expected)
 		if err != nil || maximum < 0 {
