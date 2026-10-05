@@ -133,7 +133,6 @@ func TestEscalationSequenceRevisionAndRollbackPreserveGovernedLineage(t *testing
 }
 
 func TestEscalationSequenceRevisionRejectsNonMonotonicLevels(t *testing.T) {
-	service := NewService(NewMemoryRepository())
 	_, err := canonicalEscalationSequence(EscalationSequenceRevisionInput{
 		SequenceID: "overdue",
 		Steps: []EscalationSequenceStepInput{
