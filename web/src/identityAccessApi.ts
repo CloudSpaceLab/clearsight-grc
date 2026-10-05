@@ -264,6 +264,8 @@ export type GroupRoleBinding = {
 export type EscalationSequence = {
   ID: string;
   Trigger: string;
+  TerminalHandling?: string;
+  RecoveryAction?: string;
   Steps: Array<{
     After: number;
     Responsibility: string;
@@ -271,6 +273,7 @@ export type EscalationSequence = {
     SourceRoles?: string[];
     TargetRoles?: string[];
     TargetGroupIDs?: string[];
+    TargetPositionIDs?: string[];
   }>;
 };
 export type EscalationGuardRevision = {
@@ -331,6 +334,50 @@ export type EscalationPreview = {
     target_roles?: string[];
     target_group_ids?: string[];
   }>;
+};
+
+export type EscalationSequenceStepInput = {
+  after: string;
+  responsibility: string;
+  department_levels_up?: number;
+  source_roles?: string[];
+  target_roles?: string[];
+  target_group_ids?: string[];
+  target_position_ids?: string[];
+};
+
+export type EscalationSimulationCandidate = { principal_id: string; display_name: string };
+export type EscalationSimulationStep = {
+  index: number;
+  due_at: string;
+  responsibility: string;
+  status: string;
+  candidates: EscalationSimulationCandidate[];
+};
+export type EscalationSimulationScenario = {
+  task_id: string;
+  matter_id: string;
+  title: string;
+  current_responsibility: string;
+  current_principal_id?: string;
+  current_principal_name?: string;
+  due_at: string;
+  current_level: number;
+  next_level: number;
+  next_due_at?: string;
+  recovery_action: string;
+  steps: EscalationSimulationStep[];
+};
+export type EscalationSimulation = {
+  policy_id: string;
+  policy_code: string;
+  active_version: number;
+  sequence_version: number;
+  sequence_id: string;
+  trigger: string;
+  checked: number;
+  truncated: boolean;
+  scenarios: EscalationSimulationScenario[];
 };
 
 function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -445,6 +492,29 @@ export function createGroupRoleBinding(input: { group_id: string; role_template_
 
 export function retireGroupRoleBinding(id: string): Promise<void> {
   return requestNoContent(apiBase, `/api/v1/access/group-role-bindings/${encodeURIComponent(id)}/retire`, { method: "POST", body: "{}" });
+}
+
+export function proposeEscalationSequenceRevision(input: {
+  policy_id: string;
+  sequence_id: string;
+  steps: EscalationSequenceStepInput[];
+  terminal_handling?: string;
+  recovery_action?: string;
+  expected_policy_version: number;
+}): Promise<EscalationGuardRevision> {
+  return request("/api/v1/access/escalation-sequence-revisions", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function approveEscalationSequenceRevision(policyID: string, revisionVersion: number, input: { expected_policy_version: number; rationale: string }): Promise<void> {
+  return requestNoContent(apiBase, `/api/v1/access/escalation-sequence-revisions/${encodeURIComponent(policyID)}/${revisionVersion}/approve`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function restoreEscalationSequenceRevision(policyID: string, input: { source_version: number; expected_policy_version: number }): Promise<EscalationGuardRevision> {
+  return request(`/api/v1/access/escalation-sequence-revisions/${encodeURIComponent(policyID)}/restore`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function simulateEscalation(input: { policy_id: string; sequence_id: string; revision_version?: number; limit?: number }): Promise<EscalationSimulation> {
+  return request("/api/v1/access/escalations/simulate", { method: "POST", body: JSON.stringify(input) });
 }
 
 export function proposeEscalationGuardRevision(input: {
