@@ -21,17 +21,17 @@ const (
 )
 
 type Preferences struct {
-	TenantID             string    `json:"tenant_id"`
-	PrincipalID          string    `json:"principal_id"`
-	DailyDigestEnabled   bool      `json:"daily_digest_enabled"`
-	DigestMinute         int       `json:"digest_minute"`
-	TimeZone             string    `json:"time_zone"`
-	QuietHoursEnabled    bool      `json:"quiet_hours_enabled"`
-	QuietStartMinute     int       `json:"quiet_start_minute"`
-	QuietEndMinute       int       `json:"quiet_end_minute"`
-	CriticalEmailRequired bool     `json:"critical_email_required"`
-	UpdatedAt            time.Time `json:"updated_at,omitempty"`
-	Version              int64     `json:"version"`
+	TenantID              string    `json:"tenant_id"`
+	PrincipalID           string    `json:"principal_id"`
+	DailyDigestEnabled    bool      `json:"daily_digest_enabled"`
+	DigestMinute          int       `json:"digest_minute"`
+	TimeZone              string    `json:"time_zone"`
+	QuietHoursEnabled     bool      `json:"quiet_hours_enabled"`
+	QuietStartMinute      int       `json:"quiet_start_minute"`
+	QuietEndMinute        int       `json:"quiet_end_minute"`
+	CriticalEmailRequired bool      `json:"critical_email_required"`
+	UpdatedAt             time.Time `json:"updated_at,omitempty"`
+	Version               int64     `json:"version"`
 }
 
 type UpdateInput struct {
