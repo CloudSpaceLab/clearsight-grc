@@ -16,10 +16,10 @@ import (
 const criticalEmailDeliveryClass = "ATTENTION_CRITICAL"
 
 type CriticalEmailContext struct {
-	LegalEntityID        string
-	BrandName            string
-	RecipientName        string
-	RecipientAddress     string
+	LegalEntityID         string
+	BrandName             string
+	RecipientName         string
+	RecipientAddress      string
 	CurrentNoticeSequence int
 }
 
@@ -51,9 +51,10 @@ type CriticalEmailConsumer struct {
 
 func NewCriticalEmailConsumer(repository CriticalEmailRepository, delivery governedEmailDelivery, applicationURL string) *CriticalEmailConsumer {
 	return &CriticalEmailConsumer{
-		repository: repository, delivery: delivery,
+		repository:     repository,
+		delivery:       delivery,
 		applicationURL: strings.TrimRight(strings.TrimSpace(applicationURL), "/"),
-		now: time.Now,
+		now:            time.Now,
 	}
 }
 
@@ -92,10 +93,11 @@ func (c *CriticalEmailConsumer) Publish(ctx context.Context, event workflowrunti
 	}
 
 	request, err := evidence.BuildAttentionNotificationRequest(address, evidence.AttentionNotificationContext{
-		BrandName: value.BrandName, RecipientName: value.RecipientName,
-		ConditionLabel: conditionEmailLabel(intent.Condition),
+		BrandName:       value.BrandName,
+		RecipientName:   value.RecipientName,
+		ConditionLabel:  conditionEmailLabel(intent.Condition),
 		TransitionLabel: transitionEmailLabel(event.EventType),
-		RecordURL: c.recordURL(intent),
+		RecordURL:       c.recordURL(intent),
 	})
 	if err != nil {
 		_ = c.repository.RecordCriticalEmail(ctx, event, intent, EmailDeliveryRecord{
@@ -169,10 +171,10 @@ func emailFingerprint(address string) []byte {
 func emailRecordFromReceipt(receipt evidence.InvitationDeliveryReceipt, deliveryErr error, fingerprint []byte, attemptedAt time.Time) EmailDeliveryRecord {
 	record := EmailDeliveryRecord{
 		RecipientFingerprint: fingerprint,
-		FailureCode: strings.TrimSpace(string(receipt.FailureCode)),
-		ProviderMessageID: strings.TrimSpace(receipt.ProviderMessageID),
-		AttemptedAt: attemptedAt,
-		DeliveredAt: receipt.DeliveredAt,
+		FailureCode:          strings.TrimSpace(string(receipt.FailureCode)),
+		ProviderMessageID:    strings.TrimSpace(receipt.ProviderMessageID),
+		AttemptedAt:          attemptedAt,
+		DeliveredAt:          receipt.DeliveredAt,
 	}
 	switch {
 	case receipt.FailureCode == evidence.InvitationFailureOutcomeUnknown:
