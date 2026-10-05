@@ -334,6 +334,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
     { label: "Portfolio", view: preferredPortfolioView, activeViews: portfolioViews },
     { label: "Work", view: "work", activeViews: ["work"] },
+    { label: "Reports", view: "reports", activeViews: ["reports"] },
   ];
   const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
 
