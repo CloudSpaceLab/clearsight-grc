@@ -98,3 +98,51 @@
     color: HighlightText;
   }
 }
+
+
+.notification-preferences {
+  display: grid;
+  gap: var(--cs-primitive-space-4);
+  padding: var(--cs-primitive-space-4);
+  border: var(--cs-primitive-border-1) solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  background: var(--cs-bg-surface-2);
+}
+
+.notification-preferences__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cs-primitive-space-3);
+}
+
+.notification-preferences__heading > div {
+  display: grid;
+  gap: var(--cs-primitive-space-1);
+}
+
+.notification-preferences__heading strong {
+  color: var(--cs-text-strong);
+}
+
+.notification-preferences__heading span {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+
+.notification-preferences__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--cs-primitive-space-3);
+}
+
+.notification-preferences__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 560px) {
+  .notification-preferences__grid {
+    grid-template-columns: 1fr;
+  }
+}
