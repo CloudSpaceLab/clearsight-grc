@@ -26,6 +26,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/notificationprefs"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/operations"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oploss"
@@ -109,6 +110,7 @@ type Dependencies struct {
 	MetricMatrices          metricview.MatrixReader
 	DomainMetrics           metricview.DomainReader
 	PresentationPreferences *presentationprefs.Service
+	NotificationPreferences *notificationprefs.Service
 	Workflow                *workflow.Service
 	Onboarding              *onboarding.Service
 	Autonomy                *autonomy.Service
