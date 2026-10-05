@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"errors"
 	"net/http"
 	"strconv"
@@ -82,7 +83,18 @@ func (a *API) getRisk(w http.ResponseWriter, r *http.Request) {
 		writeRiskError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, a.riskAggregateWithDetails(r.Context(), actor, value))
+	read := a.riskAggregateWithDetails(r.Context(), actor, value)
+	read.NotificationHistory = []attention.NotificationHistoryItem{}
+	read.NotificationHistoryComplete = a.deps.AttentionDeliveries != nil
+	if a.deps.AttentionDeliveries != nil {
+		history, historyErr := a.deps.AttentionDeliveries.RecordHistory(r.Context(), actor.TenantID, actor.LegalEntityID, "RISK", value.Risk.ID, 30)
+		if historyErr != nil {
+			read.NotificationHistoryComplete = false
+		} else {
+			read.NotificationHistory = history
+		}
+	}
+	httpx.WriteJSON(w, http.StatusOK, read)
 }
 
 func (a *API) createRisk(w http.ResponseWriter, r *http.Request) {
