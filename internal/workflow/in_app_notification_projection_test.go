@@ -164,3 +164,30 @@ func TestInAppNotificationProjectorHandlesLargeAssignmentBurst(t *testing.T) {
 		t.Fatalf("records=%d want %d", repo.records, total)
 	}
 }
+
+
+func TestInAppNotificationProjectorRendersEscalationAssignment(t *testing.T) {
+	matterID := "20000000-0000-4000-8000-000000000020"
+	principalID := "40000000-0000-4000-8000-000000000020"
+	entityID := "50000000-0000-4000-8000-000000000020"
+	event := workflowruntime.OutboxEvent{
+		ID: "10000000-0000-4000-8000-000000000020", TenantID: "bank",
+		AggregateType: "WORKFLOW", AggregateID: "60000000-0000-4000-8000-000000000020", EventType: "WORK_ESCALATED",
+		Payload: []byte(`{"task_id":"70000000-0000-4000-8000-000000000020","matter_id":"` + matterID +
+			`","legal_entity_id":"` + entityID + `","principal_id":"` + principalID + `"}`),
+		OccurredAt: time.Date(2026, 10, 5, 13, 0, 0, 0, time.UTC),
+	}
+	repo := &inAppProjectionRepoStub{}
+	if err := NewInAppNotificationProjector(repo, repo).Publish(context.Background(), event); err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.records) != 1 {
+		t.Fatalf("records=%#v", repo.records)
+	}
+	record := repo.records[0]
+	if record.Kind != "WORK_ESCALATED_ASSIGNED" || record.PrincipalID != principalID ||
+		record.LegalEntityID != entityID || record.SubjectID != matterID ||
+		record.ActionPath != "#work/matters/"+matterID {
+		t.Fatalf("record=%#v", record)
+	}
+}
