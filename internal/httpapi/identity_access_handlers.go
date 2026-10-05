@@ -554,11 +554,18 @@ func (a *API) proposeEscalationRollback(w http.ResponseWriter, r *http.Request) 
 	httpx.WriteJSON(w, http.StatusCreated, revision)
 }
 
+type escalationSimulationDraft struct {
+	Steps            []governance.EscalationSequenceStepInput `json:"steps"`
+	TerminalHandling string                                   `json:"terminal_handling,omitempty"`
+	RecoveryAction   string                                   `json:"recovery_action,omitempty"`
+}
+
 type escalationSimulationInput struct {
-	PolicyID        string `json:"policy_id"`
-	SequenceID      string `json:"sequence_id"`
-	RevisionVersion int    `json:"revision_version,omitempty"`
-	Limit           int    `json:"limit,omitempty"`
+	PolicyID        string                     `json:"policy_id"`
+	SequenceID      string                     `json:"sequence_id"`
+	RevisionVersion int                        `json:"revision_version,omitempty"`
+	Draft           *escalationSimulationDraft `json:"draft,omitempty"`
+	Limit           int                        `json:"limit,omitempty"`
 }
 
 func (a *API) simulateEscalation(w http.ResponseWriter, r *http.Request) {
@@ -575,9 +582,22 @@ func (a *API) simulateEscalation(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	var draft *governance.EscalationSequence
+	if input.Draft != nil {
+		sequence, buildErr := governance.BuildEscalationSequence(governance.EscalationSequenceRevisionInput{
+			SequenceID: input.SequenceID, Steps: input.Draft.Steps,
+			TerminalHandling: input.Draft.TerminalHandling, RecoveryAction: input.Draft.RecoveryAction,
+		})
+		if buildErr != nil {
+			httpx.WriteError(w, http.StatusUnprocessableEntity, "escalation_sequence_invalid", buildErr.Error())
+			return
+		}
+		draft = &sequence
+	}
 	result, err := a.deps.EscalationSimulation.SimulateEscalation(r.Context(), workflow.EscalationSimulationInput{
 		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID,
-		PolicyID: input.PolicyID, SequenceID: input.SequenceID, RevisionVersion: input.RevisionVersion, Limit: input.Limit,
+		PolicyID: input.PolicyID, SequenceID: input.SequenceID, RevisionVersion: input.RevisionVersion,
+		DraftSequence: draft, Limit: input.Limit,
 	})
 	if err != nil {
 		writeEscalationGuardError(w, err)
