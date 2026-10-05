@@ -192,17 +192,16 @@ func (c *MatterEscalationCoordinator) simulateEscalationTask(ctx context.Context
 		DueAt: task.DueAt.UTC(), RecoveryAction: sequence.RecoveryAction,
 		Steps: make([]EscalationSimulationStep, 0, len(sequence.Steps)),
 	}
-	if index, parseErr := strconv.Atoi(strings.TrimSpace(task.Context["escalation_step_index"])); parseErr == nil {
+	currentStep := -1
+	if index, parseErr := strconv.Atoi(strings.TrimSpace(task.Context["escalation_step_index"])); parseErr == nil && index >= 0 {
+		currentStep = index
 		scenario.CurrentLevel = index + 1
 	}
-	if index, parseErr := strconv.Atoi(strings.TrimSpace(task.Context["escalation_next_step_index"])); parseErr == nil {
-		scenario.NextLevel = index + 1
-	}
-	if raw := strings.TrimSpace(task.Context["escalation_next_due_at"]); raw != "" {
-		if next, parseErr := time.Parse(time.RFC3339Nano, raw); parseErr == nil {
-			next = next.UTC()
-			scenario.NextDueAt = &next
-		}
+	nextStep := currentStep + 1
+	if nextStep >= 0 && nextStep < len(sequence.Steps) {
+		scenario.NextLevel = nextStep + 1
+		next := task.DueAt.UTC().Add(sequence.Steps[nextStep].After)
+		scenario.NextDueAt = &next
 	}
 
 	for index, step := range sequence.Steps {
