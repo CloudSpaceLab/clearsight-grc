@@ -168,8 +168,8 @@ describe("Forms workspace location state", () => {
 
     expect(await screen.findByRole("heading", { name: "Program collection form" })).toBeTruthy();
     expect(api.loadFormTemplateItem).toHaveBeenCalledWith("program-form");
+    expect(api.loadFormTemplatePage).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Template isn’t in this view")).toBeNull();
-    expect(screen.getByRole("button", { name: "Details for Vendor due diligence" })).toBeTruthy();
   });
 
   it("opens Documents from a direct section URL and re-fetches after remount", async () => {
