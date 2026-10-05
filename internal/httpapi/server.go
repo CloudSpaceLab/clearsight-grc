@@ -112,6 +112,7 @@ type Dependencies struct {
 	PresentationPreferences *presentationprefs.Service
 	NotificationPreferences *notificationprefs.Service
 	Workflow                *workflow.Service
+	EscalationSimulation    workflow.EscalationSimulator
 	Onboarding              *onboarding.Service
 	Autonomy                *autonomy.Service
 	AIGovernance            *aigovernance.Service
