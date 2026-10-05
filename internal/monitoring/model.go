@@ -69,11 +69,12 @@ type RuleResult struct {
 }
 
 type Evaluation struct {
-	Score            *float64     `json:"score,omitempty"`
-	Band             RiskBand     `json:"band"`
-	Coverage         float64      `json:"coverage"`
-	CriticalFailures []RuleResult `json:"critical_failures,omitempty"`
-	RuleResults      []RuleResult `json:"rule_results"`
+	Score                   *float64     `json:"score,omitempty"`
+	Band                    RiskBand     `json:"band"`
+	Coverage                float64      `json:"coverage"`
+	CriticalFailures        []RuleResult `json:"critical_failures,omitempty"`
+	RuleResults             []RuleResult `json:"rule_results"`
+	SourceComparisonVersion string       `json:"source_comparison_version,omitempty"`
 }
 
 type LifecycleStatus string

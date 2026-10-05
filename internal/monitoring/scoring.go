@@ -9,6 +9,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview/measure"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
@@ -44,7 +45,7 @@ func EvaluateSource(rules []SourceRule, resolution evidence.SourceResolution, th
 	if err := validateThresholds(thresholds); err != nil {
 		return Evaluation{}, err
 	}
-	result := Evaluation{Band: RiskNotAssessed}
+	result := Evaluation{Band: RiskNotAssessed, SourceComparisonVersion: measure.DecimalComparisonVersion}
 	if resolution.State != evidence.SourceResolutionCurrent || resolution.Receipt == nil || resolution.Receipt.Completeness != sourceaccess.CompletenessComplete || len(resolution.Records) != 1 {
 		return result, nil
 	}
@@ -86,6 +87,7 @@ func EvaluateSource(rules []SourceRule, resolution evidence.SourceResolution, th
 	if result.Coverage < 1 {
 		return result, nil
 	}
+
 	score := roundScore(float64(totalPoints) / float64(len(rules)))
 	result.Score = &score
 	result.Band = bandFor(score, thresholds)
@@ -116,20 +118,21 @@ func compareScalar(value sourceaccess.Scalar, rule SourceRule, now time.Time) (b
 		}
 		return !observed.After(now) && now.Sub(observed) <= time.Duration(maximum)*time.Minute, nil
 	case OperatorGreaterThan, OperatorGreaterOrEqual, OperatorLessThan, OperatorLessOrEqual:
-		left, leftErr := strconv.ParseFloat(actual, 64)
-		right, rightErr := strconv.ParseFloat(expected, 64)
-		if leftErr != nil || rightErr != nil {
-			return false, fmt.Errorf("rule %s requires numeric values", rule.ID)
+		// Compare the source and limit as exact decimals. Converting to float64
+		// can erase a cent or move a rate across an approved boundary.
+		order, err := measure.CompareDecimal(value.Text, rule.Expected)
+		if err != nil {
+			return false, fmt.Errorf("rule %s requires finite decimal values within the supported precision", rule.ID)
 		}
 		switch rule.Operator {
 		case OperatorGreaterThan:
-			return left > right, nil
+			return order > 0, nil
 		case OperatorGreaterOrEqual:
-			return left >= right, nil
+			return order >= 0, nil
 		case OperatorLessThan:
-			return left < right, nil
+			return order < 0, nil
 		default:
-			return left <= right, nil
+			return order <= 0, nil
 		}
 	default:
 		return false, fmt.Errorf("rule %s operator is unsupported", rule.ID)
