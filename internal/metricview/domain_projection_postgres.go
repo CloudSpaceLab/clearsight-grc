@@ -226,4 +226,3 @@ func domainSourceHighWater(ctx context.Context, tx pgx.Tx, scope domainScope) (m
 	}
 	return value, nil
 }
-
