@@ -4,7 +4,7 @@ import type { MonitoringResult } from "../../monitoringTypes";
 import type { RiskIndicatorDetail } from "../../riskTypes";
 import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
 import { IndicatorValue, indicatorValueAccessibleText } from "./IndicatorValue";
-import { formatIndicatorCoverage, formatIndicatorDate, indicatorStateLabel, indicatorTone, monitoringBandLabel } from "./indicatorPresentation";
+import { formatIndicatorCoverage, formatIndicatorDate, indicatorStateLabel, indicatorTone, monitoringBandLabel, nativeConditionLabel, nativeConditionTone } from "./indicatorPresentation";
 import "./indicator.css";
 
 type Props = {
@@ -54,6 +54,15 @@ export function IndicatorDetail({
       mobileLayout: "full-width",
       render: (item) => <IndicatorValue measurement={item.evaluation.measurement} score={item.evaluation.score} denominator={100}/>,
       accessibleText: (item) => indicatorValueAccessibleText(item.evaluation.measurement, item.evaluation.score, 100),
+    },
+    {
+      id: "condition",
+      header: "Condition",
+      kind: "status",
+      render: (item) => item.evaluation.measurement
+        ? <StatusBadge tone={nativeConditionTone(item.evaluation.measurement.condition)}>{nativeConditionLabel(item.evaluation.measurement.condition)}</StatusBadge>
+        : "—",
+      accessibleText: (item) => item.evaluation.measurement ? nativeConditionLabel(item.evaluation.measurement.condition) : "Native condition unavailable",
     },
     {
       id: "concern",
