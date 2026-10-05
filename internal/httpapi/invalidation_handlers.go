@@ -36,6 +36,7 @@ func (a *API) invalidationStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-store")
 	w.Header().Set("X-Accel-Buffering", "no")
+	refreshInvalidationWriteDeadline(w)
 	_, _ = fmt.Fprint(w, ": connected\n\n")
 	flusher.Flush()
 
@@ -55,6 +56,7 @@ func (a *API) invalidationStream(w http.ResponseWriter, r *http.Request) {
 		case <-sessionExpiry.C:
 			return
 		case <-heartbeat.C:
+			refreshInvalidationWriteDeadline(w)
 			if _, err := fmt.Fprint(w, ": keepalive\n\n"); err != nil {
 				return
 			}
@@ -69,10 +71,16 @@ func (a *API) invalidationStream(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				continue
 			}
+			refreshInvalidationWriteDeadline(w)
 			if _, err := fmt.Fprintf(w, "event: invalidate\ndata: %s\n\n", payload); err != nil {
 				return
 			}
 			flusher.Flush()
 		}
 	}
+}
+
+func refreshInvalidationWriteDeadline(w http.ResponseWriter) {
+	controller := http.NewResponseController(w)
+	_ = controller.SetWriteDeadline(time.Now().Add(invalidationHeartbeat + 10*time.Second))
 }
