@@ -27,12 +27,12 @@ func TestUpdateValidatesVersionTimezoneAndQuietHours(t *testing.T) {
 	service := NewService(NewMemoryRepository())
 	input := UpdateInput{
 		DailyDigestEnabled: true,
-		DigestMinute: 8*60 + 30,
-		TimeZone: "Africa/Lagos",
-		QuietHoursEnabled: true,
-		QuietStartMinute: 22*60,
-		QuietEndMinute: 6*60,
-		ExpectedVersion: 0,
+		DigestMinute:       8*60 + 30,
+		TimeZone:           "Africa/Lagos",
+		QuietHoursEnabled:  true,
+		QuietStartMinute:   22 * 60,
+		QuietEndMinute:     6 * 60,
+		ExpectedVersion:    0,
 	}
 	saved, err := service.Update(context.Background(), "tenant", "principal", input)
 	if err != nil {
@@ -63,11 +63,11 @@ func TestDigestMayBeDisabledWithoutChangingCriticalPolicy(t *testing.T) {
 	service := NewService(NewMemoryRepository())
 	saved, err := service.Update(context.Background(), "tenant", "principal", UpdateInput{
 		DailyDigestEnabled: false,
-		DigestMinute: DefaultDigestMinute,
-		TimeZone: "UTC",
-		QuietStartMinute: DefaultQuietStartMinute,
-		QuietEndMinute: DefaultQuietEndMinute,
-		ExpectedVersion: 0,
+		DigestMinute:       DefaultDigestMinute,
+		TimeZone:           "UTC",
+		QuietStartMinute:   DefaultQuietStartMinute,
+		QuietEndMinute:     DefaultQuietEndMinute,
+		ExpectedVersion:    0,
 	})
 	if err != nil {
 		t.Fatal(err)
