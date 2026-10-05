@@ -112,7 +112,6 @@ func TestRiskIndicatorMatterLinkedToProgramRequiresActiveProgramLink(t *testing.
 	}
 }
 
-
 func TestCurrentRiskIndicatorNativeMeasurementPrefersObservedValue(t *testing.T) {
 	check := monitoring.MonitoringCheck{
 		Measurement: &monitoring.MeasurementSpec{Field: "success_rate", Label: "Success rate", Unit: monitoring.MeasurementPercent, Precision: 2},
