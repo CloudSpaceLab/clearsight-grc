@@ -77,9 +77,9 @@ func (r *PostgresRepository) StoreInAppNotification(ctx context.Context, record 
 			return ErrNotificationNotFound
 		}
 	}
-	if err := r.publishNotificationInvalidation(ctx, record); err != nil {
-		return err
-	}
+	// Realtime invalidation is only a refresh hint. Durable notification state
+	// remains authoritative even when the one-way transport is unavailable.
+	_ = r.publishNotificationInvalidation(ctx, record)
 	return nil
 }
 
