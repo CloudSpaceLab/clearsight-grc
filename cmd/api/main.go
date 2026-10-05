@@ -182,6 +182,10 @@ func buildIdentity(ctx context.Context, cfg config.Config, services serviceSet) 
 		return authenticator, nil, err
 	case "development":
 		if cfg.DemoMode {
+			if cfg.DemoSessionSecret != "" {
+				authenticator, err := identity.NewDemoAuthenticatorWithSecret(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID, cfg.DemoSessionSecret)
+				return authenticator, nil, err
+			}
 			authenticator, err := identity.NewDemoAuthenticator(cfg.DemoTenantID, cfg.DemoPrincipalID, cfg.DemoLegalEntityID)
 			return authenticator, nil, err
 		}
