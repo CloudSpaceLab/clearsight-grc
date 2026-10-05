@@ -10,6 +10,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -162,6 +163,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	metricMatrices := metricview.NewMatrixRepository(pool)
 	domainMetrics := metricview.NewDomainRepository(pool)
 	presentationPreferences := presentationprefs.NewService(presentationprefs.NewPostgresRepository(pool))
+	attentionDeliveries := attention.NewPostgresDeliveryReader(pool)
 	notificationPreferences := notificationprefs.NewService(notificationprefs.NewPostgresRepository(pool))
 	groupOversightService := oversight.NewGroupService(oversightRepository, accessResolver)
 	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
@@ -184,7 +186,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		FormPolicies: formPolicies,
 		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, OperationalLoss: operationalLossService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService, GroupOversight: groupOversightService, MetricMembership: metricMembership, MetricTrends: metricTrends, MetricMatrices: metricMatrices, DomainMetrics: domainMetrics, PresentationPreferences: presentationPreferences, NotificationPreferences: notificationPreferences,
 		Workflow: workflowService, EscalationSimulation: escalationSimulation, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
-		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewPostgresRepository(pool)),
+		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AttentionDeliveries: attentionDeliveries, AuditExports: auditExports, People: people.NewService(people.NewPostgresRepository(pool)),
 		Access: accessResolver, AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
 		RuntimeContext: runtimecontext.NewPostgresResolver(pool),
 	}, nil
