@@ -60,7 +60,7 @@ func TestDailyDigestMissingContactIsFinalWithoutSMTP(t *testing.T) {
 	repo := &digestRepoStub{
 		candidates: []DigestCandidate{{
 			TenantID: "bank", PrincipalID: "person", LocalDate: now,
-			BrandName: "ClearSight", RecipientName: "Risk Officer",
+			BrandName: "ClearSight", RecipientName: "Risk Officer", MaterialChanges: 1,
 		}},
 		claimResult: true,
 	}
