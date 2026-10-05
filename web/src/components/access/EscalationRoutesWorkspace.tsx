@@ -44,10 +44,10 @@ const recoveryOptions = [
 const statusTone: Record<string, StatusTone> = {
   RESOLVED: "success",
   CANDIDATE_SET: "warning",
-  NO_ROUTE: "danger",
-  AMBIGUOUS_ROUTE: "danger",
-  NO_VISIBLE_CANDIDATE: "danger",
-  TARGET_CONSTRAINT_NO_MATCH: "danger",
+  NO_ROUTE: "error",
+  AMBIGUOUS_ROUTE: "error",
+  NO_VISIBLE_CANDIDATE: "error",
+  TARGET_CONSTRAINT_NO_MATCH: "error",
   SOURCE_ROLE_NOT_ALLOWED: "warning",
   DEPARTMENT_SCOPE_UNRESOLVED: "warning",
   DEPARTMENT_ANCESTRY_EXHAUSTED: "warning",
@@ -194,7 +194,7 @@ export function EscalationRoutesWorkspace({ overview, isBusy, onBusy, onNotice, 
 
   function addLevel() {
     if (steps.length >= 8) return;
-    const last = steps.at(-1);
+    const last = steps[steps.length - 1];
     setSteps((current) => [...current, {
       after: nextDelay(last?.after),
       responsibility: "ESCALATION_OWNER",
