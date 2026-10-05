@@ -31,6 +31,26 @@ func TestProductionRejectsMalformedReleaseSHA(t *testing.T) {
 	}
 }
 
+func TestLoadAcceptsDurableDemoSessionSecret(t *testing.T) {
+	secret := strings.Repeat("d", 64)
+	t.Setenv("CLEARSIGHT_DEMO_SESSION_SECRET", secret)
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.DemoSessionSecret != secret {
+		t.Fatalf("demo session secret was not loaded")
+	}
+}
+
+func TestLoadRejectsShortDemoSessionSecret(t *testing.T) {
+	t.Setenv("CLEARSIGHT_DEMO_SESSION_SECRET", "short")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "CLEARSIGHT_DEMO_SESSION_SECRET") {
+		t.Fatalf("expected short demo session secret rejection, got %v", err)
+	}
+}
+
 func TestLoadAllowsDemoModeToBeDisabledInDevelopment(t *testing.T) {
 	t.Setenv("CLEARSIGHT_ENV", "development")
 	t.Setenv("CLEARSIGHT_DEMO_MODE", "false")
