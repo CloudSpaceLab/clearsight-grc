@@ -327,6 +327,8 @@ func (a *API) routes() []routeSpec {
 
 		read("/api/v1/preferences/presentation", a.presentationPreferences),
 		write(http.MethodPut, "/api/v1/preferences/presentation", a.updatePresentationPreferences, nil),
+		read("/api/v1/preferences/notifications", a.notificationPreferences),
+		write(http.MethodPut, "/api/v1/preferences/notifications", a.updateNotificationPreferences, nil),
 
 		read("/api/v1/onboarding/guide", a.actorOnboardingGuide),
 		readBound("/api/v1/onboarding/state", a.onboardingState, bindActorQuery("principal_id")),
