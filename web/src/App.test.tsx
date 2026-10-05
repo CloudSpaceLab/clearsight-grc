@@ -595,13 +595,16 @@ describe("runtime navigation", () => {
     expect(within(portfolio).getByRole("button", { name: "Forms" }).getAttribute("aria-current")).toBe("page");
   });
 
-  it("keeps Reports out of product navigation until the rebuilt workspace is approved", async () => {
+  it("shows Reports in primary navigation after workspace approval", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
     const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
-    await within(primaryNavigation).findByRole("button", { name: "Portfolio" });
-    expect(within(primaryNavigation).queryByRole("button", { name: "Reports" })).toBeNull();
+    const reports = await within(primaryNavigation).findByRole("button", { name: "Reports" });
+    fireEvent.click(reports);
+
+    expect(window.location.hash).toBe("#reports");
+    expect(reports.getAttribute("aria-current")).toBe("page");
   });
 
   it("provides Vendors as a Portfolio lens while keeping its route stable", async () => {
