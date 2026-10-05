@@ -604,6 +604,18 @@ describe("runtime navigation", () => {
     expect(within(primaryNavigation).queryByRole("button", { name: "Reports" })).toBeNull();
   });
 
+  it("opens Portfolio on Programs", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    window.history.replaceState(null, "", "#oversight");
+    render(<App />);
+
+    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
+    fireEvent.click(await within(primaryNavigation).findByRole("button", { name: "Portfolio" }));
+
+    expect(window.location.hash).toBe("#programs");
+    expect(await screen.findByRole("heading", { name: "Programs" })).toBeTruthy();
+  });
+
   it("provides Vendors as a Portfolio lens while keeping its route stable", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
