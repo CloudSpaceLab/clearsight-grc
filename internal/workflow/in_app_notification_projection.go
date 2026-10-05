@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -29,6 +30,13 @@ func (p *InAppNotificationProjector) Publish(ctx context.Context, event workflow
 	}
 	if attentionRelevant {
 		return p.projectAttention(ctx, event, intent)
+	}
+	escalation, escalationRelevant, err := decodeEscalationNotificationEvent(event)
+	if err != nil {
+		return err
+	}
+	if escalationRelevant {
+		return p.projectEscalation(ctx, event, escalation)
 	}
 	assignments, relevant, err := decodeAssignmentNotificationEvent(event)
 	if err != nil {
@@ -64,6 +72,42 @@ func (p *InAppNotificationProjector) project(ctx context.Context, event workflow
 		TenantID: event.TenantID, LegalEntityID: value.LegalEntityID, PrincipalID: assignment.PrincipalID,
 		OutboxEventID: event.ID, Kind: assignment.NotificationKind,
 		Title: title, Summary: summary, SubjectType: "MATTER", SubjectID: value.MatterID,
+		ActionPath: "#work/matters/" + url.PathEscape(value.MatterID), OccurredAt: event.OccurredAt,
+	})
+}
+
+type escalationNotificationEvent struct {
+	MatterID      string `json:"matter_id"`
+	LegalEntityID string `json:"legal_entity_id"`
+	PrincipalID   string `json:"principal_id"`
+}
+
+func decodeEscalationNotificationEvent(event workflowruntime.OutboxEvent) (escalationNotificationEvent, bool, error) {
+	if event.AggregateType != "WORKFLOW" || event.EventType != "WORK_ESCALATED" {
+		return escalationNotificationEvent{}, false, nil
+	}
+	var value escalationNotificationEvent
+	if err := json.Unmarshal(event.Payload, &value); err != nil {
+		return escalationNotificationEvent{}, true, fmt.Errorf("decode escalation notification intent: %w", err)
+	}
+	value.MatterID = strings.TrimSpace(value.MatterID)
+	value.LegalEntityID = strings.TrimSpace(value.LegalEntityID)
+	value.PrincipalID = strings.TrimSpace(value.PrincipalID)
+	if !validNotificationUUID(value.MatterID) || !validNotificationUUID(value.LegalEntityID) || !validNotificationUUID(value.PrincipalID) {
+		return escalationNotificationEvent{}, true, fmt.Errorf("escalation notification identity is invalid")
+	}
+	return value, true, nil
+}
+
+func (p *InAppNotificationProjector) projectEscalation(ctx context.Context, event workflowruntime.OutboxEvent, value escalationNotificationEvent) error {
+	if !validNotificationUUID(event.ID) {
+		return fmt.Errorf("escalation notification event identity is invalid")
+	}
+	return p.writer.StoreInAppNotification(ctx, inAppNotificationRecord{
+		TenantID: event.TenantID, LegalEntityID: value.LegalEntityID, PrincipalID: value.PrincipalID,
+		OutboxEventID: event.ID, Kind: "WORK_ESCALATED_ASSIGNED",
+		Title: "Escalated work assigned to you", Summary: "Open Work to review the current record.",
+		SubjectType: "MATTER", SubjectID: value.MatterID,
 		ActionPath: "#work/matters/" + url.PathEscape(value.MatterID), OccurredAt: event.OccurredAt,
 	})
 }
