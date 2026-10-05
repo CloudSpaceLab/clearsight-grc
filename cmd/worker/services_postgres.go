@@ -188,11 +188,16 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	}
 	attentionEpisodes := attention.NewEpisodeProjector(pool)
 	inAppNotifications := workflow.NewInAppNotificationProjector(workflowRepository, workflowRepository)
+	attentionEmails, err := buildAttentionEmailWorker(cfg, pool)
+	if err != nil {
+		pool.Close()
+		return workerSet{}, err
+	}
 	addressVerificationSubmission := thirdparty.NewAddressVerificationSubmissionConsumer(runtimeRepository, evidenceService, continuityService)
 	vendorWorkSubmission := newVendorWorkSubmissionConsumer(runtimeRepository, evidenceService, assessmentRepository)
 	publisher := workflowruntime.NewCompositePublisher(
 		sourceEventCheckpoint, sourceHealth, collectionSubmissions, actionWork, lifecycleWork, escalationWork,
-		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, staffNotifications, attentionEpisodes, inAppNotifications, addressVerificationSubmission, vendorWorkSubmission,
+		documentService, documentProposalWork, coverageService, assessmentSubmission, assessmentCancellation, addressVerificationSetup, addressVerificationAssignment, staffNotifications, attentionEpisodes, inAppNotifications, attentionEmails, addressVerificationSubmission, vendorWorkSubmission,
 		formProposalGeneration, formCommunicationWorker, formpolicy.ScoredResponsePublisher{Handler: formPolicyExecutor},
 		workflowruntime.LogPublisher{Logger: logger},
 	)
