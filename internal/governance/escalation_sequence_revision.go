@@ -107,6 +107,10 @@ func (s *Service) ProposeEscalationRollback(ctx context.Context, input Escalatio
 	return s.repo.CreatePolicyRevision(ctx, input.TenantID, input.PolicyID, input.ExpectedPolicyVersion, input.ActorID, definition, checksum, s.now().UTC())
 }
 
+func BuildEscalationSequence(input EscalationSequenceRevisionInput) (EscalationSequence, error) {
+	return canonicalEscalationSequence(input)
+}
+
 func canonicalEscalationSequence(input EscalationSequenceRevisionInput) (EscalationSequence, error) {
 	steps := make([]map[string]any, 0, len(input.Steps))
 	for _, value := range input.Steps {
