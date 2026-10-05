@@ -247,17 +247,29 @@ func TestServiceGovernsFormMonitoringCheck(t *testing.T) {
 	service.now = func() time.Time { return now }
 	service.newID = func() (string, error) { return "check-1", nil }
 	activeAt := now.Add(-time.Hour)
-	form := FormTemplate{ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "FORM", Name: "Review", Purpose: "Review the control.", Fields: []TemplateField{{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "secure", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3}}
+	form := FormTemplate{
+		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "FORM", Name: "Review", Purpose: "Review the control.",
+		Fields: []TemplateField{
+			{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "secure", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}}},
+			{ID: "loss", Label: "Observed loss", Type: formcontract.TypeCurrency, Required: true, Constraints: formcontract.Constraints{Currency: "NGN"}},
+		},
+		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3},
+	}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
 		t.Fatal(err)
 	}
 	maker := Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "maker"}
 	check, err := service.CreateCheck(context.Background(), maker, CreateCheckInput{
 		ProgramID: "program-1", Code: "RESET", Name: "Password reset safeguards", Claim: "Password reset safeguards are operating.",
-		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, CollectionPolicy: &CollectionPolicy{ValidityMonths: 12}, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
+		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, CollectionPolicy: &CollectionPolicy{ValidityMonths: 12},
+		Measurement: &MeasurementSpec{Field: "loss", Label: "Observed loss", Unit: MeasurementMoney, Currency: "NGN", Precision: 2, Limits: []MeasurementLimit{{Operator: OperatorLessOrEqual, Expected: "1000000"}}},
+		Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
 	})
 	if err != nil || check.Status != LifecycleDraft || check.Version != 1 {
 		t.Fatalf("check = %#v, err = %v", check, err)
+	}
+	if check.Measurement == nil || check.Measurement.Unit != MeasurementMoney || check.Measurement.Currency != "NGN" || len(check.Measurement.Limits) != 1 {
+		t.Fatalf("form native measurement was not retained: %#v", check.Measurement)
 	}
 	pending, err := service.TransitionCheck(context.Background(), maker, TransitionInput{ID: check.ID, ExpectedVersion: 1, To: LifecyclePendingApproval})
 	if err != nil {
