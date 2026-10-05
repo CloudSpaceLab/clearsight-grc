@@ -715,6 +715,32 @@ func (c *MatterEscalationCoordinator) applyEscalation(ctx context.Context, tenan
 	if err != nil {
 		return false, fmt.Errorf("record workflow escalation event: %w", err)
 	}
+	outboxTag, err := tx.Exec(ctx, `
+		INSERT INTO outbox_events(
+			tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at
+		)
+		SELECT t.id,'WORKFLOW',$2::uuid,'WORK_ESCALATED',
+		       jsonb_build_object(
+		         'task_id',$3::text,
+		         'matter_id',m.id::text,
+		         'legal_entity_id',m.legal_entity_id::text,
+		         'sequence_id',$4::text,
+		         'step_index',$5::int,
+		         'responsibility',$6::text,
+		         'principal_id',$7::text
+		       ),
+		       $8,$8,$8
+		FROM tenants t
+		JOIN matters m ON m.tenant_id=t.id AND m.id=$9::uuid
+		WHERE (t.id::text=$1 OR t.slug=$1)`,
+		tenant, task.WorkflowID, task.ID, payload.SequenceID, payload.StepIndex, step.Responsibility, principal.ID, at,
+		task.Context["matter_id"])
+	if err != nil {
+		return false, fmt.Errorf("publish workflow escalation notification intent: %w", err)
+	}
+	if outboxTag.RowsAffected() != 1 {
+		return false, fmt.Errorf("publish workflow escalation notification intent: Matter scope is unavailable")
+	}
 	return true, tx.Commit(ctx)
 }
 
