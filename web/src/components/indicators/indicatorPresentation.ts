@@ -32,3 +32,15 @@ export function monitoringBandLabel(value: string) {
   if (value === "CRITICAL") return "Critical concern";
   return "Concern not assessed";
 }
+
+export function nativeConditionLabel(value: "WITHIN" | "BREACHED" | "UNKNOWN" | undefined) {
+  if (value === "WITHIN") return "Within limit";
+  if (value === "BREACHED") return "Outside limit";
+  return "Condition unknown";
+}
+
+export function nativeConditionTone(value: "WITHIN" | "BREACHED" | "UNKNOWN" | undefined): StatusTone {
+  if (value === "WITHIN") return "success";
+  if (value === "BREACHED") return "error";
+  return "unknown";
+}
