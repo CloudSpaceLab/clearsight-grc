@@ -622,6 +622,9 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		if input.BindingID == "" || input.BindingVersion < 1 || input.FormTemplateID != "" || len(input.SourceRules) == 0 || input.CollectionPolicy != nil {
 			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("source checks require one binding revision and at least one rule"))
 		}
+		if measurement != nil && len(measurement.Limits) > 0 {
+			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("source measurement limits come from source rules"))
+		}
 		for _, rule := range input.SourceRules {
 			if err := validateSourceRule(rule); err != nil {
 				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
