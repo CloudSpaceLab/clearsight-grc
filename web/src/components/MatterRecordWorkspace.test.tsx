@@ -526,7 +526,7 @@ describe("Matter record workspace", () => {
 
       expect(await screen.findByText("Program Owner", { selector: ".matter-action-meta strong" })).toBeTruthy();
       expect(screen.getByText("In progress", { selector: ".cs-status-badge" })).toBeTruthy();
-      expect(screen.getByText("Overdue", { selector: ".cs-status-badge" })).toBeTruthy();
+      expect(screen.getByText("Overdue", { selector: ".matter-action-state .cs-status-badge" })).toBeTruthy();
       expect(screen.getByText("Due 26 Aug 2026 · 8 days overdue", { selector: "time" })).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: "Add action" }));
       fireEvent.change(screen.getByLabelText("Action title"), { target: { value: "Confirm section owners" } });
@@ -556,7 +556,7 @@ describe("Matter record workspace", () => {
       await openRecordTab("Actions");
 
       expect(await screen.findByText("Due 26 Aug 2026", { selector: "time" })).toBeTruthy();
-      expect(screen.queryByText("Overdue", { selector: ".cs-status-badge" })).toBeNull();
+      expect(screen.queryByText("Overdue", { selector: ".matter-action-state .cs-status-badge" })).toBeNull();
     } finally {
       clock.mockRestore();
     }
