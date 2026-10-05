@@ -68,6 +68,41 @@ func TestCurrentRiskIndicatorStatePreservesUnknownSemantics(t *testing.T) {
 	}
 }
 
+func TestCurrentRiskIndicatorStateUsesNativeLimitBeforeConcernBand(t *testing.T) {
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	check := monitoring.MonitoringCheck{
+		ID: "check-native",
+		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 2},
+		FreshnessMinutes: 60,
+		MinimumCoverage:  1,
+	}
+	result := monitoring.MonitoringResult{
+		MonitoringCheckID: check.ID,
+		MonitoringCheckVersion: check.Version,
+		EvaluatedAt: now.Add(-time.Minute),
+		Evaluation: monitoring.Evaluation{
+			Band: monitoring.RiskLow,
+			Coverage: 1,
+			Measurement: &monitoring.NativeMeasurement{
+				Unit: monitoring.MeasurementPercent,
+				Value: "98.70",
+				Limits: []monitoring.MeasurementLimit{{Operator: monitoring.OperatorGreaterOrEqual, Expected: "99.50"}},
+			},
+		},
+	}
+	state, reason := currentRiskIndicatorState(check, result, now)
+	if state != riskIndicatorBreach || reason != "Latest native measurement is outside its approved limit." {
+		t.Fatalf("native breach state=%s reason=%q", state, reason)
+	}
+
+	result.Evaluation.Band = monitoring.RiskCritical
+	result.Evaluation.Measurement.Value = "99.70"
+	state, reason = currentRiskIndicatorState(check, result, now)
+	if state != riskIndicatorNormal || reason != "Latest native measurement is within its approved limit." {
+		t.Fatalf("native within state=%s reason=%q", state, reason)
+	}
+}
+
 func withIndicatorBand(value monitoring.MonitoringResult, band monitoring.RiskBand) monitoring.MonitoringResult {
 	value.Evaluation.Band = band
 	return value
