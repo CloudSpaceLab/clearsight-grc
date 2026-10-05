@@ -104,7 +104,7 @@ func numericSourceEvaluation(actual, expected string, operator SourceOperator) (
 	return EvaluateSource(
 		[]SourceRule{{ID: "native-boundary", Field: "value", Operator: operator, Expected: expected, RiskPoints: 100}},
 		evidence.SourceResolution{
-			State: evidence.SourceResolutionCurrent,
+			State:   evidence.SourceResolutionCurrent,
 			Records: []sourceaccess.Record{{"value": {Text: actual}}},
 			Receipt: &sourceaccess.OperationReceipt{Completeness: sourceaccess.CompletenessComplete},
 		},

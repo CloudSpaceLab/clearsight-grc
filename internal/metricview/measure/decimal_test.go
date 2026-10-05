@@ -57,7 +57,7 @@ func TestParseDecimalRejectsInvalidAndUnboundedValues(t *testing.T) {
 		"0x1p0", "1/2", "1_000", "1,000", "12%", "NGN 12", "1 2", "1..2",
 		"1e", "e1", "1e+", "1e1e1", "1e1.5", "--1", "１２", "−1",
 		"1e1025", "1e-1025", "1e99999999999999999999999999999",
-		strings.Repeat("1", MaxDecimalDigits+1), strings.Repeat(" ", MaxDecimalBytes)+"0",
+		strings.Repeat("1", MaxDecimalDigits+1), strings.Repeat(" ", MaxDecimalBytes) + "0",
 	}
 	for _, value := range invalid {
 		if _, err := ParseDecimal(value); !errors.Is(err, ErrInvalidDecimal) {
