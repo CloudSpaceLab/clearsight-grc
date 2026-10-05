@@ -739,6 +739,14 @@ func (s *Service) Result(ctx context.Context, actor Actor, resultID string) (Mon
 	return s.repo.Result(ctx, actor.TenantID, strings.TrimSpace(resultID))
 }
 
+func copyUTC(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	normalized := value.UTC()
+	return &normalized
+}
+
 func EligibleForLinkedIssue(check MonitoringCheck, result MonitoringResult) bool {
 	if check.Status != LifecycleActive || !check.IsCurrent || check.FailureAction != FailureRecommendMatter {
 		return false
@@ -870,6 +878,10 @@ func (s *Service) evaluateFormSubmission(ctx context.Context, check MonitoringCh
 	measurement, err := captureFormMeasurement(check.Measurement, submission.Answers)
 	if err != nil {
 		return MonitoringResult{}, err
+	}
+	if measurement != nil {
+		measurement.ReportingPeriodStart = copyUTC(request.CollectionPeriodStart)
+		measurement.ReportingPeriodEnd = copyUTC(request.CollectionPeriodEnd)
 	}
 	evaluation.Measurement = measurement
 	provenance, err := json.Marshal(map[string]any{
