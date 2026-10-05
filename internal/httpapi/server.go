@@ -24,6 +24,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/invalidation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
@@ -58,6 +59,7 @@ type Dependencies struct {
 	IdentityMode                     string
 	OIDCIssuer                       string
 	Identity                         identity.Authenticator
+	Invalidations                    invalidation.Stream
 	RuntimeContext                   runtimecontext.Resolver
 	Federation                       *federation.Service
 	SCIM                             http.Handler
