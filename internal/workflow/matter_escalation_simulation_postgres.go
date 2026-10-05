@@ -67,20 +67,29 @@ func (c *MatterEscalationCoordinator) SimulateEscalation(ctx context.Context, in
 	if err != nil {
 		return EscalationSimulation{}, fmt.Errorf("load escalation policy for simulation: %w", err)
 	}
-	sequences, err := governance.ParseEscalationSequences(definition)
-	if err != nil {
-		return EscalationSimulation{}, err
-	}
 	var sequence governance.EscalationSequence
-	found := false
-	for _, candidate := range sequences {
-		if candidate.ID == input.SequenceID && candidate.Trigger == "OVERDUE" {
-			sequence, found = candidate, true
-			break
+	draft := input.DraftSequence != nil
+	if draft {
+		sequence = *input.DraftSequence
+		if sequence.ID != input.SequenceID || sequence.Trigger != "OVERDUE" {
+			return EscalationSimulation{}, fmt.Errorf("draft sequence does not match the requested OVERDUE route")
 		}
-	}
-	if !found {
-		return EscalationSimulation{}, governance.ErrNotFound
+		sequenceVersion = 0
+	} else {
+		sequences, parseErr := governance.ParseEscalationSequences(definition)
+		if parseErr != nil {
+			return EscalationSimulation{}, parseErr
+		}
+		found := false
+		for _, candidate := range sequences {
+			if candidate.ID == input.SequenceID && candidate.Trigger == "OVERDUE" {
+				sequence, found = candidate, true
+				break
+			}
+		}
+		if !found {
+			return EscalationSimulation{}, governance.ErrNotFound
+		}
 	}
 
 	tasks, truncated, err := c.listEscalationSimulationTasks(ctx, input, policyCode, activeVersion)
@@ -89,7 +98,7 @@ func (c *MatterEscalationCoordinator) SimulateEscalation(ctx context.Context, in
 	}
 	result := EscalationSimulation{
 		PolicyID: input.PolicyID, PolicyCode: policyCode, ActiveVersion: activeVersion,
-		SequenceVersion: sequenceVersion, SequenceID: sequence.ID, Trigger: sequence.Trigger,
+		SequenceVersion: sequenceVersion, Draft: draft, SequenceID: sequence.ID, Trigger: sequence.Trigger,
 		Checked: len(tasks), Truncated: truncated,
 		Scenarios: make([]EscalationSimulationScenario, 0, len(tasks)),
 	}
