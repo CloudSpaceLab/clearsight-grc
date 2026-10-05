@@ -801,12 +801,12 @@ func (c *MatterEscalationCoordinator) scheduleStep(ctx context.Context, tenant, 
 
 func (c *MatterEscalationCoordinator) recordScheduledEscalation(ctx context.Context, tenant, taskID string, payload escalationTimerPayload, dueAt time.Time) error {
 	overlay, err := json.Marshal(map[string]string{
-		"escalation_sequence_id":         payload.SequenceID,
-		"escalation_policy_version":      payload.PolicyVersion,
-		"escalation_next_step_index":     strconv.Itoa(payload.StepIndex),
-		"escalation_next_due_at":         dueAt.UTC().Format(time.RFC3339Nano),
-		"escalation_terminal_handling":   payload.TerminalHandling,
-		"escalation_recovery_action":     payload.RecoveryAction,
+		"escalation_sequence_id":       payload.SequenceID,
+		"escalation_policy_version":    payload.PolicyVersion,
+		"escalation_next_step_index":   strconv.Itoa(payload.StepIndex),
+		"escalation_next_due_at":       dueAt.UTC().Format(time.RFC3339Nano),
+		"escalation_terminal_handling": payload.TerminalHandling,
+		"escalation_recovery_action":   payload.RecoveryAction,
 	})
 	if err != nil {
 		return err
@@ -832,9 +832,9 @@ func (c *MatterEscalationCoordinator) recordScheduledEscalation(ctx context.Cont
 
 func (c *MatterEscalationCoordinator) recordTerminalEscalation(ctx context.Context, tenant string, payload escalationTimerPayload) error {
 	overlay, err := json.Marshal(map[string]string{
-		"escalation_terminal":            "true",
-		"escalation_terminal_handling":   payload.TerminalHandling,
-		"escalation_recovery_action":     payload.RecoveryAction,
+		"escalation_terminal":          "true",
+		"escalation_terminal_handling": payload.TerminalHandling,
+		"escalation_recovery_action":   payload.RecoveryAction,
 	})
 	if err != nil {
 		return err
