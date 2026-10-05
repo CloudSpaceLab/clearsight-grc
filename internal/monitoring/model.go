@@ -93,12 +93,12 @@ const (
 )
 
 type NativeMeasurement struct {
-	Field        string                  `json:"field"`
-	Label        string                  `json:"label,omitempty"`
-	Unit         MeasurementUnit         `json:"unit"`
-	Currency     string                  `json:"currency,omitempty"`
-	DurationUnit MeasurementDurationUnit `json:"duration_unit,omitempty"`
-	Precision    int                     `json:"precision,omitempty"`
+	Field                string                  `json:"field"`
+	Label                string                  `json:"label,omitempty"`
+	Unit                 MeasurementUnit         `json:"unit"`
+	Currency             string                  `json:"currency,omitempty"`
+	DurationUnit         MeasurementDurationUnit `json:"duration_unit,omitempty"`
+	Precision            int                     `json:"precision,omitempty"`
 	Value                string                  `json:"value,omitempty"`
 	Limits               []MeasurementLimit      `json:"limits,omitempty"`
 	Condition            MeasurementCondition    `json:"condition,omitempty"`
