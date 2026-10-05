@@ -110,3 +110,44 @@ it("shows the native value, responsibility and exact revision history", async ()
   expect(within(table).getByText("Critical concern")).toBeTruthy();
   expect(within(table).getByText("Low concern")).toBeTruthy();
 });
+
+it("shows a money Indicator without converting it to concern points", async () => {
+  const money = {
+    ...indicator,
+    check_id: "check-loss",
+    check_code: "LOSS-AMOUNT",
+    check_name: "Monthly operational loss",
+    claim: "Monthly operational loss remains within the approved limit.",
+    native_measurement: {
+      field: "loss_amount",
+      label: "Loss amount",
+      unit: "MONEY" as const,
+      currency: "NGN",
+      precision: 2,
+      value: "1250000.00",
+      limits: [{ operator: "LESS_OR_EQUAL" as const, expected: "1000000.00" }],
+      condition: "BREACHED" as const,
+    },
+    score: 100,
+  };
+  const loadResults = vi.fn().mockResolvedValue([{
+    id: "loss-result",
+    monitoring_check_id: "check-loss",
+    monitoring_check_version: 4,
+    evaluated_at: "2026-10-05T10:00:00Z",
+    evaluation: {
+      score: 100,
+      band: "CRITICAL" as const,
+      coverage: 1,
+      measurement: money.native_measurement,
+    },
+  }]);
+
+  render(<IndicatorDetail indicator={money} loadResults={loadResults}/>);
+  expect(screen.getByText("NGN 1,250,000.00")).toBeTruthy();
+  expect(screen.getByText("Limit ≤ NGN 1,000,000.00")).toBeTruthy();
+  expect(screen.getByText("100 / 100 concern")).toBeTruthy();
+
+  const table = await screen.findByRole("table", { name: "Monthly operational loss observation history" });
+  expect(within(table).getByText("Outside limit")).toBeTruthy();
+});
