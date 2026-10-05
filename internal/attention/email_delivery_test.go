@@ -51,12 +51,12 @@ func attentionEmailEvent(eventType, state string, sequence int) workflowruntime.
 		state, sequence,
 	)
 	return workflowruntime.OutboxEvent{
-		ID: "11111111-1111-4111-8111-111111111111",
-		TenantID: "22222222-2222-4222-8222-222222222222",
+		ID:            "11111111-1111-4111-8111-111111111111",
+		TenantID:      "22222222-2222-4222-8222-222222222222",
 		AggregateType: EpisodeAggregateType,
-		AggregateID: "33333333-3333-4333-8333-333333333333",
-		EventType: eventType,
-		Payload: []byte(payload),
+		AggregateID:   "33333333-3333-4333-8333-333333333333",
+		EventType:     eventType,
+		Payload:       []byte(payload),
 	}
 }
 
@@ -64,16 +64,16 @@ func TestCriticalEmailSendsOnlyCriticalOpenOrWorsen(t *testing.T) {
 	now := time.Now().UTC()
 	repo := &criticalEmailRepoStub{
 		value: CriticalEmailContext{
-			LegalEntityID: "44444444-4444-4444-8444-444444444444",
-			BrandName: "Meridian Bank",
-			RecipientName: "Risk Officer",
-			RecipientAddress: "risk@example.test",
+			LegalEntityID:         "44444444-4444-4444-8444-444444444444",
+			BrandName:             "Meridian Bank",
+			RecipientName:         "Risk Officer",
+			RecipientAddress:      "risk@example.test",
 			CurrentNoticeSequence: 2,
 		},
 		claimResult: true,
 	}
 	delivery := &criticalEmailDeliveryStub{receipt: evidence.InvitationDeliveryReceipt{
-		Status: evidence.InvitationDelivered,
+		Status:      evidence.InvitationDelivered,
 		DeliveredAt: &now,
 	}}
 	consumer := NewCriticalEmailConsumer(repo, delivery, "https://clearsight.example.test")
@@ -103,9 +103,9 @@ func TestCriticalEmailSendsOnlyCriticalOpenOrWorsen(t *testing.T) {
 func TestCriticalEmailClaimPreventsDuplicateAndUnknownOutcomeIsTerminal(t *testing.T) {
 	repo := &criticalEmailRepoStub{
 		value: CriticalEmailContext{
-			BrandName: "Meridian Bank",
-			RecipientName: "Risk Officer",
-			RecipientAddress: "risk@example.test",
+			BrandName:             "Meridian Bank",
+			RecipientName:         "Risk Officer",
+			RecipientAddress:      "risk@example.test",
 			CurrentNoticeSequence: 1,
 		},
 		claimResult: false,
@@ -121,7 +121,7 @@ func TestCriticalEmailClaimPreventsDuplicateAndUnknownOutcomeIsTerminal(t *testi
 
 	repo.claimResult = true
 	delivery.receipt = evidence.InvitationDeliveryReceipt{
-		Status: evidence.InvitationDeliveryFailed,
+		Status:      evidence.InvitationDeliveryFailed,
 		FailureCode: evidence.InvitationFailureOutcomeUnknown,
 	}
 	delivery.err = errors.New("unknown outcome")
