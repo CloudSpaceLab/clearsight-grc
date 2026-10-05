@@ -20,6 +20,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/invalidation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/notificationprefs"
@@ -162,6 +163,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	metricMatrices := metricview.NewMatrixRepository(pool)
 	domainMetrics := metricview.NewDomainRepository(pool)
 	presentationPreferences := presentationprefs.NewService(presentationprefs.NewPostgresRepository(pool))
+	invalidationHub := invalidation.NewHub()
+	invalidation.StartPostgresListener(ctx, pool, invalidationHub, logger)
 	notificationPreferences := notificationprefs.NewService(notificationprefs.NewPostgresRepository(pool))
 	groupOversightService := oversight.NewGroupService(oversightRepository, accessResolver)
 	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
@@ -186,6 +189,6 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Workflow: workflowService, EscalationSimulation: escalationSimulation, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewPostgresRepository(pool)),
 		Access: accessResolver, AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
-		RuntimeContext: runtimecontext.NewPostgresResolver(pool),
+		RuntimeContext: runtimecontext.NewPostgresResolver(pool), Invalidations: invalidationHub,
 	}, nil
 }
