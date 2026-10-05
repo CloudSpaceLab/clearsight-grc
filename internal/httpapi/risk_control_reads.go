@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/controlcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -39,7 +40,9 @@ type riskAggregateRead struct {
 	ControlDetails           []riskControlRead   `json:"control_details"`
 	ControlDetailsComplete   bool                `json:"control_details_complete"`
 	IndicatorDetails         []riskIndicatorRead `json:"indicator_details"`
-	IndicatorDetailsComplete bool                `json:"indicator_details_complete"`
+	IndicatorDetailsComplete bool                        `json:"indicator_details_complete"`
+	NotificationHistory      []attention.NotificationHistoryItem `json:"notification_history"`
+	NotificationHistoryComplete bool                      `json:"notification_history_complete"`
 }
 
 func (a *API) riskAggregateWithControls(ctx context.Context, actor identity.Actor, value risk.Aggregate) riskAggregateRead {
