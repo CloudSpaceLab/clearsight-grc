@@ -118,7 +118,9 @@ describe("exact workspace targets", () => {
 
     render(<MattersWorkspace/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open issue workspace" }));
+    const priority = await screen.findByText("High priority", { selector: ".cs-status-badge" });
+    expect(priority.className).toContain("cs-tone--error");
+    fireEvent.click(screen.getByRole("button", { name: "Open issue workspace" }));
     expect(window.location.hash).toBe(`#work/matters/${matterDetail.matter.id}`);
   });
 
