@@ -51,6 +51,7 @@ type Repository interface {
 	ListResults(context.Context, string, string, int) ([]MonitoringResult, error)
 	LatestResultRevision(context.Context, string, string, int64) (MonitoringResult, error)
 	ListFormLibrary(context.Context, FormLibraryFilter) (FormTemplatePage, error)
+	FormLibraryItem(context.Context, string, string, string) (FormLibraryItem, error)
 	ListStarterTemplates(context.Context) ([]StarterTemplate, error)
 	StarterTemplateByCode(context.Context, string) (StarterTemplate, error)
 	ListSavedFormViews(context.Context, string, string, string) ([]SavedFormView, error)
