@@ -291,6 +291,7 @@ export type EscalationPolicy = {
   name: string;
   version: number;
   record_version: number;
+  effective_from?: string;
   sequences: EscalationSequence[];
   pending_revision?: EscalationGuardRevision;
 };
