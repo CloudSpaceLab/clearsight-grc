@@ -68,7 +68,7 @@ func TestFormMeasurementRequiresCompatibleTypedField(t *testing.T) {
 }
 
 func TestNativeMeasurementConditionUsesExactLimits(t *testing.T) {
-	within, err := NativeMeasurementCondition(&NativeMeasurement{
+	within, err := EvaluateNativeMeasurementCondition(&NativeMeasurement{
 		Unit: MeasurementPercent, Value: "99.50",
 		Limits: []MeasurementLimit{{Operator: OperatorGreaterOrEqual, Expected: "99.500"}},
 	})
@@ -76,7 +76,7 @@ func TestNativeMeasurementConditionUsesExactLimits(t *testing.T) {
 		t.Fatalf("within condition = %s, err=%v", within, err)
 	}
 
-	breached, err := NativeMeasurementCondition(&NativeMeasurement{
+	breached, err := EvaluateNativeMeasurementCondition(&NativeMeasurement{
 		Unit: MeasurementPercent, Value: "99.499999999999999999",
 		Limits: []MeasurementLimit{{Operator: OperatorGreaterOrEqual, Expected: "99.5"}},
 	})
@@ -84,7 +84,7 @@ func TestNativeMeasurementConditionUsesExactLimits(t *testing.T) {
 		t.Fatalf("breached condition = %s, err=%v", breached, err)
 	}
 
-	unknown, err := NativeMeasurementCondition(&NativeMeasurement{Unit: MeasurementPercent, Value: "99.5"})
+	unknown, err := EvaluateNativeMeasurementCondition(&NativeMeasurement{Unit: MeasurementPercent, Value: "99.5"})
 	if err != nil || unknown != MeasurementConditionUnknown {
 		t.Fatalf("unknown condition = %s, err=%v", unknown, err)
 	}
