@@ -66,6 +66,7 @@ const history: MonitoringResult[] = [
         precision: 2,
         value: "98.70",
         limits: [{ operator: "GREATER_OR_EQUAL", expected: "99.50" }],
+        condition: "BREACHED",
       },
     },
   },
@@ -85,6 +86,7 @@ const history: MonitoringResult[] = [
         precision: 2,
         value: "99.80",
         limits: [{ operator: "GREATER_OR_EQUAL", expected: "99.50" }],
+        condition: "WITHIN",
       },
     },
   },
@@ -103,6 +105,8 @@ it("shows the native value, responsibility and exact revision history", async ()
   await waitFor(() => expect(loadResults).toHaveBeenCalledWith("check-1", 4));
   const table = await screen.findByRole("table", { name: "Mobile success rate observation history" });
   expect(within(table).getByText("99.80%")).toBeTruthy();
+  expect(within(table).getByText("Outside limit")).toBeTruthy();
+  expect(within(table).getByText("Within limit")).toBeTruthy();
   expect(within(table).getByText("Critical concern")).toBeTruthy();
   expect(within(table).getByText("Low concern")).toBeTruthy();
 });
