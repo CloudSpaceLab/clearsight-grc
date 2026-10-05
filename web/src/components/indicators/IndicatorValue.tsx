@@ -60,7 +60,9 @@ function durationLabel(unit: MonitoringNativeMeasurement["duration_unit"]) {
 }
 function groupExactDecimal(value: string, minimumFractionDigits: number) {
   const trimmed = value.trim();
-  const match = /^([+-]?)(\d+)(?:\.(\d+))?$/.exec(trimmed);
+  const expanded = expandExactDecimal(trimmed);
+  if (!expanded) return trimmed;
+  const match = /^([+-]?)(\d+)(?:\.(\d+))?$/.exec(expanded);
   if (!match) return trimmed;
   const sign = match[1] ?? "";
   const integer = match[2] ?? "";
@@ -68,6 +70,21 @@ function groupExactDecimal(value: string, minimumFractionDigits: number) {
   const fraction = sourceFraction.padEnd(Math.max(sourceFraction.length, minimumFractionDigits), "0");
   const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return `${sign}${grouped}${fraction ? `.${fraction}` : ""}`;
+}
+
+function expandExactDecimal(value: string) {
+  const match = /^([+-]?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(value);
+  if (!match) return undefined;
+  const sign = match[1] ?? "";
+  const integer = match[2] ?? "";
+  const fraction = match[3] ?? "";
+  const exponent = Number(match[4] ?? "0");
+  if (!Number.isSafeInteger(exponent) || exponent < -100 || exponent > 100) return undefined;
+  const digits = integer + fraction;
+  const point = integer.length + exponent;
+  if (point <= 0) return `${sign}0.${"0".repeat(-point)}${digits}`;
+  if (point >= digits.length) return `${sign}${digits}${"0".repeat(point - digits.length)}`;
+  return `${sign}${digits.slice(0, point)}.${digits.slice(point)}`;
 }
 function formatConcern(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
