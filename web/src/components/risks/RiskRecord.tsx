@@ -4,6 +4,7 @@ import { listControlCatalogCandidates, type ControlCatalogCandidatePage } from "
 import { getRisk, linkRiskControl, type LinkRiskControlResponse } from "../../riskApi";
 import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment, RiskControlDetail } from "../../riskTypes";
 import { apiErrorKind } from "../../http";
+import { NotificationHistorySection } from "../NotificationHistorySection";
 import { Button, DataTable, EmptyState, Notice, SelectField, StatusBadge, Surface, type DataColumn } from "../ui";
 import { appetiteLabel, appetiteTone, assessmentKindLabel, controlEvidenceSummary, controlImplementationStatusLabel, controlImplementationStatusTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
 import { RiskIndicatorsSection } from "./RiskIndicatorsSection";
@@ -250,6 +251,8 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
         columns={assessmentColumns}
       /> : <EmptyState population={risk.name} title="No assessments" description="No governed assessment has been recorded for this risk."/>}
     </section>
+
+    <NotificationHistorySection subject="RISK" subjectID={risk.id} label="risk"/>
 
     <section className="risk-record__history" aria-labelledby="risk-appetite-heading">
       <div className="section-header"><div><h2 id="risk-appetite-heading">Appetite history</h2><p>Versioned appetite statements retained for this risk.</p></div></div>
