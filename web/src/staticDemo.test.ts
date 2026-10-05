@@ -826,16 +826,16 @@ describe("static stakeholder demo transport", () => {
     window.history.replaceState(null, "", "/?fixture=program-responses");
     const { staticDemoRequest } = await demo();
 
-    const responses = await staticDemoRequest<{ items: Array<{ id: string; subject_type: string; subject_id: string; current: boolean; score: { raw_score: number } }> }>("/api/v1/forms/responses?subject_type=PROGRAM&subject_id=program-ndpa&current_only=true");
+    const responses = await staticDemoRequest<{ items: Array<{ id: string; subject_type: string; subject_id: string; current: boolean; score: { raw_score: number } }> }>("/api/v1/forms/responses?subject_type=PROGRAM&subject_id=program-ndpa&current_only=true&sort=COMPLETED_DESC");
     expect(responses.items).toMatchObject([
       { id: "response-program-annual-2026", subject_type: "PROGRAM", subject_id: "program-ndpa", current: true, score: { raw_score: 88 } },
       { id: "response-program-consent-2026", subject_type: "PROGRAM", subject_id: "program-ndpa", current: true, score: { raw_score: 72 } },
-      { id: "response-program-branch-kri-cac-2025", subject_type: "PROGRAM", subject_id: "program-ndpa", current: true },
       { id: "response-program-branch-kri-marina-2025", subject_type: "PROGRAM", subject_id: "program-ndpa", current: true },
+      { id: "response-program-branch-kri-cac-2025", subject_type: "PROGRAM", subject_id: "program-ndpa", current: true },
     ]);
     expect((await staticDemoRequest<{ items: unknown[] }>("/api/v1/forms/responses?subject_type=PROGRAM&subject_id=program-other&current_only=true")).items).toEqual([]);
-    const allVersions = await staticDemoRequest<{ items: Array<{ id: string }> }>("/api/v1/forms/responses?subject_type=PROGRAM&subject_id=program-ndpa&current_only=false");
-    expect(allVersions.items.map((item) => item.id)).toEqual(["response-program-annual-2026", "response-program-consent-2026", "response-program-branch-kri-cac-2025", "response-program-branch-kri-marina-2025"]);
+    const allVersions = await staticDemoRequest<{ items: Array<{ id: string }> }>("/api/v1/forms/responses?subject_type=PROGRAM&subject_id=program-ndpa&current_only=false&sort=COMPLETED_DESC");
+    expect(allVersions.items.map((item) => item.id)).toEqual(["response-program-annual-2026", "response-program-consent-2026", "response-program-branch-kri-marina-2025", "response-program-branch-kri-cac-2025"]);
 
     const detail = await staticDemoRequest<{ response: { id: string; title: string }; revision: { revision: number; current: boolean; supersedes_revision_id?: string } }>("/api/v1/forms/responses/response-program-annual-2026");
     expect(detail).toMatchObject({ response: { id: "response-program-annual-2026", title: "Annual data-processing review" }, revision: { revision: 2, current: true, supersedes_revision_id: "response-program-annual-2025" } });
@@ -874,6 +874,21 @@ describe("static stakeholder demo transport", () => {
     ]);
     const register = documents.items.find((item) => item.file_name === "Program processor register.pdf");
     expect(register).toMatchObject({ id: "program-document-0", response_revision_id: "response-program-annual-2026", artifact_id: "program-artifact-0" });
+  });
+
+  it("refines and sorts response fixtures before bounded pagination", async () => {
+    window.history.replaceState(null, "", "/?fixture=program-responses");
+    const { staticDemoRequest } = await demo();
+    type Page = { items: Array<{ id: string }>; next_cursor?: string };
+    const base = "/api/v1/forms/responses?subject_type=PROGRAM&subject_id=program-ndpa&current_only=true";
+    const first = await staticDemoRequest<Page>(`${base}&sort=RAW_ASC&limit=1`);
+    expect(first).toMatchObject({ items: [{ id: "response-program-consent-2026" }], next_cursor: "1" });
+    const second = await staticDemoRequest<Page>(`${base}&sort=RAW_ASC&limit=1&cursor=${first.next_cursor}`);
+    expect(second.items).toMatchObject([{ id: "response-program-annual-2026" }]);
+    expect((await staticDemoRequest<Page>(`${base}&search=CONSENT&sort=COMPLETED_DESC&limit=1`)).items).toMatchObject([{ id: "response-program-consent-2026" }]);
+    expect((await staticDemoRequest<Page>(`${base}&search=%25_`)).items).toEqual([]);
+    const dated = await staticDemoRequest<Page>(`${base}&mode=COMPLIANCE&score_state=FINAL&completed_from=2026-08-01T00%3A00%3A00Z`);
+    expect(dated.items).toMatchObject([{ id: "response-program-annual-2026" }]);
   });
 
   it("serves the register template revision for the Program responses fixture", async () => {
