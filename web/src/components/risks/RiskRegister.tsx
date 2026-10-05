@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { listRisks, type RiskListParams } from "../../riskApi";
 import type { RiskAppetitePosition, RiskPage, RiskStatus, RiskSummary } from "../../riskTypes";
 import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StatusBadge, type DataColumn } from "../ui";
-import { assessmentKindLabel, currentAppetiteLabel, currentAppetiteTone, formatRiskDate, riskStatusLabel, riskStatusTone } from "./riskPresentation";
+import { assessmentKindLabel, assessmentRatingLabel, assessmentRatingTone, currentAppetiteLabel, currentAppetiteTone, formatRiskDate, riskStatusLabel, riskStatusTone } from "./riskPresentation";
 
 type Props = {
   organizationName?: string;
@@ -102,6 +102,13 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       accessibleText: ({ risk }) => [risk.name, risk.code, risk.category].filter(Boolean).join(", "),
     },
     {
+      id: "rating",
+      header: "Rating",
+      kind: "status",
+      render: (item) => <StatusBadge tone={assessmentRatingTone(item.latest_assessment, item.risk.version)}>{assessmentRatingLabel(item.latest_assessment, item.risk.version)}</StatusBadge>,
+      accessibleText: (item) => assessmentRatingLabel(item.latest_assessment),
+    },
+    {
       id: "appetite",
       header: "Appetite",
       kind: "status",
@@ -136,7 +143,7 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       <div>
         <span className="eyebrow">{organizationName || "Risk portfolio"}</span>
         <h1 id="risk-register-heading">Risks</h1>
-        <p>Current risk statements and appetite position for {scope}.</p>
+        <p>Current risk statements, assessed rating and appetite position for {scope}.</p>
       </div>
     </header>
 

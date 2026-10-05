@@ -109,6 +109,30 @@ export function assessmentKindLabel(kind: RiskAssessmentKind): string {
   return labels[kind];
 }
 
+export function assessmentRatingLabel(assessment: RiskAssessment | undefined, riskVersion?: number): string {
+  if (!assessment) return "Not assessed";
+  if (riskVersion !== undefined && assessment.risk_version !== riskVersion) return "Reassessment needed";
+  for (const key of ["risk_level", "rating", "band"] as const) {
+    const value = assessment.dimensions?.[key];
+    if (typeof value === "string" && value.trim()) return readableRating(value);
+  }
+  return "See assessment";
+}
+
+export function assessmentRatingTone(assessment: RiskAssessment | undefined, riskVersion?: number): StatusTone {
+  const value = assessmentRatingLabel(assessment, riskVersion).toUpperCase();
+  if (value === "CRITICAL" || value === "SEVERE") return "error";
+  if (value === "HIGH") return "warning";
+  if (value === "MODERATE" || value === "MEDIUM") return "info";
+  if (value === "LOW") return "success";
+  return "unknown";
+}
+
+function readableRating(value: string): string {
+  const normalized = value.trim().replaceAll("_", " ").toLowerCase();
+  return normalized ? normalized[0]!.toUpperCase() + normalized.slice(1) : "See assessment";
+}
+
 export function formatRiskDate(value: string | undefined): string {
   if (!value) return "Not recorded";
   const date = new Date(value);
@@ -116,8 +140,9 @@ export function formatRiskDate(value: string | undefined): string {
 }
 
 export function scopeEntries(scope: Record<string, unknown>): Array<{ label: string; value: string }> {
+  const hiddenSourceKeys = new Set(["sample", "seed_package", "source_group", "source_sha256", "source_range"]);
   return Object.entries(scope)
-    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .filter(([key, value]) => !hiddenSourceKeys.has(key) && value !== null && value !== undefined && value !== "")
     .slice(0, 12)
     .map(([key, value]) => ({ label: humanizeKey(key), value: readableValue(value) }));
 }
