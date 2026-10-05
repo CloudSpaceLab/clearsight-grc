@@ -249,8 +249,15 @@ it("shows that a linked Indicator has no open intervention when no Matter is act
   expect(within(table).getByText("No open issue")).toBeTruthy();
 });
 
-it("opens the source Program from a linked Indicator", () => {
+it("opens exact Indicator detail and keeps the source Program one step deeper", async () => {
   const onOpenProgram = vi.fn();
+  const loadIndicatorResults = vi.fn().mockResolvedValue([{
+    id: "result-1",
+    monitoring_check_id: "check-1",
+    monitoring_check_version: 3,
+    evaluated_at: "2026-10-01T09:30:00Z",
+    evaluation: { score: 62, band: "HIGH", coverage: 1 },
+  }]);
   render(<RiskIndicatorsSection
     risk={risk}
     actorID="viewer-1"
@@ -259,9 +266,15 @@ it("opens the source Program from a linked Indicator", () => {
     detailsComplete
     onReload={vi.fn()}
     onOpenProgram={onOpenProgram}
+    loadIndicatorResults={loadIndicatorResults}
   />);
 
-  fireEvent.click(screen.getByRole("button", { name: /Open Program/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Open indicator/ }));
+  expect(await screen.findByRole("heading", { name: "Recovery health" })).toBeTruthy();
+  await waitFor(() => expect(loadIndicatorResults).toHaveBeenCalledWith("check-1", 3));
+  expect(screen.getByText("Results from monitoring check revision 3. Earlier check definitions are excluded.")).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: "Open Program" }));
   expect(onOpenProgram).toHaveBeenCalledWith("program-1");
 });
 
