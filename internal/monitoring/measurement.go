@@ -13,36 +13,8 @@ import (
 )
 
 var (
-	currencyCodePattern = regexp.MustCompile(`^[A-Z]{3}package monitoring
-
-import (
-	"fmt"
-	"math/big"
-	"regexp"
-	"strconv"
-	"strings"
-
-	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
-)
-
-)
-	exactDecimalPattern = regexp.MustCompile(`^([+-]?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?package monitoring
-
-import (
-	"fmt"
-	"math/big"
-	"regexp"
-	"strconv"
-	"strings"
-
-	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
-)
-
-)
+	currencyCodePattern = regexp.MustCompile("^[A-Z]{3}$")
+	exactDecimalPattern = regexp.MustCompile("^([+-]?)(\\d+)(?:\\.(\\d+))?(?:[eE]([+-]?\\d+))?$")
 )
 
 func normalizeMeasurementSpec(input *MeasurementSpec) (*MeasurementSpec, error) {
