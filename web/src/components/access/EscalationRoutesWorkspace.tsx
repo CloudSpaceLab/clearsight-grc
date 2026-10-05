@@ -69,7 +69,7 @@ export function EscalationRoutesWorkspace({ overview, isBusy, onBusy, onNotice, 
     [overview.escalation_policies, policyID],
   );
   const pending = selectedPolicy?.pending_revision;
-  const effectiveSequences = pending?.sequences ?? selectedPolicy?.sequences ?? [];
+  const effectiveSequences = (pending?.sequences ?? selectedPolicy?.sequences ?? []).filter((sequence) => sequence.Trigger === "OVERDUE");
   const selectedSequence = effectiveSequences.find((sequence) => sequence.ID === sequenceID);
   const pendingFromAnotherMaker = Boolean(pending && pending.maker_id !== overview.actor_principal_id);
   const selectedLevel = Math.min(Number(editingLevel) || 0, Math.max(0, steps.length - 1));
