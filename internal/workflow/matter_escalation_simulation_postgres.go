@@ -19,8 +19,8 @@ import (
 
 type escalationSimulationTask struct {
 	escalationTask
-	MatterID      string
-	Title         string
+	MatterID       string
+	Title          string
 	Responsibility string
 }
 
