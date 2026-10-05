@@ -182,3 +182,18 @@ func TestNativeMeasurementConditionSupportsTwoSidedRange(t *testing.T) {
 		t.Fatalf("outside range condition = %s, err=%v", breached, err)
 	}
 }
+
+func TestValidateSourceMeasurementRulesRejectsMixedNonNumericLimits(t *testing.T) {
+	spec := MeasurementSpec{Field: "success_rate", Unit: MeasurementPercent}
+	err := validateSourceMeasurementRules(spec, []SourceRule{
+		{ID: "minimum", Field: "success_rate", Operator: OperatorGreaterOrEqual, Expected: "99.5"},
+		{ID: "bad-equality", Field: "success_rate", Operator: OperatorEquals, Expected: "healthy"},
+	})
+	if err == nil {
+		t.Fatal("mixed non-numeric measurement limit was accepted")
+	}
+
+	if err := validateSourceMeasurementRules(spec, []SourceRule{{ID: "present", Field: "success_rate", Operator: OperatorPresent}}); err == nil {
+		t.Fatal("measurement without a numeric limit was accepted")
+	}
+}
