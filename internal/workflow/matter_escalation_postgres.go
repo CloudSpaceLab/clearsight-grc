@@ -569,7 +569,7 @@ func (c *MatterEscalationCoordinator) filterEscalationTargetPrincipals(ctx conte
 		), requested_groups(id) AS (
 			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($5::jsonb)
 		), requested_positions(id) AS (
-			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($7::jsonb)
+			SELECT DISTINCT value::uuid FROM jsonb_array_elements_text($6::jsonb)
 		), current_entity(id) AS (
 			SELECT le.id
 			FROM tenants t
@@ -689,7 +689,7 @@ func (c *MatterEscalationCoordinator) applyEscalation(ctx context.Context, tenan
 	defer tx.Rollback(ctx)
 	tag, err := tx.Exec(ctx, `
 		UPDATE workflow_tasks
-		SET responsibility=$4,principal_id=$5::uuid,status='ESCALATED',context=context || $7::jsonb,updated_at=$7,version=version+1
+		SET responsibility=$4,principal_id=$5::uuid,status='ESCALATED',context=context || $6::jsonb,updated_at=$7,version=version+1
 		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 		  AND id=$2::uuid AND workflow_id=$3::uuid
 		  AND status NOT IN ('COMPLETED','CANCELLED')
@@ -707,7 +707,7 @@ func (c *MatterEscalationCoordinator) applyEscalation(ctx context.Context, tenan
 	_, err = tx.Exec(ctx, `
 		INSERT INTO workflow_events(tenant_id,workflow_id,event_type,safe_metadata,occurred_at)
 		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'WORK_ESCALATED',
-		       jsonb_build_object('task_id',$3::text,'sequence_id',$4::text,'step_index',$5::int,'responsibility',$7::text,'principal_id',$7::text),$8)`,
+		       jsonb_build_object('task_id',$3::text,'sequence_id',$4::text,'step_index',$5::int,'responsibility',$6::text,'principal_id',$7::text),$8)`,
 		tenant, task.WorkflowID, task.ID, payload.SequenceID, payload.StepIndex, step.Responsibility, principal.ID, at)
 	if err != nil {
 		return false, fmt.Errorf("record workflow escalation event: %w", err)
@@ -732,7 +732,7 @@ func (c *MatterEscalationCoordinator) recordUnresolved(ctx context.Context, tena
 		WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
 		  AND id=$2::uuid AND workflow_id=$3::uuid
 		  AND status NOT IN ('COMPLETED','CANCELLED')
-		  AND due_at=$7
+		  AND due_at=$6
 		  AND COALESCE(context->>'authority_policy_version','')=$7
 		  AND COALESCE(context->>'escalation_attempt_key','')<>$8`,
 		tenant, task.ID, task.WorkflowID, string(raw), at, payloadBaseline(payload), payload.PolicyVersion, escalationAttemptKey(payload))
@@ -745,7 +745,7 @@ func (c *MatterEscalationCoordinator) recordUnresolved(ctx context.Context, tena
 	_, err = tx.Exec(ctx, `
 		INSERT INTO workflow_events(tenant_id,workflow_id,event_type,safe_metadata,occurred_at)
 		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),$2::uuid,'WORK_ESCALATION_UNRESOLVED',
-		       jsonb_build_object('task_id',$3::text,'sequence_id',$4::text,'step_index',$5::int,'responsibility',$7::text,'reason',$7::text),$8)`,
+		       jsonb_build_object('task_id',$3::text,'sequence_id',$4::text,'step_index',$5::int,'responsibility',$6::text,'reason',$7::text),$8)`,
 		tenant, task.WorkflowID, task.ID, payload.SequenceID, payload.StepIndex, step.Responsibility, reason, at)
 	if err != nil {
 		return false, fmt.Errorf("record unresolved escalation event: %w", err)
