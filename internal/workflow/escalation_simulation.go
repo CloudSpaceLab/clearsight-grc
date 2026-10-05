@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 )
 
 var ErrEscalationSimulationUnavailable = errors.New("escalation simulation unavailable")
@@ -14,6 +16,7 @@ type EscalationSimulationInput struct {
 	PolicyID        string
 	SequenceID      string
 	RevisionVersion int
+	DraftSequence   *governance.EscalationSequence
 	Limit           int
 	At              time.Time
 }
@@ -51,6 +54,7 @@ type EscalationSimulation struct {
 	PolicyCode      string                         `json:"policy_code"`
 	ActiveVersion   int                            `json:"active_version"`
 	SequenceVersion int                            `json:"sequence_version"`
+	Draft           bool                           `json:"draft"`
 	SequenceID      string                         `json:"sequence_id"`
 	Trigger         string                         `json:"trigger"`
 	Checked         int                            `json:"checked"`
