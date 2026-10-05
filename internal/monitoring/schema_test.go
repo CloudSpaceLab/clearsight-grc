@@ -117,7 +117,6 @@ func TestMonitoringMigrationIncludesCollectionRenewal(t *testing.T) {
 	}
 }
 
-
 func TestMonitoringNativeMeasurementMigration(t *testing.T) {
 	up, err := os.ReadFile("../../migrations/000122_monitoring_native_measurements.up.sql")
 	if err != nil {
