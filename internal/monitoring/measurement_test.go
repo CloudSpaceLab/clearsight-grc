@@ -114,3 +114,23 @@ func TestNormalizeMeasurementSpecRejectsInvalidNativeLimits(t *testing.T) {
 		}
 	}
 }
+
+func TestParseExactDecimalRejectsNonDecimalSyntaxAndKeepsExponentExact(t *testing.T) {
+	if _, ok := parseExactDecimal("1/2"); ok {
+		t.Fatal("fraction syntax must not be accepted as a decimal measurement")
+	}
+	if _, ok := parseExactDecimal("NaN"); ok {
+		t.Fatal("non-finite syntax must not be accepted")
+	}
+	left, ok := parseExactDecimal("9.007199254740993e15")
+	if !ok {
+		t.Fatal("scientific decimal was rejected")
+	}
+	right, ok := parseExactDecimal("9007199254740992")
+	if !ok || left.Cmp(right) <= 0 {
+		t.Fatalf("scientific exact comparison collapsed: %v vs %v", left, right)
+	}
+	if _, ok := parseExactDecimal("1e101"); ok {
+		t.Fatal("unbounded exponent must fail closed")
+	}
+}
