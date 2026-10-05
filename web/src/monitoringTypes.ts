@@ -16,7 +16,13 @@ export type MonitoringMeasurementSpec = {
   limits?: MonitoringMeasurementLimit[];
 };
 export type MonitoringMeasurementCondition = "WITHIN" | "BREACHED" | "UNKNOWN";
-export type MonitoringNativeMeasurement = MonitoringMeasurementSpec & { value?: string; limits?: MonitoringMeasurementLimit[]; condition?: MonitoringMeasurementCondition };
+export type MonitoringNativeMeasurement = MonitoringMeasurementSpec & {
+  value?: string;
+  limits?: MonitoringMeasurementLimit[];
+  condition?: MonitoringMeasurementCondition;
+  reporting_period_start?: string;
+  reporting_period_end?: string;
+};
 export type MonitoringSourceRule = { id: string; field: string; operator: SourceOperator; expected?: string; risk_points: number; critical?: boolean };
 export type FormScoringMode = "NONE" | "RISK" | "COMPLIANCE";
 export type FormScoreDirection = "HIGH_IS_POOR" | "LOW_IS_POOR";
