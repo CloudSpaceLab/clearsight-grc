@@ -154,6 +154,52 @@ func captureFormMeasurement(spec *MeasurementSpec, answers map[string]formcontra
 	return value, nil
 }
 
+type NativeMeasurementCondition string
+
+const (
+	MeasurementConditionWithin  NativeMeasurementCondition = "WITHIN"
+	MeasurementConditionBreached NativeMeasurementCondition = "BREACHED"
+	MeasurementConditionUnknown  NativeMeasurementCondition = "UNKNOWN"
+)
+
+func NativeMeasurementCondition(measurement *NativeMeasurement) (NativeMeasurementCondition, error) {
+	if measurement == nil || strings.TrimSpace(measurement.Value) == "" || len(measurement.Limits) == 0 {
+		return MeasurementConditionUnknown, nil
+	}
+	actual, ok := parseExactDecimal(measurement.Value)
+	if !ok {
+		return MeasurementConditionUnknown, fmt.Errorf("measurement value is not numeric")
+	}
+	for _, limit := range measurement.Limits {
+		expected, expectedOK := parseExactDecimal(limit.Expected)
+		if !expectedOK {
+			return MeasurementConditionUnknown, fmt.Errorf("measurement limit is not numeric")
+		}
+		comparison := actual.Cmp(expected)
+		passed := false
+		switch limit.Operator {
+		case OperatorEquals:
+			passed = comparison == 0
+		case OperatorNotEquals:
+			passed = comparison != 0
+		case OperatorGreaterThan:
+			passed = comparison > 0
+		case OperatorGreaterOrEqual:
+			passed = comparison >= 0
+		case OperatorLessThan:
+			passed = comparison < 0
+		case OperatorLessOrEqual:
+			passed = comparison <= 0
+		default:
+			return MeasurementConditionUnknown, fmt.Errorf("measurement limit operator is unsupported")
+		}
+		if !passed {
+			return MeasurementConditionBreached, nil
+		}
+	}
+	return MeasurementConditionWithin, nil
+}
+
 func measurementLimitOperator(value SourceOperator) bool {
 	switch value {
 	case OperatorEquals, OperatorNotEquals, OperatorGreaterThan, OperatorGreaterOrEqual, OperatorLessThan, OperatorLessOrEqual:
