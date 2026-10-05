@@ -1,4 +1,5 @@
 import type { ResponseScore } from "../../formsDistributionApi";
+import { concernScoreText } from "../../concernScorePresentation";
 import type { StatusTone } from "../ui";
 
 export function scorePresentation(score?: ResponseScore): { value: string; meaning: string } {
@@ -7,7 +8,10 @@ export function scorePresentation(score?: ResponseScore): { value: string; meani
   if (score.state === "FAILED") return { value: "Score unavailable", meaning: "The response is available for review." };
   if (score.raw_score == null) return { value: "Score unavailable", meaning: "Score not recorded" };
   if (score.mode === "COMPLIANCE") return { value: `${formatNumber(score.raw_score)}% compliance`, meaning: score.band === "LOW" ? "Meets expected level" : score.band === "MODERATE" ? "Review advised" : "Below required level" };
-  if (score.mode === "RISK") return { value: `${formatNumber(score.raw_score)}% risk`, meaning: score.band ? `${humanize(score.band)} concern` : "Risk score available" };
+  if (score.mode === "RISK") {
+    if (!Number.isFinite(score.raw_score) || score.raw_score < 0 || score.raw_score > 100) return { value: "Score unavailable", meaning: "Score not recorded" };
+    return { value: concernScoreText(score.raw_score), meaning: score.band ? `${humanize(score.band)} concern` : "Concern score available" };
+  }
   return { value: `${formatNumber(score.raw_score)}%`, meaning: "Calculated score" };
 }
 

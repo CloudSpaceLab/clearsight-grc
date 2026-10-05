@@ -65,7 +65,7 @@ describe("submitted field assessment", () => {
     api.loadResponseAssessment.mockRejectedValue(new ApiError(503, "Assessment unavailable"));
     render(<ResponseAssessment responseID="response-2" submissionScore={assessment.automatic_score as never}/>);
     await screen.findByText("Assessment unavailable");
-    expect(screen.getByText("20% risk")).toBeTruthy();
+    expect(screen.getByText("20 / 100 concern points")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "View submitted documents" }));
     expect(screen.getByRole("region", { name: "Submitted documents response-2" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Save assessment" })).toBeNull();
@@ -148,7 +148,7 @@ describe("submitted field assessment", () => {
   it("shows provisional bank coverage separately from the submitted score and reviews exact documents", async () => {
     render(<ResponseAssessment responseID="response-2"/>);
     expect(await screen.findByText("1 required field awaiting review")).toBeTruthy();
-    expect(screen.getByText("20% risk")).toBeTruthy();
+    expect(screen.getByText("20 / 100 concern points")).toBeTruthy();
     expect(screen.getByText("Provisional")).toBeTruthy();
     expect(screen.getByText("0 of 1 required fields reviewed")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "View submitted documents" }));
