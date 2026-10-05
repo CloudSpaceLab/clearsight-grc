@@ -8,6 +8,7 @@ func (a *API) riskRoutes() []routeSpec {
 	return []routeSpec{
 		read("/api/v1/risks", a.listRisks),
 		read("/api/v1/risks/{id}", a.getRisk),
+		read("/api/v1/risks/{id}/notification-history", a.riskNotificationHistory),
 		material("/api/v1/risks", "risk.create", a.createRisk, commandPolicy{
 			ObjectType: "RISK", Responsibility: authority.ResponsibilityOwner,
 			Materiality: 3, BindLegalEntity: true, ActorField: noActorField,
