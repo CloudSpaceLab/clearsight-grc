@@ -84,6 +84,27 @@ func TestPostgresReassignmentRequiresCompleteActiveReportingChain(t *testing.T) 
 		{name: "governed retirement preserves handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.governOwnerPosition(t, true)
 		}},
+		{name: "governed successor preserves handoff lineage", depth: 2, actorIndex: 1, basis: "REPORTING_ANCESTOR", mutate: func(t *testing.T, f *reassignmentFixture) {
+			var successor string
+			if err := f.pool.QueryRow(f.ctx, `INSERT INTO principals(tenant_id,kind,display_name,valid_from) VALUES($1::uuid,'PERSON','Successor',clock_timestamp()-interval '1 day') RETURNING id::text`, f.tenant).Scan(&successor); err != nil {
+				t.Fatal(err)
+			}
+			f.governPositionTransition(t, f.positions[0], "POSITION-0", f.positions[1], 1, successor, false)
+		}},
+		{name: "ungoverned vacancy remains fail closed", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
+			f.execCorrupt(t, `UPDATE org_positions SET occupant_principal_id=NULL WHERE id=$1::uuid`, f.positions[0])
+		}},
+		{name: "multiple governed former positions are ambiguous", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
+			var secondPosition string
+			if err := f.pool.QueryRow(f.ctx, `
+				INSERT INTO org_positions(tenant_id,legal_entity_id,code,title,parent_position_id,occupant_principal_id,valid_from,version)
+				VALUES($1::uuid,$2::uuid,'SECOND-OWNER-POSITION','Second owner position',$3::uuid,$4::uuid,clock_timestamp()-interval '1 day',1)
+				RETURNING id::text`, f.tenant, f.entity, f.positions[1], f.principals[0]).Scan(&secondPosition); err != nil {
+				t.Fatal(err)
+			}
+			f.governOwnerPosition(t, false)
+			f.governPositionTransition(t, secondPosition, "Second owner position", f.positions[1], 1, "", false)
+		}},
 		{name: "revoked owner position", depth: 2, actorIndex: 1, mutate: func(t *testing.T, f *reassignmentFixture) {
 			f.exec(t, `UPDATE org_positions SET valid_until=clock_timestamp()-interval '1 hour' WHERE id=$1::uuid`, f.positions[0])
 		}},
@@ -193,15 +214,26 @@ func newReassignmentFixture(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 
 func (f *reassignmentFixture) governOwnerPosition(t *testing.T, retire bool) {
 	t.Helper()
+	f.governPositionTransition(t, f.positions[0], "POSITION-0", f.positions[1], 1, "", retire)
+}
+
+func (f *reassignmentFixture) governPositionTransition(
+	t *testing.T,
+	positionID, title, parentPositionID string,
+	expectedVersion int64,
+	occupantPrincipalID string,
+	retire bool,
+) {
+	t.Helper()
 	admin := NewPostgresAdministrator(f.pool)
 	operation := OrganizationPositionUpdate
 	if retire {
 		operation = OrganizationPositionRetire
 	}
 	proposal, err := admin.ProposeOrganizationPosition(f.ctx, ProposeOrganizationPositionInput{
-		TenantID: f.tenant, LegalEntityID: f.entity, PositionID: f.positions[0],
-		Operation: operation, Title: "POSITION-0", ParentPositionID: f.positions[1],
-		ExpectedVersion: 1, ActorID: f.principals[1],
+		TenantID: f.tenant, LegalEntityID: f.entity, PositionID: positionID,
+		Operation: operation, Title: title, ParentPositionID: parentPositionID,
+		OccupantPrincipalID: occupantPrincipalID, ExpectedVersion: expectedVersion, ActorID: f.principals[1],
 	})
 	if err != nil {
 		t.Fatal(err)
