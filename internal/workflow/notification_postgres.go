@@ -77,6 +77,9 @@ func (r *PostgresRepository) StoreInAppNotification(ctx context.Context, record 
 			return ErrNotificationNotFound
 		}
 	}
+	if err := r.publishNotificationInvalidation(ctx, record); err != nil {
+		return err
+	}
 	return nil
 }
 
