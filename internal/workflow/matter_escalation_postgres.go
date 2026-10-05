@@ -342,7 +342,7 @@ func (c *MatterEscalationCoordinator) processEscalation(ctx context.Context, ten
 		}
 		return c.scheduleNext(ctx, tenant, payload)
 	}
-	applied, err := c.applyEscalation(ctx, tenant, task, payload, step, principals[0], resolution.RuleID, targetDepartment, now)
+	applied, err := c.applyEscalation(ctx, tenant, task, payload, step, principals[0], resolution.RuleID, matterID, legalEntity, targetDepartment, now)
 	if err != nil {
 		return err
 	}
@@ -676,7 +676,7 @@ func (c *MatterEscalationCoordinator) loadTask(ctx context.Context, tenant, task
 	return task, workflowState, nil
 }
 
-func (c *MatterEscalationCoordinator) applyEscalation(ctx context.Context, tenant string, task escalationTask, payload escalationTimerPayload, step governance.EscalationStep, principal authority.Principal, ruleID string, targetDepartment []string, at time.Time) (bool, error) {
+func (c *MatterEscalationCoordinator) applyEscalation(ctx context.Context, tenant string, task escalationTask, payload escalationTimerPayload, step governance.EscalationStep, principal authority.Principal, ruleID, matterID, legalEntityID string, targetDepartment []string, at time.Time) (bool, error) {
 	overlay := escalationOverlay(payload, step, "ROUTED", targetDepartment)
 	overlay["escalation_active"] = "true"
 	overlay["escalation_principal_id"] = principal.ID
@@ -714,6 +714,17 @@ func (c *MatterEscalationCoordinator) applyEscalation(ctx context.Context, tenan
 		tenant, task.WorkflowID, task.ID, payload.SequenceID, payload.StepIndex, step.Responsibility, principal.ID, at)
 	if err != nil {
 		return false, fmt.Errorf("record workflow escalation event: %w", err)
+	}
+	_, err = tx.Exec(ctx, `
+		INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at)
+		VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'WORKFLOW',$2::uuid,'WORK_ESCALATED',
+		       jsonb_build_object(
+		         'task_id',$3::text,'matter_id',$4::text,'legal_entity_id',$5::text,
+		         'principal_id',$6::text,'responsibility',$7::text
+		       ),$8,$8,$8)`,
+		tenant, task.WorkflowID, task.ID, matterID, legalEntityID, principal.ID, step.Responsibility, at)
+	if err != nil {
+		return false, fmt.Errorf("queue workflow escalation notification: %w", err)
 	}
 	return true, tx.Commit(ctx)
 }
