@@ -87,7 +87,9 @@ func (r *CriticalEmailPostgresRepository) LoadCriticalEmailContext(ctx context.C
 		WHERE (tenant.id::text=$1 OR tenant.slug=$1)
 		  AND episode.id=$2::uuid
 		  AND episode.legal_entity_id=$3::uuid
-		  AND p.status='ACTIVE'`,
+		  AND p.status='ACTIVE'
+		  AND p.valid_from<=clock_timestamp()
+		  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)`,
 		event.TenantID, intent.EpisodeID, intent.LegalEntityID, intent.PrincipalID,
 	).Scan(&value.LegalEntityID, &value.BrandName, &value.RecipientName, &value.RecipientAddress, &value.CurrentNoticeSequence, &value.StillEligible)
 	if err != nil {
