@@ -841,7 +841,7 @@ describe("Program record workspace", () => {
 	fireEvent.click(screen.getByRole("tab", { name: "Evidence & results" }));
 
 	expect(await screen.findByRole("heading", { name: "Submitted data" })).toBeTruthy();
-	expect(screen.getByRole("button", { name: "Review Branch incident self-assessment response" })).toBeTruthy();
+	expect(await screen.findByRole("button", { name: "Review Branch incident self-assessment response" })).toBeTruthy();
 	const submitted = screen.getByRole("heading", { name: "Submitted data" }).closest("article")!;
 	const evidence = screen.getByRole("heading", { name: "Evidence checks and results" }).closest("article")!;
 	expect(submitted.compareDocumentPosition(evidence) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

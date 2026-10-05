@@ -34,6 +34,7 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 		strings.TrimSpace(query.SubjectType), strings.TrimSpace(query.SubjectID), modes, bands, states,
 		query.RawMinimum, query.RawMaximum, query.AdverseMinimum, query.AdverseMaximum,
 		query.CompletedFrom, query.CompletedUntil, query.CurrentOnly, query.PrincipalID, time.Now().UTC(),
+		"%" + strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(query.Search) + "%",
 	}
 	cursorSQL, orderSQL := postgresCompletedResponseOrder(query.Sort, cursor, &args)
 	currentIndexSQL := ""
@@ -62,6 +63,7 @@ func (s *PostgresDistributionStore) ListCompletedResponses(ctx context.Context, 
 		  AND (NOT $16::boolean OR (r.is_current AND d.status NOT IN ('REVOKED','SUPERSEDED')))`+currentIndexSQL+scoreStateIndexSQL+`
 		  AND NOT EXISTS (SELECT 1 FROM demo_form_distribution_archives archive WHERE archive.distribution_id=d.id AND archive.tenant_id=d.tenant_id AND archive.legal_entity_id=d.legal_entity_id AND archive.restored_at IS NULL)
 		  AND (`+completedResponseDiscoverySQL(17, 18)+`)
+		  AND d.title ILIKE $19
 		  AND (`+cursorSQL+`)
 		ORDER BY `+orderSQL+`
 		LIMIT `+limitPlaceholder, args...)

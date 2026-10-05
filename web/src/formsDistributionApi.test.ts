@@ -38,7 +38,7 @@ describe("forms distribution API", () => {
       }], next_cursor: "next-page",
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
 
-    const page = await loadCompletedResponses({ sort: "CONCERN_DESC", bands: ["HIGH", "CRITICAL"], modes: ["COMPLIANCE"], completed_from: "2026-08-01T00:00:00Z", limit: 25 });
+    const page = await loadCompletedResponses({ search: "  risk %_ review  ", sort: "CONCERN_DESC", bands: ["HIGH", "CRITICAL"], modes: ["COMPLIANCE"], completed_from: "2026-08-01T00:00:00Z", limit: 50 });
 
     expect(page.items[0]).toMatchObject({ id: "response-a", score: { raw_score: 42, band: "HIGH", coverage: 0.9 } });
     expect(page.next_cursor).toBe("next-page");
@@ -48,6 +48,8 @@ describe("forms distribution API", () => {
     expect(url).toContain("band=CRITICAL");
     expect(url).toContain("mode=COMPLIANCE");
     expect(url).toContain("completed_from=2026-08-01T00%3A00%3A00Z");
+    expect(new URL(url, "http://localhost").searchParams.get("search")).toBe("risk %_ review");
+    expect(url).toContain("limit=50");
   });
 
   it("amends and supersedes distributions through preview-confirm commands", async () => {

@@ -105,6 +105,10 @@ Operational success and failure receipts use `Notice` rather than feature-owned 
 
 ## Structural patterns
 
+### Form response results — 5 October 2026
+
+Program submitted data and Forms responses share a filter rail and a result toolbar for literal title search, stored-score priority, bounded batch size and optional columns. At 900px the rail becomes a closed Filters disclosure; at 420px toolbar fields stack. Result tables opt into the existing container replacement. Form identity and the response-review action remain mandatory. Query changes discard old cursor pages; empty search results retain reset/recovery. Scores never establish document validity or completed review. Shared DataTable columns can expose an onSort button and ascending/descending aria-sort; the owner controls ordering and pagination. No new density mode, palette or motion. Decision and proof: `docs/design/2026-10-05-response-browser.md`.
+
 - **Vendors:** `#vendors` shows the scoped dashboard; `#vendors/register` shows search, service rows and form requests. Exact relationship routes retain their dedicated record and Back to vendor register action. Metric cards use 12px vertical padding without extra value padding, retain 44px actions, and grow for wrapped/unknown values. Existing four/two/one-column breakpoints apply. [Decision and state evidence](docs/design/2026-09-10-vendor-pages.md).
 
 - **Intervention Summary:** actor-scoped read projection for one human review, decision, authorization, evidence exception, escalation or outcome check. It is not new authoritative state.
@@ -331,7 +335,7 @@ Program overview adds a compact, scoped vendor follow-up summary. It counts affe
 - Vendor relationship creation, due-diligence editing/review and linked-work recovery use shared field/action contracts. Specialized document, radio and vendor-identity controls retain their explicit contracts. TextField supports native pattern/inputMode/focus and stable IDs; TextArea supports stable IDs and address autocomplete.
 - FocusedSheet and FocusedDialog share scroll-lock and focus-return mechanics. Their geometry and in-flight dismissal behavior remain separate. Multiple overlays retain the lock until the last closes. The older domain EmptyState is a thin adapter to the shared rendering contract, with an action only when it has a handler.
 - The current vendor checklist leads; **Requests** and **Linked vendor work** are secondary disclosures. Errors and reload controls remain visible outside the Requests disclosure. Attention routes expand their destination. Checklist document coverage is matched per field; uncovered documents remain available even when another field uses the same artifact.
-- Response detail presents identity/history once and a single assessment/result/document entry. Automatic and reviewed results remain distinct. Response list filters are collapsed behind **Filters**; counts, active filters and reset remain visible. This replaces the default vertical filter stack at narrow widths.
+- Response detail presents identity/history once and a single assessment/result/document entry. Automatic and reviewed results remain distinct. At narrow widths response list filters are collapsed behind **Filters**; counts, active filters and reset remain visible. The October 5 slice adds the desktop filter rail.
 - Forms Imports opens the Imports workspace directly; old section URLs hand off without another launcher. Builder overview shows review counts and configuration errors; selected questions retain detailed rubrics.
 - Shared copy follows the [industry-neutral content standard](docs/product/plain-language-content-standard.md). Required state fixtures include unavailable/stale calculations, absent/invalid schedules, missing/reassigned historical reviewers and nonbank requirement authoring.
 

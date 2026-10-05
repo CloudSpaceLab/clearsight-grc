@@ -11,7 +11,7 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Forms · Sent forms | M | M | M | M | M | M | M | M |
 | Forms · Templates/library | M | M | M | M | M | M | M | M |
 | Forms · Builder/editor/review | — | — | — | S | — | — | — | — |
-| Forms · Responses | — | — | — | S | — | — | — | — |
+| Forms · Responses list and query controls | M | M | M | S | M | M | M | M |
 | Forms · Imports | — | — | — | S | — | — | — | — |
 | Forms · Communications | — | — | — | S | — | — | — | — |
 | Forms · Policies | M | M | M | M | M | M | M | M |
@@ -19,6 +19,7 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Today | — | — | — | — | — | — | — | — |
 | Oversight | M | — | — | M | — | M | — | M |
 | Programs and dedicated Program record | — | — | — | — | — | — | — | — |
+| Program · Submitted data list and query controls | M | M | M | — | M | M | — | M |
 | Vendors and vendor relationship record | — | — | — | — | — | — | — | — |
 | Work · Issues and changes | — | — | — | — | — | — | — | — |
 | Work · Evidence | — | — | — | — | — | — | — | — |
@@ -28,6 +29,8 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Shared shell, primary/mobile navigation and account context | — | — | — | — | — | — | — | — |
 
 ## Implemented boundary
+
+The October 5 response-browser slice enforces shared controls in the Forms response list, Program submitted-data panel and their query composition. `DataTable` adds named sortable headers with `aria-sort`; the gallery exercises that state. Desktop uses a filter rail, narrow layouts use a disclosure with active chips/reset outside, and optional columns retain form identity and review. Assessment/document internals and the broader Program record remain separately scoped. Evidence: `docs/quality/response-browser-2026-10-05.md`.
 
 Tranche 1 implements the three-layer token architecture, public component contracts, component gallery, Forms peer-view navigation and the complete Sent forms workspace migration. The Sent forms boundary includes its actions, filters, themed selection popup, labelled empty result, populated and paginated data, focused detail sheet, lifecycle feedback and narrow-screen stacked records.
 

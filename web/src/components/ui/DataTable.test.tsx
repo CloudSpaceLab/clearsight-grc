@@ -14,6 +14,14 @@ const columns: readonly DataColumn<Row>[] = [
 ];
 
 describe("DataTable", () => {
+  it("exposes sorting through a labelled header button and announces its direction", () => {
+    const sort = vi.fn();
+    render(<DataTable ariaLabel="Responses" rows={rows} rowKey={(row) => row.id} rowName={(row) => row.title}
+      columns={[{ ...columns[0]!, onSort: sort, sortDirection: "ascending" }]}/>);
+    expect(screen.getByRole("columnheader").getAttribute("aria-sort")).toBe("ascending");
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Distribution" }));
+    expect(sort).toHaveBeenCalledOnce();
+  });
   it("gives every row a visible control when a row action is offered", () => {
     // Without a visible control the action is reachable only by double-click or
     // a keyboard shortcut, which is undiscoverable and unreliable on touch.

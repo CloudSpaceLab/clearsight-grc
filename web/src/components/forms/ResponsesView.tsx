@@ -6,10 +6,7 @@ import {
   type CompletedResponseDetail,
   type CompletedResponseQuery,
   type CompletedResponseSummary,
-  type ResponseConcernBand,
   type ResponseScore,
-  type ResponseScoreMode,
-  type ResponseScoreState,
   type ResponseSort,
   type ResponseRevision,
 } from "../../formsDistributionApi";
@@ -18,46 +15,25 @@ import { ApiError } from "../../http";
 import { concernText, concernTone, coverageText, scorePresentation } from "./responseScorePresentation";
 import { ResponseAssessment } from "./ResponseAssessment";
 import { responseSubjectName } from "./responseSubjectName";
+import { ResponseBrowser, responseDateError, sortableResponseColumns, useResponseColumns } from "./ResponseBrowser";
 import {
   ActionLink,
   Button,
   DataTable,
   EmptyState,
-  FilterBar,
-  FilterChip,
   FocusedSheet,
   Notice,
-  SelectField,
   StatusBadge,
   Surface,
-  TextField,
   Tabs,
   type DataColumn,
 } from "../ui";
 
 type ListState = "loading" | "live" | "sign-in-required" | "error";
 type DetailState = "idle" | "loading" | "live" | "error";
-const subjectOptions = [{ id: "VENDOR_RELATIONSHIP", label: "Vendor services" }, { id: "PROGRAM", label: "Programs" }, { id: "MATTER", label: "Issues and changes" }, { id: "VENDOR", label: "Vendors (legacy)" }];
 const responseSections = [{ id: "ANSWERS", label: "Answers" }, { id: "DOCUMENTS", label: "Documents" }, { id: "REVIEW", label: "Review" }, { id: "HISTORY", label: "History" }] as const;
 function subjectLabel(type: string) { return ({ VENDOR_RELATIONSHIP: "Vendor service", VENDOR: "Vendor", PROGRAM: "Program", MATTER: "Issue or change" } as Record<string, string>)[type] ?? "Subject"; }
 
-const sortOptions = [
-  { id: "CONCERN_DESC", label: "Needs attention first", description: "Highest adverse score, then most recent" },
-  { id: "COMPLETED_DESC", label: "Most recent", description: "Latest submitted response first" },
-  { id: "RAW_ASC", label: "Lowest score first" },
-  { id: "RAW_DESC", label: "Highest score first" },
-] as const;
-const concernOptions = [
-  { id: "CRITICAL", label: "Critical" }, { id: "HIGH", label: "High" },
-  { id: "MODERATE", label: "Moderate" }, { id: "LOW", label: "Low" },
-] as const;
-const modeOptions = [
-  { id: "COMPLIANCE", label: "Compliance" }, { id: "RISK", label: "Risk" },
-] as const;
-const scoreStateOptions = [
-  { id: "FINAL", label: "Final score" }, { id: "PROVISIONAL", label: "Provisional score" },
-  { id: "FAILED", label: "Score unavailable" }, { id: "NOT_CONFIGURED", label: "Not scored" },
-] as const;
 
 export function ResponsesView() {
   const [query, setQuery] = useState<CompletedResponseQuery>(() => readQuery());
@@ -86,10 +62,11 @@ export function ResponsesView() {
   useEffect(() => {
     const sequence = ++requestSequence.current;
     const timer = window.setTimeout(() => { void refresh(sequence); }, 150);
-    return () => window.clearTimeout(timer);
-  }, [query.sort, query.bands?.join(","), query.modes?.join(","), query.states?.join(","), query.completed_from, query.completed_until, query.subject_type]);
+    return () => { requestSequence.current++; window.clearTimeout(timer); };
+  }, [query]);
 
   async function refresh(sequence = ++requestSequence.current) {
+    if (responseDateError(query)) return;
     setListState("loading");
     setError(undefined);
     try {
@@ -109,29 +86,32 @@ export function ResponsesView() {
 
   async function loadMore() {
     if (!nextCursor || loadingMore) return;
+    const sequence = requestSequence.current;
     setLoadingMore(true);
     try {
       const page = await loadCompletedResponses({ ...query, cursor: nextCursor, current_only: true, limit: query.limit ?? 25 });
+      if (sequence !== requestSequence.current) return;
       setItems((current) => [...current, ...page.items]);
       setNextCursor(page.next_cursor);
     } catch (cause) {
+      if (sequence !== requestSequence.current) return;
       setError(message(cause, "More responses could not be loaded."));
     } finally {
-      setLoadingMore(false);
+      if (sequence === requestSequence.current) setLoadingMore(false);
     }
   }
 
   function updateQuery(patch: Partial<CompletedResponseQuery>) {
+    requestSequence.current++;
+    setItems([]);
+    setNextCursor(undefined);
+    setLoadingMore(false);
+    setListState("loading");
     const next = { ...query, ...patch, cursor: undefined };
     setQuery(next);
     writeQuery(next);
   }
 
-  function clearFilters() {
-    const next: CompletedResponseQuery = { sort: "CONCERN_DESC", current_only: true, limit: 25 };
-    setQuery(next);
-    writeQuery(next);
-  }
 
   async function reviewResponse(id: string) {
     const sequence = ++detailSequence.current;
@@ -174,38 +154,15 @@ export function ResponsesView() {
     { id: "coverage", header: "Coverage", kind: "number", render: (value) => coverageText(value.score), accessibleText: (value) => coverageText(value.score) },
     { id: "action", header: "Review", kind: "action", render: (value) => <Button variant="quiet" aria-label={`Review ${value.title} response`} onPress={() => void reviewResponse(value.id)}>Review response</Button>, accessibleText: (value) => `Review ${value.title} response` },
   ];
+  const visible = useResponseColumns(sortableResponseColumns(columns, query.sort ?? "CONCERN_DESC", (sort) => updateQuery({ sort })));
 
   return <section className="forms-responses" aria-labelledby="responses-title">
     <header className="forms-responses__heading">
       <div><h2 id="responses-title">Responses</h2></div>
     </header>
 
-    {error && listState === "live" && <Notice tone="error">{error} The responses already shown remain available.</Notice>}
-    <div className="forms-responses__sort"><SelectField label="Priority" value={query.sort ?? "CONCERN_DESC"} placeholder="Needs attention first" options={sortOptions} allowsEmpty={false} onChange={(sort) => updateQuery({ sort: sort as ResponseSort | undefined })}/></div>
-    <details className="forms-response-filters"><summary>Filters{hasFilters(query) ? " · Applied" : ""}</summary>
-    <FilterBar
-      label="Response filters"
-      fields={<>
-        <SelectField label="Concern" value={query.bands?.[0]} placeholder="All concern levels" options={concernOptions} onChange={(band) => updateQuery({ bands: band ? [band as ResponseConcernBand] : undefined })}/>
-        <SelectField label="Score meaning" value={query.modes?.[0]} placeholder="All score meanings" options={modeOptions} onChange={(mode) => updateQuery({ modes: mode ? [mode as ResponseScoreMode] : undefined })}/>
-        <SelectField label="Score state" value={query.states?.[0]} placeholder="All score states" options={scoreStateOptions} onChange={(state) => updateQuery({ states: state ? [state as ResponseScoreState] : undefined })}/>
-        <TextField label="Submitted from" type="date" value={dateInputValue(query.completed_from)} onChange={(value) => updateQuery({ completed_from: startOfDate(value) })}/>
-        <TextField label="Submitted until" type="date" value={dateInputValue(query.completed_until)} onChange={(value) => updateQuery({ completed_until: endOfDate(value) })}/>
-        <SelectField label="Subject type" value={query.subject_type} placeholder="All subjects" options={subjectOptions} onChange={(subject_type) => updateQuery({ subject_type })}/>
-      </>}
-    />
-
-    </details>
-    <div className="forms-responses__filter-summary">{listState === "live" && <output>{items.length} responses on this page</output>}{hasFilters(query) && <Button variant="quiet" onPress={clearFilters}>Clear response filters</Button>}</div>
-
-    {hasFilters(query) && <div className="forms-responses__chips" aria-label="Applied response filters">
-      {query.bands?.[0] && <FilterChip label="Concern" value={humanize(query.bands[0])} onRemove={() => updateQuery({ bands: undefined })}/>}
-      {query.modes?.[0] && <FilterChip label="Score meaning" value={humanize(query.modes[0])} onRemove={() => updateQuery({ modes: undefined })}/>}
-      {query.states?.[0] && <FilterChip label="Score state" value={humanize(query.states[0])} onRemove={() => updateQuery({ states: undefined })}/>}
-      {query.completed_from && <FilterChip label="Submitted from" value={formatDate(query.completed_from)} onRemove={() => updateQuery({ completed_from: undefined })}/>}
-      {query.completed_until && <FilterChip label="Submitted until" value={formatDate(query.completed_until)} onRemove={() => updateQuery({ completed_until: undefined })}/>}
-      {query.subject_type && <FilterChip label="Subject type" value={subjectLabel(query.subject_type)} onRemove={() => updateQuery({ subject_type: undefined })}/>}
-    </div>}
+    {error && listState === "live" && <Notice tone="error">{error}</Notice>}
+    <ResponseBrowser query={query} onChange={updateQuery} count={listState === "live" ? items.length : undefined} hasMore={!!nextCursor} loading={listState === "loading" && !responseDateError(query)} showSubject columns={visible.picker}>
 
     <div className="forms-responses__results" aria-live="polite">
       {listState === "loading" && items.length === 0 && <Surface><p role="status">Loading responses…</p></Surface>}
@@ -217,11 +174,13 @@ export function ResponsesView() {
         rows={items}
         rowKey={(value) => value.id}
         rowName={(value) => `${value.title}, ${subjectLabel(value.subject_type)} ${value.subject_name ?? "Subject name unavailable"}, ${scoreAccessibleText(value.score)}, submitted ${formatDateTime(value.completed_at)}`}
-        columns={columns}
+        columns={visible.columns}
+        responsiveTo="container"
         isLoading={listState === "loading"}
         pagination={nextCursor ? { label: "Response pages", nextLabel: "Load more responses", onNext: () => void loadMore(), isLoading: loadingMore } : undefined}
       />}
     </div>
+    </ResponseBrowser>
 
     {selectedID && <FocusedSheet label={`Review ${detail?.response.title ?? items.find((value) => value.id === selectedID)?.title ?? "submitted"} response`} size="wide" panelClassName="forms-response-review" onClose={() => { detailSequence.current++; setSelectedID(undefined); setDetail(undefined); setDetailState("idle"); const [path, raw] = window.location.hash.split("?"); const params = new URLSearchParams(raw); params.delete("response"); window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${path}${params.size ? `?${params}` : ""}`); }}>
       <ResponseReview key={selectedID} state={detailState} detail={detail} error={detailError} revisions={revisions} revisionsError={revisionsError} onRetry={() => void reviewResponse(selectedID)} onRetryHistory={() => { if (detail) void refreshRevisions(detail.response.distribution_id); }}/>
@@ -266,33 +225,29 @@ function ResponseReview({ state, detail, error, revisions, revisionsError, onRet
 function assuranceLabel(value: string) { return value === "EMAIL_VERIFIED" ? "Email verified" : value === "LINK_POSSESSION" ? "Secure link confirmed" : humanize(value); }
 
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (part) => part.toUpperCase()); }
-function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Unknown date" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date); }
 function formatDateTime(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Unknown time" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date); }
-function startOfDate(value: string) { return value ? new Date(`${value}T00:00:00.000Z`).toISOString() : undefined; }
-function endOfDate(value: string) { return value ? new Date(`${value}T23:59:59.999Z`).toISOString() : undefined; }
-function dateInputValue(value?: string) { return value?.slice(0, 10) ?? ""; }
 function message(cause: unknown, fallback: string) { return cause instanceof Error ? cause.message : fallback; }
 
-function hasFilters(query: CompletedResponseQuery) {
-  return Boolean(query.bands?.length || query.modes?.length || query.states?.length || query.completed_from || query.completed_until || query.subject_type || query.sort && query.sort !== "CONCERN_DESC");
-}
 
 function readQuery(): CompletedResponseQuery {
   const params = new URLSearchParams(window.location.search);
-  const band = params.get("response_band") as ResponseConcernBand | null;
-  const mode = params.get("response_mode") as ResponseScoreMode | null;
-  const state = params.get("response_score_state") as ResponseScoreState | null;
+  const band = params.get("response_band") as NonNullable<CompletedResponseQuery["bands"]>[number] | null;
+  const mode = params.get("response_mode") as NonNullable<CompletedResponseQuery["modes"]>[number] | null;
+  const state = params.get("response_score_state") as NonNullable<CompletedResponseQuery["states"]>[number] | null;
   const sort = params.get("response_sort") as ResponseSort | null;
   return {
+    search: params.get("response_search") || undefined,
     sort: sort || "CONCERN_DESC", bands: band ? [band] : undefined, modes: mode ? [mode] : undefined, states: state ? [state] : undefined,
     completed_from: params.get("response_from") || undefined, completed_until: params.get("response_until") || undefined,
-    subject_type: params.get("response_subject_type") || undefined, current_only: true, limit: 25,
+    subject_type: params.get("response_subject_type") || undefined, current_only: true, limit: [20, 25, 50, 100].includes(Number(params.get("response_limit"))) ? Number(params.get("response_limit")) : 25,
   };
 }
 
 function writeQuery(query: CompletedResponseQuery) {
   const url = new URL(window.location.href);
   const set = (key: string, value?: string) => value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
+  set("response_search", query.search?.trim());
+  set("response_limit", query.limit && query.limit !== 25 ? String(query.limit) : undefined);
   set("response_sort", query.sort && query.sort !== "CONCERN_DESC" ? query.sort : undefined);
   set("response_band", query.bands?.[0]); set("response_mode", query.modes?.[0]); set("response_score_state", query.states?.[0]);
   set("response_from", query.completed_from); set("response_until", query.completed_until); set("response_subject_type", query.subject_type?.trim());

@@ -62,6 +62,7 @@ export function UIComponentGallery() {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState("request-1");
   const [openedRequest, setOpenedRequest] = useState<SampleRow>();
+  const [requestSort, setRequestSort] = useState<"ascending" | "descending">("ascending");
 
   return <main className="ui-gallery">
     <header className="ui-gallery__header">
@@ -124,6 +125,7 @@ export function UIComponentGallery() {
     </GalleryGroup>
 
     <GalleryGroup title="Data">
+      <Contract family="DataTable" job="Orders comparable records by a named column." keyboard="Enter or Space changes the order; the active header announces its direction." prohibited="Do not imply client-only sorting of a server-paginated population."><DataTable ariaLabel="Sample sorted requests" rows={[...sampleRows].sort((a, b) => (requestSort === "ascending" ? 1 : -1) * a.request.localeCompare(b.request))} rowKey={(row) => row.id} rowName={(row) => row.request} columns={sampleColumns.map((column) => column.id === "request" ? { ...column, sortDirection: requestSort, onSort: () => setRequestSort((current) => current === "ascending" ? "descending" : "ascending") } : column)}/></Contract>
       <Contract family="FilterBar" job="Groups filters, result count and reset handling." keyboard="Tab follows the visible field order." prohibited="Do not compress fields below their usable width."><FilterBar label="Sample request filters" fields={<><TextField label="Sample owner" value="" onChange={() => undefined}/><SelectField label="Sample state" placeholder="All sample states" options={selections} onChange={() => undefined}/></>} resultCount={2} onClear={() => undefined}/></Contract>
       <Contract family="FilterChip" job="Names and removes one applied filter or reopens advanced logic." keyboard="Enter or Space runs its named action." prohibited="Do not use a chip for a lifecycle status."><FilterChip label="Status" value="Responses open" onRemove={() => undefined}/></Contract>
       <Contract family="DataTable" job="Presents comparable populated records and page handling." keyboard="Tab reaches the selected row and actions. Arrow keys select rows; Enter or Space opens the selected request." prohibited="Do not keep an empty horizontal scroll region."><DataTable ariaLabel="Sample requests" rows={sampleRows} rowKey={(row) => row.id} rowName={(row) => `${row.request}, ${row.status}, owned by ${row.owner}`} columns={sampleColumns} selectedKey={selectedRequest} onSelectionChange={(row) => setSelectedRequest(row.id)} onRowAction={setOpenedRequest}/>{openedRequest && <Notice tone="info">{openedRequest.request} · {openedRequest.status} · {openedRequest.owner}</Notice>}</Contract>

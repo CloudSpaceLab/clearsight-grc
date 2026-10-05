@@ -32,6 +32,41 @@ beforeEach(() => {
 });
 
 describe("Program submitted data panel", () => {
+  it("hides optional columns without changing the response query", async () => {
+    render(<ProgramResponsesPanel programID="program-1"/>);
+    await screen.findByText(response.title);
+    fireEvent.click(screen.getByText("Columns"));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Submitted" }));
+    expect(screen.queryByRole("columnheader", { name: /Submitted/ })).toBeNull();
+    expect(screen.getByRole("columnheader", { name: "Form" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: `Review ${response.title} response` })).toBeTruthy();
+    expect(api.loadCompletedResponses).toHaveBeenCalledTimes(1);
+  });
+  it("clears a title filter without changing Program scope or priority", async () => {
+    render(<ProgramResponsesPanel programID="program-1"/>);
+    await screen.findByText(response.title);
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search response titles" }), { target: { value: "incident" } });
+    await waitFor(() => expect(api.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ search: "incident" })));
+    fireEvent.click(screen.getByRole("button", { name: "Clear response filters" }));
+    await waitFor(() => expect(api.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ search: undefined, sort: "COMPLETED_DESC", limit: 20, subject_type: "PROGRAM", subject_id: "program-1" })));
+    expect(screen.getByRole("searchbox").getAttribute("value")).toBe("");
+  });
+  it("searches and sorts within the Program scope and invalidates an old page", async () => {
+    let resolvePage!: (value: unknown) => void;
+    api.loadCompletedResponses.mockResolvedValueOnce({ items: [response], next_cursor: "old-cursor" })
+      .mockImplementationOnce(() => new Promise((resolve) => { resolvePage = resolve; }))
+      .mockResolvedValue({ items: [response] });
+    render(<ProgramResponsesPanel programID="program-1"/>);
+    await screen.findByText(response.title);
+    fireEvent.click(screen.getByRole("button", { name: "Load more responses" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search response titles" }), { target: { value: "incident" } });
+    await waitFor(() => expect(api.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ search: "incident", subject_type: "PROGRAM", subject_id: "program-1", cursor: undefined })));
+    resolvePage({ items: [earlier] });
+    await waitFor(() => expect(screen.queryByText(earlier.title)).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Assessment result" }));
+    await waitFor(() => expect(api.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "RAW_DESC", subject_id: "program-1" })));
+    expect(screen.getByRole("columnheader", { name: /Assessment result/ }).getAttribute("aria-sort")).toBe("descending");
+  });
   it("lists completed responses for the Program and loads the next page on demand", async () => {
     api.loadCompletedResponses
       .mockResolvedValueOnce({ items: [response], next_cursor: "next-page" })
@@ -60,7 +95,7 @@ describe("Program submitted data panel", () => {
 
     expect(await screen.findByText("No data collected yet")).toBeTruthy();
     expect(screen.getByText("Completed responses for this Program")).toBeTruthy();
-    expect(screen.getByText("No completed responses are recorded for this Program. Start a form collection or add a collection check in Data collection to collect responses.")).toBeTruthy();
+    expect(screen.getByText("No completed responses are recorded for this Program. Start a form collection.")).toBeTruthy();
     expect(screen.queryByRole("row")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open Data collection" }));
     expect(window.location.hash).toBe("#programs/program-1/monitoring");
@@ -71,7 +106,7 @@ describe("Program submitted data panel", () => {
     render(<ProgramResponsesPanel programID="program-1"/>);
 
     expect(await screen.findByText("Submitted data could not be loaded")).toBeTruthy();
-    expect(screen.getByText("Completed responses cannot be reviewed while the response list is unavailable. Retry the list before reviewing evidence.")).toBeTruthy();
+    expect(screen.getByText("Retry before reviewing evidence.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Retry submitted data" }));
     expect(await screen.findByText("Branch incident self-assessment")).toBeTruthy();
     expect(api.loadCompletedResponses).toHaveBeenCalledTimes(2);

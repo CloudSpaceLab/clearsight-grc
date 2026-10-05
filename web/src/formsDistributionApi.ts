@@ -210,6 +210,7 @@ export type CompletedResponseSummary = {
 export type CompletedResponsePage = { items: CompletedResponseSummary[]; next_cursor?: string };
 export type CompletedResponseDetail = { response: CompletedResponseSummary; revision: ResponseRevision };
 export type CompletedResponseQuery = {
+  search?: string;
   form_template_id?: string;
   form_template_version?: number;
   subject_type?: string;
@@ -371,6 +372,7 @@ export function loadResponseRevisions(id: string, limit = 100): Promise<Response
 export async function loadCompletedResponses(query: CompletedResponseQuery = {}): Promise<CompletedResponsePage> {
   const params = new URLSearchParams();
   const scalar: Record<string, string | number | boolean | undefined> = {
+    search: query.search?.trim(),
     form_template_id: query.form_template_id, form_template_version: query.form_template_version,
     subject_type: query.subject_type, subject_id: query.subject_id,
     raw_min: query.raw_min, raw_max: query.raw_max, adverse_min: query.adverse_min, adverse_max: query.adverse_max,

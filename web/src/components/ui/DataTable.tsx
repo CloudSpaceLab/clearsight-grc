@@ -6,6 +6,8 @@ export type DataColumn<Row> = {
   header: string;
   kind?: "text" | "number" | "status" | "action";
   mobileLayout?: "full-width";
+  onSort?: () => void;
+  sortDirection?: "ascending" | "descending";
   render: (row: Row) => ReactNode;
   accessibleText: (row: Row) => string;
 };
@@ -46,7 +48,7 @@ export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, sele
   return <div className="cs-data-table" data-responsive-to={responsiveTo}>
     <div className="cs-data-table__viewport">
       <table aria-label={ariaLabel} aria-busy={isLoading || undefined}>
-        <thead><tr>{columns.map((column) => <th key={column.id} scope="col" data-kind={column.kind ?? "text"}>{column.header}</th>)}{onRowAction && <th scope="col" className="cs-data-table__action-heading"><span className="cs-sr-only">Row action</span></th>}</tr></thead>
+        <thead><tr>{columns.map((column) => <th key={column.id} scope="col" data-kind={column.kind ?? "text"} aria-sort={column.sortDirection}>{column.onSort ? <Button variant="quiet" size="compact" aria-label={`Sort by ${column.header}`} onPress={column.onSort}>{column.header}<span aria-hidden="true">{column.sortDirection === "ascending" ? " ↑" : column.sortDirection === "descending" ? " ↓" : " ↕"}</span></Button> : column.header}</th>)}{onRowAction && <th scope="col" className="cs-data-table__action-heading"><span className="cs-sr-only">Row action</span></th>}</tr></thead>
         <tbody>{rows.map((row, index) => {
           const key = rowKey(row);
           const selected = selectedKey === key;

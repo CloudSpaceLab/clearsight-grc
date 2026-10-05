@@ -4,12 +4,14 @@ import {
   loadCompletedResponses,
   type CompletedResponseDetail,
   type CompletedResponseSummary,
+  type CompletedResponseQuery,
   type ResponseScore,
 } from "../formsDistributionApi";
 import { DocumentBrowser } from "./documents/DocumentBrowser";
 import { EmptyState as RecordEmptyState } from "./EmptyState";
 import { concernText, concernTone, coverageText, scorePresentation } from "./forms/responseScorePresentation";
 import { ResponseAssessment } from "./forms/ResponseAssessment";
+import { hasResponseFilters, ResponseBrowser, responseDateError, sortableResponseColumns, useResponseColumns } from "./forms/ResponseBrowser";
 import { Button, DataTable, EmptyState, FocusedSheet, Notice, StatusBadge, Tabs, type DataColumn } from "./ui";
 
 type ListState = "loading" | "live" | "unavailable";
@@ -17,6 +19,7 @@ type DetailState = "idle" | "loading" | "live" | "error";
 const responseSections = [{ id: "ANSWERS", label: "Answers" }, { id: "DOCUMENTS", label: "Documents" }, { id: "REVIEW", label: "Review" }] as const;
 
 export function ProgramResponsesPanel({ programID }: { programID: string }) {
+  const [query, setQuery] = useState<CompletedResponseQuery>({ sort: "COMPLETED_DESC", limit: 20 });
   const [items, setItems] = useState<CompletedResponseSummary[]>([]);
   const [listState, setListState] = useState<ListState>("loading");
   const [nextCursor, setNextCursor] = useState<string>();
@@ -30,11 +33,12 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
   const detailSequence = useRef(0);
 
   const loadList = useCallback(async (cursor?: string) => {
+    if (responseDateError(query)) return;
     const sequence = listSequence.current;
     if (!cursor) setListState("loading");
     setError(undefined);
     try {
-      const page = await loadCompletedResponses({ subject_type: "PROGRAM", subject_id: programID, current_only: true, sort: "COMPLETED_DESC", limit: 20, cursor });
+      const page = await loadCompletedResponses({ ...query, subject_type: "PROGRAM", subject_id: programID, current_only: true, cursor });
       if (sequence !== listSequence.current) return;
       setItems((current) => cursor ? [...current, ...page.items] : page.items);
       setNextCursor(page.next_cursor);
@@ -42,7 +46,7 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
     } catch (cause) {
       if (sequence !== listSequence.current) return;
       if (cursor) {
-        setError(cause instanceof Error ? cause.message : "More responses could not be loaded. The responses already shown remain available.");
+        setError(cause instanceof Error ? cause.message : "More responses could not be loaded. Retry.");
       } else {
         setItems([]);
         setNextCursor(undefined);
@@ -51,13 +55,33 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
     } finally {
       if (sequence === listSequence.current) setLoadingMore(false);
     }
+  }, [programID, query]);
+
+  useEffect(() => {
+    detailSequence.current++;
+    setSelectedID(undefined);
+    setDetail(undefined);
+    setItems([]);
+    setNextCursor(undefined);
+    setQuery({ sort: "COMPLETED_DESC", limit: 20 });
+    return () => { detailSequence.current++; };
   }, [programID]);
 
   useEffect(() => {
-    const sequence = ++listSequence.current;
-    void loadList();
-    return () => { listSequence.current++; };
+    ++listSequence.current;
+    setListState("loading");
+    const timer = window.setTimeout(() => void loadList(), 150);
+    return () => { listSequence.current++; window.clearTimeout(timer); };
   }, [loadList]);
+
+  function updateQuery(patch: Partial<CompletedResponseQuery>) {
+    listSequence.current++;
+    setLoadingMore(false);
+    setItems([]);
+    setNextCursor(undefined);
+    setError(undefined);
+    setQuery((current) => ({ ...current, ...patch, cursor: undefined }));
+  }
 
   async function loadMore() {
     if (!nextCursor || loadingMore) return;
@@ -89,23 +113,28 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
     { id: "score", header: "Assessment result", render: (value) => <div className="program-response-result"><ConcernBadge score={value.score}/><ScoreCell score={value.score}/></div>, accessibleText: (value) => `${concernText(value.score)} · ${scoreAccessibleText(value.score)}` },
     { id: "action", header: "Review", kind: "action", render: (value) => <Button variant="quiet" aria-label={`Review ${value.title} response`} onPress={() => void openResponse(value.id)}>Review response</Button>, accessibleText: (value) => `Review ${value.title} response` },
   ];
+  const visible = useResponseColumns(sortableResponseColumns(columns, query.sort ?? "COMPLETED_DESC", (sort) => updateQuery({ sort })));
 
   return <article className="program-record-panel program-wide-panel program-responses-panel" aria-labelledby="program-responses-heading">
-    <div className="program-panel-heading"><div><span className="eyebrow">Responses</span><h2 id="program-responses-heading">Submitted data</h2><p>Submitted answers and documents · Assessment scores do not establish document validity.</p></div>{items.length > 0 && <span className="program-response-count">{items.length} responses loaded{nextCursor ? " · More available" : ""}</span>}</div>
+    <div className="program-panel-heading"><div><span className="eyebrow">Responses</span><h2 id="program-responses-heading">Submitted data</h2><p>Assessment scores do not establish document validity.</p></div></div>
+
+    <ResponseBrowser query={query} onChange={updateQuery} count={listState === "live" ? items.length : undefined} hasMore={!!nextCursor} loading={listState === "loading" && !responseDateError(query)} columns={visible.picker}>
 
     {listState === "loading" && items.length === 0 && <p role="status">Loading submitted responses for this Program…</p>}
-    {listState === "unavailable" && items.length === 0 && <RecordEmptyState kind="unavailable" label="Completed responses for this Program" title="Submitted data could not be loaded" description="Completed responses cannot be reviewed while the response list is unavailable. Retry the list before reviewing evidence." action="Retry submitted data" onAction={() => void loadList()}/>}
-    {listState === "live" && items.length === 0 && <RecordEmptyState label="Completed responses for this Program" title="No data collected yet" description="No completed responses are recorded for this Program. Start a form collection or add a collection check in Data collection to collect responses." action="Open Data collection" onAction={() => { window.location.hash = `#programs/${encodeURIComponent(programID)}/monitoring`; }}/>}
-    {error && items.length > 0 && <Notice tone="error">{error} The responses already shown remain available.</Notice>}
+    {listState === "unavailable" && items.length === 0 && <RecordEmptyState kind="unavailable" label="Completed responses for this Program" title="Submitted data could not be loaded" description="Retry before reviewing evidence." action="Retry submitted data" onAction={() => void loadList()}/>}
+    {listState === "live" && items.length === 0 && (hasResponseFilters(query) ? <EmptyState population="Program responses matching the current filters" title="No responses match these filters" description="Change or clear the response filters."/> : <RecordEmptyState label="Completed responses for this Program" title="No data collected yet" description="No completed responses are recorded for this Program. Start a form collection." action="Open Data collection" onAction={() => { window.location.hash = `#programs/${encodeURIComponent(programID)}/monitoring`; }}/>) }
+    {error && items.length > 0 && <Notice tone="error">{error}</Notice>}
     {(listState === "live" || items.length > 0) && items.length > 0 && <DataTable
       ariaLabel="Submitted responses for this Program"
       rows={items}
       rowKey={(value) => value.id}
       rowName={(value) => `${value.title}, submitted ${formatDateTime(value.completed_at)}, ${scoreAccessibleText(value.score)}`}
-      columns={columns}
+      columns={visible.columns}
+      responsiveTo="container"
       isLoading={listState === "loading"}
       pagination={nextCursor ? { label: "Submitted response pages", nextLabel: "Load more responses", onNext: () => void loadMore(), isLoading: loadingMore } : undefined}
     />}
+    </ResponseBrowser>
 
     {selectedID && <FocusedSheet label={`Review ${detail?.response.title ?? items.find((value) => value.id === selectedID)?.title ?? "submitted"} response`} size="wide" panelClassName="program-responses-review" onClose={() => { detailSequence.current++; setSelectedID(undefined); setDetail(undefined); setDetailError(undefined); setDetailState("idle"); }}>
       <ResponseReviewSheet key={selectedID} state={detailState} detail={detail} error={detailError} onRetry={() => void openResponse(selectedID)}/>

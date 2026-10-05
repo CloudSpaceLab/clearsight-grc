@@ -90,6 +90,7 @@ func completedResponseQueryFromRequest(r *http.Request) (evidence.CompletedRespo
 	query := evidence.CompletedResponseQuery{
 		FormTemplateID: strings.TrimSpace(values.Get("form_template_id")), SubjectType: strings.TrimSpace(values.Get("subject_type")), SubjectID: strings.TrimSpace(values.Get("subject_id")),
 		Sort: evidence.ResponseSort(strings.ToUpper(strings.TrimSpace(values.Get("sort")))), Cursor: strings.TrimSpace(values.Get("cursor")), Limit: 25, CurrentOnly: true,
+		Search: strings.TrimSpace(values.Get("search")),
 	}
 	var err error
 	if raw := strings.TrimSpace(values.Get("limit")); raw != "" {

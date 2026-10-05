@@ -63,6 +63,22 @@ func TestMemoryCompletedResponsesIsolateFilterAndUseStableCursor(t *testing.T) {
 			}
 		}
 	}
+	query.Cursor = ""
+	query.Search = "  CERTIFICATION  "
+	searched, err := store.ListCompletedResponses(context.Background(), query)
+	if err != nil || len(searched.Items) != 2 || searched.NextCursor == "" {
+		t.Fatalf("case-insensitive search before pagination: %+v %v", searched, err)
+	}
+	query.Search = "certification%"
+	literal, err := store.ListCompletedResponses(context.Background(), query)
+	if err != nil || len(literal.Items) != 0 {
+		t.Fatalf("search wildcard must be literal: %+v %v", literal, err)
+	}
+	query.Search = "Restricted"
+	protected, err := store.ListCompletedResponses(context.Background(), query)
+	if err != nil || len(protected.Items) != 0 {
+		t.Fatalf("search widened permission: %+v %v", protected, err)
+	}
 	if _, _, err := store.GetCompletedResponse(context.Background(), "tenant-a", "entity-a", "principal-a", "response-restricted"); err != ErrNotFound {
 		t.Fatalf("restricted response detail leaked: %v", err)
 	}
@@ -86,6 +102,7 @@ func TestCompletedResponseQueryRejectsInvalidScoreBoundsAndCursor(t *testing.T) 
 	minimum, maximum := 80.0, 20.0
 	store := NewMemoryDistributionStore(NewMemoryRepository(nil, nil), nil, nil)
 	for _, query := range []CompletedResponseQuery{
+		{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "principal-a", Search: strings.Repeat("x", 201), Limit: 25},
 		{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "principal-a", RawMinimum: &minimum, RawMaximum: &maximum, Limit: 25},
 		{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "principal-a", Sort: "UNKNOWN", Limit: 25},
 		{TenantID: "tenant-a", LegalEntityID: "entity-a", PrincipalID: "principal-a", Sort: ResponseSortConcern, Cursor: "not-a-cursor", Limit: 25},

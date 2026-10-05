@@ -153,6 +153,9 @@ func (s *MemoryDistributionStore) completedResponseSubjectVisible(ctx context.Co
 }
 
 func completedResponseMatches(value CompletedResponseSummary, query CompletedResponseQuery) bool {
+	if query.Search != "" && !strings.Contains(strings.ToLower(value.Title), strings.ToLower(query.Search)) {
+		return false
+	}
 	if query.CurrentOnly && !value.Current || query.FormTemplateID != "" && value.FormTemplateID != query.FormTemplateID || query.FormTemplateVersion > 0 && value.FormTemplateVersion != query.FormTemplateVersion || query.SubjectType != "" && value.SubjectType != query.SubjectType || query.SubjectID != "" && value.SubjectID != query.SubjectID {
 		return false
 	}

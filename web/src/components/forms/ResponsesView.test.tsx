@@ -49,6 +49,19 @@ beforeEach(() => {
 });
 
 describe("completed response portfolio", () => {
+  it("refreshes results when the already-active sort header is pressed", async () => {
+    render(<ResponsesView/>);
+    await screen.findByText(completedResponse.title);
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Concern" }));
+    await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText(completedResponse.title)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Submitted" }));
+    await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenCalledTimes(3));
+    await screen.findByText(completedResponse.title);
+    fireEvent.click(screen.getByRole("button", { name: "Sort by Submitted" }));
+    await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenCalledTimes(4));
+    expect(await screen.findByText(completedResponse.title)).toBeTruthy();
+  });
   it("shows one automatic result and one document section within a response review", async () => {
     render(<ResponsesView/>);
     fireEvent.click(await screen.findByRole("button", { name: "Review Vendor certification refresh response" }));
@@ -78,7 +91,6 @@ describe("completed response portfolio", () => {
     expect(screen.queryByText("vendor-a")).toBeNull();
     expect(screen.queryByRole("row", { name: /vendor-a/ })).toBeNull();
     expect(screen.queryByText("0%")).toBeNull();
-    fireEvent.click(screen.getByText("Filters"));
     fireEvent.click(screen.getByRole("button", { name: /Subject type/ }));
     fireEvent.click(await screen.findByRole("option", { name: "Vendor services" }));
     await waitFor(() => expect(distributionApi.loadCompletedResponses).toHaveBeenLastCalledWith(expect.objectContaining({ subject_type: "VENDOR_RELATIONSHIP" })));
@@ -97,8 +109,7 @@ describe("completed response portfolio", () => {
     render(<ResponsesView/>);
     expect(await screen.findByText("Vendor certification refresh")).toBeTruthy();
 
-    fireEvent.click(screen.getByText("Filters"));
-    fireEvent.click(screen.getByRole("button", { name: /Concern/ }));
+    fireEvent.click(screen.getByRole("button", { name: /All concern levels Concern/ }));
     fireEvent.click(await screen.findByRole("option", { name: "Critical" }));
     fireEvent.change(screen.getByLabelText("Submitted from"), { target: { value: "2026-08-01" } });
 

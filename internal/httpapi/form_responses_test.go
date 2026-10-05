@@ -17,6 +17,10 @@ import (
 )
 
 func TestListCompletedFormResponsesUsesVerifiedScopeAndRejectsInvalidFilters(t *testing.T) {
+	parsed, err := completedResponseQueryFromRequest(httptest.NewRequest(http.MethodGet, "/api/v1/forms/responses?search=+CERTIFICATION%25_+&limit=50", nil))
+	if err != nil || parsed.Search != "CERTIFICATION%_" || parsed.Limit != 50 {
+		t.Fatalf("literal title search not parsed: %+v %v", parsed, err)
+	}
 	store := evidence.NewMemoryDistributionStore(evidence.NewMemoryRepository(nil, nil), nil, nil)
 	api := &API{deps: Dependencies{FormDistributions: evidence.NewDistributionService(store)}}
 	actor := identity.Actor{

@@ -100,6 +100,20 @@ func TestPostgresCompletedResponsesUseBoundedScoreIndexAndEntityScope(t *testing
 			t.Fatalf("stable keyset pagination returned %s twice", item.ID)
 		}
 	}
+	searchQuery := query
+	searchQuery.Cursor = ""
+	searchQuery.Search = " PRIMARY SCORED RESPONSE "
+	searched, err := store.ListCompletedResponses(ctx, searchQuery)
+	if err != nil || len(searched.Items) != query.Limit || searched.NextCursor == "" {
+		t.Fatalf("title search before bounded pagination: %+v %v", searched, err)
+	}
+	for _, text := range []string{"%", "_", `\`, "other scored response"} {
+		searchQuery.Search = text
+		searched, err := store.ListCompletedResponses(ctx, searchQuery)
+		if err != nil || len(searched.Items) != 0 || searched.NextCursor != "" {
+			t.Fatalf("literal/isolated title search %q: %+v %v", text, searched, err)
+		}
+	}
 	// A high-ranked workflow response with no exact work link must not occupy
 	// a slot or contribute the cursor. Ordinary Forms rows keep their access.
 	deniedID := first.Items[0].ID

@@ -56,6 +56,7 @@ type CompletedResponseQuery struct {
 	FormTemplateVersion int64
 	SubjectType         string
 	SubjectID           string
+	Search              string
 	Modes               []formcontract.ScoringMode
 	Bands               []formcontract.ConcernBand
 	States              []ResponseScoreState
@@ -142,6 +143,10 @@ func normalizeCompletedResponseQuery(query *CompletedResponseQuery) (completedRe
 	}
 	if query.FormTemplateVersion > 0 && strings.TrimSpace(query.FormTemplateID) == "" {
 		return completedResponseCursor{}, fmt.Errorf("form template version requires a form template")
+	}
+	query.Search = strings.TrimSpace(query.Search)
+	if len(query.Search) > 200 {
+		return completedResponseCursor{}, fmt.Errorf("response title search is too long; shorten the search")
 	}
 	if query.Sort == "" {
 		query.Sort = ResponseSortConcern
