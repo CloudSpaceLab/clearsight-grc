@@ -14,7 +14,8 @@ export type MonitoringMeasurementSpec = {
   precision?: number;
 };
 export type MonitoringMeasurementLimit = { operator: SourceOperator; expected: string };
-export type MonitoringNativeMeasurement = MonitoringMeasurementSpec & { value?: string; limits?: MonitoringMeasurementLimit[] };
+export type MonitoringMeasurementCondition = "WITHIN" | "BREACHED" | "UNKNOWN";
+export type MonitoringNativeMeasurement = MonitoringMeasurementSpec & { value?: string; limits?: MonitoringMeasurementLimit[]; condition?: MonitoringMeasurementCondition };
 export type MonitoringSourceRule = { id: string; field: string; operator: SourceOperator; expected?: string; risk_points: number; critical?: boolean };
 export type FormScoringMode = "NONE" | "RISK" | "COMPLIANCE";
 export type FormScoreDirection = "HIGH_IS_POOR" | "LOW_IS_POOR";
