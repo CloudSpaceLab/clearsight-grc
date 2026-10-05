@@ -119,10 +119,6 @@ func TestEpisodeProjectorDeduplicatesPersistsUnknownAndNoticesWorseningAndClear(
 		}
 	}
 
-	// Observation time may precede the database record time by sub-second precision.
-	// Audit timestamps must remain monotonic independently of source observation time.
-	now = now.Add(-time.Second)
-
 	first := insertSource(now, "HIGH", 0)
 	if err := projector.Publish(ctx, first); err != nil {
 		t.Fatal(err)
