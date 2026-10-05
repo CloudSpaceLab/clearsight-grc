@@ -196,7 +196,7 @@ func sourceRiskProjection(group sourceRecordGroup, record sourceRecord) (sourceR
 	if group.Key != "it-risk-exceptions" {
 		return sourceRiskProjectionValue{}, false, nil
 	}
-	code := sourceFieldValue(record, "RISK ID", "Risk ID")
+	code := strings.ToUpper(strings.TrimSpace(sourceFieldValue(record, "RISK ID", "Risk ID")))
 	name := sourceFieldValue(record, "RISK DESCRIPTION", "Risk Description")
 	impact := sourceFieldValue(record, "RISK/ IMPLICATIONS", "Risk / Implications", "Risk Implications")
 	if code == "" || name == "" || impact == "" {
@@ -208,7 +208,7 @@ func sourceRiskProjection(group sourceRecordGroup, record sourceRecord) (sourceR
 	if rating == "" {
 		rating = sourceFieldValue(record, "RISK LEVEL", "Risk Level")
 	}
-	affectedArea := sourceFieldValue(record, "APPLICATION/ SERVICES AFFECTED", "APPLICATION/\nSERVICES AFFECTED", "Application", "Service")
+	affectedArea := sourceFieldValue(record, "APPLICATION/ SERVICES AFFECTED", "APPLICATION/ \nSERVICES AFFECTED", "APPLICATION/\nSERVICES AFFECTED", "Application", "Service")
 	controlReference := sourceFieldValue(record, "CONTROL FRAMEWORK AND REFERENCES", "Control Framework and References")
 	scope := map[string]any{
 		"sample": true, "seed_package": sourceRecordPackage, "source_group": group.Key,
@@ -334,7 +334,8 @@ func ensureSourceRisk(ctx context.Context, pool *pgxpool.Pool, service *risk.Ser
 		return risk.Risk{}, true, false, fmt.Errorf("source risk %s changed before its source assessment was installed", projection.Code)
 	}
 
-	var assessedBy *string
+	unknownAssessor := ""
+	assessedBy := &unknownAssessor
 	if person := strings.TrimSpace(record.Assessor); person != "" {
 		candidateID := identity.DemoSourceEmployeePrincipalID(person)
 		var exists bool
