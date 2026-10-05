@@ -196,6 +196,32 @@ func TestSourceRecordCaptureContractAndITVendorCoverage(t *testing.T) {
 	}
 }
 
+func TestPersistedSourceRiskRecordReconstructsOnlyTheStoredSourceFacts(t *testing.T) {
+	knownFacts := sourceJSON(map[string]any{
+		"source_file": "Sample IT Risk Exception Register (1).xlsx",
+		"source_sha256": strings.Repeat("a", 64),
+		"source_sheet": "Sheet1",
+		"source_range": "Sheet1!A2:R2",
+		"source_rating": "High",
+		"source_owner": "CISO",
+		"source_assessor": "",
+		"source_fields": []sourceRecordField{
+			{Label: "RISK ID", Value: "072"},
+			{Label: "RISK DESCRIPTION", Value: "User Access Management"},
+			{Label: "RISK/ IMPLICATIONS", Value: "Unauthorized access."},
+			{Label: "RISK ASSESSMENT PUBLICATION DATE", Value: "2025-10-29"},
+		},
+	})
+	group, record, err := persistedSourceRiskRecord(sourceRecordPackage+":it-risk-exceptions-row-2", knownFacts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if group.Key != "it-risk-exceptions" || group.SourceSHA256 != strings.Repeat("a", 64) ||
+		record.Key != "it-risk-exceptions-row-2" || record.Rating != "High" || len(record.Fields) != 4 {
+		t.Fatalf("persisted source risk changed: group=%#v record=%#v", group, record)
+	}
+}
+
 func TestITRiskExceptionProjectsCanonicalERMRiskWithoutInventingAppetite(t *testing.T) {
 	group := sourceRecordGroup{
 		Key: "it-risk-exceptions", ProgramCode: "IT-RISK", Title: "IT risk exception register",
