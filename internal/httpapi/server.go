@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/activity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigateway"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigovernance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/attention"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
@@ -113,6 +114,7 @@ type Dependencies struct {
 	DomainMetrics           metricview.DomainReader
 	PresentationPreferences *presentationprefs.Service
 	NotificationPreferences *notificationprefs.Service
+	NotificationDelivery    attention.DeliveryReader
 	Workflow                *workflow.Service
 	EscalationSimulation    workflow.EscalationSimulator
 	Onboarding              *onboarding.Service
