@@ -109,6 +109,29 @@ export function assessmentKindLabel(kind: RiskAssessmentKind): string {
   return labels[kind];
 }
 
+export function assessmentRatingLabel(assessment: RiskAssessment | undefined): string {
+  if (!assessment) return "Not assessed";
+  for (const key of ["risk_level", "rating", "band"] as const) {
+    const value = assessment.dimensions?.[key];
+    if (typeof value === "string" && value.trim()) return readableRating(value);
+  }
+  return "See assessment";
+}
+
+export function assessmentRatingTone(assessment: RiskAssessment | undefined): StatusTone {
+  const value = assessmentRatingLabel(assessment).toUpperCase();
+  if (value === "CRITICAL" || value === "SEVERE") return "error";
+  if (value === "HIGH") return "warning";
+  if (value === "MODERATE" || value === "MEDIUM") return "info";
+  if (value === "LOW") return "success";
+  return "unknown";
+}
+
+function readableRating(value: string): string {
+  const normalized = value.trim().replaceAll("_", " ").toLowerCase();
+  return normalized ? normalized[0]!.toUpperCase() + normalized.slice(1) : "See assessment";
+}
+
 export function formatRiskDate(value: string | undefined): string {
   if (!value) return "Not recorded";
   const date = new Date(value);
