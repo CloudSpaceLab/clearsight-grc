@@ -242,7 +242,6 @@ func riskIndicatorMatterLinkedToProgram(value continuity.MatterAggregate, progra
 	return false
 }
 
-
 func currentRiskIndicatorNativeMeasurement(check monitoring.MonitoringCheck, result *monitoring.MonitoringResult) *monitoring.NativeMeasurement {
 	if result != nil && result.Evaluation.Measurement != nil {
 		value := *result.Evaluation.Measurement
