@@ -2116,6 +2116,37 @@
         }
       }
     },
+    "/api/v1/metrics/domain": {
+      "get": {
+        "operationId": "domainMetrics",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "responses": {
+          "200": {"description": "Latest retained cross-domain Risk, indicator, assurance and operational-loss metrics."},
+          "503": {"description": "Cross-domain metrics are not available yet."}
+        }
+      }
+    },
+    "/api/v1/metrics/domain/{metric_id}/members": {
+      "get": {
+        "operationId": "domainMetricMembers",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "responses": {
+          "200": {"description": "Exact retained membership for the requested cross-domain metric source revision."}
+        }
+      }
+    },
+    "/api/v1/metrics/domain/{metric_id}/trend": {
+      "get": {
+        "operationId": "domainMetricTrend",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "responses": {
+          "200": {"description": "Retained hourly or daily history for the requested cross-domain metric."}
+        }
+      }
+    },
     "/api/v1/metrics/matrices/risk-appetite": {
       "get": {
         "operationId": "riskAppetiteMatrix",

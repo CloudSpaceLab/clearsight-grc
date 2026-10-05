@@ -12,6 +12,14 @@ import (
 )
 
 func (a *API) homeMetricTrend(w http.ResponseWriter, r *http.Request) {
+	a.metricTrend(w, r)
+}
+
+func (a *API) domainMetricTrend(w http.ResponseWriter, r *http.Request) {
+	a.metricTrend(w, r)
+}
+
+func (a *API) metricTrend(w http.ResponseWriter, r *http.Request) {
 	actor, err := identity.Require(r.Context())
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")

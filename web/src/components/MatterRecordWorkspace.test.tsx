@@ -190,6 +190,10 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    const priority = screen.getByText("High priority", { selector: ".cs-status-badge" });
+    expect(priority.className).toContain("cs-tone--error");
+    const overdue = screen.getByText("Overdue", { selector: ".matter-record-header .cs-status-badge" });
+    expect(overdue.className).toContain("cs-tone--warning");
     expect(screen.getByLabelText("Current responsibility and timing").textContent).toContain("Assigned performer Program Owner");
     expect(screen.getByText("Due 26 Aug 2026")).toBeTruthy();
     expect(screen.getByText("2 missing information items")).toBeTruthy();
@@ -522,7 +526,7 @@ describe("Matter record workspace", () => {
 
       expect(await screen.findByText("Program Owner", { selector: ".matter-action-meta strong" })).toBeTruthy();
       expect(screen.getByText("In progress", { selector: ".cs-status-badge" })).toBeTruthy();
-      expect(screen.getByText("Overdue", { selector: ".cs-status-badge" })).toBeTruthy();
+      expect(screen.getByText("Overdue", { selector: ".matter-action-state .cs-status-badge" })).toBeTruthy();
       expect(screen.getByText("Due 26 Aug 2026 · 8 days overdue", { selector: "time" })).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: "Add action" }));
       fireEvent.change(screen.getByLabelText("Action title"), { target: { value: "Confirm section owners" } });
@@ -552,7 +556,7 @@ describe("Matter record workspace", () => {
       await openRecordTab("Actions");
 
       expect(await screen.findByText("Due 26 Aug 2026", { selector: "time" })).toBeTruthy();
-      expect(screen.queryByText("Overdue", { selector: ".cs-status-badge" })).toBeNull();
+      expect(screen.queryByText("Overdue", { selector: ".matter-action-state .cs-status-badge" })).toBeNull();
     } finally {
       clock.mockRestore();
     }

@@ -3,7 +3,6 @@ package metricview
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
@@ -137,8 +136,6 @@ func trendPointComplete(point TrendPoint) bool {
 		point.Unknown != nil && *point.Unknown == 0
 }
 
-func validHomeTrendMetric(metricID string) bool {
-	metricID = strings.TrimSpace(metricID)
-	_, ok := HomeDefinition(metricID)
-	return ok
+func trendDefinition(metricID string) (Definition, bool) {
+	return metricDefinition(metricID)
 }

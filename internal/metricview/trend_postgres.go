@@ -16,7 +16,8 @@ func (r *ObservationRepository) Trend(ctx context.Context, tenantID, legalEntity
 	tenantID = strings.TrimSpace(tenantID)
 	legalEntityID = strings.TrimSpace(legalEntityID)
 	metricID = strings.TrimSpace(metricID)
-	if r == nil || r.pool == nil || ctx == nil || tenantID == "" || legalEntityID == "" || !validHomeTrendMetric(metricID) {
+	definition, ok := trendDefinition(metricID)
+	if r == nil || r.pool == nil || ctx == nil || tenantID == "" || legalEntityID == "" || !ok {
 		return TrendSeries{}, ErrTrendInvalid
 	}
 	resolution, err := trendResolution(start, end)
@@ -25,14 +26,14 @@ func (r *ObservationRepository) Trend(ctx context.Context, tenantID, legalEntity
 	}
 	start, end = start.UTC(), end.UTC()
 	series := TrendSeries{
-		MetricID: metricID, DefinitionRevision: HomeDefinitionRevision, Start: start, End: end,
+		MetricID: metricID, DefinitionRevision: definition.Revision, Start: start, End: end,
 		Resolution: resolution, Points: []TrendPoint{}, Direction: TrendUnknown, ComparisonQuality: ComparisonMissing,
 	}
 
 	if resolution == TrendResolutionHour {
-		series.Points, err = r.hourlyTrendPoints(ctx, tenantID, legalEntityID, metricID, start, end)
+		series.Points, err = r.hourlyTrendPoints(ctx, tenantID, legalEntityID, metricID, definition.Revision, start, end)
 	} else {
-		series.Points, err = r.dailyTrendPoints(ctx, tenantID, legalEntityID, metricID, start, end)
+		series.Points, err = r.dailyTrendPoints(ctx, tenantID, legalEntityID, metricID, definition.Revision, start, end)
 	}
 	if err != nil {
 		return TrendSeries{}, err
@@ -42,7 +43,7 @@ func (r *ObservationRepository) Trend(ctx context.Context, tenantID, legalEntity
 	}
 	current := series.Points[len(series.Points)-1]
 	series.Current = &current
-	series.Baseline, err = r.comparisonPoint(ctx, tenantID, legalEntityID, metricID, start, true)
+	series.Baseline, err = r.comparisonPoint(ctx, tenantID, legalEntityID, metricID, definition.Revision, start, true)
 	if err != nil && !errors.Is(err, ErrTrendNotFound) {
 		return TrendSeries{}, err
 	}
@@ -50,7 +51,7 @@ func (r *ObservationRepository) Trend(ctx context.Context, tenantID, legalEntity
 	return series, nil
 }
 
-func (r *ObservationRepository) hourlyTrendPoints(ctx context.Context, tenantID, legalEntityID, metricID string, start, end time.Time) ([]TrendPoint, error) {
+func (r *ObservationRepository) hourlyTrendPoints(ctx context.Context, tenantID, legalEntityID, metricID, revision string, start, end time.Time) ([]TrendPoint, error) {
 	rows, err := r.pool.Query(ctx, `
 		WITH ranked AS (
 			SELECT observation.generated_at,observation.value,observation.freshness,observation.completeness,
@@ -72,7 +73,7 @@ func (r *ObservationRepository) hourlyTrendPoints(ctx context.Context, tenantID,
 		SELECT generated_at,value,freshness,completeness,population,excluded,unknown,source_revision
 		FROM ranked WHERE sequence=1
 		ORDER BY generated_at`,
-		tenantID, legalEntityID, metricID, HomeDefinitionRevision, start, end)
+		tenantID, legalEntityID, metricID, revision, start, end)
 	if err != nil {
 		return nil, fmt.Errorf("load hourly metric trend: %w", err)
 	}
@@ -80,7 +81,7 @@ func (r *ObservationRepository) hourlyTrendPoints(ctx context.Context, tenantID,
 	return scanTrendPoints(rows)
 }
 
-func (r *ObservationRepository) dailyTrendPoints(ctx context.Context, tenantID, legalEntityID, metricID string, start, end time.Time) ([]TrendPoint, error) {
+func (r *ObservationRepository) dailyTrendPoints(ctx context.Context, tenantID, legalEntityID, metricID, revision string, start, end time.Time) ([]TrendPoint, error) {
 	rows, err := r.pool.Query(ctx, `
 		WITH raw_ranked AS (
 			SELECT (observation.generated_at AT TIME ZONE 'UTC')::date bucket_date,
@@ -122,7 +123,7 @@ func (r *ObservationRepository) dailyTrendPoints(ctx context.Context, tenantID, 
 		)
 		SELECT generated_at,value,freshness,completeness,population,excluded,unknown,source_revision
 		FROM chosen ORDER BY bucket_date`,
-		tenantID, legalEntityID, metricID, HomeDefinitionRevision, start, end)
+		tenantID, legalEntityID, metricID, revision, start, end)
 	if err != nil {
 		return nil, fmt.Errorf("load daily metric trend: %w", err)
 	}
@@ -130,7 +131,7 @@ func (r *ObservationRepository) dailyTrendPoints(ctx context.Context, tenantID, 
 	return scanTrendPoints(rows)
 }
 
-func (r *ObservationRepository) comparisonPoint(ctx context.Context, tenantID, legalEntityID, metricID string, boundary time.Time, before bool) (*TrendPoint, error) {
+func (r *ObservationRepository) comparisonPoint(ctx context.Context, tenantID, legalEntityID, metricID, revision string, boundary time.Time, before bool) (*TrendPoint, error) {
 	operator := "<="
 	if before {
 		operator = "<"
@@ -163,7 +164,7 @@ func (r *ObservationRepository) comparisonPoint(ctx context.Context, tenantID, l
 		FROM candidates
 		ORDER BY generated_at DESC,source_priority
 		LIMIT 1`
-	row := r.pool.QueryRow(ctx, query, tenantID, legalEntityID, metricID, HomeDefinitionRevision, boundary.UTC())
+	row := r.pool.QueryRow(ctx, query, tenantID, legalEntityID, metricID, revision, boundary.UTC())
 	point := TrendPoint{}
 	if err := row.Scan(&point.At, &point.Value, &point.Freshness, &point.Completeness, &point.Population, &point.Excluded, &point.Unknown, &point.SourceRevision); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -198,7 +199,7 @@ func (r *ObservationRepository) maintainTrendRetention(ctx context.Context, now 
 	if limit <= 0 || limit > 250 {
 		limit = 100
 	}
-	maintenanceLimit := limit * len(homeDefinitions)
+	maintenanceLimit := limit * (len(homeDefinitions) + len(domainDefinitions))
 	if maintenanceLimit > 1000 {
 		maintenanceLimit = 1000
 	}

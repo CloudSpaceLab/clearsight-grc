@@ -10,7 +10,8 @@ import { MatterSetupWorkspace } from "./MatterSetupWorkspace";
 import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
-import { Notice } from "./ui";
+import { matterDeadlinePresentation, matterPriorityLabel, matterPriorityTone } from "../matterPresentation";
+import { Notice, StatusBadge } from "./ui";
 
 type LoadState = "loading" | "live" | "unavailable";
 type Props = { targetID?: string; openFirst?: boolean; onBack?: () => void; onOpenRequest?: (requestID: string) => void };
@@ -31,14 +32,6 @@ function actionStatusLabel(value: string) {
     case "CANCELLED": return "Cancelled";
     default: return humanizeKey(value);
   }
-}
-
-function priorityLabel(value: number) {
-  if (value >= 5) return "Critical";
-  if (value === 4) return "High";
-  if (value === 3) return "Medium";
-  if (value === 2) return "Normal";
-  return "Low";
 }
 
 function humanizeKey(value: string) {
@@ -273,9 +266,10 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
       <button className="secondary-button" type="submit">Apply filters</button>
       {filtersActive && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
-    {filtersActive && <div className="workspace-filter-chips" aria-label="Applied issue filters">{search && <span>Search: {search}</span>}{status !== "OPEN" && <span>{status ? matterTypeLabel(status) : "All statuses"}</span>}{matterType && <span>{matterTypeLabel(matterType)}</span>}{priority && <span>{priorityLabel(priority)} priority</span>}{dueCondition && <span>{dueCondition === "OVERDUE" ? "Overdue" : dueCondition === "NO_DUE_DATE" ? "No due date" : dueCondition === "DUE_7_DAYS" ? "Due in 7 days" : "Due in 30 days"}</span>}{assignedToMe && <span>Assigned to me</span>}</div>}
+    {filtersActive && <div className="workspace-filter-chips" aria-label="Applied issue filters">{search && <span>Search: {search}</span>}{status !== "OPEN" && <span>{status ? matterTypeLabel(status) : "All statuses"}</span>}{matterType && <span>{matterTypeLabel(matterType)}</span>}{priority && <span>{matterPriorityLabel(priority)} priority</span>}{dueCondition && <span>{dueCondition === "OVERDUE" ? "Overdue" : dueCondition === "NO_DUE_DATE" ? "No due date" : dueCondition === "DUE_7_DAYS" ? "Due in 7 days" : "Due in 30 days"}</span>}{assignedToMe && <span>Assigned to me</span>}</div>}
       {!setupOpen && !items.length ? <EmptyState label="Issues and changes" title={filtersActive ? "No items match these filters" : "No open issues or changes"} description={filtersActive ? "Change filters." : "No open items in this scope."} action={filtersActive ? "Clear filters" : "Create issue or change"} onAction={filtersActive ? clearFilters : () => { setCreationNotice(""); setSetupOpen(true); }}/> : items.length ? <section className="matter-list">{items.map((summaryItem) => {
       const matter = summaryItem.matter;
+      const deadline = matterDeadlinePresentation(matter.due_at);
       const isOpen = openID === matter.id;
       const detail = details[matter.id];
       const currentDetailState = detailState[matter.id];
@@ -291,7 +285,7 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
         <button type="button" className="matter-card-main" aria-expanded={isOpen} aria-controls={`matter-detail-${matter.id}`} onClick={() => void toggleDetail(matter.id)}>
           <span className="matter-icon"><MatterIcon type={matter.type}/></span>
           <span className="matter-primary"><span className="matter-kicker">{summaryItem.type_label} · {matter.reference}</span><strong>{matter.title}</strong><small>{matter.summary}</small></span>
-          <span className="matter-meta"><span>{priorityLabel(matter.priority)} priority</span><span>{matter.due_at ? `${Date.parse(matter.due_at) < Date.now() ? "Overdue" : "Due"} ${new Date(matter.due_at).toLocaleDateString()}` : "No due date"}</span><span>{summaryItem.open_action_count} open action{summaryItem.open_action_count === 1 ? "" : "s"}</span></span>
+          <span className="matter-meta"><span><StatusBadge tone={matterPriorityTone(matter.priority)}>{matterPriorityLabel(matter.priority)} priority</StatusBadge></span><span>{deadline.dateTime ? <><StatusBadge tone={deadline.tone}>{deadline.label}</StatusBadge> <time dateTime={deadline.dateTime}>{new Date(deadline.dateTime).toLocaleDateString()}</time></> : deadline.label}</span><span>{summaryItem.open_action_count} open action{summaryItem.open_action_count === 1 ? "" : "s"}</span></span>
           <span className={`matter-status status-${matter.status.toLowerCase().replaceAll("_", "-")}`}><strong>{summaryItem.status_label}</strong><small>{summaryItem.next_action}</small></span>
           <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
         </button>

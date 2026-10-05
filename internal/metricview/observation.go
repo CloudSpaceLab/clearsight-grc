@@ -10,7 +10,10 @@ import (
 
 var ErrInvalidObservation = errors.New("metric observation is invalid")
 
-const ObservationSourceOversightSnapshot = "OVERSIGHT_SNAPSHOT"
+const (
+	ObservationSourceOversightSnapshot = "OVERSIGHT_SNAPSHOT"
+	ObservationSourceDomainSnapshot    = "DOMAIN_SNAPSHOT"
+)
 
 type Observation struct {
 	TenantID           string

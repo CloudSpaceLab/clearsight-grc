@@ -17,7 +17,8 @@ import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { selectMatterHandoff } from "./matterHandoff";
 import { MatterActivityTimeline } from "./MatterActivityTimeline";
-import { Tabs } from "./ui";
+import { matterDeadlinePresentation, matterPriorityLabel, matterPriorityTone } from "../matterPresentation";
+import { StatusBadge, Tabs } from "./ui";
 
 type Props = {
   matterID: string;
@@ -34,14 +35,6 @@ const matterWorkspaceTabs: ReadonlyArray<{ id: MatterWorkspaceTab; label: string
   { id: "evidence", label: "Evidence" },
   { id: "decisions", label: "Decisions" },
 ];
-
-function priorityLabel(value: number) {
-  if (value >= 5) return "Critical";
-  if (value === 4) return "High";
-  if (value === 3) return "Medium";
-  if (value === 2) return "Normal";
-  return "Low";
-}
 
 export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props) {
   const [aggregateState, setAggregateState] = useState<LoadState>("loading");
@@ -134,6 +127,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
   const responsibleParties = operationsState === "live" && operationVersionMatches ? operations?.responsible_parties ?? [] : [];
   const handoffOperation = aggregate ? selectMatterHandoff(aggregate, currentOperations) : undefined;
   const assignmentIsDominant = handoffOperation?.command === "matter.assign";
+  const deadline = aggregate ? matterDeadlinePresentation(aggregate.matter.due_at) : undefined;
 
   return <section className="matter-record-workspace" aria-label="Issue or change record">
     <button aria-label="Back to issues and changes" className="text-button matter-record-back" type="button" onClick={onBack}>← Back to issues and changes</button>
@@ -147,7 +141,8 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
           <p>{aggregate.matter.summary}</p>
         </div>
         <dl>
-          <div><dt>Priority</dt><dd>{priorityLabel(aggregate.matter.priority)}</dd></div>
+          <div><dt>Priority</dt><dd><StatusBadge tone={matterPriorityTone(aggregate.matter.priority)}>{matterPriorityLabel(aggregate.matter.priority)} priority</StatusBadge></dd></div>
+          <div><dt>Due</dt><dd>{deadline?.dateTime ? <><StatusBadge tone={deadline.tone}>{deadline.label}</StatusBadge> <time dateTime={deadline.dateTime}>{new Date(deadline.dateTime).toLocaleDateString()}</time></> : deadline?.label ?? "No due date"}</dd></div>
           <div><dt>Status</dt><dd>{aggregate.status_label}</dd></div>
           <div><dt>Record version</dt><dd>{aggregate.matter.version}</dd></div>
         </dl>

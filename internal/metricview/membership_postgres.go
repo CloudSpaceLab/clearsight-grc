@@ -60,6 +60,13 @@ func (r *MembershipRepository) ListSnapshotMembers(
 			       membership_set.definition_revision
 			FROM metric_runtime_membership_sets membership_set
 			WHERE membership_set.expires_at>clock_timestamp()
+			UNION ALL
+			SELECT source.id,
+			       source.tenant_id,
+			       source.legal_entity_id,
+			       NULL::uuid,
+			       source.definition_revision
+			FROM domain_metric_snapshots source
 		), members AS (
 			SELECT member.oversight_snapshot_id AS source_id,
 			       member.metric_id,
@@ -72,6 +79,12 @@ func (r *MembershipRepository) ListSnapshotMembers(
 			       member.definition_revision,
 			       member.member_id
 			FROM metric_runtime_memberships member
+			UNION ALL
+			SELECT member.source_id,
+			       member.metric_id,
+			       member.definition_revision,
+			       member.member_id
+			FROM domain_metric_snapshot_memberships member
 		)
 		SELECT count(member.member_id),count(DISTINCT membership_set.source_id)
 		FROM membership_sets membership_set
@@ -115,6 +128,13 @@ func (r *MembershipRepository) ListSnapshotMembers(
 			       membership_set.definition_revision
 			FROM metric_runtime_membership_sets membership_set
 			WHERE membership_set.expires_at>clock_timestamp()
+			UNION ALL
+			SELECT source.id,
+			       source.tenant_id,
+			       source.legal_entity_id,
+			       NULL::uuid,
+			       source.definition_revision
+			FROM domain_metric_snapshots source
 		), members AS (
 			SELECT member.oversight_snapshot_id AS source_id,
 			       member.metric_id,
@@ -135,6 +155,16 @@ func (r *MembershipRepository) ListSnapshotMembers(
 			       member.target_title,
 			       member.state
 			FROM metric_runtime_memberships member
+			UNION ALL
+			SELECT member.source_id,
+			       member.metric_id,
+			       member.definition_revision,
+			       member.member_id,
+			       member.target_type,
+			       member.target_id,
+			       member.target_title,
+			       member.state
+			FROM domain_metric_snapshot_memberships member
 		)
 		SELECT member.member_id::text,
 		       member.target_type,
@@ -160,6 +190,16 @@ func (r *MembershipRepository) ListSnapshotMembers(
 		 AND program.tenant_id=membership_set.tenant_id
 		 AND program.legal_entity_id=membership_set.legal_entity_id
 		 AND program.id=member.target_id
+		LEFT JOIN risks risk
+		  ON member.target_type='RISK'
+		 AND risk.tenant_id=membership_set.tenant_id
+		 AND risk.legal_entity_id=membership_set.legal_entity_id
+		 AND risk.id=member.target_id
+		LEFT JOIN operational_losses loss
+		  ON member.target_type='LOSS'
+		 AND loss.tenant_id=membership_set.tenant_id
+		 AND loss.legal_entity_id=membership_set.legal_entity_id
+		 AND loss.id=member.target_id
 		CROSS JOIN LATERAL (
 		  SELECT CASE member.target_type
 		    WHEN 'MATTER' THEN matter.id IS NOT NULL AND (
@@ -226,6 +266,8 @@ func (r *MembershipRepository) ListSnapshotMembers(
 		        ELSE false
 		      END
 		    )
+		    WHEN 'RISK' THEN risk.id IS NOT NULL
+		    WHEN 'LOSS' THEN loss.id IS NOT NULL
 		    ELSE false
 		  END AS allowed
 		) visibility
