@@ -11,6 +11,7 @@ const scripts = [
   "scripts/capture-lifecycle-ui-evidence.mjs",
   "scripts/capture-operating-mutations-evidence.mjs",
   "scripts/capture-program-review-evidence.mjs",
+  "scripts/capture-native-indicator-evidence.mjs",
   "scripts/capture-premium-first-run-evidence.mjs",
   "scripts/capture-forms-evidence.mjs",
   "scripts/review-ui-defects.mjs",
