@@ -11,6 +11,7 @@ import { Notice, StatusBadge, type StatusTone } from "./ui";
 import { apiErrorKind } from "../http";
 import { CollectionPolicyForm } from "./CollectionPolicyForm";
 import { CollectionRecord } from "./CollectionRecord";
+import { IndicatorValue } from "./indicators/IndicatorValue";
 
 const FormBuilder = lazy(() => import("./FormBuilder").then((module) => ({ default: module.FormBuilder })));
 
@@ -56,7 +57,9 @@ function MonitoringResultPanel({ check, result, formFields }: { check: Monitorin
   if (!result) return null;
   return <>
     <div className="monitoring-result" aria-label={`Latest result for ${check.name}`}>
-      <strong>{riskLabel(result)}</strong>
+      {result.evaluation.measurement
+        ? <IndicatorValue measurement={result.evaluation.measurement} score={result.evaluation.score} denominator={100}/>
+        : <strong>{riskLabel(result)}</strong>}
       <StatusBadge tone={bandTone(result)}>{bandLabel(result)}</StatusBadge>
       <span>{Math.round(result.evaluation.coverage * 100)}% coverage</span>
       <time dateTime={result.evaluated_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(result.evaluated_at))}</time>
@@ -104,7 +107,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     if (checkResult.status === "fulfilled") {
       const currentChecks = latestByID(checkResult.value);
       setChecks(currentChecks);
-      const loaded = await Promise.allSettled(currentChecks.map(async (check) => ({ check, results: await loadMonitoringResults(check.id) })));
+      const loaded = await Promise.allSettled(currentChecks.map(async (check) => ({ check, results: await loadMonitoringResults(check.id, check.version) })));
       const next: Record<string, MonitoringResult> = {};
       for (const value of loaded) if (value.status === "fulfilled" && value.value.results[0]) next[value.value.check.id] = value.value.results[0];
       setLatestResults(next);
@@ -232,7 +235,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     try {
       const result = await evaluateMonitoringSource(check);
       setLatestResults((current) => ({ ...current, [check.id]: result }));
-      const score = result.evaluation.score == null ? "not assessed" : `${Math.round(result.evaluation.score)}% risk`;
+      const score = result.evaluation.score == null ? "concern not assessed" : `${Math.round(result.evaluation.score)} concern points`;
       setNotice(`${check.name}: ${score} · ${result.evaluation.band.toLowerCase().replaceAll("_", " ")}.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The source could not be evaluated.");
