@@ -66,17 +66,6 @@ function isPortfolioView(view: View): view is PortfolioView {
   return (portfolioViews as readonly View[]).includes(view);
 }
 
-function portfolioViewFromPreference(value?: string): PortfolioView {
-  switch (value) {
-    case "RISKS": return "risks";
-    case "LOSSES": return "losses";
-    case "VENDORS": return "vendors";
-    case "PROCESSING_ACTIVITIES": return "ropa";
-    case "FORMS": return "forms";
-    default: return "programs";
-  }
-}
-
 type ProductRuntime = RuntimeContext & {
   demo_mode?: boolean;
   capabilities?: {
@@ -328,11 +317,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     : organizationScopes;
   const showScopeControl = Boolean(scopeHierarchy && currentScopeID)
     && (canSelectGroup || canSwitchLegalEntity || organizationScopes.length > 0 || scopeHierarchy?.organization_scopes_truncated === true || canOpenOrganization);
-  const preferredPortfolioView = portfolioViewFromPreference(displayPreferences?.presentation?.effective_portfolio_lens);
   const homeFocus = displayPreferences?.presentation?.effective_home_focus ?? "POSTURE";
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
-    { label: "Portfolio", view: preferredPortfolioView, activeViews: portfolioViews },
+    { label: "Portfolio", view: "programs", activeViews: portfolioViews },
     { label: "Work", view: "work", activeViews: ["work"] },
     { label: "Reports", view: "reports", activeViews: ["reports"] },
   ];
