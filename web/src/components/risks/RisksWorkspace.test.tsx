@@ -31,7 +31,7 @@ const assessment = {
   kind: "RESIDUAL" as const,
   method_code: "QUAL-5X5",
   method_version: "v1",
-  dimensions: { likelihood: 4, impact: 5 },
+  dimensions: { likelihood: 4, impact: 5, risk_level: "High" },
   assumptions: {},
   evidence_references: [],
   assessed_by: "10000000-0000-4000-8000-000000000002",
@@ -117,6 +117,7 @@ it("renders a bounded Risk register with working-language appetite state", async
 
   const table = await screen.findByRole("table", { name: "Risk register" });
   expect(within(table).getByText("Network resilience")).toBeTruthy();
+  expect(within(table).getByText("High")).toBeTruthy();
   expect(within(table).getByText("Outside appetite")).toBeTruthy();
   expect(within(table).getByText("Residual")).toBeTruthy();
   expect(within(table).getByText("QUAL-5X5 · v1")).toBeTruthy();
@@ -135,7 +136,7 @@ it("binds the register read to the selected organization scope", async () => {
   />);
 
   await screen.findByText("Network resilience");
-  expect(screen.getByText("Current risk statements and appetite position for BANK / RISK.")).toBeTruthy();
+  expect(screen.getByText("Current risk statements, assessed rating and appetite position for BANK / RISK.")).toBeTruthy();
   expect(loadPage).toHaveBeenCalledWith(expect.objectContaining({ organizationScopeID: "scope-risk", limit: 25 }), expect.any(AbortSignal));
 });
 
@@ -179,6 +180,7 @@ it("shows statement, impact, scope and history without exposing principal identi
   expect(screen.getByText("Critical network")).toBeTruthy();
   expect(screen.getByText("Service continuity")).toBeTruthy();
   expect(screen.getByText("Assigned")).toBeTruthy();
+  expect(within(screen.getByRole("group", { name: "Current risk state" })).getByText("High")).toBeTruthy();
   expect(screen.getByRole("table", { name: "Risk assessments" })).toBeTruthy();
   expect(screen.getByRole("table", { name: "Risk appetite history" })).toBeTruthy();
   expect(screen.queryByText(risk.owner_principal_id!)).toBeNull();
