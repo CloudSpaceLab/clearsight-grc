@@ -111,3 +111,30 @@ func TestRiskIndicatorMatterLinkedToProgramRequiresActiveProgramLink(t *testing.
 		t.Fatal("wrong Program was treated as current intervention")
 	}
 }
+
+
+func TestCurrentRiskIndicatorNativeMeasurementPrefersObservedValue(t *testing.T) {
+	check := monitoring.MonitoringCheck{
+		Measurement: &monitoring.MeasurementSpec{Field: "success_rate", Label: "Success rate", Unit: monitoring.MeasurementPercent, Precision: 2},
+		SourceRules: []monitoring.SourceRule{{
+			ID: "minimum", Field: "success_rate", Operator: monitoring.OperatorGreaterOrEqual, Expected: "99.50", RiskPoints: 100,
+		}},
+	}
+	configured := currentRiskIndicatorNativeMeasurement(check, nil)
+	if configured == nil || configured.Value != "" || len(configured.Limits) != 1 || configured.Limits[0].Expected != "99.50" {
+		t.Fatalf("configured measurement=%#v", configured)
+	}
+
+	result := monitoring.MonitoringResult{Evaluation: monitoring.Evaluation{Measurement: &monitoring.NativeMeasurement{
+		Field: "success_rate", Label: "Success rate", Unit: monitoring.MeasurementPercent, Precision: 2, Value: "98.70",
+		Limits: []monitoring.MeasurementLimit{{Operator: monitoring.OperatorGreaterOrEqual, Expected: "99.50"}},
+	}}}
+	observed := currentRiskIndicatorNativeMeasurement(check, &result)
+	if observed == nil || observed.Value != "98.70" || len(observed.Limits) != 1 {
+		t.Fatalf("observed measurement=%#v", observed)
+	}
+	observed.Limits[0].Expected = "mutated"
+	if result.Evaluation.Measurement.Limits[0].Expected != "99.50" {
+		t.Fatal("indicator read mutated the retained monitoring result")
+	}
+}
