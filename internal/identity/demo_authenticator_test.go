@@ -99,6 +99,44 @@ func TestDemoAuthenticatorRoleCatalogueAndSignedSession(t *testing.T) {
 	}
 }
 
+func TestDemoAuthenticatorStableSecretSurvivesProcessReplacement(t *testing.T) {
+	secret := strings.Repeat("s", 64)
+	first, err := NewDemoAuthenticatorWithSecret("bank-demo", "role-cro", "bank-ng", secret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := NewDemoAuthenticatorWithSecret("bank-demo", "role-cro", "bank-ng", secret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	first.now = func() time.Time { return base }
+	second.now = func() time.Time { return base.Add(time.Minute) }
+
+	response := httptest.NewRecorder()
+	if _, err := first.Login(response, "cro@demo.clearsight.local", "demo"); err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/context", nil)
+	request.AddCookie(response.Result().Cookies()[0])
+	actor, present, err := second.Authenticate(request)
+	if err != nil || !present || actor.PrincipalID != "role-cro" {
+		t.Fatalf("stable demo session did not survive authenticator replacement: actor=%#v present=%v err=%v", actor, present, err)
+	}
+
+	other, err := NewDemoAuthenticatorWithSecret("bank-demo", "role-cro", "bank-ng", strings.Repeat("x", 64))
+	if err != nil {
+		t.Fatal(err)
+	}
+	other.now = func() time.Time { return base.Add(time.Minute) }
+	if _, present, err := other.Authenticate(request); err != nil || present {
+		t.Fatalf("session signed by another secret must fail closed: present=%v err=%v", present, err)
+	}
+	if _, err := NewDemoAuthenticatorWithSecret("bank-demo", "role-cro", "bank-ng", "short"); err == nil {
+		t.Fatal("expected short demo session secret to be rejected")
+	}
+}
+
 func TestDemoAuthenticatorUsesDurablePrincipalIDsForPostgresDemo(t *testing.T) {
 	authenticator, err := NewDemoAuthenticator(DurableDemoTenantID, DurableDemoPrincipalCRO, DurableDemoLegalEntityID)
 	if err != nil {
