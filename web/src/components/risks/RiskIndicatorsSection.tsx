@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { loadProgramSummaries } from "../../api";
 import { loadMonitoringChecks } from "../../monitoringApi";
-import type { MonitoringCheck } from "../../monitoringTypes";
+import type { MonitoringCheck, MonitoringResult } from "../../monitoringTypes";
 import { linkRiskIndicator, type LinkRiskIndicatorResponse } from "../../riskApi";
 import type { RiskIndicatorDetail, RiskIndicatorKind, RiskIndicatorLink, RiskRecord } from "../../riskTypes";
 import type { ProgramSummary, SummaryPage } from "../../summaryTypes";
@@ -22,6 +22,7 @@ type Props = {
   onOpenMatter?: (matterID: string) => void;
   searchPrograms?: (query: string) => Promise<SummaryPage<ProgramSummary>>;
   loadChecks?: (programID: string) => Promise<MonitoringCheck[]>;
+  loadIndicatorResults?: (checkID: string, version?: number) => Promise<MonitoringResult[]>;
   linkIndicator?: (
     riskID: string,
     expectedRiskVersion: number,
@@ -48,6 +49,7 @@ export function RiskIndicatorsSection({
   onOpenMatter,
   searchPrograms = searchIndicatorPrograms,
   loadChecks = loadMonitoringChecks,
+  loadIndicatorResults,
   linkIndicator = linkRiskIndicator,
 }: Props) {
   const [linkMode, setLinkMode] = useState(false);
@@ -274,7 +276,7 @@ export function RiskIndicatorsSection({
       rowActionLabel="Open indicator"
     /> : <EmptyState population={risk.name} title="No linked indicators" description="No governed Program monitoring check is linked to this risk."/>}
     {selectedIndicator && <FocusedSheet label={`${selectedIndicator.link.kind} · ${selectedIndicator.check_name}`} size="wide" onClose={() => setSelectedIndicator(undefined)}>
-      <IndicatorDetail indicator={selectedIndicator} onOpenProgram={onOpenProgram} onOpenMatter={onOpenMatter}/>
+      <IndicatorDetail indicator={selectedIndicator} onOpenProgram={onOpenProgram} onOpenMatter={onOpenMatter} loadResults={loadIndicatorResults}/>
     </FocusedSheet>}
   </section>;
 }
