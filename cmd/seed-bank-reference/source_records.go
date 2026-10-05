@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -24,6 +25,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -75,6 +77,8 @@ type sourceRecordReceipt struct {
 	Groups            int              `json:"groups"`
 	Records           int              `json:"records"`
 	Matters           int              `json:"matters"`
+	Risks             int              `json:"risks"`
+	RiskAssessments   int              `json:"risk_assessments"`
 	Captures          int              `json:"captures"`
 	ReportDefinitions int              `json:"report_definitions"`
 	Items             []map[string]any `json:"items"`
@@ -154,6 +158,7 @@ func sourceMatterProjection(group sourceRecordGroup, record sourceRecord) source
 	for key, value := range map[string]string{
 		"finding":              finding,
 		"risk_implication":     implication,
+		"source_risk_id":       sourceFieldValue(record, "RISK ID", "Risk ID"),
 		"severity":             sourceFieldValue(record, "Severity", "RISK LEVEL", "Risk Level (Inherent Risk)", "Inherent Risk Rating"),
 		"recommendation":       sourceFieldValue(record, "RECOMMENDATIONS", "Required Actions", "Additional/Proposed controls"),
 		"assessment_date":      sourceFieldValue(record, "DATE OF ASSESSMENT", "Source assessment date", "RISK ASSESSMENT PUBLICATION DATE"),
@@ -169,6 +174,201 @@ func sourceMatterProjection(group sourceRecordGroup, record sourceRecord) source
 		}
 	}
 	return sourceMatterProjectionValue{Summary: summary, Scope: sourceJSON(scope), KnownFacts: sourceJSON(facts), MissingFacts: sourceJSON([]string{})}
+}
+
+const sourceRiskAssessmentMethod = "SOURCE-REGISTER"
+
+type sourceRiskProjectionValue struct {
+	Code               string
+	Name               string
+	Category           string
+	Statement          string
+	Impact             string
+	Scope              json.RawMessage
+	Dimensions         json.RawMessage
+	Assumptions        json.RawMessage
+	EvidenceReferences json.RawMessage
+	AssessedAt         time.Time
+	HasAssessment      bool
+}
+
+func sourceRiskProjection(group sourceRecordGroup, record sourceRecord) (sourceRiskProjectionValue, bool, error) {
+	if group.Key != "it-risk-exceptions" {
+		return sourceRiskProjectionValue{}, false, nil
+	}
+	code := sourceFieldValue(record, "RISK ID", "Risk ID")
+	name := sourceFieldValue(record, "RISK DESCRIPTION", "Risk Description")
+	impact := sourceFieldValue(record, "RISK/ IMPLICATIONS", "Risk / Implications", "Risk Implications")
+	if code == "" || name == "" || impact == "" {
+		return sourceRiskProjectionValue{}, false, fmt.Errorf("source risk %s is missing RISK ID, RISK DESCRIPTION or RISK/ IMPLICATIONS", record.Key)
+	}
+	category := sourceFieldValue(record, "RISK CATEGORY", "Risk Category")
+	assessmentName := sourceFieldValue(record, "RISK ASSESSMENT", "Risk Assessment")
+	rating := strings.TrimSpace(record.Rating)
+	if rating == "" {
+		rating = sourceFieldValue(record, "RISK LEVEL", "Risk Level")
+	}
+	affectedArea := sourceFieldValue(record, "APPLICATION/ SERVICES AFFECTED", "APPLICATION/\nSERVICES AFFECTED", "Application", "Service")
+	controlReference := sourceFieldValue(record, "CONTROL FRAMEWORK AND REFERENCES", "Control Framework and References")
+	scope := map[string]any{
+		"sample": true, "seed_package": sourceRecordPackage, "source_group": group.Key,
+		"source_file": group.SourceFile, "source_sha256": group.SourceSHA256, "source_sheet": group.SourceSheet,
+		"source_range": record.SourceRange, "source_risk_id": code,
+	}
+	if affectedArea != "" {
+		scope["affected_area"] = affectedArea
+	}
+	if assessmentName != "" {
+		scope["source_assessment"] = assessmentName
+	}
+	if controlReference != "" {
+		scope["control_reference"] = controlReference
+	}
+
+	projection := sourceRiskProjectionValue{
+		Code: strings.ToUpper(strings.TrimSpace(code)), Name: strings.TrimSpace(name), Category: strings.TrimSpace(category),
+		Statement: strings.TrimSpace(name), Impact: strings.TrimSpace(impact), Scope: sourceJSON(scope),
+	}
+	if rating == "" {
+		return projection, true, nil
+	}
+	rawDate := sourceFieldValue(record, "RISK ASSESSMENT PUBLICATION DATE", "DATE OF ASSESSMENT", "Source assessment date")
+	assessedAt, err := sourceRiskDate(rawDate)
+	if err != nil {
+		return sourceRiskProjectionValue{}, false, fmt.Errorf("source risk %s assessment date: %w", record.Key, err)
+	}
+	projection.HasAssessment = true
+	projection.AssessedAt = assessedAt
+	projection.Dimensions = sourceJSON(map[string]any{"risk_level": rating, "source_assessment": assessmentName, "source_sha256": group.SourceSHA256, "source_range": record.SourceRange})
+	projection.Assumptions = sourceJSON(map[string]any{"source_import": true, "rating_preserved_as_recorded": true, "normalized_scoring_not_inferred": true})
+	projection.EvidenceReferences = sourceJSON([]map[string]string{{"source_file": group.SourceFile, "source_sha256": group.SourceSHA256, "source_sheet": group.SourceSheet, "source_range": record.SourceRange}})
+	return projection, true, nil
+}
+
+func sourceRiskDate(value string) (time.Time, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return time.Time{}, fmt.Errorf("assessment publication date is required when a source risk level is recorded")
+	}
+	for _, layout := range []string{"2006-01-02", "02/01/2006", "2/1/2006", "02-01-2006", "2-1-2006", "02 Jan 2006", "2 Jan 2006", "02-Jan-2006", "2-Jan-2006"} {
+		if parsed, err := time.ParseInLocation(layout, value, time.UTC); err == nil {
+			return parsed, nil
+		}
+	}
+	if serial, err := strconv.ParseFloat(value, 64); err == nil && serial > 1 && serial < 100000 {
+		whole := int(serial)
+		date := time.Date(1899, 12, 30, 0, 0, 0, 0, time.UTC).AddDate(0, 0, whole)
+		return date, nil
+	}
+	return time.Time{}, fmt.Errorf("unsupported source date %q", value)
+}
+
+func ensureSourceRisk(ctx context.Context, pool *pgxpool.Pool, service *risk.Service, seed bankverticals.SeedConfig, group sourceRecordGroup, record sourceRecord) (risk.Risk, bool, bool, error) {
+	projection, candidate, err := sourceRiskProjection(group, record)
+	if err != nil || !candidate {
+		return risk.Risk{}, candidate, false, err
+	}
+	scope := risk.Scope{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID}
+	var riskID string
+	err = pool.QueryRow(ctx, `SELECT id::text FROM risks WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND code=$3`, seed.TenantID, seed.LegalEntityID, projection.Code).Scan(&riskID)
+	var current risk.Risk
+	if errors.Is(err, pgx.ErrNoRows) {
+		current, err = service.Create(ctx, risk.CreateInput{
+			TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, Code: projection.Code,
+			Name: projection.Name, Category: projection.Category, Statement: projection.Statement,
+			Impact: projection.Impact, Scope: projection.Scope, ActorID: seed.ActorID,
+		})
+		if err != nil {
+			return risk.Risk{}, true, false, err
+		}
+		current, err = service.Update(ctx, risk.UpdateInput{
+			TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, RiskID: current.ID, ExpectedVersion: current.Version,
+			Name: current.Name, Category: current.Category, Statement: current.Statement, Cause: current.Cause, Event: current.Event,
+			Impact: current.Impact, Scope: current.Scope, Status: risk.StatusActive, ActorID: seed.ActorID,
+		})
+	} else if err == nil {
+		aggregate, getErr := service.Get(ctx, scope, riskID)
+		if getErr != nil {
+			return risk.Risk{}, true, false, getErr
+		}
+		current = aggregate.Risk
+		if err = validateSourceRiskIdentity(current, projection, group, record); err != nil {
+			return risk.Risk{}, true, false, err
+		}
+		if current.Status == risk.StatusDraft && current.Version == 1 {
+			current, err = service.Update(ctx, risk.UpdateInput{
+				TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, RiskID: current.ID, ExpectedVersion: current.Version,
+				Name: current.Name, Category: current.Category, Statement: current.Statement, Cause: current.Cause, Event: current.Event,
+				Impact: current.Impact, Scope: current.Scope, Status: risk.StatusActive, ActorID: seed.ActorID,
+			})
+		} else if current.Status != risk.StatusActive {
+			return risk.Risk{}, true, false, fmt.Errorf("source risk %s is %s; the installer will not reactivate it", projection.Code, current.Status)
+		}
+	} else {
+		return risk.Risk{}, true, false, err
+	}
+	if err != nil {
+		return risk.Risk{}, true, false, err
+	}
+	if !projection.HasAssessment {
+		return current, true, false, nil
+	}
+
+	aggregate, err := service.Get(ctx, scope, current.ID)
+	if err != nil {
+		return risk.Risk{}, true, false, err
+	}
+	for _, assessment := range aggregate.Assessments {
+		if assessment.MethodCode != sourceRiskAssessmentMethod {
+			continue
+		}
+		var dimensions map[string]any
+		if json.Unmarshal(assessment.Dimensions, &dimensions) != nil ||
+			dimensions["source_sha256"] != group.SourceSHA256 ||
+			dimensions["source_range"] != record.SourceRange {
+			return risk.Risk{}, true, false, fmt.Errorf("source risk %s already has a different imported assessment", projection.Code)
+		}
+		return aggregate.Risk, true, false, nil
+	}
+	if aggregate.Risk.Version > 2 {
+		return risk.Risk{}, true, false, fmt.Errorf("source risk %s changed before its source assessment was installed", projection.Code)
+	}
+
+	var assessedBy *string
+	if person := strings.TrimSpace(record.Assessor); person != "" {
+		candidateID := identity.DemoSourceEmployeePrincipalID(person)
+		var exists bool
+		if queryErr := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM principals WHERE tenant_id=$1::uuid AND id=$2::uuid)`, seed.TenantID, candidateID).Scan(&exists); queryErr != nil {
+			return risk.Risk{}, true, false, queryErr
+		} else if exists {
+			assessedBy = &candidateID
+		}
+	}
+	updated, _, err := service.AddAssessment(ctx, risk.AssessmentInput{
+		TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, RiskID: aggregate.Risk.ID, ExpectedRiskVersion: aggregate.Risk.Version,
+		Kind: risk.AssessmentCurrent, MethodCode: sourceRiskAssessmentMethod, MethodVersion: "v1",
+		Dimensions: projection.Dimensions, Assumptions: projection.Assumptions, EvidenceReferences: projection.EvidenceReferences,
+		AppetitePosition: risk.AppetiteUnknown, AppetiteRationale: "No source appetite statement was supplied.",
+		ActorID: seed.ActorID, AssessedAt: projection.AssessedAt, AssessedBy: assessedBy,
+	})
+	return updated, true, err == nil, err
+}
+
+func validateSourceRiskIdentity(current risk.Risk, projection sourceRiskProjectionValue, group sourceRecordGroup, record sourceRecord) error {
+	var scope map[string]any
+	if json.Unmarshal(current.Scope, &scope) != nil ||
+		scope["seed_package"] != sourceRecordPackage ||
+		scope["source_group"] != group.Key ||
+		scope["source_sha256"] != group.SourceSHA256 ||
+		scope["source_range"] != record.SourceRange ||
+		scope["source_risk_id"] != projection.Code {
+		return fmt.Errorf("risk code %s already exists outside this source record", projection.Code)
+	}
+	if current.Version <= 3 && (current.Code != projection.Code || current.Name != projection.Name || current.Category != projection.Category ||
+		current.Statement != projection.Statement || current.Impact != projection.Impact) {
+		return fmt.Errorf("source risk %s baseline changed; review it instead of overwriting", projection.Code)
+	}
+	return nil
 }
 
 func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, seed bankverticals.SeedConfig) (sourceRecordReceipt, error) {
@@ -200,6 +400,8 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 	seed.Now = time.Now().UTC()
 	cr := continuity.NewPostgresRepository(pool)
 	cs := continuity.NewService(cr)
+	rr := risk.NewPostgresRepository(pool)
+	rs := risk.NewService(rr)
 	er := evidence.NewPostgresRepository(pool)
 	mr := monitoring.NewPostgresRepository(pool)
 	ms := monitoring.NewService(mr, evidence.NewService(er, evidence.NewMemoryObjectStore()))
@@ -252,6 +454,16 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 			receipt.Records += len(group.Records)
 			vendor := strings.HasPrefix(group.Key, "third-party-risk-register")
 			for _, record := range group.Records {
+				_, riskCandidate, assessmentCreated, riskErr := ensureSourceRisk(ctx, pool, rs, seed, group, record)
+				if riskErr != nil {
+					return receipt, fmt.Errorf("source risk %s: %w", record.Key, riskErr)
+				}
+				if riskCandidate {
+					receipt.Risks++
+				}
+				if assessmentCreated {
+					receipt.RiskAssessments++
+				}
 				if !record.CreateMatter {
 					continue
 				}
