@@ -546,8 +546,24 @@ func TestServiceEvaluatesSubmissionAgainstExactActiveRevisions(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 17, 14, 0, 0, 0, time.UTC)
 	activeAt := now.Add(-time.Hour)
-	form := FormTemplate{ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "RESET", Name: "Password reset review", Purpose: "Review safeguards.", Fields: []TemplateField{{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "secure", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}, CriticalAnswers: []string{"No"}}}}, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3}}
-	check := MonitoringCheck{ID: "check-1", TenantID: "bank-a", ProgramID: "program-1", Code: "RESET-CHECK", Name: "Password reset safeguards", Claim: "Safeguards operated.", InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview, Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 2}}
+	form := FormTemplate{
+		ID: "form-1", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1", Code: "RESET", Name: "Password reset review", Purpose: "Review safeguards.",
+		Fields: []TemplateField{
+			{ID: "secure", Label: "Secure", Type: "single_select", Required: true, Options: []string{"Yes", "No"}, Scoring: &FormField{ID: "secure", Required: true, Weight: 1, AnswerScores: map[string]int{"Yes": 0, "No": 100}, CriticalAnswers: []string{"No"}}},
+			{ID: "loss", Label: "Observed loss", Type: formcontract.TypeCurrency, Required: true, Constraints: formcontract.Constraints{Currency: "NGN"}},
+		},
+		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 3},
+	}
+	check := MonitoringCheck{
+		ID: "check-1", TenantID: "bank-a", ProgramID: "program-1", Code: "RESET-CHECK", Name: "Password reset safeguards", Claim: "Safeguards operated.",
+		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
+		Measurement: &MeasurementSpec{
+			Field: "loss", Label: "Observed loss", Unit: MeasurementMoney, Currency: "NGN", Precision: 2,
+			Limits: []MeasurementLimit{{Operator: OperatorLessOrEqual, Expected: "1000000"}},
+		},
+		Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
+		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 2},
+	}
 	if _, err := repo.CreateFormRevision(context.Background(), form); err != nil {
 		t.Fatal(err)
 	}
@@ -559,12 +575,20 @@ func TestServiceEvaluatesSubmissionAgainstExactActiveRevisions(t *testing.T) {
 	service.newID = func() (string, error) { return "result-1", nil }
 	service.ConfigureEvidenceReader(recordingEvidenceReader{
 		request:    evidence.Request{ID: "request-1", TenantID: "bank-a", SubjectType: "PROGRAM", SubjectID: "program-1", FormTemplateID: form.ID, FormTemplateVersion: form.Version, KnownFacts: map[string]string{"legal_entity_id": "entity-a"}},
-		submission: evidence.Submission{ID: "submission-1", TenantID: "bank-a", RequestID: "request-1", Channel: "INTERNAL", Answers: map[string]formcontract.AnswerValue{"secure": formcontract.TextAnswer("No")}, SubmittedBy: "operator", SubmittedAt: now},
+		submission: evidence.Submission{ID: "submission-1", TenantID: "bank-a", RequestID: "request-1", Channel: "INTERNAL", Answers: map[string]formcontract.AnswerValue{
+			"secure": formcontract.TextAnswer("No"),
+			"loss":   formcontract.TextAnswer("1250000.00"),
+		}, SubmittedBy: "operator", SubmittedAt: now},
 	})
 
 	results, err := service.EvaluateSubmission(context.Background(), "bank-a", "submission-1")
 	if err != nil || len(results) != 1 || results[0].Evaluation.Score == nil || *results[0].Evaluation.Score != 100 || results[0].Evaluation.Band != RiskCritical {
 		t.Fatalf("results = %#v, err = %v", results, err)
+	}
+	measurement := results[0].Evaluation.Measurement
+	if measurement == nil || measurement.Unit != MeasurementMoney || measurement.Currency != "NGN" || measurement.Value != "1250000.00" ||
+		measurement.Condition != MeasurementConditionBreached || len(measurement.Limits) != 1 || measurement.Limits[0].Expected != "1000000" {
+		t.Fatalf("native form measurement = %#v", measurement)
 	}
 	stored, err := repo.ListResults(context.Background(), "bank-a", check.ID, 10)
 	if err != nil || len(stored) != 1 || stored[0].InputReferenceID != "submission-1" || len(stored[0].SubmissionProvenance) == 0 {
