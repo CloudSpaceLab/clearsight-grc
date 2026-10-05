@@ -234,6 +234,30 @@ func resolveFormLibraryAuthority(ctx context.Context, resolver authority.Service
 	return outcomes, nil
 }
 
+func (a *API) getLibraryForm(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.monitoringService(w)
+	if !ok {
+		return
+	}
+	item, err := service.GetFormLibraryItem(r.Context(), r.PathValue("id"))
+	if err != nil {
+		writeFormsError(w, err)
+		return
+	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in is required to view form responsibilities.")
+		return
+	}
+	page := monitoring.FormTemplatePage{Items: []monitoring.FormLibraryItem{item}}
+	response := a.formLibraryPageWithOperations(r.Context(), actor, page, time.Now().UTC())
+	if len(response.Items) != 1 {
+		httpx.WriteError(w, http.StatusNotFound, "form_not_found", "This form is unavailable.")
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, response.Items[0])
+}
+
 func (a *API) createLibraryForm(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.monitoringService(w)
 	if !ok {
