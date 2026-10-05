@@ -38,7 +38,7 @@ func (r *PostgresDeliveryReader) Health(ctx context.Context, tenantID string, as
 		       count(*) FILTER (WHERE d.status='DELIVERED')::int,
 		       count(*) FILTER (WHERE d.status='TEMPORARY_FAILURE')::int,
 		       count(*) FILTER (WHERE d.status IN ('RECIPIENT_REJECTED','PERMANENT_FAILURE'))::int,
-		       count(*) FILTER (WHERE d.status='DELIVERY_OUTCOME_UNKNOWN')::int,
+		       count(*) FILTER (WHERE d.status IN ('DELIVERY_OUTCOME_UNKNOWN','DELIVERY_STARTED'))::int,
 		       count(*) FILTER (WHERE d.status='CONTACT_UNAVAILABLE')::int,
 		       max(d.last_attempted_at),
 		       max(d.delivered_at)
@@ -79,7 +79,7 @@ func (r *PostgresDeliveryReader) Health(ctx context.Context, tenantID string, as
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		  AND d.last_attempted_at >= $2
 		  AND d.last_attempted_at <= $3
-		  AND d.status IN ('TEMPORARY_FAILURE','DELIVERY_OUTCOME_UNKNOWN','CONTACT_UNAVAILABLE','RECIPIENT_REJECTED','PERMANENT_FAILURE')
+		  AND d.status IN ('TEMPORARY_FAILURE','DELIVERY_STARTED','DELIVERY_OUTCOME_UNKNOWN','CONTACT_UNAVAILABLE','RECIPIENT_REJECTED','PERMANENT_FAILURE')
 		GROUP BY d.delivery_class,d.status,d.failure_code
 		ORDER BY max(d.last_attempted_at) DESC,d.delivery_class,d.status
 		LIMIT 20`, tenantID, start, asOf)
