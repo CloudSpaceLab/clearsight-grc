@@ -7,9 +7,14 @@ import (
 
 func TestDailyDigestContainsCountsOnly(t *testing.T) {
 	request, err := BuildDailyDigestRequest("risk@example.test", DailyDigestContext{
-		BrandName: "ClearSight", RecipientName: "Risk Officer",
-		HomeURL: "https://clearsight.example.test/#home",
-		MaterialChanges: 12, AssignedWork: 4, DueSoon: 2, Worsened: 1, Cleared: 3,
+		BrandName:       "ClearSight",
+		RecipientName:   "Risk Officer",
+		HomeURL:         "https://clearsight.example.test/#home",
+		MaterialChanges: 12,
+		AssignedWork:    4,
+		DueSoon:         2,
+		Worsened:        1,
+		Cleared:         3,
 	})
 	if err != nil {
 		t.Fatal(err)
