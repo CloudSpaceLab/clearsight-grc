@@ -169,6 +169,21 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 	if !inserted {
 		t.Fatal("expected first domain metric snapshot to be inserted")
 	}
+	var snapshotEvents int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*)
+		FROM outbox_events
+		WHERE tenant_id=$1::uuid
+		  AND aggregate_type='DOMAIN_METRIC_SNAPSHOT'
+		  AND aggregate_id=$2::uuid
+		  AND event_type='DomainMetricSnapshotProjected'`,
+		tenantID, bundleSourceID(t, ctx, pool, tenantID, entityID, now),
+	).Scan(&snapshotEvents); err != nil {
+		t.Fatal(err)
+	}
+	if snapshotEvents != 1 {
+		t.Fatalf("domain metric snapshot events=%d want 1", snapshotEvents)
+	}
 	inserted, err = maintainDomainScope(ctx, pool, domainScope{TenantID: tenantID, LegalEntityID: entityID}, now.Add(time.Minute))
 	if err != nil {
 		t.Fatal(err)
@@ -248,4 +263,20 @@ func mustDomainID(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return value
+}
+
+
+func bundleSourceID(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, entityID string, at time.Time) string {
+	t.Helper()
+	var sourceID string
+	if err := pool.QueryRow(ctx, `
+		SELECT id::text
+		FROM domain_metric_snapshots
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid
+		  AND bucket_start=$3
+		ORDER BY id DESC LIMIT 1`,
+		tenantID, entityID, at.UTC().Truncate(DomainSnapshotInterval)).Scan(&sourceID); err != nil {
+		t.Fatal(err)
+	}
+	return sourceID
 }
