@@ -121,15 +121,7 @@ export function EscalationRoutesWorkspace({ overview, isBusy, onBusy, onNotice, 
   async function saveSequence(event: FormEvent) {
     event.preventDefault();
     if (!selectedPolicy || !draftSequenceID.trim() || steps.length === 0) return;
-    const normalized = steps.map((step) => ({
-      after: step.after.trim(),
-      responsibility: step.responsibility,
-      department_levels_up: optionalInteger(step.department_levels_up_text),
-      source_roles: step.source_roles ?? [],
-      target_roles: step.target_roles ?? [],
-      target_group_ids: step.target_group_ids ?? [],
-      target_position_ids: step.target_position_ids ?? [],
-    }));
+    const normalized = sequenceInputSteps(steps);
     await run(async () => {
       const revision = await proposeEscalationSequenceRevision({
         policy_id: selectedPolicy.policy_id,
@@ -179,7 +171,11 @@ export function EscalationRoutesWorkspace({ overview, isBusy, onBusy, onNotice, 
       const result = await simulateEscalation({
         policy_id: selectedPolicy.policy_id,
         sequence_id: draftSequenceID.trim(),
-        revision_version: pending?.version,
+        draft: {
+          steps: sequenceInputSteps(steps),
+          terminal_handling: "KEEP_OPEN",
+          recovery_action: recoveryAction,
+        },
         limit: 25,
       });
       setSimulation(result);
@@ -344,7 +340,7 @@ function GuardChoices({ title, values, options, onChange }: { title: string; val
 
 function SimulationResults({ value }: { value: EscalationSimulation }) {
   return <section className="identity-escalation-simulation" aria-label="Current work simulation">
-    <div className="section-header"><div><h4>Current work</h4><p>{value.checked} item{value.checked === 1 ? "" : "s"} checked against sequence v{value.sequence_version}.{value.truncated ? " Showing the first 25." : ""}</p></div></div>
+    <div className="section-header"><div><h4>Current work</h4><p>{value.checked} item{value.checked === 1 ? "" : "s"} checked against {value.draft ? "the current draft" : `sequence v${value.sequence_version}`}.{value.truncated ? " Showing the first 25." : ""}</p></div></div>
     {value.scenarios.length === 0 ? <Notice tone="info">No active work currently uses this routing policy.</Notice> :
       <div className="identity-preview">
         {value.scenarios.map((scenario) => <article key={scenario.task_id} className="identity-escalation-scenario">
@@ -384,6 +380,18 @@ function defaultSteps(): DraftStep[] {
     { after: "2h", responsibility: "ESCALATION_OWNER", department_levels_up_text: "1", source_roles: [], target_roles: [], target_group_ids: [], target_position_ids: [] },
     { after: "8h", responsibility: "AUTHORIZER", department_levels_up_text: "", source_roles: [], target_roles: [], target_group_ids: [], target_position_ids: [] },
   ];
+}
+
+function sequenceInputSteps(values: DraftStep[]): EscalationSequenceStepInput[] {
+  return values.map((step) => ({
+    after: step.after.trim(),
+    responsibility: step.responsibility,
+    department_levels_up: optionalInteger(step.department_levels_up_text),
+    source_roles: step.source_roles ?? [],
+    target_roles: step.target_roles ?? [],
+    target_group_ids: step.target_group_ids ?? [],
+    target_position_ids: step.target_position_ids ?? [],
+  }));
 }
 
 function optionalInteger(value: string) {
