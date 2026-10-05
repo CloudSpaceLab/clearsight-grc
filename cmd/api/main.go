@@ -117,7 +117,7 @@ func main() {
 		Logger: logger, AllowedOrigin: cfg.AllowedOrigin, Mode: services.Mode, ReleaseSHA: cfg.ReleaseSHA, DemoMode: cfg.DemoMode,
 		IdentityMode: cfg.IdentityMode, OIDCIssuer: cfg.OIDCIssuer,
 		Identity: authenticator, Federation: federationService, SCIM: services.SCIM, Access: services.Access, AccessAdmin: services.AccessAdmin,
-		RuntimeContext: services.RuntimeContext,
+		RuntimeContext: services.RuntimeContext, Invalidations: services.Invalidations,
 		CommandGuard:   guard, Authority: services.Authority, Governance: services.Governance,
 		Evidence: services.Evidence, FormDistributions: services.FormDistributions, FormDistributionAccess: services.FormDistributionAccess,
 		FormCommunications: services.FormCommunications, FormCommunicationBrands: services.FormCommunicationBrands, FormCommunicationTestDelivery: services.FormCommunicationTestDelivery,
