@@ -222,7 +222,7 @@ func currentRiskIndicatorState(check monitoring.MonitoringCheck, result monitori
 		return riskIndicatorUnknown, "Monitoring coverage is below the approved minimum."
 	}
 	if result.Evaluation.Measurement != nil {
-		condition, err := monitoring.NativeMeasurementCondition(result.Evaluation.Measurement)
+		condition, err := monitoring.EvaluateNativeMeasurementCondition(result.Evaluation.Measurement)
 		if err != nil || condition == monitoring.MeasurementConditionUnknown {
 			return riskIndicatorUnknown, "Native measurement or approved limit is unavailable."
 		}
