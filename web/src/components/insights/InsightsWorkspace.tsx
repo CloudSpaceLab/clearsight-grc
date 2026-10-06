@@ -138,6 +138,7 @@ export function InsightsWorkspace({
         <SelectField
           label="Type"
           value={kind}
+          placeholder="All types"
           allowsEmpty={false}
           options={[{ id: "ALL", label: "All types" }, { id: "KRI", label: "KRI" }, { id: "KCI", label: "KCI" }]}
           onChange={(value) => setKind((value ?? "ALL") as IndicatorKind | "ALL")}
@@ -145,6 +146,7 @@ export function InsightsWorkspace({
         <SelectField
           label="Condition"
           value={condition}
+          placeholder="All conditions"
           allowsEmpty={false}
           options={[
             { id: "ALL", label: "All conditions" },
