@@ -40,6 +40,20 @@ describe("report setup presets", () => {
     expect(input.code).toMatch(/^VENDOR_OVERVIEW_[0-9A-F]{8}$/);
   });
 
+  it("builds a Matter-scoped PDF board brief without exposing a generic PDF setup", () => {
+    expect(buildReportSetupInput("Executive issue brief", "BOARD_BRIEF", "OVERVIEW", "matter-82bf")).toMatchObject({
+      name: "Executive issue brief",
+      description: "Governed executive brief for one issue or change.",
+      dataset: "MATTER_BOARD_BRIEF",
+      scope_kind: "MATTER",
+      scope_ref: "matter-82bf",
+      format: "PDF",
+      filter: { kind: "group", operator: "and", children: [] },
+    });
+    expect(() => buildReportSetupInput("Executive issue brief", "BOARD_BRIEF", "OVERVIEW")).toThrow("Choose an issue for the board brief.");
+    expect(reportSetupArea(definition({ dataset: "MATTER_BOARD_BRIEF", scope_kind: "MATTER", scope_ref: "matter-82bf", format: "PDF" }))).toBe("BOARD_BRIEF");
+  });
+
   it("uses exception datasets where the platform already has a canonical outstanding population", () => {
     expect(buildReportSetupInput("Outstanding work", "WORK", "ATTENTION")).toMatchObject({
       dataset: "MATTER_EXCEPTIONS",
