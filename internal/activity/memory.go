@@ -110,5 +110,8 @@ func memoryMatches(value Event, query Query) bool {
 	if query.ActorKind != "" && actorKind(value.ActorKind, value.ObjectType) != query.ActorKind {
 		return false
 	}
+	if query.Source != "" && !strings.EqualFold(value.Source, query.Source) {
+		return false
+	}
 	return query.LegalEntityID == "" || value.LegalEntityID == query.LegalEntityID
 }

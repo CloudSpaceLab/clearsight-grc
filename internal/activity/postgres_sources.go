@@ -3,6 +3,7 @@
 package activity
 
 const categoryExpression = `CASE
+	WHEN oe.source='NOTIFICATION_EMAIL_DELIVERY' THEN 'SYSTEM'
 	WHEN upper(oe.aggregate_type) LIKE 'THIRD_PARTY%' OR upper(oe.aggregate_type) LIKE 'VENDOR%' THEN 'VENDOR'
 	WHEN upper(oe.aggregate_type) LIKE 'FORM%' OR upper(oe.aggregate_type) LIKE 'CAPTURE%' OR upper(oe.aggregate_type) LIKE 'EVIDENCE%' OR upper(oe.aggregate_type) LIKE 'DOCUMENT_%' THEN 'FORMS_EVIDENCE'
 	WHEN upper(oe.aggregate_type) LIKE 'AI%' THEN 'AI'
@@ -24,6 +25,7 @@ const actorReferenceExpression = `COALESCE(
 )`
 
 const actorKindExpression = `CASE
+	WHEN oe.source='NOTIFICATION_EMAIL_DELIVERY' THEN 'SYSTEM'
 	WHEN upper(COALESCE(p.kind,'')) IN ('PERSON','TEAM','QUEUE','COMMITTEE') THEN 'INTERNAL_USER'
 	WHEN upper(COALESCE(p.kind,''))='EXTERNAL_PARTY' THEN 'EXTERNAL_PARTICIPANT'
 	WHEN upper(COALESCE(p.kind,''))='SERVICE' THEN 'SERVICE'
@@ -67,6 +69,35 @@ const activitySourcesCTE = `WITH scope AS (
 	       recovery.recovered_at,'OPERATIONAL_RECOVERY_EVENT'::text
 	FROM operational_recovery_events recovery
 	WHERE recovery.tenant_id=(SELECT tenant_id FROM scope)
+	UNION ALL
+	SELECT 'notification:' || delivery.id::text,delivery.tenant_id,
+	       CASE WHEN delivery.delivery_class='ATTENTION_CRITICAL' THEN episode.subject_type ELSE 'NOTIFICATION_DIGEST' END,
+	       CASE WHEN delivery.delivery_class='ATTENTION_CRITICAL' THEN episode.subject_id::text ELSE delivery.principal_id::text END,
+	       CASE delivery.status
+	         WHEN 'DELIVERED' THEN 'NOTIFICATION_EMAIL_DELIVERED'
+	         WHEN 'TEMPORARY_FAILURE' THEN 'NOTIFICATION_EMAIL_RETRYING'
+	         WHEN 'DELIVERY_OUTCOME_UNKNOWN' THEN 'NOTIFICATION_EMAIL_OUTCOME_UNKNOWN'
+	         WHEN 'CONTACT_UNAVAILABLE' THEN 'NOTIFICATION_CONTACT_UNAVAILABLE'
+	         WHEN 'RECIPIENT_REJECTED' THEN 'NOTIFICATION_RECIPIENT_REJECTED'
+	         WHEN 'PERMANENT_FAILURE' THEN 'NOTIFICATION_EMAIL_FAILED'
+	         WHEN 'DELIVERY_STARTED' THEN 'NOTIFICATION_EMAIL_STARTED'
+	         WHEN 'NOTICE_SUPERSEDED' THEN 'NOTIFICATION_NOTICE_SUPERSEDED'
+	         ELSE 'NOTIFICATION_EMAIL_STATUS_CHANGED'
+	       END,
+	       jsonb_strip_nulls(jsonb_build_object(
+	         'legal_entity_id',delivery.legal_entity_id::text,
+	         'delivery_class',delivery.delivery_class,
+	         'attempt_count',delivery.attempt_count,
+	         'failure_code',NULLIF(delivery.failure_code,'')
+	       )),
+	       COALESCE(delivery.delivered_at,delivery.last_attempted_at),
+	       'NOTIFICATION_EMAIL_DELIVERY'::text
+	FROM notification_email_deliveries delivery
+	LEFT JOIN attention_episodes episode
+	  ON delivery.delivery_class='ATTENTION_CRITICAL'
+	 AND episode.tenant_id=delivery.tenant_id
+	 AND episode.id=delivery.episode_id
+	WHERE delivery.tenant_id=(SELECT tenant_id FROM scope)
 )`
 
 const activityProjection = `

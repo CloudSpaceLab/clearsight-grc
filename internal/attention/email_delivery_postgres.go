@@ -36,7 +36,38 @@ func (r *CriticalEmailPostgresRepository) LoadCriticalEmailContext(ctx context.C
 		         ORDER BY su.updated_at DESC,su.id
 		         LIMIT 1
 		       ),''),
-		       episode.notice_sequence
+		       episode.notice_sequence,
+		       NOT (
+		         (episode.subject_type='RISK' AND EXISTS (
+		           SELECT 1 FROM risks risk
+		           WHERE risk.tenant_id=episode.tenant_id
+		             AND risk.legal_entity_id=episode.legal_entity_id
+		             AND risk.id=episode.subject_id
+		             AND risk.owner_principal_id=$4::uuid
+		         ))
+		         OR
+		         (episode.condition_key='indicator_breaches' AND EXISTS (
+		           SELECT 1
+		           FROM risk_indicator_links link
+		           JOIN monitoring_checks check_config
+		             ON check_config.tenant_id=link.tenant_id
+		            AND check_config.id=link.monitoring_check_id
+		            AND check_config.version=link.monitoring_check_version
+		            AND check_config.program_id=link.program_id
+		           WHERE link.tenant_id=episode.tenant_id
+		             AND link.legal_entity_id=episode.legal_entity_id
+		             AND link.id=episode.member_id
+		             AND $4::uuid IN (check_config.owner_principal_id,check_config.reviewer_principal_id)
+		         ))
+		         OR
+		         (episode.subject_type='LOSS' AND EXISTS (
+		           SELECT 1 FROM operational_losses loss
+		           WHERE loss.tenant_id=episode.tenant_id
+		             AND loss.legal_entity_id=episode.legal_entity_id
+		             AND loss.id=episode.subject_id
+		             AND loss.owner_principal_id=$4::uuid
+		         ))
+		       ) AS recipient_superseded
 		FROM attention_episodes episode
 		JOIN tenants tenant ON tenant.id=episode.tenant_id
 		JOIN legal_entities le ON le.tenant_id=episode.tenant_id AND le.id=episode.legal_entity_id
@@ -44,9 +75,11 @@ func (r *CriticalEmailPostgresRepository) LoadCriticalEmailContext(ctx context.C
 		WHERE (tenant.id::text=$1 OR tenant.slug=$1)
 		  AND episode.id=$2::uuid
 		  AND episode.legal_entity_id=$3::uuid
-		  AND p.status='ACTIVE'`,
+		  AND p.status='ACTIVE'
+		  AND p.valid_from<=clock_timestamp()
+		  AND (p.valid_until IS NULL OR clock_timestamp()<p.valid_until)`,
 		event.TenantID, intent.EpisodeID, intent.LegalEntityID, intent.PrincipalID,
-	).Scan(&value.LegalEntityID, &value.BrandName, &value.RecipientName, &value.RecipientAddress, &value.CurrentNoticeSequence)
+	).Scan(&value.LegalEntityID, &value.BrandName, &value.RecipientName, &value.RecipientAddress, &value.CurrentNoticeSequence, &value.RecipientSuperseded)
 	if err != nil {
 		return CriticalEmailContext{}, fmt.Errorf("load critical attention email context: %w", err)
 	}

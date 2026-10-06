@@ -158,6 +158,8 @@ func inAppNotificationPresentation(assignment assignmentNotificationEvent) (stri
 		return "Update requested", summary, nil
 	case commentMentionNotificationKind:
 		return "You were mentioned", summary, nil
+	case matterEscalationNotificationKind:
+		return "Escalated work assigned to you", summary, nil
 	default:
 		return "", "", fmt.Errorf("unsupported in-app notification kind %q", assignment.NotificationKind)
 	}

@@ -3,6 +3,7 @@ import { getLoss, openLossIntervention } from "../../lossApi";
 import type { LossAggregate, LossRecovery } from "../../lossTypes";
 import { apiErrorKind } from "../../http";
 import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
+import { NotificationDeliveryHistory } from "../NotificationDeliveryHistory";
 import { formatLossDate, formatLossMoney, lossEventLabel, lossStatusLabel, lossStatusTone, recoveryStatusLabel, recoveryStatusTone } from "./lossPresentation";
 
 type Props = {
@@ -149,6 +150,12 @@ export function LossRecord({
         </section>
       </Surface>
     </div>
+
+    <NotificationDeliveryHistory
+      items={aggregate.notification_history}
+      complete={aggregate.notification_history_complete !== false}
+      className="loss-record__history"
+    />
 
     <section className="loss-record__history" aria-labelledby="loss-recoveries-heading">
       <div className="section-header">
