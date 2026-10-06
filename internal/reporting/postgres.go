@@ -736,6 +736,9 @@ func (r *PostgresRepository) CaptureSourceBoundary(ctx context.Context, scope Re
 	if !validReportDataset(definition.Dataset) || !validReportDatasetScope(definition.Dataset, definition.ScopeKind) || !validReportScope(definition.ScopeKind, definition.ScopeRef) {
 		return SourceBoundary{}, ErrInvalid
 	}
+	if definition.Dataset == DatasetMatterBoardBrief {
+		return r.captureMatterBoardBriefSourceBoundary(ctx, scope, definition)
+	}
 	if definition.Dataset == DatasetPrograms {
 		return r.captureProgramSourceBoundary(ctx, scope, definition)
 	}
