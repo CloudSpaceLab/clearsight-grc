@@ -43,6 +43,10 @@ func (a *API) indicatorPortfolio(w http.ResponseWriter, r *http.Request) {
 		Cursor: strings.TrimSpace(r.URL.Query().Get("cursor")),
 		Limit:  limit,
 	}
+	if err := metricview.ValidateIndicatorPortfolioFilter(filter); err != nil {
+		httpx.WriteError(w, http.StatusBadRequest, "indicator_insights_filter_invalid", "Indicator filters are invalid.")
+		return
+	}
 	page, err := reader.ListIndicators(r.Context(), actor.TenantID, actor.LegalEntityID, filter)
 	switch {
 	case errors.Is(err, metricview.ErrIndicatorPortfolioInvalid):
