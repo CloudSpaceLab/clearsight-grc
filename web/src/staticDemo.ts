@@ -483,7 +483,50 @@ function staticDistributionDetail() {
   };
 }
 
+function matterWorkspaceDistributions() {
+  const base = staticDistributionDetail().distribution;
+  return [
+    {
+      ...base,
+      id: "distribution-matter-owner-confirmation",
+      form_template_id: "form-annual-data-review",
+      form_template_version: 2,
+      subject_type: "MATTER",
+      subject_id: matterID,
+      title: "Annual return evidence owner confirmation",
+      purpose: "Confirm the remaining evidence owner and filing readiness.",
+      access_policy: "DIRECT_MAGIC_LINK",
+      status: "OPEN",
+      deadline: "2026-10-12T17:00:00Z",
+      route_expires_at: "2026-10-12T16:00:00Z",
+      created_by: "role-dpo",
+      version: 1,
+      created_at: "2026-10-06T09:00:00Z",
+      updated_at: now,
+    },
+    {
+      ...base,
+      id: "distribution-matter-evidence-review",
+      form_template_id: "form-annual-data-review",
+      form_template_version: 2,
+      subject_type: "MATTER",
+      subject_id: matterID,
+      title: "Annual return evidence review",
+      purpose: "Review the evidence package before filing.",
+      access_policy: "DIRECT_MAGIC_LINK",
+      status: "COMPLETED",
+      deadline: "2026-10-05T17:00:00Z",
+      route_expires_at: "2026-10-05T16:00:00Z",
+      created_by: "role-dpo",
+      version: 2,
+      created_at: "2026-10-03T09:00:00Z",
+      updated_at: now,
+    },
+  ];
+}
+
 function formsDistributionPopulation(fixture: string) {
+  if (fixture === "matter-workspace-complete") return matterWorkspaceDistributions();
   if (["forms-sent-empty", "forms-sent-unauthorized", "forms-sent-error"].includes(fixture)) return [];
   if (["forms-sent-populated", "forms-sent-partial", "forms-sent-lifecycle", "forms-sent-reflow", "forms-sent-zoom"].includes(fixture)) {
     const base = staticDistributionDetail().distribution;
@@ -1270,7 +1313,17 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/forms/distributions" && method === "GET") {
     if (fixture === "forms-sent-unauthorized") throw new StaticDemoHTTPError(401, "session_required", "Sign in to review sent forms.");
     if (fixture === "forms-sent-error") throw new StaticDemoHTTPError(503, "sent_forms_unavailable", "Sent forms are temporarily unavailable.");
-    return clone({ items: formsDistributionPopulation(fixture), ...(fixture === "forms-sent-partial" ? { next_cursor: "sample-sent-page-2" } : {}) }) as T;
+    const subjectType = url.searchParams.get("subject_type");
+    const subjectID = url.searchParams.get("subject_id");
+    const population = formsDistributionPopulation(fixture).filter((value) =>
+      (!subjectType || value.subject_type === subjectType) &&
+      (!subjectID || value.subject_id === subjectID));
+    const limit = Math.max(1, Number(url.searchParams.get("limit") ?? 25));
+    const offset = Math.max(0, Number(url.searchParams.get("cursor") ?? 0));
+    return clone({
+      items: population.slice(offset, offset + limit),
+      ...((fixture === "forms-sent-partial" || population.length > offset + limit) ? { next_cursor: fixture === "forms-sent-partial" ? "sample-sent-page-2" : String(offset + limit) } : {}),
+    }) as T;
   }
   const distributionTransitionMatch = pathname.match(/^\/api\/v1\/forms\/distributions\/([^/]+)\/(lock|reopen|revoke)$/);
   if (distributionTransitionMatch && method === "POST") {
@@ -1306,6 +1359,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (pathname === "/api/v1/forms/responses" && method === "GET") {
     if (fixture === "forms-response-history") return clone({ items: [completedResponse] }) as T;
+    if (fixture === "matter-workspace-complete") return clone(filterCompletedResponsePopulation(matterWorkspaceResponses(), url)) as T;
     if (fixture === "program-responses") {
       const filter = new URLSearchParams(path.split("?")[1] ?? "");
       const items = programResponsesPopulation().filter((response) =>
@@ -1562,6 +1616,66 @@ function sampleSubmittedDocuments(): DocumentOccurrence[] {
     size_bytes: (index + 1) * 128000, sha256: "sample-digest-not-production-evidence", uploaded_at: "2026-08-26T10:00:00Z", submitted_at: "2026-08-27T13:15:00Z", expires_on: index === 0 ? "2027-08-27" : undefined, current: true }));
 }
 
+
+function matterWorkspaceResponses(): CompletedResponseSummary[] {
+  return [{
+    id: "response-matter-evidence-review",
+    distribution_id: "distribution-matter-evidence-review",
+    form_template_id: "form-annual-data-review",
+    form_template_version: 2,
+    title: "Annual return evidence review",
+    subject_name: "MAT-82BF",
+    subject_type: "MATTER",
+    subject_id: matterID,
+    revision: 1,
+    current: true,
+    state: "PROVISIONAL",
+    completed_at: "2026-10-05T14:30:00Z",
+    score: {
+      mode: "COMPLIANCE",
+      direction: "LOW_IS_POOR",
+      raw_score: 74,
+      adverse_score: 26,
+      band: "MODERATE",
+      coverage: 1,
+      final: false,
+      state: "PROVISIONAL",
+      profile_version: "annual-return-review-2026",
+      profile_checksum: "matter-review-sample",
+      evaluator_version: "advanced-v1",
+      calculated_at: "2026-10-05T14:30:00Z",
+      contribution_results: [],
+      rule_results: [],
+    },
+  }];
+}
+
+function filterCompletedResponsePopulation(population: CompletedResponseSummary[], url: URL) {
+  const items = population.filter((response) =>
+    (!url.searchParams.get("subject_type") || response.subject_type === url.searchParams.get("subject_type")) &&
+    (!url.searchParams.get("subject_id") || response.subject_id === url.searchParams.get("subject_id")) &&
+    (url.searchParams.get("current_only") === "false" || response.current) &&
+    (!url.searchParams.get("search") || response.title.toLowerCase().includes(url.searchParams.get("search")!.trim().toLowerCase())) &&
+    (!url.searchParams.getAll("band").length || url.searchParams.getAll("band").includes(response.score?.band ?? "")) &&
+    (!url.searchParams.getAll("mode").length || url.searchParams.getAll("mode").includes(response.score?.mode ?? "")) &&
+    (!url.searchParams.getAll("score_state").length || url.searchParams.getAll("score_state").includes(response.score?.state ?? "")) &&
+    (!url.searchParams.get("completed_from") || response.completed_at >= url.searchParams.get("completed_from")!) &&
+    (!url.searchParams.get("completed_until") || response.completed_at <= url.searchParams.get("completed_until")!));
+  const sort = url.searchParams.get("sort") ?? "CONCERN_DESC";
+  items.sort((left, right) => {
+    if (sort !== "COMPLETED_DESC") {
+      const a = sort === "CONCERN_DESC" ? left.score?.adverse_score : left.score?.raw_score;
+      const b = sort === "CONCERN_DESC" ? right.score?.adverse_score : right.score?.raw_score;
+      if (a == null && b != null) return 1;
+      if (a != null && b == null) return -1;
+      if (a != null && b != null && a !== b) return sort === "RAW_ASC" ? a - b : b - a;
+    }
+    return right.completed_at.localeCompare(left.completed_at) || right.id.localeCompare(left.id);
+  });
+  const offset = Math.max(0, Number(url.searchParams.get("cursor") ?? 0));
+  const limit = Math.max(1, Number(url.searchParams.get("limit") ?? 25));
+  return { items: items.slice(offset, offset + limit), next_cursor: items.length > offset + limit ? String(offset + limit) : undefined };
+}
 
 function programResponsesPopulation(): CompletedResponseSummary[] {
   return [
