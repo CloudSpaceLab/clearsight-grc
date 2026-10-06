@@ -241,4 +241,3 @@ func escapePDFText(value string) string {
 	replacer := strings.NewReplacer("\\", "\\\\", "(", "\\(", ")", "\\)")
 	return replacer.Replace(value)
 }
-
