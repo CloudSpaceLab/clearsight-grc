@@ -1,3 +1,5 @@
+import type { NotificationDeliveryHistoryItem } from "./notificationTypes";
+
 export type LossStatus = "ACTIVE" | "VOIDED";
 export type LossRecoveryStatus = "NONE" | "PARTIAL" | "FULL";
 export type LossRecoveryKind = "RECOVERY" | "REVERSAL";
@@ -69,6 +71,8 @@ export type LossAggregate = {
   loss: LossRecord;
   recoveries: LossRecovery[];
   totals: LossTotals;
+  notification_history?: NotificationDeliveryHistoryItem[];
+  notification_history_complete?: boolean;
 };
 
 export type LossInterventionResponse = {
