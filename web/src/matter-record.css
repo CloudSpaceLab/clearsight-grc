@@ -219,3 +219,13 @@
   .matter-form-remediation-list > li { align-items: stretch; flex-direction: column; }
   .matter-form-remediation-delivery { grid-template-columns: 1fr; }
 }
+
+.matter-record-direct-actions { display: flex; justify-content: flex-end; margin-top: -4px; }
+.matter-board-brief-action { display: grid; justify-items: end; gap: 8px; }
+.matter-board-brief-state { margin: 0; color: var(--muted); font-size: .78rem; text-align: right; }
+@media (max-width: 560px) {
+  .matter-record-direct-actions { justify-content: stretch; }
+  .matter-board-brief-action { justify-items: stretch; width: 100%; }
+  .matter-board-brief-action button { width: 100%; }
+  .matter-board-brief-state { text-align: left; }
+}
