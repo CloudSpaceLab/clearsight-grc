@@ -59,6 +59,33 @@ describe("reporting evidence transport", () => {
     expect(previousFetch).toHaveBeenCalledWith(expect.any(URL), undefined);
   });
 
+  it("serves the governed Matter board brief only for the complete issue-workspace fixture", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    window.history.replaceState(null, "", "/?fixture=matter-workspace-complete");
+    installReportingEvidence();
+
+    const available = await json(await fetch("/api/v1/reports/matter-board-brief?tenant_id=bank-demo&matter_id=matter-gaid-change"));
+    expect(available).toMatchObject({
+      can_run: true,
+      authority_available: true,
+      definition: {
+        code: "MATTER-BOARD-BRIEF",
+        dataset: "MATTER_BOARD_BRIEF",
+        scope_kind: "MATTER",
+        scope_ref: "matter-gaid-change",
+        format: "PDF",
+        effective: true,
+      },
+    });
+
+    window.history.replaceState(null, "", "/?fixture=other");
+    const previousFetch = vi.fn();
+    vi.stubGlobal("fetch", previousFetch);
+    installReportingEvidence();
+    const unavailable = await json(await fetch("/api/v1/reports/matter-board-brief?tenant_id=bank-demo&matter_id=matter-gaid-change"));
+    expect(unavailable).toMatchObject({ can_run: false, authority_available: true });
+  });
+
   it("normalizes Request inputs and returns the bounded-stop fixture for the named review state", async () => {
     const previousFetch = vi.fn();
     vi.stubGlobal("fetch", previousFetch);
