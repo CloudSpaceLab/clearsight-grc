@@ -145,7 +145,7 @@ func TestServiceStartsCollectionFromExactActiveForm(t *testing.T) {
 	}
 	check := MonitoringCheck{
 		ID: "check-1", TenantID: "bank-a", ProgramID: "program-1", Code: "PASSWORD-RESET-CHECK", Name: "Password reset review", Claim: "Password reset safeguards operated.",
-		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, CollectionPolicy: &CollectionPolicy{ValidityMonths: 12, RenewalWindowDays: 30, ReminderCount: 3}, Thresholds:  DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
+		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, CollectionPolicy: &CollectionPolicy{ValidityMonths: 12, RenewalWindowDays: 30, ReminderCount: 3}, Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
 		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 1},
 	}
 	if _, err := repo.CreateCheckRevision(context.Background(), check); err != nil {
@@ -263,7 +263,7 @@ func TestServiceGovernsFormMonitoringCheck(t *testing.T) {
 		ProgramID: "program-1", Code: "RESET", Name: "Password reset safeguards", Claim: "Password reset safeguards are operating.",
 		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, CollectionPolicy: &CollectionPolicy{ValidityMonths: 12},
 		Measurement: &MeasurementSpec{Field: "loss", Label: "Observed loss", Unit: MeasurementMoney, Currency: "NGN", Precision: 2, Limits: []MeasurementLimit{{Operator: OperatorLessOrEqual, Expected: "1000000"}}},
-		Thresholds: DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
+		Thresholds:  DefaultThresholds(), FreshnessMinutes: 10080, MinimumCoverage: 1, FailureAction: FailureReview,
 	})
 	if err != nil || check.Status != LifecycleDraft || check.Version != 1 {
 		t.Fatalf("check = %#v, err = %v", check, err)
