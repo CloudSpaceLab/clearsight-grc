@@ -191,6 +191,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    expect(screen.getByText("Regulatory change · MAT-82BF · Work in progress · Version 7")).toBeTruthy();
     const priority = screen.getByText("High", { selector: ".cs-status-badge" });
     expect(priority.className).toContain("cs-tone--error");
     const overdue = screen.getByText("Overdue", { selector: ".matter-record-header .cs-status-badge" });
