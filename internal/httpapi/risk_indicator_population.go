@@ -22,6 +22,7 @@ type riskIndicatorPopulationRead struct {
 	Truncated           bool                              `json:"truncated,omitempty"`
 	Complete            bool                              `json:"complete"`
 	OrganizationScopeID string                            `json:"organization_scope_id,omitempty"`
+	NextCursor          string                            `json:"next_cursor,omitempty"`
 }
 
 func (a *API) listRiskIndicators(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +45,8 @@ func (a *API) listRiskIndicators(w http.ResponseWriter, r *http.Request) {
 	}
 	kind := risk.IndicatorKind(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("kind"))))
 	page, err := service.ListIndicatorPopulation(r.Context(), scope, risk.IndicatorPopulationFilter{
-		Kind: kind, MonitoringCheckID: strings.TrimSpace(r.URL.Query().Get("check_id")), OrganizationScopeID: selection.ID, OrganizationScopeIDs: selection.IDs, Limit: limit,
+		Kind: kind, MonitoringCheckID: strings.TrimSpace(r.URL.Query().Get("check_id")), OrganizationScopeID: selection.ID, OrganizationScopeIDs: selection.IDs,
+		Cursor: strings.TrimSpace(r.URL.Query().Get("cursor")), Limit: limit,
 	})
 	if err != nil {
 		writeRiskError(w, err)
@@ -52,7 +54,7 @@ func (a *API) listRiskIndicators(w http.ResponseWriter, r *http.Request) {
 	}
 	response := riskIndicatorPopulationRead{
 		Items: []riskIndicatorPopulationItemRead{}, Truncated: page.Truncated, Complete: true,
-		OrganizationScopeID: page.OrganizationScopeID,
+		OrganizationScopeID: page.OrganizationScopeID, NextCursor: page.NextCursor,
 	}
 	if len(page.Items) == 0 {
 		httpx.WriteJSON(w, http.StatusOK, response)
@@ -73,7 +75,6 @@ func (a *API) listRiskIndicators(w http.ResponseWriter, r *http.Request) {
 		detail, labelPair, isVisible, complete := builder.build(item.Link)
 		if !isVisible {
 			response.Complete = false
-			response.Truncated = false
 			continue
 		}
 		if !complete {

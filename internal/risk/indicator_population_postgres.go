@@ -15,6 +15,10 @@ func (r *PostgresRepository) ListIndicatorPopulation(ctx context.Context, scope 
 	if err != nil {
 		return IndicatorPopulationPage{}, err
 	}
+	cursor, err := decodeIndicatorPopulationCursor(filter.Cursor)
+	if err != nil {
+		return IndicatorPopulationPage{}, err
+	}
 	const currentLinks = `
 		WITH current_links AS (
 			SELECT i.id,i.risk_id,i.risk_version,i.program_id,i.monitoring_check_id,i.monitoring_check_version,
@@ -49,9 +53,11 @@ func (r *PostgresRepository) ListIndicatorPopulation(ctx context.Context, scope 
 		FROM canonical c
 		WHERE ($5='' OR c.monitoring_check_id::text=$5)
 		  AND ($6='' OR c.kind=$6)
+		  AND ($7::boolean=false OR c.created_at<$8 OR (c.created_at=$8 AND c.monitoring_check_id::text<$9))
 		ORDER BY c.created_at DESC,c.monitoring_check_id DESC
-		LIMIT $7
-	`, scope.TenantID, scope.LegalEntityID, filter.OrganizationScopeID != "", filter.OrganizationScopeIDs, filter.MonitoringCheckID, string(filter.Kind), filter.Limit+1)
+		LIMIT $10
+	`, scope.TenantID, scope.LegalEntityID, filter.OrganizationScopeID != "", filter.OrganizationScopeIDs,
+		filter.MonitoringCheckID, string(filter.Kind), !cursor.CreatedAt.IsZero(), cursor.CreatedAt, cursor.CheckID, filter.Limit+1)
 	if err != nil {
 		return IndicatorPopulationPage{}, fmt.Errorf("list indicator population: %w", err)
 	}
@@ -82,6 +88,10 @@ func (r *PostgresRepository) ListIndicatorPopulation(ctx context.Context, scope 
 	if len(items) > filter.Limit {
 		page.Truncated = true
 		items = items[:filter.Limit]
+		page.NextCursor, err = encodeIndicatorPopulationCursor(items[len(items)-1])
+		if err != nil {
+			return IndicatorPopulationPage{}, err
+		}
 	}
 	page.Items = items
 	if len(items) == 0 {
