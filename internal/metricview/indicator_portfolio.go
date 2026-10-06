@@ -75,6 +75,11 @@ type indicatorPortfolioCursor struct {
 	Kind    risk.IndicatorKind `json:"kind"`
 }
 
+func ValidateIndicatorPortfolioFilter(value IndicatorPortfolioFilter) error {
+	_, _, err := normalizeIndicatorPortfolioFilter(value)
+	return err
+}
+
 func normalizeIndicatorPortfolioFilter(value IndicatorPortfolioFilter) (IndicatorPortfolioFilter, indicatorPortfolioCursor, error) {
 	value.Search = strings.TrimSpace(value.Search)
 	value.Cursor = strings.TrimSpace(value.Cursor)
