@@ -1,0 +1,33 @@
+@layer features {
+  .insights-workspace,
+  .indicator-insights {
+    display: grid;
+    gap: var(--cs-space-section);
+    min-inline-size: 0;
+  }
+
+  .indicator-insights__heading p {
+    margin: var(--cs-primitive-space-1) 0 0;
+    color: var(--cs-text-muted);
+  }
+
+  .indicator-insights__identity,
+  .indicator-insights__stack,
+  .indicator-insights__state {
+    display: grid;
+    gap: var(--cs-primitive-space-1);
+    min-inline-size: 0;
+  }
+
+  .indicator-insights__identity small,
+  .indicator-insights__stack small,
+  .indicator-insights__state small {
+    color: var(--cs-text-muted);
+    line-height: 1.35;
+  }
+
+  .indicator-insights__identity strong,
+  .indicator-insights__stack strong {
+    color: var(--cs-text-strong);
+  }
+}
