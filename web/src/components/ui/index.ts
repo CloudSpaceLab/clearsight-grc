@@ -19,6 +19,8 @@ export { FormField } from "./FormField";
 export type { FieldControlProps, FormFieldProps } from "./FormField";
 export { MetricCard } from "./MetricCard";
 export type { MetricCardProps, MetricCardQuality } from "./MetricCard";
+export { RankedBarList } from "./RankedBarList";
+export type { RankedBarItem, RankedBarListProps } from "./RankedBarList";
 export { Notice } from "./Notice";
 export { PopoverDialog } from "./PopoverDialog";
 export type { PopoverDialogProps } from "./PopoverDialog";
