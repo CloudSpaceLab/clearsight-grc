@@ -32,9 +32,9 @@ type Props = {
 };
 
 type LoadState = "loading" | "live" | "unavailable";
-type MatterWorkspaceTab = "details" | "actions" | "evidence" | "decisions";
+type MatterWorkspaceTab = "details" | "actions" | "evidence" | "decisions" | "activity";
 
-const matterWorkspaceTabs: ReadonlyArray<{ id: MatterWorkspaceTab; label: string }> = [
+const matterWorkspaceTabs: ReadonlyArray<{ id: Exclude<MatterWorkspaceTab, "activity">; label: string }> = [
   { id: "details", label: "Overview" },
   { id: "actions", label: "Work" },
   { id: "evidence", label: "Evidence and requests" },
@@ -49,6 +49,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
   const [assignmentIntent, setAssignmentIntent] = useState(0);
   const [linkedMissingItems, setLinkedMissingItems] = useState<string[]>([]);
   const [selectedTab, setSelectedTab] = useState<MatterWorkspaceTab>("details");
+  const [narrowLayout, setNarrowLayout] = useState(() => window.matchMedia("(max-width: 900px)").matches);
   const loadIDs = useRef({ aggregate: 0, operations: 0 });
   const activeTarget = useRef({ id: matterID, generation: 0 });
   const startedTargetID = useRef<string | null>(null);
@@ -66,6 +67,17 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 900px)");
+    const update = () => {
+      setNarrowLayout(media.matches);
+      if (!media.matches) setSelectedTab((current) => current === "activity" ? "details" : current);
+    };
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
   }, []);
 
   const renderTarget = activeTarget.current;
@@ -176,7 +188,14 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
       />
       <section className="matter-workspace-layout">
         <div className="matter-workspace-main">
-          <Tabs ariaLabel="Issue work" compactLabel="Issue section" retainVisitedPanels items={matterWorkspaceTabs} selectedKey={selectedTab} onSelectionChange={setSelectedTab}>
+          <Tabs
+            ariaLabel="Issue work"
+            compactLabel="Issue section"
+            retainVisitedPanels
+            items={narrowLayout ? [...matterWorkspaceTabs, { id: "activity" as const, label: "Activity" }] : matterWorkspaceTabs}
+            selectedKey={selectedTab}
+            onSelectionChange={setSelectedTab}
+          >
             {(tab) => <div className="matter-workspace-tab-content">
               {tab === "details" && <>
                 <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} assignmentIntent={assignmentIntent} suppressAssignmentAction={assignmentIsDominant} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
@@ -193,10 +212,11 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
                 <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
                 <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
               </>}
+              {tab === "activity" && narrowLayout && <MatterActivityTimeline matterID={aggregate.matter.id} matterVersion={aggregate.matter.version} candidates={operations?.responsible_parties ? currentOperations.flatMap((operation) => operation.candidates ?? []) : []} onUpdated={() => void reloadRecord()}/>}
             </div>}
           </Tabs>
         </div>
-        <MatterActivityTimeline matterID={aggregate.matter.id} matterVersion={aggregate.matter.version} candidates={operations?.responsible_parties ? currentOperations.flatMap((operation) => operation.candidates ?? []) : []} onUpdated={() => void reloadRecord()}/>
+        {!narrowLayout && <MatterActivityTimeline matterID={aggregate.matter.id} matterVersion={aggregate.matter.version} candidates={operations?.responsible_parties ? currentOperations.flatMap((operation) => operation.candidates ?? []) : []} onUpdated={() => void reloadRecord()}/>}
       </section>
     </>}
   </section>;
