@@ -110,11 +110,11 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
     },
     {
       id: "assessment",
-      header: "Latest assessment",
+      header: "Current assessment",
       render: (item) => item.latest_assessment
         ? <span className="risk-register__assessment"><strong>{assessmentKindLabel(item.latest_assessment.kind)}</strong><small>{item.latest_assessment.method_code} · {item.latest_assessment.method_version}</small></span>
-        : "Not assessed",
-      accessibleText: (item) => item.latest_assessment ? `${assessmentKindLabel(item.latest_assessment.kind)}, ${item.latest_assessment.method_code} ${item.latest_assessment.method_version}` : "Not assessed",
+        : "No current assessment",
+      accessibleText: (item) => item.latest_assessment ? `${assessmentKindLabel(item.latest_assessment.kind)}, ${item.latest_assessment.method_code} ${item.latest_assessment.method_version}` : "No current assessment",
     },
     {
       id: "status",
