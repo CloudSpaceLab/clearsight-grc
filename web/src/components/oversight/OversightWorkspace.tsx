@@ -8,6 +8,7 @@ import { Button, DataTable, EmptyState, MetricCard, Notice, Tabs } from "../ui";
 import type { AttentionItem } from "../../types";
 import { OversightPeriodPicker } from "./OversightPeriodPicker";
 import { DomainPostureSummary } from "./DomainPostureSummary";
+import { OrganizationRiskSummary } from "./OrganizationRiskSummary";
 import { MetricMemberDrill } from "./MetricMemberDrill";
 import "../../oversight.css";
 
@@ -25,6 +26,7 @@ type OversightWorkspaceProps = {
   onOpenProgram?: (id: string) => void;
   onOpenRisk?: (id: string) => void;
   onOpenLoss?: (id: string) => void;
+  onOrganizationScopeChange?: (scopeID: string) => void;
   loadSnapshot?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<OversightSnapshot>;
   loadMetrics?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<HomeMetricBundle>;
   loadMetricMembers?: typeof loadHomeMetricMembers;
@@ -49,6 +51,7 @@ export function OversightWorkspace({
   onOpenProgram,
   onOpenRisk,
   onOpenLoss,
+  onOrganizationScopeChange,
   loadSnapshot = loadOversight,
   loadMetrics = loadHomeMetrics,
   loadMetricMembers = loadHomeMetricMembers,
@@ -284,6 +287,11 @@ export function OversightWorkspace({
               organizationScopeID={organizationScopeID}
               onOpenRisk={onOpenRisk}
               onOpenLoss={onOpenLoss}
+            />
+            <OrganizationRiskSummary
+              bundle={domainMetrics}
+              organizationScopeID={organizationScopeID}
+              onOpenScope={onOrganizationScopeChange}
             />
             {state === "live" && snapshot && <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
               {selected === "pressure" && <RiskPressure snapshot={snapshot}/>}
