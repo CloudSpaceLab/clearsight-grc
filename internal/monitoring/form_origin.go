@@ -12,7 +12,7 @@ import (
 var ErrFormOriginValidationUnavailable = errors.New("form origin validation is unavailable")
 
 type formOriginValidator interface {
-	MatterOriginExists(context.Context, string, string, string) (bool, error)
+	MatterOriginExists(context.Context, string, string, string, string) (bool, error)
 }
 
 func (s *Service) ConfigureFormOriginValidator(validator formOriginValidator) {
@@ -86,7 +86,7 @@ func (s *Service) resolveFormOrigin(ctx context.Context, actor identity.Actor, r
 	if s.formOrigins == nil {
 		return nil, ErrFormOriginValidationUnavailable
 	}
-	exists, err := s.formOrigins.MatterOriginExists(ctx, actor.TenantID, actor.LegalEntityID, origin.ID)
+	exists, err := s.formOrigins.MatterOriginExists(ctx, actor.TenantID, actor.LegalEntityID, actor.PrincipalID, origin.ID)
 	if err != nil {
 		return nil, errors.Join(ErrFormOriginValidationUnavailable, err)
 	}
