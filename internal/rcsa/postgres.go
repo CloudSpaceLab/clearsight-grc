@@ -311,3 +311,76 @@ func mapPostgresError(err error) error {
 	}
 	return err
 }
+
+
+func (r *PostgresRepository) ListCycles(ctx context.Context, scope Scope, filter CycleFilter) (CyclePage, error) {
+	if r == nil || r.pool == nil {
+		return CyclePage{}, ErrInvalid
+	}
+	scope, err := normalizeScope(scope)
+	if err != nil {
+		return CyclePage{}, err
+	}
+	cursor, err := decodeCycleCursor(filter.Cursor)
+	if err != nil {
+		return CyclePage{}, err
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT c.id::text,c.tenant_id::text,c.legal_entity_id::text,c.code,c.name,c.trigger_kind,
+		       c.first_line_owner_principal_id::text,c.status,c.population_checksum,
+		       COALESCE(c.first_line_distribution_id::text,''),COALESCE(c.first_line_response_revision_id::text,''),
+		       COALESCE(c.challenge_matter_id::text,''),c.version,c.created_at,c.updated_at,
+		       (SELECT count(*) FROM rcsa_cycle_risks cr
+		        WHERE cr.tenant_id=c.tenant_id AND cr.legal_entity_id=c.legal_entity_id AND cr.cycle_id=c.id),
+		       (SELECT count(*) FROM rcsa_cycle_controls cc
+		        WHERE cc.tenant_id=c.tenant_id AND cc.legal_entity_id=c.legal_entity_id AND cc.cycle_id=c.id)
+		FROM rcsa_cycles c
+		JOIN tenants t ON t.id=c.tenant_id
+		JOIN legal_entities le ON le.tenant_id=c.tenant_id AND le.id=c.legal_entity_id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND ($3='' OR c.status=$3)
+		  AND ($4::boolean=false OR c.updated_at<$5 OR (c.updated_at=$5 AND c.id<$6::uuid))
+		ORDER BY c.updated_at DESC,c.id DESC
+		LIMIT $7
+	`, scope.TenantID, scope.LegalEntityID, string(filter.Status), !cursor.UpdatedAt.IsZero(), cursor.UpdatedAt, nullableCycleCursorID(cursor.ID), filter.Limit+1)
+	if err != nil {
+		return CyclePage{}, err
+	}
+	defer rows.Close()
+
+	items := make([]CycleSummary, 0, filter.Limit+1)
+	for rows.Next() {
+		var item CycleSummary
+		if err := rows.Scan(
+			&item.Cycle.ID, &item.Cycle.TenantID, &item.Cycle.LegalEntityID, &item.Cycle.Code, &item.Cycle.Name, &item.Cycle.TriggerKind,
+			&item.Cycle.FirstLineOwnerID, &item.Cycle.Status, &item.Cycle.PopulationChecksum, &item.Cycle.FirstLineDistributionID,
+			&item.Cycle.FirstLineResponseRevisionID, &item.Cycle.ChallengeMatterID, &item.Cycle.Version, &item.Cycle.CreatedAt, &item.Cycle.UpdatedAt,
+			&item.RiskCount, &item.ControlCount,
+		); err != nil {
+			return CyclePage{}, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return CyclePage{}, err
+	}
+	page := CyclePage{Items: items}
+	if len(items) > filter.Limit {
+		page.Items = items[:filter.Limit]
+		page.NextCursor, err = encodeCycleCursor(page.Items[len(page.Items)-1])
+		if err != nil {
+			return CyclePage{}, err
+		}
+	}
+	return page, nil
+}
+
+func nullableCycleCursorID(value string) any {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return strings.TrimSpace(value)
+}
+
+var _ CycleListRepository = (*PostgresRepository)(nil)
