@@ -100,18 +100,17 @@ export function OrganizationRiskSummary({
   </section>;
 }
 
-function compactBuckets(items: OrganizationMetricBucket[]) {
+function compactBuckets(items: OrganizationMetricBucket[]): OrganizationMetricBucket[] {
   const areas = items.filter((item) => item.kind === "ORGANIZATION_SCOPE");
   const residual = items.filter((item) => item.kind !== "ORGANIZATION_SCOPE");
   if (areas.length <= 6) return [...areas, ...residual];
 
   const visible = areas.slice(0, 6);
   const otherValue = areas.slice(6).reduce((sum, item) => sum + item.value, 0);
-  return [
-    ...visible,
-    { key: "other-areas", label: "Other areas", kind: "UNAVAILABLE" as const, value: otherValue },
-    ...residual,
-  ];
+  const other: OrganizationMetricBucket = {
+    key: "other-areas", label: "Other areas", kind: "UNAVAILABLE", value: otherValue,
+  };
+  return [...visible, other, ...residual];
 }
 
 function bucketMeta(item: OrganizationMetricBucket) {
