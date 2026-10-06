@@ -7,6 +7,7 @@ import (
 func (a *API) riskRoutes() []routeSpec {
 	return []routeSpec{
 		read("/api/v1/risks", a.listRisks),
+		read("/api/v1/risk-indicators", a.listRiskIndicators),
 		read("/api/v1/risks/{id}", a.getRisk),
 		material("/api/v1/risks", "risk.create", a.createRisk, commandPolicy{
 			ObjectType: "RISK", Responsibility: authority.ResponsibilityOwner,

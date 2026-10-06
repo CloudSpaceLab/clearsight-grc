@@ -5,8 +5,6 @@ package risk
 import (
 	"context"
 	"fmt"
-
-	"github.com/jackc/pgx/v5"
 )
 
 func (r *PostgresRepository) ListIndicatorPopulation(ctx context.Context, scope Scope, filter IndicatorPopulationFilter) (IndicatorPopulationPage, error) {
@@ -128,4 +126,3 @@ func (r *PostgresRepository) ListIndicatorPopulation(ctx context.Context, scope 
 }
 
 var _ IndicatorPopulationRepository = (*PostgresRepository)(nil)
-var _ pgx.Row = nil
