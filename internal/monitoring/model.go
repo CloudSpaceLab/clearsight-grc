@@ -159,11 +159,23 @@ type Lifecycle struct {
 
 type TemplateField = formcontract.Field
 
+type FormOriginType string
+
+const (
+	FormOriginMatter FormOriginType = "MATTER"
+)
+
+type FormOrigin struct {
+	Type FormOriginType `json:"type"`
+	ID   string         `json:"id"`
+}
+
 type FormTemplate struct {
 	ID                    string                     `json:"id"`
 	TenantID              string                     `json:"tenant_id"`
 	LegalEntityID         string                     `json:"legal_entity_id"`
 	ProgramID             string                     `json:"program_id,omitempty"`
+	Origin                *FormOrigin                `json:"origin,omitempty"`
 	Code                  string                     `json:"code"`
 	Name                  string                     `json:"name"`
 	Purpose               string                     `json:"purpose"`
