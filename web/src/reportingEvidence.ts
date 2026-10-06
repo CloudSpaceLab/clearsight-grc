@@ -145,6 +145,34 @@ const reviewedDefinition: ReportDefinition = {
   version: 3,
 };
 
+const boardBriefDefinition: ReportDefinition = {
+  id: "report-matter-board-brief",
+  tenant_id: tenantID,
+  legal_entity_id: legalEntityID,
+  code: "MATTER-BOARD-BRIEF",
+  name: "Matter board brief",
+  description: "Board-ready issue position generated through the governed reporting lifecycle.",
+  dataset: "MATTER_BOARD_BRIEF",
+  scope_kind: "MATTER",
+  scope_ref: "matter-gaid-change",
+  format: "PDF",
+  filter: emptyFilter,
+  status: "ACTIVE",
+  current_version: 1,
+  effective: true,
+  checksum: "9".repeat(64),
+  maker_id: makerID,
+  reviewer_id: reviewerID,
+  checker_id: authorizerID,
+  reviewer_note: "Board brief setup reviewed for the issue.",
+  effective_from: "2026-10-01T08:00:00Z",
+  submitted_at: "2026-09-30T08:00:00Z",
+  approved_at: "2026-10-01T08:00:00Z",
+  created_at: "2026-09-29T08:00:00Z",
+  updated_at: "2026-10-01T08:00:00Z",
+  version: 3,
+};
+
 const definitions = [activeDefinition, crossBorderDefinition, pendingDefinition, reviewedDefinition];
 
 const activeHistory: ReportDefinitionRevision = {
@@ -302,7 +330,9 @@ declare global {
 
 export function installReportingEvidence() {
   const previous = globalThis.fetch.bind(globalThis);
-  const boundedStopVariant = new URLSearchParams(window.location.search).get("fixture") === "report-run-failed";
+  const fixture = new URLSearchParams(window.location.search).get("fixture");
+  const boundedStopVariant = fixture === "report-run-failed";
+  const matterWorkspaceVariant = fixture === "matter-workspace-complete";
   window.reportingEvidenceReads = [];
   globalThis.fetch = async (input, init) => {
     const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -313,6 +343,14 @@ export function installReportingEvidence() {
     const recordRead = () => window.reportingEvidenceReads?.push(`${path}${url.search}`);
     const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
 
+    if (path === "/api/v1/reports/matter-board-brief") {
+      recordRead();
+      const matterID = url.searchParams.get("matter_id");
+      if (matterWorkspaceVariant && matterID === boardBriefDefinition.scope_ref) {
+        return json({ definition: boardBriefDefinition, can_run: true, authority_available: true });
+      }
+      return json({ can_run: false, authority_available: true, reason: "No active board brief setup is available for this issue." });
+    }
     if (path === "/api/v1/reports/filter-fields") {
       recordRead();
       return json({ fields });
