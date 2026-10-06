@@ -211,12 +211,14 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
       <div><span>Updated</span><strong>{formatRCSADate(detail.cycle.updated_at)}</strong></div>
     </section>
 
-    <Surface className="rcsa-detail__handoff">
-      <div>
-        <span className="eyebrow">Current handoff</span>
-        <h3>{detail.handoff.label}</h3>
+    <Surface>
+      <div className="rcsa-detail__handoff">
+        <div>
+          <span className="eyebrow">Current handoff</span>
+          <h3>{detail.handoff.label}</h3>
+        </div>
+        {detail.handoff.target_id && <Button variant="secondary" onPress={openHandoff}>{detail.handoff.target_type === "MATTER" ? "Open challenge work" : "Open first-line assessment"}</Button>}
       </div>
-      {detail.handoff.target_id && <Button variant="secondary" onPress={openHandoff}>{detail.handoff.target_type === "MATTER" ? "Open challenge work" : "Open first-line assessment"}</Button>}
     </Surface>
 
     <section className="rcsa-detail__population" aria-labelledby="rcsa-risks">
