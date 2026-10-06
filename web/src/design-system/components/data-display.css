@@ -224,3 +224,97 @@ button.cs-metric-card[data-disabled] {
     border: var(--cs-primitive-border-1) solid CanvasText;
   }
 }
+
+
+.cs-ranked-bars {
+  display: grid;
+  gap: var(--cs-primitive-space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.cs-ranked-bars__row {
+  display: grid;
+  width: 100%;
+  gap: var(--cs-primitive-space-2);
+  padding: var(--cs-primitive-space-2) 0;
+  border: 0;
+  border-radius: var(--cs-primitive-radius-8);
+  background: transparent;
+  color: var(--cs-text-primary);
+  font: inherit;
+  text-align: start;
+}
+
+button.cs-ranked-bars__row {
+  cursor: pointer;
+}
+
+button.cs-ranked-bars__row[data-hovered],
+button.cs-ranked-bars__row[data-pressed] {
+  background: var(--cs-table-row-hover);
+}
+
+button.cs-ranked-bars__row[data-focus-visible] {
+  outline: var(--cs-focus-width) solid var(--cs-focus-ring);
+  outline-offset: var(--cs-focus-offset);
+}
+
+.cs-ranked-bars__heading {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cs-primitive-space-3);
+}
+
+.cs-ranked-bars__label {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-ranked-bars__heading strong {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-ranked-bars__track {
+  display: block;
+  height: var(--cs-primitive-space-2);
+  overflow: hidden;
+  border-radius: var(--cs-primitive-radius-full);
+  background: var(--cs-table-heading-bg);
+}
+
+.cs-ranked-bars__fill {
+  display: block;
+  height: 100%;
+  min-width: var(--cs-primitive-border-2);
+  border-radius: inherit;
+  background: var(--cs-action-primary);
+}
+
+.cs-ranked-bars__row small {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-ranked-bars__row {
+    scroll-behavior: auto;
+  }
+}
+
+@media (forced-colors: active) {
+  .cs-ranked-bars__track {
+    border: var(--cs-primitive-border-1) solid CanvasText;
+  }
+
+  .cs-ranked-bars__fill {
+    background: Highlight;
+  }
+}
