@@ -31,8 +31,8 @@ type Actor struct {
 }
 
 type CreateFormInput struct {
-	ProgramID        string
-	Origin           *FormOrigin                     `json:"program_id"`
+	ProgramID        string                     `json:"program_id"`
+	Origin           *FormOrigin                `json:"origin,omitempty"`
 	LegalEntityID    string                     `json:"legal_entity_id"`
 	Code             string                     `json:"code"`
 	Name             string                     `json:"name"`
