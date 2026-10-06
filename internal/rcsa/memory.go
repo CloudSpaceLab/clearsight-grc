@@ -2,6 +2,7 @@ package rcsa
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -108,3 +109,55 @@ func cloneAggregate(value Aggregate) Aggregate {
 	cloned.Controls = append([]ControlSnapshot(nil), value.Controls...)
 	return cloned
 }
+
+func (r *MemoryRepository) ListCycles(ctx context.Context, scope Scope, filter CycleFilter) (CyclePage, error) {
+	if err := ctx.Err(); err != nil {
+		return CyclePage{}, err
+	}
+	scope, err := normalizeScope(scope)
+	if err != nil {
+		return CyclePage{}, err
+	}
+	cursor, err := decodeCycleCursor(filter.Cursor)
+	if err != nil {
+		return CyclePage{}, err
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	items := make([]CycleSummary, 0, len(r.cycles))
+	for _, aggregate := range r.cycles {
+		if aggregate.Cycle.TenantID != scope.TenantID || aggregate.Cycle.LegalEntityID != scope.LegalEntityID {
+			continue
+		}
+		if filter.Status != "" && aggregate.Cycle.Status != filter.Status {
+			continue
+		}
+		item := CycleSummary{
+			Cycle:        aggregate.Cycle,
+			RiskCount:    len(aggregate.Risks),
+			ControlCount: len(aggregate.Controls),
+		}
+		if cycleAfterCursor(item, cursor) {
+			items = append(items, item)
+		}
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if !items[i].Cycle.UpdatedAt.Equal(items[j].Cycle.UpdatedAt) {
+			return items[i].Cycle.UpdatedAt.After(items[j].Cycle.UpdatedAt)
+		}
+		return items[i].Cycle.ID > items[j].Cycle.ID
+	})
+
+	page := CyclePage{Items: items}
+	if len(items) > filter.Limit {
+		page.Items = items[:filter.Limit]
+		page.NextCursor, err = encodeCycleCursor(page.Items[len(page.Items)-1])
+		if err != nil {
+			return CyclePage{}, err
+		}
+	}
+	return page, nil
+}
+
+var _ CycleListRepository = (*MemoryRepository)(nil)

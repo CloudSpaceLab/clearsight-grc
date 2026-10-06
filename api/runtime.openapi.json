@@ -5044,6 +5044,54 @@
             "description": "Immutable RCSA population cycle created."
           }
         }
+      },
+      "get": {
+        "operationId": "listRCSACycles",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "ASSESSMENT_OPEN",
+                "AWAITING_CHALLENGE",
+                "COMPLETED",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded RCSA cycles visible to the current first-line owner or effective independent reviewer."
+          },
+          "400": {
+            "description": "RCSA list filters are invalid."
+          },
+          "503": {
+            "description": "RCSA information is unavailable."
+          }
+        }
       }
     },
     "/api/v1/rcsa/cycles/{id}": {
@@ -5063,7 +5111,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Owner-visible RCSA cycle and frozen population."
+            "description": "Authorized RCSA cycle with frozen population, exact first-line period/request context and current handoff."
           }
         }
       }

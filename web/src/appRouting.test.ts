@@ -65,6 +65,12 @@ describe("workspace routes", () => {
     expect(routeHash("risks", {}, "matters")).toBe("#risks");
   });
 
+  it("round-trips an exact RCSA cycle without mixing list filters into its identity", () => {
+    expect(parseRoute("#rcsa/cycle%2F1?status=AWAITING_CHALLENGE")).toEqual({ view: "rcsa", target: { rcsaCycleID: "cycle/1" } });
+    expect(routeHash("rcsa", { rcsaCycleID: "cycle/1" }, "matters")).toBe("#rcsa/cycle%2F1");
+    expect(routeHash("rcsa", {}, "matters")).toBe("#rcsa");
+  });
+
   it("round-trips an exact operational loss record without mixing query filters into its identity", () => {
     expect(parseRoute("#losses/loss%2F1?status=ACTIVE&recovery_status=PARTIAL")).toEqual({ view: "losses", target: { lossID: "loss/1" } });
     expect(routeHash("losses", { lossID: "loss/1" }, "matters")).toBe("#losses/loss%2F1");

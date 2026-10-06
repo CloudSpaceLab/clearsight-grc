@@ -166,27 +166,6 @@ func (a *API) completeRCSAChallenge(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, value)
 }
 
-func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
-	service, ok := a.rcsaService(w)
-	if !ok {
-		return
-	}
-	actor, scope, ok := a.rcsaActorScope(w, r)
-	if !ok {
-		return
-	}
-	value, err := service.Get(r.Context(), scope, r.PathValue("id"))
-	if err != nil {
-		writeRCSAError(w, err)
-		return
-	}
-	if value.Cycle.FirstLineOwnerID != actor.PrincipalID {
-		writeRCSAError(w, rcsa.ErrNotFound)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, value)
-}
-
 func writeRCSAError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, rcsa.ErrNotFound):

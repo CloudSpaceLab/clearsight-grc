@@ -1,0 +1,110 @@
+@layer features {
+  .rcsa-workspace,
+  .rcsa-detail {
+    display: grid;
+    gap: var(--cs-space-section);
+    min-inline-size: 0;
+  }
+
+  .rcsa-register__heading,
+  .rcsa-detail__header,
+  .rcsa-detail__handoff {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--cs-space-group);
+  }
+
+  .rcsa-register__heading > div:first-child,
+  .rcsa-detail__header > div,
+  .rcsa-detail__handoff > div,
+  .rcsa-stack {
+    display: grid;
+    gap: var(--cs-primitive-space-1);
+    min-inline-size: 0;
+  }
+
+  .rcsa-register__heading h2,
+  .rcsa-register__heading p,
+  .rcsa-detail__header h2,
+  .rcsa-detail__handoff h3 {
+    margin: 0;
+  }
+
+  .rcsa-register__filter {
+    inline-size: min(14rem, 100%);
+  }
+
+  .rcsa-stack small,
+  .rcsa-detail__facts span,
+  .rcsa-detail__lineage dt {
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+
+  .rcsa-detail__facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--cs-space-inline);
+  }
+
+  .rcsa-detail__facts > div {
+    display: grid;
+    gap: var(--cs-primitive-space-1);
+    padding: var(--cs-space-inline);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .rcsa-detail__handoff {
+    align-items: center;
+  }
+
+  .rcsa-detail__population {
+    display: grid;
+    gap: var(--cs-space-group);
+    min-inline-size: 0;
+  }
+
+  .rcsa-detail__lineage {
+    border-block-start: 1px solid var(--border-subtle);
+    padding-block-start: var(--cs-space-group);
+  }
+
+  .rcsa-detail__lineage summary {
+    cursor: pointer;
+    font-weight: 650;
+  }
+
+  .rcsa-detail__lineage dl {
+    display: grid;
+    gap: var(--cs-primitive-space-3);
+    margin-block-end: 0;
+  }
+
+  .rcsa-detail__lineage dl > div {
+    display: grid;
+    gap: var(--cs-primitive-space-1);
+  }
+
+  .rcsa-detail__lineage dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 720px) {
+    .rcsa-register__heading,
+    .rcsa-detail__header,
+    .rcsa-detail__handoff {
+      display: grid;
+    }
+
+    .rcsa-register__filter {
+      inline-size: 100%;
+    }
+
+    .rcsa-detail__facts {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
