@@ -80,8 +80,8 @@ func (a *API) getOperationalLoss(w http.ResponseWriter, r *http.Request) {
 	}
 	notificationHistory, notificationHistoryComplete := a.notificationDeliveryHistory(r.Context(), actor, "LOSS", value.Loss.ID)
 	httpx.WriteJSON(w, http.StatusOK, operationalLossRead{
-		Aggregate: value,
-		NotificationHistory: notificationHistory,
+		Aggregate:                   value,
+		NotificationHistory:         notificationHistory,
 		NotificationHistoryComplete: notificationHistoryComplete,
 	})
 }
