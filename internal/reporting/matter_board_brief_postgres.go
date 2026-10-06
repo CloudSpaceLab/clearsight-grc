@@ -225,28 +225,30 @@ LEFT JOIN principals owner ON owner.tenant_id=t.tenant_id AND owner.id=t.owner_p
 		h["matters"], h["matter_actions"], h["matter_decisions"], h["verification_results"],
 		h["operational_losses"], h["operational_loss_recoveries"], h["form_distributions"], h["form_responses"],
 		h["vendor_work"], h["matter_links"], h["programs"], h["monitoring_results"]).
-		Scan(&id,&reference,&title,&status,&version,&priority,&summary,&organizationScope,&affectedArea,&ownerName,&dueAt,
-			&programsRaw,&actionsRaw,&decisionsRaw,&outcomesRaw,&lossesRaw,&formsRaw,&vendorRaw,&sourceRaw)
+		Scan(&id, &reference, &title, &status, &version, &priority, &summary, &organizationScope, &affectedArea, &ownerName, &dueAt,
+			&programsRaw, &actionsRaw, &decisionsRaw, &outcomesRaw, &lossesRaw, &formsRaw, &vendorRaw, &sourceRaw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ReportPage{}, &sourceBoundaryError{Expected: run.SourceBoundary.Population, Actual: 0}
 	}
 	if err != nil {
 		return ReportPage{}, fmt.Errorf("read Matter board brief projection: %w", err)
 	}
-	values:=map[string]any{
-		"reference":reference,"title":title,"status":status,"version":version,"priority":priority,"summary":summary,
-		"organization_scope":organizationScope,"affected_area":affectedArea,"owner_name":ownerName,
+	values := map[string]any{
+		"reference": reference, "title": title, "status": status, "version": version, "priority": priority, "summary": summary,
+		"organization_scope": organizationScope, "affected_area": affectedArea, "owner_name": ownerName,
 	}
-	if dueAt!=nil { values["due_at"]=dueAt.UTC() }
+	if dueAt != nil {
+		values["due_at"] = dueAt.UTC()
+	}
 	for key, raw := range map[string][]byte{
-		"programs":programsRaw,"actions":actionsRaw,"decisions":decisionsRaw,"outcomes":outcomesRaw,
-		"losses":lossesRaw,"forms":formsRaw,"vendor_work":vendorRaw,"source_context":sourceRaw,
+		"programs": programsRaw, "actions": actionsRaw, "decisions": decisionsRaw, "outcomes": outcomesRaw,
+		"losses": lossesRaw, "forms": formsRaw, "vendor_work": vendorRaw, "source_context": sourceRaw,
 	} {
 		var decoded []any
-		if err:=json.Unmarshal(raw,&decoded); err!=nil {
-			return ReportPage{},fmt.Errorf("decode board brief %s: %w",key,err)
+		if err := json.Unmarshal(raw, &decoded); err != nil {
+			return ReportPage{}, fmt.Errorf("decode board brief %s: %w", key, err)
 		}
-		values[key]=decoded
+		values[key] = decoded
 	}
-	return ReportPage{Rows:[]ReportRow{{ID:id,Values:values}}},nil
+	return ReportPage{Rows: []ReportRow{{ID: id, Values: values}}}, nil
 }
