@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { listLosses, type LossListParams } from "../../lossApi";
 import type { LossEventType, LossPage, LossRecoveryStatus, LossStatus, LossSummary } from "../../lossTypes";
 import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StatusBadge, TextField, type DataColumn } from "../ui";
-import { formatLossDate, formatLossMoney, lossEventLabel, lossStatusLabel, lossStatusTone, recoveryStatusLabel, recoveryStatusTone } from "./lossPresentation";
+import { formatLossDate, formatLossMoney, lossEventLabel, lossEventOptions, lossStatusLabel, lossStatusTone, recoveryStatusLabel, recoveryStatusTone } from "./lossPresentation";
 
 type Props = {
   organizationName?: string;
@@ -26,18 +26,6 @@ const recoveryOptions: ReadonlyArray<{ id: LossRecoveryStatus; label: string }> 
   { id: "PARTIAL", label: "Partly recovered" },
   { id: "FULL", label: "Fully recovered" },
 ];
-
-const eventTypes: readonly LossEventType[] = [
-  "INTERNAL_FRAUD",
-  "EXTERNAL_FRAUD",
-  "EMPLOYMENT_PRACTICES",
-  "CLIENT_PRODUCTS_BUSINESS_PRACTICES",
-  "DAMAGE_TO_PHYSICAL_ASSETS",
-  "BUSINESS_DISRUPTION_SYSTEM_FAILURES",
-  "EXECUTION_DELIVERY_PROCESS_MANAGEMENT",
-  "OTHER",
-];
-const eventOptions = eventTypes.map((id) => ({ id, label: lossEventLabel(id) }));
 
 export function LossRegister({
   organizationName,
@@ -147,7 +135,7 @@ export function LossRegister({
         <SearchField label="Search losses" value={search} onChange={(value) => { setSearch(value); resetPage(); }} placeholder="Title, code, cause or description" isLoading={state === "loading"}/>
         <SelectField label="Status" value={status} placeholder="All statuses" options={statusOptions} onChange={(value) => { setStatus(value); resetPage(); }}/>
         <SelectField label="Recovery" value={recoveryStatus} placeholder="All recovery states" options={recoveryOptions} onChange={(value) => { setRecoveryStatus(value); resetPage(); }}/>
-        <SelectField label="Event type" value={eventType} placeholder="All event types" options={eventOptions} onChange={(value) => { setEventType(value); resetPage(); }}/>
+        <SelectField label="Event type" value={eventType} placeholder="All event types" options={lossEventOptions} onChange={(value) => { setEventType(value); resetPage(); }}/>
         <TextField label="Currency" value={currency} onChange={(value) => { setCurrency(value.toUpperCase()); resetPage(); }} placeholder="All currencies" maxLength={3}/>
       </>}
       resultCount={state === "live" ? page.items.length : undefined}
