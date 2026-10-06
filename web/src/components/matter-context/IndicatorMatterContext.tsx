@@ -99,7 +99,17 @@ export function IndicatorMatterContext({
         <div><dt>Observed</dt><dd>{formatIndicatorDate(result.evaluated_at)}</dd></div>
         <div><dt>Concern</dt><dd>{monitoringBandLabel(result.evaluation.band)}</dd></div>
         <div><dt>Coverage</dt><dd>{formatIndicatorCoverage(result.evaluation.coverage)}</dd></div>
+        {result.source_receipt?.observed_at && <div><dt>Source observed</dt><dd>{formatIndicatorDate(result.source_receipt.observed_at)}</dd></div>}
+        {result.source_receipt?.completeness && <div><dt>Source read</dt><dd>{sourceReceiptCompletenessLabel(result.source_receipt.completeness)}</dd></div>}
+        {typeof result.source_receipt?.count === "number" && <div><dt>Records read</dt><dd>{new Intl.NumberFormat().format(result.source_receipt.count)}</dd></div>}
       </dl>
     </section>
   </Surface>;
+}
+
+
+function sourceReceiptCompletenessLabel(value: NonNullable<MonitoringResult["source_receipt"]>["completeness"]) {
+  if (value === "COMPLETE") return "Complete";
+  if (value === "PARTIAL") return "Partial";
+  return "Unknown";
 }
