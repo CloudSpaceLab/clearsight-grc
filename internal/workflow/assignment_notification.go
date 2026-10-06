@@ -28,10 +28,13 @@ const (
 	assignmentNotificationDeliveryStarted    = "DELIVERY_STARTED"
 	assignmentNotificationOutcomeUnknown     = "DELIVERY_OUTCOME_UNKNOWN"
 
-	matterOwnerNotificationKind     = "MATTER_OWNER_ASSIGNED"
-	actionPerformerNotificationKind = "ACTION_PERFORMER_ASSIGNED"
-	actionUpdateNotificationKind    = "ACTION_UPDATE_REQUESTED"
-	commentMentionNotificationKind  = "MATTER_COMMENT_MENTIONED"
+	matterOwnerNotificationKind      = "MATTER_OWNER_ASSIGNED"
+	actionPerformerNotificationKind  = "ACTION_PERFORMER_ASSIGNED"
+	actionUpdateNotificationKind     = "ACTION_UPDATE_REQUESTED"
+	commentMentionNotificationKind   = "MATTER_COMMENT_MENTIONED"
+	matterEscalationNotificationKind = "MATTER_ESCALATION_ASSIGNED"
+
+	EventMatterEscalationAssigned = "MatterEscalationAssigned"
 )
 
 type assignmentNotificationEvent struct {
@@ -43,6 +46,8 @@ type assignmentNotificationEvent struct {
 	UpdateMessage    string
 	UpdateDueAt      *time.Time
 	CommentMentioned bool
+	TaskID           string
+	Responsibility   string
 }
 
 type AssignmentNotificationTarget struct {
@@ -172,6 +177,9 @@ func (consumer *AssignmentNotificationConsumer) publishAssignment(ctx context.Co
 			}
 		}
 	}
+	if assignment.NotificationKind == matterEscalationNotificationKind && strings.TrimSpace(assignment.Responsibility) != "" {
+		responsibility = strings.ToUpper(strings.TrimSpace(assignment.Responsibility))
+	}
 	if assignment.NotificationKind == actionUpdateNotificationKind {
 		responsibility = "PERFORMER"
 		if assignment.UpdateDueAt != nil {
@@ -220,7 +228,7 @@ func validStaffMailbox(address string) bool {
 }
 
 func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) ([]assignmentNotificationEvent, bool, error) {
-	if event.AggregateType != "MATTER" || (event.EventType != continuity.EventMatterOwnerChanged && event.EventType != continuity.EventActionAssigned && event.EventType != continuity.EventMatterActionUpdateRequested && event.EventType != continuity.EventMatterCommentAdded) {
+	if event.AggregateType != "MATTER" || (event.EventType != continuity.EventMatterOwnerChanged && event.EventType != continuity.EventActionAssigned && event.EventType != continuity.EventMatterActionUpdateRequested && event.EventType != continuity.EventMatterCommentAdded && event.EventType != EventMatterEscalationAssigned) {
 		return nil, false, nil
 	}
 	var envelope struct {
@@ -233,6 +241,7 @@ func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) ([]ass
 			Version  int64  `json:"version"`
 		} `json:"action"`
 		PreviousOwnerID       string     `json:"previous_owner_principal_id"`
+		PreviousPrincipalID   string     `json:"previous_principal_id"`
 		OwnerPrincipalID      string     `json:"owner_principal_id"`
 		ID                    string     `json:"id"`
 		MatterID              string     `json:"matter_id"`
@@ -241,6 +250,8 @@ func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) ([]ass
 		Message               string     `json:"message"`
 		DueAt                 *time.Time `json:"due_at"`
 		MentionedPrincipalIDs []string   `json:"mentioned_principal_ids"`
+		TaskID                string     `json:"task_id"`
+		Responsibility        string     `json:"responsibility"`
 	}
 	if err := json.Unmarshal(event.Payload, &envelope); err != nil {
 		return nil, true, fmt.Errorf("decode staff assignment event: %w", err)
@@ -257,6 +268,15 @@ func decodeAssignmentNotificationEvent(event workflowruntime.OutboxEvent) ([]ass
 		assignment.ActionVersion = envelope.Action.Version
 		if strings.TrimSpace(envelope.Action.MatterID) != strings.TrimSpace(event.AggregateID) || assignment.ActionID == "" || assignment.ActionVersion < 1 {
 			return nil, true, fmt.Errorf("staff assignment event Action does not match aggregate")
+		}
+	} else if event.EventType == EventMatterEscalationAssigned {
+		assignment.NotificationKind = matterEscalationNotificationKind
+		assignment.PrincipalID = strings.TrimSpace(envelope.RecipientPrincipalID)
+		assignment.PreviousOwnerID = strings.TrimSpace(envelope.PreviousPrincipalID)
+		assignment.TaskID = strings.TrimSpace(envelope.TaskID)
+		assignment.Responsibility = strings.TrimSpace(envelope.Responsibility)
+		if strings.TrimSpace(envelope.MatterID) != strings.TrimSpace(event.AggregateID) || assignment.PrincipalID == "" || assignment.TaskID == "" || assignment.Responsibility == "" {
+			return nil, true, fmt.Errorf("Matter escalation assignment does not match aggregate")
 		}
 	} else if event.EventType == continuity.EventMatterActionUpdateRequested {
 		assignment.NotificationKind = actionUpdateNotificationKind
