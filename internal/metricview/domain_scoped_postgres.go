@@ -285,10 +285,10 @@ func scopedDomainFingerprint(scope domainScope, highWater map[string]time.Time, 
 		Members    []string `json:"members"`
 	}
 	payload := struct {
-		OrganizationScopeID  string                       `json:"organization_scope_id"`
-		OrganizationScopeIDs []string                     `json:"organization_scope_ids"`
-		HighWater            map[string]string            `json:"high_water"`
-		Results              []fingerprintResult          `json:"results"`
+		OrganizationScopeID  string              `json:"organization_scope_id"`
+		OrganizationScopeIDs []string            `json:"organization_scope_ids"`
+		HighWater            map[string]string   `json:"high_water"`
+		Results              []fingerprintResult `json:"results"`
 	}{
 		OrganizationScopeID:  scope.OrganizationScopeID,
 		OrganizationScopeIDs: append([]string(nil), scope.OrganizationScopeIDs...),
@@ -301,10 +301,10 @@ func scopedDomainFingerprint(scope domainScope, highWater map[string]time.Time, 
 	}
 	for _, result := range results {
 		item := fingerprintResult{
-			MetricID: result.Definition.ID,
+			MetricID:   result.Definition.ID,
 			Population: result.Population,
-			Unknown: result.Unknown,
-			Members: make([]string, 0, len(result.Members)),
+			Unknown:    result.Unknown,
+			Members:    make([]string, 0, len(result.Members)),
 		}
 		for _, member := range result.Members {
 			item.Members = append(item.Members, member.MemberID+":"+member.State)
