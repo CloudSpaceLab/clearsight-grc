@@ -71,6 +71,8 @@ describe("LossRecord", () => {
     />);
 
     expect(await screen.findByRole("heading", { name: "Duplicate settlement" })).toBeTruthy();
+    const currentState = screen.getByRole("group", { name: "Current loss state" });
+    expect(currentState.querySelector("dl")).toBeTruthy();
     expect(await screen.findByText("RISK-042 · Settlement processing risk")).toBeTruthy();
     expect(screen.getByText("Nneka Okafor")).toBeTruthy();
     expect(screen.getByText("BANK / PAYMENTS")).toBeTruthy();
