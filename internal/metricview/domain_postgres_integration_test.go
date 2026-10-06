@@ -352,6 +352,18 @@ func TestScopedDomainMetricsIncludeAuthorizedDescendantsAndRetainExactMembers(t 
 	}
 
 	members := NewMembershipRepository(pool)
+	counts, countErr := members.CountSnapshotMembersByOrganization(
+		ctx, tenantID, entityID, technologyID, bundle.SourceID,
+		"risks_outside_appetite", DomainDefinitionRevision,
+	)
+	if countErr != nil {
+		t.Fatal(countErr)
+	}
+	if counts.Count != 1 || len(counts.Items) != 1 ||
+		counts.Items[0].OrganizationScopeID != infrastructureID || counts.Items[0].Count != 1 {
+		t.Fatalf("organization counts=%#v", counts)
+	}
+
 	for _, tc := range []struct {
 		metricID   string
 		targetID   string
