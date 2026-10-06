@@ -308,4 +308,108 @@ func (r *MembershipRepository) ListSnapshotMembers(
 	return page, nil
 }
 
+func (r *MembershipRepository) CountSnapshotMembersByOrganization(
+	ctx context.Context,
+	tenantID string,
+	legalEntityID string,
+	organizationScopeID string,
+	sourceID string,
+	metricID string,
+	definitionRevision string,
+) (OrganizationMemberCounts, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	legalEntityID = strings.TrimSpace(legalEntityID)
+	organizationScopeID = strings.TrimSpace(organizationScopeID)
+	sourceID = strings.TrimSpace(sourceID)
+	metricID = strings.TrimSpace(metricID)
+	definitionRevision = strings.TrimSpace(definitionRevision)
+	if r == nil || r.pool == nil || tenantID == "" || legalEntityID == "" || sourceID == "" ||
+		metricID == "" || definitionRevision == "" {
+		return OrganizationMemberCounts{}, ErrMetricMembershipInvalid
+	}
+
+	var sourceCount int
+	if err := r.pool.QueryRow(ctx, `
+		WITH membership_sets AS (
+			SELECT membership_set.source_id,
+			       membership_set.tenant_id,
+			       membership_set.legal_entity_id,
+			       membership_set.organization_scope_id,
+			       membership_set.definition_revision
+			FROM metric_runtime_membership_sets membership_set
+			WHERE membership_set.expires_at>clock_timestamp()
+			UNION ALL
+			SELECT source.id,
+			       source.tenant_id,
+			       source.legal_entity_id,
+			       NULL::uuid,
+			       source.definition_revision
+			FROM domain_metric_snapshots source
+		)
+		SELECT count(*)
+		FROM membership_sets membership_set
+		JOIN tenants tenant ON tenant.id=membership_set.tenant_id
+		JOIN legal_entities entity
+		  ON entity.tenant_id=membership_set.tenant_id
+		 AND entity.id=membership_set.legal_entity_id
+		WHERE membership_set.source_id=$4::uuid
+		  AND membership_set.definition_revision=$6
+		  AND membership_set.organization_scope_id IS NOT DISTINCT FROM NULLIF($3,'')::uuid
+		  AND (tenant.id::text=$1 OR tenant.slug=$1)
+		  AND (entity.id::text=$2 OR entity.code=$2)`,
+		tenantID, legalEntityID, organizationScopeID, sourceID, metricID, definitionRevision,
+	).Scan(&sourceCount); err != nil {
+		return OrganizationMemberCounts{}, fmt.Errorf("verify organization metric membership source: %w", err)
+	}
+	if sourceCount != 1 {
+		return OrganizationMemberCounts{}, ErrMetricMembershipNotFound
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		WITH members AS (
+			SELECT member.source_id,
+			       member.metric_id,
+			       member.definition_revision,
+			       member.organization_scope_id
+			FROM metric_runtime_memberships member
+			UNION ALL
+			SELECT member.source_id,
+			       member.metric_id,
+			       member.definition_revision,
+			       member.organization_scope_id
+			FROM domain_metric_snapshot_memberships member
+		)
+		SELECT COALESCE(member.organization_scope_id::text,''),count(*)
+		FROM members member
+		WHERE member.source_id=$1::uuid
+		  AND member.metric_id=$2
+		  AND member.definition_revision=$3
+		GROUP BY member.organization_scope_id
+		ORDER BY count(*) DESC,COALESCE(member.organization_scope_id::text,'')`,
+		sourceID, metricID, definitionRevision,
+	)
+	if err != nil {
+		return OrganizationMemberCounts{}, fmt.Errorf("count organization metric members: %w", err)
+	}
+	defer rows.Close()
+
+	result := OrganizationMemberCounts{
+		SourceID: sourceID, MetricID: metricID, DefinitionRevision: definitionRevision,
+		Items: make([]OrganizationMemberCount, 0),
+	}
+	for rows.Next() {
+		var item OrganizationMemberCount
+		if err := rows.Scan(&item.OrganizationScopeID, &item.Count); err != nil {
+			return OrganizationMemberCounts{}, fmt.Errorf("scan organization metric member count: %w", err)
+		}
+		result.Count += item.Count
+		result.Items = append(result.Items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return OrganizationMemberCounts{}, fmt.Errorf("iterate organization metric member counts: %w", err)
+	}
+	return result, nil
+}
+
 var _ MembershipReader = (*MembershipRepository)(nil)
+var _ OrganizationMembershipReader = (*MembershipRepository)(nil)
