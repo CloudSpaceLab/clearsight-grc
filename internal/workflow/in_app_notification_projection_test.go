@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -143,5 +144,48 @@ func TestInAppNotificationProjectorProjectsEscalationAssignmentSafely(t *testing
 	if record.Kind != matterEscalationNotificationKind || record.Title != "Escalated work assigned to you" ||
 		record.SubjectType != "MATTER" || record.SubjectID != matterID || record.PrincipalID != principalID {
 		t.Fatalf("record=%#v", record)
+	}
+}
+
+
+type largeAssignmentProjectionRepo struct {
+	records []inAppNotificationRecord
+}
+
+func (r *largeAssignmentProjectionRepo) LoadAssignmentNotification(_ context.Context, event workflowruntime.OutboxEvent, assignment assignmentNotificationEvent) (assignmentNotificationContext, error) {
+	return assignmentNotificationContext{
+		LegalEntityID: "50000000-0000-4000-8000-000000000030",
+		CurrentPrincipalID: assignment.PrincipalID,
+		MatterID: event.AggregateID,
+	}, nil
+}
+
+func (r *largeAssignmentProjectionRepo) StoreInAppNotification(_ context.Context, record inAppNotificationRecord) error {
+	r.records = append(r.records, record)
+	return nil
+}
+
+func TestInAppNotificationProjectorHandlesLargeAssignmentPopulation(t *testing.T) {
+	const population = 1000
+	matterID := "20000000-0000-4000-8000-000000000030"
+	repo := &largeAssignmentProjectionRepo{}
+	projector := NewInAppNotificationProjector(repo, repo)
+	for index := 0; index < population; index++ {
+		principalID := fmt.Sprintf("40000000-0000-4000-8000-%012x", index+1)
+		previousID := fmt.Sprintf("41000000-0000-4000-8000-%012x", index+1)
+		eventID := fmt.Sprintf("10000000-0000-4000-8000-%012x", index+1)
+		event := workflowruntime.OutboxEvent{
+			ID: eventID, TenantID: "bank", AggregateType: "MATTER", AggregateID: matterID,
+			EventType: continuity.EventMatterOwnerChanged,
+			Payload: []byte(`{"matter":{"id":"` + matterID + `"},"owner_principal_id":"` + principalID +
+				`","previous_owner_principal_id":"` + previousID + `"}`),
+			OccurredAt: time.Date(2026, 10, 6, 3, 0, 0, 0, time.UTC),
+		}
+		if err := projector.Publish(context.Background(), event); err != nil {
+			t.Fatalf("assignment %d: %v", index, err)
+		}
+	}
+	if len(repo.records) != population {
+		t.Fatalf("records=%d want %d", len(repo.records), population)
 	}
 }
