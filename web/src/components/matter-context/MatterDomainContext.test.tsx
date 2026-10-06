@@ -61,6 +61,7 @@ it("checks the bounded loss ledger for a generic Matter", () => {
 
 it("shows loss and recovery totals linked to a generic Matter", async () => {
   vi.mocked(listLosses).mockResolvedValue({
+    next_cursor: "next-loss-page",
     items: [{
       loss: {
         id: "loss-linked", tenant_id: "bank", legal_entity_id: "entity-a", code: "LOSS-101", title: "ATM settlement shortfall",
@@ -76,6 +77,9 @@ it("shows loss and recovery totals linked to a generic Matter", async () => {
   render(<MatterDomainContext aggregate={matter()} onOpenLoss={onOpenLoss}/>);
 
   expect(await screen.findByRole("region", { name: "Linked losses" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Linked losses" })).toBeTruthy();
+  expect(screen.getByText("1 shown · More available")).toBeTruthy();
+  expect(screen.queryByText("1 linked loss record")).toBeNull();
   expect(screen.getByText("LOSS-101 · ATM settlement shortfall")).toBeTruthy();
   expect(screen.getByText(/Net .*Partly recovered/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Open loss LOSS-101" }));
