@@ -17,11 +17,11 @@ func TestRCSARoutesUseGovernedAuthorityContracts(t *testing.T) {
 		"POST /api/v1/rcsa/cycles/{id}/challenge/start":         {"rcsa.challenge.start", authority.ResponsibilityReviewer},
 		"POST /api/v1/rcsa/cycles/{id}/challenge/complete":      {"rcsa.challenge.complete", authority.ResponsibilityReviewer},
 	}
-	seenRead := false
+	seenReads := map[string]bool{}
 	for _, route := range (&API{}).rcsaRoutes() {
 		key := route.Method + " " + route.Path
-		if key == "GET /api/v1/rcsa/cycles/{id}" {
-			seenRead = route.Class == routeAuthenticatedRead
+		if key == "GET /api/v1/rcsa/cycles" || key == "GET /api/v1/rcsa/cycles/{id}" {
+			seenReads[key] = route.Class == routeAuthenticatedRead
 			continue
 		}
 		expected, ok := want[key]
@@ -45,7 +45,7 @@ func TestRCSARoutesUseGovernedAuthorityContracts(t *testing.T) {
 		}
 		delete(want, key)
 	}
-	if !seenRead || len(want) != 0 {
-		t.Fatalf("route coverage read=%v missing=%#v", seenRead, want)
+	if !seenReads["GET /api/v1/rcsa/cycles"] || !seenReads["GET /api/v1/rcsa/cycles/{id}"] || len(want) != 0 {
+		t.Fatalf("route coverage reads=%#v missing=%#v", seenReads, want)
 	}
 }
