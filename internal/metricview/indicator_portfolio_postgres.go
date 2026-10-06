@@ -27,18 +27,25 @@ func (r *DomainRepository) ListIndicators(ctx context.Context, tenantID, legalEn
 	}
 	now := time.Now().UTC()
 	rows, err := r.pool.Query(ctx, `
-		WITH current_links AS (
+		WITH scope AS (
+			SELECT tenant.id tenant_id,entity.id legal_entity_id
+			FROM tenants tenant
+			JOIN legal_entities entity ON entity.tenant_id=tenant.id
+			WHERE (tenant.id::text=$1 OR tenant.slug=$1)
+			  AND (entity.id::text=$2 OR entity.code=$2)
+		), current_links AS (
 			SELECT DISTINCT ON (link.risk_id,link.monitoring_check_id,link.monitoring_check_version,link.kind)
 			       link.id,link.risk_id,link.risk_version,link.program_id,
 			       link.monitoring_check_id,link.monitoring_check_version,link.kind
 			FROM risk_indicator_links link
+			JOIN scope
+			  ON scope.tenant_id=link.tenant_id
+			 AND scope.legal_entity_id=link.legal_entity_id
 			JOIN risks risk
 			  ON risk.tenant_id=link.tenant_id
 			 AND risk.legal_entity_id=link.legal_entity_id
 			 AND risk.id=link.risk_id
 			 AND risk.status='ACTIVE'
-			WHERE link.tenant_id=$1::uuid
-			  AND link.legal_entity_id=$2::uuid
 			ORDER BY link.risk_id,link.monitoring_check_id,link.monitoring_check_version,link.kind,
 			         link.risk_version DESC,link.id DESC
 		), grouped AS (
@@ -46,9 +53,10 @@ func (r *DomainRepository) ListIndicators(ctx context.Context, tenantID, legalEn
 			       jsonb_agg(DISTINCT jsonb_build_object('id',risk.id::text,'name',risk.name)) AS risks,
 			       string_agg(DISTINCT lower(risk.name),' ') AS risk_search
 			FROM current_links link
+			JOIN scope ON true
 			JOIN risks risk
-			  ON risk.tenant_id=$1::uuid
-			 AND risk.legal_entity_id=$2::uuid
+			  ON risk.tenant_id=scope.tenant_id
+			 AND risk.legal_entity_id=scope.legal_entity_id
 			 AND risk.id=link.risk_id
 			GROUP BY link.monitoring_check_id,link.monitoring_check_version,link.program_id,link.kind
 		), materialized AS (
@@ -98,23 +106,24 @@ func (r *DomainRepository) ListIndicators(ctx context.Context, tenantID, legalEn
 			       END reason,
 			       grouped.risk_search
 			FROM grouped
+			JOIN scope ON true
 			LEFT JOIN monitoring_checks check_config
-			  ON check_config.tenant_id=$1::uuid
+			  ON check_config.tenant_id=scope.tenant_id
 			 AND check_config.id=grouped.monitoring_check_id
 			 AND check_config.version=grouped.monitoring_check_version
 			 AND check_config.program_id=grouped.program_id
 			LEFT JOIN programs program
-			  ON program.tenant_id=$1::uuid
-			 AND program.legal_entity_id=$2::uuid
+			  ON program.tenant_id=scope.tenant_id
+			 AND program.legal_entity_id=scope.legal_entity_id
 			 AND program.id=grouped.program_id
 			LEFT JOIN principals owner
-			  ON owner.tenant_id=$1::uuid AND owner.id=check_config.owner_principal_id
+			  ON owner.tenant_id=scope.tenant_id AND owner.id=check_config.owner_principal_id
 			LEFT JOIN principals reviewer
-			  ON reviewer.tenant_id=$1::uuid AND reviewer.id=check_config.reviewer_principal_id
+			  ON reviewer.tenant_id=scope.tenant_id AND reviewer.id=check_config.reviewer_principal_id
 			LEFT JOIN LATERAL (
 				SELECT candidate.*
 				FROM monitoring_results candidate
-				WHERE candidate.tenant_id=$1::uuid
+				WHERE candidate.tenant_id=scope.tenant_id
 				  AND candidate.program_id=grouped.program_id
 				  AND candidate.monitoring_check_id=grouped.monitoring_check_id
 				  AND candidate.monitoring_check_version=grouped.monitoring_check_version
