@@ -419,6 +419,8 @@ func writeReportError(w http.ResponseWriter, err error) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "report_authority_unavailable", "The current responsibility route for this report could not be checked. No change was made; try again when the authority service is available.")
 	case errors.Is(err, reporting.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "report_not_found", "This report definition or run is not available in your legal entity.")
+	case errors.Is(err, reporting.ErrReportDownloadForbidden):
+		httpx.WriteError(w, http.StatusForbidden, "report_download_forbidden", "You can view this report run but cannot download its file.")
 	case errors.Is(err, reporting.ErrReportExpired):
 		httpx.WriteError(w, http.StatusGone, "report_run_expired", "This report file expired and is no longer available. Run the report again to create a new file.")
 	case errors.Is(err, reporting.ErrReportBoundStopped):

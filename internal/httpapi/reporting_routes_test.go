@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func TestReportingRoutesAreRegistered(t *testing.T) {
@@ -113,11 +112,11 @@ func TestReportReviewAndActivationUseDifferentResponsibilities(t *testing.T) {
 	}
 }
 
-func TestReportDownloadRequiresItsOwnPermission(t *testing.T) {
+func TestReportDownloadAuthorizationIsHandledByTheReportService(t *testing.T) {
 	for _, route := range (&API{}).productionRoutes() {
 		if route.Method == http.MethodGet && route.Path == "/api/v1/reports/runs/{id}/download" {
-			if route.Permission != identity.PermissionReportDownload {
-				t.Fatalf("report download permission = %q, want %q", route.Permission, identity.PermissionReportDownload)
+			if route.Permission != "" {
+				t.Fatalf("report download route permission = %q, want service-level authorization", route.Permission)
 			}
 			if route.Command != nil || route.Class != routeAuthenticatedRead {
 				t.Fatalf("report download route classification = %#v", route)

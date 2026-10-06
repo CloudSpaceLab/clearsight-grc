@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func (a *API) reportingRoutes() []routeSpec {
@@ -36,6 +35,6 @@ func (a *API) reportingRoutes() []routeSpec {
 			ObjectType: "REPORT_RUN", Responsibility: authority.ResponsibilityPerformer, Materiality: 3, BindLegalEntity: true,
 		}),
 		read("/api/v1/reports/runs/{id}", a.getReportRun),
-		withPermission(read("/api/v1/reports/runs/{id}/download", a.downloadReportRun), identity.PermissionReportDownload),
+		read("/api/v1/reports/runs/{id}/download", a.downloadReportRun),
 	}
 }

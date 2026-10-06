@@ -6,8 +6,8 @@ func TestDevelopmentReportDownloadPermissionIsLimitedToComplianceOperations(t *t
 	if PermissionReportDownload == PermissionAuditExport {
 		t.Fatal("report download must not reuse the system-activity audit-export permission")
 	}
-	granted := []string{"CCO", "GRC_ADMIN"}
-	notGranted := []string{"CRO", "CISO", "EXECUTIVE", "SYSTEM_ADMIN", "SUPER_ADMIN", "AUDITOR", "REVIEWER", "PROGRAM_OWNER"}
+	granted := []string{"CRO", "CCO", "CISO", "EXECUTIVE", "GRC_ADMIN", "AUDITOR", "REVIEWER"}
+	notGranted := []string{"SYSTEM_ADMIN", "SUPER_ADMIN", "PROGRAM_OWNER", "EVIDENCE_RESPONDENT"}
 	for _, role := range granted {
 		if !hasPermission(developmentPermissions([]string{role}), PermissionReportDownload) {
 			t.Errorf("role %s should receive report download permission", role)

@@ -264,29 +264,34 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 	}
 }
 
-func TestRunDownloadRequiresReportDownloadPermission(t *testing.T) {
+func TestRunDownloadAllowsRequesterAndExportReaders(t *testing.T) {
 	handler, service, repository, objects, authorityChecker := reportingHTTPFixture(t)
 	run, _ := installReadyHTTPReport(t, service, repository, objects, time.Now().UTC())
 
-	list := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs", reportingPerformerID, []string{"CRO"}, "")
+	list := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs", reportingPerformerID, []string{"PROGRAM_OWNER"}, "")
 	if list.Code != http.StatusOK {
 		t.Fatalf("list without report-download permission = %d: %s", list.Code, list.Body.String())
 	}
-	forbidden := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"CRO"}, "")
-	if forbidden.Code != http.StatusForbidden {
-		t.Fatalf("download without report permission = %d: %s", forbidden.Code, forbidden.Body.String())
+	requester := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingPerformerID, []string{"PROGRAM_OWNER"}, "")
+	if requester.Code != http.StatusOK {
+		t.Fatalf("requester download = %d: %s", requester.Code, requester.Body.String())
+	}
+
+	unrelated := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingReviewerID, []string{"SYSTEM_ADMIN"}, "")
+	if unrelated.Code != http.StatusForbidden || !strings.Contains(unrelated.Body.String(), "report_download_forbidden") {
+		t.Fatalf("unrelated download = %d: %s", unrelated.Code, unrelated.Body.String())
 	}
 
 	proposerCallsBeforeDownload := authorityChecker.callCount(authority.ResponsibilityProposer)
-	allowed := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingReviewerID, []string{"GRC_ADMIN"}, "")
+	allowed := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingReviewerID, []string{"CRO"}, "")
 	if allowed.Code != http.StatusOK {
-		t.Fatalf("authorized GRC administrator download = %d: %s", allowed.Code, allowed.Body.String())
+		t.Fatalf("authorized oversight download = %d: %s", allowed.Code, allowed.Body.String())
 	}
 	if calls := authorityChecker.callCount(authority.ResponsibilityProposer) - proposerCallsBeforeDownload; calls != 0 {
-		t.Fatalf("download used proposer authority %d times, want dedicated report-download capability only", calls)
+		t.Fatalf("download used proposer authority %d times, want requester/export authorization only", calls)
 	}
-	if len(repository.Downloads()) != 1 {
-		t.Fatalf("download receipts = %#v, want one permitted download", repository.Downloads())
+	if len(repository.Downloads()) != 2 {
+		t.Fatalf("download receipts = %#v, want requester and oversight downloads", repository.Downloads())
 	}
 }
 

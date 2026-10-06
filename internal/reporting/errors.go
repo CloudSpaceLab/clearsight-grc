@@ -23,8 +23,11 @@ var (
 	// ErrAuthorityUnavailable is returned when the current report authority
 	// service cannot produce a decision. Callers fail closed without writing.
 	ErrAuthorityUnavailable = errors.New("reporting: current authority is unavailable")
-	// ErrReportExpired is returned only after current download authority and
-	// exact legal-entity scope have been checked.
+	// ErrReportDownloadForbidden is returned when an in-scope actor may view
+	// report history but is not permitted to retrieve this run's artefact.
+	ErrReportDownloadForbidden = errors.New("reporting: report download forbidden")
+	// ErrReportExpired is returned only after download authorization and exact
+	// legal-entity scope have been checked.
 	ErrReportExpired = errors.New("reporting: report file expired")
 	// ErrReportNotReady identifies a scoped run that cannot yet produce bytes.
 	ErrReportNotReady = errors.New("reporting: report is not ready")
