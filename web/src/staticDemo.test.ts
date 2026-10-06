@@ -216,6 +216,33 @@ describe("static stakeholder demo transport", () => {
     expect(transition).toMatchObject({ assigned_to: { id: "role-privacy-control" } });
   });
 
+  it("scopes the complete issue-workspace form activity to the exact Matter", async () => {
+    window.history.replaceState(null, "", "/?fixture=matter-workspace-complete");
+    const { staticDemoRequest } = await demo();
+
+    const requests = await staticDemoRequest<{ items: Array<{ subject_type: string; subject_id: string; title: string }> }>(
+      "/api/v1/forms/distributions?subject_type=MATTER&subject_id=matter-gaid-change&limit=6",
+    );
+    expect(requests.items).toHaveLength(2);
+    expect(requests.items.every((item) => item.subject_type === "MATTER" && item.subject_id === "matter-gaid-change")).toBe(true);
+    expect(requests.items.map((item) => item.title)).toEqual(expect.arrayContaining([
+      "Annual return evidence owner confirmation",
+      "Annual return evidence review",
+    ]));
+
+    const responses = await staticDemoRequest<{ items: Array<{ subject_type: string; subject_id: string; state: string }> }>(
+      "/api/v1/forms/responses?subject_type=MATTER&subject_id=matter-gaid-change&current_only=true&limit=6",
+    );
+    expect(responses.items).toEqual([
+      expect.objectContaining({ subject_type: "MATTER", subject_id: "matter-gaid-change", state: "PROVISIONAL" }),
+    ]);
+
+    const unrelated = await staticDemoRequest<{ items: unknown[] }>(
+      "/api/v1/forms/distributions?subject_type=VENDOR_RELATIONSHIP&subject_id=vendor-relationship-payments&limit=6",
+    );
+    expect(unrelated.items).toEqual([]);
+  });
+
   it("returns the named linked-form population for the stakeholder matter fixture", async () => {
     const { staticDemoRequest } = await demo();
 
