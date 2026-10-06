@@ -413,6 +413,10 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 	if err != nil {
 		return ReportRun{}, err
 	}
+	if definition.Dataset == DatasetMatterBoardBrief &&
+		(parameters.StartDate != "" || parameters.EndDate != "" || parameters.OwnerPrincipalID != "") {
+		return ReportRun{}, ErrInvalid
+	}
 	boundary, err := s.repo.CaptureSourceBoundary(ctx, scope, definition, parameters)
 	if err != nil {
 		return ReportRun{}, err
