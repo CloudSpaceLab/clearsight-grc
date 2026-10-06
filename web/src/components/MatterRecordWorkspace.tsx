@@ -142,7 +142,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
     {aggregate && <>
       <header className="matter-record-header">
         <div>
-          <span className="matter-kicker">{aggregate.type_label} · {aggregate.matter.reference}</span>
+          <span className="matter-kicker">{aggregate.type_label} · {aggregate.matter.reference} · {aggregate.status_label} · Version {aggregate.matter.version}</span>
           <h1>{aggregate.matter.title}</h1>
           <p>{aggregate.matter.summary}</p>
         </div>
