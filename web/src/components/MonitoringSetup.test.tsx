@@ -196,7 +196,7 @@ describe("monitoring setup", () => {
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources={false} operations={[]}/>);
 
     expect(await screen.findByText("98.70%")).toBeTruthy();
-    expect(screen.getByText("Limit ≥ 99.5%")).toBeTruthy();
+    expect(screen.getByText("Limit ≥ 99.50%")).toBeTruthy();
     expect(screen.getByText("100 / 100 concern")).toBeTruthy();
     expect(loadMonitoringResults).toHaveBeenCalledWith("check-source", 4);
   });
