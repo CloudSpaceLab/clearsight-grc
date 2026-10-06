@@ -177,12 +177,14 @@ export function LossRecord({
     </header>
 
     <Surface>
-      <div role="group" aria-label="Current loss state">\n        <dl className="loss-record__state">
-        <div><dt>Net loss</dt><dd><strong>{formatLossMoney(totals.net_loss_minor, totals.currency)}</strong></dd></div>
-        <div><dt>Recovered</dt><dd>{formatLossMoney(totals.recovered_amount_minor, totals.currency)}</dd></div>
-        <div><dt>Recovery</dt><dd><StatusBadge tone={recoveryStatusTone(totals.recovery_status)}>{recoveryStatusLabel(totals.recovery_status)}</StatusBadge></dd></div>
-        <div><dt>Status</dt><dd><StatusBadge tone={lossStatusTone(loss.status)}>{lossStatusLabel(loss.status)}</StatusBadge></dd></div>
-      </dl>
+      <div role="group" aria-label="Current loss state">
+        <dl className="loss-record__state">
+          <div><dt>Net loss</dt><dd><strong>{formatLossMoney(totals.net_loss_minor, totals.currency)}</strong></dd></div>
+          <div><dt>Recovered</dt><dd>{formatLossMoney(totals.recovered_amount_minor, totals.currency)}</dd></div>
+          <div><dt>Recovery</dt><dd><StatusBadge tone={recoveryStatusTone(totals.recovery_status)}>{recoveryStatusLabel(totals.recovery_status)}</StatusBadge></dd></div>
+          <div><dt>Status</dt><dd><StatusBadge tone={lossStatusTone(loss.status)}>{lossStatusLabel(loss.status)}</StatusBadge></dd></div>
+        </dl>
+      </div>
     </Surface>
 
     <div className="loss-record__overview">
