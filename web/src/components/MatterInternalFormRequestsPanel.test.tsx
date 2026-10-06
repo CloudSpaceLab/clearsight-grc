@@ -16,7 +16,7 @@ vi.mock("./FormBuilder", () => ({
       code: "ISSUE-CHECK",
       name: "Issue evidence check",
       purpose: "Collect current issue evidence.",
-      presentation: { default_mode: "AUTOMATIC" },
+      presentation: { default_mode: "AUTOMATIC", allow_mode_switch: false },
       sections: [{ id: "evidence", title: "Evidence" }],
       fields: [{ id: "state", section_id: "evidence", label: "Current state", type: "short_text", required: true }],
     }).then(onSaved)}>Save linked form</button>
@@ -36,7 +36,7 @@ beforeEach(() => {
     purpose: "Collect current issue evidence.",
     scoring_mode: "NONE",
     sensitivity: "INTERNAL",
-    presentation: { default_mode: "AUTOMATIC" },
+    presentation: { default_mode: "AUTOMATIC", allow_mode_switch: false },
     sections: [{ id: "evidence", title: "Evidence" }],
     fields: [{ id: "state", section_id: "evidence", label: "Current state", type: "short_text", required: true }],
     status: "DRAFT",
