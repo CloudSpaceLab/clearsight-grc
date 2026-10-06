@@ -89,7 +89,7 @@ describe("LossRecord", () => {
     const onOpenMatter = vi.fn();
     const openIntervention = vi.fn();
     const loadMatterRecord = vi.fn().mockResolvedValue({
-      matter: { reference: "MAT-017" },
+      matter: { reference: "MAT-017", title: "Resolve settlement exception" },
       status_label: "Outcome check",
     });
     render(<LossRecord
@@ -103,7 +103,7 @@ describe("LossRecord", () => {
     />);
 
     await screen.findByRole("heading", { name: "Duplicate settlement" });
-    expect(await screen.findByText("MAT-017 · Outcome check")).toBeTruthy();
+    expect(await screen.findByText("MAT-017 · Resolve settlement exception · Outcome check")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "View intervention" }));
     expect(onOpenMatter).toHaveBeenCalledWith("matter-existing");
     expect(openIntervention).not.toHaveBeenCalled();
