@@ -21,6 +21,7 @@ func renderMatterBoardBriefPDF(run ReportRun, row ReportRow) ([]byte, error) {
 		fmt.Sprintf("Affected service or process: %s", boardFallback(row.Values["affected_area"], "Not recorded")),
 		fmt.Sprintf("Owner: %s", boardFallback(row.Values["owner_name"], "Not assigned")),
 		fmt.Sprintf("Due: %s", boardDate(row.Values["due_at"])),
+		"Directory labels: resolved when this report is rendered; record identity remains bound to stored principal references.",
 		"",
 		"Position",
 		boardFallback(row.Values["summary"], "No summary recorded."),
@@ -28,7 +29,7 @@ func renderMatterBoardBriefPDF(run ReportRun, row ReportRow) ([]byte, error) {
 	lines = appendBoardSection(lines, "Programs", row.Values["programs"], []string{"code", "name"})
 	lines = appendBoardSection(lines, "Actions", row.Values["actions"], []string{"title", "status", "owner", "due_at"})
 	lines = appendBoardSection(lines, "Decisions", row.Values["decisions"], []string{"type", "status", "selected_option", "decided_at"})
-	lines = appendBoardSection(lines, "Outcome checks", row.Values["outcomes"], []string{"result", "observed_at", "rationale"})
+	lines = appendBoardSection(lines, "Outcome checks", row.Values["outcomes"], []string{"expected_outcome", "status", "result", "observed_at", "rationale"})
 	lines = appendBoardSection(lines, "Loss and recovery", row.Values["losses"], []string{"code", "title", "gross", "recovered", "net", "currency"})
 	lines = appendBoardSection(lines, "Forms and responses", row.Values["forms"], []string{"title", "status", "deadline", "response_state", "concern"})
 	lines = appendBoardSection(lines, "Vendor work", row.Values["vendor_work"], []string{"purpose", "state", "due_at"})
