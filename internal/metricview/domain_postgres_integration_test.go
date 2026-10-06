@@ -353,8 +353,8 @@ func TestScopedDomainMetricsIncludeAuthorizedDescendantsAndRetainExactMembers(t 
 
 	members := NewMembershipRepository(pool)
 	for _, tc := range []struct {
-		metricID string
-		targetID string
+		metricID   string
+		targetID   string
 		targetType string
 	}{
 		{metricID: "risks_outside_appetite", targetID: infraRiskID, targetType: "RISK"},
