@@ -585,7 +585,6 @@ func (r *MemoryRepository) CaptureSourceBoundary(ctx context.Context, scope Repo
 	key := "processing_activities"
 	switch definition.Dataset {
 	case DatasetMatterBoardBrief:
-		now := r.clock()
 		return SourceBoundary{
 			CapturedAt: now, ProjectionVersion: "matter-board-brief.memory.v1",
 			SourceHighWater: map[string]time.Time{
