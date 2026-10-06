@@ -33,6 +33,20 @@ func normalizeFormOrigin(value *FormOrigin) (*FormOrigin, error) {
 	return origin, nil
 }
 
+func formOriginType(value *FormOrigin) string {
+	if value == nil {
+		return ""
+	}
+	return string(value.Type)
+}
+
+func formOriginID(value *FormOrigin) string {
+	if value == nil {
+		return ""
+	}
+	return value.ID
+}
+
 func cloneFormOrigin(value *FormOrigin) *FormOrigin {
 	if value == nil {
 		return nil
