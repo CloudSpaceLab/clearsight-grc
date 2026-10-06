@@ -62,7 +62,6 @@ func TestServiceRejectsInvalidTimeRange(t *testing.T) {
 	}
 }
 
-
 func TestServiceProjectsNotificationDeliveryAsSystemActivity(t *testing.T) {
 	now := time.Date(2026, 10, 6, 3, 0, 0, 0, time.UTC)
 	service := NewService(NewMemoryRepository(
