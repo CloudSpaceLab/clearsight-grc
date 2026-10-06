@@ -390,3 +390,55 @@ func TestAssignmentNotificationIgnoresUnrelatedEventsAndRejectsInsecureBaseURL(t
 		t.Fatal("insecure application base URL accepted")
 	}
 }
+
+
+func escalationAssignmentEvent(t *testing.T) workflowruntime.OutboxEvent {
+	t.Helper()
+	payload, err := json.Marshal(map[string]any{
+		"matter_id": "00000000-0000-4000-8000-000000000701",
+		"task_id": "00000000-0000-4000-8000-000000000720",
+		"recipient_principal_id": "00000000-0000-4000-8000-000000000703",
+		"previous_principal_id": "00000000-0000-4000-8000-000000000704",
+		"responsibility": "REVIEWER",
+		"sequence_id": "overdue-sequence",
+		"step_index": 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return workflowruntime.OutboxEvent{
+		ID: "00000000-0000-4000-8000-000000000721", TenantID: "bank-1", AggregateType: "MATTER",
+		AggregateID: "00000000-0000-4000-8000-000000000701", EventType: EventMatterEscalationAssigned,
+		Payload: payload, OccurredAt: time.Date(2026, 10, 6, 3, 0, 0, 0, time.UTC),
+	}
+}
+
+func TestAssignmentNotificationDeliversEscalatedWorkThroughExistingGuardedPath(t *testing.T) {
+	context := deliverableAssignmentContext()
+	context.WorkTitle = "Review escalated work"
+	repo := &assignmentNotificationRepositoryStub{context: context}
+	delivery := &assignmentDeliveryStub{receipt: evidence.InvitationDeliveryReceipt{Status: evidence.InvitationDelivered}}
+	consumer, err := NewAssignmentNotificationConsumer(repo, delivery, "https://clearsight.example.test/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := consumer.Publish(t.Context(), escalationAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 1 || !strings.Contains(delivery.request.PlainText, "reviewer") ||
+		!strings.Contains(delivery.request.PlainText, "Review escalated work") {
+		t.Fatalf("escalation request=%#v calls=%d", delivery.request, delivery.calls)
+	}
+	if repo.recorded.Status != assignmentNotificationDelivered {
+		t.Fatalf("receipt=%#v", repo.recorded)
+	}
+
+	delivery.calls = 0
+	if err := consumer.Publish(t.Context(), escalationAssignmentEvent(t)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 0 {
+		t.Fatalf("escalation replay redelivered: calls=%d", delivery.calls)
+	}
+}
