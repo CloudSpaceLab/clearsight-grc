@@ -3,7 +3,6 @@ package reporting
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -126,33 +125,60 @@ func boardValue(value any) string {
 }
 
 func renderSimplePDF(lines []string) ([]byte, error) {
-	content := &strings.Builder{}
-	content.WriteString("BT\n/F1 10 Tf\n48 790 Td\n13 TL\n")
-	first := true
+	const maxLinesPerPage = 54
+	rendered := make([]string, 0, len(lines)*2)
 	for _, raw := range lines {
 		wrapped := wrapPDFText(raw, 92)
 		if len(wrapped) == 0 {
-			wrapped = []string{""}
+			rendered = append(rendered, "")
+			continue
 		}
-		for _, line := range wrapped {
-			if !first {
+		rendered = append(rendered, wrapped...)
+	}
+	if len(rendered) == 0 {
+		rendered = []string{""}
+	}
+	pageCount := (len(rendered) + maxLinesPerPage - 1) / maxLinesPerPage
+	pageObjectStart := 3
+	contentObjectStart := pageObjectStart + pageCount
+	fontObjectID := contentObjectStart + pageCount
+	kids := make([]string, 0, pageCount)
+	objects := make([]string, 0, 3+pageCount*2)
+	objects = append(objects, "<< /Type /Catalog /Pages 2 0 R >>")
+	for page := 0; page < pageCount; page++ {
+		kids = append(kids, fmt.Sprintf("%d 0 R", pageObjectStart+page))
+	}
+	objects = append(objects, fmt.Sprintf("<< /Type /Pages /Kids [%s] /Count %d >>", strings.Join(kids, " "), pageCount))
+
+	streams := make([]string, 0, pageCount)
+	for page := 0; page < pageCount; page++ {
+		first := page * maxLinesPerPage
+		last := first + maxLinesPerPage
+		if last > len(rendered) {
+			last = len(rendered)
+		}
+		content := &strings.Builder{}
+		content.WriteString("BT\n/F1 10 Tf\n48 790 Td\n13 TL\n")
+		for index, line := range rendered[first:last] {
+			if index > 0 {
 				content.WriteString("T*\n")
 			}
-			first = false
 			content.WriteString("(")
 			content.WriteString(escapePDFText(line))
 			content.WriteString(") Tj\n")
 		}
+		content.WriteString("ET\n")
+		streams = append(streams, content.String())
+		objects = append(objects, fmt.Sprintf(
+			"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 %d 0 R >> >> /Contents %d 0 R >>",
+			fontObjectID, contentObjectStart+page,
+		))
 	}
-	content.WriteString("ET\n")
+	for _, stream := range streams {
+		objects = append(objects, fmt.Sprintf("<< /Length %d >>\nstream\n%sendstream", len(stream), stream))
+	}
+	objects = append(objects, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
 
-	objects := []string{
-		"<< /Type /Catalog /Pages 2 0 R >>",
-		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
-		fmt.Sprintf("<< /Length %d >>\nstream\n%sendstream", content.Len(), content.String()),
-		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-	}
 	var output bytes.Buffer
 	output.WriteString("%PDF-1.4\n")
 	offsets := make([]int, len(objects)+1)
@@ -216,12 +242,3 @@ func escapePDFText(value string) string {
 	return replacer.Replace(value)
 }
 
-// Stable ordering is useful when map-shaped receipt context is constructed by tests.
-func sortedBoardKeys(value map[string]any) []string {
-	keys := make([]string, 0, len(value))
-	for key := range value {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
-}
