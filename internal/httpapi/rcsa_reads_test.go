@@ -18,7 +18,7 @@ func TestRCSACycleVisibilityUsesOwnerAndExactReviewerAuthority(t *testing.T) {
 		Responsibility: authority.ResponsibilityReviewer,
 		DecisionType:   "rcsa.challenge.start", MinMateriality: 3,
 		Principal: authority.Principal{ID: "reviewer-a", DisplayName: "Reviewer A", Kind: "PERSON"},
-		Priority:      1,
+		Priority:  1,
 	}})
 	api := &API{deps: Dependencies{Authority: resolver}}
 	items := []rcsa.CycleSummary{
@@ -120,7 +120,7 @@ func TestRCSACycleVisibilityPreservesSourceOrder(t *testing.T) {
 		Responsibility: authority.ResponsibilityReviewer,
 		DecisionType:   "rcsa.challenge.start", MinMateriality: 3,
 		Principal: authority.Principal{ID: "reviewer-a", Kind: "PERSON"},
-		Priority: 1,
+		Priority:  1,
 	}})
 	api := &API{deps: Dependencies{Authority: resolver}}
 	items := []rcsa.CycleSummary{
