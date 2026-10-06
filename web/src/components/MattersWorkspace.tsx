@@ -14,7 +14,7 @@ import { matterDeadlinePresentation, matterPriorityLabel, matterPriorityTone } f
 import { Notice, StatusBadge } from "./ui";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { targetID?: string; openFirst?: boolean; onBack?: () => void; onOpenRequest?: (requestID: string) => void };
+type Props = { refreshToken?: string; targetID?: string; openFirst?: boolean; onBack?: () => void; onOpenRequest?: (requestID: string) => void };
 
 function MatterIcon({ type }: { type: string }) {
   const common = { width: 21, height: 21, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -84,12 +84,12 @@ function summaryFromAggregate(detail: MatterAggregate): MatterSummary {
   };
 }
 
-export function MattersWorkspace({ targetID, openFirst = false, onBack, onOpenRequest }: Props) {
-  if (targetID) return <MatterRecordWorkspace matterID={targetID} onBack={onBack ?? (() => { window.location.hash = workspaceHash("#work/matters", readWorkspaceFilters(window.location.hash)); })} onOpenRequest={onOpenRequest}/>;
-  return <MatterListWorkspace openFirst={openFirst} onOpenRequest={onOpenRequest}/>;
+export function MattersWorkspace({ refreshToken, targetID, openFirst = false, onBack, onOpenRequest }: Props) {
+  if (targetID) return <MatterRecordWorkspace key={`${targetID}:${refreshToken ?? ""}`} matterID={targetID} onBack={onBack ?? (() => { window.location.hash = workspaceHash("#work/matters", readWorkspaceFilters(window.location.hash)); })} onOpenRequest={onOpenRequest}/>;
+  return <MatterListWorkspace refreshToken={refreshToken} openFirst={openFirst} onOpenRequest={onOpenRequest}/>;
 }
 
-function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "openFirst" | "onOpenRequest">) {
+function MatterListWorkspace({ refreshToken, openFirst = false, onOpenRequest }: Pick<Props, "refreshToken" | "openFirst" | "onOpenRequest">) {
   const initialFilters = useMemo(() => readWorkspaceFilters(window.location.hash), []);
   const initialStatus = initialFilters.status === "ALL" ? "" : initialFilters.status ?? "OPEN";
   const [items, setItems] = useState<MatterSummary[]>([]);
@@ -144,7 +144,7 @@ function MatterListWorkspace({ openFirst = false, onOpenRequest }: Pick<Props, "
     }
   }, [assignedToMe, dueCondition, matterType, priority, search, status]);
 
-  useEffect(() => { void load(true); }, [load]);
+  useEffect(() => { void load(true); }, [load, refreshToken]);
 
   const summary = useMemo(() => ({
     decisions: items.filter((item) => item.matter.status === "DECISION_REQUIRED").length,

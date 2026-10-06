@@ -1452,6 +1452,27 @@
         }
       }
     },
+    "/api/v1/updates/stream": {
+      "get": {
+        "operationId": "streamActorInvalidations",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "responses": {
+          "200": {
+            "description": "Actor-scoped server-sent invalidation revisions. Events contain no business payload.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Realtime invalidation is unavailable; clients may use ordinary reads."
+          }
+        }
+      }
+    },
     "/api/v1/notifications/{id}/read": {
       "post": {
         "operationId": "markNotificationRead",
