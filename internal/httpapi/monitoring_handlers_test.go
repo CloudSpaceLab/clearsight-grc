@@ -361,7 +361,7 @@ func TestMonitoringResultsCanBindExactCheckRevision(t *testing.T) {
 			ID: "check-history", TenantID: "bank-a", ProgramID: program.Program.ID, Code: "SUCCESS-RATE", Name: "Success rate", Claim: "Success remains within the approved limit.",
 			InputKind: monitoring.InputSource, BindingID: "binding-1", BindingVersion: 1,
 			SourceRules: []monitoring.SourceRule{{ID: "minimum", Field: "success_rate", Operator: monitoring.OperatorGreaterOrEqual, Expected: "99.5", RiskPoints: 100}},
-			Thresholds: monitoring.DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: monitoring.FailureReview,
+			Thresholds:  monitoring.DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: monitoring.FailureReview,
 			Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: version == 2, Version: version, CreatedAt: now, UpdatedAt: now},
 		})
 		if err != nil {
