@@ -160,21 +160,15 @@ func captureSourceMeasurement(spec *MeasurementSpec, rules []SourceRule, resolut
 	if scalar.Kind != sourceaccess.ScalarNumber {
 		return nil, fmt.Errorf("measurement field %s is no longer numeric", spec.Field)
 	}
-	actual := strings.TrimSpace(scalar.Text)
-	parsed, ok := parseExactDecimal(actual)
-	if !ok {
-		return nil, fmt.Errorf("measurement field %s requires a numeric value", spec.Field)
-	}
-	if err := validateNativeMeasurementValue(*spec, parsed); err != nil {
-		return nil, err
-	}
-	value := MeasurementDefinition(spec, rules)
-	value.Value = actual
-	condition, err := EvaluateNativeMeasurementCondition(value)
+	value, err := NativeMeasurementFromExactValue(*spec, scalar.Text)
 	if err != nil {
 		return nil, err
 	}
-	value.Condition = condition
+	value.Limits = MeasurementDefinition(spec, rules).Limits
+	value.Condition, err = EvaluateNativeMeasurementCondition(value)
+	if err != nil {
+		return nil, err
+	}
 	return value, nil
 }
 
@@ -200,21 +194,28 @@ func captureFormMeasurement(spec *MeasurementSpec, answers map[string]formcontra
 	if !ok || answer.Text == nil || strings.TrimSpace(*answer.Text) == "" {
 		return nil, nil
 	}
-	actual := strings.TrimSpace(*answer.Text)
-	parsed, ok := parseExactDecimal(actual)
-	if !ok {
-		return nil, fmt.Errorf("measurement field %s requires a numeric answer", spec.Field)
-	}
-	if err := validateNativeMeasurementValue(*spec, parsed); err != nil {
-		return nil, err
-	}
-	value := MeasurementDefinition(spec, nil)
-	value.Value = actual
-	condition, err := EvaluateNativeMeasurementCondition(value)
+	return NativeMeasurementFromExactValue(*spec, *answer.Text)
+}
+
+func NativeMeasurementFromExactValue(spec MeasurementSpec, exactValue string) (*NativeMeasurement, error) {
+	normalized, err := normalizeMeasurementSpec(&spec)
 	if err != nil {
 		return nil, err
 	}
-	value.Condition = condition
+	actual := strings.TrimSpace(exactValue)
+	parsed, ok := parseExactDecimal(actual)
+	if !ok {
+		return nil, fmt.Errorf("measurement field %s requires a numeric value", normalized.Field)
+	}
+	if err := validateNativeMeasurementValue(*normalized, parsed); err != nil {
+		return nil, err
+	}
+	value := MeasurementDefinition(normalized, nil)
+	value.Value = actual
+	value.Condition, err = EvaluateNativeMeasurementCondition(value)
+	if err != nil {
+		return nil, err
+	}
 	return value, nil
 }
 
