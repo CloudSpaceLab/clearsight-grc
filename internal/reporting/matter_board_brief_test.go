@@ -67,6 +67,10 @@ func TestMatterBoardBriefPDFIsDeterministicPaginatedAndExcludesProtectedData(t *
 			"reference": "MAT-82BF", "title": "Settlement exception", "status": "ASSESSMENT", "version": int64(7),
 			"priority": 4, "summary": "Review current settlement controls.", "organization_scope": "BANK / OPERATIONS",
 			"owner_name": "Control Owner", "actions": actions,
+			"outcomes": []any{map[string]any{
+				"expected_outcome": "All settlement controls are restored.",
+				"status":           "ACTIVE",
+			}},
 			"forms": []any{map[string]any{"title": "Evidence request", "status": "OPEN", "response_state": "PROVISIONAL"}},
 		},
 	}
@@ -86,6 +90,13 @@ func TestMatterBoardBriefPDFIsDeterministicPaginatedAndExcludesProtectedData(t *
 	}
 	if bytes.Count(first, []byte("/Type /Page ")) < 2 {
 		t.Fatal("long board brief did not paginate")
+	}
+	if !bytes.Contains(first, []byte("Directory labels: resolved when this report is rendered")) {
+		t.Fatal("board brief presents mutable directory labels without their render-time basis")
+	}
+	if !bytes.Contains(first, []byte("Expected Outcome: All settlement controls are restored.")) ||
+		!bytes.Contains(first, []byte("Status: ACTIVE")) {
+		t.Fatal("board brief omitted the active outcome contract when no result exists")
 	}
 	for _, protected := range [][]byte{
 		[]byte("recipient@example.com"),
