@@ -50,7 +50,7 @@ func (r *PostgresRepository) ListIndicatorPopulation(ctx context.Context, scope 
 		WHERE ($5='' OR c.monitoring_check_id::text=$5)
 		  AND ($6='' OR c.kind=$6)
 		ORDER BY c.created_at DESC,c.monitoring_check_id DESC
-		LIMIT $6
+		LIMIT $7
 	`, scope.TenantID, scope.LegalEntityID, filter.OrganizationScopeID != "", filter.OrganizationScopeIDs, filter.MonitoringCheckID, string(filter.Kind), filter.Limit+1)
 	if err != nil {
 		return IndicatorPopulationPage{}, fmt.Errorf("list indicator population: %w", err)
