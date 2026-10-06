@@ -252,14 +252,18 @@ func TestPostgresRiskLifecycleIsScopedVersionedAndAtomic(t *testing.T) {
 	semanticCode := "SEM-" + suffix
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO risks(id,tenant_id,legal_entity_id,code,name,statement,impact,scope,status,version,created_at,updated_at)
-		VALUES($1::uuid,$2::uuid,$3::uuid,$4,'Semantic position risk','Current exposure must not be replaced by target state.','Material impact.','{}'::jsonb,'ACTIVE',3,$5,$7);
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4,'Semantic position risk','Current exposure must not be replaced by target state.','Material impact.','{}'::jsonb,'ACTIVE',3,$5,$6)
+	`, semanticRiskID, tenantID, entityA, semanticCode, now.Add(-2*time.Minute), now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
 		INSERT INTO risk_assessments(
 			id,tenant_id,legal_entity_id,risk_id,risk_version,assessment_kind,method_code,method_version,
 			dimensions,assumptions,evidence_references,appetite_position,assessed_at,created_at
 		) VALUES
-			($6::uuid,$2::uuid,$3::uuid,$1::uuid,2,'CURRENT','QUAL-5X5','current-v1','{}'::jsonb,'{}'::jsonb,'[]'::jsonb,'UNKNOWN',$5,$5),
-			($8::uuid,$2::uuid,$3::uuid,$1::uuid,3,'TARGET','QUAL-5X5','target-v1','{}'::jsonb,'{}'::jsonb,'[]'::jsonb,'UNKNOWN',$7,$7)
-	`, semanticRiskID, tenantID, entityA, semanticCode, now.Add(-2*time.Minute), currentAssessmentID, now, targetAssessmentID); err != nil {
+			($1::uuid,$3::uuid,$4::uuid,$5::uuid,2,'CURRENT','QUAL-5X5','current-v1','{}'::jsonb,'{}'::jsonb,'[]'::jsonb,'UNKNOWN',$6,$6),
+			($2::uuid,$3::uuid,$4::uuid,$5::uuid,3,'TARGET','QUAL-5X5','target-v1','{}'::jsonb,'{}'::jsonb,'[]'::jsonb,'UNKNOWN',$7,$7)
+	`, currentAssessmentID, targetAssessmentID, tenantID, entityA, semanticRiskID, now.Add(-2*time.Minute), now); err != nil {
 		t.Fatal(err)
 	}
 	semanticPage, err := service.List(ctx, Scope{TenantID: "risk-" + suffix, LegalEntityID: entityACode}, ListFilter{
