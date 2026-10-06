@@ -114,7 +114,7 @@ func (s *Service) ApprovePolicyRevision(ctx context.Context, input ApprovePolicy
 	if len(findings) > 0 {
 		return RoutingPolicy{}, fmt.Errorf("%w: %s", ErrConflict, findings[0].Summary)
 	}
-	findings, err = s.repo.EscalationReferenceConflicts(ctx, input.TenantID, revision.Definition)
+	findings, err = s.repo.EscalationReferenceConflicts(ctx, input.TenantID, input.LegalEntityID, revision.Definition)
 	if err != nil {
 		return RoutingPolicy{}, err
 	}
@@ -158,6 +158,16 @@ func updateEscalationGuardDefinition(value json.RawMessage, sequenceID string, s
 		if err := json.Unmarshal(steps[stepIndex], &step); err != nil {
 			return nil, "", fmt.Errorf("decode escalation step: %w", err)
 		}
+		var existingTargets escalationTargetDefinition
+		if rawTargets := step["targets"]; len(rawTargets) > 0 && string(rawTargets) != "null" {
+			if err := json.Unmarshal(rawTargets, &existingTargets); err != nil {
+				return nil, "", fmt.Errorf("decode escalation targets: %w", err)
+			}
+		}
+		normalizedPositions, err := normalizeEscalationPositionIDs(existingTargets.Positions)
+		if err != nil {
+			return nil, "", fmt.Errorf("target positions: %w", err)
+		}
 
 		normalizedSource, err := normalizeEscalationRoles(sourceRoles, maxEscalationRoleTargets)
 		if err != nil {
@@ -176,7 +186,7 @@ func updateEscalationGuardDefinition(value json.RawMessage, sequenceID string, s
 		} else {
 			step["source_roles"], _ = json.Marshal(normalizedSource)
 		}
-		if len(normalizedTargets) == 0 && len(normalizedGroups) == 0 {
+		if len(normalizedTargets) == 0 && len(normalizedGroups) == 0 && len(normalizedPositions) == 0 {
 			delete(step, "targets")
 		} else {
 			targets := map[string]any{}
@@ -185,6 +195,9 @@ func updateEscalationGuardDefinition(value json.RawMessage, sequenceID string, s
 			}
 			if len(normalizedGroups) > 0 {
 				targets["groups"] = normalizedGroups
+			}
+			if len(normalizedPositions) > 0 {
+				targets["positions"] = normalizedPositions
 			}
 			step["targets"], _ = json.Marshal(targets)
 		}

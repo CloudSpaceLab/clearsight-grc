@@ -4562,6 +4562,34 @@
         "x-clearsight-permission": "IDENTITY_CONFIGURE"
       }
     },
+    "/api/v1/access/escalation-sequence-revisions": {
+      "post": {
+        "operationId": "proposeEscalationSequenceRevision",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/escalation-sequence-revisions/{policy_id}/{version}/approve": {
+      "post": {
+        "operationId": "approveEscalationSequenceRevision",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/escalation-sequence-revisions/{policy_id}/restore": {
+      "post": {
+        "operationId": "restoreEscalationSequenceRevision",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
+    "/api/v1/access/escalations/simulate": {
+      "post": {
+        "operationId": "simulateEscalation",
+        "x-clearsight-route-class": "AUTHENTICATED_OPERATION",
+        "x-clearsight-permission": "IDENTITY_CONFIGURE"
+      }
+    },
     "/api/v1/access/escalations/preview": {
       "post": {
         "operationId": "previewEscalation",

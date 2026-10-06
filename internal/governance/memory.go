@@ -88,7 +88,13 @@ func (r *MemoryRepository) GetPolicyForEntity(_ context.Context, tenantID, legal
 func (r *MemoryRepository) CreatePolicy(_ context.Context, v RoutingPolicy) (RoutingPolicy, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.policies[key(v.TenantID, v.ID)] = v
+	k := key(v.TenantID, v.ID)
+	r.policies[k] = v
+	r.revisions[k] = append(r.revisions[k], RoutingPolicyRevision{
+		PolicyID: v.ID, TenantID: v.TenantID, LegalEntityID: v.LegalEntityID,
+		Version: v.CurrentVersion, BaseVersion: 0, Definition: append([]byte(nil), v.Definition...),
+		Checksum: v.Checksum, MakerID: v.MakerID, CreatedAt: v.CreatedAt, EffectiveFrom: v.EffectiveFrom,
+	})
 	return v, nil
 }
 func (r *MemoryRepository) TransitionPolicy(_ context.Context, tenantID, legalEntityID, id string, expected int64, from, to PolicyState, actor, rationale string, at time.Time) (RoutingPolicy, error) {
@@ -117,6 +123,15 @@ func (r *MemoryRepository) TransitionPolicy(_ context.Context, tenantID, legalEn
 		v.ApprovedAt = &at
 		if v.EffectiveFrom == nil {
 			v.EffectiveFrom = &at
+		}
+		for i := range r.revisions[k] {
+			if r.revisions[k][i].Version == v.CurrentVersion {
+				r.revisions[k][i].ApprovedBy = actor
+				r.revisions[k][i].ApprovedAt = &at
+				if r.revisions[k][i].EffectiveFrom == nil {
+					r.revisions[k][i].EffectiveFrom = &at
+				}
+			}
 		}
 	}
 	if to == PolicyRetired {
@@ -153,6 +168,16 @@ func (r *MemoryRepository) ActivatePolicy(_ context.Context, tenantID, legalEnti
 	policy.LatestDecision = &GovernanceDecisionSummary{FromState: string(PolicyPendingApproval), ToState: string(PolicyActive), ActorID: actor, Rationale: rationale, DecidedAt: at, RecordVersion: policy.Version}
 	if policy.EffectiveFrom == nil {
 		policy.EffectiveFrom = &at
+	}
+	for i := range r.revisions[k] {
+		if r.revisions[k][i].Version != policy.CurrentVersion {
+			continue
+		}
+		r.revisions[k][i].ApprovedBy = actor
+		r.revisions[k][i].ApprovedAt = &at
+		if r.revisions[k][i].EffectiveFrom == nil {
+			r.revisions[k][i].EffectiveFrom = &at
+		}
 	}
 	r.policies[k] = policy
 	return policy, nil
@@ -210,6 +235,23 @@ func (r *MemoryRepository) PendingPolicyRevision(_ context.Context, tenantID, id
 	}
 	return selected, nil
 }
+func (r *MemoryRepository) GetPolicyVersion(_ context.Context, tenantID, legalEntityID, id string, version int) (RoutingPolicyRevision, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	k := key(tenantID, id)
+	policy, ok := r.policies[k]
+	if !ok || policy.LegalEntityID != legalEntityID {
+		return RoutingPolicyRevision{}, ErrNotFound
+	}
+	for _, revision := range r.revisions[k] {
+		if revision.Version == version && revision.LegalEntityID == legalEntityID {
+			copy := revision
+			copy.Definition = append([]byte(nil), revision.Definition...)
+			return copy, nil
+		}
+	}
+	return RoutingPolicyRevision{}, ErrNotFound
+}
 func (r *MemoryRepository) ActivatePolicyRevision(_ context.Context, tenantID, id string, expected int64, revisionVersion int, actor, rationale string, at time.Time) (RoutingPolicy, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -247,6 +289,11 @@ func (r *MemoryRepository) ActivatePolicyRevision(_ context.Context, tenantID, i
 	if err := validatePolicyLegalEntity(revision.Definition, policy.LegalEntityID); err != nil {
 		return RoutingPolicy{}, err
 	}
+	for i := range r.revisions[k] {
+		if r.revisions[k][i].Version == policy.CurrentVersion && r.revisions[k][i].EffectiveUntil == nil {
+			r.revisions[k][i].EffectiveUntil = &at
+		}
+	}
 	revision.ApprovedBy = actor
 	revision.ApprovedAt = &at
 	revision.EffectiveFrom = &at
@@ -267,7 +314,7 @@ func (r *MemoryRepository) PolicyConflicts(_ context.Context, policy RoutingPoli
 	defer r.mu.Unlock()
 	return append([]ConflictFinding(nil), r.conflicts[policy.TenantID+":policy:"+policy.ID]...), nil
 }
-func (r *MemoryRepository) EscalationReferenceConflicts(_ context.Context, _ string, _ []byte) ([]ConflictFinding, error) {
+func (r *MemoryRepository) EscalationReferenceConflicts(_ context.Context, _, _ string, _ []byte) ([]ConflictFinding, error) {
 	return nil, nil
 }
 func (r *MemoryRepository) ListDelegations(_ context.Context, tenantID string) ([]Delegation, error) {

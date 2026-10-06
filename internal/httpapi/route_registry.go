@@ -366,6 +366,10 @@ func (a *API) routes() []routeSpec {
 		withPermission(write(http.MethodPost, "/api/v1/access/legal-entity-data-boundary-revisions/{id}/reject", a.rejectLegalEntityDataBoundary, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/escalation-guard-revisions", a.proposeEscalationGuardRevision, nil), identity.PermissionIdentityConfigure),
 		withPermission(write(http.MethodPost, "/api/v1/access/escalation-guard-revisions/{policy_id}/{version}/approve", a.approveEscalationGuardRevision, nil), identity.PermissionIdentityConfigure),
+		withPermission(write(http.MethodPost, "/api/v1/access/escalation-sequence-revisions", a.proposeEscalationSequenceRevision, nil), identity.PermissionIdentityConfigure),
+		withPermission(write(http.MethodPost, "/api/v1/access/escalation-sequence-revisions/{policy_id}/{version}/approve", a.approveEscalationGuardRevision, nil), identity.PermissionIdentityConfigure),
+		withPermission(write(http.MethodPost, "/api/v1/access/escalation-sequence-revisions/{policy_id}/restore", a.proposeEscalationRollback, nil), identity.PermissionIdentityConfigure),
+		withPermission(operation("/api/v1/access/escalations/simulate", a.simulateEscalation, nil), identity.PermissionIdentityConfigure),
 		withPermission(operation("/api/v1/access/escalations/preview", a.previewEscalation, nil), identity.PermissionIdentityRead),
 	)
 	if a.deps.DemoMode {

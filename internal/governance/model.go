@@ -97,6 +97,37 @@ type EscalationGuardRevisionInput struct {
 	ExpectedPolicyVersion int64    `json:"expected_policy_version"`
 }
 
+type EscalationSequenceStepInput struct {
+	After              string   `json:"after"`
+	Responsibility     string   `json:"responsibility"`
+	DepartmentLevelsUp *int     `json:"department_levels_up,omitempty"`
+	SourceRoles        []string `json:"source_roles,omitempty"`
+	TargetRoles        []string `json:"target_roles,omitempty"`
+	TargetGroupIDs     []string `json:"target_group_ids,omitempty"`
+	TargetPositionIDs  []string `json:"target_position_ids,omitempty"`
+}
+
+type EscalationSequenceRevisionInput struct {
+	TenantID              string                        `json:"tenant_id"`
+	LegalEntityID         string                        `json:"legal_entity_id"`
+	PolicyID              string                        `json:"policy_id"`
+	SequenceID            string                        `json:"sequence_id"`
+	Steps                 []EscalationSequenceStepInput `json:"steps"`
+	TerminalHandling      string                        `json:"terminal_handling,omitempty"`
+	RecoveryAction        string                        `json:"recovery_action,omitempty"`
+	ActorID               string                        `json:"actor_id"`
+	ExpectedPolicyVersion int64                         `json:"expected_policy_version"`
+}
+
+type EscalationRollbackInput struct {
+	TenantID              string `json:"tenant_id"`
+	LegalEntityID         string `json:"legal_entity_id"`
+	PolicyID              string `json:"policy_id"`
+	SourceVersion         int    `json:"source_version"`
+	ActorID               string `json:"actor_id"`
+	ExpectedPolicyVersion int64  `json:"expected_policy_version"`
+}
+
 type ApprovePolicyRevisionInput struct {
 	TenantID              string `json:"tenant_id"`
 	LegalEntityID         string `json:"legal_entity_id"`
