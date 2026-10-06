@@ -264,7 +264,7 @@ func TestForgedScopeInTheRequestBodyIsOverwritten(t *testing.T) {
 	}
 }
 
-func TestRunDownloadReAuthorisesAndRequiresReportDownloadPermission(t *testing.T) {
+func TestRunDownloadRequiresReportDownloadPermission(t *testing.T) {
 	handler, service, repository, objects, authorityChecker := reportingHTTPFixture(t)
 	run, _ := installReadyHTTPReport(t, service, repository, objects, time.Now().UTC())
 
@@ -278,24 +278,15 @@ func TestRunDownloadReAuthorisesAndRequiresReportDownloadPermission(t *testing.T
 	}
 
 	proposerCallsBeforeDownload := authorityChecker.callCount(authority.ResponsibilityProposer)
-	allowed := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingMakerID, []string{"CCO"}, "")
+	allowed := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingReviewerID, []string{"GRC_ADMIN"}, "")
 	if allowed.Code != http.StatusOK {
-		t.Fatalf("authorized download = %d: %s", allowed.Code, allowed.Body.String())
+		t.Fatalf("authorized GRC administrator download = %d: %s", allowed.Code, allowed.Body.String())
 	}
-	firstDownloadCalls := authorityChecker.callCount(authority.ResponsibilityProposer) - proposerCallsBeforeDownload
-	if firstDownloadCalls != 1 { // Download permission is route-scoped; the service independently re-authorizes the existing run once.
-		t.Fatalf("first download authority calls = %d, want one current-run service authorization", firstDownloadCalls)
-	}
-
-	authorityChecker.mu.Lock()
-	authorityChecker.failResponsibility = authority.ResponsibilityProposer
-	authorityChecker.mu.Unlock()
-	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingMakerID, []string{"CCO"}, "")
-	if unavailable.Code != http.StatusServiceUnavailable {
-		t.Fatalf("download after authority outage = %d: %s", unavailable.Code, unavailable.Body.String())
+	if calls := authorityChecker.callCount(authority.ResponsibilityProposer) - proposerCallsBeforeDownload; calls != 0 {
+		t.Fatalf("download used proposer authority %d times, want dedicated report-download capability only", calls)
 	}
 	if len(repository.Downloads()) != 1 {
-		t.Fatalf("download receipts = %#v, want only the authorized download", repository.Downloads())
+		t.Fatalf("download receipts = %#v, want one permitted download", repository.Downloads())
 	}
 }
 
@@ -325,7 +316,7 @@ func TestRunDownloadSendsNoStoreAndContentDisposition(t *testing.T) {
 }
 
 func TestRunDownloadRefusesAnExpiredRunWithAnExplanation(t *testing.T) {
-	handler, service, repository, objects, authorityChecker := reportingHTTPFixture(t)
+	handler, service, repository, objects, _ := reportingHTTPFixture(t)
 	run, _ := installReadyHTTPReport(t, service, repository, objects, time.Now().UTC().Add(-8*24*time.Hour))
 	response := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingMakerID, []string{"CCO"}, "")
 	if response.Code != http.StatusGone {
@@ -333,14 +324,6 @@ func TestRunDownloadRefusesAnExpiredRunWithAnExplanation(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "Run the report again") {
 		t.Fatalf("expired response does not explain recovery: %s", response.Body.String())
-	}
-
-	authorityChecker.mu.Lock()
-	authorityChecker.failResponsibility = authority.ResponsibilityProposer
-	authorityChecker.mu.Unlock()
-	unavailable := reportingRequest(handler, http.MethodGet, "/api/v1/reports/runs/"+run.ID+"/download", reportingMakerID, []string{"CCO"}, "")
-	if unavailable.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expired download disclosed run state during authority outage: %d %s", unavailable.Code, unavailable.Body.String())
 	}
 }
 
