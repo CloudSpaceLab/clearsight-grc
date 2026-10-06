@@ -193,7 +193,6 @@ func humanize(value string) string {
 	return string(runes)
 }
 
-
 func notificationDeliveryOutcome(eventType string) string {
 	switch strings.ToUpper(strings.TrimSpace(eventType)) {
 	case "NOTIFICATION_EMAIL_RETRYING":
