@@ -77,6 +77,52 @@ const demoForms: any[] = [];
 const demoChecks: any[] = [monitoringCheck];
 const monitoringResults = new Map<string, Record<string, any>>([[monitoringCheck.id, monitoringResult]]);
 const monitoringIssues = new Map<string, Record<string, any>>();
+const lossS5Record = {
+  id: "loss-s5-1",
+  tenant_id: "bank-demo",
+  legal_entity_id: "bank-ng",
+  organization_scope_id: "sample-scope-risk-ops",
+  code: "LOSS-2026-041",
+  title: "Duplicate merchant settlement",
+  event_type: "EXECUTION_DELIVERY_PROCESS_MANAGEMENT",
+  cause: "A settlement retry was processed after the original instruction completed.",
+  description: "The duplicate debit was identified during daily settlement reconciliation.",
+  gross_amount_minor: 1840000000,
+  currency: "NGN",
+  occurred_at: "2026-10-03T08:25:00Z",
+  discovered_at: "2026-10-03T09:10:00Z",
+  risk_id: "risk-loss-s5",
+  matter_id: "matter-gaid-change",
+  owner_principal_id: "role-cro",
+  status: "ACTIVE",
+  version: 4,
+  created_at: "2026-10-03T09:20:00Z",
+  updated_at: "2026-10-05T14:40:00Z",
+};
+const lossS5Recoveries = [
+  {
+    id: "recovery-s5-1", loss_id: lossS5Record.id, loss_version: 2, kind: "RECOVERY",
+    amount_minor: 620000000, currency: "NGN", reference: "Merchant settlement correction",
+    recovered_at: "2026-10-04T11:00:00Z", actor_id: "role-cro", created_at: "2026-10-04T11:00:00Z",
+  },
+  {
+    id: "recovery-s5-2", loss_id: lossS5Record.id, loss_version: 3, kind: "REVERSAL",
+    amount_minor: 120000000, currency: "NGN", reference: "Reversed duplicate recovery entry",
+    recovered_at: "2026-10-05T08:30:00Z", actor_id: "role-cro", created_at: "2026-10-05T08:30:00Z",
+  },
+  {
+    id: "recovery-s5-3", loss_id: lossS5Record.id, loss_version: 4, kind: "RECOVERY",
+    amount_minor: 300000000, currency: "NGN", reference: "Final merchant correction",
+    recovered_at: "2026-10-05T14:40:00Z", actor_id: "role-cro", created_at: "2026-10-05T14:40:00Z",
+  },
+];
+const lossS5Totals = {
+  gross_amount_minor: 1840000000,
+  recovered_amount_minor: 800000000,
+  net_loss_minor: 1040000000,
+  currency: "NGN",
+  recovery_status: "PARTIAL",
+};
 const createdSources: Array<Record<string, any>> = [], sourceConnections: Array<Record<string, any>> = [], sourceViews: Array<Record<string, any>> = [], sourceBindings: Array<Record<string, any>> = [];
 
 let programReviewAcknowledged = false;
@@ -897,6 +943,34 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     vendorWorkRequests = vendorWorkRequests.map((item, itemIndex) => itemIndex === index ? updated : item);
     return clone(outcome ?? updated) as T;
   }
+  if (fixture === "loss-s5" && pathname === "/api/v1/losses" && method === "GET") {
+    return clone({ items: [{ loss: lossS5Record, totals: lossS5Totals }] }) as T;
+  }
+  if (fixture === "loss-s5" && pathname === `/api/v1/losses/${lossS5Record.id}` && method === "GET") {
+    return clone({
+      loss: lossS5Record,
+      owner_display_name: "Nneka Okafor",
+      recoveries: lossS5Recoveries,
+      totals: lossS5Totals,
+      notification_history: [],
+      notification_history_complete: true,
+    }) as T;
+  }
+  if (fixture === "loss-s5" && pathname === `/api/v1/risks/${lossS5Record.risk_id}` && method === "GET") {
+    return clone({
+      risk: {
+        id: lossS5Record.risk_id, tenant_id: "bank-demo", legal_entity_id: "bank-ng", organization_scope_id: "sample-scope-risk-ops",
+        code: "OPS-SETTLE-07", name: "Settlement processing error", category: "Operational risk",
+        statement: "Settlement retries may create duplicate customer or merchant postings.", cause: "Retry handling",
+        event: "Duplicate settlement", impact: "Direct financial loss and customer remediation.", scope: {},
+        owner_principal_id: "role-cro", status: "ACTIVE", version: 3,
+        created_at: "2026-06-01T08:00:00Z", updated_at: "2026-10-02T16:00:00Z",
+      },
+      assessments: [],
+      appetite: [],
+    }) as T;
+  }
+
   if (fixture === "rcsa-cycles" && pathname === "/api/v1/rcsa/cycles" && method === "GET") {
     const status = url.searchParams.get("status");
     return clone({ ...sampleRCSAPage, items: status ? sampleRCSAPage.items.filter((item) => item.cycle.status === status) : sampleRCSAPage.items }) as T;
