@@ -62,7 +62,6 @@ func (a *API) listRiskIndicators(w http.ResponseWriter, r *http.Request) {
 	}
 	if a == nil || a.deps.Monitoring == nil || a.deps.Continuity == nil {
 		response.Complete = false
-		response.Truncated = false
 		httpx.WriteJSON(w, http.StatusOK, response)
 		return
 	}

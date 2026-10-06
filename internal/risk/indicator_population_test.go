@@ -83,3 +83,53 @@ func TestIndicatorPopulationHonorsOrganizationDescendantSelection(t *testing.T) 
 		t.Fatalf("scoped population=%#v", page)
 	}
 }
+
+func TestIndicatorPopulationCursorIsStableAcrossPages(t *testing.T) {
+	service := NewService(NewMemoryRepository())
+	service.Now = func() time.Time { return time.Date(2026, 10, 6, 8, 0, 0, 0, time.UTC) }
+	service.ConfigureIndicatorLinkValidator(func(_ context.Context, _ Scope, _ string, _ int64) (string, error) {
+		return "program-1", nil
+	})
+	ctx := context.Background()
+	for index, checkID := range []string{"check-1", "check-2", "check-3"} {
+		record, err := service.Create(ctx, CreateInput{
+			TenantID: "bank", LegalEntityID: "entity",
+			Code: "CURSOR-" + string(rune('1'+index)), Name: checkID,
+			Statement: checkID + " risk", Impact: "Impact", ActorID: "owner",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err = service.LinkIndicator(ctx, LinkIndicatorInput{
+			TenantID: "bank", LegalEntityID: "entity", RiskID: record.ID, ExpectedRiskVersion: record.Version,
+			MonitoringCheckID: checkID, MonitoringCheckVersion: 1, Kind: IndicatorKRI, ActorID: "owner",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	first, err := service.ListIndicatorPopulation(ctx, Scope{TenantID: "bank", LegalEntityID: "entity"}, IndicatorPopulationFilter{Kind: IndicatorKRI, Limit: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first.Items) != 1 || first.Items[0].Link.MonitoringCheckID != "check-3" || first.NextCursor == "" || !first.Truncated {
+		t.Fatalf("first page=%#v", first)
+	}
+	second, err := service.ListIndicatorPopulation(ctx, Scope{TenantID: "bank", LegalEntityID: "entity"}, IndicatorPopulationFilter{Kind: IndicatorKRI, Limit: 1, Cursor: first.NextCursor})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(second.Items) != 1 || second.Items[0].Link.MonitoringCheckID != "check-2" || second.NextCursor == "" || !second.Truncated {
+		t.Fatalf("second page=%#v", second)
+	}
+	third, err := service.ListIndicatorPopulation(ctx, Scope{TenantID: "bank", LegalEntityID: "entity"}, IndicatorPopulationFilter{Kind: IndicatorKRI, Limit: 1, Cursor: second.NextCursor})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(third.Items) != 1 || third.Items[0].Link.MonitoringCheckID != "check-1" || third.NextCursor != "" || third.Truncated {
+		t.Fatalf("third page=%#v", third)
+	}
+	if _, err := service.ListIndicatorPopulation(ctx, Scope{TenantID: "bank", LegalEntityID: "entity"}, IndicatorPopulationFilter{Cursor: "not-a-cursor"}); err != ErrInvalid {
+		t.Fatalf("invalid cursor error=%v", err)
+	}
+}

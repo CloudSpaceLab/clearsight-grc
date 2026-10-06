@@ -51,13 +51,19 @@ export function InsightsWorkspace({
   const [state, setState] = useState<LoadState>("loading");
   const [page, setPage] = useState<IndicatorPopulationPage>({ items: [], complete: true });
   const [retry, setRetry] = useState(0);
+  const [cursorStack, setCursorStack] = useState<string[]>([]);
+  const cursor = cursorStack[cursorStack.length - 1];
   const [targetItem, setTargetItem] = useState<IndicatorPopulationItem>();
   const [targetState, setTargetState] = useState<LoadState>("live");
 
   useEffect(() => {
+    setCursorStack([]);
+  }, [kind, organizationScopeID]);
+
+  useEffect(() => {
     const controller = new AbortController();
     setState("loading");
-    void loadIndicatorPopulation({ kind, organizationScopeID, limit: 50 }, controller.signal).then((value) => {
+    void loadIndicatorPopulation({ kind, organizationScopeID, cursor, limit: 50 }, controller.signal).then((value) => {
       if (controller.signal.aborted) return;
       setPage(value);
       setState("live");
@@ -67,7 +73,7 @@ export function InsightsWorkspace({
       setState("error");
     });
     return () => controller.abort();
-  }, [kind, organizationScopeID, retry]);
+  }, [cursor, kind, organizationScopeID, retry]);
 
   useEffect(() => {
     if (!targetID) {
@@ -171,7 +177,7 @@ export function InsightsWorkspace({
       </div>
 
       {!page.complete && state !== "error" && <Notice tone="warning">Some indicator detail is unavailable in this scope. Available values remain unchanged.</Notice>}
-      {page.truncated && <Notice tone="info">Showing the first 50 indicators. Narrow the organization scope to review a smaller population.</Notice>}
+      {page.truncated && <Notice tone="info">More indicators are available on the next page.</Notice>}
       {state === "error" && <EmptyState population="Indicators" title="Indicators could not be loaded" description="The current indicator population is unavailable." action={<Button variant="secondary" onPress={() => setRetry((value) => value + 1)}>Try again</Button>} role="alert"/>}
       {state === "live" && page.items.length === 0 && <EmptyState population={kind === "KRI" ? "Risk indicators" : "Control indicators"} title="No indicators in this scope" description="No current governed indicators are linked to Risks in the selected organization scope."/>}
       {(page.items.length > 0 || state === "loading") && <DataTable
@@ -183,6 +189,12 @@ export function InsightsWorkspace({
         onRowAction={(item) => onTarget(item.indicator.check_id, kind)}
         rowActionLabel="Review indicator"
         isLoading={state === "loading"}
+        pagination={(cursorStack.length > 0 || page.next_cursor) ? {
+          label: "Indicator pages",
+          onPrevious: cursorStack.length > 0 ? () => setCursorStack((current) => current.slice(0, -1)) : undefined,
+          onNext: page.next_cursor ? () => setCursorStack((current) => [...current, page.next_cursor!]) : undefined,
+          isLoading: state === "loading",
+        } : undefined}
       />}
     </Surface>
 

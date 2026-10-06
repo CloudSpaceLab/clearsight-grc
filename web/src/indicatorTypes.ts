@@ -21,11 +21,13 @@ export type IndicatorPopulationPage = {
   truncated?: boolean;
   complete: boolean;
   organization_scope_id?: string;
+  next_cursor?: string;
 };
 
 export type IndicatorPopulationParams = {
   kind?: RiskIndicatorKind;
   organizationScopeID?: string;
   checkID?: string;
+  cursor?: string;
   limit?: number;
 };
