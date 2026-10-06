@@ -289,8 +289,11 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }, undefined));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }, undefined);
   expect(screen.getByRole("button", { name: /Reporting period/ }).textContent).toContain("Last 30 days");
-  expect(screen.getByText("7")).toBeTruthy();
+  expect(screen.queryByText("7")).toBeNull();
 
+  fireEvent.click(screen.getByRole("tab", { name: "Attention" }));
+  expect(screen.getByText("7")).toBeTruthy();
+  fireEvent.click(screen.getByRole("tab", { name: "Oversight" }));
   fireEvent.click(screen.getByRole("tab", { name: "Operating performance" }));
   expect(screen.getByText("3 completed · 3 measured")).toBeTruthy();
 });
