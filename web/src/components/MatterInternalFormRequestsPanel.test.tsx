@@ -5,6 +5,7 @@ import { MatterInternalFormRequestsPanel } from "./MatterInternalFormRequestsPan
 
 vi.mock("../formsApi", () => ({ createLibraryFormDraft: vi.fn() }));
 vi.mock("./forms/DistributionComposer", () => ({ DistributionComposer: () => null }));
+vi.mock("./forms/SubjectFormActivity", () => ({ SubjectFormActivity: () => <div>Form activity</div> }));
 vi.mock("./FormBuilder", () => ({
   FormBuilder: ({ saveDraft, onSaved, onCancel }: {
     saveDraft: (input: Record<string, unknown>) => Promise<unknown>;
