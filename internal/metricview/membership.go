@@ -30,6 +30,31 @@ type MemberPage struct {
 	NextCursor         string   `json:"next_cursor,omitempty"`
 }
 
+type OrganizationMemberCount struct {
+	OrganizationScopeID string `json:"organization_scope_id,omitempty"`
+	Count               int    `json:"count"`
+}
+
+type OrganizationMemberCounts struct {
+	SourceID           string                    `json:"source_id"`
+	MetricID           string                    `json:"metric_id"`
+	DefinitionRevision string                    `json:"definition_revision"`
+	Count              int                       `json:"count"`
+	Items              []OrganizationMemberCount `json:"items"`
+}
+
+type OrganizationMembershipReader interface {
+	CountSnapshotMembersByOrganization(
+		context.Context,
+		string,
+		string,
+		string,
+		string,
+		string,
+		string,
+	) (OrganizationMemberCounts, error)
+}
+
 type MembershipReader interface {
 	ListSnapshotMembers(
 		context.Context,
