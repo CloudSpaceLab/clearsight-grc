@@ -37,8 +37,8 @@ try {
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
     await page.goto(`${baseURL}/?fixture=rcsa-cycles${capture.route}`, { waitUntil: "networkidle" });
 
-    await page.getByRole("heading", { name: "RCSA cycles" }).waitFor({ state: "visible" });
     if (capture.state === "rcsa-register") {
+      await page.getByRole("heading", { name: "RCSA cycles" }).waitFor({ state: "visible" });
       await page.getByRole("table", { name: "RCSA cycles" }).waitFor({ state: "visible" });
       await page.getByText("Q3 Technology RCSA", { exact: true }).waitFor({ state: "visible" });
       await page.getByText("3 Risks", { exact: true }).waitFor({ state: "visible" });
