@@ -72,10 +72,6 @@ func (a *API) listRCSACycles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	visible, complete := a.visibleRCSACycleSummaries(r.Context(), actor, page.Items)
-	ownerIDs := make([]string, 0, len(visible))
-	for _, item := range visible {
-		ownerIDs = append(ownerIDs, item.Cycle.FirstLineOwnerID)
-	}
 	nextCursor := page.NextCursor
 	if len(visible) > limit {
 		nextCursor = visible[limit-1].CursorAfter
@@ -83,7 +79,7 @@ func (a *API) listRCSACycles(w http.ResponseWriter, r *http.Request) {
 	} else if !complete {
 		nextCursor = ""
 	}
-	ownerIDs = ownerIDs[:0]
+	ownerIDs := make([]string, 0, len(visible))
 	for _, item := range visible {
 		ownerIDs = append(ownerIDs, item.Cycle.FirstLineOwnerID)
 	}

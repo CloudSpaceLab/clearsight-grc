@@ -9,9 +9,9 @@ import (
 )
 
 type CycleSummary struct {
-	Cycle        Cycle `json:"cycle"`
-	RiskCount    int   `json:"risk_count"`
-	ControlCount int   `json:"control_count"`
+	Cycle        Cycle  `json:"cycle"`
+	RiskCount    int    `json:"risk_count"`
+	ControlCount int    `json:"control_count"`
 	CursorAfter  string `json:"-"`
 }
 
