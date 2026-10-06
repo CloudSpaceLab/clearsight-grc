@@ -31,6 +31,10 @@ vi.mock("../formsDistributionApi", () => ({
   loadDistributionPage: vi.fn().mockResolvedValue({ items: [] }),
   loadCompletedResponses: vi.fn().mockResolvedValue({ items: [] }),
 }));
+vi.mock("../reportingApi", () => ({
+  getMatterBoardBriefAvailability: vi.fn().mockResolvedValue({ can_run: false, authority_available: true }),
+  createReportRun: vi.fn(),
+}));
 
 async function chooseSharedOption(label: string, option: string | RegExp) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(label, "i") }));
