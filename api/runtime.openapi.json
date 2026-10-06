@@ -5378,6 +5378,12 @@
           }
         }
       }
+    },
+    "/api/v1/monitoring-results/{result_id}": {
+      "get": {
+        "operationId": "getMonitoringResult",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
     }
   }
 }

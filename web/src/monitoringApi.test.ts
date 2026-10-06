@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
-import { createFormMonitoringCheck, createMonitoringLinkedIssue, loadCollectionSummaries, transitionMonitoringCheck, updateCollectionPolicy } from "./monitoringApi";
+import { createFormMonitoringCheck, createMonitoringLinkedIssue, loadCollectionSummaries, loadMonitoringResult, transitionMonitoringCheck, updateCollectionPolicy } from "./monitoringApi";
 
 vi.mock("./api", () => ({ loadContext: vi.fn() }));
 vi.mock("./http", () => ({ requestJSON: vi.fn() }));
@@ -14,6 +14,13 @@ describe("monitoring API", () => {
       actor: { id: "reviewer-1", name: "Control assurance reviewer" }, mode: "demo",
     });
     vi.mocked(requestJSON).mockResolvedValue({ matter: { id: "matter-1", reference: "MAT-0001" }, created: true });
+  });
+
+  it("loads the exact historical monitoring result through the scoped read", async () => {
+    const controller = new AbortController();
+    await loadMonitoringResult("result / 1", controller.signal);
+    expect(vi.mocked(requestJSON).mock.calls[0]?.[1]).toBe("/api/v1/monitoring-results/result%20%2F%201?tenant_id=tenant-1");
+    expect(vi.mocked(requestJSON).mock.calls[0]?.[2]).toEqual({ signal: controller.signal });
   });
 
   it("creates an issue from the exact result without sending an actor or Program identity", async () => {

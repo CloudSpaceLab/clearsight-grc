@@ -93,6 +93,13 @@ export function startFormCollection(form: FormTemplate, input: { programID: stri
   });
 }
 
+export function loadMonitoringResult(resultID: string, signal?: AbortSignal): Promise<MonitoringResult> {
+  return scoped<MonitoringResult>(
+    `/api/v1/monitoring-results/${encodeURIComponent(resultID)}`,
+    signal ? { signal } : undefined,
+  );
+}
+
 export async function loadMonitoringResults(checkID: string, version?: number): Promise<MonitoringResult[]> {
   const query = new URLSearchParams({ limit: "20" });
   if (version !== undefined) query.set("version", String(version));
