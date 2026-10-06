@@ -168,6 +168,68 @@ func ValidateTransitionForWrite(current ReportDefinition, next DefinitionStatus)
 	return nil
 }
 
+type MatterBoardBriefAvailability struct {
+	Definition         *ReportDefinition `json:"definition,omitempty"`
+	CanRun             bool              `json:"can_run"`
+	AuthorityAvailable bool              `json:"authority_available"`
+	Reason             string            `json:"reason,omitempty"`
+}
+
+func (s *Service) MatterBoardBriefAvailability(ctx context.Context, scope ReportScope, matterID string) (MatterBoardBriefAvailability, error) {
+	actor, verifiedScope, err := s.scopedActor(ctx, scope)
+	if err != nil {
+		return MatterBoardBriefAvailability{}, err
+	}
+	matterID = strings.TrimSpace(matterID)
+	if matterID == "" || !isUUID(matterID) || s.repo == nil {
+		return MatterBoardBriefAvailability{}, ErrInvalid
+	}
+	definitions, err := s.repo.ListDefinitions(ctx, verifiedScope, false)
+	if err != nil {
+		return MatterBoardBriefAvailability{}, err
+	}
+	now := s.now()
+	matches := make([]ReportDefinition, 0, 2)
+	for _, definition := range definitions {
+		if definition.Dataset == DatasetMatterBoardBrief &&
+			definition.ScopeKind == ScopeMatter &&
+			definition.ScopeRef == matterID &&
+			definition.Format == FormatPDF &&
+			definition.Status == DefinitionActive &&
+			definitionIsEffective(definition, now) {
+			matches = append(matches, definition)
+		}
+	}
+	if len(matches) == 0 {
+		return MatterBoardBriefAvailability{AuthorityAvailable: true, Reason: "No active board brief setup is available for this issue."}, nil
+	}
+	if len(matches) > 1 {
+		return MatterBoardBriefAvailability{AuthorityAvailable: true, Reason: "More than one active board brief setup is available. Use Reports to choose one."}, nil
+	}
+	availability := MatterBoardBriefAvailability{Definition: &matches[0]}
+	if s.authority == nil {
+		availability.Reason = "Board brief authority could not be checked."
+		return availability, nil
+	}
+	resolution, err := s.authority.Resolve(ctx, authority.ResolveInput{
+		TenantID: verifiedScope.TenantID, LegalEntityID: verifiedScope.LegalEntityID,
+		ObjectType: "REPORT_RUN", ObjectID: verifiedScope.LegalEntityID,
+		Responsibility: authority.ResponsibilityPerformer,
+		DecisionType: "report.run.create", Materiality: 3, At: now,
+	})
+	if err != nil {
+		availability.Reason = "Board brief authority could not be checked."
+		return availability, nil
+	}
+	availability.AuthorityAvailable = true
+	if strings.TrimSpace(resolution.PolicyVersion) == "" || !resolution.AllowsPrincipal(actor.PrincipalID) {
+		availability.Reason = "Board brief generation is not assigned to you."
+		return availability, nil
+	}
+	availability.CanRun = true
+	return availability, nil
+}
+
 func (s *Service) ListDefinitions(ctx context.Context, scope ReportScope, includeRetired bool) ([]ReportDefinition, error) {
 	_, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
