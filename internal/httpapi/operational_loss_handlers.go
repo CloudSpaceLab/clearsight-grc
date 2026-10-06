@@ -69,7 +69,7 @@ func (a *API) getOperationalLoss(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	_, scope, ok := a.operationalLossActorScope(w, r)
+	actor, scope, ok := a.operationalLossActorScope(w, r)
 	if !ok {
 		return
 	}
@@ -78,7 +78,12 @@ func (a *API) getOperationalLoss(w http.ResponseWriter, r *http.Request) {
 		writeOperationalLossError(w, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, value)
+	notificationHistory, notificationHistoryComplete := a.notificationDeliveryHistory(r.Context(), actor, "LOSS", value.Loss.ID)
+	httpx.WriteJSON(w, http.StatusOK, operationalLossRead{
+		Aggregate: value,
+		NotificationHistory: notificationHistory,
+		NotificationHistoryComplete: notificationHistoryComplete,
+	})
 }
 
 func (a *API) createOperationalLoss(w http.ResponseWriter, r *http.Request) {
