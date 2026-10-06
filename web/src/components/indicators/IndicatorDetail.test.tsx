@@ -16,6 +16,7 @@ const indicator: RiskIndicatorDetail = {
     measurement: "MONITORING_RISK_SCORE",
     created_at: "2026-10-05T08:00:00Z",
   },
+  kind: "KRI",
   program_id: "program-1",
   program_name: "Channel resilience",
   check_id: "check-1",
