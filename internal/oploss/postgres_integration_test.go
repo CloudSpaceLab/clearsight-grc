@@ -29,6 +29,8 @@ func TestPostgresOperationalLossIsScopedVersionedAndRecoverySafe(t *testing.T) {
 	entityA := mustLossID(t)
 	entityB := mustLossID(t)
 	scopeA := mustLossID(t)
+	scopeChildA := mustLossID(t)
+	scopeSiblingA := mustLossID(t)
 	scopeB := mustLossID(t)
 	ownerID := mustLossID(t)
 	riskA := mustLossID(t)
@@ -58,6 +60,14 @@ func TestPostgresOperationalLossIsScopedVersionedAndRecoverySafe(t *testing.T) {
 			($1::uuid,$2::uuid,$3::uuid,'BR-A','Branch A','BRANCH',ARRAY['BRANCH A'],'MANAGED','ACTIVE',$6,$6,$6,1),
 			($4::uuid,$2::uuid,$5::uuid,'BR-B','Branch B','BRANCH',ARRAY['BRANCH B'],'MANAGED','ACTIVE',$6,$6,$6,1)
 	`, scopeA, tenantID, entityA, scopeB, entityB, now.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO organization_scopes(
+			id,tenant_id,legal_entity_id,parent_scope_id,code,name,kind,department_path,origin,status,valid_from,created_at,updated_at,version) VALUES
+			($1::uuid,$2::uuid,$3::uuid,$4::uuid,'BR-A-OPS','Branch A Operations','DEPARTMENT',ARRAY['BRANCH A','OPERATIONS'],'MANAGED','ACTIVE',$6,$6,$6,1),
+			($5::uuid,$2::uuid,$3::uuid,NULL,'FIN-A','Finance A','DEPARTMENT',ARRAY['FINANCE A'],'MANAGED','ACTIVE',$6,$6,$6,1)
+	`, scopeChildA, tenantID, entityA, scopeA, scopeSiblingA, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
@@ -104,6 +114,37 @@ func TestPostgresOperationalLossIsScopedVersionedAndRecoverySafe(t *testing.T) {
 		created.OrganizationScopeID != scopeA || created.RiskID != riskA || created.MatterID != matterA ||
 		created.Version != 1 {
 		t.Fatalf("created=%#v", created)
+	}
+	for _, value := range []struct {
+		code  string
+		scope string
+	}{
+		{code: "LOSS-CHILD-" + suffix, scope: scopeChildA},
+		{code: "LOSS-SIBLING-" + suffix, scope: scopeSiblingA},
+	} {
+		if _, err := service.Create(ctx, CreateInput{
+			TenantID: tenantSlug, LegalEntityID: entityACode, OrganizationScopeID: value.scope,
+			Code: value.code, Title: value.code, EventType: EventOther, Cause: "Scoped loss.",
+			GrossAmountMinor: 10_000, Currency: "NGN",
+			OccurredAt: now.Add(-2 * time.Hour), DiscoveredAt: now.Add(-time.Hour),
+			OwnerPrincipalID: ownerID, ActorID: ownerID,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	scopedPage, err := service.List(ctx, Scope{TenantID: tenantSlug, LegalEntityID: entityACode}, ListFilter{
+		OrganizationScopeID: scopeA, OrganizationScopeIDs: []string{scopeA, scopeChildA}, Limit: 25,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scopedPage.OrganizationScopeID != scopeA || len(scopedPage.Items) != 2 {
+		t.Fatalf("scoped loss page=%#v", scopedPage)
+	}
+	for _, item := range scopedPage.Items {
+		if item.Loss.OrganizationScopeID != scopeA && item.Loss.OrganizationScopeID != scopeChildA {
+			t.Fatalf("scope membership leaked %q: %#v", item.Loss.OrganizationScopeID, scopedPage)
+		}
 	}
 	if _, err := service.Get(ctx, Scope{TenantID: tenantSlug, LegalEntityID: entityBCode}, created.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("cross-entity read error=%v", err)
