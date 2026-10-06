@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -242,6 +243,39 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 	}
 	if series.DefinitionRevision != DomainDefinitionRevision || series.Current == nil || series.Current.Value != 1 {
 		t.Fatalf("series=%#v", series)
+	}
+
+	// One governed Monitoring Check remains one Indicator in Insights even when
+	// more than one active Risk references it.
+	secondRiskID := mustDomainID(t)
+	secondLinkID := mustDomainID(t)
+	mustExec(`
+		INSERT INTO risks(
+			id,tenant_id,legal_entity_id,code,name,category,statement,impact,status,version,created_at,updated_at
+		) VALUES($1::uuid,$2::uuid,$3::uuid,'DM-RISK-2','Second linked risk','Operational',
+		         'Second exposure','Material impact','ACTIVE',1,$4,$4)`,
+		secondRiskID, tenantID, entityID, now.Add(-time.Hour))
+	mustExec(`
+		INSERT INTO risk_indicator_links(
+			id,tenant_id,legal_entity_id,risk_id,risk_version,program_id,monitoring_check_id,
+			monitoring_check_version,kind,measurement,linked_by,created_at
+		) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,1,$5::uuid,$6::uuid,1,'KRI',
+		         'MONITORING_RISK_SCORE',$7::uuid,$8)`,
+		secondLinkID, tenantID, entityID, secondRiskID, programID, checkID, principalID, now)
+
+	indicatorPage, err := NewDomainRepository(pool).ListIndicators(ctx, tenantID, entityID, IndicatorPortfolioFilter{
+		Kind: risk.IndicatorKRI, State: IndicatorPortfolioBreach, Search: "domain", Limit: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(indicatorPage.Items) != 1 {
+		t.Fatalf("indicator portfolio items=%#v", indicatorPage.Items)
+	}
+	indicator := indicatorPage.Items[0]
+	if indicator.CheckID != checkID || indicator.CheckVersion != 1 || indicator.State != IndicatorPortfolioBreach ||
+		len(indicator.Risks) != 2 || indicator.ProgramID != programID || indicator.ResultID != resultID {
+		t.Fatalf("indicator portfolio item=%#v", indicator)
 	}
 }
 
