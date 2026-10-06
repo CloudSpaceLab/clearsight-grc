@@ -34,7 +34,7 @@ func (r *DomainRepository) ListIndicators(ctx context.Context, tenantID, legalEn
 			WHERE (tenant.id::text=$1 OR tenant.slug=$1)
 			  AND (entity.id::text=$2 OR entity.code=$2)
 		), current_links AS (
-			SELECT DISTINCT ON (link.risk_id,link.monitoring_check_id,link.monitoring_check_version,link.kind)
+			SELECT DISTINCT ON (link.risk_id,link.monitoring_check_id)
 			       link.id,link.risk_id,link.risk_version,link.program_id,
 			       link.monitoring_check_id,link.monitoring_check_version,link.kind
 			FROM risk_indicator_links link
@@ -46,8 +46,7 @@ func (r *DomainRepository) ListIndicators(ctx context.Context, tenantID, legalEn
 			 AND risk.legal_entity_id=link.legal_entity_id
 			 AND risk.id=link.risk_id
 			 AND risk.status='ACTIVE'
-			ORDER BY link.risk_id,link.monitoring_check_id,link.monitoring_check_version,link.kind,
-			         link.risk_version DESC,link.id DESC
+			ORDER BY link.risk_id,link.monitoring_check_id,link.risk_version DESC,link.id DESC
 		), grouped AS (
 			SELECT link.monitoring_check_id,link.monitoring_check_version,link.program_id,link.kind,
 			       jsonb_agg(DISTINCT jsonb_build_object('id',risk.id::text,'name',risk.name)) AS risks,
