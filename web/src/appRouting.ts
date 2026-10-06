@@ -5,6 +5,7 @@ export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id:
 export type VendorPage = "overview" | "register";
 export type RopaPage = "register" | "reports";
 export type OversightMetric = "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
+export type HomeTab = "oversight" | "attention" | "my-work";
 export type OversightScopeMode = "group";
 export type InsightKind = "KRI" | "KCI";
 export type WorkspaceTarget = {
@@ -25,6 +26,7 @@ export type WorkspaceTarget = {
   ropaPage?: RopaPage;
   ropaActivityID?: string;
   oversightMetric?: OversightMetric;
+  homeTab?: HomeTab;
   oversightScope?: OversightScopeMode;
   documentID?: string;
   openFirstProgram?: boolean;
@@ -49,7 +51,10 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     const metric = query.get("metric");
     const allowedMetrics: OversightMetric[] = ["critical-high", "overdue", "routing-gaps", "outcome-failures"];
     const target: WorkspaceTarget = {};
+    const tab = query.get("tab");
+    const allowedTabs: HomeTab[] = ["oversight", "attention", "my-work"];
     if (allowedMetrics.includes(metric as OversightMetric)) target.oversightMetric = metric as OversightMetric;
+    if (allowedTabs.includes(tab as HomeTab)) target.homeTab = tab as HomeTab;
     if (query.get("scope") === "group") target.oversightScope = "group";
     return { view, target };
   }
@@ -108,6 +113,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
 export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab) {
   if (view === "oversight") {
     const params = new URLSearchParams();
+    if (target.homeTab && target.homeTab !== "oversight") params.set("tab", target.homeTab);
     if (target.oversightMetric) params.set("metric", target.oversightMetric);
     if (target.oversightScope === "group") params.set("scope", "group");
     const query = params.toString();
