@@ -164,18 +164,20 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	domainMetrics := metricview.NewDomainRepository(pool)
 	presentationPreferences := presentationprefs.NewService(presentationprefs.NewPostgresRepository(pool))
 	invalidationHub := invalidation.NewHub()
-	invalidation.StartPostgresListener(ctx, pool, invalidationHub, logger)
+	stopInvalidations := invalidation.StartPostgresListener(ctx, pool, invalidationHub, logger)
 	notificationPreferences := notificationprefs.NewService(notificationprefs.NewPostgresRepository(pool))
 	groupOversightService := oversight.NewGroupService(oversightRepository, accessResolver)
 	sessionStore := pgxstore.NewWithConfig(pool, pgxstore.Config{CleanUpInterval: 5 * time.Minute, TableName: "web_sessions"})
 	scimService, err := scimapi.New(scimapi.NewPostgresRepository(pool), logger)
 	if err != nil {
 		sessionStore.StopCleanup()
+		stopInvalidations()
 		pool.Close()
 		return serviceSet{}, err
 	}
 	closeServices := func() {
 		sessionStore.StopCleanup()
+		stopInvalidations()
 		pool.Close()
 	}
 	logger.Info("postgres repositories enabled", "max_connections", cfg.DatabaseMaxConns, "artifact_root", cfg.ArtifactRoot, "demo_mode", cfg.DemoMode)
