@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	RetentionWorkClass = "notification-retention"
+	RetentionWorkClass            = "notification-retention"
 	NotificationMetadataRetention = 365 * 24 * time.Hour
 )
 
