@@ -62,6 +62,9 @@ vi.mock("./components/oversight/GroupOversightWorkspace", () => ({
 vi.mock("./components/losses/LossesWorkspace", () => ({
   LossesWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Losses</h1><output data-testid="loss-target">{targetID}</output></section>,
 }));
+vi.mock("./components/insights/InsightsWorkspace", () => ({
+  InsightsWorkspace: () => <section><h1>Insights</h1><p>Indicator insights fixture</p></section>,
+}));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
   reassignCaptureRecipient: vi.fn(),
@@ -469,6 +472,36 @@ describe("organization scope Portfolio persistence", () => {
     fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Vendors" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria"));
     expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).not.toContain("Risk");
+  });
+});
+
+describe("Insights shell", () => {
+  it("shows one authorized Insights destination and keeps Reports available", async () => {
+    const scoped = runtime(false);
+    scoped.capabilities.oversight_read = true;
+    vi.mocked(loadContext).mockResolvedValue(scoped);
+    window.history.replaceState(null, "", "#oversight");
+
+    render(<App/>);
+
+    const primaryNavigation = await screen.findByRole("complementary", { name: "Primary navigation" });
+    expect(within(primaryNavigation).getByRole("button", { name: "Insights" })).toBeTruthy();
+    expect(within(primaryNavigation).getByRole("button", { name: "Reports" })).toBeTruthy();
+
+    fireEvent.click(within(primaryNavigation).getByRole("button", { name: "Insights" }));
+    expect(await screen.findByRole("heading", { name: "Insights" })).toBeTruthy();
+    expect(window.location.hash).toBe("#insights");
+  });
+
+  it("does not expose Insights and redirects a direct route without oversight access", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    window.history.replaceState(null, "", "#insights");
+
+    render(<App/>);
+
+    await waitFor(() => expect(window.location.hash).toBe("#oversight"));
+    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
+    expect(within(primaryNavigation).queryByRole("button", { name: "Insights" })).toBeNull();
   });
 });
 
