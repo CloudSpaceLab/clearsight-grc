@@ -234,6 +234,23 @@ func TestOperationalLossHTTPCreateValidatesOrganizationScope(t *testing.T) {
 	if forbidden.Code != http.StatusForbidden || !strings.Contains(forbidden.Body.String(), "organization_scope_forbidden") {
 		t.Fatalf("forbidden create status=%d body=%s", forbidden.Code, forbidden.Body.String())
 	}
+
+	forbiddenUpdate := httptest.NewRecorder()
+	handler.ServeHTTP(forbiddenUpdate, httptest.NewRequest(http.MethodPost, "/api/v1/losses/"+created.ID, strings.NewReader(`{
+		"expected_version":1,
+		"organization_scope_id":"scope-finance",
+		"title":"Scoped loss",
+		"event_type":"OTHER",
+		"cause":"Scoped event.",
+		"gross_amount_minor":10000,
+		"currency":"NGN",
+		"occurred_at":"2026-10-03T10:00:00Z",
+		"discovered_at":"2026-10-03T11:00:00Z",
+		"status":"ACTIVE"
+	}`)))
+	if forbiddenUpdate.Code != http.StatusForbidden || !strings.Contains(forbiddenUpdate.Body.String(), "organization_scope_forbidden") {
+		t.Fatalf("forbidden update status=%d body=%s", forbiddenUpdate.Code, forbiddenUpdate.Body.String())
+	}
 }
 
 func TestOperationalLossHTTPRejectsCrossEntityRead(t *testing.T) {
