@@ -715,6 +715,31 @@ func (c *MatterEscalationCoordinator) applyEscalation(ctx context.Context, tenan
 	if err != nil {
 		return false, fmt.Errorf("record workflow escalation event: %w", err)
 	}
+	if principal.ID != strings.TrimSpace(task.Principal) {
+		matterID := strings.TrimSpace(task.Context["matter_id"])
+		_, err = tx.Exec(ctx, `
+			INSERT INTO outbox_events(
+				tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at
+			)
+			SELECT t.id,'MATTER',$2::uuid,$3,
+			       jsonb_build_object(
+			         'matter_id',$2::text,
+			         'task_id',$4::text,
+			         'recipient_principal_id',$5::text,
+			         'previous_principal_id',NULLIF($6::text,''),
+			         'responsibility',$7::text,
+			         'sequence_id',$8::text,
+			         'step_index',$9::int
+			       ),
+			       $10,$10,$10
+			FROM tenants t
+			WHERE t.id::text=$1 OR t.slug=$1`,
+			tenant, matterID, EventMatterEscalationAssigned, task.ID, principal.ID, task.Principal,
+			step.Responsibility, payload.SequenceID, payload.StepIndex, at)
+		if err != nil {
+			return false, fmt.Errorf("emit Matter escalation assignment notification: %w", err)
+		}
+	}
 	return true, tx.Commit(ctx)
 }
 
