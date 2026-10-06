@@ -54,7 +54,7 @@ try {
       await page.getByRole("heading", { name: "Losses" }).waitFor({ state: "visible" });
       await page.getByRole("table", { name: "Operational loss register" }).waitFor({ state: "visible" });
       await page.getByText("Duplicate merchant settlement", { exact: true }).waitFor({ state: "visible" });
-      await page.getByText("Partly recovered", { exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("cell", { name: "Recovery: Partly recovered" }).waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Record loss" }).waitFor({ state: "visible" });
     } else {
       await page.getByRole("heading", { name: "Duplicate merchant settlement" }).waitFor({ state: "visible" });
