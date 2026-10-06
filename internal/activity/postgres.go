@@ -66,6 +66,9 @@ func (r *PostgresRepository) List(ctx context.Context, query Query) (Page, error
 	if query.LegalEntityID != "" {
 		add(query.LegalEntityID, func(placeholder string) string { return "meta.legal_entity_ref=" + placeholder })
 	}
+	if query.Source != "" {
+		add(query.Source, func(placeholder string) string { return "upper(oe.source)=upper(" + placeholder + ")" })
+	}
 	args = append(args, query.Limit+1)
 	limitPlaceholder := "$" + strconv.Itoa(len(args))
 
