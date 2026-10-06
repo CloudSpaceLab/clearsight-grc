@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { loadMatter } from "../../api";
+import { loadMatter, type ScopeNode } from "../../api";
 import { apiErrorKind } from "../../http";
 import { getLoss, openLossIntervention, recordLossRecovery } from "../../lossApi";
 import type { LossAggregate, LossRecovery } from "../../lossTypes";
@@ -15,6 +15,7 @@ type Props = {
   lossID: string;
   organizationScopeID?: string;
   organizationScopeName?: string;
+  organizationScopes?: ScopeNode[];
   onBack: () => void;
   onOpenRisk?: (riskID: string) => void;
   onOpenMatter?: (matterID: string) => void;
@@ -32,6 +33,7 @@ export function LossRecord({
   lossID,
   organizationScopeID,
   organizationScopeName,
+  organizationScopes = [],
   onBack,
   onOpenRisk,
   onOpenMatter,
@@ -156,11 +158,14 @@ export function LossRecord({
     }
   }
 
+  const recordedOrganization = loss.organization_scope_id
+    ? organizationScopes.find((scope) => scope.id === loss.organization_scope_id)
+    : undefined;
   const organizationLabel = !loss.organization_scope_id
     ? "Legal entity"
-    : loss.organization_scope_id === organizationScopeID && organizationScopeName
-      ? organizationScopeName
-      : "Recorded organization area";
+    : recordedOrganization?.department_path?.join(" / ") || recordedOrganization?.name
+      || (loss.organization_scope_id === organizationScopeID ? organizationScopeName : undefined)
+      || "Organization area unavailable";
 
   return <section className="loss-record-page" aria-labelledby="loss-record-heading">
     <header className="topbar loss-page-header">
