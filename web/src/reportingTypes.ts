@@ -146,6 +146,13 @@ export type ReportDefinitionTransitionInput = {
   effective_from?: string;
 };
 
+export type MatterBoardBriefAvailability = {
+  definition?: ReportDefinition;
+  can_run: boolean;
+  authority_available: boolean;
+  reason?: string;
+};
+
 export type ReportRunInput = {
   definition_id: string;
   expected_definition_version: number;
