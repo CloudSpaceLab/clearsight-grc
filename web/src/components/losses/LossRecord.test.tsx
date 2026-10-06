@@ -149,8 +149,8 @@ describe("LossRecord", () => {
     await screen.findByRole("heading", { name: "Duplicate settlement" });
     fireEvent.click(screen.getByRole("button", { name: "Record recovery" }));
     const dialog = await screen.findByRole("dialog", { name: "Record recovery entry" });
-    fireEvent.change(within(dialog).getByLabelText("Amount"), { target: { value: "1000000.00" } });
-    fireEvent.change(within(dialog).getByLabelText("Recorded at"), { target: { value: "2026-10-04T10:00" } });
+    fireEvent.change(within(dialog).getByLabelText(/^Amount/), { target: { value: "1000000.00" } });
+    fireEvent.change(within(dialog).getByLabelText(/^Recorded at/), { target: { value: "2026-10-04T10:00" } });
     fireEvent.change(within(dialog).getByLabelText("Reference"), { target: { value: "Bank adjustment" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Record recovery" }));
 
