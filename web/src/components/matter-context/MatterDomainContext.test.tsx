@@ -169,6 +169,11 @@ it("shows the exact source observation instead of substituting the current indic
     monitoring_check_id: "check-1",
     monitoring_check_version: 4,
     evaluated_at: "2026-09-05T10:00:00Z",
+    source_receipt: {
+      observed_at: "2026-09-05T09:58:00Z",
+      count: 1,
+      completeness: "COMPLETE",
+    },
     evaluation: {
       score: 100,
       band: "CRITICAL",
@@ -210,6 +215,11 @@ it("shows the exact source observation instead of substituting the current indic
   expect(screen.queryByText("99.90%")).toBeNull();
   expect(screen.getByText("Limit ≥ 99.50%")).toBeTruthy();
   expect(screen.getByText("Outside limit")).toBeTruthy();
+  expect(screen.getByText("Source observed")).toBeTruthy();
+  expect(screen.getByText("Complete")).toBeTruthy();
+  expect(screen.getByText("Records read")).toBeTruthy();
+  expect(screen.getAllByText("1").length).toBeGreaterThan(0);
+  expect(screen.queryByText(/source-|connection-|adapter-/i)).toBeNull();
 
   fireEvent.click(screen.getByRole("button", { name: "Open indicator" }));
   expect(onOpenIndicator).toHaveBeenCalledWith("check-1", "KRI");
