@@ -10,20 +10,7 @@ import type {
   LossTotals,
 } from "../../lossTypes";
 import { Button, FocusedDialog, Notice, SelectField, TextArea, TextField } from "../ui";
-import { formatLossMoney, lossEventLabel, lossMajorToMinor } from "./lossPresentation";
-
-const eventTypes: readonly LossEventType[] = [
-  "INTERNAL_FRAUD",
-  "EXTERNAL_FRAUD",
-  "EMPLOYMENT_PRACTICES",
-  "CLIENT_PRODUCTS_BUSINESS_PRACTICES",
-  "DAMAGE_TO_PHYSICAL_ASSETS",
-  "BUSINESS_DISRUPTION_SYSTEM_FAILURES",
-  "EXECUTION_DELIVERY_PROCESS_MANAGEMENT",
-  "OTHER",
-];
-
-const eventOptions = eventTypes.map((id) => ({ id, label: lossEventLabel(id) }));
+import { formatLossMoney, lossEventOptions, lossMajorToMinor } from "./lossPresentation";
 
 type LossEntryDialogProps = {
   organizationScopeID?: string;
@@ -111,7 +98,7 @@ export function LossEntryDialog({
       <div className="loss-authoring__grid">
         <TextField label="Loss code" value={code} onChange={setCode} placeholder="LOSS-2026-001" maxLength={80} isRequired/>
         <TextField label="Title" value={title} onChange={setTitle} placeholder="Short business description" maxLength={200} isRequired/>
-        <SelectField label="Event type" value={eventType} placeholder="Choose event type" options={eventOptions} onChange={setEventType} isRequired allowsEmpty={false}/>
+        <SelectField label="Event type" value={eventType} placeholder="Choose event type" options={lossEventOptions} onChange={setEventType} isRequired allowsEmpty={false}/>
         <TextField label="Currency" value={currency} onChange={(value) => setCurrency(value.toUpperCase())} placeholder="NGN" maxLength={3} isRequired/>
         <TextField label="Gross loss" value={grossAmount} onChange={setGrossAmount} type="text" inputMode="decimal" placeholder="0.00" isRequired/>
         <TextField label="Occurred" value={occurredAt} onChange={setOccurredAt} type="datetime-local" isRequired/>
