@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { parseRoute, routeHash } from "./appRouting";
 
 describe("workspace routes", () => {
+  it("opens Insights as one product-level analysis workspace", () => {
+    expect(parseRoute("#insights")).toEqual({ view: "insights", target: {} });
+    expect(routeHash("insights", {}, "assigned")).toBe("#insights");
+  });
+
   it("opens Reports as a product-level workspace", () => {
     expect(parseRoute("#reports")).toEqual({ view: "reports", target: {} });
     expect(parseRoute("#ropa/reports")).toEqual({ view: "reports", target: {} });
