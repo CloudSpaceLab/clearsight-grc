@@ -8,7 +8,7 @@ import (
 
 const (
 	DomainDefinitionRevision = "enterprise-domain-v1"
-	DomainSourceRevision     = "enterprise-domain-v1"
+	DomainSourceRevision     = "enterprise-domain-v2"
 )
 
 var (
