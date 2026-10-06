@@ -38,8 +38,13 @@ func (a *API) listOperationalLosses(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	_, scope, ok := a.operationalLossActorScope(w, r)
+	actor, scope, ok := a.operationalLossActorScope(w, r)
 	if !ok {
+		return
+	}
+	selection, err := a.resolveOrganizationScopeSelection(r.Context(), actor, r.URL.Query().Get("organization_scope_id"), true)
+	if err != nil {
+		writeOrganizationScopeRequestError(w, err, "This organization scope is not available for Losses.")
 		return
 	}
 	limit, ok := operationalLossLimit(w, r)
@@ -50,7 +55,8 @@ func (a *API) listOperationalLosses(w http.ResponseWriter, r *http.Request) {
 		Status:              oploss.Status(strings.TrimSpace(r.URL.Query().Get("status"))),
 		EventType:           oploss.EventType(strings.TrimSpace(r.URL.Query().Get("event_type"))),
 		Currency:            strings.TrimSpace(r.URL.Query().Get("currency")),
-		OrganizationScopeID: strings.TrimSpace(r.URL.Query().Get("organization_scope_id")),
+		OrganizationScopeID:  selection.ID,
+		OrganizationScopeIDs: selection.IDs,
 		RiskID:              strings.TrimSpace(r.URL.Query().Get("risk_id")),
 		RecoveryStatus:      strings.TrimSpace(r.URL.Query().Get("recovery_status")),
 		Search:              strings.TrimSpace(r.URL.Query().Get("search")),
@@ -102,8 +108,14 @@ func (a *API) createOperationalLoss(w http.ResponseWriter, r *http.Request) {
 		writeOperationalLossError(w, oploss.ErrInvalid)
 		return
 	}
+	selection, err := a.resolveOrganizationScopeSelection(r.Context(), actor, input.OrganizationScopeID, false)
+	if err != nil {
+		writeOrganizationScopeRequestError(w, err, "This organization scope is not available for Loss attribution.")
+		return
+	}
 	input.TenantID = actor.TenantID
 	input.LegalEntityID = actor.LegalEntityID
+	input.OrganizationScopeID = selection.ID
 	input.OwnerPrincipalID = actor.PrincipalID
 	input.MatterID = ""
 	input.ActorID = actor.PrincipalID
