@@ -65,6 +65,7 @@ export type LossSummary = {
 export type LossPage = {
   items: LossSummary[];
   next_cursor?: string;
+  organization_scope_id?: string;
 };
 
 export type LossAggregate = {
