@@ -42,7 +42,6 @@ func TestHubCoalescesSlowSubscriberToLatestRevision(t *testing.T) {
 	}
 }
 
-
 func TestHubKeepsLatestRevisionAcrossLargeBurst(t *testing.T) {
 	hub := NewHub()
 	events, cancel := hub.Subscribe(Scope{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "person"})
