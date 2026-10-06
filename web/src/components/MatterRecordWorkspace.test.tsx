@@ -34,7 +34,8 @@ async function chooseSharedOption(label: string, option: string | RegExp) {
 }
 
 async function openRecordTab(name: "Actions" | "Evidence" | "Decisions") {
-  fireEvent.click(await screen.findByRole("tab", { name }));
+  const label = name === "Actions" ? "Work" : name === "Evidence" ? "Evidence and requests" : name;
+  fireEvent.click(await screen.findByRole("tab", { name: label }));
 }
 
 const detail: MatterAggregate = {
@@ -190,7 +191,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
-    const priority = screen.getByText("High priority", { selector: ".cs-status-badge" });
+    const priority = screen.getByText("High", { selector: ".cs-status-badge" });
     expect(priority.className).toContain("cs-tone--error");
     const overdue = screen.getByText("Overdue", { selector: ".matter-record-header .cs-status-badge" });
     expect(overdue.className).toContain("cs-tone--warning");
@@ -204,6 +205,13 @@ describe("Matter record workspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Back to issues and changes" }));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps an employee form request in the issue evidence work", async () => {
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    await openRecordTab("Evidence");
+    expect(await screen.findByRole("button", { name: "Request employee form" })).toBeTruthy();
   });
 
   it("keeps the issue visible and retries only responsibilities after responsibility loading fails", async () => {

@@ -107,7 +107,7 @@ describe("exact workspace targets", () => {
     expect(await screen.findByRole("heading", { name: matterDetail.next_action })).toBeTruthy();
     expect(screen.getByText("Operations / Payments")).toBeTruthy();
     expect(screen.getByText("Hakeem Adeyemi")).toBeTruthy();
-    fireEvent.click(await screen.findByRole("tab", { name: "Evidence" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "Evidence and requests" }));
     expect(screen.getByTestId("vendor-links-MATTER-matter-outside-page")).toBeTruthy();
     expect(screen.getByTestId("vendor-work-MATTER-matter-outside-page")).toBeTruthy();
     expect(loadMatter).toHaveBeenCalledWith(matterDetail.matter.id);

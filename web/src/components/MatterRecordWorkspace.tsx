@@ -16,6 +16,7 @@ import { MatterDecisionResponsePanel } from "./MatterDecisionResponsePanel";
 import { RecordSnapshotControl } from "./RecordSnapshotControl";
 import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
+import { MatterInternalFormRequestsPanel } from "./MatterInternalFormRequestsPanel";
 import { selectMatterHandoff } from "./matterHandoff";
 import { MatterActivityTimeline } from "./MatterActivityTimeline";
 import { matterDeadlinePresentation, matterPriorityLabel, matterPriorityTone } from "../matterPresentation";
@@ -33,9 +34,9 @@ type LoadState = "loading" | "live" | "unavailable";
 type MatterWorkspaceTab = "details" | "actions" | "evidence" | "decisions";
 
 const matterWorkspaceTabs: ReadonlyArray<{ id: MatterWorkspaceTab; label: string }> = [
-  { id: "details", label: "Details" },
-  { id: "actions", label: "Actions" },
-  { id: "evidence", label: "Evidence" },
+  { id: "details", label: "Overview" },
+  { id: "actions", label: "Work" },
+  { id: "evidence", label: "Evidence and requests" },
   { id: "decisions", label: "Decisions" },
 ];
 
@@ -180,6 +181,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
               {tab === "actions" && <MatterActionsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>}
               {tab === "evidence" && <>
                 <MatterFormRemediationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onOpenRequest={onOpenRequest} onMappingsChange={setLinkedMissingItems}/>
+                <MatterInternalFormRequestsPanel matterID={aggregate.matter.id} matterReference={aggregate.matter.reference}/>
                 <VendorRelationshipLinks targetType="MATTER" targetID={aggregate.matter.id}/>
                 <VendorWorkPanel targetType="MATTER" targetID={aggregate.matter.id} onOpenRequest={onOpenRequest}/>
               </>}
