@@ -2670,7 +2670,6 @@
       "get": {
         "operationId": "downloadReportRun",
         "x-clearsight-route-class": "AUTHENTICATED_READ",
-        "x-clearsight-permission": "REPORT_DOWNLOAD",
         "parameters": [
           {
             "name": "id",
