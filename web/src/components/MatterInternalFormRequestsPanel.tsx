@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { createLibraryFormDraft } from "../formsApi";
 import { FocusedSheet } from "./FocusedSheet";
+import { FormBuilder } from "./FormBuilder";
 import { DistributionComposer } from "./forms/DistributionComposer";
 import { Button, Notice } from "./ui";
 
@@ -9,20 +11,43 @@ type Props = {
 };
 
 export function MatterInternalFormRequestsPanel({ matterID, matterReference }: Props) {
-  const [open, setOpen] = useState(false);
-  const [notice, setNotice] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [authorOpen, setAuthorOpen] = useState(false);
+  const [notice, setNotice] = useState("");
 
-  return <section className="matter-record-panel" aria-labelledby="matter-internal-form-requests-title">
+  return <section className="matter-record-panel" aria-labelledby="matter-form-requests-title">
     <div className="section-heading-row">
       <div>
-        <span className="eyebrow">Internal collection</span>
-        <h2 id="matter-internal-form-requests-title">Employee form request</h2>
-        <p>Collect information or evidence from an employee for {matterReference}.</p>
+        <span className="eyebrow">Forms</span>
+        <h2 id="matter-form-requests-title">Forms and requests</h2>
+        <p>Create a form for {matterReference} or request an approved form from an employee.</p>
       </div>
-      <Button type="button" variant="secondary" onPress={() => { setNotice(false); setOpen(true); }}>Request employee form</Button>
+      <div className="matter-panel-actions">
+        <Button type="button" variant="secondary" onPress={() => { setNotice(""); setAuthorOpen(true); }}>Create linked form</Button>
+        <Button type="button" variant="secondary" onPress={() => { setNotice(""); setRequestOpen(true); }}>Request employee form</Button>
+      </div>
     </div>
-    {notice && <Notice tone="success">Employee form request created.</Notice>}
-    {open && <FocusedSheet label="Request employee form" closeLabel="Close employee form request" size="wide" onClose={() => setOpen(false)}>
+
+    {notice && <Notice tone="success">{notice}</Notice>}
+
+    {authorOpen && <FocusedSheet label="Create linked form" closeLabel="Close form builder" size="wide" onClose={() => setAuthorOpen(false)}>
+      <div className="cs-sheet-heading">
+        <span className="eyebrow">Issue form</span>
+        <h2>Create linked form</h2>
+        <p>Create a form for {matterReference}. Approval is required before sending.</p>
+      </div>
+      <FormBuilder
+        saveDraft={(input) => createLibraryFormDraft({ ...input, origin: { type: "MATTER", id: matterID } })}
+        onSaved={() => {
+          setAuthorOpen(false);
+          setNotice("Form draft created.");
+        }}
+        onCancel={() => setAuthorOpen(false)}
+        allowIncompleteComplianceDraft
+      />
+    </FocusedSheet>}
+
+    {requestOpen && <FocusedSheet label="Request employee form" closeLabel="Close employee form request" size="wide" onClose={() => setRequestOpen(false)}>
       <div className="cs-sheet-heading">
         <span className="eyebrow">Employee form request</span>
         <h2>Request employee form</h2>
@@ -31,10 +56,10 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
       <DistributionComposer
         subject={{ type: "MATTER", id: matterID, label: matterReference }}
         internalOnly
-        onCancel={() => setOpen(false)}
+        onCancel={() => setRequestOpen(false)}
         onCreated={() => {
-          setOpen(false);
-          setNotice(true);
+          setRequestOpen(false);
+          setNotice("Employee form request created.");
         }}
       />
     </FocusedSheet>}
