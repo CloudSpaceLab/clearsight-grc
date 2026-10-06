@@ -48,17 +48,46 @@ describe("LossRegister", () => {
     expect(onOpenLoss).toHaveBeenCalledWith("loss-1");
   });
 
-  it("passes recovery filters to the bounded list read", async () => {
+  it("binds the list to organization scope and exposes supported loss filters", async () => {
     const loadPage = vi.fn().mockResolvedValue({ items: [] });
-    render(<LossRegister onOpenLoss={() => {}} loadPage={loadPage}/>);
+    render(<LossRegister
+      legalEntityName="Clear Bank Nigeria"
+      organizationScopeID="scope-payments"
+      organizationScopeName="BANK / PAYMENTS"
+      onOpenLoss={() => {}}
+      loadPage={loadPage}
+    />);
 
-    await waitFor(() => expect(loadPage).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("button", { name: /Recovery/i }));
-    fireEvent.click(await screen.findByRole("option", { name: "Partly recovered" }));
-
-    await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ recoveryStatus: "PARTIAL", limit: 25 }),
+    await waitFor(() => expect(loadPage).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationScopeID: "scope-payments", limit: 25 }),
       expect.any(AbortSignal),
     ));
+    expect(screen.getByText("Operational losses and recoveries for BANK / PAYMENTS.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Recovery/i }));
+    fireEvent.click(await screen.findByRole("option", { name: "Partly recovered" }));
+    fireEvent.click(screen.getByRole("button", { name: /Event type/i }));
+    fireEvent.click(await screen.findByRole("option", { name: "Execution, delivery & process management" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Currency" }), { target: { value: "ngn" } });
+
+    await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        organizationScopeID: "scope-payments",
+        recoveryStatus: "PARTIAL",
+        eventType: "EXECUTION_DELIVERY_PROCESS_MANAGEMENT",
+        currency: "NGN",
+        limit: 25,
+      }),
+      expect.any(AbortSignal),
+    ));
+  });
+
+  it("offers canonical loss authoring without changing register pagination", async () => {
+    const onRecordLoss = vi.fn();
+    render(<LossRegister onOpenLoss={() => {}} onRecordLoss={onRecordLoss} loadPage={vi.fn().mockResolvedValue(page)}/>);
+
+    await screen.findByText("Duplicate settlement");
+    fireEvent.click(screen.getByRole("button", { name: "Record loss" }));
+    expect(onRecordLoss).toHaveBeenCalledTimes(1);
   });
 });
