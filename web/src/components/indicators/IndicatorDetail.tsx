@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { loadMonitoringResults } from "../../monitoringApi";
 import type { MonitoringResult } from "../../monitoringTypes";
-import type { RiskIndicatorDetail } from "../../riskTypes";
+import type { IndicatorDetailModel } from "../../indicatorTypes";
 import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
 import { IndicatorValue, indicatorValueAccessibleText } from "./IndicatorValue";
 import { formatIndicatorCoverage, formatIndicatorDate, formatIndicatorPeriod, indicatorStateLabel, indicatorTone, monitoringBandLabel, nativeConditionLabel, nativeConditionTone } from "./indicatorPresentation";
 import "./indicator.css";
 
 type Props = {
-  indicator: RiskIndicatorDetail;
+  indicator: IndicatorDetailModel;
   onOpenProgram?: (programID: string) => void;
   onOpenMatter?: (matterID: string) => void;
   loadResults?: (checkID: string, version?: number) => Promise<MonitoringResult[]>;
+  concernDenominator?: number;
 };
 
 type LoadState = "loading" | "live" | "error";
@@ -21,6 +22,7 @@ export function IndicatorDetail({
   onOpenProgram,
   onOpenMatter,
   loadResults = loadMonitoringResults,
+  concernDenominator = 100,
 }: Props) {
   const [state, setState] = useState<LoadState>("loading");
   const [results, setResults] = useState<MonitoringResult[]>([]);
@@ -60,8 +62,8 @@ export function IndicatorDetail({
       id: "value",
       header: "Value",
       mobileLayout: "full-width",
-      render: (item) => <IndicatorValue measurement={item.evaluation.measurement} score={item.evaluation.score} denominator={100}/>,
-      accessibleText: (item) => indicatorValueAccessibleText(item.evaluation.measurement, item.evaluation.score, 100),
+      render: (item) => <IndicatorValue measurement={item.evaluation.measurement} score={item.evaluation.score} denominator={concernDenominator}/>,
+      accessibleText: (item) => indicatorValueAccessibleText(item.evaluation.measurement, item.evaluation.score, concernDenominator),
     },
     {
       id: "condition",
@@ -88,7 +90,7 @@ export function IndicatorDetail({
 
   return <div className="indicator-detail">
     <header className="cs-sheet-heading">
-      <p>{indicator.link.kind} · {indicator.check_code}</p>
+      <p>{indicator.kind} · {indicator.check_code}</p>
       <h2>{indicator.check_name}</h2>
       <p>{indicator.claim}</p>
     </header>
@@ -96,7 +98,7 @@ export function IndicatorDetail({
     <Surface>
       <dl className="indicator-detail__summary" aria-label="Current indicator state">
         <div><dt>Current state</dt><dd><StatusBadge tone={indicatorTone(indicator.state)}>{indicatorStateLabel(indicator.state)}</StatusBadge></dd></div>
-        <div><dt>Current value</dt><dd><IndicatorValue measurement={indicator.native_measurement} score={indicator.score} denominator={indicator.denominator}/></dd></div>
+        <div><dt>Current value</dt><dd><IndicatorValue measurement={indicator.native_measurement} score={indicator.score} denominator={concernDenominator}/></dd></div>
         <div><dt>Coverage</dt><dd>{indicator.coverage === undefined ? "No current coverage" : `${formatIndicatorCoverage(indicator.coverage)} · minimum ${formatIndicatorCoverage(indicator.minimum_coverage)}`}</dd></div>
         <div><dt>Updated</dt><dd>{indicator.evaluated_at ? formatIndicatorDate(indicator.evaluated_at) : "No current result"}</dd></div>
       </dl>
@@ -107,6 +109,7 @@ export function IndicatorDetail({
       <div><dt>Program</dt><dd>{indicator.program_name}</dd></div>
       <div><dt>Owner</dt><dd>{indicator.owner_display_name || "Not assigned"}</dd></div>
       <div><dt>Reviewer</dt><dd>{indicator.reviewer_display_name || "Not assigned"}</dd></div>
+      {indicator.risks?.length ? <div><dt>Linked risks</dt><dd>{indicatorRiskNames(indicator.risks)}</dd></div> : null}
       <div><dt>Freshness limit</dt><dd>{indicator.freshness_minutes} minutes</dd></div>
     </dl>
 
@@ -145,7 +148,7 @@ export function IndicatorDetail({
             <Button variant="quiet" size="compact" onPress={() => setSelectedResult(undefined)}>Close</Button>
           </div>
           <dl className="indicator-detail__observation-facts">
-            <div><dt>Value</dt><dd><IndicatorValue measurement={selectedResult.evaluation.measurement} score={selectedResult.evaluation.score} denominator={100}/></dd></div>
+            <div><dt>Value</dt><dd><IndicatorValue measurement={selectedResult.evaluation.measurement} score={selectedResult.evaluation.score} denominator={concernDenominator}/></dd></div>
             <div><dt>Condition</dt><dd>{selectedResult.evaluation.measurement
               ? <StatusBadge tone={nativeConditionTone(selectedResult.evaluation.measurement.condition)}>{nativeConditionLabel(selectedResult.evaluation.measurement.condition)}</StatusBadge>
               : "Native value unavailable"}</dd></div>
@@ -171,4 +174,11 @@ function ObservationExceptions({ result }: { result: MonitoringResult }) {
       <span>{rule.reason}</span>
     </li>)}</ul>
   </div>;
+}
+
+
+function indicatorRiskNames(values: NonNullable<IndicatorDetailModel["risks"]>) {
+  const visible = values.slice(0, 3).map((item) => item.name);
+  const remaining = values.length - visible.length;
+  return remaining > 0 ? `${visible.join(", ")} · +${remaining} more` : visible.join(", ");
 }
