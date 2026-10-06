@@ -144,7 +144,7 @@ type Service struct {
 	evidence        evidenceReader
 	sources         sourceReader
 	sourceValidator sourceScopeValidator
-	formOrigins     formOriginValidator
+	formOrigins     FormOriginValidator
 	now             func() time.Time
 	newID           func() (string, error)
 	commandGuard    *commandauth.Guard
