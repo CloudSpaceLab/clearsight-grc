@@ -98,15 +98,13 @@ function evidenceConclusionLabel(value: string): string {
 }
 
 export function riskCurrentPositionAssessment(assessments: readonly RiskAssessment[]): RiskAssessment | undefined {
-  return latestAssessmentOfKind(assessments, "CURRENT")
-    ?? latestAssessmentOfKind(assessments, "RESIDUAL");
-}
-
-function latestAssessmentOfKind(assessments: readonly RiskAssessment[], kind: RiskAssessmentKind): RiskAssessment | undefined {
   let latest: RiskAssessment | undefined;
   for (const assessment of assessments) {
-    if (assessment.kind !== kind) continue;
-    if (!latest || Date.parse(assessment.assessed_at) > Date.parse(latest.assessed_at)) latest = assessment;
+    if (assessment.kind !== "CURRENT" && assessment.kind !== "RESIDUAL") continue;
+    if (!latest || assessment.risk_version > latest.risk_version ||
+      (assessment.risk_version === latest.risk_version && Date.parse(assessment.assessed_at) > Date.parse(latest.assessed_at))) {
+      latest = assessment;
+    }
   }
   return latest;
 }
