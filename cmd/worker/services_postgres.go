@@ -212,6 +212,8 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 		service.ConfigureClass(attention.DigestWorkClass, workflowruntime.WorkClassOptions{Poll: time.Minute, Batch: 50, Timeout: 20 * time.Second, Lease: 30 * time.Second})
 		service.AddMaintainerClass(attention.DigestWorkClass, dailyDigests)
 	}
+	service.ConfigureClass(attention.RetentionWorkClass, workflowruntime.WorkClassOptions{Poll: time.Hour, Batch: 500, Timeout: 20 * time.Second, Lease: 30 * time.Second})
+	service.AddMaintainerClass(attention.RetentionWorkClass, attention.NewRetentionMaintainer(pool))
 	if err := configureArtifactScanWorker(service, cfg, logger, evidenceRepository, store); err != nil {
 		pool.Close()
 		return workerSet{}, err

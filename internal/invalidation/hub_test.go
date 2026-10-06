@@ -1,6 +1,7 @@
 package invalidation
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -38,5 +39,27 @@ func TestHubCoalescesSlowSubscriberToLatestRevision(t *testing.T) {
 	event := <-events
 	if event.Revision != "rev-2" {
 		t.Fatalf("revision=%q want rev-2", event.Revision)
+	}
+}
+
+func TestHubKeepsLatestRevisionAcrossLargeBurst(t *testing.T) {
+	hub := NewHub()
+	events, cancel := hub.Subscribe(Scope{TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "person"})
+	defer cancel()
+
+	const burst = 10000
+	for index := 0; index < burst; index++ {
+		hub.Publish(Event{
+			TenantID: "tenant", LegalEntityID: "entity", PrincipalID: "person",
+			Revision: "rev-" + fmt.Sprint(index),
+		})
+	}
+	select {
+	case event := <-events:
+		if event.Revision != "rev-9999" {
+			t.Fatalf("revision=%q want rev-9999", event.Revision)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("burst invalidation was not delivered")
 	}
 }

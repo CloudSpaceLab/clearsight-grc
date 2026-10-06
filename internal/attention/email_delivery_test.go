@@ -132,3 +132,25 @@ func TestCriticalEmailClaimPreventsDuplicateAndUnknownOutcomeIsTerminal(t *testi
 		t.Fatalf("status=%s", got)
 	}
 }
+
+func TestCriticalEmailRecordsSupersededRecipientWithoutSending(t *testing.T) {
+	now := time.Date(2026, 10, 6, 4, 0, 0, 0, time.UTC)
+	repo := &criticalEmailRepoStub{
+		value: CriticalEmailContext{
+			BrandName: "Meridian Bank", RecipientName: "Former Risk Officer",
+			RecipientAddress: "former@example.test", CurrentNoticeSequence: 1,
+			RecipientSuperseded: true,
+		},
+		claimResult: true,
+	}
+	delivery := &criticalEmailDeliveryStub{}
+	consumer := NewCriticalEmailConsumer(repo, delivery, "https://clearsight.example.test")
+	consumer.now = func() time.Time { return now }
+
+	if err := consumer.Publish(context.Background(), attentionEmailEvent(EventEpisodeOpened, "CRITICAL", 1)); err != nil {
+		t.Fatal(err)
+	}
+	if delivery.calls != 0 || len(repo.claims) != 1 || repo.claims[0].Status != "NOTICE_SUPERSEDED" {
+		t.Fatalf("calls=%d claims=%#v", delivery.calls, repo.claims)
+	}
+}

@@ -17,7 +17,25 @@ func (r *PostgresRepository) LoadAssignmentNotification(ctx context.Context, eve
 	}
 	var value assignmentNotificationContext
 	var dueAt *time.Time
-	if assignment.NotificationKind == matterOwnerNotificationKind || assignment.NotificationKind == commentMentionNotificationKind {
+	if assignment.NotificationKind == matterEscalationNotificationKind {
+		err := r.pool.QueryRow(ctx, `
+			SELECT le.id::text,le.name,p.display_name,
+			       COALESCE((SELECT su.user_name FROM scim_users su JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id
+			                 WHERE su.tenant_id=m.tenant_id AND su.principal_id=$3::uuid AND su.active AND su.deleted_at IS NULL AND ss.status='ACTIVE' LIMIT 1),''),
+			       COALESCE(wt.principal_id::text,''),m.id::text,m.title,'Review escalated work',COALESCE(wt.due_at,m.due_at)
+			FROM workflow_tasks wt
+			JOIN matters m ON m.tenant_id=wt.tenant_id AND m.id=$2::uuid AND wt.context->>'matter_id'=m.id::text
+			JOIN tenants t ON t.id=m.tenant_id
+			JOIN legal_entities le ON le.tenant_id=m.tenant_id AND le.id=m.legal_entity_id
+			JOIN principals p ON p.tenant_id=m.tenant_id AND p.id=$3::uuid
+			WHERE (t.id::text=$1 OR t.slug=$1) AND wt.id=$4::uuid`,
+			event.TenantID, event.AggregateID, assignment.PrincipalID, assignment.TaskID).
+			Scan(&value.LegalEntityID, &value.BankName, &value.RecipientName, &value.RecipientAddress,
+				&value.CurrentPrincipalID, &value.MatterID, &value.MatterTitle, &value.WorkTitle, &dueAt)
+		if err != nil {
+			return assignmentNotificationContext{}, normalizeAssignmentNotificationLoadError(err)
+		}
+	} else if assignment.NotificationKind == matterOwnerNotificationKind || assignment.NotificationKind == commentMentionNotificationKind {
 		err := r.pool.QueryRow(ctx, `
 			SELECT le.id::text,le.name,p.display_name,
 			       COALESCE((SELECT su.user_name FROM scim_users su JOIN scim_sources ss ON ss.tenant_id=su.tenant_id AND ss.id=su.source_id

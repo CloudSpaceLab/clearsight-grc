@@ -7,6 +7,7 @@ import { apiErrorKind } from "../../http";
 import { Button, DataTable, EmptyState, Notice, SelectField, StatusBadge, Surface, type DataColumn } from "../ui";
 import { appetiteLabel, appetiteTone, assessmentKindLabel, controlEvidenceSummary, controlImplementationStatusLabel, controlImplementationStatusTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
 import { RiskIndicatorsSection } from "./RiskIndicatorsSection";
+import { NotificationDeliveryHistory } from "../NotificationDeliveryHistory";
 
 type Props = {
   riskID: string;
@@ -238,6 +239,12 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
       }}
       onOpenProgram={onOpenProgram}
       onOpenMatter={onOpenMatter}
+    />
+
+    <NotificationDeliveryHistory
+      items={aggregate.notification_history}
+      complete={aggregate.notification_history_complete !== false}
+      className="risk-record__history"
     />
 
     <section className="risk-record__history" aria-labelledby="risk-assessments-heading">
