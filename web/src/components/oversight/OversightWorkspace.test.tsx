@@ -9,6 +9,7 @@ const metricApi = vi.hoisted(() => ({
   loadHomeMetricMembers: vi.fn(),
   loadDomainMetrics: vi.fn(),
   loadDomainMetricMembers: vi.fn(),
+  loadDomainMetricOrganizationBreakdown: vi.fn(),
 }));
 vi.mock("../../oversightApi", () => api);
 vi.mock("../../metricApi", () => metricApi);
@@ -18,6 +19,18 @@ beforeEach(() => {
   metricApi.loadHomeMetricMembers.mockRejectedValue(new Error("Exact membership not configured"));
   metricApi.loadDomainMetricMembers.mockReset();
   metricApi.loadDomainMetricMembers.mockRejectedValue(new Error("Exact domain membership not configured"));
+  metricApi.loadDomainMetricOrganizationBreakdown.mockReset();
+  metricApi.loadDomainMetricOrganizationBreakdown.mockResolvedValue({
+    source_id: "8f710000-0000-4000-8000-000000000001",
+    metric_id: "risks_outside_appetite",
+    definition_revision: "enterprise-domain-v1",
+    count: 9,
+    items: [
+      { key: "scope:technology", scope_id: "technology", label: "Technology", kind: "ORGANIZATION_SCOPE", value: 4 },
+      { key: "scope:operations", scope_id: "operations", label: "Operations", kind: "ORGANIZATION_SCOPE", value: 3 },
+      { key: "unattributed", label: "Unattributed", kind: "UNATTRIBUTED", value: 2 },
+    ],
+  });
   metricApi.loadDomainMetrics.mockResolvedValue({
     generated_at: "2026-09-01T07:55:00Z",
     posture_as_of: "2026-09-01T07:55:00Z",
@@ -140,6 +153,9 @@ it("keeps oversight analysis separate from attention and assigned work", async (
   expect(screen.getByRole("table", { name: "Risk pressure by issue type" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Outside appetite: 9/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Indicator breaches: 4/ })).toBeTruthy();
+  expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Open Technology" })).toBeTruthy();
+  expect(screen.getByText("Unattributed")).toBeTruthy();
   expect(screen.queryByText("Critical and high")).toBeNull();
   expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
 
