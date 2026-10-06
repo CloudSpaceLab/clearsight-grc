@@ -582,23 +582,30 @@ func TestExecuteRunUsesTheDurableAttemptBudget(t *testing.T) {
 	}
 }
 
-func TestOpenRunRequiresReportDownloadPermission(t *testing.T) {
+func TestOpenRunAllowsPrivilegedActorAndRequester(t *testing.T) {
 	service, repository, objects, authorityChecker := newReportingServiceTest()
 	run := installReadyRun(t, repository, objects)
 
 	first, reader, err := service.Open(reportActorContext(testMakerID), testScope(), run.ID)
 	if err != nil {
-		t.Fatalf("first open: %v", err)
+		t.Fatalf("privileged open: %v", err)
 	}
 	_, _ = io.ReadAll(reader)
 	_ = reader.Close()
 
-	_, _, err = service.Open(reportActorContextWithPermissions(testOtherActorID), testScope(), run.ID)
-	if !errors.Is(err, ErrClosureBlocked) {
-		t.Fatalf("download without report permission error = %v, want ErrClosureBlocked", err)
+	requester, requesterReader, err := service.Open(reportActorContextWithPermissions(testPerformerID), testScope(), run.ID)
+	if err != nil {
+		t.Fatalf("requester open without export permission: %v", err)
 	}
-	if first.ID != run.ID || repository.downloads != 1 {
-		t.Fatalf("download receipt count = %d, want only the permitted download", repository.downloads)
+	_, _ = io.ReadAll(requesterReader)
+	_ = requesterReader.Close()
+
+	_, _, err = service.Open(reportActorContextWithPermissions(testOtherActorID), testScope(), run.ID)
+	if !errors.Is(err, ErrReportDownloadForbidden) {
+		t.Fatalf("unrelated download error = %v, want ErrReportDownloadForbidden", err)
+	}
+	if first.ID != run.ID || requester.ID != run.ID || repository.downloads != 2 {
+		t.Fatalf("download receipt count = %d, want privileged + requester downloads", repository.downloads)
 	}
 	if len(authorityChecker.inputs) != 0 {
 		t.Fatalf("report download used governance responsibility routing: %#v", authorityChecker.inputs)
