@@ -391,17 +391,16 @@ func TestAssignmentNotificationIgnoresUnrelatedEventsAndRejectsInsecureBaseURL(t
 	}
 }
 
-
 func escalationAssignmentEvent(t *testing.T) workflowruntime.OutboxEvent {
 	t.Helper()
 	payload, err := json.Marshal(map[string]any{
-		"matter_id": "00000000-0000-4000-8000-000000000701",
-		"task_id": "00000000-0000-4000-8000-000000000720",
+		"matter_id":              "00000000-0000-4000-8000-000000000701",
+		"task_id":                "00000000-0000-4000-8000-000000000720",
 		"recipient_principal_id": "00000000-0000-4000-8000-000000000703",
-		"previous_principal_id": "00000000-0000-4000-8000-000000000704",
-		"responsibility": "REVIEWER",
-		"sequence_id": "overdue-sequence",
-		"step_index": 1,
+		"previous_principal_id":  "00000000-0000-4000-8000-000000000704",
+		"responsibility":         "REVIEWER",
+		"sequence_id":            "overdue-sequence",
+		"step_index":             1,
 	})
 	if err != nil {
 		t.Fatal(err)
