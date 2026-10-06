@@ -3,6 +3,7 @@ package risk
 import (
 	"context"
 	"sort"
+	"strconv"
 )
 
 func (r *MemoryRepository) IndicatorPortfolio(ctx context.Context, scope Scope, filter IndicatorPortfolioFilter) (IndicatorPortfolioPage, error) {
@@ -44,7 +45,7 @@ func (r *MemoryRepository) IndicatorPortfolio(ctx context.Context, scope Scope, 
 			if filter.Kind != "" && link.Kind != filter.Kind {
 				continue
 			}
-			groupKey := string(link.Kind) + "|" + link.MonitoringCheckID + "|" + string(rune(link.MonitoringCheckVersion)) + "|" + link.ProgramID
+			groupKey := string(link.Kind) + "|" + link.MonitoringCheckID + "|" + strconv.FormatInt(link.MonitoringCheckVersion, 10) + "|" + link.ProgramID
 			value := groups[groupKey]
 			if value == nil {
 				value = &grouped{
