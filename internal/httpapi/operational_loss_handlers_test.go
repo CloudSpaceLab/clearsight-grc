@@ -15,6 +15,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oploss"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 func TestOperationalLossRoutesUseGovernedAuthorityContracts(t *testing.T) {
@@ -115,6 +116,123 @@ func TestOperationalLossHTTPBindsVerifiedScopeAndActor(t *testing.T) {
 	}
 	if response.Loss.Version != 2 || response.Recovery.ActorID != "loss-owner" {
 		t.Fatalf("recovery = %#v", response)
+	}
+}
+
+func TestOperationalLossHTTPOrganizationScopeIncludesAuthorizedDescendants(t *testing.T) {
+	service := oploss.NewService(oploss.NewMemoryRepository())
+	now := time.Date(2026, 10, 3, 10, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	for _, value := range []struct {
+		code  string
+		scope string
+	}{
+		{code: "LOSS-PARENT", scope: "scope-risk"},
+		{code: "LOSS-CHILD", scope: "scope-risk-ops"},
+		{code: "LOSS-SIBLING", scope: "scope-finance"},
+		{code: "LOSS-UNATTRIBUTED"},
+	} {
+		if _, err := service.Create(t.Context(), oploss.CreateInput{
+			TenantID: "bank", LegalEntityID: "entity-a", OrganizationScopeID: value.scope,
+			Code: value.code, Title: value.code, EventType: oploss.EventOther, Cause: "Scoped event.",
+			GrossAmountMinor: 10000, Currency: "NGN",
+			OccurredAt: now.Add(-time.Hour), DiscoveredAt: now,
+			OwnerPrincipalID: "loss-owner", ActorID: "loss-owner",
+		}); err != nil {
+			t.Fatal(err)
+		}
+		now = now.Add(time.Minute)
+	}
+
+	entity := runtimecontext.ScopeNode{ID: "entity-a", Name: "Entity A", Kind: runtimecontext.ScopeKindLegalEntity}
+	parent := runtimecontext.ScopeNode{ID: "scope-risk", Name: "Risk", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "RISK"}, Filterable: true}
+	child := runtimecontext.ScopeNode{ID: "scope-risk-ops", Name: "Risk operations", Kind: runtimecontext.ScopeKindDepartment, ParentID: parent.ID, DepartmentPath: []string{"BANK", "RISK", "OPERATIONS"}, Filterable: true}
+	sibling := runtimecontext.ScopeNode{ID: "scope-finance", Name: "Finance", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "FINANCE"}, Filterable: true}
+	handler := New(Dependencies{
+		Logger:          slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:        identity.NewDevelopmentAuthenticator("bank", "loss-owner", "entity-a"),
+		OperationalLoss: service,
+		RuntimeContext: scopeContextResolverStub{
+			hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Current: entity, LegalEntities: []runtimecontext.ScopeNode{entity}, OrganizationScopes: []runtimecontext.ScopeNode{parent, child, sibling}},
+		},
+	})
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/losses?organization_scope_id=scope-risk&limit=25", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("list status=%d body=%s", response.Code, response.Body.String())
+	}
+	var page oploss.Page
+	if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
+		t.Fatal(err)
+	}
+	if page.OrganizationScopeID != parent.ID || len(page.Items) != 2 {
+		t.Fatalf("scoped page = %#v", page)
+	}
+	for _, item := range page.Items {
+		if item.Loss.OrganizationScopeID != parent.ID && item.Loss.OrganizationScopeID != child.ID {
+			t.Fatalf("scope filter leaked %q: %#v", item.Loss.OrganizationScopeID, page)
+		}
+	}
+
+	forbidden := httptest.NewRecorder()
+	handler.ServeHTTP(forbidden, httptest.NewRequest(http.MethodGet, "/api/v1/losses?organization_scope_id=scope-unauthorized", nil))
+	if forbidden.Code != http.StatusForbidden || !strings.Contains(forbidden.Body.String(), "organization_scope_forbidden") {
+		t.Fatalf("forbidden scope status=%d body=%s", forbidden.Code, forbidden.Body.String())
+	}
+}
+
+func TestOperationalLossHTTPCreateValidatesOrganizationScope(t *testing.T) {
+	service := oploss.NewService(oploss.NewMemoryRepository())
+	service.Now = func() time.Time { return time.Date(2026, 10, 3, 11, 0, 0, 0, time.UTC) }
+	entity := runtimecontext.ScopeNode{ID: "entity-a", Name: "Entity A", Kind: runtimecontext.ScopeKindLegalEntity}
+	allowed := runtimecontext.ScopeNode{ID: "scope-risk", Name: "Risk", Kind: runtimecontext.ScopeKindDepartment, ParentID: entity.ID, DepartmentPath: []string{"BANK", "RISK"}, Filterable: true}
+	handler := New(Dependencies{
+		Logger:          slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:        identity.NewDevelopmentAuthenticator("bank", "loss-owner", "entity-a"),
+		OperationalLoss: service,
+		RuntimeContext: scopeContextResolverStub{
+			hierarchy: runtimecontext.ScopeHierarchy{State: runtimecontext.HierarchyComplete, Current: entity, LegalEntities: []runtimecontext.ScopeNode{entity}, OrganizationScopes: []runtimecontext.ScopeNode{allowed}},
+		},
+	})
+
+	create := httptest.NewRecorder()
+	handler.ServeHTTP(create, httptest.NewRequest(http.MethodPost, "/api/v1/losses", strings.NewReader(`{
+		"organization_scope_id":"scope-risk",
+		"code":"LOSS-SCOPE-01",
+		"title":"Scoped loss",
+		"event_type":"OTHER",
+		"cause":"Scoped event.",
+		"gross_amount_minor":10000,
+		"currency":"NGN",
+		"occurred_at":"2026-10-03T10:00:00Z",
+		"discovered_at":"2026-10-03T11:00:00Z"
+	}`)))
+	if create.Code != http.StatusCreated {
+		t.Fatalf("create status=%d body=%s", create.Code, create.Body.String())
+	}
+	var created oploss.Loss
+	if err := json.Unmarshal(create.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	if created.OrganizationScopeID != allowed.ID {
+		t.Fatalf("created organization scope = %#v", created)
+	}
+
+	forbidden := httptest.NewRecorder()
+	handler.ServeHTTP(forbidden, httptest.NewRequest(http.MethodPost, "/api/v1/losses", strings.NewReader(`{
+		"organization_scope_id":"scope-finance",
+		"code":"LOSS-SCOPE-02",
+		"title":"Forbidden scoped loss",
+		"event_type":"OTHER",
+		"cause":"Scoped event.",
+		"gross_amount_minor":10000,
+		"currency":"NGN",
+		"occurred_at":"2026-10-03T10:00:00Z",
+		"discovered_at":"2026-10-03T11:00:00Z"
+	}`)))
+	if forbidden.Code != http.StatusForbidden || !strings.Contains(forbidden.Body.String(), "organization_scope_forbidden") {
+		t.Fatalf("forbidden create status=%d body=%s", forbidden.Code, forbidden.Body.String())
 	}
 }
 
