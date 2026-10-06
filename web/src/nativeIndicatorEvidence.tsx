@@ -3,6 +3,7 @@ import type { RiskIndicatorDetail } from "./riskTypes";
 import { IndicatorDetail } from "./components/indicators/IndicatorDetail";
 
 const indicator: RiskIndicatorDetail = {
+  kind: "KRI",
   link: {
     id: "sample-indicator-link",
     risk_id: "sample-risk",
