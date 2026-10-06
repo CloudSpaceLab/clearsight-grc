@@ -232,8 +232,8 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 	defer rows.Close()
 	result := domainMetricResult{Definition: definition, Members: []domainMetricMember{}}
 	for rows.Next() {
-		var id, title, state string
-		if err := rows.Scan(&id, &title, &state); err != nil {
+		var id, title, organizationScopeID, state string
+		if err := rows.Scan(&id, &title, &organizationScopeID, &state); err != nil {
 			return domainMetricResult{}, err
 		}
 		result.Population++
@@ -241,7 +241,7 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 			result.Unknown++
 		}
 		if state == "FAILED" {
-			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "RISK", TargetID: id, Title: title, State: state})
+			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "RISK", TargetID: id, OrganizationScopeID: organizationScopeID, Title: title, State: state})
 		}
 	}
 	return result, rows.Err()
