@@ -98,8 +98,8 @@ func TestExactMonitoringResultReadPreservesHistoricalSourceAndEntityScope(t *tes
 	}
 
 	wrongEntity := New(Dependencies{
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Identity: identity.NewDevelopmentAuthenticator("bank", "reviewer-1", "entity-b"),
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:   identity.NewDevelopmentAuthenticator("bank", "reviewer-1", "entity-b"),
 		Monitoring: fixture.monitoring, Continuity: fixture.continuity,
 	})
 	restricted := httptest.NewRecorder()

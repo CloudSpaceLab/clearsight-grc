@@ -99,7 +99,7 @@ func TestMonitoringRoutesAreRegisteredOnce(t *testing.T) {
 		"POST /api/v1/monitoring-checks/{id}/collection-policy":           false,
 		"POST /api/v1/monitoring-checks/{id}/evaluate-source":             false,
 		"GET /api/v1/monitoring-checks/{id}/results":                      false,
-		"GET /api/v1/monitoring-results/{result_id}":                        false,
+		"GET /api/v1/monitoring-results/{result_id}":                      false,
 		"GET /api/v1/programs/{id}/collection-summaries":                  false,
 		"POST /api/v1/monitoring-results/{result_id}/linked-issue":        false,
 	}
