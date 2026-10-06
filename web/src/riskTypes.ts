@@ -1,14 +1,14 @@
 import type { NotificationDeliveryHistoryItem } from "./notificationTypes";
-import type { MonitoringNativeMeasurement } from "./monitoringTypes";
+import type { IndicatorDetailModel, IndicatorIntervention, IndicatorKind, IndicatorState } from "./indicatorTypes";
 
 export type RiskStatus = "DRAFT" | "ACTIVE" | "RETIRED";
 export type RiskAssessmentKind = "INHERENT" | "CURRENT" | "RESIDUAL" | "TARGET" | "STRESSED" | "ACCEPTED";
 export type RiskAppetitePosition = "WITHIN" | "APPROACHING" | "BREACHED" | "UNKNOWN";
 export type RiskAppetiteStatus = "ACTIVE" | "RETIRED";
 
-export type RiskIndicatorKind = "KRI" | "KCI";
+export type RiskIndicatorKind = IndicatorKind;
 export type RiskIndicatorMeasurement = "MONITORING_RISK_SCORE";
-export type RiskIndicatorState = "NORMAL" | "WATCH" | "BREACH" | "UNKNOWN";
+export type RiskIndicatorState = IndicatorState;
 
 export type RiskIndicatorLink = {
   id: string;
@@ -23,41 +23,13 @@ export type RiskIndicatorLink = {
   created_at: string;
 };
 
-export type RiskIndicatorIntervention = {
-  matter_id: string;
-  reference: string;
-  status: string;
-  priority: number;
-  created_at: string;
-};
+export type RiskIndicatorIntervention = IndicatorIntervention;
 
-export type RiskIndicatorDetail = {
+export type RiskIndicatorDetail = IndicatorDetailModel & {
   link: RiskIndicatorLink;
-  program_id: string;
-  program_name: string;
-  check_id: string;
-  check_code: string;
-  check_name: string;
-  claim: string;
-  check_status: "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "PAUSED" | "RETIRED";
-  check_version: number;
-  input_kind: "FORM" | "SOURCE";
-  owner_display_name?: string;
-  reviewer_display_name?: string;
   measurement: RiskIndicatorMeasurement;
   unit: "RISK_POINTS";
   denominator: 100;
-  native_measurement?: MonitoringNativeMeasurement;
-  state: RiskIndicatorState;
-  reason: string;
-  score?: number;
-  band?: "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "NOT_ASSESSED";
-  coverage?: number;
-  minimum_coverage: number;
-  freshness_minutes: number;
-  result_id?: string;
-  evaluated_at?: string;
-  intervention?: RiskIndicatorIntervention;
 };
 
 export type RiskControlImplementationStatus = "PLANNED" | "IN_PROGRESS" | "IMPLEMENTED" | "INACTIVE" | "RETIRED";
