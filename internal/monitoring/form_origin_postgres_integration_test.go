@@ -48,9 +48,9 @@ func TestPostgresFormMatterOriginIsScopedPersistedAndImmutable(t *testing.T) {
 	}
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES
-			($1::uuid,$3::uuid,'ORIGIN-A','Origin Entity A','NG',$5),
-			($2::uuid,$3::uuid,'ORIGIN-B','Origin Entity B','GH',$5)
-	`, entityA, entityB, tenantID, principalID, now.Add(-time.Hour)); err != nil {
+			($1::uuid,$3::uuid,'ORIGIN-A','Origin Entity A','NG',$4),
+			($2::uuid,$3::uuid,'ORIGIN-B','Origin Entity B','GH',$4)
+	`, entityA, entityB, tenantID, now.Add(-time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
