@@ -148,12 +148,12 @@ func (r *DomainRepository) ListIndicators(ctx context.Context, tenantID, legalEn
 	page := IndicatorPortfolioPage{GeneratedAt: now, Items: make([]IndicatorPortfolioItem, 0, filter.Limit)}
 	for rows.Next() {
 		var (
-			item                          IndicatorPortfolioItem
-			risksJSON, checkJSON          []byte
-			sourceRulesJSON, resultJSON   []byte
-			resultID, band                string
-			evaluatedAt                   *time.Time
-			score, coverage               *float64
+			item                        IndicatorPortfolioItem
+			risksJSON, checkJSON        []byte
+			sourceRulesJSON, resultJSON []byte
+			resultID, band              string
+			evaluatedAt                 *time.Time
+			score, coverage             *float64
 		)
 		if err := rows.Scan(
 			&item.Kind, &risksJSON, &item.ProgramID, &item.ProgramName, &item.CheckID, &item.CheckVersion,
