@@ -1,6 +1,7 @@
 import type { MatterAggregate } from "../../types";
 import { matterContextKind } from "../../matterPresentation";
 import { IndicatorMatterContext } from "./IndicatorMatterContext";
+import { LinkedLossesMatterContext } from "./LinkedLossesMatterContext";
 import { OperationalLossMatterContext } from "./OperationalLossMatterContext";
 
 type Props = {
@@ -24,5 +25,5 @@ export function MatterDomainContext({ aggregate, onOpenLoss, onOpenIndicator }: 
       onOpenIndicator={onOpenIndicator}
     />;
   }
-  return null;
+  return <LinkedLossesMatterContext matterID={aggregate.matter.id} onOpenLoss={onOpenLoss}/>;
 }

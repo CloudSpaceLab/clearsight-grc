@@ -2,14 +2,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { loadIndicatorPopulation } from "../../indicatorApi";
 import { sampleMobileSuccessIndicator } from "../../indicatorEvidenceData";
-import { getLoss } from "../../lossApi";
+import { getLoss, listLosses } from "../../lossApi";
 import { loadMonitoringResult } from "../../monitoringApi";
 import type { MatterAggregate } from "../../types";
 import { formatLossMoney } from "../losses/lossPresentation";
 import { MatterDomainContext } from "./MatterDomainContext";
 
 vi.mock("../../indicatorApi", () => ({ loadIndicatorPopulation: vi.fn() }));
-vi.mock("../../lossApi", () => ({ getLoss: vi.fn() }));
+vi.mock("../../lossApi", () => ({ getLoss: vi.fn(), listLosses: vi.fn() }));
 vi.mock("../../monitoringApi", () => ({ loadMonitoringResult: vi.fn() }));
 
 function matter(overrides: Partial<MatterAggregate["matter"]> = {}): MatterAggregate {
@@ -50,11 +50,36 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-it("does not issue domain reads for a generic Matter", () => {
+it("checks the bounded loss ledger for a generic Matter", () => {
+	vi.mocked(listLosses).mockResolvedValue({ items: [] });
   render(<MatterDomainContext aggregate={matter()}/>);
   expect(vi.mocked(getLoss)).not.toHaveBeenCalled();
+  expect(vi.mocked(listLosses)).toHaveBeenCalledWith({ matterID: "matter-1", limit: 10 }, expect.any(AbortSignal));
   expect(vi.mocked(loadMonitoringResult)).not.toHaveBeenCalled();
   expect(vi.mocked(loadIndicatorPopulation)).not.toHaveBeenCalled();
+});
+
+it("shows loss and recovery totals linked to a generic Matter", async () => {
+  vi.mocked(listLosses).mockResolvedValue({
+    items: [{
+      loss: {
+        id: "loss-linked", tenant_id: "bank", legal_entity_id: "entity-a", code: "LOSS-101", title: "ATM settlement shortfall",
+        event_type: "EXECUTION_DELIVERY_PROCESS_MANAGEMENT", cause: "Settlement mismatch", description: "", gross_amount_minor: 1_000_000,
+        currency: "NGN", occurred_at: "2026-09-30T10:00:00Z", discovered_at: "2026-09-30T10:15:00Z", matter_id: "matter-1", status: "ACTIVE", version: 2,
+        created_at: "2026-09-30T11:00:00Z", updated_at: "2026-10-01T11:00:00Z",
+      },
+      totals: { gross_amount_minor: 1_000_000, recovered_amount_minor: 400_000, net_loss_minor: 600_000, currency: "NGN", recovery_status: "PARTIAL" },
+    }],
+  });
+  const onOpenLoss = vi.fn();
+
+  render(<MatterDomainContext aggregate={matter()} onOpenLoss={onOpenLoss}/>);
+
+  expect(await screen.findByRole("region", { name: "Linked losses" })).toBeTruthy();
+  expect(screen.getByText("LOSS-101 · ATM settlement shortfall")).toBeTruthy();
+  expect(screen.getByText(/Net .*Partly recovered/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Open loss LOSS-101" }));
+  expect(onOpenLoss).toHaveBeenCalledWith("loss-linked");
 });
 
 it("shows canonical loss amounts and opens the linked loss record", async () => {

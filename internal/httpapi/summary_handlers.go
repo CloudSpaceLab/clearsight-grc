@@ -1,14 +1,35 @@
 package httpapi
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
+
+type matterSummaryRead struct {
+	continuity.MatterSummary
+	OwnerDisplayName       string `json:"owner_display_name,omitempty"`
+	OrganizationScopeLabel string `json:"organization_scope_label,omitempty"`
+}
+
+type matterSummaryPageRead struct {
+	Items       []matterSummaryRead `json:"items"`
+	NextCursor  string              `json:"next_cursor,omitempty"`
+	GeneratedAt time.Time           `json:"generated_at"`
+}
+
+type matterAggregateRead struct {
+	continuity.MatterAggregate
+	OwnerDisplayName       string `json:"owner_display_name,omitempty"`
+	OrganizationScopeLabel string `json:"organization_scope_label,omitempty"`
+}
 
 func (a *API) listProgramSummaries(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.continuityService(w)
@@ -69,6 +90,11 @@ func (a *API) listMatterSummaries(w http.ResponseWriter, r *http.Request) {
 	if !parseOK {
 		return
 	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
 	page, err := service.ListMatterSummaries(r.Context(), tenant, continuity.SummaryQuery{
 		Search:       r.URL.Query().Get("q"),
 		Status:       r.URL.Query().Get("status"),
@@ -85,7 +111,65 @@ func (a *API) listMatterSummaries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page.Items = filterMatterSummaries(r.Context(), page.Items)
-	httpx.WriteJSON(w, http.StatusOK, page)
+	httpx.WriteJSON(w, http.StatusOK, a.matterSummaryPageRead(r.Context(), actor, page))
+}
+
+func (a *API) matterSummaryPageRead(ctx context.Context, actor identity.Actor, page continuity.MatterSummaryPage) matterSummaryPageRead {
+	ownerIDsByEntity := map[string][]string{}
+	for _, item := range page.Items {
+		entity := strings.TrimSpace(item.Matter.LegalEntityID)
+		ownerID := strings.TrimSpace(item.Matter.OwnerPrincipalID)
+		if entity != "" && ownerID != "" {
+			ownerIDsByEntity[entity] = append(ownerIDsByEntity[entity], ownerID)
+		}
+	}
+	ownerLabelsByEntity := make(map[string]map[string]string, len(ownerIDsByEntity))
+	for entity, ownerIDs := range ownerIDsByEntity {
+		ownerLabelsByEntity[entity] = a.exactAssessmentLabels(ctx, actor, entity, ownerIDs)
+	}
+	scopeLabels := a.matterSummaryOrganizationScopeLabels(ctx, actor)
+	items := make([]matterSummaryRead, 0, len(page.Items))
+	for _, item := range page.Items {
+		items = append(items, matterSummaryRead{
+			MatterSummary:          item,
+			OwnerDisplayName:       ownerLabelsByEntity[item.Matter.LegalEntityID][item.Matter.OwnerPrincipalID],
+			OrganizationScopeLabel: scopeLabels[item.Matter.OrganizationScopeID],
+		})
+	}
+	return matterSummaryPageRead{Items: items, NextCursor: page.NextCursor, GeneratedAt: page.GeneratedAt}
+}
+
+func (a *API) matterAggregateRead(ctx context.Context, actor identity.Actor, aggregate continuity.MatterAggregate) matterAggregateRead {
+	labels := a.exactAssessmentLabels(ctx, actor, aggregate.Matter.LegalEntityID, []string{aggregate.Matter.OwnerPrincipalID})
+	return matterAggregateRead{
+		MatterAggregate:        aggregate,
+		OwnerDisplayName:       labels[aggregate.Matter.OwnerPrincipalID],
+		OrganizationScopeLabel: a.matterSummaryOrganizationScopeLabels(ctx, actor)[aggregate.Matter.OrganizationScopeID],
+	}
+}
+
+func (a *API) matterSummaryOrganizationScopeLabels(ctx context.Context, actor identity.Actor) map[string]string {
+	labels := map[string]string{}
+	resolver, ok := a.deps.RuntimeContext.(runtimecontext.HierarchyResolver)
+	if !ok {
+		return labels
+	}
+	hierarchy, err := resolver.ResolveHierarchy(ctx, runtimecontext.Scope{
+		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
+	})
+	if err != nil {
+		return labels
+	}
+	for _, scope := range hierarchy.OrganizationScopes {
+		label := strings.Join(scope.DepartmentPath, " / ")
+		if label == "" {
+			label = strings.TrimSpace(scope.Name)
+		}
+		if strings.TrimSpace(scope.ID) != "" && label != "" {
+			labels[scope.ID] = label
+		}
+	}
+	return labels
 }
 
 func writeSummaryError(w http.ResponseWriter, err error, fallback string) {

@@ -63,6 +63,10 @@
 .matter-record-section-heading > span { color: var(--muted); font-size: .75rem; white-space: nowrap; }
 .matter-panel-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .matter-panel-actions button { min-height: 44px; }
+.matter-linked-loss-list { display: grid; gap: 8px; }
+.matter-linked-loss { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+.matter-linked-loss > div { display: grid; gap: 4px; min-width: 0; }
+.matter-linked-loss span { color: var(--muted); font-size: .84rem; overflow-wrap: anywhere; }
 .matter-record-facts { margin: 0; }
 .matter-record-facts > div { display: grid; grid-template-columns: minmax(150px, .65fr) minmax(0, 1fr); gap: 16px; padding: 11px 0; border-top: 1px solid var(--border); }
 .matter-record-facts dd { display: flex; justify-content: flex-end; align-items: center; gap: 10px; overflow-wrap: anywhere; }
@@ -182,6 +186,7 @@
   .matter-record-facts dd { text-align: left; }
   .matter-record-row { display: grid; }
   .matter-record-section-heading { display: grid; }
+	.matter-linked-loss { align-items: stretch; flex-direction: column; }
   .matter-panel-actions { justify-content: stretch; }
   .matter-panel-actions button { width: 100%; }
   .matter-operation-form { grid-template-columns: 1fr; }

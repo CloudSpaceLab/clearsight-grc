@@ -91,6 +91,7 @@ type ListFilter struct {
 	OrganizationScopeID  string
 	OrganizationScopeIDs []string
 	RiskID               string
+	MatterID             string
 	RecoveryStatus       string
 	Search               string
 	Cursor               string

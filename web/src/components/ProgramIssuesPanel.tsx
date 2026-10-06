@@ -29,7 +29,7 @@ export function ProgramIssuesPanel({ aggregate, canCreateIssue = true, onOpenMat
     {state === "loading" && <p aria-live="polite">Loading linked issues and changes…</p>}
     {state === "unavailable" && <div className="inline-error"><p>Linked issues could not be loaded.</p><button className="secondary-button" type="button" onClick={() => void reload()}>Try again</button></div>}
     {state === "live" && (items.length ? <div className="program-issue-list">{items.map((item) => <section className="program-issue-card" key={item.matter.id}>
-      <div><span>{item.type_label} · {item.status_label}</span><h3>{item.matter.title}</h3><p>{item.matter.summary}</p><small>{item.next_action} · priority {item.matter.priority}</small></div>
+      <div><span>{item.type_label} · {item.status_label}</span><h3>{item.matter.title}</h3><p>{item.matter.summary}</p><dl className="program-issue-facts"><div><dt>Applies to</dt><dd>{item.organization_scope_label || "Not assigned"}</dd></div><div><dt>Owner</dt><dd>{item.owner_display_name || "Not assigned"}</dd></div><div><dt>Due</dt><dd>{item.matter.due_at ? new Date(item.matter.due_at).toLocaleDateString() : "No due date"}</dd></div><div><dt>Impact</dt><dd>Priority {item.matter.priority}</dd></div></dl><small>{item.next_action}</small></div>
       <button className="secondary-button" type="button" onClick={() => onOpenMatter(item.matter.id)}>Open {item.matter.reference}</button>
     </section>)}</div> : <div className="program-empty-state"><strong>No open linked issues</strong><p>The current query found no open issues or changes linked to this Program. Record one if a gap, exception, request or change needs assigned work.</p></div>)}
     {canCreateIssue && creating && (

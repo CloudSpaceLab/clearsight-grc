@@ -131,6 +131,8 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
   const handoffOperation = aggregate ? selectMatterHandoff(aggregate, currentOperations) : undefined;
   const assignmentIsDominant = handoffOperation?.command === "matter.assign";
   const deadline = aggregate ? matterDeadlinePresentation(aggregate.matter.due_at) : undefined;
+  const recordedOwner = aggregate?.owner_display_name || responsibleParties.find((party) => party.scope === "RECORD" && party.responsibility === "ACCOUNTABLE_OWNER")?.display_name || "Not assigned";
+  const organizationScope = aggregate?.organization_scope_label || "Not assigned";
 
   return <section className="matter-record-workspace" aria-label="Issue or change record">
     <button aria-label="Back to issues and changes" className="text-button matter-record-back" type="button" onClick={onBack}>← Back to issues and changes</button>
@@ -144,10 +146,10 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
           <p>{aggregate.matter.summary}</p>
         </div>
         <dl>
-          <div><dt>Priority</dt><dd><StatusBadge tone={matterPriorityTone(aggregate.matter.priority)}>{matterPriorityLabel(aggregate.matter.priority)} priority</StatusBadge></dd></div>
+          <div><dt>Applies to</dt><dd>{organizationScope}</dd></div>
+          <div><dt>Owner</dt><dd>{recordedOwner}</dd></div>
           <div><dt>Due</dt><dd>{deadline?.dateTime ? <><StatusBadge tone={deadline.tone}>{deadline.label}</StatusBadge> <time dateTime={deadline.dateTime}>{new Date(deadline.dateTime).toLocaleDateString()}</time></> : deadline?.label ?? "No due date"}</dd></div>
-          <div><dt>Status</dt><dd>{aggregate.status_label}</dd></div>
-          <div><dt>Record version</dt><dd>{aggregate.matter.version}</dd></div>
+          <div><dt>Impact</dt><dd><StatusBadge tone={matterPriorityTone(aggregate.matter.priority)}>{matterPriorityLabel(aggregate.matter.priority)}</StatusBadge></dd></div>
         </dl>
       </header>
       <RecordSnapshotControl recordLabel="issue" loadSnapshot={async (at) => { const value = await loadMatterAt(aggregate.matter.id, at); return { version: value.matter.version, status: value.matter.status, updatedAt: value.matter.updated_at }; }}/>

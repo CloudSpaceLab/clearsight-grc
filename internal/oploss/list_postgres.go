@@ -52,6 +52,7 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 		  AND ($5::text='' OR l.currency=$5::text)
 		  AND (NOT $6::boolean OR l.organization_scope_id=ANY($7::uuid[]))
 		  AND ($8::text='' OR l.risk_id=NULLIF($8::text,'')::uuid)
+		  AND ($15::text='' OR l.matter_id=NULLIF($15::text,'')::uuid)
 		  AND ($9::text='' OR strpos(lower(concat_ws(' ',l.code,l.title,l.cause,l.description)),lower($9::text))>0)
 		  AND ($10::text='' OR (
 		        CASE
@@ -65,7 +66,7 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 		LIMIT $14`,
 		scope.TenantID, scope.LegalEntityID, string(filter.Status), string(filter.EventType), filter.Currency,
 		filter.OrganizationScopeID != "", filter.OrganizationScopeIDs, filter.RiskID, filter.Search, filter.RecoveryStatus,
-		!cursor.UpdatedAt.IsZero(), cursor.UpdatedAt, cursorID, filter.Limit+1,
+		!cursor.UpdatedAt.IsZero(), cursor.UpdatedAt, cursorID, filter.Limit+1, filter.MatterID,
 	)
 	if err != nil {
 		return Page{}, fmt.Errorf("list operational losses: %w", err)

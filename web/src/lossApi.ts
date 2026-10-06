@@ -9,6 +9,7 @@ export type LossListParams = {
   currency?: string;
   organizationScopeID?: string;
   riskID?: string;
+  matterID?: string;
   recoveryStatus?: LossRecoveryStatus;
   search?: string;
   cursor?: string;
@@ -22,6 +23,7 @@ export function listLosses(params: LossListParams = {}, signal?: AbortSignal): P
   if (params.currency?.trim()) query.set("currency", params.currency.trim());
   if (params.organizationScopeID?.trim()) query.set("organization_scope_id", params.organizationScopeID.trim());
   if (params.riskID?.trim()) query.set("risk_id", params.riskID.trim());
+  if (params.matterID?.trim()) query.set("matter_id", params.matterID.trim());
   if (params.recoveryStatus) query.set("recovery_status", params.recoveryStatus);
   if (params.search?.trim()) query.set("search", params.search.trim());
   if (params.cursor) query.set("cursor", params.cursor);

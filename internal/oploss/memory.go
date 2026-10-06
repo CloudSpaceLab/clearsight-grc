@@ -163,6 +163,9 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 		if filter.RiskID != "" && loss.RiskID != filter.RiskID {
 			continue
 		}
+		if filter.MatterID != "" && loss.MatterID != filter.MatterID {
+			continue
+		}
 		if search != "" && !strings.Contains(strings.ToLower(strings.Join([]string{
 			loss.Code, loss.Title, loss.Cause, loss.Description,
 		}, " ")), search) {

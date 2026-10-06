@@ -50,12 +50,22 @@
 /* Matter metadata must scan as separate facts rather than one run-on sentence. */
 .matter-meta {
   display: grid;
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.35;
 }
-.matter-meta > span { display: block; }
+.matter-meta > span { display: grid; gap: 1px; min-width: 0; }
+.matter-meta small { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.matter-meta strong { color: var(--text); font-size: 12px; font-weight: 650; overflow-wrap: anywhere; }
+.matter-meta time { font: inherit; }
+
+.program-issue-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 14px; margin: 12px 0 8px; }
+.program-issue-facts div { min-width: 0; }
+.program-issue-facts dt { color: var(--muted); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+.program-issue-facts dd { margin: 2px 0 0; color: var(--text); font-size: 12px; font-weight: 650; overflow-wrap: anywhere; }
+@media (max-width: 760px) { .matter-meta, .program-issue-facts { grid-template-columns: 1fr 1fr; } }
 
 /* Native <mark> yellow is not a ClearSight status treatment. */
 .projection-health-card mark {

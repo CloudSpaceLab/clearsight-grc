@@ -625,7 +625,16 @@ func (a *API) getMatter(w http.ResponseWriter, r *http.Request) {
 	if err == nil && !canReadMatterAggregate(r.Context(), value) {
 		err = continuity.ErrNotFound
 	}
-	writeContinuityResult(w, value, err, http.StatusOK)
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, a.matterAggregateRead(r.Context(), actor, value))
 }
 
 func (a *API) getMatterHistory(w http.ResponseWriter, r *http.Request) {

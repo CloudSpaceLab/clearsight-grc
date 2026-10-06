@@ -208,6 +208,7 @@ func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Pag
 	filter.OrganizationScopeID = strings.TrimSpace(filter.OrganizationScopeID)
 	filter.OrganizationScopeIDs = normalizeLossOrganizationScopeIDs(filter.OrganizationScopeID, filter.OrganizationScopeIDs)
 	filter.RiskID = strings.TrimSpace(filter.RiskID)
+	filter.MatterID = strings.TrimSpace(filter.MatterID)
 	filter.RecoveryStatus = strings.ToUpper(strings.TrimSpace(filter.RecoveryStatus))
 	filter.Search = strings.TrimSpace(filter.Search)
 	filter.Cursor = strings.TrimSpace(filter.Cursor)

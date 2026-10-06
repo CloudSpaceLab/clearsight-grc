@@ -23,6 +23,8 @@ export type MatterSummary = {
   type_label: string;
   status_label: string;
   next_action: string;
+  owner_display_name?: string;
+  organization_scope_label?: string;
   program_count: number;
   open_action_count: number;
   outcome_check_count: number;

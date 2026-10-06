@@ -101,6 +101,30 @@ func TestLossRejectsOverRecoveryAndCurrencyMutation(t *testing.T) {
 	}
 }
 
+func TestLossListFiltersByLinkedMatter(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(NewMemoryRepository())
+	now := time.Date(2026, 10, 3, 18, 0, 0, 0, time.UTC)
+	service.Now = func() time.Time { return now }
+	for _, input := range []CreateInput{
+		{TenantID: "bank", LegalEntityID: "entity-a", Code: "LOSS-MATTER-1", Title: "Linked loss", EventType: EventOther, Cause: "Processing error.", GrossAmountMinor: 100_00, Currency: "NGN", OccurredAt: now.Add(-time.Hour), DiscoveredAt: now, MatterID: "matter-1", OwnerPrincipalID: "owner-1", ActorID: "owner-1"},
+		{TenantID: "bank", LegalEntityID: "entity-a", Code: "LOSS-MATTER-2", Title: "Other loss", EventType: EventOther, Cause: "Processing error.", GrossAmountMinor: 100_00, Currency: "NGN", OccurredAt: now.Add(-time.Hour), DiscoveredAt: now, MatterID: "matter-2", OwnerPrincipalID: "owner-1", ActorID: "owner-1"},
+	} {
+		if _, err := service.Create(ctx, input); err != nil {
+			t.Fatal(err)
+		}
+		now = now.Add(time.Minute)
+	}
+
+	page, err := service.List(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, ListFilter{MatterID: "matter-1", Limit: 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].Loss.MatterID != "matter-1" || page.Items[0].Loss.Code != "LOSS-MATTER-1" {
+		t.Fatalf("linked matter results=%#v", page.Items)
+	}
+}
+
 func TestLossRejectsRecoveryBeforeOccurrence(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(NewMemoryRepository())
