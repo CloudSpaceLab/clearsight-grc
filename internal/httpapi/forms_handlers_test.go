@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -99,6 +100,17 @@ func TestFormsRoutesAreRegisteredAndClassified(t *testing.T) {
 	}
 }
 
+type formOriginHTTPValidator struct {
+	tenantID      string
+	legalEntityID string
+	principalID   string
+	matterID      string
+}
+
+func (v formOriginHTTPValidator) MatterOriginExists(_ context.Context, tenantID, legalEntityID, principalID, matterID string) (bool, error) {
+	return tenantID == v.tenantID && legalEntityID == v.legalEntityID && principalID == v.principalID && matterID == v.matterID, nil
+}
+
 func formsTestHandler(t *testing.T) http.Handler {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -140,6 +152,52 @@ func TestFormsCreateListAndExactRevisionUseSignedScope(t *testing.T) {
 	handler.ServeHTTP(exactResponse, httptest.NewRequest(http.MethodGet, "/api/v1/forms/templates/"+created.ID+"/revisions/1", nil))
 	if exactResponse.Code != http.StatusOK || !bytes.Contains(exactResponse.Body.Bytes(), []byte(`"version":1`)) {
 		t.Fatalf("exact revision returned %d: %s", exactResponse.Code, exactResponse.Body.String())
+	}
+}
+
+func TestFormsCreateAndRevisePreserveMatterOrigin(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	guard, err := commandauth.New(nil, commandauth.ModeOff, logger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := monitoring.NewService(monitoring.NewMemoryRepository(), nil)
+	service.ConfigureCommandGuard(guard)
+	service.ConfigureFormOriginValidator(formOriginHTTPValidator{
+		tenantID: "bank-a", legalEntityID: "entity-a", principalID: "maker-a", matterID: "matter-a",
+	})
+	handler := New(Dependencies{
+		Logger: logger, Identity: identity.NewDevelopmentAuthenticator("bank-a", "maker-a", "entity-a"),
+		CommandGuard: guard, Monitoring: service,
+	})
+
+	form := `{"code":"ISSUE-CHECK","name":"Issue evidence check","purpose":"Collect issue evidence.","presentation":{"default_mode":"AUTOMATIC"},"sections":[{"id":"evidence","title":"Evidence"}],"fields":[{"id":"state","section_id":"evidence","label":"Current state","type":"short_text","required":true}]}`
+	createBody := []byte(`{"origin":{"type":"MATTER","id":"matter-a"},` + strings.TrimPrefix(form, "{"))
+	createdResponse := httptest.NewRecorder()
+	handler.ServeHTTP(createdResponse, httptest.NewRequest(http.MethodPost, "/api/v1/forms/templates", bytes.NewReader(createBody)))
+	if createdResponse.Code != http.StatusCreated {
+		t.Fatalf("create returned %d: %s", createdResponse.Code, createdResponse.Body.String())
+	}
+	var created monitoring.FormTemplate
+	if err := json.Unmarshal(createdResponse.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	if created.Origin == nil || created.Origin.Type != monitoring.FormOriginMatter || created.Origin.ID != "matter-a" {
+		t.Fatalf("created origin = %#v", created.Origin)
+	}
+
+	revisionBody := []byte(`{"expected_version":1,"form":` + form + `}`)
+	revisedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(revisedResponse, httptest.NewRequest(http.MethodPost, "/api/v1/forms/templates/"+created.ID+"/revisions", bytes.NewReader(revisionBody)))
+	if revisedResponse.Code != http.StatusCreated {
+		t.Fatalf("revision returned %d: %s", revisedResponse.Code, revisedResponse.Body.String())
+	}
+	var revised monitoring.FormTemplate
+	if err := json.Unmarshal(revisedResponse.Body.Bytes(), &revised); err != nil {
+		t.Fatal(err)
+	}
+	if revised.Origin == nil || revised.Origin.ID != "matter-a" || revised.Version != 2 {
+		t.Fatalf("revised origin = %#v, version=%d", revised.Origin, revised.Version)
 	}
 }
 

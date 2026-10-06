@@ -50,6 +50,8 @@ const matterDetail: MatterAggregate = {
   type_label: "Finding",
   status_label: "Decision needed",
   next_action: "Choose a treatment",
+  owner_display_name: "Hakeem Adeyemi",
+  organization_scope_label: "Operations / Payments",
   matter: {
     id: "matter-outside-page", tenant_id: "bank-demo", reference: "FND-99", type: "FINDING", status: "DECISION_REQUIRED", priority: 4, title: "Matter outside first page", summary: "A material issue needs a decision.", scope: {}, known_facts: {}, missing_facts: [], contradictions: [], created_at: "2026-08-01T10:00:00Z", updated_at: "2026-08-06T10:00:00Z", version: 2,
   },
@@ -103,7 +105,9 @@ describe("exact workspace targets", () => {
 
     expect(await screen.findByText("Matter outside first page")).toBeTruthy();
     expect(await screen.findByRole("heading", { name: matterDetail.next_action })).toBeTruthy();
-    fireEvent.click(await screen.findByRole("tab", { name: "Evidence" }));
+    expect(screen.getByText("Operations / Payments")).toBeTruthy();
+    expect(screen.getByText("Hakeem Adeyemi")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("tab", { name: "Evidence and requests" }));
     expect(screen.getByTestId("vendor-links-MATTER-matter-outside-page")).toBeTruthy();
     expect(screen.getByTestId("vendor-work-MATTER-matter-outside-page")).toBeTruthy();
     expect(loadMatter).toHaveBeenCalledWith(matterDetail.matter.id);
@@ -112,14 +116,16 @@ describe("exact workspace targets", () => {
   it("opens the complete issue workspace from the normal Work list", async () => {
     window.history.replaceState(null, "", "#work");
     vi.mocked(loadMatterSummaries).mockResolvedValue({
-      items: [{ matter: matterDetail.matter, type_label: matterDetail.type_label, status_label: matterDetail.status_label, next_action: matterDetail.next_action, program_count: 0, open_action_count: 0, outcome_check_count: 0 }],
+      items: [{ matter: matterDetail.matter, type_label: matterDetail.type_label, status_label: matterDetail.status_label, next_action: matterDetail.next_action, program_count: 0, open_action_count: 0, outcome_check_count: 0, owner_display_name: "Hakeem Adeyemi", organization_scope_label: "Operations / Payments" }],
       generated_at: "2026-08-06T10:00:00Z",
     });
 
     render(<MattersWorkspace/>);
 
-    const priority = await screen.findByText("High priority", { selector: ".cs-status-badge" });
+    const priority = await screen.findByText("High", { selector: ".cs-status-badge" });
     expect(priority.className).toContain("cs-tone--error");
+    expect(screen.getByText("Operations / Payments")).toBeTruthy();
+    expect(screen.getByText("Hakeem Adeyemi")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open issue workspace" }));
     expect(window.location.hash).toBe(`#work/matters/${matterDetail.matter.id}`);
   });

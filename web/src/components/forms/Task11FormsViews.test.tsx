@@ -74,6 +74,22 @@ describe("Task 11 governed form views", () => {
     });
   });
 
+  it("locks an issue request to the current issue and internal recipients", async () => {
+    render(<DistributionComposer subject={{ type: "MATTER", id: "matter-a", label: "ISS-001" }} internalOnly/>);
+    expect(await screen.findByText("ISS-001")).toBeTruthy();
+    expect(screen.queryByLabelText("Subject type")).toBeNull();
+    expect(screen.queryByLabelText("Subject identifier")).toBeNull();
+    expect(screen.queryByLabelText("External email")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Find internal recipient"), { target: { value: "Jane" } });
+    fireEvent.click(await screen.findByRole("option", { name: /Jane Reviewer/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Create and dispatch" }));
+    await waitFor(() => expect(distributionApi.createDistribution).toHaveBeenCalledTimes(1));
+    expect(distributionApi.createDistribution.mock.calls[0]?.[0]).toMatchObject({
+      subject_type: "MATTER", subject_id: "matter-a",
+      recipients: [{ role: "TO", type: "INTERNAL_PRINCIPAL", principal_id: "jane" }],
+    });
+  });
+
   it("renders recipient counts and opens distribution amendment", async () => {
     render(<SentFormsView/>);
     fireEvent.click(await screen.findByRole("button", { name: "Open Quarterly control review" }));

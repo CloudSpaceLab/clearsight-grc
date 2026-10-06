@@ -32,6 +32,7 @@ type Actor struct {
 
 type CreateFormInput struct {
 	ProgramID        string                     `json:"program_id"`
+	Origin           *FormOrigin                `json:"origin,omitempty"`
 	LegalEntityID    string                     `json:"legal_entity_id"`
 	Code             string                     `json:"code"`
 	Name             string                     `json:"name"`
@@ -143,6 +144,7 @@ type Service struct {
 	evidence        evidenceReader
 	sources         sourceReader
 	sourceValidator sourceScopeValidator
+	formOrigins     FormOriginValidator
 	now             func() time.Time
 	newID           func() (string, error)
 	commandGuard    *commandauth.Guard
@@ -360,29 +362,9 @@ func (s *Service) DeleteSavedFormView(ctx context.Context, viewID string) error 
 }
 
 func (s *Service) createLibraryRevision(ctx context.Context, actor identity.Actor, id string, version int64, input CreateFormInput, base FormTemplate) (FormTemplate, error) {
-	contract, err := normalizeLibraryDraft(input)
+	value, err := s.prepareLibraryRevision(ctx, actor, id, version, input, base)
 	if err != nil {
 		return FormTemplate{}, err
-	}
-	if err := validateTextFields(input.Code, input.Name, input.Purpose); err != nil {
-		return FormTemplate{}, err
-	}
-	ownerID := strings.TrimSpace(input.OwnerPrincipalID)
-	if ownerID == "" {
-		ownerID = actor.PrincipalID
-	}
-	now := s.now().UTC()
-	value := FormTemplate{
-		ID: id, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ProgramID: strings.TrimSpace(base.ProgramID),
-		Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name), Purpose: strings.TrimSpace(input.Purpose),
-		OwnerPrincipalID: ownerID, ResponsibleTeam: strings.TrimSpace(input.ResponsibleTeam), ApprovedUses: append([]string(nil), input.ApprovedUses...), Tags: append([]string(nil), input.Tags...),
-		Jurisdiction: strings.TrimSpace(input.Jurisdiction), Industry: strings.TrimSpace(input.Industry), Sensitivity: strings.TrimSpace(input.Sensitivity), ScoringMode: contract.ScoringMode, ScoreProfile: contract.ScoreProfile, NextReviewAt: input.NextReviewAt,
-		StarterCatalogCode: base.StarterCatalogCode, StarterCatalogVersion: base.StarterCatalogVersion,
-		Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
-		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: version, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
-	}
-	if base.ID == "" {
-		value.ProgramID = strings.TrimSpace(input.ProgramID)
 	}
 	return s.repo.CreateFormRevision(ctx, value)
 }

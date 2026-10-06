@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/access"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -66,6 +67,62 @@ func TestMatterSummaryEndpointUsesOperationalLabels(t *testing.T) {
 	}
 	if len(page.Items) != 1 || page.Items[0].TypeLabel != "Control gap" || page.Items[0].NextAction != "Start initial review" {
 		t.Fatalf("unexpected matter summary: %#v", page.Items)
+	}
+}
+
+func TestMatterSummaryReadAddsAuthorizedOwnerAndAreaLabels(t *testing.T) {
+	resolver := &assessmentLabelResolver{resolution: access.Resolution{
+		TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "owner-1", DisplayName: "Hakeem Adeyemi", Kind: "PERSON",
+	}}
+	api := &API{deps: Dependencies{
+		Access: resolver,
+		RuntimeContext: scopeContextResolverStub{hierarchy: runtimecontext.ScopeHierarchy{
+			OrganizationScopes: []runtimecontext.ScopeNode{{
+				ID: "scope-payments", Name: "Payments Operations", Kind: runtimecontext.ScopeKindDepartment,
+				DepartmentPath: []string{"Operations", "Payments"}, Filterable: true,
+			}},
+		}},
+	}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "role-cro"}
+	page := continuity.MatterSummaryPage{Items: []continuity.MatterSummary{{Matter: continuity.Matter{
+		ID: "matter-1", TenantID: "bank", LegalEntityID: "bank-ng", OrganizationScopeID: "scope-payments", OwnerPrincipalID: "owner-1",
+	}}}}
+
+	result := api.matterSummaryPageRead(t.Context(), actor, page)
+	if len(result.Items) != 1 {
+		t.Fatalf("items=%#v", result.Items)
+	}
+	if result.Items[0].OwnerDisplayName != "Hakeem Adeyemi" {
+		t.Fatalf("owner label=%q", result.Items[0].OwnerDisplayName)
+	}
+	if result.Items[0].OrganizationScopeLabel != "Operations / Payments" {
+		t.Fatalf("organization scope label=%q", result.Items[0].OrganizationScopeLabel)
+	}
+	if len(resolver.calls) != 1 || resolver.calls[0] != "bank:bank-ng:owner-1" {
+		t.Fatalf("owner lookups=%v", resolver.calls)
+	}
+}
+
+func TestMatterAggregateReadAddsAuthorizedOwnerAndAreaLabels(t *testing.T) {
+	resolver := &assessmentLabelResolver{resolution: access.Resolution{
+		TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "owner-1", DisplayName: "Hakeem Adeyemi", Kind: "PERSON",
+	}}
+	api := &API{deps: Dependencies{
+		Access: resolver,
+		RuntimeContext: scopeContextResolverStub{hierarchy: runtimecontext.ScopeHierarchy{
+			OrganizationScopes: []runtimecontext.ScopeNode{{
+				ID: "scope-payments", Name: "Payments Operations", Kind: runtimecontext.ScopeKindDepartment,
+				DepartmentPath: []string{"Operations", "Payments"}, Filterable: true,
+			}},
+		}},
+	}}
+	aggregate := continuity.MatterAggregate{Matter: continuity.Matter{
+		ID: "matter-1", TenantID: "bank", LegalEntityID: "bank-ng", OrganizationScopeID: "scope-payments", OwnerPrincipalID: "owner-1",
+	}}
+
+	result := api.matterAggregateRead(t.Context(), identity.Actor{TenantID: "bank", LegalEntityID: "bank-ng", PrincipalID: "role-cro"}, aggregate)
+	if result.OwnerDisplayName != "Hakeem Adeyemi" || result.OrganizationScopeLabel != "Operations / Payments" {
+		t.Fatalf("presentation=%+v", result)
 	}
 }
 

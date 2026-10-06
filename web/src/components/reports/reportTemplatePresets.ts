@@ -1,6 +1,6 @@
 import type { ReportDataset, ReportDefinition, ReportDefinitionInput, ReportFilterExpression } from "../../reportingTypes";
 
-export type ReportSetupArea = "VENDORS" | "PROGRAMS" | "WORK" | "PROCESSING";
+export type ReportSetupArea = "VENDORS" | "PROGRAMS" | "WORK" | "PROCESSING" | "BOARD_BRIEF";
 export type ReportSetupFocus = "OVERVIEW" | "ATTENTION";
 export type ReportSetupFocusLabel = ReportSetupFocus | "CUSTOM";
 
@@ -8,6 +8,7 @@ export const reportSetupAreaOptions: readonly { id: ReportSetupArea; label: stri
   { id: "VENDORS", label: "Vendors", description: "Status · services · criticality" },
   { id: "PROGRAMS", label: "Programs", description: "Health · status · open work" },
   { id: "WORK", label: "Work", description: "Issues · changes · actions" },
+  { id: "BOARD_BRIEF", label: "Board brief", description: "One issue · governed PDF" },
   { id: "PROCESSING", label: "Processing activities", description: "Inventory · privacy exceptions" },
 ];
 
@@ -29,6 +30,7 @@ export function reportSetupArea(definition: ReportDefinition): ReportSetupArea {
   switch (definition.dataset) {
     case "VENDORS": return "VENDORS";
     case "PROGRAMS": return "PROGRAMS";
+    case "MATTER_BOARD_BRIEF": return "BOARD_BRIEF";
     case "MATTERS":
     case "MATTER_EXCEPTIONS": return "WORK";
     default: return "PROCESSING";
@@ -36,14 +38,29 @@ export function reportSetupArea(definition: ReportDefinition): ReportSetupArea {
 }
 
 export function reportSetupFocus(definition: ReportDefinition): ReportSetupFocusLabel {
+  if (definition.dataset === "MATTER_BOARD_BRIEF") return "OVERVIEW";
   if (definition.dataset === "MATTER_EXCEPTIONS" || definition.dataset === "PROCESSING_ACTIVITY_EXCEPTIONS") return "ATTENTION";
   if (definition.dataset === "VENDORS" && hasCondition(definition.filter, "status", vendorAttentionStatuses)) return "ATTENTION";
   if (definition.dataset === "PROGRAMS" && hasCondition(definition.filter, "overall_state", programAttentionStates)) return "ATTENTION";
   return hasConditions(definition.filter) ? "CUSTOM" : "OVERVIEW";
 }
 
-export function buildReportSetupInput(name: string, area: ReportSetupArea, focus: ReportSetupFocus): ReportDefinitionInput {
+export function buildReportSetupInput(name: string, area: ReportSetupArea, focus: ReportSetupFocus, matterID?: string): ReportDefinitionInput {
   const normalizedName = name.trim();
+  if (area === "BOARD_BRIEF") {
+    const scopeRef = matterID?.trim();
+    if (!scopeRef) throw new Error("Choose an issue for the board brief.");
+    return {
+      code: reportSetupCode(normalizedName, area, focus),
+      name: normalizedName,
+      description: setupDescription(area, focus),
+      dataset: "MATTER_BOARD_BRIEF",
+      scope_kind: "MATTER",
+      scope_ref: scopeRef,
+      format: "PDF",
+      filter: emptyFilter(),
+    };
+  }
   return {
     code: reportSetupCode(normalizedName, area, focus),
     name: normalizedName,
@@ -67,6 +84,7 @@ const programAttentionStates = [
 ] as const;
 
 function setupDataset(area: ReportSetupArea, focus: ReportSetupFocus): ReportDataset {
+  if (area === "BOARD_BRIEF") return "MATTER_BOARD_BRIEF";
   if (area === "VENDORS") return "VENDORS";
   if (area === "PROGRAMS") return "PROGRAMS";
   if (area === "WORK") return focus === "ATTENTION" ? "MATTER_EXCEPTIONS" : "MATTERS";
@@ -74,7 +92,7 @@ function setupDataset(area: ReportSetupArea, focus: ReportSetupFocus): ReportDat
 }
 
 function setupFilter(area: ReportSetupArea, focus: ReportSetupFocus): ReportFilterExpression {
-  if (focus === "OVERVIEW" || area === "WORK" || area === "PROCESSING") return emptyFilter();
+  if (focus === "OVERVIEW" || area === "WORK" || area === "PROCESSING" || area === "BOARD_BRIEF") return emptyFilter();
   if (area === "VENDORS") {
     return {
       kind: "group",
@@ -94,6 +112,7 @@ function emptyFilter(): ReportFilterExpression {
 }
 
 function setupDescription(area: ReportSetupArea, focus: ReportSetupFocus) {
+  if (area === "BOARD_BRIEF") return "Governed executive brief for one issue or change.";
   const subject = reportSetupAreaLabel(area).toLowerCase();
   return focus === "ATTENTION"
     ? `Exceptions and outstanding ${subject} for the current legal entity.`

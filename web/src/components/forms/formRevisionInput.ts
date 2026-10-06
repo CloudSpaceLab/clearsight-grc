@@ -13,6 +13,7 @@ export function preserveLibraryRevisionMetadata(
   return {
     ...contract,
     ...(template.program_id ? { program_id: template.program_id } : {}),
+    ...(template.origin ? { origin: { ...template.origin } } : {}),
     ...(template.owner_principal_id ? { owner_principal_id: template.owner_principal_id } : {}),
     responsible_team: template.responsible_team ?? "",
     approved_uses: [...(template.approved_uses ?? [])],

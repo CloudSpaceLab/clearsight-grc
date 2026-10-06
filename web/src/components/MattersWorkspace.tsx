@@ -43,6 +43,14 @@ function matterTypeLabel(value: string) {
   return text ? (text[0]?.toUpperCase() ?? "") + text.slice(1) : text;
 }
 
+function matterOwnerLabel(summary: MatterSummary) {
+  return summary.owner_display_name || "Not assigned";
+}
+
+function matterScopeLabel(summary: MatterSummary) {
+  return summary.organization_scope_label || "Not assigned";
+}
+
 function formatFact(value: unknown) {
   if (value === null || value === undefined || value === "") return "Not recorded";
   if (typeof value === "object") return JSON.stringify(value, null, 2);
@@ -285,7 +293,12 @@ function MatterListWorkspace({ refreshToken, openFirst = false, onOpenRequest }:
         <button type="button" className="matter-card-main" aria-expanded={isOpen} aria-controls={`matter-detail-${matter.id}`} onClick={() => void toggleDetail(matter.id)}>
           <span className="matter-icon"><MatterIcon type={matter.type}/></span>
           <span className="matter-primary"><span className="matter-kicker">{summaryItem.type_label} · {matter.reference}</span><strong>{matter.title}</strong><small>{matter.summary}</small></span>
-          <span className="matter-meta"><span><StatusBadge tone={matterPriorityTone(matter.priority)}>{matterPriorityLabel(matter.priority)} priority</StatusBadge></span><span>{deadline.dateTime ? <><StatusBadge tone={deadline.tone}>{deadline.label}</StatusBadge> <time dateTime={deadline.dateTime}>{new Date(deadline.dateTime).toLocaleDateString()}</time></> : deadline.label}</span><span>{summaryItem.open_action_count} open action{summaryItem.open_action_count === 1 ? "" : "s"}</span></span>
+          <span className="matter-meta" aria-label="Issue facts">
+            <span><small>Applies to</small><strong>{matterScopeLabel(summaryItem)}</strong></span>
+            <span><small>Owner</small><strong>{matterOwnerLabel(summaryItem)}</strong></span>
+            <span><small>Due</small><strong>{deadline.dateTime ? <><StatusBadge tone={deadline.tone}>{deadline.label}</StatusBadge> <time dateTime={deadline.dateTime}>{new Date(deadline.dateTime).toLocaleDateString()}</time></> : deadline.label}</strong></span>
+            <span><small>Impact</small><strong><StatusBadge tone={matterPriorityTone(matter.priority)}>{matterPriorityLabel(matter.priority)}</StatusBadge></strong></span>
+          </span>
           <span className={`matter-status status-${matter.status.toLowerCase().replaceAll("_", "-")}`}><strong>{summaryItem.status_label}</strong><small>{summaryItem.next_action}</small></span>
           <span className="expand-indicator" aria-hidden="true">{isOpen ? "−" : "+"}</span>
         </button>

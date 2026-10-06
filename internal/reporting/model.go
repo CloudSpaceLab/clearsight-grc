@@ -49,6 +49,7 @@ const (
 	DatasetPrograms                     ReportDataset = "PROGRAMS"
 	DatasetMatterExceptions             ReportDataset = "MATTER_EXCEPTIONS"
 	DatasetMatters                      ReportDataset = "MATTERS"
+	DatasetMatterBoardBrief             ReportDataset = "MATTER_BOARD_BRIEF"
 	DatasetVendors                      ReportDataset = "VENDORS"
 )
 
@@ -66,6 +67,7 @@ const (
 	FormatCSV    ReportFormat = "CSV"
 	FormatNDJSON ReportFormat = "NDJSON"
 	FormatXLSX   ReportFormat = "XLSX"
+	FormatPDF    ReportFormat = "PDF"
 )
 
 // ReportDefinition is the current governed row for a report definition. The

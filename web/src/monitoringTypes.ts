@@ -111,11 +111,17 @@ export type Lifecycle = {
   updated_at: string;
 };
 
+export type FormOrigin = {
+  type: "MATTER";
+  id: string;
+};
+
 export type FormTemplate = Lifecycle & {
   id: string;
   tenant_id: string;
   legal_entity_id?: string;
   program_id?: string;
+  origin?: FormOrigin;
   code: string;
   name: string;
   purpose: string;
@@ -181,6 +187,11 @@ export type MonitoringResult = {
   monitoring_check_id: string;
   monitoring_check_version: number;
   evaluated_at: string;
+  source_receipt?: {
+    observed_at?: string;
+    count?: number;
+    completeness?: "COMPLETE" | "PARTIAL" | "UNKNOWN";
+  };
   evaluation: {
     score?: number;
     band: RiskBand;

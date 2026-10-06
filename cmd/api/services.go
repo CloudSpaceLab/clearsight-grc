@@ -45,6 +45,31 @@ import (
 	"github.com/alexedwards/scs/v2"
 )
 
+type formOriginMatterValidator struct {
+	matters *continuity.Service
+}
+
+func (v formOriginMatterValidator) MatterOriginExists(ctx context.Context, tenantID, legalEntityID, principalID, matterID string) (bool, error) {
+	if v.matters == nil {
+		return false, errors.New("Matter service is unavailable")
+	}
+	aggregate, err := v.matters.GetMatter(
+		continuity.WithTrustedSystemEntityScope(ctx, tenantID, legalEntityID),
+		tenantID,
+		matterID,
+	)
+	if errors.Is(err, continuity.ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if aggregate.Matter.LegalEntityID != legalEntityID {
+		return false, nil
+	}
+	return continuity.MatterAggregateVisibleTo(aggregate, principalID), nil
+}
+
 type serviceSet struct {
 	Mode                           string
 	Authority                      authority.Service

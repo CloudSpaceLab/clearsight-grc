@@ -104,6 +104,11 @@ const expectedNames = [
   "142-report-run-failed-light-1440x900",
   "143-report-setups-dark-mobile-compact-390x844",
   "144-report-generate-light-1440x900",
+  "145-issue-workspace-overview-light-1440x900",
+  "146-issue-workspace-work-dark-1440x900",
+  "147-issue-workspace-evidence-light-1440x900",
+  "148-issue-workspace-evidence-dark-mobile-390x844",
+  "149-issue-workspace-activity-light-mobile-390x844",
   "178-import-selected-light-1440x900",
   "179-import-selected-dark-1440x900",
   "180-import-selected-light-mobile-390x844",
@@ -213,6 +218,11 @@ const requiredStates = [
   "report-setups-mobile",
   "report-generate",
   "report-run-failed",
+  "issue-workspace-overview",
+  "issue-workspace-work",
+  "issue-workspace-evidence",
+  "issue-workspace-evidence-mobile",
+  "issue-workspace-activity-mobile",
   ...formsEvidenceScenarios.map((scenario) => scenario.state),
 ];
 

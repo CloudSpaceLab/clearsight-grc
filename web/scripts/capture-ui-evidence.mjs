@@ -53,6 +53,11 @@ const captures = [
   { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openFailedReport: true, expectText: "Generation stopped: Row Limit Exceeded", state: "report-run-failed" },
   { name: "143-report-setups-dark-mobile-compact-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, openReportTemplates: true, expectText: "Program health review", state: "report-setups-mobile" },
   { name: "144-report-generate-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReportGenerate: true, expectText: "No ready vendors setup", state: "report-generate" },
+  { name: "145-issue-workspace-overview-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Generate board brief", state: "issue-workspace-overview" },
+  { name: "146-issue-workspace-work-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, matterTab: "Work", expectText: "Complete the annual return evidence checklist", scrollIntoViewText: "Complete the annual return evidence checklist", state: "issue-workspace-work" },
+  { name: "147-issue-workspace-evidence-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, matterTab: "Evidence and requests", expectText: "Annual return evidence owner confirmation", scrollIntoViewText: "Forms and requests", state: "issue-workspace-evidence" },
+  { name: "148-issue-workspace-evidence-dark-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, matterTab: "Evidence and requests", expectText: "Annual return evidence review", scrollIntoViewText: "Forms and requests", state: "issue-workspace-evidence-mobile" },
+  { name: "149-issue-workspace-activity-light-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, matterTab: "Activity", expectText: "Updates and history", scrollIntoViewText: "Updates and history", state: "issue-workspace-activity-mobile" },
 ];
 
 try {
@@ -124,6 +129,7 @@ async function capturePage(capture) {
       await page.getByRole("button", { name: "Generate report", exact: true }).click();
       await page.getByRole("dialog", { name: "Generate report" }).waitFor({ state: "visible" });
     }
+    if (capture.matterTab) await openMatterWorkspaceTab(page, capture.matterTab);
     if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
     if (capture.scrollIntoViewText) {
       // Some controls sit below the fold at the capture viewport. Scroll them
@@ -204,6 +210,20 @@ async function capturePage(capture) {
     await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
     if (capture.name.startsWith("report-")) await assertReportLayout(page, capture.name);
+    if (capture.state === "issue-workspace-overview") {
+      if (await page.getByRole("tab", { name: "Activity", exact: true }).count()) throw new Error(`${capture.name} exposes the narrow-only Activity tab on desktop`);
+      if (await page.getByLabel("Issue activity").count() !== 1) throw new Error(`${capture.name} does not render exactly one desktop Activity rail`);
+      await page.getByRole("button", { name: "Generate board brief", exact: true }).waitFor({ state: "visible" });
+    }
+    if (capture.state === "issue-workspace-evidence" || capture.state === "issue-workspace-evidence-mobile") {
+      await page.getByRole("button", { name: "Create linked form", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Request employee form", exact: true }).waitFor({ state: "visible" });
+      await page.getByText("1 response pending · 1 submitted response needs review.", { exact: true }).waitFor({ state: "visible" });
+    }
+    if (capture.state === "issue-workspace-activity-mobile") {
+      if (await page.getByLabel("Issue activity").count() !== 1) throw new Error(`${capture.name} does not render exactly one narrow Activity instance`);
+      if (await page.getByLabel("Add internal comment").count() !== 1) throw new Error(`${capture.name} duplicates the Activity composer`);
+    }
     if (capture.state === "report-library-mobile") {
       const replacement = await page.evaluate(() => {
         const table = document.querySelector('[aria-label="Generated reports"]');
@@ -225,6 +245,18 @@ async function capturePage(capture) {
   } finally {
     await context.close();
   }
+}
+
+async function openMatterWorkspaceTab(page, label) {
+  const tab = page.getByRole("tab", { name: label, exact: true });
+  if (await tab.isVisible().catch(() => false)) {
+    await tab.click();
+    return;
+  }
+  const compact = page.locator(".matter-workspace-main .cs-tabs__compact .cs-select-field__trigger").first();
+  await compact.waitFor({ state: "visible" });
+  await compact.click();
+  await page.getByRole("option", { name: label, exact: true }).click();
 }
 
 async function assertGuideLauncherDoesNotBlockNavigation(page, name, viewportWidth) {

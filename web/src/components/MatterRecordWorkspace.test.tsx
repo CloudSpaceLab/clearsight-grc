@@ -7,6 +7,7 @@ import { addMatterLink, assignMatter, assignMatterAction, changeMatterContext, d
 import type { MatterOperations } from "../matterOperationsApi";
 import { addMatterAction, addResponsePackage, recordMatterDecision, recordVerificationResult, transitionMatter, transitionMatterAction, transitionResponsePackage } from "../continuityCommands";
 import { addMatterComment, loadMatterActivity, requestMatterActionUpdate } from "../matterCollaborationApi";
+import { loadCompletedResponses, loadDistributionPage } from "../formsDistributionApi";
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { MatterRecordWorkspace } from "./MatterRecordWorkspace";
 
@@ -26,6 +27,14 @@ vi.mock("../matterOperationsApi", () => ({
 vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), addResponsePackage: vi.fn(), recordMatterDecision: vi.fn(), recordVerificationResult: vi.fn(), transitionMatter: vi.fn(), transitionMatterAction: vi.fn(), transitionResponsePackage: vi.fn() }));
 
 vi.mock("../matterCollaborationApi", () => ({ addMatterComment: vi.fn(), loadMatterActivity: vi.fn(), requestMatterActionUpdate: vi.fn() }));
+vi.mock("../formsDistributionApi", () => ({
+  loadDistributionPage: vi.fn().mockResolvedValue({ items: [] }),
+  loadCompletedResponses: vi.fn().mockResolvedValue({ items: [] }),
+}));
+vi.mock("../reportingApi", () => ({
+  getMatterBoardBriefAvailability: vi.fn().mockResolvedValue({ can_run: false, authority_available: true }),
+  createReportRun: vi.fn(),
+}));
 
 async function chooseSharedOption(label: string, option: string | RegExp) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(label, "i") }));
@@ -34,7 +43,8 @@ async function chooseSharedOption(label: string, option: string | RegExp) {
 }
 
 async function openRecordTab(name: "Actions" | "Evidence" | "Decisions") {
-  fireEvent.click(await screen.findByRole("tab", { name }));
+  const label = name === "Actions" ? "Work" : name === "Evidence" ? "Evidence and requests" : name;
+  fireEvent.click(await screen.findByRole("tab", { name: label }));
 }
 
 const detail: MatterAggregate = {
@@ -190,7 +200,8 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
-    const priority = screen.getByText("High priority", { selector: ".cs-status-badge" });
+    expect(screen.getByText("Regulatory change · MAT-82BF · Work in progress · Version 7")).toBeTruthy();
+    const priority = screen.getByText("High", { selector: ".cs-status-badge" });
     expect(priority.className).toContain("cs-tone--error");
     const overdue = screen.getByText("Overdue", { selector: ".matter-record-header .cs-status-badge" });
     expect(overdue.className).toContain("cs-tone--warning");
@@ -204,6 +215,64 @@ describe("Matter record workspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Back to issues and changes" }));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps exactly one Activity rail and composer on desktop", async () => {
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    expect(await screen.findByRole("heading", { name: "Updates and history" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "Activity" })).toBeNull();
+    expect(screen.getAllByLabelText("Issue activity")).toHaveLength(1);
+    expect(screen.getAllByLabelText("Add internal comment")).toHaveLength(1);
+  });
+
+  it("moves the single Activity instance into a narrow-layout tab", async () => {
+    vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
+      matches: query === "(max-width: 900px)",
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+
+    try {
+      render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+      const activityTab = await screen.findByRole("tab", { name: "Activity" });
+      expect(screen.queryByLabelText("Issue activity")).toBeNull();
+
+      fireEvent.click(activityTab);
+
+      expect(await screen.findByLabelText("Issue activity")).toBeTruthy();
+      expect(screen.getAllByLabelText("Issue activity")).toHaveLength(1);
+      expect(screen.getAllByLabelText("Add internal comment")).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("keeps an employee form request in the issue evidence work", async () => {
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    await openRecordTab("Evidence");
+    expect(await screen.findByRole("button", { name: "Request employee form" })).toBeTruthy();
+  });
+
+  it("keeps Work and Activity available when linked form reads fail", async () => {
+    vi.mocked(loadDistributionPage).mockRejectedValueOnce(new Error("distribution read unavailable"));
+    vi.mocked(loadCompletedResponses).mockRejectedValueOnce(new Error("response read unavailable"));
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    await openRecordTab("Evidence");
+    expect(await screen.findByText("Form requests are unavailable. Other issue work remains available.")).toBeTruthy();
+    expect(await screen.findByText("Submitted responses are unavailable. Other issue work remains available.")).toBeTruthy();
+
+    await openRecordTab("Actions");
+    expect(screen.getByRole("tab", { name: "Work" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("heading", { name: "Updates and history" })).toBeTruthy();
+    expect(screen.getByLabelText("Issue activity")).toBeTruthy();
   });
 
   it("keeps the issue visible and retries only responsibilities after responsibility loading fails", async () => {

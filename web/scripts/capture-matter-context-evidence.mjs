@@ -42,9 +42,9 @@ try {
       await page.getByLabel("Issue section", { exact: true }).waitFor({ state: "visible" });
     } else {
       const issueWork = page.getByLabel("Issue work");
-      await issueWork.getByRole("tab", { name: "Details" }).waitFor({ state: "visible" });
-      await issueWork.getByRole("tab", { name: "Actions" }).waitFor({ state: "visible" });
-      await issueWork.getByRole("tab", { name: "Evidence" }).waitFor({ state: "visible" });
+      await issueWork.getByRole("tab", { name: "Overview" }).waitFor({ state: "visible" });
+      await issueWork.getByRole("tab", { name: "Work" }).waitFor({ state: "visible" });
+      await issueWork.getByRole("tab", { name: "Evidence and requests" }).waitFor({ state: "visible" });
       await issueWork.getByRole("tab", { name: "Decisions" }).waitFor({ state: "visible" });
     }
 

@@ -18,6 +18,18 @@ type formAuthorityStub struct {
 	err       error
 }
 
+type formOriginValidatorStub struct {
+	allowed map[string]bool
+	err     error
+}
+
+func (s formOriginValidatorStub) MatterOriginExists(_ context.Context, tenantID, legalEntityID, principalID, matterID string) (bool, error) {
+	if s.err != nil {
+		return false, s.err
+	}
+	return s.allowed[tenantID+"\x00"+legalEntityID+"\x00"+principalID+"\x00"+matterID], nil
+}
+
 func (s formAuthorityStub) Resolve(context.Context, authority.ResolveInput) (authority.Resolution, error) {
 	if s.err != nil {
 		return authority.Resolution{}, s.err
@@ -88,6 +100,75 @@ func TestCreateLibraryFormUsesVerifiedIdentity(t *testing.T) {
 	}
 	if created.TenantID != "bank-a" || created.LegalEntityID != "entity-a" || created.CreatedBy != "maker-a" || created.OwnerPrincipalID != "maker-a" || created.ProgramID != "" {
 		t.Fatalf("unverified scope used: %#v", created)
+	}
+}
+
+func TestLibraryFormMatterOriginIsValidatedAndImmutable(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := libraryService(t, repo, "maker-a")
+	service.newID = func() (string, error) { return "form-origin", nil }
+	service.ConfigureFormOriginValidator(formOriginValidatorStub{allowed: map[string]bool{
+		"bank-a\x00entity-a\x00maker-a\x00matter-a": true,
+	}})
+	ctx := formActorContext("bank-a", "entity-a", "maker-a")
+	input := validLibraryFormInput()
+	input.Origin = &FormOrigin{Type: FormOriginMatter, ID: "matter-a"}
+
+	created, err := service.CreateLibraryForm(ctx, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Origin == nil || created.Origin.Type != FormOriginMatter || created.Origin.ID != "matter-a" {
+		t.Fatalf("created origin = %#v", created.Origin)
+	}
+
+	revisionInput := validLibraryFormInput()
+	revisionInput.Name = "Matter-linked vendor review"
+	revised, err := service.CreateFormRevision(ctx, created.ID, CreateFormRevisionInput{ExpectedVersion: created.Version, Form: revisionInput})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if revised.Origin == nil || revised.Origin.ID != "matter-a" {
+		t.Fatalf("revision did not inherit origin: %#v", revised.Origin)
+	}
+
+	altered := validLibraryFormInput()
+	altered.Origin = &FormOrigin{Type: FormOriginMatter, ID: "matter-b"}
+	if _, err := service.CreateFormRevision(ctx, created.ID, CreateFormRevisionInput{ExpectedVersion: revised.Version, Form: altered}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("altered origin error = %v, want invalid", err)
+	}
+}
+
+func TestLibraryFormMatterOriginRejectsMissingOrCrossEntityMatter(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		origin string
+	}{
+		{name: "missing", origin: "matter-missing"},
+		{name: "cross entity", origin: "matter-entity-b"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			service := libraryService(t, NewMemoryRepository(), "maker-a")
+			service.newID = func() (string, error) { return "form-" + test.name, nil }
+			service.ConfigureFormOriginValidator(formOriginValidatorStub{allowed: map[string]bool{
+				"bank-a\x00entity-b\x00maker-a\x00matter-entity-b": true,
+			}})
+			input := validLibraryFormInput()
+			input.Origin = &FormOrigin{Type: FormOriginMatter, ID: test.origin}
+			if _, err := service.CreateLibraryForm(formActorContext("bank-a", "entity-a", "maker-a"), input); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("origin error = %v, want invalid", err)
+			}
+		})
+	}
+}
+
+func TestLibraryFormMatterOriginFailsClosedWithoutValidator(t *testing.T) {
+	service := libraryService(t, NewMemoryRepository(), "maker-a")
+	service.newID = func() (string, error) { return "form-origin", nil }
+	input := validLibraryFormInput()
+	input.Origin = &FormOrigin{Type: FormOriginMatter, ID: "matter-a"}
+	if _, err := service.CreateLibraryForm(formActorContext("bank-a", "entity-a", "maker-a"), input); !errors.Is(err, ErrFormOriginValidationUnavailable) {
+		t.Fatalf("origin validation error = %v", err)
 	}
 }
 

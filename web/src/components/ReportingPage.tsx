@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { loadMatterSummaries as loadMatterSummariesRequest } from "../api";
+import type { MatterSummary } from "../summaryTypes";
 import {
   createReportDefinition as createReportDefinitionRequest,
   listReportDefinitions as listReportDefinitionsRequest,
@@ -21,7 +23,7 @@ import {
   type ReportSetupArea,
   type ReportSetupFocus,
 } from "./reports/reportTemplatePresets";
-import { Button, DataTable, EmptyState, Notice, SelectField, StatusBadge, TextField, type DataColumn, type StatusTone } from "./ui";
+import { Button, DataTable, EmptyState, Notice, SearchField, SelectField, StatusBadge, TextField, type DataColumn, type StatusTone } from "./ui";
 import "./reports/reports.css";
 
 type LoadState = "loading" | "live" | "error";
@@ -34,6 +36,7 @@ export type ReportingPageProps = {
   loadDefinitions?: typeof listReportDefinitionsRequest;
   createDefinition?: typeof createReportDefinitionRequest;
   transitionDefinition?: typeof transitionReportDefinitionRequest;
+  loadMatters?: typeof loadMatterSummariesRequest;
 };
 
 export function ReportingPage({
@@ -44,6 +47,7 @@ export function ReportingPage({
   loadDefinitions = listReportDefinitionsRequest,
   createDefinition = createReportDefinitionRequest,
   transitionDefinition = transitionReportDefinitionRequest,
+  loadMatters = loadMatterSummariesRequest,
 }: ReportingPageProps) {
   const [definitions, setDefinitions] = useState<ReportDefinition[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -54,6 +58,10 @@ export function ReportingPage({
   const [name, setName] = useState("");
   const [area, setArea] = useState<ReportSetupArea>("VENDORS");
   const [focus, setFocus] = useState<ReportSetupFocus>("OVERVIEW");
+  const [matterSearch, setMatterSearch] = useState("");
+  const [matterID, setMatterID] = useState("");
+  const [matterOptions, setMatterOptions] = useState<MatterSummary[]>([]);
+  const [matterState, setMatterState] = useState<LoadState>("live");
   const [command, setCommand] = useState<"idle" | "saving" | "transitioning">("idle");
   const [message, setMessage] = useState<string>();
   const [error, setError] = useState<string>();
@@ -75,6 +83,27 @@ export function ReportingPage({
     return () => controller.abort();
   }, [loadDefinitions, refreshKey]);
 
+  useEffect(() => {
+    if (area !== "BOARD_BRIEF") {
+      setMatterOptions([]);
+      setMatterState("live");
+      return;
+    }
+    let active = true;
+    setMatterState("loading");
+    void loadMatters({ q: matterSearch.trim(), limit: 20 }).then((page) => {
+      if (!active) return;
+      setMatterOptions(page.items);
+      setMatterState("live");
+      setMatterID((current) => page.items.some((item) => item.matter.id === current) ? current : "");
+    }).catch(() => {
+      if (!active) return;
+      setMatterOptions([]);
+      setMatterState("error");
+    });
+    return () => { active = false; };
+  }, [area, loadMatters, matterSearch]);
+
   const selected = definitions.find((item) => item.id === selectedID);
   const activeCount = definitions.filter((item) => item.status === "ACTIVE" && item.effective).length;
   const approvalCount = definitions.filter((item) => item.status === "PENDING_REVIEW" || item.status === "REVIEWED").length;
@@ -83,6 +112,10 @@ export function ReportingPage({
     setName("");
     setArea("VENDORS");
     setFocus("OVERVIEW");
+    setMatterSearch("");
+    setMatterID("");
+    setMatterOptions([]);
+    setMatterState("live");
     setError(undefined);
     setMessage(undefined);
     setShowCreate(true);
@@ -94,11 +127,15 @@ export function ReportingPage({
       setError("Enter a setup name.");
       return;
     }
+    if (area === "BOARD_BRIEF" && !matterID) {
+      setError("Choose an issue for the board brief.");
+      return;
+    }
     setCommand("saving");
     setError(undefined);
     setMessage(undefined);
     try {
-      const created = await createDefinition(buildReportSetupInput(trimmed, area, focus));
+      const created = await createDefinition(buildReportSetupInput(trimmed, area, focus, matterID));
       setDefinitions((current) => [created, ...current.filter((item) => item.id !== created.id)]);
       setSelectedID(created.id);
       setShowCreate(false);
@@ -208,10 +245,35 @@ export function ReportingPage({
         placeholder="Choose an area"
         allowsEmpty={false}
         options={reportSetupAreaOptions.map((option) => ({ id: option.id, label: option.label, description: option.description }))}
-        onChange={(value) => value && setArea(value as ReportSetupArea)}
+        onChange={(value) => {
+          if (!value) return;
+          setArea(value as ReportSetupArea);
+          setFocus("OVERVIEW");
+          setMatterSearch("");
+          setMatterID("");
+          setError(undefined);
+        }}
       />
 
-      <fieldset className="report-focus-picker">
+      {area === "BOARD_BRIEF" && <>
+        <SearchField
+          label="Find issue"
+          value={matterSearch}
+          onChange={setMatterSearch}
+          placeholder="Search reference or title"
+          isLoading={matterState === "loading"}
+        />
+        <SelectField
+          label="Issue"
+          value={matterID}
+          placeholder={matterState === "loading" ? "Loading issues" : "Choose an issue"}
+          options={matterOptions.map((item) => ({ id: item.matter.id, label: `${item.matter.reference} — ${item.matter.title}` }))}
+          onChange={(value) => { setMatterID(value || ""); setError(undefined); }}
+        />
+        {matterState === "error" && <Notice tone="warning">Issues could not be loaded. Retry the search.</Notice>}
+      </>}
+
+      {area !== "BOARD_BRIEF" && <fieldset className="report-focus-picker">
         <legend>Report type</legend>
         <div>
           {reportSetupFocusOptions.map((option) => <button
@@ -226,12 +288,12 @@ export function ReportingPage({
             <span>{option.description}</span>
           </button>)}
         </div>
-      </fieldset>
+      </fieldset>}
 
       <div className="report-setup-create__preview">
         <span>Output</span>
-        <strong>{reportSetupAreaLabel(area)} · {reportSetupFocusLabel(focus)}</strong>
-        <small>Summary · chart · supporting detail</small>
+        <strong>{reportSetupAreaLabel(area)} · {area === "BOARD_BRIEF" ? "Issue brief" : reportSetupFocusLabel(focus)}</strong>
+        <small>{area === "BOARD_BRIEF" ? "Governed PDF · one issue" : "Summary · chart · supporting detail"}</small>
       </div>
 
       <div className="report-setup-create__footer">

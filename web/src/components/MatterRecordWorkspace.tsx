@@ -16,9 +16,11 @@ import { MatterDecisionResponsePanel } from "./MatterDecisionResponsePanel";
 import { RecordSnapshotControl } from "./RecordSnapshotControl";
 import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
+import { MatterInternalFormRequestsPanel } from "./MatterInternalFormRequestsPanel";
 import { selectMatterHandoff } from "./matterHandoff";
 import { MatterActivityTimeline } from "./MatterActivityTimeline";
 import { matterDeadlinePresentation, matterPriorityLabel, matterPriorityTone } from "../matterPresentation";
+import { MatterBoardBriefAction } from "./MatterBoardBriefAction";
 import { StatusBadge, Tabs } from "./ui";
 
 type Props = {
@@ -30,12 +32,12 @@ type Props = {
 };
 
 type LoadState = "loading" | "live" | "unavailable";
-type MatterWorkspaceTab = "details" | "actions" | "evidence" | "decisions";
+type MatterWorkspaceTab = "details" | "actions" | "evidence" | "decisions" | "activity";
 
-const matterWorkspaceTabs: ReadonlyArray<{ id: MatterWorkspaceTab; label: string }> = [
-  { id: "details", label: "Details" },
-  { id: "actions", label: "Actions" },
-  { id: "evidence", label: "Evidence" },
+const matterWorkspaceTabs: ReadonlyArray<{ id: Exclude<MatterWorkspaceTab, "activity">; label: string }> = [
+  { id: "details", label: "Overview" },
+  { id: "actions", label: "Work" },
+  { id: "evidence", label: "Evidence and requests" },
   { id: "decisions", label: "Decisions" },
 ];
 
@@ -47,6 +49,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
   const [assignmentIntent, setAssignmentIntent] = useState(0);
   const [linkedMissingItems, setLinkedMissingItems] = useState<string[]>([]);
   const [selectedTab, setSelectedTab] = useState<MatterWorkspaceTab>("details");
+  const [narrowLayout, setNarrowLayout] = useState(() => window.matchMedia("(max-width: 900px)").matches);
   const loadIDs = useRef({ aggregate: 0, operations: 0 });
   const activeTarget = useRef({ id: matterID, generation: 0 });
   const startedTargetID = useRef<string | null>(null);
@@ -64,6 +67,17 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 900px)");
+    const update = () => {
+      setNarrowLayout(media.matches);
+      if (!media.matches) setSelectedTab((current) => current === "activity" ? "details" : current);
+    };
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
   }, []);
 
   const renderTarget = activeTarget.current;
@@ -131,6 +145,8 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
   const handoffOperation = aggregate ? selectMatterHandoff(aggregate, currentOperations) : undefined;
   const assignmentIsDominant = handoffOperation?.command === "matter.assign";
   const deadline = aggregate ? matterDeadlinePresentation(aggregate.matter.due_at) : undefined;
+  const recordedOwner = aggregate?.owner_display_name || responsibleParties.find((party) => party.scope === "RECORD" && party.responsibility === "ACCOUNTABLE_OWNER")?.display_name || "Not assigned";
+  const organizationScope = aggregate?.organization_scope_label || "Not assigned";
 
   return <section className="matter-record-workspace" aria-label="Issue or change record">
     <button aria-label="Back to issues and changes" className="text-button matter-record-back" type="button" onClick={onBack}>← Back to issues and changes</button>
@@ -139,17 +155,20 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
     {aggregate && <>
       <header className="matter-record-header">
         <div>
-          <span className="matter-kicker">{aggregate.type_label} · {aggregate.matter.reference}</span>
+          <span className="matter-kicker">{aggregate.type_label} · {aggregate.matter.reference} · {aggregate.status_label} · Version {aggregate.matter.version}</span>
           <h1>{aggregate.matter.title}</h1>
           <p>{aggregate.matter.summary}</p>
         </div>
         <dl>
-          <div><dt>Priority</dt><dd><StatusBadge tone={matterPriorityTone(aggregate.matter.priority)}>{matterPriorityLabel(aggregate.matter.priority)} priority</StatusBadge></dd></div>
+          <div><dt>Applies to</dt><dd>{organizationScope}</dd></div>
+          <div><dt>Owner</dt><dd>{recordedOwner}</dd></div>
           <div><dt>Due</dt><dd>{deadline?.dateTime ? <><StatusBadge tone={deadline.tone}>{deadline.label}</StatusBadge> <time dateTime={deadline.dateTime}>{new Date(deadline.dateTime).toLocaleDateString()}</time></> : deadline?.label ?? "No due date"}</dd></div>
-          <div><dt>Status</dt><dd>{aggregate.status_label}</dd></div>
-          <div><dt>Record version</dt><dd>{aggregate.matter.version}</dd></div>
+          <div><dt>Impact</dt><dd><StatusBadge tone={matterPriorityTone(aggregate.matter.priority)}>{matterPriorityLabel(aggregate.matter.priority)}</StatusBadge></dd></div>
         </dl>
       </header>
+      <div className="matter-record-direct-actions">
+        <MatterBoardBriefAction matterID={aggregate.matter.id}/>
+      </div>
       <RecordSnapshotControl recordLabel="issue" loadSnapshot={async (at) => { const value = await loadMatterAt(aggregate.matter.id, at); return { version: value.matter.version, status: value.matter.status, updatedAt: value.matter.updated_at }; }}/>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking who can act on this issue.</strong> Issue details remain visible while assignments are loading.</div>}
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Issue assignments could not be checked.</strong> Details remain visible, but changes are disabled until assignments can be confirmed. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry assignments</button></div>}
@@ -169,7 +188,14 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
       />
       <section className="matter-workspace-layout">
         <div className="matter-workspace-main">
-          <Tabs ariaLabel="Issue work" compactLabel="Issue section" retainVisitedPanels items={matterWorkspaceTabs} selectedKey={selectedTab} onSelectionChange={setSelectedTab}>
+          <Tabs
+            ariaLabel="Issue work"
+            compactLabel="Issue section"
+            retainVisitedPanels
+            items={narrowLayout ? [...matterWorkspaceTabs, { id: "activity" as const, label: "Activity" }] : matterWorkspaceTabs}
+            selectedKey={selectedTab}
+            onSelectionChange={setSelectedTab}
+          >
             {(tab) => <div className="matter-workspace-tab-content">
               {tab === "details" && <>
                 <MatterDetailsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} assignmentIntent={assignmentIntent} suppressAssignmentAction={assignmentIsDominant} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
@@ -178,6 +204,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
               {tab === "actions" && <MatterActionsPanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>}
               {tab === "evidence" && <>
                 <MatterFormRemediationPanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onOpenRequest={onOpenRequest} onMappingsChange={setLinkedMissingItems}/>
+                <MatterInternalFormRequestsPanel matterID={aggregate.matter.id} matterReference={aggregate.matter.reference}/>
                 <VendorRelationshipLinks targetType="MATTER" targetID={aggregate.matter.id}/>
                 <VendorWorkPanel targetType="MATTER" targetID={aggregate.matter.id} onOpenRequest={onOpenRequest}/>
               </>}
@@ -185,10 +212,11 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
                 <MatterDecisionResponsePanel aggregate={aggregate} operations={currentOperations} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
                 <MatterOutcomePanel aggregate={aggregate} operations={currentOperations} responsibleParties={responsibleParties} onUpdated={applyUpdated} onReload={() => void reloadRecord()}/>
               </>}
+              {tab === "activity" && narrowLayout && <MatterActivityTimeline matterID={aggregate.matter.id} matterVersion={aggregate.matter.version} candidates={operations?.responsible_parties ? currentOperations.flatMap((operation) => operation.candidates ?? []) : []} onUpdated={() => void reloadRecord()}/>}
             </div>}
           </Tabs>
         </div>
-        <MatterActivityTimeline matterID={aggregate.matter.id} matterVersion={aggregate.matter.version} candidates={operations?.responsible_parties ? currentOperations.flatMap((operation) => operation.candidates ?? []) : []} onUpdated={() => void reloadRecord()}/>
+        {!narrowLayout && <MatterActivityTimeline matterID={aggregate.matter.id} matterVersion={aggregate.matter.version} candidates={operations?.responsible_parties ? currentOperations.flatMap((operation) => operation.candidates ?? []) : []} onUpdated={() => void reloadRecord()}/>}
       </section>
     </>}
   </section>;

@@ -58,6 +58,7 @@ func (a *API) listOperationalLosses(w http.ResponseWriter, r *http.Request) {
 		OrganizationScopeID:  selection.ID,
 		OrganizationScopeIDs: selection.IDs,
 		RiskID:               strings.TrimSpace(r.URL.Query().Get("risk_id")),
+		MatterID:             strings.TrimSpace(r.URL.Query().Get("matter_id")),
 		RecoveryStatus:       strings.TrimSpace(r.URL.Query().Get("recovery_status")),
 		Search:               strings.TrimSpace(r.URL.Query().Get("search")),
 		Cursor:               strings.TrimSpace(r.URL.Query().Get("cursor")),

@@ -168,6 +168,68 @@ func ValidateTransitionForWrite(current ReportDefinition, next DefinitionStatus)
 	return nil
 }
 
+type MatterBoardBriefAvailability struct {
+	Definition         *ReportDefinition `json:"definition,omitempty"`
+	CanRun             bool              `json:"can_run"`
+	AuthorityAvailable bool              `json:"authority_available"`
+	Reason             string            `json:"reason,omitempty"`
+}
+
+func (s *Service) MatterBoardBriefAvailability(ctx context.Context, scope ReportScope, matterID string) (MatterBoardBriefAvailability, error) {
+	actor, verifiedScope, err := s.scopedActor(ctx, scope)
+	if err != nil {
+		return MatterBoardBriefAvailability{}, err
+	}
+	matterID = strings.TrimSpace(matterID)
+	if matterID == "" || !isUUID(matterID) || s.repo == nil {
+		return MatterBoardBriefAvailability{}, ErrInvalid
+	}
+	definitions, err := s.repo.ListDefinitions(ctx, verifiedScope, false)
+	if err != nil {
+		return MatterBoardBriefAvailability{}, err
+	}
+	now := s.now()
+	matches := make([]ReportDefinition, 0, 2)
+	for _, definition := range definitions {
+		if definition.Dataset == DatasetMatterBoardBrief &&
+			definition.ScopeKind == ScopeMatter &&
+			definition.ScopeRef == matterID &&
+			definition.Format == FormatPDF &&
+			definition.Status == DefinitionActive &&
+			definitionIsEffective(definition, now) {
+			matches = append(matches, definition)
+		}
+	}
+	if len(matches) == 0 {
+		return MatterBoardBriefAvailability{AuthorityAvailable: true, Reason: "No active board brief setup is available for this issue."}, nil
+	}
+	if len(matches) > 1 {
+		return MatterBoardBriefAvailability{AuthorityAvailable: true, Reason: "More than one active board brief setup is available. Use Reports to choose one."}, nil
+	}
+	availability := MatterBoardBriefAvailability{Definition: &matches[0]}
+	if s.authority == nil {
+		availability.Reason = "Board brief authority could not be checked."
+		return availability, nil
+	}
+	resolution, err := s.authority.Resolve(ctx, authority.ResolveInput{
+		TenantID: verifiedScope.TenantID, LegalEntityID: verifiedScope.LegalEntityID,
+		ObjectType: "REPORT_RUN", ObjectID: verifiedScope.LegalEntityID,
+		Responsibility: authority.ResponsibilityPerformer,
+		DecisionType:   "report.run.create", Materiality: 3, At: now,
+	})
+	if err != nil {
+		availability.Reason = "Board brief authority could not be checked."
+		return availability, nil
+	}
+	availability.AuthorityAvailable = true
+	if strings.TrimSpace(resolution.PolicyVersion) == "" || !resolution.AllowsPrincipal(actor.PrincipalID) {
+		availability.Reason = "Board brief generation is not assigned to you."
+		return availability, nil
+	}
+	availability.CanRun = true
+	return availability, nil
+}
+
 func (s *Service) ListDefinitions(ctx context.Context, scope ReportScope, includeRetired bool) ([]ReportDefinition, error) {
 	_, verifiedScope, err := s.scopedActor(ctx, scope)
 	if err != nil {
@@ -413,6 +475,10 @@ func (s *Service) CreateRun(ctx context.Context, input CreateRunInput) (ReportRu
 	if err != nil {
 		return ReportRun{}, err
 	}
+	if definition.Dataset == DatasetMatterBoardBrief &&
+		(parameters.StartDate != "" || parameters.EndDate != "" || parameters.OwnerPrincipalID != "") {
+		return ReportRun{}, ErrInvalid
+	}
 	boundary, err := s.repo.CaptureSourceBoundary(ctx, scope, definition, parameters)
 	if err != nil {
 		return ReportRun{}, err
@@ -535,6 +601,20 @@ func (s *Service) ExecuteRun(ctx context.Context, requested ReportRun) (ReportRu
 }
 
 func (s *Service) renderRun(ctx context.Context, run ReportRun) ([]byte, int, error) {
+	if run.Format == FormatPDF {
+		if run.Dataset != DatasetMatterBoardBrief {
+			return nil, 0, ErrInvalid
+		}
+		page, err := s.repo.ListReportRows(ctx, ReportScope{TenantID: run.TenantID, LegalEntityID: run.LegalEntityID}, run, "", 1)
+		if err != nil {
+			return nil, 0, err
+		}
+		if len(page.Rows) != 1 || page.NextCursor != "" {
+			return nil, 0, ErrInvalid
+		}
+		data, err := renderMatterBoardBriefPDF(run, page.Rows[0])
+		return data, 1, err
+	}
 	buffer := &boundedReportBuffer{max: MaxReportRunBytes}
 	var csvWriter *csv.Writer
 	var jsonEncoder *json.Encoder
@@ -782,7 +862,9 @@ func validateDefinitionForCreate(definition ReportDefinition) error {
 		utf8.RuneCountInString(definition.Name) < 3 || utf8.RuneCountInString(definition.Name) > 120 ||
 		utf8.RuneCountInString(definition.Description) > 1000 ||
 		!validReportDataset(definition.Dataset) || !validReportDatasetScope(definition.Dataset, definition.ScopeKind) || !validReportScope(definition.ScopeKind, definition.ScopeRef) ||
-		(definition.Format != FormatCSV && definition.Format != FormatNDJSON && definition.Format != FormatXLSX) ||
+		(definition.Format != FormatCSV && definition.Format != FormatNDJSON && definition.Format != FormatXLSX && definition.Format != FormatPDF) ||
+		(definition.Dataset == DatasetMatterBoardBrief && definition.Format != FormatPDF) ||
+		(definition.Dataset != DatasetMatterBoardBrief && definition.Format == FormatPDF) ||
 		strings.TrimSpace(definition.MakerID) == "" || definition.Filter == nil {
 		return ErrInvalid
 	}
@@ -804,13 +886,15 @@ func validateDefinitionRevision(revision ReportDefinitionRevision, definition Re
 
 func validReportDataset(dataset ReportDataset) bool {
 	return dataset == DatasetProcessingActivities || dataset == DatasetProcessingActivityExceptions ||
-		dataset == DatasetPrograms || dataset == DatasetMatters || dataset == DatasetMatterExceptions || dataset == DatasetVendors
+		dataset == DatasetPrograms || dataset == DatasetMatters || dataset == DatasetMatterExceptions || dataset == DatasetMatterBoardBrief || dataset == DatasetVendors
 }
 
 func validReportDatasetScope(dataset ReportDataset, kind ReportScopeKind) bool {
 	switch dataset {
 	case DatasetPrograms:
 		return kind == ScopeLegalEntity || kind == ScopeProgram
+	case DatasetMatterBoardBrief:
+		return kind == ScopeMatter
 	case DatasetMatters, DatasetMatterExceptions:
 		return kind == ScopeLegalEntity || kind == ScopeMatter
 	case DatasetVendors:
@@ -1044,6 +1128,9 @@ func reportObjectKeys(run ReportRun) (string, string) {
 func reportExtension(format ReportFormat) string {
 	if format == FormatXLSX {
 		return ".xlsx"
+	}
+	if format == FormatPDF {
+		return ".pdf"
 	}
 	if format == FormatNDJSON {
 		return ".ndjson"

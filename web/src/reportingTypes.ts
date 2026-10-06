@@ -1,8 +1,8 @@
 export type ReportDefinitionStatus = "DRAFT" | "PENDING_REVIEW" | "REVIEWED" | "ACTIVE" | "RETIRED";
 export type ReportRunStatus = "QUEUED" | "RUNNING" | "READY" | "FAILED";
-export type ReportDataset = "PROCESSING_ACTIVITIES" | "PROCESSING_ACTIVITY_EXCEPTIONS" | "PROGRAMS" | "MATTERS" | "MATTER_EXCEPTIONS" | "VENDORS";
+export type ReportDataset = "PROCESSING_ACTIVITIES" | "PROCESSING_ACTIVITY_EXCEPTIONS" | "PROGRAMS" | "MATTERS" | "MATTER_EXCEPTIONS" | "MATTER_BOARD_BRIEF" | "VENDORS";
 export type ReportScopeKind = "LEGAL_ENTITY" | "PROGRAM" | "MATTER";
-export type ReportFormat = "CSV" | "NDJSON" | "XLSX";
+export type ReportFormat = "CSV" | "NDJSON" | "XLSX" | "PDF";
 export type ReportDefinitionAction = "submit" | "review" | "activate" | "reject" | "retire";
 
 export type ReportFilterExpression = {
@@ -144,6 +144,13 @@ export type ReportDefinitionTransitionInput = {
   checksum_seen: string;
   note?: string;
   effective_from?: string;
+};
+
+export type MatterBoardBriefAvailability = {
+  definition?: ReportDefinition;
+  can_run: boolean;
+  authority_available: boolean;
+  reason?: string;
 };
 
 export type ReportRunInput = {

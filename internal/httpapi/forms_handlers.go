@@ -23,6 +23,7 @@ type createLibraryFormRequest struct {
 	Name             string                     `json:"name"`
 	Purpose          string                     `json:"purpose"`
 	ProgramID        string                     `json:"program_id,omitempty"`
+	Origin           *monitoring.FormOrigin     `json:"origin,omitempty"`
 	OwnerPrincipalID string                     `json:"owner_principal_id,omitempty"`
 	ResponsibleTeam  string                     `json:"responsible_team,omitempty"`
 	ApprovedUses     []string                   `json:"approved_uses,omitempty"`
@@ -103,7 +104,7 @@ type formLibraryOperationSpec struct {
 
 func (request createLibraryFormRequest) input() monitoring.CreateFormInput {
 	return monitoring.CreateFormInput{
-		ProgramID: request.ProgramID, Code: request.Code, Name: request.Name, Purpose: request.Purpose,
+		ProgramID: request.ProgramID, Origin: request.Origin, Code: request.Code, Name: request.Name, Purpose: request.Purpose,
 		OwnerPrincipalID: request.OwnerPrincipalID, ResponsibleTeam: request.ResponsibleTeam,
 		ApprovedUses: request.ApprovedUses, Tags: request.Tags, Jurisdiction: request.Jurisdiction, Industry: request.Industry,
 		Sensitivity: request.Sensitivity, ScoringMode: request.ScoringMode, ScoreProfile: request.ScoreProfile, NextReviewAt: request.NextReviewAt,
@@ -421,6 +422,8 @@ func writeFormsError(w http.ResponseWriter, err error) {
 		writeCommandAuthorizationError(w, err)
 	case errors.Is(err, commandauth.ErrGuardUnavailable):
 		httpx.WriteError(w, http.StatusServiceUnavailable, "form_authority_unavailable", "The current approval route could not be checked. No form was changed.")
+	case errors.Is(err, monitoring.ErrFormOriginValidationUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "form_origin_unavailable", "The originating issue could not be checked. No form was changed.")
 	case errors.Is(err, monitoring.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "form_not_found", "The form template or saved view was not found in this legal entity.")
 	case errors.Is(err, monitoring.ErrMakerChecker):

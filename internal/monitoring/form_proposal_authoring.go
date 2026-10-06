@@ -31,7 +31,7 @@ func (s *Service) PrepareLibraryForm(ctx context.Context, input CreateFormInput)
 	if err != nil {
 		return FormTemplate{}, err
 	}
-	return s.prepareLibraryRevision(actor, valueID, 1, input, FormTemplate{})
+	return s.prepareLibraryRevision(ctx, actor, valueID, 1, input, FormTemplate{})
 }
 
 // PrepareFormRevision validates and authorizes an exact base revision without
@@ -53,15 +53,19 @@ func (s *Service) PrepareFormRevision(ctx context.Context, formID string, input 
 	if err := s.authorizeFormCommand(ctx, actor, "FORM_TEMPLATE", base.ID, authority.ResponsibilityOwner, "forms.template.revise", 2); err != nil {
 		return FormTemplate{}, err
 	}
-	return s.prepareLibraryRevision(actor, base.ID, base.Version+1, input.Form, base)
+	return s.prepareLibraryRevision(ctx, actor, base.ID, base.Version+1, input.Form, base)
 }
 
-func (s *Service) prepareLibraryRevision(actor identity.Actor, id string, version int64, input CreateFormInput, base FormTemplate) (FormTemplate, error) {
+func (s *Service) prepareLibraryRevision(ctx context.Context, actor identity.Actor, id string, version int64, input CreateFormInput, base FormTemplate) (FormTemplate, error) {
 	contract, err := normalizeLibraryDraft(input)
 	if err != nil {
 		return FormTemplate{}, err
 	}
 	if err := validateTextFields(input.Code, input.Name, input.Purpose); err != nil {
+		return FormTemplate{}, err
+	}
+	origin, err := s.resolveFormOrigin(ctx, actor, input.Origin, base)
+	if err != nil {
 		return FormTemplate{}, err
 	}
 	ownerID := strings.TrimSpace(input.OwnerPrincipalID)
@@ -70,12 +74,12 @@ func (s *Service) prepareLibraryRevision(actor identity.Actor, id string, versio
 	}
 	now := s.now().UTC()
 	value := FormTemplate{
-		ID: id, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ProgramID: strings.TrimSpace(base.ProgramID),
+		ID: id, TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, ProgramID: strings.TrimSpace(base.ProgramID), Origin: origin,
 		Code: strings.TrimSpace(input.Code), Name: strings.TrimSpace(input.Name), Purpose: strings.TrimSpace(input.Purpose),
 		OwnerPrincipalID: ownerID, ResponsibleTeam: strings.TrimSpace(input.ResponsibleTeam),
 		ApprovedUses: append([]string(nil), input.ApprovedUses...), Tags: append([]string(nil), input.Tags...),
 		Jurisdiction: strings.TrimSpace(input.Jurisdiction), Industry: strings.TrimSpace(input.Industry), Sensitivity: strings.TrimSpace(input.Sensitivity),
-		ScoringMode: contract.ScoringMode, NextReviewAt: input.NextReviewAt,
+		ScoringMode: contract.ScoringMode, ScoreProfile: contract.ScoreProfile, NextReviewAt: input.NextReviewAt,
 		StarterCatalogCode: base.StarterCatalogCode, StarterCatalogVersion: base.StarterCatalogVersion,
 		Presentation: contract.Presentation, Sections: contract.Sections, Fields: contract.Fields,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: version, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},

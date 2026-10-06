@@ -1,8 +1,8 @@
 import type { AuthorityPrincipal, CapturePresentation } from "./types";
-import type { CreateFormTemplateInput, FormScoringMode, FormScoreProfile, FormTemplate as MonitoringFormTemplate, FormTemplateField, FormTemplateSection, LifecycleStatus } from "./monitoringTypes";
+import type { CreateFormTemplateInput, FormOrigin, FormScoringMode, FormScoreProfile, FormTemplate as MonitoringFormTemplate, FormTemplateField, FormTemplateSection, LifecycleStatus } from "./monitoringTypes";
 import type { DocumentSourceAnchor } from "./documentTypes";
 
-export type { FormScoringMode } from "./monitoringTypes";
+export type { FormOrigin, FormScoringMode } from "./monitoringTypes";
 
 export type FormTemplate = MonitoringFormTemplate & {
   owner_principal_id?: string;
@@ -78,7 +78,7 @@ export type StarterTemplate = {
 };
 
 export type CreateLibraryFormInput = CreateFormTemplateInput & {
-  program_id?: string; owner_principal_id?: string; responsible_team?: string; approved_uses?: string[];
+  program_id?: string; origin?: FormOrigin; owner_principal_id?: string; responsible_team?: string; approved_uses?: string[];
   tags?: string[]; jurisdiction?: string; industry?: string; sensitivity?: string; scoring_mode?: FormScoringMode; next_review_at?: string;
 };
 

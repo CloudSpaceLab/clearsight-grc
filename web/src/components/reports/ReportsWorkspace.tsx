@@ -535,6 +535,7 @@ function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
   switch (dataset) {
     case "VENDORS": return "Vendors";
     case "PROGRAMS": return "Programs";
+    case "MATTER_BOARD_BRIEF": return "Board brief";
     case "WORK":
     case "MATTERS":
     case "MATTER_EXCEPTIONS": return "Work";
@@ -545,7 +546,7 @@ function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
 }
 
 function reportBelongsToArea(dataset: ReportDataset, area: Exclude<ReportArea, "ALL">) {
-  if (area === "WORK") return dataset === "MATTERS" || dataset === "MATTER_EXCEPTIONS";
+  if (area === "WORK") return dataset === "MATTERS" || dataset === "MATTER_EXCEPTIONS" || dataset === "MATTER_BOARD_BRIEF";
   return dataset === area;
 }
 
