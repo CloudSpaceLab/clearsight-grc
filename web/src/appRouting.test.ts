@@ -8,6 +8,11 @@ describe("workspace routes", () => {
     expect(routeHash("reports", {}, "matters")).toBe("#reports");
   });
 
+  it("opens Insights as a product-level workspace", () => {
+    expect(parseRoute("#insights")).toEqual({ view: "insights", target: {} });
+    expect(routeHash("insights", {}, "matters")).toBe("#insights");
+  });
+
   it("opens legacy Today links as Oversight", () => {
     expect(parseRoute("#today")).toEqual({ view: "oversight", target: {} });
   });
