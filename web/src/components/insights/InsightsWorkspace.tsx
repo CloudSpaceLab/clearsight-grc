@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadIndicatorPortfolio, type IndicatorPortfolioItem, type IndicatorPortfolioPage } from "../../indicatorInsightsApi";
 import type { IndicatorKind, IndicatorState } from "../../indicatorTypes";
+import type { MonitoringResult } from "../../monitoringTypes";
 import { Button, DataTable, EmptyState, FocusedSheet, Notice, SearchField, SelectField, StatusBadge, type DataColumn } from "../ui";
 import { IndicatorDetail } from "../indicators/IndicatorDetail";
 import { IndicatorValue, indicatorValueAccessibleText } from "../indicators/IndicatorValue";
@@ -15,6 +16,7 @@ type Props = {
   refreshToken?: string;
   onOpenProgram?: (programID: string) => void;
   loadPortfolio?: typeof loadIndicatorPortfolio;
+  loadIndicatorResults?: (checkID: string, version?: number) => Promise<MonitoringResult[]>;
 };
 
 export function InsightsWorkspace({
@@ -23,6 +25,7 @@ export function InsightsWorkspace({
   refreshToken,
   onOpenProgram,
   loadPortfolio = loadIndicatorPortfolio,
+  loadIndicatorResults,
 }: Props) {
   const [search, setSearch] = useState("");
   const [kind, setKind] = useState<IndicatorKind | "ALL">("ALL");
@@ -181,7 +184,7 @@ export function InsightsWorkspace({
     </section>
 
     {selected && <FocusedSheet label={`${selected.kind} · ${selected.check_name}`} size="wide" onClose={() => setSelected(undefined)}>
-      <IndicatorDetail indicator={selected} onOpenProgram={onOpenProgram}/>
+      <IndicatorDetail indicator={selected} onOpenProgram={onOpenProgram} loadResults={loadIndicatorResults}/>
     </FocusedSheet>}
   </section>;
 }
