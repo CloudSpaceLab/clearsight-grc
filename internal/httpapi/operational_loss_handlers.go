@@ -141,8 +141,14 @@ func (a *API) updateOperationalLoss(w http.ResponseWriter, r *http.Request) {
 		writeOperationalLossError(w, oploss.ErrInvalid)
 		return
 	}
+	selection, err := a.resolveOrganizationScopeSelection(r.Context(), actor, input.OrganizationScopeID, false)
+	if err != nil {
+		writeOrganizationScopeRequestError(w, err, "This organization scope is not available for Loss attribution.")
+		return
+	}
 	input.TenantID = actor.TenantID
 	input.LegalEntityID = actor.LegalEntityID
+	input.OrganizationScopeID = selection.ID
 	input.LossID = r.PathValue("id")
 	current, err := service.Get(r.Context(), oploss.Scope{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID}, input.LossID)
 	if err != nil {
