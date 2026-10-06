@@ -81,5 +81,11 @@ if (review?.stdout) process.stdout.write(review.stdout);
 if (review?.stderr) process.stderr.write(review.stderr);
 
 const failedRuns = runs.filter((run) => run.status !== 0);
-if (failedRuns.length) process.stderr.write(`UI/UX review runners failed: ${failedRuns.map((run) => run.script).join(", ")}.\n`);
+if (failedRuns.length) {
+  process.stderr.write(`UI/UX review runners failed: ${failedRuns.map((run) => run.script).join(", ")}.\n`);
+  for (const run of failedRuns) {
+    const detail = (run.stderr || run.stdout).trim();
+    if (detail) process.stderr.write(`\n[${run.script}]\n${detail}\n`);
+  }
+}
 if (failedRuns.length || review?.status !== 0) process.exit(1);
