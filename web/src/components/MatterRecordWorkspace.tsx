@@ -20,6 +20,7 @@ import { MatterInternalFormRequestsPanel } from "./MatterInternalFormRequestsPan
 import { selectMatterHandoff } from "./matterHandoff";
 import { MatterActivityTimeline } from "./MatterActivityTimeline";
 import { matterDeadlinePresentation, matterPriorityLabel, matterPriorityTone } from "../matterPresentation";
+import { MatterBoardBriefAction } from "./MatterBoardBriefAction";
 import { StatusBadge, Tabs } from "./ui";
 
 type Props = {
@@ -153,6 +154,9 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
           <div><dt>Impact</dt><dd><StatusBadge tone={matterPriorityTone(aggregate.matter.priority)}>{matterPriorityLabel(aggregate.matter.priority)}</StatusBadge></dd></div>
         </dl>
       </header>
+      <div className="matter-record-direct-actions">
+        <MatterBoardBriefAction matterID={aggregate.matter.id}/>
+      </div>
       <RecordSnapshotControl recordLabel="issue" loadSnapshot={async (at) => { const value = await loadMatterAt(aggregate.matter.id, at); return { version: value.matter.version, status: value.matter.status, updatedAt: value.matter.updated_at }; }}/>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking who can act on this issue.</strong> Issue details remain visible while assignments are loading.</div>}
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Issue assignments could not be checked.</strong> Details remain visible, but changes are disabled until assignments can be confirmed. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry assignments</button></div>}
