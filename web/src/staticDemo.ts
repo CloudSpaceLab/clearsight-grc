@@ -734,13 +734,16 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
       mode: "static-stakeholder-demo",
       demo_mode: !productionUnavailable,
       capabilities: { document_import: true, reference_journeys: !productionUnavailable, config_read: !noConfig, config_write: !noConfig, platform_operations_read: !noConfig, platform_operations_write: !noConfig, identity_read: !noConfig, identity_configure: !noConfig },
-      ...(fixture === "indicator-insights" ? {
+      ...((fixture === "indicator-insights" || fixture === "loss-s5") ? {
         scope_hierarchy: {
           state: "COMPLETE",
           root: { id: "bank-demo", name: "Meridian Trust Bank", kind: "ORGANIZATION", filterable: false },
           current: { id: "bank-ng", name: "Meridian Trust Bank Nigeria", kind: "LEGAL_ENTITY", current: true, filterable: false },
           legal_entities: [{ id: "bank-ng", code: "BANK-NG", name: "Meridian Trust Bank Nigeria", kind: "LEGAL_ENTITY", current: true, filterable: false }],
-          organization_scopes: [
+          organization_scopes: fixture === "loss-s5" ? [
+            { id: "sample-scope-risk", code: "RISK", name: "Risk", kind: "DEPARTMENT", department_path: ["BANK", "RISK"], filterable: true },
+            { id: "sample-scope-risk-ops", code: "RISK-OPS", name: "Risk Operations", kind: "DEPARTMENT", parent_id: "sample-scope-risk", department_path: ["BANK", "RISK", "OPERATIONS"], filterable: true },
+          ] : [
             { id: "scope-head-office", code: "HEAD-OFFICE", name: "Head Office", kind: "BUSINESS_UNIT", department_path: ["BANK", "HEAD OFFICE"], filterable: true },
             { id: "scope-branch-cac", code: "CAC", name: "CAC Branch", kind: "BRANCH", department_path: ["BANK", "BRANCHES", "CAC"], filterable: true },
           ],
