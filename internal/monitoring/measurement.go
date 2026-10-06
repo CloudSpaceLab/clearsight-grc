@@ -178,6 +178,20 @@ func captureSourceMeasurement(spec *MeasurementSpec, rules []SourceRule, resolut
 	return value, nil
 }
 
+func CaptureFormMeasurement(spec *MeasurementSpec, fields []TemplateField, answers map[string]formcontract.AnswerValue) (*NativeMeasurement, error) {
+	if spec == nil {
+		return nil, nil
+	}
+	normalized, err := normalizeMeasurementSpec(spec)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateFormMeasurementField(*normalized, fields); err != nil {
+		return nil, err
+	}
+	return captureFormMeasurement(normalized, answers)
+}
+
 func captureFormMeasurement(spec *MeasurementSpec, answers map[string]formcontract.AnswerValue) (*NativeMeasurement, error) {
 	if spec == nil {
 		return nil, nil

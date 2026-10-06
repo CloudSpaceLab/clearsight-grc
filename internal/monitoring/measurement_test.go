@@ -68,9 +68,13 @@ func TestFormMeasurementRequiresCompatibleTypedField(t *testing.T) {
 		t.Fatalf("typed currency field rejected: %v", err)
 	}
 	text := "1250000.00"
-	measurement, err := captureFormMeasurement(&money, map[string]formcontract.AnswerValue{"loss": {Text: &text}})
+	fields := []TemplateField{{ID: "loss", Type: formcontract.TypeCurrency, Constraints: formcontract.Constraints{Currency: "NGN"}}}
+	measurement, err := CaptureFormMeasurement(&money, fields, map[string]formcontract.AnswerValue{"loss": {Text: &text}})
 	if err != nil || measurement == nil || measurement.Value != text || measurement.Condition != MeasurementConditionBreached {
 		t.Fatalf("form measurement = %#v, err=%v", measurement, err)
+	}
+	if _, err := CaptureFormMeasurement(&money, []TemplateField{{ID: "loss", Type: formcontract.TypeLongText}}, map[string]formcontract.AnswerValue{"loss": {Text: &text}}); err == nil {
+		t.Fatal("shared form measurement path must reject a long-text source field")
 	}
 }
 
