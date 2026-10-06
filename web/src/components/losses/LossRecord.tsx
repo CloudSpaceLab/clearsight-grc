@@ -94,7 +94,7 @@ export function LossRecord({
     setMatterLink({ state: "loading" });
     void loadMatterRecord(linkedMatterID).then((linked) => {
       if (!active) return;
-      setMatterLink({ state: "live", label: `${linked.matter.reference} · ${linked.status_label}` });
+      setMatterLink({ state: "live", label: `${linked.matter.reference} · ${linked.matter.title} · ${linked.status_label}` });
     }).catch(() => {
       if (active) setMatterLink({ state: "unavailable" });
     });
