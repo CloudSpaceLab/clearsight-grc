@@ -182,6 +182,7 @@ export type RiskPage = {
 
 export type RiskAggregate = {
   risk: RiskRecord;
+  owner_display_name?: string;
   assessments: RiskAssessment[];
   appetite: RiskAppetiteStatement[];
   active_appetite?: RiskAppetiteStatement;
