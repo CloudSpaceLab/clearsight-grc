@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { loadMonitoringResults } from "../../monitoringApi";
 import type { MonitoringResult } from "../../monitoringTypes";
-import type { RiskIndicatorDetail } from "../../riskTypes";
+import type { IndicatorDetailBase } from "../../riskTypes";
 import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
 import { IndicatorValue, indicatorValueAccessibleText } from "./IndicatorValue";
 import { formatIndicatorCoverage, formatIndicatorDate, formatIndicatorPeriod, indicatorStateLabel, indicatorTone, monitoringBandLabel, nativeConditionLabel, nativeConditionTone } from "./indicatorPresentation";
 import "./indicator.css";
 
 type Props = {
-  indicator: RiskIndicatorDetail;
+  indicator: IndicatorDetailBase;
   onOpenProgram?: (programID: string) => void;
   onOpenMatter?: (matterID: string) => void;
   loadResults?: (checkID: string, version?: number) => Promise<MonitoringResult[]>;
@@ -88,7 +88,7 @@ export function IndicatorDetail({
 
   return <div className="indicator-detail">
     <header className="cs-sheet-heading">
-      <p>{indicator.link.kind} · {indicator.check_code}</p>
+      <p>{indicator.kind} · {indicator.check_code}</p>
       <h2>{indicator.check_name}</h2>
       <p>{indicator.claim}</p>
     </header>
