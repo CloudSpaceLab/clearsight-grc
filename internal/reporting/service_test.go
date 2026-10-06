@@ -582,10 +582,9 @@ func TestExecuteRunUsesTheDurableAttemptBudget(t *testing.T) {
 	}
 }
 
-func TestOpenRunAuthorisesOnEveryDownload(t *testing.T) {
+func TestOpenRunRequiresReportDownloadPermission(t *testing.T) {
 	service, repository, objects, authorityChecker := newReportingServiceTest()
 	run := installReadyRun(t, repository, objects)
-	authorityChecker.expected[authority.ResponsibilityProposer] = testMakerID
 
 	first, reader, err := service.Open(reportActorContext(testMakerID), testScope(), run.ID)
 	if err != nil {
@@ -593,13 +592,16 @@ func TestOpenRunAuthorisesOnEveryDownload(t *testing.T) {
 	}
 	_, _ = io.ReadAll(reader)
 	_ = reader.Close()
-	authorityChecker.fail[authority.ResponsibilityProposer] = errors.New("authority route unavailable")
-	_, _, err = service.Open(reportActorContext(testMakerID), testScope(), run.ID)
-	if err == nil {
-		t.Fatal("second download succeeded after current authority became unavailable")
+
+	_, _, err = service.Open(reportActorContextWithPermissions(testOtherActorID), testScope(), run.ID)
+	if !errors.Is(err, ErrClosureBlocked) {
+		t.Fatalf("download without report permission error = %v, want ErrClosureBlocked", err)
 	}
 	if first.ID != run.ID || repository.downloads != 1 {
-		t.Fatalf("download receipt count = %d, want only the authorized first download", repository.downloads)
+		t.Fatalf("download receipt count = %d, want only the permitted download", repository.downloads)
+	}
+	if len(authorityChecker.inputs) != 0 {
+		t.Fatalf("report download used governance responsibility routing: %#v", authorityChecker.inputs)
 	}
 }
 
@@ -704,9 +706,14 @@ func newReportingServiceTest() (*Service, *serviceTestRepository, *serviceTestOb
 }
 
 func reportActorContext(principalID string) context.Context {
+	return reportActorContextWithPermissions(principalID, identity.PermissionReportDownload)
+}
+
+func reportActorContextWithPermissions(principalID string, permissions ...string) context.Context {
 	return identity.WithActor(context.Background(), identity.Actor{
 		TenantID: testTenantID, LegalEntityID: testEntityA, PrincipalID: principalID,
-		Kind: "PERSON", IssuedAt: serviceTestNow.Add(-time.Hour), ExpiresAt: serviceTestNow.Add(time.Hour),
+		Kind: "PERSON", PermissionCodes: permissions,
+		IssuedAt: serviceTestNow.Add(-time.Hour), ExpiresAt: serviceTestNow.Add(time.Hour),
 	})
 }
 
