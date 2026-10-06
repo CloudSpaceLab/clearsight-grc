@@ -140,7 +140,7 @@ func TestCaptureSourceMeasurementRejectsTypeDriftAndInvalidCount(t *testing.T) {
 	rules := []SourceRule{{ID: "max", Field: "failures", Operator: OperatorLessOrEqual, Expected: "5", RiskPoints: 100}}
 
 	_, err := captureSourceMeasurement(countSpec, rules, evidence.SourceResolution{
-		State: evidence.SourceResolutionCurrent,
+		State:   evidence.SourceResolutionCurrent,
 		Records: []sourceaccess.Record{{"failures": {Kind: sourceaccess.ScalarString, Text: "3"}}},
 		Receipt: &sourceaccess.OperationReceipt{Completeness: sourceaccess.CompletenessComplete},
 	})
@@ -149,7 +149,7 @@ func TestCaptureSourceMeasurementRejectsTypeDriftAndInvalidCount(t *testing.T) {
 	}
 
 	_, err = captureSourceMeasurement(countSpec, rules, evidence.SourceResolution{
-		State: evidence.SourceResolutionCurrent,
+		State:   evidence.SourceResolutionCurrent,
 		Records: []sourceaccess.Record{{"failures": {Kind: sourceaccess.ScalarNumber, Text: "3.5"}}},
 		Receipt: &sourceaccess.OperationReceipt{Completeness: sourceaccess.CompletenessComplete},
 	})
@@ -159,7 +159,7 @@ func TestCaptureSourceMeasurementRejectsTypeDriftAndInvalidCount(t *testing.T) {
 
 	durationSpec := &MeasurementSpec{Field: "downtime", Unit: MeasurementDuration, DurationUnit: DurationMinutes}
 	_, err = captureSourceMeasurement(durationSpec, []SourceRule{{ID: "max", Field: "downtime", Operator: OperatorLessOrEqual, Expected: "30", RiskPoints: 100}}, evidence.SourceResolution{
-		State: evidence.SourceResolutionCurrent,
+		State:   evidence.SourceResolutionCurrent,
 		Records: []sourceaccess.Record{{"downtime": {Kind: sourceaccess.ScalarNumber, Text: "-1"}}},
 		Receipt: &sourceaccess.OperationReceipt{Completeness: sourceaccess.CompletenessComplete},
 	})
