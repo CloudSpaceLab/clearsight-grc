@@ -18,7 +18,7 @@ func TestRCSACycleVisibilityUsesOwnerAndExactReviewerAuthority(t *testing.T) {
 		Responsibility: authority.ResponsibilityReviewer,
 		DecisionType:   "rcsa.challenge.start", MinMateriality: 3,
 		Principal: authority.Principal{ID: "reviewer-a", DisplayName: "Reviewer A", Kind: "PERSON"},
-		Priority: 1,
+		Priority:      1,
 	}})
 	api := &API{deps: Dependencies{Authority: resolver}}
 	items := []rcsa.CycleSummary{
@@ -113,7 +113,6 @@ func (failingRCSAAuthority) ResolveMany(context.Context, []authority.ResolveInpu
 }
 
 func TestRCSACycleVisibilityPreservesSourceOrder(t *testing.T) {
-	now := time.Date(2026, 10, 6, 10, 0, 0, 0, time.UTC)
 	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-a"}
 	resolver := authority.NewResolver("test-v1", []authority.Rule{{
 		ID: "review-first", TenantID: "bank", LegalEntityID: "entity-a",
