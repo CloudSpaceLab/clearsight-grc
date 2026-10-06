@@ -215,7 +215,7 @@ func (s *Service) MatterBoardBriefAvailability(ctx context.Context, scope Report
 		TenantID: verifiedScope.TenantID, LegalEntityID: verifiedScope.LegalEntityID,
 		ObjectType: "REPORT_RUN", ObjectID: verifiedScope.LegalEntityID,
 		Responsibility: authority.ResponsibilityPerformer,
-		DecisionType: "report.run.create", Materiality: 3, At: now,
+		DecisionType:   "report.run.create", Materiality: 3, At: now,
 	})
 	if err != nil {
 		availability.Reason = "Board brief authority could not be checked."
