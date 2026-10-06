@@ -23,6 +23,12 @@ export type RiskIndicatorLink = {
   created_at: string;
 };
 
+export type RiskIndicatorMovement = {
+  direction: "UP" | "DOWN" | "FLAT";
+  delta: string;
+  previous_evaluated_at: string;
+};
+
 export type RiskIndicatorIntervention = {
   matter_id: string;
   reference: string;
@@ -48,6 +54,7 @@ export type RiskIndicatorDetail = {
   unit: "RISK_POINTS";
   denominator: 100;
   native_measurement?: MonitoringNativeMeasurement;
+  movement?: RiskIndicatorMovement;
   state: RiskIndicatorState;
   reason: string;
   score?: number;

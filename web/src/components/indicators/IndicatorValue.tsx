@@ -3,12 +3,36 @@ import "./indicator.css";
 
 type Props = { measurement?: MonitoringNativeMeasurement; score?: number; denominator: number };
 
+export function IndicatorObservedValue({ measurement, score, denominator }: Props) {
+  const concern = concernText(score, denominator);
+  return <span className="indicator-value">
+    <strong>{measurement?.value ? formatIndicatorMeasurement(measurement.value, measurement) : measurement ? "No observed value" : "Native value unavailable"}</strong>
+    <small>{concern}</small>
+  </span>;
+}
+
+export function IndicatorLimit({ measurement }: { measurement?: MonitoringNativeMeasurement }) {
+  return <span className="indicator-value indicator-value--limit">
+    <strong>{measurement?.limits?.length ? indicatorLimitText(measurement) : "No approved limit"}</strong>
+  </span>;
+}
+
+export function indicatorObservedAccessibleText(measurement: MonitoringNativeMeasurement | undefined, score: number | undefined, denominator: number) {
+  const concern = concernText(score, denominator);
+  const value = measurement?.value ? formatIndicatorMeasurement(measurement.value, measurement) : measurement ? "No observed value" : "Native value unavailable";
+  return `${value}. ${concern}.`;
+}
+
+export function indicatorLimitAccessibleText(measurement?: MonitoringNativeMeasurement) {
+  return measurement?.limits?.length ? indicatorLimitText(measurement) : "No approved limit";
+}
+
 export function IndicatorValue({ measurement, score, denominator }: Props) {
   const concern = concernText(score, denominator);
   if (!measurement) return <span className="indicator-value"><strong>{concern}</strong><small>Native value unavailable</small></span>;
   return <span className="indicator-value">
-    <strong>{measurement.value ? formatMeasurement(measurement.value, measurement) : "No observed value"}</strong>
-    {measurement.limits?.length ? <small>{limitText(measurement)}</small> : <small>No limit configured</small>}
+    <strong>{measurement.value ? formatIndicatorMeasurement(measurement.value, measurement) : "No observed value"}</strong>
+    {measurement.limits?.length ? <small>{indicatorLimitText(measurement)}</small> : <small>No limit configured</small>}
     <small>{concern}</small>
   </span>;
 }
@@ -16,18 +40,18 @@ export function IndicatorValue({ measurement, score, denominator }: Props) {
 export function indicatorValueAccessibleText(measurement: MonitoringNativeMeasurement | undefined, score: number | undefined, denominator: number) {
   const concern = concernText(score, denominator);
   if (!measurement) return `${concern}. Native value unavailable.`;
-  const value = measurement.value ? formatMeasurement(measurement.value, measurement) : "No observed value";
-  const limits = measurement.limits?.length ? limitText(measurement) : "No limit configured";
+  const value = measurement.value ? formatIndicatorMeasurement(measurement.value, measurement) : "No observed value";
+  const limits = measurement.limits?.length ? indicatorLimitText(measurement) : "No limit configured";
   return `${value}. ${limits}. ${concern}.`;
 }
 function concernText(score: number | undefined, denominator: number) {
   if (score === undefined) return "Concern not assessed";
   return `${formatConcern(score)} / ${denominator} concern`;
 }
-function limitText(measurement: MonitoringNativeMeasurement) {
+export function indicatorLimitText(measurement: MonitoringNativeMeasurement) {
   const limits = measurement.limits ?? [];
   const prefix = limits.length === 1 ? "Limit" : "Limits";
-  return `${prefix} ${limits.map((limit) => `${operatorSymbol(limit.operator)} ${formatMeasurement(limit.expected, measurement)}`).join(" · ")}`;
+  return `${prefix} ${limits.map((limit) => `${operatorSymbol(limit.operator)} ${formatIndicatorMeasurement(limit.expected, measurement)}`).join(" · ")}`;
 }
 function operatorSymbol(operator: SourceOperator) {
   switch (operator) {
@@ -40,7 +64,7 @@ function operatorSymbol(operator: SourceOperator) {
     default: return operator;
   }
 }
-function formatMeasurement(value: string, measurement: MonitoringNativeMeasurement) {
+export function formatIndicatorMeasurement(value: string, measurement: MonitoringNativeMeasurement) {
   const numeric = groupExactDecimal(value, measurement.precision ?? 0);
   switch (measurement.unit) {
     case "PERCENT": return `${numeric}%`;
