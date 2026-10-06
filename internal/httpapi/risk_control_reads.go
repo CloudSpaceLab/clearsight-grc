@@ -36,12 +36,12 @@ type riskControlRead struct {
 
 type riskAggregateRead struct {
 	risk.Aggregate
-	ControlDetails              []riskControlRead                  `json:"control_details"`
-	ControlDetailsComplete      bool                               `json:"control_details_complete"`
-	IndicatorDetails            []riskIndicatorRead                `json:"indicator_details"`
-	IndicatorDetailsComplete    bool                               `json:"indicator_details_complete"`
-	NotificationHistory         []notificationDeliveryHistoryItem  `json:"notification_history"`
-	NotificationHistoryComplete bool                               `json:"notification_history_complete"`
+	ControlDetails              []riskControlRead                 `json:"control_details"`
+	ControlDetailsComplete      bool                              `json:"control_details_complete"`
+	IndicatorDetails            []riskIndicatorRead               `json:"indicator_details"`
+	IndicatorDetailsComplete    bool                              `json:"indicator_details_complete"`
+	NotificationHistory         []notificationDeliveryHistoryItem `json:"notification_history"`
+	NotificationHistoryComplete bool                              `json:"notification_history_complete"`
 }
 
 func (a *API) riskAggregateWithControls(ctx context.Context, actor identity.Actor, value risk.Aggregate) riskAggregateRead {
