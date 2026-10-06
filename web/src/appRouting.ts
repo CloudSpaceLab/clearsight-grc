@@ -1,4 +1,4 @@
-export type View = "today" | "oversight" | "programs" | "risks" | "losses" | "forms" | "vendors" | "ropa" | "reports" | "work" | "people" | "imports" | "explore" | "configure";
+export type View = "today" | "oversight" | "programs" | "risks" | "losses" | "forms" | "vendors" | "ropa" | "reports" | "insights" | "work" | "people" | "imports" | "explore" | "configure";
 export type WorkTab = "assigned" | "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "monitoring" | "evidence-results" | "issues-actions" | "history";
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
@@ -37,7 +37,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (!value) return undefined;
     try { return decodeURIComponent(value); } catch { return value; }
   };
-	const allowed: View[] = ["today", "oversight", "programs", "risks", "losses", "forms", "vendors", "ropa", "reports", "work", "people", "imports", "explore", "configure"];
+	const allowed: View[] = ["today", "oversight", "programs", "risks", "losses", "forms", "vendors", "ropa", "reports", "insights", "work", "people", "imports", "explore", "configure"];
 	const requestedView = allowed.includes(parts[0] as View) ? parts[0] as View : "oversight";
 	const view = requestedView === "today" || (requestedView === "ropa" && parts[1] === "reports") ? "oversight" : requestedView;
 	if (requestedView === "ropa" && parts[1] === "reports") return { view: "reports", target: {} };
