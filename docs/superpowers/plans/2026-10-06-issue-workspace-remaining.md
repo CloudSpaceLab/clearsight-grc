@@ -7,9 +7,9 @@
 
 The existing Activity Timeline remains the only issue comment, mention, notification and history mechanism. The existing action panel remains the only reassignment and update-request mechanism.
 
-## Remaining work
+## Implementation status
 
-### 1. Preserve the origin of an issue-created form
+### 1. Preserve the origin of an issue-created form — complete
 
 Add an optional, immutable `MATTER` origin to normal form-template revisions.
 
@@ -18,7 +18,7 @@ Add an optional, immutable `MATTER` origin to normal form-template revisions.
 - Validate the referenced issue against the verified tenant and legal entity before creation. A revision must retain the exact original value; changed or newly added origins are rejected.
 - Add memory and PostgreSQL tests for valid, cross-entity, missing, and altered origins.
 
-### 2. Add one issue-linked form authoring route
+### 2. Add one issue-linked form authoring route — complete
 
 Add `Create linked form` beside the existing employee and vendor request paths.
 
@@ -27,7 +27,7 @@ Add `Create linked form` beside the existing employee and vendor request paths.
 - Keep the draft in the ordinary Forms library and display its originating issue in its record details.
 - After an approved form exists, use the delivered employee request or existing vendor request path to collect responses.
 
-### 3. Finish evidence and response context
+### 3. Finish evidence and response context — complete
 
 Compose existing records in the Evidence and requests tab rather than duplicating them.
 
@@ -36,7 +36,7 @@ Compose existing records in the Evidence and requests tab rather than duplicatin
 - Provide field-only renewal/reminder actions through the existing response-expiry and vendor-reminder workflows.
 - Verify unavailable linked reads leave issue actions and activity available.
 
-### 4. Add the board brief through reporting governance
+### 4. Add the board brief through reporting governance — complete
 
 Use the existing report definition and run lifecycle.
 
@@ -45,11 +45,11 @@ Use the existing report definition and run lifecycle.
 - Surface `Generate board brief` only when an authorised effective definition exists; retain generated files and downloads in Reports.
 - Test authorization, source boundary, PDF content, and permission-checked download.
 
-### 5. Complete responsive and usability proof
+### 5. Complete responsive and usability proof — verification in progress
 
-- Keep the desktop activity rail on the right; replace it with a single Activity tab at narrow widths, without a duplicate composer.
-- Render the issue header, Work controls, Evidence and requests, and activity at desktop and narrow viewports.
-- Run focused accessibility, copy-quality, bounded-read, form, vendor and reporting checks; capture rendered evidence before release.
+- [x] Keep the desktop activity rail on the right; replace it with a single Activity tab at narrow widths, without a duplicate composer.
+- [x] Register rendered issue header, Work, Evidence and requests, and Activity evidence at desktop and narrow viewports.
+- [ ] Require exact-head CI, Compose runtime and managed UI/UX review to pass before release.
 
 ## Completion criteria
 
