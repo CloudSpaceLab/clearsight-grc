@@ -1,4 +1,5 @@
 import type { StatusTone } from "./components/ui";
+import type { Matter } from "./types";
 
 export function matterPriorityLabel(value: number): string {
   if (value >= 5) return "Critical";
@@ -36,4 +37,22 @@ export function matterDeadlinePresentation(
     return { state: "OVERDUE", label: "Overdue", tone: "warning", dateTime: due.toISOString() };
   }
   return { state: "DUE", label: "Due", tone: "neutral", dateTime: due.toISOString() };
+}
+
+
+export type MatterContextKind = "OPERATIONAL_LOSS" | "INDICATOR" | "GENERIC";
+
+export function matterContextKind(matter: Pick<Matter, "type" | "source_type" | "source_id" | "trigger_type">): MatterContextKind {
+  const sourceType = matter.source_type?.trim().toUpperCase();
+  if (matter.type === "OPERATIONAL_LOSS" && sourceType === "OPERATIONAL_LOSS" && matter.source_id?.trim()) {
+    return "OPERATIONAL_LOSS";
+  }
+  if (
+    sourceType === "MONITORING_RESULT"
+    && matter.source_id?.trim()
+    && (matter.type === "KRI_BREACH" || matter.trigger_type === "MONITORING_RESULT_ADVERSE")
+  ) {
+    return "INDICATOR";
+  }
+  return "GENERIC";
 }

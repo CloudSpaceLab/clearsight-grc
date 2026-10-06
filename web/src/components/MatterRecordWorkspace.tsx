@@ -6,6 +6,7 @@ import type { MatterOperations } from "../matterOperationsApi";
 import type { MatterAggregate } from "../types";
 import { EmptyState } from "./EmptyState";
 import { MatterCurrentHandoff } from "./MatterCurrentHandoff";
+import { MatterDomainContext } from "./matter-context/MatterDomainContext";
 import { MatterDetailsPanel } from "./MatterDetailsPanel";
 import { MatterInformationPanel } from "./MatterInformationPanel";
 import { MatterFormRemediationPanel } from "./MatterFormRemediationPanel";
@@ -24,6 +25,8 @@ type Props = {
   matterID: string;
   onBack: () => void;
   onOpenRequest?: (requestID: string) => void;
+  onOpenLoss?: (lossID: string) => void;
+  onOpenIndicator?: (indicatorID: string, kind?: "KRI" | "KCI") => void;
 };
 
 type LoadState = "loading" | "live" | "unavailable";
@@ -36,7 +39,7 @@ const matterWorkspaceTabs: ReadonlyArray<{ id: MatterWorkspaceTab; label: string
   { id: "decisions", label: "Decisions" },
 ];
 
-export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props) {
+export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenLoss, onOpenIndicator }: Props) {
   const [aggregateState, setAggregateState] = useState<LoadState>("loading");
   const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [aggregate, setAggregate] = useState<MatterAggregate | null>(null);
@@ -153,6 +156,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest }: Props
       {operations && !operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities are temporarily unavailable.</strong> Values and stored owners remain visible, but changes are disabled until authority routing recovers. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
       {operationsState === "live" && operations?.responsibility_labels_complete === false && <div className="inline-notice" role="status"><strong>Some assignee names could not be loaded.</strong> Recorded assignments remain visible, and available actions continue to use the current assignments. <button className="text-button" type="button" onClick={() => void loadOperations()}>Reload assignee names</button></div>}
       {operationsOutdated && <div className="inline-notice" role="status"><strong>Issue responsibilities are out of date.</strong> Issue values remain visible, but changes are disabled until responsibilities match issue version {aggregate.matter.version}. <button className="text-button" type="button" onClick={() => void reloadRecord()}>Reload issue data</button></div>}
+      <MatterDomainContext aggregate={aggregate} onOpenLoss={onOpenLoss} onOpenIndicator={onOpenIndicator}/>
       <MatterCurrentHandoff
         aggregate={aggregate}
         operations={currentOperations}

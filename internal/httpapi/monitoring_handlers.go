@@ -117,7 +117,7 @@ func (a *API) bindMonitoringCheck(r *http.Request, service *monitoring.Service, 
 	return exactActor, check, aggregate, nil
 }
 
-func (a *API) bindEligibleMonitoringResult(r *http.Request, service *monitoring.Service, resultID string) (monitoring.Actor, monitoring.MonitoringResult, monitoring.MonitoringCheck, continuity.ProgramAggregate, error) {
+func (a *API) bindMonitoringResultRead(r *http.Request, service *monitoring.Service, resultID string) (monitoring.Actor, monitoring.MonitoringResult, monitoring.MonitoringCheck, continuity.ProgramAggregate, error) {
 	actor, err := monitoringActor(r)
 	if err != nil {
 		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
@@ -130,19 +130,27 @@ func (a *API) bindEligibleMonitoringResult(r *http.Request, service *monitoring.
 	if err != nil {
 		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
 	}
-	latest, err := service.ListResults(r.Context(), actor, check.ID, 1)
-	if err != nil {
-		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
-	}
-	if len(latest) != 1 || latest[0].ID != result.ID || !monitoring.EligibleForLinkedIssue(check, result) {
-		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, monitoring.ErrLinkedIssueIneligible
-	}
 	exactActor, aggregate, err := a.bindMonitoringProgram(r, check.ProgramID)
 	if err != nil {
 		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
 	}
 	if result.ProgramID != aggregate.Program.ID || check.ProgramID != aggregate.Program.ID || check.TenantID != aggregate.Program.TenantID {
 		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, continuity.ErrNotFound
+	}
+	return exactActor, result, check, aggregate, nil
+}
+
+func (a *API) bindEligibleMonitoringResult(r *http.Request, service *monitoring.Service, resultID string) (monitoring.Actor, monitoring.MonitoringResult, monitoring.MonitoringCheck, continuity.ProgramAggregate, error) {
+	exactActor, result, check, aggregate, err := a.bindMonitoringResultRead(r, service, resultID)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	latest, err := service.ListResults(r.Context(), exactActor, check.ID, 1)
+	if err != nil {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, err
+	}
+	if len(latest) != 1 || latest[0].ID != result.ID || !monitoring.EligibleForLinkedIssue(check, result) {
+		return monitoring.Actor{}, monitoring.MonitoringResult{}, monitoring.MonitoringCheck{}, continuity.ProgramAggregate{}, monitoring.ErrLinkedIssueIneligible
 	}
 	return exactActor, result, check, aggregate, nil
 }
@@ -491,6 +499,19 @@ func (a *API) listMonitoringResults(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": values})
+}
+
+func (a *API) getMonitoringResult(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.monitoringService(w)
+	if !ok {
+		return
+	}
+	_, result, _, _, err := a.bindMonitoringResultRead(r, service, r.PathValue("result_id"))
+	if err != nil {
+		writeMonitoringScopeError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, result)
 }
 
 func (a *API) evaluateMonitoringSource(w http.ResponseWriter, r *http.Request) {

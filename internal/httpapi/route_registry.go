@@ -227,6 +227,7 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/monitoring-checks/{id}/collection-policy", "program.monitoring.collection-policy.update", a.updateCollectionPolicy, commandPolicy{ObjectType: "MONITORING_CHECK", Responsibility: authority.ResponsibilityOwner, Materiality: 3, ActorField: noActorField}),
 		material("/api/v1/monitoring-checks/{id}/evaluate-source", "program.monitoring.evaluate", a.evaluateMonitoringSource, commandPolicy{ObjectType: "MONITORING_CHECK", Responsibility: authority.ResponsibilityPerformer, Materiality: 2, ActorField: noActorField}),
 		read("/api/v1/monitoring-checks/{id}/results", a.listMonitoringResults),
+		read("/api/v1/monitoring-results/{result_id}", a.getMonitoringResult),
 		read("/api/v1/programs/{id}/collection-summaries", a.listCollectionSummaries),
 		material("/api/v1/monitoring-results/{result_id}/linked-issue", "program.monitoring.issue.create", a.createMonitoringLinkedIssue, commandPolicy{ObjectType: "MONITORING_CHECK", Responsibility: authority.ResponsibilityReviewer, Materiality: 4, ActorField: noActorField}),
 

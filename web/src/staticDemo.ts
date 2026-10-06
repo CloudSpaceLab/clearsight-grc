@@ -127,6 +127,26 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
   programOperations = clone(fixtures.programOperations);
   matter = clone(fixtures.matter);
   matter.due_at = future;
+  if (activeFixture() === "matter-loss-context") {
+    Object.assign(matter, {
+      type: "OPERATIONAL_LOSS",
+      title: "Investigate payments outage loss",
+      summary: "Resolve the linked operational loss and confirm remediation.",
+      source_type: "OPERATIONAL_LOSS",
+      source_id: "loss-context-1",
+    });
+  }
+  if (activeFixture() === "matter-indicator-context") {
+    Object.assign(matter, {
+      type: "CONTROL_GAP",
+      title: "Restore mobile transaction success rate",
+      summary: "Resolve the monitoring breach and confirm the operating limit is restored.",
+      source_type: "MONITORING_RESULT",
+      source_id: "sample-result-2",
+      trigger_type: "MONITORING_RESULT_ADVERSE",
+      trigger_id: "sample-result-2",
+    });
+  }
   matterSummary = clone(fixtures.matterSummary);
   matterSummary.matter = matter;
   matterDetail = clone(fixtures.matterDetail);
@@ -885,13 +905,30 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone(sampleRCSADetail) as T;
   }
 
-  if (fixture === "indicator-insights" && pathname === "/api/v1/risk-indicators" && method === "GET") {
+  if ((fixture === "indicator-insights" || fixture === "matter-indicator-context") && pathname === "/api/v1/risk-indicators" && method === "GET") {
     const kind = url.searchParams.get("kind");
     const checkID = url.searchParams.get("check_id");
     const items = sampleIndicatorInsightsPage.items.filter((item) =>
       (!kind || item.indicator.link.kind === kind) && (!checkID || item.indicator.check_id === checkID));
     return clone({ ...sampleIndicatorInsightsPage, items }) as T;
   }
+  if (fixture === "matter-indicator-context" && pathname === "/api/v1/monitoring-results/sample-result-2" && method === "GET") {
+    return clone(sampleIndicatorHistory.find((item) => item.id === "sample-result-2")) as T;
+  }
+  if (fixture === "matter-loss-context" && pathname === "/api/v1/losses/loss-context-1" && method === "GET") {
+    return clone({
+      loss: {
+        id: "loss-context-1", tenant_id: "bank-demo", legal_entity_id: "bank-ng", code: "LOSS-2041",
+        title: "Payments outage loss", event_type: "BUSINESS_DISRUPTION_SYSTEM_FAILURES", cause: "Payments switch outage",
+        description: "Failed payment processing caused direct operational loss.", gross_amount_minor: 125000000, currency: "NGN",
+        occurred_at: "2026-09-18T08:10:00Z", discovered_at: "2026-09-18T08:20:00Z", matter_id: matterID,
+        status: "ACTIVE", version: 3, created_at: "2026-09-18T09:00:00Z", updated_at: now,
+      },
+      recoveries: [],
+      totals: { gross_amount_minor: 125000000, recovered_amount_minor: 25000000, net_loss_minor: 100000000, currency: "NGN", recovery_status: "PARTIAL" },
+    }) as T;
+  }
+
   if (fixture === "indicator-insights" && /^\/api\/v1\/monitoring-checks\/[^/]+\/results$/.test(pathname) && method === "GET") {
     const checkID = decodeURIComponent(pathname.split("/")[4] ?? "");
     const items = checkID === "sample-mobile-success" ? sampleIndicatorHistory

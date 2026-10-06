@@ -69,6 +69,46 @@ func (f linkedIssueFixture) handler(principal string, resolution authority.Resol
 	})
 }
 
+func TestExactMonitoringResultReadPreservesHistoricalSourceAndEntityScope(t *testing.T) {
+	fixture := newLinkedIssueFixture(t)
+	score := 10.0
+	_, err := fixture.repo.AppendResult(t.Context(), monitoring.MonitoringResult{
+		ID: "result-2", TenantID: "bank", ProgramID: fixture.program.Program.ID,
+		MonitoringCheckID: fixture.check.ID, MonitoringCheckVersion: fixture.check.Version,
+		InputKind: monitoring.InputSource, InputReferenceID: "receipt-2", InputReferenceVersion: 1,
+		Evaluation:  monitoring.Evaluation{Score: &score, Band: monitoring.RiskLow, Coverage: 1},
+		EvaluatedAt: fixture.result.EvaluatedAt.Add(time.Minute), EvaluatorVersion: "risk-v1", CreatedAt: fixture.result.CreatedAt.Add(time.Minute),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	handler := fixture.handler("reviewer-1", authority.Resolution{})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/monitoring-results/"+fixture.result.ID, nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("historical result read returned %d: %s", response.Code, response.Body.String())
+	}
+	var result monitoring.MonitoringResult
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result.ID != fixture.result.ID || result.MonitoringCheckID != fixture.check.ID {
+		t.Fatalf("historical result = %#v", result)
+	}
+
+	wrongEntity := New(Dependencies{
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Identity:   identity.NewDevelopmentAuthenticator("bank", "reviewer-1", "entity-b"),
+		Monitoring: fixture.monitoring, Continuity: fixture.continuity,
+	})
+	restricted := httptest.NewRecorder()
+	wrongEntity.ServeHTTP(restricted, httptest.NewRequest(http.MethodGet, "/api/v1/monitoring-results/"+fixture.result.ID, nil))
+	if restricted.Code != http.StatusNotFound {
+		t.Fatalf("cross-entity result read returned %d: %s", restricted.Code, restricted.Body.String())
+	}
+}
+
 func TestReviewerCreatesAndReopensOneIssueForLatestAdverseMonitoringResult(t *testing.T) {
 	fixture := newLinkedIssueFixture(t)
 	handler := fixture.handler("reviewer-1", authority.Resolution{Principal: authority.Principal{ID: "reviewer-1", DisplayName: "Control assurance reviewer"}})
