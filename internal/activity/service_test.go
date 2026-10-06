@@ -61,3 +61,34 @@ func TestServiceRejectsInvalidTimeRange(t *testing.T) {
 		t.Fatalf("expected ErrInvalid, got %v", err)
 	}
 }
+
+func TestServiceProjectsNotificationDeliveryAsSystemActivity(t *testing.T) {
+	now := time.Date(2026, 10, 6, 3, 0, 0, 0, time.UTC)
+	service := NewService(NewMemoryRepository(
+		Event{
+			TenantID: "bank-a", ID: "notification:1", OccurredAt: now,
+			EventType: "NOTIFICATION_EMAIL_RETRYING", ObjectType: "RISK", ObjectID: "risk-1",
+			LegalEntityID: "entity-a", Source: SourceNotificationEmailDelivery,
+		},
+		Event{
+			TenantID: "bank-a", ID: "other", OccurredAt: now.Add(-time.Minute),
+			EventType: "RiskUpdated", ObjectType: "RISK", ObjectID: "risk-1",
+			LegalEntityID: "entity-a", Source: "OUTBOX_EVENT",
+		},
+	))
+	page, err := service.List(context.Background(), Query{
+		TenantID: "bank-a", LegalEntityID: "entity-a", ObjectType: "RISK", ObjectID: "risk-1",
+		Source: SourceNotificationEmailDelivery,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("items=%#v", page.Items)
+	}
+	item := page.Items[0]
+	if item.Category != CategorySystem || item.ActorKind != ActorSystem || item.Outcome != OutcomeRetrying ||
+		item.Action != "Notification email retrying" {
+		t.Fatalf("delivery activity=%#v", item)
+	}
+}
