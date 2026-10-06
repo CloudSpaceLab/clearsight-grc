@@ -121,6 +121,7 @@ func buildServices(ctx context.Context, cfg config.Config, _ *slog.Logger) (serv
 	continuityService := continuity.NewService(continuityRepo)
 	evidenceRepo.continuity = continuityService
 	continuityService.ConfigureEvidenceSourceValidator(evidenceService)
+	monitoringService.ConfigureFormOriginValidator(formOriginMatterValidator{matters: continuityService})
 	ropaRepository := ropa.NewMemoryRepository()
 	ropaSummaries := ropa.NewMemorySummaryRepository()
 	ropaService := ropa.NewService(ropaRepository, ropaSummaries)
