@@ -2,12 +2,13 @@ package httpapi
 
 import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func (a *API) riskRoutes() []routeSpec {
 	return []routeSpec{
 		read("/api/v1/risks", a.listRisks),
-		read("/api/v1/risk-indicators", a.listRiskIndicators),
+		withPermission(read("/api/v1/risk-indicators", a.listRiskIndicators), identity.PermissionOversightRead),
 		read("/api/v1/risks/{id}", a.getRisk),
 		material("/api/v1/risks", "risk.create", a.createRisk, commandPolicy{
 			ObjectType: "RISK", Responsibility: authority.ResponsibilityOwner,
