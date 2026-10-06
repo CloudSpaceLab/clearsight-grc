@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"errors"
 	"sort"
 	"time"
 
@@ -46,6 +45,7 @@ type riskIndicatorRead struct {
 	Unit                string                         `json:"unit"`
 	Denominator         int                            `json:"denominator"`
 	NativeMeasurement   *monitoring.NativeMeasurement  `json:"native_measurement,omitempty"`
+	Movement            *riskIndicatorMovementRead     `json:"movement,omitempty"`
 	State               riskIndicatorState             `json:"state"`
 	Reason              string                         `json:"reason"`
 	Score               *float64                       `json:"score,omitempty"`
@@ -70,119 +70,21 @@ func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor
 		return result
 	}
 
-	type pendingLabel struct {
-		index int
-		owner bool
-		id    string
-	}
-	currentIndicators := currentRiskIndicatorLinks(value.Indicators)
-	pending := make([]pendingLabel, 0, len(currentIndicators)*2)
-	programs := map[string]continuity.ProgramAggregate{}
-	now := time.Now().UTC()
-	monitorActor := monitoring.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}
-
-	for _, link := range currentIndicators {
-		check, err := a.deps.Monitoring.Check(ctx, monitorActor, link.MonitoringCheckID, link.MonitoringCheckVersion)
-		if err != nil || check.ProgramID != link.ProgramID {
+	builder := newRiskIndicatorReadBuilder(a, ctx, actor)
+	labels := make([]riskIndicatorLabelPair, 0, len(value.Indicators))
+	for _, link := range currentRiskIndicatorLinks(value.Indicators) {
+		detail, labelPair, visible, complete := builder.build(link)
+		if !visible {
 			result.IndicatorDetailsComplete = false
 			continue
 		}
-		program, ok := programs[check.ProgramID]
-		if !ok {
-			program, err = a.deps.Continuity.GetProgram(ctx, actor.TenantID, check.ProgramID)
-			if err == nil {
-				program, err = a.programForActor(ctx, program, nil)
-			}
-			if err != nil || program.Program.LegalEntityID != actor.LegalEntityID {
-				result.IndicatorDetailsComplete = false
-				continue
-			}
-			programs[check.ProgramID] = program
-		}
-
-		detail := riskIndicatorRead{
-			Link:              link,
-			ProgramID:         program.Program.ID,
-			ProgramName:       program.Program.Name,
-			CheckID:           check.ID,
-			CheckCode:         check.Code,
-			CheckName:         check.Name,
-			Claim:             check.Claim,
-			CheckStatus:       check.Status,
-			CheckVersion:      check.Version,
-			InputKind:         check.InputKind,
-			Measurement:       risk.IndicatorMonitoringRiskScore,
-			Unit:              risk.IndicatorRiskScoreUnit,
-			Denominator:       risk.IndicatorRiskScoreDenominator,
-			NativeMeasurement: currentRiskIndicatorNativeMeasurement(check, nil),
-			State:             riskIndicatorUnknown,
-			Reason:            "No current monitoring result.",
-			MinimumCoverage:   check.MinimumCoverage,
-			FreshnessMinutes:  check.FreshnessMinutes,
-		}
-		resultValue, resultErr := a.deps.Monitoring.LatestResultRevision(ctx, monitorActor, check.ID, check.Version)
-		switch {
-		case resultErr == nil:
-			detail.ResultID = resultValue.ID
-			detail.NativeMeasurement = currentRiskIndicatorNativeMeasurement(check, &resultValue)
-			detail.Score = resultValue.Evaluation.Score
-			detail.Band = resultValue.Evaluation.Band
-			coverage := resultValue.Evaluation.Coverage
-			detail.Coverage = &coverage
-			evaluatedAt := resultValue.EvaluatedAt
-			detail.EvaluatedAt = &evaluatedAt
-			detail.State, detail.Reason = currentRiskIndicatorState(check, resultValue, now)
-			if program.Program.Status != continuity.ProgramActive {
-				detail.State = riskIndicatorUnknown
-				detail.Reason = "Source Program is not active."
-			}
-		case errors.Is(resultErr, monitoring.ErrNotFound):
-			// Absence of a result is known Indicator truth: UNKNOWN, not an incomplete API projection.
-		default:
-			result.IndicatorDetailsComplete = false
-			continue
-		}
-
-		episodeKey := "monitoring-check-adverse:" + check.ID
-		intervention, interventionErr := a.deps.Continuity.OpenMatterByTriggerKey(ctx, actor.TenantID, episodeKey)
-		switch {
-		case interventionErr == nil:
-			if riskIndicatorMatterLinkedToProgram(intervention, program.Program.ID) {
-				detail.Intervention = &riskIndicatorInterventionRead{
-					MatterID: intervention.Matter.ID, Reference: intervention.Matter.Reference,
-					Status: intervention.Matter.Status, Priority: intervention.Matter.Priority, CreatedAt: intervention.Matter.CreatedAt,
-				}
-			} else {
-				result.IndicatorDetailsComplete = false
-			}
-		case errors.Is(interventionErr, continuity.ErrNotFound):
-			// No open intervention is valid state.
-		default:
+		if !complete {
 			result.IndicatorDetailsComplete = false
 		}
-
 		result.IndicatorDetails = append(result.IndicatorDetails, detail)
-		index := len(result.IndicatorDetails) - 1
-		if check.OwnerPrincipalID != "" {
-			pending = append(pending, pendingLabel{index: index, owner: true, id: check.OwnerPrincipalID})
-		}
-		if check.ReviewerPrincipalID != "" {
-			pending = append(pending, pendingLabel{index: index, id: check.ReviewerPrincipalID})
-		}
+		labels = append(labels, labelPair)
 	}
-
-	ids := make([]string, 0, len(pending))
-	for _, value := range pending {
-		ids = append(ids, value.id)
-	}
-	labels := a.exactAssessmentLabels(ctx, actor, actor.LegalEntityID, ids)
-	for _, value := range pending {
-		if value.owner {
-			result.IndicatorDetails[value.index].OwnerDisplayName = labels[value.id]
-		} else {
-			result.IndicatorDetails[value.index].ReviewerDisplayName = labels[value.id]
-		}
-	}
+	a.applyRiskIndicatorLabels(ctx, actor, result.IndicatorDetails, labels)
 	return result
 }
 

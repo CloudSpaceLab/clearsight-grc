@@ -96,12 +96,15 @@ type CatalogUsageReport struct {
 	Scope           string                  `json:"scope"`
 }
 
+type BindingDraftValidator func(BindingRevision, ViewRevision) error
+
 type CatalogService struct {
-	repo     CatalogRepository
-	adapters map[AdapterKind]Adapter
-	secrets  SecretResolver
-	now      func() time.Time
-	newID    func() (string, error)
+	repo                  CatalogRepository
+	adapters              map[AdapterKind]Adapter
+	secrets               SecretResolver
+	bindingDraftValidator BindingDraftValidator
+	now                   func() time.Time
+	newID                 func() (string, error)
 }
 
 func NewCatalogService(repo CatalogRepository, secrets SecretResolver, adapters map[AdapterKind]Adapter) *CatalogService {
@@ -112,6 +115,12 @@ func NewCatalogService(repo CatalogRepository, secrets SecretResolver, adapters 
 		}
 	}
 	return &CatalogService{repo: repo, secrets: secrets, adapters: registered, now: time.Now, newID: id.NewUUIDv7}
+}
+
+func (s *CatalogService) ConfigureBindingDraftValidator(validator BindingDraftValidator) {
+	if s != nil {
+		s.bindingDraftValidator = validator
+	}
 }
 
 func DefaultCatalogAdapters() map[AdapterKind]Adapter {
@@ -335,6 +344,11 @@ func (s *CatalogService) CreateBindingDraft(ctx context.Context, actor CatalogAc
 		ParameterSchema: defaultJSONObject(input.ParameterSchema), OutputSchema: defaultJSONObject(input.OutputSchema),
 		RequiredFreshnessMinutes: input.RequiredFreshnessMinutes, Completeness: input.Completeness,
 		SensitivityHandling: defaultJSONObject(input.SensitivityHandling), RevisionLifecycle: draftLifecycle(actor.PrincipalID, now),
+	}
+	if s.bindingDraftValidator != nil {
+		if err := s.bindingDraftValidator(value, view); err != nil {
+			return BindingRevision{}, errors.Join(ErrCatalogInvalid, err)
+		}
 	}
 	return s.repoOrError().CreateBindingRevision(ctx, value)
 }

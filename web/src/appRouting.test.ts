@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { parseRoute, routeHash } from "./appRouting";
 
 describe("workspace routes", () => {
+  it("round-trips the Insights indicator lens and exact current target", () => {
+    const target = { indicatorKind: "KRI" as const, indicatorID: "check/1 #銀行" };
+    const hash = routeHash("insights", target, "assigned");
+    expect(hash).toBe("#insights?kind=KRI&indicator=check%2F1+%23%E9%8A%80%E8%A1%8C");
+    expect(parseRoute(hash)).toEqual({ view: "insights", target });
+    expect(parseRoute("#insights?kind=UNKNOWN&indicator=check-1")).toEqual({ view: "insights", target: { indicatorID: "check-1" } });
+  });
+
   it("opens Reports as a product-level workspace", () => {
     expect(parseRoute("#reports")).toEqual({ view: "reports", target: {} });
     expect(parseRoute("#ropa/reports")).toEqual({ view: "reports", target: {} });

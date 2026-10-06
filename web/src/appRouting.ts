@@ -1,4 +1,4 @@
-export type View = "today" | "oversight" | "programs" | "risks" | "losses" | "forms" | "vendors" | "ropa" | "reports" | "work" | "people" | "imports" | "explore" | "configure";
+export type View = "today" | "oversight" | "programs" | "risks" | "losses" | "forms" | "vendors" | "ropa" | "reports" | "insights" | "work" | "people" | "imports" | "explore" | "configure";
 export type WorkTab = "assigned" | "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "monitoring" | "evidence-results" | "issues-actions" | "history";
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
@@ -6,10 +6,13 @@ export type VendorPage = "overview" | "register";
 export type RopaPage = "register" | "reports";
 export type OversightMetric = "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
 export type OversightScopeMode = "group";
+export type InsightKind = "KRI" | "KCI";
 export type WorkspaceTarget = {
   programID?: string;
   riskID?: string;
   lossID?: string;
+  indicatorID?: string;
+  indicatorKind?: InsightKind;
   formTemplateID?: string;
   programSection?: ProgramSection;
   programItem?: ProgramItemTarget;
@@ -37,7 +40,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (!value) return undefined;
     try { return decodeURIComponent(value); } catch { return value; }
   };
-	const allowed: View[] = ["today", "oversight", "programs", "risks", "losses", "forms", "vendors", "ropa", "reports", "work", "people", "imports", "explore", "configure"];
+	const allowed: View[] = ["today", "oversight", "programs", "risks", "losses", "forms", "vendors", "ropa", "reports", "insights", "work", "people", "imports", "explore", "configure"];
 	const requestedView = allowed.includes(parts[0] as View) ? parts[0] as View : "oversight";
 	const view = requestedView === "today" || (requestedView === "ropa" && parts[1] === "reports") ? "oversight" : requestedView;
 	if (requestedView === "ropa" && parts[1] === "reports") return { view: "reports", target: {} };
@@ -79,6 +82,14 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     return { view, target: { ropaPage: "register" } };
 	}
 	if (view === "reports") return { view, target: {} };
+  if (view === "insights") {
+    const indicator = query.get("indicator")?.trim();
+    const kind = query.get("kind");
+    const target: WorkspaceTarget = {};
+    if (indicator) target.indicatorID = indicator;
+    if (kind === "KRI" || kind === "KCI") target.indicatorKind = kind;
+    return { view, target };
+  }
   if (view === "imports") return { view, target: { documentID: decodeTarget(parts[1]) } };
   if (view === "work") {
     const workTab: WorkTab = parts[1] === "evidence" ? "evidence" : parts[1] === "matters" ? "matters" : "assigned";
@@ -118,6 +129,13 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
     if (target.ropaPage === "reports") return "#ropa/reports";
 	}
 	if (view === "reports") return "#reports";
+  if (view === "insights") {
+    const params = new URLSearchParams();
+    if (target.indicatorKind) params.set("kind", target.indicatorKind);
+    if (target.indicatorID?.trim()) params.set("indicator", target.indicatorID.trim());
+    const query = params.toString();
+    return query ? `#insights?${query}` : "#insights";
+  }
   if (view === "imports" && target.documentID) return `#imports/${encodeURIComponent(target.documentID)}`;
   if (view === "work") {
     if (workTab === "assigned") return "#work";

@@ -296,8 +296,42 @@ func TestServiceRejectsMonitoringCheckForUnscoredForm(t *testing.T) {
 		ProgramID: "program-1", Code: "ENCRYPTION", Name: "Encryption review", Claim: "Encryption controls operated.",
 		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version, FreshnessMinutes: 60, MinimumCoverage: 1,
 	})
-	if !errors.Is(err, ErrInvalid) || !strings.Contains(err.Error(), "no scored questions") {
+	if !errors.Is(err, ErrInvalid) || !strings.Contains(err.Error(), "no scored questions or native measurement") {
 		t.Fatalf("unscored form check error = %v", err)
+	}
+}
+
+func TestServiceAllowsMeasurementOnlyFormMonitoringCheck(t *testing.T) {
+	repo := NewMemoryRepository()
+	activeAt := time.Now().UTC().Add(-time.Hour)
+	form := FormTemplate{
+		ID: "form-kri", TenantID: "bank-a", LegalEntityID: "entity-a", ProgramID: "program-1",
+		Code: "KRI", Name: "Branch availability", Purpose: "Capture branch availability.",
+		Fields: []TemplateField{{
+			ID: "availability", Label: "Availability", Type: formcontract.TypePercentage, Required: true,
+			Constraints: formcontract.Constraints{},
+		}},
+		Lifecycle: Lifecycle{Status: LifecycleActive, IsCurrent: true, EffectiveFrom: &activeAt, Version: 1},
+	}
+	if _, err := repo.CreateFormRevision(t.Context(), form); err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(repo, nil)
+	check, err := service.CreateCheck(t.Context(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}, CreateCheckInput{
+		ProgramID: "program-1", Code: "BRANCH-AVAILABILITY", Name: "Branch availability", Claim: "Branch availability remains within the approved limit.",
+		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
+		CollectionPolicy: &CollectionPolicy{ValidityMonths: 12},
+		Measurement: &MeasurementSpec{
+			Field: "availability", Label: "Availability", Unit: MeasurementPercent, Precision: 2,
+			Limits: []MeasurementLimit{{Operator: OperatorGreaterOrEqual, Expected: "99.50"}},
+		},
+		FreshnessMinutes: 43200, MinimumCoverage: 1,
+	})
+	if err != nil {
+		t.Fatalf("measurement-only form check: %v", err)
+	}
+	if check.Measurement == nil || check.Measurement.Field != "availability" || check.Measurement.Unit != MeasurementPercent {
+		t.Fatalf("measurement-only form check lost native definition: %#v", check)
 	}
 }
 

@@ -605,8 +605,8 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		if form.Status != LifecycleActive || !form.IsCurrent {
 			return MonitoringCheck{}, ErrInactive
 		}
-		if !hasFormFieldScoring(form.Fields) {
-			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("the active form revision has no scored questions; create and approve a scored revision before adding a monitoring check"))
+		if !hasFormFieldScoring(form.Fields) && measurement == nil {
+			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("the active form revision has no scored questions or native measurement; add a scored question or approved native measurement before adding a monitoring check"))
 		}
 		if measurement != nil {
 			if err := validateFormMeasurementField(*measurement, form.Fields); err != nil {
@@ -877,7 +877,7 @@ func (s *Service) evaluateFormSubmission(ctx context.Context, check MonitoringCh
 	if err != nil {
 		return MonitoringResult{}, err
 	}
-	measurement, err := captureFormMeasurement(check.Measurement, submission.Answers)
+	measurement, err := CaptureFormMeasurement(check.Measurement, form.Fields, submission.Answers)
 	if err != nil {
 		return MonitoringResult{}, err
 	}

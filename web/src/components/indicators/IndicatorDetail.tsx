@@ -3,6 +3,7 @@ import { loadMonitoringResults } from "../../monitoringApi";
 import type { MonitoringResult } from "../../monitoringTypes";
 import type { RiskIndicatorDetail } from "../../riskTypes";
 import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
+import { IndicatorMovement } from "./IndicatorMovement";
 import { IndicatorValue, indicatorValueAccessibleText } from "./IndicatorValue";
 import { formatIndicatorCoverage, formatIndicatorDate, formatIndicatorPeriod, indicatorStateLabel, indicatorTone, monitoringBandLabel, nativeConditionLabel, nativeConditionTone } from "./indicatorPresentation";
 import "./indicator.css";
@@ -97,6 +98,7 @@ export function IndicatorDetail({
       <dl className="indicator-detail__summary" aria-label="Current indicator state">
         <div><dt>Current state</dt><dd><StatusBadge tone={indicatorTone(indicator.state)}>{indicatorStateLabel(indicator.state)}</StatusBadge></dd></div>
         <div><dt>Current value</dt><dd><IndicatorValue measurement={indicator.native_measurement} score={indicator.score} denominator={indicator.denominator}/></dd></div>
+        <div><dt>Movement</dt><dd><IndicatorMovement movement={indicator.movement} measurement={indicator.native_measurement}/></dd></div>
         <div><dt>Coverage</dt><dd>{indicator.coverage === undefined ? "No current coverage" : `${formatIndicatorCoverage(indicator.coverage)} · minimum ${formatIndicatorCoverage(indicator.minimum_coverage)}`}</dd></div>
         <div><dt>Updated</dt><dd>{indicator.evaluated_at ? formatIndicatorDate(indicator.evaluated_at) : "No current result"}</dd></div>
       </dl>

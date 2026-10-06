@@ -46,6 +46,7 @@ const RisksWorkspace = lazy(() => import("./components/risks/RisksWorkspace").th
 const LossesWorkspace = lazy(() => import("./components/losses/LossesWorkspace").then((module) => ({ default: module.LossesWorkspace })));
 const RopaActivityPage = lazy(() => import("./components/RopaActivityPage").then((module) => ({ default: module.RopaActivityPage })));
 const ReportsWorkspace = lazy(() => import("./components/reports/ReportsWorkspace").then((module) => ({ default: module.ReportsWorkspace })));
+const InsightsWorkspace = lazy(() => import("./components/insights/InsightsWorkspace").then((module) => ({ default: module.InsightsWorkspace })));
 const EmployeeProfileWorkspace = lazy(() => import("./components/EmployeeProfileWorkspace").then((module) => ({ default: module.EmployeeProfileWorkspace })));
 
 type LoadState = "idle" | "loading" | "live" | "unavailable";
@@ -339,8 +340,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const homeFocus = displayPreferences?.presentation?.effective_home_focus ?? "POSTURE";
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
-    { label: "Portfolio", view: "programs", activeViews: portfolioViews },
     { label: "Work", view: "work", activeViews: ["work"] },
+    { label: "Portfolio", view: "programs", activeViews: portfolioViews },
+    { label: "Insights", view: "insights", activeViews: ["insights"] },
     { label: "Reports", view: "reports", activeViews: ["reports"] },
   ];
   const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
@@ -605,6 +607,21 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       {activeView === "programs" && <ProgramsView organizationName={organizationName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "risks" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading risks…</div>}><RisksWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} actorID={runtime?.actor?.id} targetID={target.riskID} onTarget={(id) => navigate("risks", id ? { riskID: id } : {})} onOpenProgram={(programID) => navigate("programs", { programID, programSection: "monitoring" })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")} onOpenProgramControl={(programID, objectiveID) => navigate("programs", { programID, programSection: "requirements-controls", programItem: { kind: "control-objective", id: objectiveID } })}/></Suspense>}
       {activeView === "losses" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading losses…</div>}><LossesWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.lossID} onTarget={(id) => navigate("losses", id ? { lossID: id } : {})} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")}/></Suspense>}
+      {activeView === "insights" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Insights…</div>}><InsightsWorkspace
+        organizationName={organizationName}
+        legalEntityName={legalEntityName}
+        organizationScopeID={activeOrganizationScope?.id}
+        organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name}
+        organizationScopes={programOrganizationScopes}
+        kind={target.indicatorKind ?? "KRI"}
+        targetID={target.indicatorID}
+        onKindChange={(indicatorKind) => navigate("insights", { indicatorKind })}
+        onTarget={(indicatorID, indicatorKind) => navigate("insights", indicatorID ? { indicatorID, indicatorKind } : { indicatorKind })}
+        onOpenProgram={(programID) => navigate("programs", { programID, programSection: "monitoring" })}
+        onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")}
+        onOpenRisk={(riskID) => navigate("risks", { riskID })}
+        onOpenReports={() => navigate("reports")}
+      /></Suspense>}
       {activeView === "reports" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading reports…</div>}><ReportsWorkspace organizationName={organizationName} legalEntityName={legalEntityName}/></Suspense>}
       {activeView === "ropa" && target.ropaPage !== "reports" && target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity…</div>}><RopaActivityPage activityID={target.ropaActivityID} organizationName={organizationName} legalEntityName={legalEntityName} onBack={() => navigate("ropa")}/></Suspense>}
       {activeView === "ropa" && target.ropaPage !== "reports" && !target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity register…</div>}><RopaRegisterPage organizationName={organizationName} legalEntityName={legalEntityName} onOpenActivity={(id) => navigate("ropa", { ropaPage: "register", ropaActivityID: id })} onOpenReports={() => navigate("ropa", { ropaPage: "reports" })}/></Suspense>}
@@ -626,7 +643,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
 }
 
 function supportsOrganizationScope(view: View) {
-  return view === "oversight" || view === "programs" || view === "risks";
+  return view === "oversight" || view === "programs" || view === "risks" || view === "insights";
 }
 
 function isAuthorityObjectType(value: AttentionItem["action_target_type"]): value is "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST" {

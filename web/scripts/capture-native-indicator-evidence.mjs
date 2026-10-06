@@ -10,8 +10,10 @@ const manifestPath = path.join(outputDir, "manifest.json");
 await mkdir(outputDir, { recursive: true });
 
 const captures = [
-  { name: "181-native-indicator-light-1440x900", state: "native-indicator-detail", theme: "light", viewport: { width: 1440, height: 900 } },
-  { name: "182-native-indicator-dark-mobile-390x844", state: "native-indicator-detail-mobile", theme: "dark", viewport: { width: 390, height: 844 }, touch: true },
+  { name: "181-native-indicator-light-1440x900", state: "native-indicator-detail", fixture: "native-indicator", route: "", theme: "light", viewport: { width: 1440, height: 900 } },
+  { name: "182-native-indicator-dark-mobile-390x844", state: "native-indicator-detail-mobile", fixture: "native-indicator", route: "", theme: "dark", viewport: { width: 390, height: 844 }, touch: true },
+  { name: "183-indicator-insights-light-1440x900", state: "indicator-insights", fixture: "indicator-insights", route: "#insights?kind=KRI", theme: "light", viewport: { width: 1440, height: 900 } },
+  { name: "184-indicator-insights-dark-mobile-390x844", state: "indicator-insights-mobile", fixture: "indicator-insights", route: "#insights?kind=KRI", theme: "dark", viewport: { width: 390, height: 844 }, touch: true },
 ];
 
 const browser = await chromium.launch({ headless: true });
@@ -33,11 +35,27 @@ try {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
-    await page.goto(`${baseURL}/?fixture=native-indicator`, { waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: "Mobile transaction success rate" }).waitFor({ state: "visible" });
-    await page.getByText("98.70%", { exact: true }).first().waitFor({ state: "visible" });
-    await page.getByText("Limit ≥ 99.50%", { exact: true }).first().waitFor({ state: "visible" });
-    await page.getByRole("table", { name: "Mobile transaction success rate observation history" }).waitFor({ state: "visible" });
+    await page.goto(`${baseURL}/?fixture=${capture.fixture}${capture.route}`, { waitUntil: "networkidle" });
+    if (capture.fixture === "native-indicator") {
+      await page.getByRole("heading", { name: "Mobile transaction success rate" }).waitFor({ state: "visible" });
+      await page.getByText("98.70%", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByText("Limit ≥ 99.50%", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByRole("table", { name: "Mobile transaction success rate observation history" }).waitFor({ state: "visible" });
+    } else {
+      await page.getByRole("heading", { name: "Insights" }).waitFor({ state: "visible" });
+      await page.getByRole("table", { name: "Risk indicators" }).waitFor({ state: "visible" });
+      await page.getByText("Mobile transaction success rate", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByText("Failed ATM transactions", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByText("98.70%", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByText("Limit ≥ 99.50%", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByText("-0.40 pp", { exact: true }).first().waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Review indicator for Mobile transaction success rate" }).click();
+      await page.getByRole("heading", { name: "Mobile transaction success rate" }).waitFor({ state: "visible" });
+      if (!page.url().includes("indicator=sample-mobile-success")) throw new Error("Exact Indicator target was not retained in the Insights route.");
+      await page.getByRole("button", { name: "Close" }).click();
+      await page.getByRole("table", { name: "Risk indicators" }).waitFor({ state: "visible" });
+      if (!page.url().includes("#insights?kind=KRI")) throw new Error("Insights return route lost the selected lens.");
+    }
     if (errors.length) throw new Error(`${capture.name} emitted browser errors: ${errors.join("; ")}`);
 
     const metrics = await page.evaluate(() => ({
@@ -72,8 +90,8 @@ async function appendRecord(capture, metrics) {
   }
   manifest.captures.push({
     name: capture.name,
-    route: "",
-    fixture: "native-indicator",
+    route: capture.route,
+    fixture: capture.fixture,
     state: capture.state,
     viewport: capture.viewport,
     theme: capture.theme,
