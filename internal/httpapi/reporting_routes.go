@@ -9,6 +9,7 @@ func (a *API) reportingRoutes() []routeSpec {
 		read("/api/v1/reports/filter-fields", a.listReportFilterFields),
 		read("/api/v1/reports/owners", a.listReportOwners),
 		read("/api/v1/reports/definitions", a.listReportDefinitions),
+		read("/api/v1/reports/matter-board-brief", a.getMatterBoardBriefAvailability),
 		material("/api/v1/reports/definitions", "report.definition.propose", a.proposeReportDefinition, commandPolicy{
 			ObjectType: "REPORT_DEFINITION", Responsibility: authority.ResponsibilityProposer,
 			Materiality: 4, BindLegalEntity: true, ActorField: "maker_id",
