@@ -102,8 +102,8 @@ type NativeMeasurement struct {
 	Value                string                  `json:"value,omitempty"`
 	Limits               []MeasurementLimit      `json:"limits,omitempty"`
 	Condition            MeasurementCondition    `json:"condition,omitempty"`
-	ReportingPeriodStart *time.Time               `json:"reporting_period_start,omitempty"`
-	ReportingPeriodEnd   *time.Time               `json:"reporting_period_end,omitempty"`
+	ReportingPeriodStart *time.Time              `json:"reporting_period_start,omitempty"`
+	ReportingPeriodEnd   *time.Time              `json:"reporting_period_end,omitempty"`
 }
 
 type RuleOutcome string
