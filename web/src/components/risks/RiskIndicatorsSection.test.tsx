@@ -77,6 +77,7 @@ const activeCheck: MonitoringCheck = {
 };
 
 const detail: RiskIndicatorDetail = {
+  kind: "KRI",
   link: {
     id: "indicator-link-1",
     risk_id: risk.id,
