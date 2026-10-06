@@ -31,7 +31,7 @@ type riskIndicatorInterventionRead struct {
 
 type riskIndicatorRead struct {
 	Link                risk.IndicatorLink             `json:"link"`
-	Kind                risk.IndicatorKind             `json:"kind"`             `json:"link"`
+	Kind                risk.IndicatorKind             `json:"kind"`
 	ProgramID           string                         `json:"program_id"`
 	ProgramName         string                         `json:"program_name"`
 	CheckID             string                         `json:"check_id"`
