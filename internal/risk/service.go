@@ -345,6 +345,21 @@ func (s *Service) Get(ctx context.Context, scope Scope, riskID string) (Aggregat
 	return Aggregate{Risk: current, Assessments: assessments, Appetite: appetite, ActiveAppetite: activeAppetite, Controls: controls, Indicators: indicators}, nil
 }
 
+func (s *Service) IndicatorPortfolio(ctx context.Context, scope Scope, filter IndicatorPortfolioFilter) (IndicatorPortfolioPage, error) {
+	if s == nil || s.repository == nil {
+		return IndicatorPortfolioPage{}, ErrInvalid
+	}
+	scope, err := normalizeScope(scope)
+	if err != nil {
+		return IndicatorPortfolioPage{}, err
+	}
+	filter, err = normalizeIndicatorPortfolioFilter(filter)
+	if err != nil {
+		return IndicatorPortfolioPage{}, err
+	}
+	return s.repository.IndicatorPortfolio(ctx, scope, filter)
+}
+
 func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Page, error) {
 	if s == nil || s.repository == nil {
 		return Page{}, ErrInvalid
