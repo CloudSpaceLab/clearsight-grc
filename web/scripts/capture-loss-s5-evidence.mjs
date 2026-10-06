@@ -39,6 +39,10 @@ try {
 
     if (capture.openAuthoring) {
       await page.getByRole("heading", { name: "Losses" }).waitFor({ state: "visible" });
+      await page.getByRole("button", { name: /Organization scope/ }).click();
+      const scopeDialog = page.getByRole("dialog", { name: "Change organization scope" });
+      await scopeDialog.getByRole("button", { name: /Risk Operations/ }).click();
+      await page.getByRole("button", { name: /Organization scope/ }).filter({ hasText: "Risk Operations" }).waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Record loss" }).click();
       const dialog = page.getByRole("dialog", { name: "Record loss" });
       await dialog.waitFor({ state: "visible" });
