@@ -321,6 +321,9 @@ func TestRecordRunDownloadWritesTheActorAndRunReceipt(t *testing.T) {
 	if err != nil || len(claimed) != 1 {
 		t.Fatalf("claim run: claimed=%#v err=%v", claimed, err)
 	}
+	if claimed[0].ID != run.ID {
+		t.Fatalf("claimed run = %s, want %s", claimed[0].ID, run.ID)
+	}
 	ready := claimed[0]
 	ready.Status = RunReady
 	ready.RowCount = 1
