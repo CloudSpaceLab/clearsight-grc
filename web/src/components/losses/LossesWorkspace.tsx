@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ScopeNode } from "../../api";
 import { LossEntryDialog } from "./LossAuthoringDialog";
 import { LossRecord } from "./LossRecord";
 import { LossRegister } from "./LossRegister";
@@ -9,6 +10,7 @@ type Props = {
   legalEntityName?: string;
   organizationScopeID?: string;
   organizationScopeName?: string;
+  organizationScopes?: ScopeNode[];
   targetID?: string;
   onTarget: (id?: string) => void;
   onOpenRisk?: (riskID: string) => void;
@@ -20,6 +22,7 @@ export function LossesWorkspace({
   legalEntityName,
   organizationScopeID,
   organizationScopeName,
+  organizationScopes,
   targetID,
   onTarget,
   onOpenRisk,
@@ -31,6 +34,7 @@ export function LossesWorkspace({
     lossID={targetID}
     organizationScopeID={organizationScopeID}
     organizationScopeName={organizationScopeName}
+    organizationScopes={organizationScopes}
     onBack={() => onTarget(undefined)}
     onOpenRisk={onOpenRisk}
     onOpenMatter={onOpenMatter}
