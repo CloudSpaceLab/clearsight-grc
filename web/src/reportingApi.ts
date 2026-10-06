@@ -10,6 +10,7 @@ import type {
   ReportOwnerOption,
   ReportRun,
   ReportRunInput,
+  MatterBoardBriefAvailability,
   ReportRunParameters,
 } from "./reportingTypes";
 
@@ -87,6 +88,15 @@ export async function listReportFilterFields(signal?: AbortSignal): Promise<Repo
 export async function listReportOwnerOptions(dataset: ReportDefinition["dataset"], signal?: AbortSignal): Promise<ReportOwnerOption[]> {
   const response = await scopedRequest<{ items?: ReportOwnerOption[] }>(`${reportBase}/owners`, { dataset, limit: 200 }, signal, "Couldn’t load assigned owners.");
   return response.items ?? [];
+}
+
+export async function getMatterBoardBriefAvailability(matterID: string, signal?: AbortSignal): Promise<MatterBoardBriefAvailability> {
+  return scopedRequest<MatterBoardBriefAvailability>(
+    `${reportBase}/matter-board-brief`,
+    { matter_id: matterID },
+    signal,
+    "Couldn’t check board brief availability.",
+  );
 }
 
 export async function listReportDefinitions(includeRetired = false, signal?: AbortSignal): Promise<ReportDefinition[]> {
