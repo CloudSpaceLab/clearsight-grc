@@ -50,7 +50,10 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 			SELECT a.*
 			FROM risk_assessments a
 			WHERE a.tenant_id=r.tenant_id AND a.legal_entity_id=r.legal_entity_id AND a.risk_id=r.id
-			ORDER BY a.risk_version DESC,a.id DESC
+			  AND a.assessment_kind IN ('CURRENT','RESIDUAL')
+			ORDER BY a.risk_version DESC,
+			  CASE a.assessment_kind WHEN 'CURRENT' THEN 0 ELSE 1 END,
+			  a.assessed_at DESC,a.created_at DESC,a.id DESC
 			LIMIT 1
 		) la ON true
 		LEFT JOIN LATERAL (

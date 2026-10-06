@@ -1,5 +1,5 @@
 import { requestJSON } from "./http";
-import type { LossAggregate, LossEventType, LossInterventionResponse, LossPage, LossRecoveryStatus, LossStatus } from "./lossTypes";
+import type { LossAggregate, LossCreateInput, LossEventType, LossInterventionResponse, LossPage, LossRecord, LossRecoveryInput, LossRecoveryResponse, LossRecoveryStatus, LossStatus } from "./lossTypes";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -45,6 +45,28 @@ export function openLossIntervention(id: string, expectedVersion: number): Promi
     {
       method: "POST",
       body: JSON.stringify({ expected_version: expectedVersion }),
+    },
+  );
+}
+
+export function createLoss(input: LossCreateInput): Promise<LossRecord> {
+  return requestJSON<LossRecord>(
+    apiBase,
+    "/api/v1/losses",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function recordLossRecovery(id: string, input: LossRecoveryInput): Promise<LossRecoveryResponse> {
+  return requestJSON<LossRecoveryResponse>(
+    apiBase,
+    `/api/v1/losses/${encodeURIComponent(id)}/recoveries`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
     },
   );
 }

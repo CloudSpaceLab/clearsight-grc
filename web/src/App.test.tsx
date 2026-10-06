@@ -60,7 +60,7 @@ vi.mock("./components/oversight/GroupOversightWorkspace", () => ({
   GroupOversightWorkspace: ({ onOpenLegalEntity }: { onOpenLegalEntity: (legalEntityID: string) => void }) => <section><h1>Group posture</h1><button type="button" onClick={() => onOpenLegalEntity("entity-ng-uuid")}>Open current OpCo</button></section>,
 }));
 vi.mock("./components/losses/LossesWorkspace", () => ({
-  LossesWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Losses</h1><output data-testid="loss-target">{targetID}</output></section>,
+  LossesWorkspace: ({ targetID, organizationScopeID, organizationScopeName }: { targetID?: string; organizationScopeID?: string; organizationScopeName?: string }) => <section><h1>Losses</h1><output data-testid="loss-target">{targetID}</output><output data-testid="loss-scope">{organizationScopeID}:{organizationScopeName}</output></section>,
 }));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
@@ -445,7 +445,7 @@ describe("scope and Portfolio integration", () => {
 });
 
 describe("organization scope Portfolio persistence", () => {
-  it("keeps an authoritative area across Programs and Risks and clears it on unsupported lenses", async () => {
+  it("keeps an authoritative area across Programs, Risks and Losses and clears it on unsupported lenses", async () => {
     const scoped = switchableRuntime();
     scoped.scope_hierarchy!.organization_scopes = [
       { id: "scope-bank", code: "BANK", name: "BANK", kind: "ORGANIZATION_UNIT", parent_id: scoped.scope_hierarchy!.current.id, department_path: ["BANK"] },
@@ -465,6 +465,11 @@ describe("organization scope Portfolio persistence", () => {
     fireEvent.click(within(portfolio).getByRole("button", { name: "Risks" }));
     expect(await screen.findByRole("heading", { name: "Risks" })).toBeTruthy();
     await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Risk"));
+
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Losses" }));
+    expect(await screen.findByRole("heading", { name: "Losses" })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Risk"));
+    expect(screen.getByTestId("loss-scope").textContent).toBe("scope-risk:BANK / RISK");
 
     fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Vendors" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria"));

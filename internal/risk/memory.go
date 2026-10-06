@@ -411,7 +411,7 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 		}
 		if filter.AppetitePosition != "" {
 			key := riskKey(value.TenantID, value.LegalEntityID, value.ID)
-			latest := latestAssessment(r.assessments[key])
+			latest := currentPositionAssessment(r.assessments[key])
 			active := latestAppetite(r.appetite[key], filter.AsOf)
 			if effectiveAppetitePosition(value, latest, active) != filter.AppetitePosition {
 				continue
@@ -441,7 +441,7 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 	for _, value := range pageRows {
 		key := riskKey(value.TenantID, value.LegalEntityID, value.ID)
 		summary := Summary{Risk: cloneRisk(value)}
-		if latest := latestAssessment(r.assessments[key]); latest != nil {
+		if latest := currentPositionAssessment(r.assessments[key]); latest != nil {
 			cloned := cloneAssessment(*latest)
 			summary.LatestAssessment = &cloned
 		}
@@ -481,18 +481,37 @@ func effectiveAppetitePosition(value Risk, assessment *Assessment, active *Appet
 	return assessment.AppetitePosition
 }
 
-func latestAssessment(values []Assessment) *Assessment {
-	if len(values) == 0 {
-		return nil
-	}
-	index := 0
-	for i := 1; i < len(values); i++ {
-		if values[i].RiskVersion > values[index].RiskVersion {
+func currentPositionAssessment(values []Assessment) *Assessment {
+	index := -1
+	for i := range values {
+		if values[i].Kind != AssessmentCurrent && values[i].Kind != AssessmentResidual {
+			continue
+		}
+		if index < 0 || currentPositionAssessmentLess(values[index], values[i]) {
 			index = i
 		}
 	}
+	if index < 0 {
+		return nil
+	}
 	value := values[index]
 	return &value
+}
+
+func currentPositionAssessmentLess(current, candidate Assessment) bool {
+	if candidate.RiskVersion != current.RiskVersion {
+		return candidate.RiskVersion > current.RiskVersion
+	}
+	if candidate.Kind != current.Kind {
+		return candidate.Kind == AssessmentCurrent
+	}
+	if !candidate.AssessedAt.Equal(current.AssessedAt) {
+		return candidate.AssessedAt.After(current.AssessedAt)
+	}
+	if !candidate.CreatedAt.Equal(current.CreatedAt) {
+		return candidate.CreatedAt.After(current.CreatedAt)
+	}
+	return candidate.ID > current.ID
 }
 
 func latestAppetite(values []AppetiteStatement, at time.Time) *AppetiteStatement {

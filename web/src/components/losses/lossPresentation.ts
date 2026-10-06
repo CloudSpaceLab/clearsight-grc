@@ -11,6 +11,19 @@ const eventLabels: Record<LossEventType, string> = {
   OTHER: "Other",
 };
 
+export const lossEventTypes: readonly LossEventType[] = [
+  "INTERNAL_FRAUD",
+  "EXTERNAL_FRAUD",
+  "EMPLOYMENT_PRACTICES",
+  "CLIENT_PRODUCTS_BUSINESS_PRACTICES",
+  "DAMAGE_TO_PHYSICAL_ASSETS",
+  "BUSINESS_DISRUPTION_SYSTEM_FAILURES",
+  "EXECUTION_DELIVERY_PROCESS_MANAGEMENT",
+  "OTHER",
+];
+
+export const lossEventOptions = lossEventTypes.map((id) => ({ id, label: eventLabels[id] }));
+
 export function lossEventLabel(value: LossEventType) {
   return eventLabels[value];
 }
@@ -49,4 +62,30 @@ export function formatLossDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return "Unknown";
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+
+export function lossCurrencyFractionDigits(currency: string): number | undefined {
+  const normalized = currency.trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(normalized)) return undefined;
+  try {
+    return new Intl.NumberFormat("en", { style: "currency", currency: normalized }).resolvedOptions().maximumFractionDigits;
+  } catch {
+    return undefined;
+  }
+}
+
+export function lossMajorToMinor(value: string, currency: string): number | undefined {
+  const digits = lossCurrencyFractionDigits(currency);
+  if (digits === undefined) return undefined;
+  const match = /^(?:0|[1-9]\d*)(?:\.(\d+))?$/.exec(value.trim());
+  if (!match) return undefined;
+  const fraction = match[1] ?? "";
+  if (fraction.length > digits) return undefined;
+
+  const whole = value.trim().split(".")[0]!;
+  const scale = 10n ** BigInt(digits);
+  const paddedFraction = digits ? (fraction + "0".repeat(digits)).slice(0, digits) : "";
+  const minor = BigInt(whole) * scale + (paddedFraction ? BigInt(paddedFraction) : 0n);
+  if (minor <= 0n || minor > BigInt(Number.MAX_SAFE_INTEGER)) return undefined;
+  return Number(minor);
 }

@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { listLosses, type LossListParams } from "../../lossApi";
-import type { LossPage, LossRecoveryStatus, LossStatus, LossSummary } from "../../lossTypes";
-import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StatusBadge, type DataColumn } from "../ui";
-import { formatLossDate, formatLossMoney, lossEventLabel, lossStatusLabel, lossStatusTone, recoveryStatusLabel, recoveryStatusTone } from "./lossPresentation";
+import type { LossEventType, LossPage, LossRecoveryStatus, LossStatus, LossSummary } from "../../lossTypes";
+import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StatusBadge, TextField, type DataColumn } from "../ui";
+import { formatLossDate, formatLossMoney, lossEventLabel, lossEventOptions, lossStatusLabel, lossStatusTone, recoveryStatusLabel, recoveryStatusTone } from "./lossPresentation";
 
 type Props = {
   organizationName?: string;
   legalEntityName?: string;
+  organizationScopeID?: string;
+  organizationScopeName?: string;
   onOpenLoss: (id: string) => void;
+  onRecordLoss?: () => void;
   loadPage?: (params?: LossListParams, signal?: AbortSignal) => Promise<LossPage>;
 };
 
@@ -24,11 +27,21 @@ const recoveryOptions: ReadonlyArray<{ id: LossRecoveryStatus; label: string }> 
   { id: "FULL", label: "Fully recovered" },
 ];
 
-export function LossRegister({ organizationName, legalEntityName, onOpenLoss, loadPage = listLosses }: Props) {
-  const scope = legalEntityName || "this legal entity";
+export function LossRegister({
+  organizationName,
+  legalEntityName,
+  organizationScopeID,
+  organizationScopeName,
+  onOpenLoss,
+  onRecordLoss,
+  loadPage = listLosses,
+}: Props) {
+  const scope = organizationScopeName || legalEntityName || "this legal entity";
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<LossStatus>();
   const [recoveryStatus, setRecoveryStatus] = useState<LossRecoveryStatus>();
+  const [eventType, setEventType] = useState<LossEventType>();
+  const [currency, setCurrency] = useState("");
   const [cursors, setCursors] = useState<string[]>([]);
   const [page, setPage] = useState<LossPage>({ items: [] });
   const [state, setState] = useState<LoadState>("loading");
@@ -43,6 +56,9 @@ export function LossRegister({ organizationName, legalEntityName, onOpenLoss, lo
       search: search.trim() || undefined,
       status,
       recoveryStatus,
+      eventType,
+      currency: currency.trim().toUpperCase() || undefined,
+      organizationScopeID,
       cursor: currentCursor,
       limit: 25,
     }, controller.signal).then((value) => {
@@ -54,9 +70,9 @@ export function LossRegister({ organizationName, legalEntityName, onOpenLoss, lo
       setState("error");
     });
     return () => controller.abort();
-  }, [currentCursor, loadPage, recoveryStatus, retry, search, status]);
+  }, [currency, currentCursor, eventType, loadPage, organizationScopeID, recoveryStatus, retry, search, status]);
 
-  const hasFilters = Boolean(search.trim() || status || recoveryStatus);
+  const hasFilters = Boolean(search.trim() || status || recoveryStatus || eventType || currency.trim());
   const resetPage = () => setCursors([]);
   const pagination = cursors.length > 0 || page.next_cursor ? {
     label: "Loss register pages",
@@ -110,6 +126,7 @@ export function LossRegister({ organizationName, legalEntityName, onOpenLoss, lo
         <h1 id="loss-register-heading">Losses</h1>
         <p>Operational losses and recoveries for {scope}.</p>
       </div>
+      {onRecordLoss && <div className="topbar-actions"><Button onPress={onRecordLoss}>Record loss</Button></div>}
     </header>
 
     <FilterBar
@@ -118,10 +135,12 @@ export function LossRegister({ organizationName, legalEntityName, onOpenLoss, lo
         <SearchField label="Search losses" value={search} onChange={(value) => { setSearch(value); resetPage(); }} placeholder="Title, code, cause or description" isLoading={state === "loading"}/>
         <SelectField label="Status" value={status} placeholder="All statuses" options={statusOptions} onChange={(value) => { setStatus(value); resetPage(); }}/>
         <SelectField label="Recovery" value={recoveryStatus} placeholder="All recovery states" options={recoveryOptions} onChange={(value) => { setRecoveryStatus(value); resetPage(); }}/>
+        <SelectField label="Event type" value={eventType} placeholder="All event types" options={lossEventOptions} onChange={(value) => { setEventType(value); resetPage(); }}/>
+        <TextField label="Currency" value={currency} onChange={(value) => { setCurrency(value.toUpperCase()); resetPage(); }} placeholder="All currencies" maxLength={3}/>
       </>}
       resultCount={state === "live" ? page.items.length : undefined}
       resultLabel={(count) => `${count} shown`}
-      onClear={hasFilters ? () => { setSearch(""); setStatus(undefined); setRecoveryStatus(undefined); resetPage(); } : undefined}
+      onClear={hasFilters ? () => { setSearch(""); setStatus(undefined); setRecoveryStatus(undefined); setEventType(undefined); setCurrency(""); resetPage(); } : undefined}
     />
 
     {state === "loading" && page.items.length === 0 && <p className="loss-load-state" role="status">Loading losses…</p>}
