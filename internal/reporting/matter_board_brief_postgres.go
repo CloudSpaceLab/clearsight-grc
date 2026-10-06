@@ -61,7 +61,7 @@ func (r *PostgresRepository) listMatterBoardBriefRows(ctx context.Context, scope
 	required := []string{"matters","matter_actions","matter_decisions","verification_results","operational_losses","operational_loss_recoveries","form_distributions","form_responses","vendor_work","matter_links","programs","monitoring_results"}
 	for _, key := range required {
 		if h[key].IsZero() {
-			return ReportPage{}, &sourceBoundaryError{Source: key}
+			return ReportPage{}, &sourceBoundaryError{Expected: 1, Actual: 0}
 		}
 	}
 	var id, reference, title, status, summary, organizationScope, affectedArea, ownerName string
