@@ -177,7 +177,7 @@ export function LossRecord({
     </header>
 
     <Surface>
-      <dl className="loss-record__state" role="group" aria-label="Current loss state">
+      <div role="group" aria-label="Current loss state">\n        <dl className="loss-record__state">
         <div><dt>Net loss</dt><dd><strong>{formatLossMoney(totals.net_loss_minor, totals.currency)}</strong></dd></div>
         <div><dt>Recovered</dt><dd>{formatLossMoney(totals.recovered_amount_minor, totals.currency)}</dd></div>
         <div><dt>Recovery</dt><dd><StatusBadge tone={recoveryStatusTone(totals.recovery_status)}>{recoveryStatusLabel(totals.recovery_status)}</StatusBadge></dd></div>
