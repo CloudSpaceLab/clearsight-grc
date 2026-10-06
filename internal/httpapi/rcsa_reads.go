@@ -64,7 +64,7 @@ func (a *API) listRCSACycles(w http.ResponseWriter, r *http.Request) {
 	page, err := service.List(r.Context(), scope, rcsa.CycleFilter{
 		Status: rcsa.Status(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("status")))),
 		Cursor: strings.TrimSpace(r.URL.Query().Get("cursor")),
-		Limit:  limit,
+		Limit:  100,
 	})
 	if err != nil {
 		writeRCSAError(w, err)
@@ -73,6 +73,17 @@ func (a *API) listRCSACycles(w http.ResponseWriter, r *http.Request) {
 
 	visible, complete := a.visibleRCSACycleSummaries(r.Context(), actor, page.Items)
 	ownerIDs := make([]string, 0, len(visible))
+	for _, item := range visible {
+		ownerIDs = append(ownerIDs, item.Cycle.FirstLineOwnerID)
+	}
+	nextCursor := page.NextCursor
+	if len(visible) > limit {
+		nextCursor = visible[limit-1].CursorAfter
+		visible = visible[:limit]
+	} else if !complete {
+		nextCursor = ""
+	}
+	ownerIDs = ownerIDs[:0]
 	for _, item := range visible {
 		ownerIDs = append(ownerIDs, item.Cycle.FirstLineOwnerID)
 	}
@@ -88,7 +99,7 @@ func (a *API) listRCSACycles(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	httpx.WriteJSON(w, http.StatusOK, rcsaCyclePageRead{
-		Items: items, NextCursor: page.NextCursor, Complete: complete,
+		Items: items, NextCursor: nextCursor, Complete: complete,
 	})
 }
 
@@ -126,28 +137,28 @@ func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) visibleRCSACycleSummaries(ctx context.Context, actor identity.Actor, items []rcsa.CycleSummary) ([]rcsa.CycleSummary, bool) {
-	visible := make([]rcsa.CycleSummary, 0, len(items))
 	type pendingReview struct {
-		item  rcsa.CycleSummary
+		index int
 		input authority.ResolveInput
 	}
+	allowed := make([]bool, len(items))
 	pending := make([]pendingReview, 0)
-	for _, item := range items {
+	for index, item := range items {
 		if item.Cycle.FirstLineOwnerID == actor.PrincipalID {
-			visible = append(visible, item)
+			allowed[index] = true
 			continue
 		}
 		input, ok := rcsaReviewerReadInput(actor, item.Cycle)
 		if ok {
-			pending = append(pending, pendingReview{item: item, input: input})
+			pending = append(pending, pendingReview{index: index, input: input})
 		}
 	}
 	if len(pending) == 0 {
-		return visible, true
+		return allowedRCSACycles(items, allowed), true
 	}
 	resolver, ok := a.deps.Authority.(authority.BatchResolver)
 	if !ok || resolver == nil {
-		return visible, false
+		return allowedRCSACycles(items, allowed), false
 	}
 	inputs := make([]authority.ResolveInput, len(pending))
 	for index := range pending {
@@ -155,7 +166,7 @@ func (a *API) visibleRCSACycleSummaries(ctx context.Context, actor identity.Acto
 	}
 	outcomes, err := resolver.ResolveMany(ctx, inputs)
 	if err != nil || len(outcomes) != len(pending) {
-		return visible, false
+		return allowedRCSACycles(items, allowed), false
 	}
 	complete := true
 	for index, outcome := range outcomes {
@@ -167,10 +178,20 @@ func (a *API) visibleRCSACycleSummaries(ctx context.Context, actor identity.Acto
 			continue
 		}
 		if outcome.Resolution.AllowsPrincipal(actor.PrincipalID) {
-			visible = append(visible, pending[index].item)
+			allowed[pending[index].index] = true
 		}
 	}
-	return visible, complete
+	return allowedRCSACycles(items, allowed), complete
+}
+
+func allowedRCSACycles(items []rcsa.CycleSummary, allowed []bool) []rcsa.CycleSummary {
+	visible := make([]rcsa.CycleSummary, 0, len(items))
+	for index, item := range items {
+		if index < len(allowed) && allowed[index] {
+			visible = append(visible, item)
+		}
+	}
+	return visible
 }
 
 func (a *API) canReadRCSACycle(ctx context.Context, actor identity.Actor, cycle rcsa.Cycle) bool {

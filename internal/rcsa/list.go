@@ -12,6 +12,7 @@ type CycleSummary struct {
 	Cycle        Cycle `json:"cycle"`
 	RiskCount    int   `json:"risk_count"`
 	ControlCount int   `json:"control_count"`
+	CursorAfter  string `json:"-"`
 }
 
 type CyclePage struct {
@@ -59,7 +60,17 @@ func (s *Service) List(ctx context.Context, scope Scope, filter CycleFilter) (Cy
 	if _, err := decodeCycleCursor(filter.Cursor); err != nil {
 		return CyclePage{}, err
 	}
-	return repository.ListCycles(ctx, normalized, filter)
+	page, err := repository.ListCycles(ctx, normalized, filter)
+	if err != nil {
+		return CyclePage{}, err
+	}
+	for index := range page.Items {
+		page.Items[index].CursorAfter, err = encodeCycleCursor(page.Items[index])
+		if err != nil {
+			return CyclePage{}, err
+		}
+	}
+	return page, nil
 }
 
 func validStatus(status Status) bool {
