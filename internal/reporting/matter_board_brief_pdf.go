@@ -192,7 +192,7 @@ func renderSimplePDF(lines []string) ([]byte, error) {
 		fmt.Fprintf(&output, "%010d 00000 n \n", offsets[index])
 	}
 	fmt.Fprintf(&output, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(objects)+1, xref)
-	if output.Len() > MaxReportRunBytes {
+	if int64(output.Len()) > MaxReportRunBytes {
 		return nil, &reportLimitError{Code: FailureByteLimitExceeded, Limit: "bytes"}
 	}
 	return output.Bytes(), nil
