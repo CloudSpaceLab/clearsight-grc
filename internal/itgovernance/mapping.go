@@ -20,12 +20,12 @@ const (
 var ErrMappingInvalid = errors.New("IT governance source mapping is invalid")
 
 type metricSeriesMappingDocument struct {
-	Schema string                            `json:"schema"`
-	Lens   string                            `json:"lens"`
-	Shape  string                            `json:"shape"`
-	Fields map[string]string                 `json:"fields"`
+	Schema string                             `json:"schema"`
+	Lens   string                             `json:"lens"`
+	Shape  string                             `json:"shape"`
+	Fields map[string]string                  `json:"fields"`
 	Types  map[string]sourceaccess.ScalarKind `json:"types"`
-	Units  map[string]string                 `json:"units"`
+	Units  map[string]string                  `json:"units"`
 }
 
 type MetricSeriesField struct {

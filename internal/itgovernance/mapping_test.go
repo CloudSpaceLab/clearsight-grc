@@ -112,13 +112,13 @@ func TestMetricSeriesRecordRejectsNumericTypeDriftAndInvalidPeriod(t *testing.T)
 	}
 	for name, record := range map[string]sourceaccess.Record{
 		"numeric type drift": {
-			"location": {Kind: sourceaccess.ScalarString, Text: "CAC"},
-			"period": {Kind: sourceaccess.ScalarTime, Text: "2025-11-01T00:00:00Z"},
+			"location":     {Kind: sourceaccess.ScalarString, Text: "CAC"},
+			"period":       {Kind: sourceaccess.ScalarTime, Text: "2025-11-01T00:00:00Z"},
 			"success_rate": {Kind: sourceaccess.ScalarString, Text: "98.7"},
 		},
 		"invalid period": {
 			"location": {Kind: sourceaccess.ScalarString, Text: "CAC"},
-			"period": {Kind: sourceaccess.ScalarTime, Text: "November 2025"},
+			"period":       {Kind: sourceaccess.ScalarTime, Text: "November 2025"},
 			"success_rate": {Kind: sourceaccess.ScalarNumber, Text: "98.7"},
 		},
 	} {
@@ -135,17 +135,17 @@ func metricSeriesFixture(t *testing.T) (sourceaccess.BindingRevision, sourceacce
 	now := time.Date(2026, 10, 6, 8, 0, 0, 0, time.UTC)
 	effective := now.Add(-time.Hour)
 	view := sourceaccess.ViewRevision{
-		RevisionID: "view-revision-1",
-		ViewID: "channel-view",
-		TenantID: "bank",
-		SourceID: "channel-source",
-		ConnectionID: "connection-1",
+		RevisionID:        "view-revision-1",
+		ViewID:            "channel-view",
+		TenantID:          "bank",
+		SourceID:          "channel-source",
+		ConnectionID:      "connection-1",
 		ConnectionVersion: 1,
-		Code: "CHANNEL-METRICS",
-		Name: "Channel metrics",
-		Definition: json.RawMessage(`{"resource":"channel_metrics"}`),
-		OutputKind: sourceaccess.OutputRecords,
-		StableKeys: []string{"location", "period"},
+		Code:              "CHANNEL-METRICS",
+		Name:              "Channel metrics",
+		Definition:        json.RawMessage(`{"resource":"channel_metrics"}`),
+		OutputKind:        sourceaccess.OutputRecords,
+		StableKeys:        []string{"location", "period"},
 		NativeSchema: []sourceaccess.NativeField{
 			{Name: "location", NativeType: "text"},
 			{Name: "period", NativeType: "timestamptz"},
@@ -159,19 +159,19 @@ func metricSeriesFixture(t *testing.T) (sourceaccess.BindingRevision, sourceacce
 		},
 	}
 	binding := sourceaccess.BindingRevision{
-		RevisionID: "binding-revision-1",
-		BindingID: "channel-binding",
+		RevisionID:     "binding-revision-1",
+		BindingID:      "channel-binding",
 		TenantID: "bank",
 		SourceID: "channel-source",
-		ViewID: view.ViewID,
-		ViewVersion: 1,
+		ViewID:         view.ViewID,
+		ViewVersion:    1,
 		Code: "CHANNEL-METRICS",
 		Name: "Channel performance metrics",
-		Purpose: "IT_GOVERNANCE_CHANNEL_PERFORMANCE",
-		Operations: []sourceaccess.Operation{sourceaccess.OperationPage},
+		Purpose:        "IT_GOVERNANCE_CHANNEL_PERFORMANCE",
+		Operations:     []sourceaccess.Operation{sourceaccess.OperationPage},
 		SelectedFields: []string{"location", "period", "tx_count", "success_rate"},
-		KeyFields: []string{"location", "period"},
-		Limits: sourceaccess.DefaultResourceLimits(),
+		KeyFields:      []string{"location", "period"},
+		Limits:         sourceaccess.DefaultResourceLimits(),
 		Mapping: json.RawMessage(`{
 			"schema":"clearsight.it-governance.binding.v1",
 			"lens":"CHANNEL_PERFORMANCE",
@@ -193,9 +193,9 @@ func metricSeriesFixture(t *testing.T) (sourceaccess.BindingRevision, sourceacce
 				"success_rate":"PERCENT"
 			}
 		}`),
-		ParameterSchema: json.RawMessage(`{}`),
-		OutputSchema: json.RawMessage(`{}`),
-		Completeness: sourceaccess.CompletenessRequireFull,
+		ParameterSchema:     json.RawMessage(`{}`),
+		OutputSchema:        json.RawMessage(`{}`),
+		Completeness:        sourceaccess.CompletenessRequireFull,
 		SensitivityHandling: json.RawMessage(`{}`),
 		RevisionLifecycle: sourceaccess.RevisionLifecycle{
 			Status: sourceaccess.RevisionActive, IsCurrent: true, EffectiveFrom: &effective,
