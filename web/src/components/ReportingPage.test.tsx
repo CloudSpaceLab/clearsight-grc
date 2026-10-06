@@ -50,11 +50,26 @@ const api = vi.hoisted(() => ({
   loadDefinitions: vi.fn(),
   createDefinition: vi.fn(),
   transitionDefinition: vi.fn(),
+  loadMatters: vi.fn(),
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
   api.loadDefinitions.mockResolvedValue([active, draft]);
+  api.loadMatters.mockResolvedValue({
+    items: [{
+      matter: {
+        id: "matter-82bf", tenant_id: "tenant-1", legal_entity_id: "entity-1",
+        reference: "MAT-82BF", type: "INCIDENT", status: "ASSESSMENT", priority: 4,
+        title: "Settlement exception", summary: "Review current settlement controls.", scope: {},
+        known_facts: {}, missing_facts: [], contradictions: [], created_at: "2026-10-06T10:00:00Z",
+        updated_at: "2026-10-06T10:00:00Z", version: 3,
+      },
+      type_label: "Incident", status_label: "Assessment", next_action: "Review current settlement controls.",
+      program_count: 1, open_action_count: 2, outcome_check_count: 0,
+    }],
+    generated_at: "2026-10-06T18:00:00Z",
+  });
   api.createDefinition.mockImplementation(async (input) => definition({
     id: "setup-created",
     code: input.code,
@@ -62,6 +77,7 @@ beforeEach(() => {
     description: input.description ?? "",
     dataset: input.dataset,
     scope_kind: input.scope_kind,
+    scope_ref: input.scope_ref,
     format: input.format,
     filter: input.filter,
     status: "DRAFT",
@@ -87,6 +103,7 @@ function renderPage() {
     loadDefinitions={api.loadDefinitions}
     createDefinition={api.createDefinition}
     transitionDefinition={api.transitionDefinition}
+    loadMatters={api.loadMatters}
   />);
 }
 
@@ -126,6 +143,33 @@ describe("ReportingPage saved setups", () => {
       filter: { kind: "group", operator: "and", children: [] },
     });
     expect(String(api.createDefinition.mock.calls[0]?.[0]?.code)).toMatch(/^BOARD_VENDOR_SUMMARY_[0-9A-F]{8}$/);
+  });
+
+  it("creates a governed board brief setup by named Issue without showing its raw ID", async () => {
+    renderPage();
+    await screen.findByRole("table", { name: "Saved setups" });
+
+    fireEvent.click(screen.getByRole("button", { name: "New setup" }));
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Settlement board brief" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /Vendors/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /Board brief/ }));
+
+    await waitFor(() => expect(api.loadMatters).toHaveBeenCalledWith({ q: "", limit: 20 }));
+    expect(await screen.findByText("MAT-82BF — Settlement exception")).toBeTruthy();
+    expect(screen.queryByText("matter-82bf")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Choose an issue/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "MAT-82BF — Settlement exception" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+
+    await waitFor(() => expect(api.createDefinition).toHaveBeenCalledTimes(1));
+    expect(api.createDefinition.mock.calls[0]?.[0]).toMatchObject({
+      dataset: "MATTER_BOARD_BRIEF",
+      scope_kind: "MATTER",
+      scope_ref: "matter-82bf",
+      format: "PDF",
+    });
   });
 
   it("keeps approval as a short contextual next step instead of exposing governance internals", async () => {
