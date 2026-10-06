@@ -28,9 +28,9 @@ const (
 	assignmentNotificationDeliveryStarted    = "DELIVERY_STARTED"
 	assignmentNotificationOutcomeUnknown     = "DELIVERY_OUTCOME_UNKNOWN"
 
-	matterOwnerNotificationKind     = "MATTER_OWNER_ASSIGNED"
-	actionPerformerNotificationKind = "ACTION_PERFORMER_ASSIGNED"
-	actionUpdateNotificationKind    = "ACTION_UPDATE_REQUESTED"
+	matterOwnerNotificationKind      = "MATTER_OWNER_ASSIGNED"
+	actionPerformerNotificationKind  = "ACTION_PERFORMER_ASSIGNED"
+	actionUpdateNotificationKind     = "ACTION_UPDATE_REQUESTED"
 	commentMentionNotificationKind   = "MATTER_COMMENT_MENTIONED"
 	matterEscalationNotificationKind = "MATTER_ESCALATION_ASSIGNED"
 
@@ -46,8 +46,8 @@ type assignmentNotificationEvent struct {
 	UpdateMessage    string
 	UpdateDueAt      *time.Time
 	CommentMentioned bool
-	TaskID            string
-	Responsibility    string
+	TaskID           string
+	Responsibility   string
 }
 
 type AssignmentNotificationTarget struct {
