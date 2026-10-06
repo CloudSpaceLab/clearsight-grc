@@ -85,3 +85,29 @@ export type LossInterventionResponse = {
     matter_type?: string;
   };
 };
+
+export type LossCreateInput = {
+  organization_scope_id?: string;
+  code: string;
+  title: string;
+  event_type: LossEventType;
+  cause: string;
+  description?: string;
+  gross_amount_minor: number;
+  currency: string;
+  occurred_at: string;
+  discovered_at: string;
+};
+
+export type LossRecoveryInput = {
+  expected_version: number;
+  kind: LossRecoveryKind;
+  amount_minor: number;
+  reference?: string;
+  recovered_at: string;
+};
+
+export type LossRecoveryResponse = {
+  loss: LossRecord;
+  recovery: LossRecovery;
+};
