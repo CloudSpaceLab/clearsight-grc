@@ -252,6 +252,10 @@ func retainScopedDomainMembers(
 			if err := targetUUID.Scan(member.TargetID); err != nil || !targetUUID.Valid {
 				return "", ErrDomainMetricsInvalid
 			}
+			organizationUUID, err := optionalDomainUUID(member.OrganizationScopeID)
+			if err != nil {
+				return "", ErrDomainMetricsInvalid
+			}
 			rows = append(rows, []any{
 				sourceUUID,
 				result.Definition.ID,
@@ -259,7 +263,7 @@ func retainScopedDomainMembers(
 				memberUUID,
 				member.TargetType,
 				targetUUID,
-				nullUUID(member.OrganizationScopeID),
+				organizationUUID,
 				member.Title,
 				member.State,
 			})
@@ -308,7 +312,7 @@ func scopedDomainFingerprint(scope domainScope, highWater map[string]time.Time, 
 			Members:    make([]string, 0, len(result.Members)),
 		}
 		for _, member := range result.Members {
-			item.Members = append(item.Members, member.MemberID+":"+member.State)
+			item.Members = append(item.Members, member.MemberID+":"+member.OrganizationScopeID+":"+member.State)
 		}
 		sort.Strings(item.Members)
 		payload.Results = append(payload.Results, item)
@@ -321,16 +325,16 @@ func scopedDomainFingerprint(scope domainScope, highWater map[string]time.Time, 
 	return hex.EncodeToString(sum[:]), nil
 }
 
-func nullUUID(value string) any {
+func optionalDomainUUID(value string) (any, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return nil
+		return nil, nil
 	}
 	var parsed pgtype.UUID
 	if err := parsed.Scan(value); err != nil || !parsed.Valid {
-		return nil
+		return nil, ErrDomainMetricsInvalid
 	}
-	return parsed
+	return parsed, nil
 }
 
 func normalizeDomainScopeIDs(values []string) []string {
