@@ -1,8 +1,5 @@
 BEGIN;
 
-CREATE UNIQUE INDEX matters_form_origin_scope_uq
-    ON matters(id,tenant_id,legal_entity_id);
-
 ALTER TABLE monitoring_form_templates
     ADD COLUMN origin_type text,
     ADD COLUMN origin_id uuid,
