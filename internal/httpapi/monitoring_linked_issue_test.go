@@ -76,7 +76,7 @@ func TestExactMonitoringResultReadPreservesHistoricalSourceAndEntityScope(t *tes
 		ID: "result-2", TenantID: "bank", ProgramID: fixture.program.Program.ID,
 		MonitoringCheckID: fixture.check.ID, MonitoringCheckVersion: fixture.check.Version,
 		InputKind: monitoring.InputSource, InputReferenceID: "receipt-2", InputReferenceVersion: 1,
-		Evaluation: monitoring.Evaluation{Score: &score, Band: monitoring.RiskLow, Coverage: 1},
+		Evaluation:  monitoring.Evaluation{Score: &score, Band: monitoring.RiskLow, Coverage: 1},
 		EvaluatedAt: fixture.result.EvaluatedAt.Add(time.Minute), EvaluatorVersion: "risk-v1", CreatedAt: fixture.result.CreatedAt.Add(time.Minute),
 	})
 	if err != nil {
