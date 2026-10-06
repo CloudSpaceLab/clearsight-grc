@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,11 +14,24 @@ import (
 
 const PostgresChannel = "clearsight_actor_invalidation"
 
-func StartPostgresListener(ctx context.Context, pool *pgxpool.Pool, hub *Hub, logger *slog.Logger) {
+func StartPostgresListener(ctx context.Context, pool *pgxpool.Pool, hub *Hub, logger *slog.Logger) func() {
 	if ctx == nil || pool == nil || hub == nil {
-		return
+		return func() {}
 	}
-	go listenPostgres(ctx, pool, hub, logger)
+	listenerCtx, cancel := context.WithCancel(ctx)
+	var wait sync.WaitGroup
+	wait.Add(1)
+	go func() {
+		defer wait.Done()
+		listenPostgres(listenerCtx, pool, hub, logger)
+	}()
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			cancel()
+			wait.Wait()
+		})
+	}
 }
 
 func listenPostgres(ctx context.Context, pool *pgxpool.Pool, hub *Hub, logger *slog.Logger) {
