@@ -3,6 +3,7 @@ import { createLibraryFormDraft } from "../formsApi";
 import { FocusedSheet } from "./FocusedSheet";
 import { FormBuilder } from "./FormBuilder";
 import { DistributionComposer } from "./forms/DistributionComposer";
+import { SubjectFormActivity } from "./forms/SubjectFormActivity";
 import { Button, Notice } from "./ui";
 
 type Props = {
@@ -29,6 +30,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
     </div>
 
     {notice && <Notice tone="success">{notice}</Notice>}
+    <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference}/>
 
     {authorOpen && <FocusedSheet label="Create linked form" closeLabel="Close form builder" size="wide" onClose={() => setAuthorOpen(false)}>
       <div className="cs-sheet-heading">
