@@ -1,0 +1,326 @@
+{
+  "schema": "clearsight.home-oversight.acceptance-fixture.v1",
+  "purpose": "Issue #368 T0 acceptance data. Illustrative only; not production seed truth.",
+  "as_of": "2026-10-06T18:00:00Z",
+  "legal_entity": {
+    "id": "10000000-0000-4000-8000-000000000001",
+    "name": "Example Bank Nigeria",
+    "currency_context": "MIXED"
+  },
+  "hierarchy_revisions": [
+    {
+      "id": "org-rev-2026-07",
+      "effective_at": "2026-07-01T00:00:00Z"
+    },
+    {
+      "id": "org-rev-2026-10",
+      "effective_at": "2026-10-01T00:00:00Z"
+    }
+  ],
+  "organization_scopes": [
+    {
+      "id": "20000000-0000-4000-8000-000000000001",
+      "name": "Technology",
+      "parent_id": null,
+      "kind": "DIVISION"
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000002",
+      "name": "Operations",
+      "parent_id": null,
+      "kind": "DIVISION"
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000003",
+      "name": "Retail Banking",
+      "parent_id": null,
+      "kind": "DIVISION"
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000004",
+      "name": "Finance",
+      "parent_id": null,
+      "kind": "DIVISION"
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000005",
+      "name": "Corporate Banking",
+      "parent_id": null,
+      "kind": "DIVISION"
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000006",
+      "name": "Infrastructure",
+      "parent_id": "20000000-0000-4000-8000-000000000001",
+      "kind": "DEPARTMENT"
+    }
+  ],
+  "posture_snapshots": [
+    {
+      "as_of": "2026-07-08T18:00:00Z",
+      "hierarchy_revision": "org-rev-2026-07",
+      "outside_appetite": {
+        "Technology": 6,
+        "Operations": 8,
+        "Retail Banking": 5,
+        "Finance": 2,
+        "Corporate Banking": 3,
+        "Infrastructure": 2,
+        "unattributed": 1
+      },
+      "indicator_breaches": {
+        "Technology": 2,
+        "Operations": 3,
+        "Retail Banking": 1,
+        "Finance": 0,
+        "Corporate Banking": 1,
+        "Infrastructure": 1,
+        "unattributed": 0
+      },
+      "assurance_failures": {
+        "Technology": 1,
+        "Operations": 2,
+        "Retail Banking": 1,
+        "Finance": 0,
+        "Corporate Banking": 1,
+        "Infrastructure": 1,
+        "unattributed": 0
+      }
+    },
+    {
+      "as_of": "2026-09-06T18:00:00Z",
+      "hierarchy_revision": "org-rev-2026-07",
+      "outside_appetite": {
+        "Technology": 9,
+        "Operations": 7,
+        "Retail Banking": 6,
+        "Finance": 3,
+        "Corporate Banking": 3,
+        "Infrastructure": 3,
+        "unattributed": 1
+      },
+      "indicator_breaches": {
+        "Technology": 3,
+        "Operations": 2,
+        "Retail Banking": 2,
+        "Finance": 1,
+        "Corporate Banking": 1,
+        "Infrastructure": 1,
+        "unattributed": 0
+      },
+      "assurance_failures": {
+        "Technology": 2,
+        "Operations": 1,
+        "Retail Banking": 1,
+        "Finance": 1,
+        "Corporate Banking": 1,
+        "Infrastructure": 1,
+        "unattributed": 0
+      }
+    },
+    {
+      "as_of": "2026-09-29T18:00:00Z",
+      "hierarchy_revision": "org-rev-2026-07",
+      "outside_appetite": {
+        "Technology": 11,
+        "Operations": 7,
+        "Retail Banking": 7,
+        "Finance": 3,
+        "Corporate Banking": 4,
+        "Infrastructure": 4,
+        "unattributed": 2
+      },
+      "indicator_breaches": {
+        "Technology": 4,
+        "Operations": 2,
+        "Retail Banking": 2,
+        "Finance": 1,
+        "Corporate Banking": 1,
+        "Infrastructure": 2,
+        "unattributed": 0
+      },
+      "assurance_failures": {
+        "Technology": 3,
+        "Operations": 1,
+        "Retail Banking": 2,
+        "Finance": 1,
+        "Corporate Banking": 1,
+        "Infrastructure": 2,
+        "unattributed": 0
+      }
+    },
+    {
+      "as_of": "2026-10-06T18:00:00Z",
+      "hierarchy_revision": "org-rev-2026-10",
+      "outside_appetite": {
+        "Technology": 14,
+        "Operations": 5,
+        "Retail Banking": 7,
+        "Finance": 2,
+        "Corporate Banking": 4,
+        "Infrastructure": 5,
+        "unattributed": 2
+      },
+      "indicator_breaches": {
+        "Technology": 5,
+        "Operations": 1,
+        "Retail Banking": 2,
+        "Finance": 1,
+        "Corporate Banking": 1,
+        "Infrastructure": 2,
+        "unattributed": 1
+      },
+      "assurance_failures": {
+        "Technology": 4,
+        "Operations": 1,
+        "Retail Banking": 2,
+        "Finance": 0,
+        "Corporate Banking": 1,
+        "Infrastructure": 2,
+        "unattributed": 0
+      }
+    }
+  ],
+  "expected_movement": {
+    "seven_day": [
+      {
+        "scope": "Technology",
+        "metric": "risks_outside_appetite",
+        "from": 11,
+        "to": 14,
+        "direction": "WORSENED"
+      },
+      {
+        "scope": "Operations",
+        "metric": "risks_outside_appetite",
+        "from": 7,
+        "to": 5,
+        "direction": "IMPROVED"
+      }
+    ],
+    "thirty_day": [
+      {
+        "scope": "Technology",
+        "metric": "risks_outside_appetite",
+        "from": 9,
+        "to": 14,
+        "direction": "WORSENED"
+      },
+      {
+        "scope": "Operations",
+        "metric": "risks_outside_appetite",
+        "from": 7,
+        "to": 5,
+        "direction": "IMPROVED"
+      }
+    ],
+    "ninety_day": [
+      {
+        "scope": "Technology",
+        "metric": "risks_outside_appetite",
+        "from": 6,
+        "to": 14,
+        "direction": "WORSENED"
+      },
+      {
+        "scope": "Finance",
+        "metric": "risks_outside_appetite",
+        "from": 2,
+        "to": 2,
+        "direction": "UNCHANGED"
+      }
+    ]
+  },
+  "losses": [
+    {
+      "id": "30000000-0000-4000-8000-000000000001",
+      "scope": "Operations",
+      "occurred_at": "2026-09-10T10:00:00Z",
+      "currency": "NGN",
+      "gross_minor": 1800000000,
+      "recovered_minor": 300000000,
+      "net_minor": 1500000000,
+      "status": "ACTIVE"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000002",
+      "scope": "Retail Banking",
+      "occurred_at": "2026-09-24T12:00:00Z",
+      "currency": "NGN",
+      "gross_minor": 900000000,
+      "recovered_minor": 150000000,
+      "net_minor": 750000000,
+      "status": "ACTIVE"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000003",
+      "scope": "Technology",
+      "occurred_at": "2026-10-02T09:00:00Z",
+      "currency": "NGN",
+      "gross_minor": 600000000,
+      "recovered_minor": 0,
+      "net_minor": 600000000,
+      "status": "ACTIVE"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000004",
+      "scope": "Corporate Banking",
+      "occurred_at": "2026-10-03T14:00:00Z",
+      "currency": "USD",
+      "gross_minor": 500000,
+      "recovered_minor": 100000,
+      "net_minor": 400000,
+      "status": "ACTIVE"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000005",
+      "scope": null,
+      "occurred_at": "2026-10-04T08:00:00Z",
+      "currency": "NGN",
+      "gross_minor": 200000000,
+      "recovered_minor": 0,
+      "net_minor": 200000000,
+      "status": "ACTIVE"
+    },
+    {
+      "id": "30000000-0000-4000-8000-000000000006",
+      "scope": "Finance",
+      "occurred_at": "2026-09-01T08:00:00Z",
+      "currency": "NGN",
+      "gross_minor": 300000000,
+      "recovered_minor": 300000000,
+      "net_minor": 0,
+      "status": "VOIDED"
+    }
+  ],
+  "expected_loss_rules": {
+    "selected_period": {
+      "start": "2026-09-07",
+      "end": "2026-10-06"
+    },
+    "occurrence_time_basis": true,
+    "exclude_voided": true,
+    "do_not_sum_mixed_currency": true,
+    "unattributed_visible": true,
+    "ngn_active_period_net_minor": 3050000000,
+    "usd_active_period_net_minor": 400000
+  },
+  "quality_cases": [
+    {
+      "name": "unattributed risk",
+      "expected": "VISIBLE_NOT_DROPPED"
+    },
+    {
+      "name": "mixed currency loss",
+      "expected": "NO_CROSS_CURRENCY_SUM"
+    },
+    {
+      "name": "hierarchy revision change",
+      "expected": "HISTORICAL_REVISION_BOUND"
+    },
+    {
+      "name": "nested Infrastructure scope",
+      "expected": "NO_DOUBLE_COUNT_AT_ANCESTOR"
+    }
+  ]
+}
