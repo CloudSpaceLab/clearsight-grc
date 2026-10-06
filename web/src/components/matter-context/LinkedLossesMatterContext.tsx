@@ -39,7 +39,8 @@ export function LinkedLossesMatterContext({ matterID, onOpenLoss, loadPage = lis
       <div className="matter-record-section-heading">
         <div>
           <span className="eyebrow">Loss and recovery</span>
-          <h2>{page.items.length} linked loss record{page.items.length === 1 ? "" : "s"}</h2>
+          <h2>Linked losses</h2>
+          <span>{page.items.length} shown{page.next_cursor ? " · More available" : ""}</span>
         </div>
       </div>
       <div className="matter-linked-loss-list">
