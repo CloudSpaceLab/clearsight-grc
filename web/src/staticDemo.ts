@@ -1360,32 +1360,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/forms/responses" && method === "GET") {
     if (fixture === "forms-response-history") return clone({ items: [completedResponse] }) as T;
     if (fixture === "matter-workspace-complete") return clone(filterCompletedResponsePopulation(matterWorkspaceResponses(), url)) as T;
-    if (fixture === "program-responses") {
-      const filter = new URLSearchParams(path.split("?")[1] ?? "");
-      const items = programResponsesPopulation().filter((response) =>
-        (!filter.get("subject_type") || response.subject_type === filter.get("subject_type")) &&
-        (!filter.get("subject_id") || response.subject_id === filter.get("subject_id")) &&
-        (filter.get("current_only") === "false" || response.current) &&
-        (!filter.get("search") || response.title.toLowerCase().includes(filter.get("search")!.trim().toLowerCase())) &&
-        (!filter.getAll("band").length || filter.getAll("band").includes(response.score?.band ?? "")) &&
-        (!filter.getAll("mode").length || filter.getAll("mode").includes(response.score?.mode ?? "")) &&
-        (!filter.getAll("score_state").length || filter.getAll("score_state").includes(response.score?.state ?? "")) &&
-        (!filter.get("completed_from") || response.completed_at >= filter.get("completed_from")!) &&
-        (!filter.get("completed_until") || response.completed_at <= filter.get("completed_until")!));
-      const sort = filter.get("sort") ?? "CONCERN_DESC";
-      items.sort((left, right) => {
-        if (sort !== "COMPLETED_DESC") {
-          const a = sort === "CONCERN_DESC" ? left.score?.adverse_score : left.score?.raw_score;
-          const b = sort === "CONCERN_DESC" ? right.score?.adverse_score : right.score?.raw_score;
-          if (a == null && b != null) return 1;
-          if (a != null && b == null) return -1;
-          if (a != null && b != null && a !== b) return sort === "RAW_ASC" ? a - b : b - a;
-        }
-        return right.completed_at.localeCompare(left.completed_at) || right.id.localeCompare(left.id);
-      });
-      const offset = Number(filter.get("cursor") ?? 0), limit = Number(filter.get("limit") ?? 25);
-      return clone({ items: items.slice(offset, offset + limit), next_cursor: items.length > offset + limit ? String(offset + limit) : undefined }) as T;
-    }
+    if (fixture === "program-responses") return clone(filterCompletedResponsePopulation(programResponsesPopulation(), url)) as T;
     return clone({ items: [] }) as T;
   }
   const responseAssessmentMatch = pathname.match(/^\/api\/v1\/forms\/responses\/([^/]+)\/assessment$/);
