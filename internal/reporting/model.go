@@ -49,7 +49,7 @@ const (
 	DatasetPrograms                     ReportDataset = "PROGRAMS"
 	DatasetMatterExceptions             ReportDataset = "MATTER_EXCEPTIONS"
 	DatasetMatters                      ReportDataset = "MATTERS"
-	DatasetMatterBoardBrief            ReportDataset = "MATTER_BOARD_BRIEF"
+	DatasetMatterBoardBrief             ReportDataset = "MATTER_BOARD_BRIEF"
 	DatasetVendors                      ReportDataset = "VENDORS"
 )
 
