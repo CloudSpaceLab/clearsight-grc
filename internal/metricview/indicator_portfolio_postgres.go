@@ -60,7 +60,7 @@ func (r *DomainRepository) ListIndicators(ctx context.Context, tenantID, legalEn
 			       program.id::text program_id,program.name program_name,program.status program_status,
 			       COALESCE(owner.display_name,'') owner_display_name,
 			       COALESCE(reviewer.display_name,'') reviewer_display_name,
-			       result.id::text result_id,result.evaluated_at,
+			       COALESCE(result.id::text,'') result_id,result.evaluated_at,
 			       NULLIF(result.evaluation->>'score','')::double precision score,
 			       COALESCE(result.evaluation->>'band','') band,
 			       NULLIF(result.evaluation->>'coverage','')::double precision coverage,
