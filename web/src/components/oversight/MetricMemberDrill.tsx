@@ -9,8 +9,10 @@ type Props = {
   onPrevious: () => void;
   onNext: () => void;
   onRetry: () => void;
-  onOpenMatter: (id: string) => void;
+  onOpenMatter?: (id: string) => void;
   onOpenProgram?: (id: string) => void;
+  onOpenRisk?: (id: string) => void;
+  onOpenLoss?: (id: string) => void;
 };
 
 export function MetricMemberDrill({
@@ -23,6 +25,8 @@ export function MetricMemberDrill({
   onRetry,
   onOpenMatter,
   onOpenProgram,
+  onOpenRisk,
+  onOpenLoss,
 }: Props) {
   const columns: readonly DataColumn<HomeMetricMember>[] = [
     {
@@ -71,10 +75,12 @@ export function MetricMemberDrill({
       columns={columns}
       onRowAction={(item) => {
         if (!item.accessible || !item.target_id) return;
-        if (item.target_type === "MATTER") onOpenMatter(item.target_id);
-        else onOpenProgram?.(item.target_id);
+        if (item.target_type === "MATTER") onOpenMatter?.(item.target_id);
+        else if (item.target_type === "PROGRAM") onOpenProgram?.(item.target_id);
+        else if (item.target_type === "RISK") onOpenRisk?.(item.target_id);
+        else onOpenLoss?.(item.target_id);
       }}
-      isRowActionDisabled={(item) => !item.accessible || !item.target_id}
+      isRowActionDisabled={(item) => !item.accessible || !item.target_id || !hasOpenAction(item.target_type, { onOpenMatter, onOpenProgram, onOpenRisk, onOpenLoss })}
       rowActionLabel="Open record"
       isLoading={state === "loading"}
       pagination={(hasPrevious || page.next_cursor) ? {
@@ -88,13 +94,26 @@ export function MetricMemberDrill({
     />
     {page.items.some((item) => !item.accessible) &&
       <Notice tone="info">Some records are still part of this historical count but their current access has changed.</Notice>}
-    {page.items.some((item) => item.accessible && item.target_type === "PROGRAM") && !onOpenProgram &&
-      <Notice tone="warning">Program drill is not available from this surface.</Notice>}
+    {page.items.some((item) => item.accessible && !hasOpenAction(item.target_type, { onOpenMatter, onOpenProgram, onOpenRisk, onOpenLoss })) &&
+      <Notice tone="warning">Some record drills are not available from this surface.</Notice>}
   </>;
 }
 
 function recordTypeLabel(value: HomeMetricMember["target_type"]) {
-  return value === "PROGRAM" ? "Program" : "Issue or change";
+  if (value === "PROGRAM") return "Program";
+  if (value === "RISK") return "Risk";
+  if (value === "LOSS") return "Loss";
+  return "Issue or change";
+}
+
+function hasOpenAction(
+  value: HomeMetricMember["target_type"],
+  actions: Pick<Props, "onOpenMatter" | "onOpenProgram" | "onOpenRisk" | "onOpenLoss">,
+) {
+  if (value === "MATTER") return Boolean(actions.onOpenMatter);
+  if (value === "PROGRAM") return Boolean(actions.onOpenProgram);
+  if (value === "RISK") return Boolean(actions.onOpenRisk);
+  return Boolean(actions.onOpenLoss);
 }
 
 function humanize(value: string) {
