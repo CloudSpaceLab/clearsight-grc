@@ -95,7 +95,7 @@ export function ReportingPage({
       if (!active) return;
       setMatterOptions(page.items);
       setMatterState("live");
-      setMatterID((current) => page.items.some((item) => item.id === current) ? current : "");
+      setMatterID((current) => page.items.some((item) => item.matter.id === current) ? current : "");
     }).catch(() => {
       if (!active) return;
       setMatterOptions([]);
@@ -267,7 +267,7 @@ export function ReportingPage({
           label="Issue"
           value={matterID}
           placeholder={matterState === "loading" ? "Loading issues" : "Choose an issue"}
-          options={matterOptions.map((item) => ({ id: item.id, label: `${item.reference} — ${item.title}` }))}
+          options={matterOptions.map((item) => ({ id: item.matter.id, label: `${item.matter.reference} — ${item.matter.title}` }))}
           onChange={(value) => { setMatterID(value || ""); setError(undefined); }}
         />
         {matterState === "error" && <Notice tone="warning">Issues could not be loaded. Retry the search.</Notice>}
