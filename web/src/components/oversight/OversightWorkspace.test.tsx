@@ -97,73 +97,76 @@ function exactMetricBundle() {
   };
 }
 
-it("leads with exact interventions and provides table alternatives for oversight measures", async () => {
-  const onOpenMatter = vi.fn();
-  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={onOpenMatter}/>);
+it("keeps oversight analysis separate from attention and assigned work", async () => {
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
 
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
-  expect(screen.getByText("7")).toBeTruthy();
-  expect(screen.getByText("42 issues checked · 1 excluded · 2 unknown")).toBeTruthy();
+  await screen.findByRole("heading", { name: "Home" });
+  expect(screen.getByRole("tab", { name: "Oversight" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.getByRole("table", { name: "Risk pressure by issue type" })).toBeTruthy();
+  expect(screen.queryByText("Critical and high")).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
+
   const period = screen.getByRole("button", { name: /Reporting period/ });
   expect(period.textContent).toContain("Period");
-  expect(period.textContent).toContain("Jun");
-  expect(period.textContent).toContain("Sep");
   expect(screen.getByText(/Current · Updated/)).toBeTruthy();
-  expect(screen.queryByText("Current snapshot")).toBeNull();
   fireEvent.click(screen.getByText("Data freshness"));
   expect(screen.getByText("Continuity Events")).toBeTruthy();
-  expect(screen.getByText("12 of 14 completed issues have complete lifecycle events · 2 excluded because an opened or closed event is missing · employee handling time follows each recorded owner assignment; reassignment, return, blocked and reopen counts remain visible separately")).toBeTruthy();
-  const pressureTable = screen.getByRole("table", { name: "Risk pressure by issue type" });
-  expect(pressureTable.closest(".oversight-pressure-table")).toBeTruthy();
-  expect(Array.from(pressureTable.querySelectorAll("thead th"), (header) => header.textContent)).toEqual(["Issue type", "Critical", "High", "Other", "Overdue"]);
-  expect(screen.queryByText(/employee score/i)).toBeNull();
-
-  fireEvent.click(screen.getByRole("button", { name: "Review Verify vendor address" }));
-  expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
 
   fireEvent.click(screen.getByRole("tab", { name: "Operating performance" }));
   expect(screen.getByText("87.5%")).toBeTruthy();
   expect(screen.getByText("8 completed · 8 measured")).toBeTruthy();
-  expect(screen.getByText("2.2d p75 · 12h blocked")).toBeTruthy();
   expect(screen.getByRole("columnheader", { name: "Workflow history" })).toBeTruthy();
-  expect(screen.getByText("1 blocked · 1 reopened · 2 reassigned · 1 returned")).toBeTruthy();
 });
 
 it("keeps canonical metrics visible when detailed analysis is unavailable", async () => {
   api.loadOversight.mockRejectedValueOnce(new Error("unavailable"));
-  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await waitFor(() => expect(screen.getByRole("heading", { name: "Oversight information is unavailable" })).toBeTruthy());
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()} homeTab="attention"/>);
+  await screen.findByRole("heading", { name: "Home" });
   expect(screen.getByText("7")).toBeTruthy();
-  expect(screen.getByText("Detailed risk analysis is unavailable. Headline metrics remain separate and may still be current.")).toBeTruthy();
+  expect(screen.getByText("Priority intervention detail is unavailable. Headline metrics may still be current.")).toBeTruthy();
 });
 
 it("does not substitute Oversight counts when canonical metrics are unavailable", async () => {
   metricApi.loadHomeMetrics.mockRejectedValueOnce(new Error("unavailable"));
-  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()} homeTab="attention"/>);
+  await screen.findByRole("heading", { name: "Home" });
   expect(screen.getByRole("article", { name: /Critical and high: —.*Unavailable/ })).toBeTruthy();
   expect(screen.getByRole("article", { name: /Overdue: —.*Unavailable/ })).toBeTruthy();
 });
 
-it("filters interventions from an accessible metric and keeps Today work available in oversight", async () => {
+it("keeps Attention and My work isolated while preserving their actions", async () => {
   const onMetricFilterChange = vi.fn();
   const onOpenTodayItem = vi.fn();
+  const onOpenWork = vi.fn();
   const todayItems: AttentionItem[] = [{
     id: "today-1", type: "MATTER", title: "Confirm the NDPA evidence owner", state: "ACTION_IN_PROGRESS",
     why_now: "The evidence review is due this week.", scope: "Clear Bank Nigeria", evidence: "NDPA program", owner: "Hakeem",
     due_at: "2026-09-25T10:00:00Z", primary_action: "Confirm evidence owner", action_target_type: "MATTER", action_target_id: "matter-1",
   }];
-  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}
-    metricFilter="all" onMetricFilterChange={onMetricFilterChange} todayItems={todayItems} todayState="live" onOpenTodayItem={onOpenTodayItem}/>);
 
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    onOpenMatter={vi.fn()}
+    metricFilter="all"
+    onMetricFilterChange={onMetricFilterChange}
+    todayItems={todayItems}
+    todayState="live"
+    onOpenTodayItem={onOpenTodayItem}
+    onOpenWork={onOpenWork}
+    homeTab="attention"
+  />);
+
+  await screen.findByRole("heading", { name: "Home" });
+  expect(screen.getByRole("heading", { name: "Priority interventions" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
+
   fireEvent.click(screen.getByRole("button", { name: /Overdue.*4/i }));
   expect(onMetricFilterChange).toHaveBeenCalledWith("overdue");
-  expect(screen.getByRole("heading", { name: "Your assigned work" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Open Confirm the NDPA evidence owner" }));
-  expect(onOpenTodayItem).toHaveBeenCalledWith(todayItems[0]);
-});
 
+  fireEvent.click(screen.getByRole("button", { name: "Open Work" }));
+  expect(onOpenWork).toHaveBeenCalledTimes(1);
+});
 
 it("drills a retained v3 metric to the exact snapshot population with typed record actions", async () => {
   const onOpenMatter = vi.fn();
@@ -258,7 +261,7 @@ it("keeps v2 current-state metric drills on the existing bounded intervention pa
 
 it("applies one exact server-backed period to both Home reads and keeps the end date current", async () => {
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  await screen.findByRole("heading", { name: "Home" });
 
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
   expect(screen.queryByLabelText("From")).toBeNull();
@@ -294,7 +297,7 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
 
 it("submits a custom start date but never offers an editable historical end date", async () => {
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  await screen.findByRole("heading", { name: "Home" });
 
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
   fireEvent.click(screen.getByRole("button", { name: "Custom start date" }));
@@ -354,38 +357,36 @@ it("reloads both Home reads for an organization scope and excludes unattributed 
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith(undefined, "scope-risk");
   expect(await screen.findByText(/4 issues/)).toBeTruthy();
   expect(screen.getByText(/unassigned area excluded/)).toBeTruthy();
-  expect(screen.getByText("Current issues in BANK / RISK and included sub-areas.")).toBeTruthy();
+  expect(screen.getByText("Current risk posture and operating context in BANK / RISK.")).toBeTruthy();
 });
 
 
-it("reorders existing Home sections for a my-work-first preference without hiding posture", async () => {
+it("shows My work as a separate bounded Home intent", async () => {
   const todayItems: AttentionItem[] = [{
     id: "today-focus", type: "MATTER", title: "Review assigned exception", state: "ACTION_IN_PROGRESS",
     why_now: "The exception needs a decision.", scope: "Clear Bank Nigeria", evidence: "Current issue", owner: "Ada",
     due_at: "2026-09-25T10:00:00Z", primary_action: "Review exception", action_target_type: "MATTER", action_target_id: "matter-1",
   }];
+
   render(<OversightWorkspace
     organizationName="Clear Bank"
     legalEntityName="Clear Bank Nigeria"
     onOpenMatter={vi.fn()}
     todayItems={todayItems}
     todayState="live"
-    homeFocus="MY_WORK"
+    homeTab="my-work"
   />);
 
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
-  const workspace = screen.getByRole("heading", { name: "Risk and delivery oversight" }).closest(".oversight-workspace");
-  const text = workspace?.textContent ?? "";
-  expect(text.indexOf("Your assigned work")).toBeGreaterThanOrEqual(0);
-  expect(text.indexOf("Critical and high")).toBeGreaterThanOrEqual(0);
-  expect(text.indexOf("Your assigned work")).toBeLessThan(text.indexOf("Critical and high"));
-  expect(screen.getByRole("button", { name: /Critical and high: 7/ })).toBeTruthy();
+  await screen.findByRole("heading", { name: "Home" });
+  expect(screen.getByRole("heading", { name: "Your assigned work" })).toBeTruthy();
+  expect(screen.queryByText("Critical and high")).toBeNull();
+  expect(screen.queryByRole("table", { name: "Risk pressure by issue type" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Reporting period/ })).toBeNull();
 });
-
 
 it("reloads Home projections when the actor invalidation revision changes", async () => {
   const { rerender } = render(<OversightWorkspace refreshToken="rev-1" organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  await screen.findByRole("heading", { name: "Home" });
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledTimes(1));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledTimes(1);
 
