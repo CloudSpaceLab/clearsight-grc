@@ -105,6 +105,7 @@ type CreateCheckInput struct {
 	BindingID               string            `json:"binding_id,omitempty"`
 	BindingVersion          int64             `json:"binding_version,omitempty"`
 	SourceRules             []SourceRule      `json:"source_rules,omitempty"`
+	Measurement             *MeasurementSpec  `json:"measurement,omitempty"`
 	Thresholds              Thresholds        `json:"thresholds"`
 	FreshnessMinutes        int               `json:"freshness_minutes"`
 	MinimumCoverage         float64           `json:"minimum_coverage"`
@@ -576,6 +577,11 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 	if input.FreshnessMinutes < 1 || input.FreshnessMinutes > 525600 || input.MinimumCoverage < 0 || input.MinimumCoverage > 1 {
 		return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("freshness and minimum coverage are invalid"))
 	}
+	measurement, err := normalizeMeasurementSpec(input.Measurement)
+	if err != nil {
+		return MonitoringCheck{}, errors.Join(ErrInvalid, err)
+	}
+	input.Measurement = measurement
 	if input.FailureAction == "" {
 		input.FailureAction = FailureReview
 	}
@@ -602,6 +608,11 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		if !hasFormFieldScoring(form.Fields) {
 			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("the active form revision has no scored questions; create and approve a scored revision before adding a monitoring check"))
 		}
+		if measurement != nil {
+			if err := validateFormMeasurementField(*measurement, form.Fields); err != nil {
+				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
+			}
+		}
 		policy, err := normalizeCollectionPolicy(input.CollectionPolicy)
 		if err != nil {
 			return MonitoringCheck{}, err
@@ -611,8 +622,16 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		if input.BindingID == "" || input.BindingVersion < 1 || input.FormTemplateID != "" || len(input.SourceRules) == 0 || input.CollectionPolicy != nil {
 			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("source checks require one binding revision and at least one rule"))
 		}
+		if measurement != nil && len(measurement.Limits) > 0 {
+			return MonitoringCheck{}, errors.Join(ErrInvalid, fmt.Errorf("source measurement limits come from source rules"))
+		}
 		for _, rule := range input.SourceRules {
 			if err := validateSourceRule(rule); err != nil {
+				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
+			}
+		}
+		if measurement != nil {
+			if err := validateSourceMeasurementRules(*measurement, input.SourceRules); err != nil {
 				return MonitoringCheck{}, errors.Join(ErrInvalid, err)
 			}
 		}
@@ -634,7 +653,8 @@ func (s *Service) CreateCheck(ctx context.Context, actor Actor, input CreateChec
 		FormTemplateID: strings.TrimSpace(input.FormTemplateID), FormTemplateVersion: input.FormTemplateVersion,
 		CollectionPolicy: input.CollectionPolicy,
 		BindingID:        strings.TrimSpace(input.BindingID), BindingVersion: input.BindingVersion, SourceRules: append([]SourceRule(nil), input.SourceRules...),
-		Thresholds: input.Thresholds, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage,
+		Measurement: input.Measurement,
+		Thresholds:  input.Thresholds, FreshnessMinutes: input.FreshnessMinutes, MinimumCoverage: input.MinimumCoverage,
 		OwnerPrincipalID: strings.TrimSpace(input.OwnerPrincipalID), ReviewerPrincipalID: strings.TrimSpace(input.ReviewerPrincipalID), FailureAction: input.FailureAction,
 		Lifecycle: Lifecycle{Status: LifecycleDraft, Version: 1, CreatedBy: actor.PrincipalID, CreatedAt: now, UpdatedAt: now},
 	})
@@ -689,6 +709,17 @@ func (s *Service) ListResults(ctx context.Context, actor Actor, checkID string, 
 	return s.repo.ListResults(ctx, actor.TenantID, checkID, limit)
 }
 
+func (s *Service) ListResultRevisions(ctx context.Context, actor Actor, checkID string, version int64, limit int) ([]MonitoringResult, error) {
+	if err := validateActor(actor); err != nil {
+		return nil, err
+	}
+	checkID = strings.TrimSpace(checkID)
+	if checkID == "" || version < 1 {
+		return nil, errors.Join(ErrInvalid, fmt.Errorf("monitoring check and version are required"))
+	}
+	return s.repo.ListResultRevisions(ctx, actor.TenantID, checkID, version, limit)
+}
+
 func (s *Service) LatestResultRevision(ctx context.Context, actor Actor, checkID string, version int64) (MonitoringResult, error) {
 	if err := validateActor(actor); err != nil {
 		return MonitoringResult{}, err
@@ -708,6 +739,14 @@ func (s *Service) Result(ctx context.Context, actor Actor, resultID string) (Mon
 		return MonitoringResult{}, errors.Join(ErrInvalid, fmt.Errorf("monitoring result is required"))
 	}
 	return s.repo.Result(ctx, actor.TenantID, strings.TrimSpace(resultID))
+}
+
+func copyMeasurementTimeUTC(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	normalized := value.UTC()
+	return &normalized
 }
 
 func EligibleForLinkedIssue(check MonitoringCheck, result MonitoringResult) bool {
@@ -762,6 +801,11 @@ func (s *Service) EvaluateSource(ctx context.Context, actor Actor, input Evaluat
 	if err != nil {
 		return MonitoringResult{}, err
 	}
+	measurement, err := captureSourceMeasurement(check.Measurement, check.SourceRules, resolution)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	evaluation.Measurement = measurement
 	receipt, err := json.Marshal(page.Receipt)
 	if err != nil {
 		return MonitoringResult{}, err
@@ -833,6 +877,15 @@ func (s *Service) evaluateFormSubmission(ctx context.Context, check MonitoringCh
 	if err != nil {
 		return MonitoringResult{}, err
 	}
+	measurement, err := captureFormMeasurement(check.Measurement, submission.Answers)
+	if err != nil {
+		return MonitoringResult{}, err
+	}
+	if measurement != nil {
+		measurement.ReportingPeriodStart = copyMeasurementTimeUTC(request.CollectionPeriodStart)
+		measurement.ReportingPeriodEnd = copyMeasurementTimeUTC(request.CollectionPeriodEnd)
+	}
+	evaluation.Measurement = measurement
 	provenance, err := json.Marshal(map[string]any{
 		"request_id": request.ID, "channel": submission.Channel, "submitted_by": submission.SubmittedBy,
 		"submitted_at": submission.SubmittedAt.UTC(), "answer_provenance": submission.AnswerProvenance,

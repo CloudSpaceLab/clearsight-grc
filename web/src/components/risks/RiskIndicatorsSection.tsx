@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { loadProgramSummaries } from "../../api";
 import { loadMonitoringChecks } from "../../monitoringApi";
-import type { MonitoringCheck } from "../../monitoringTypes";
+import type { MonitoringCheck, MonitoringResult } from "../../monitoringTypes";
 import { linkRiskIndicator, type LinkRiskIndicatorResponse } from "../../riskApi";
 import type { RiskIndicatorDetail, RiskIndicatorKind, RiskIndicatorLink, RiskRecord } from "../../riskTypes";
 import type { ProgramSummary, SummaryPage } from "../../summaryTypes";
-import { Button, DataTable, EmptyState, Notice, SearchField, SelectField, StatusBadge, type DataColumn, type StatusTone } from "../ui";
+import { Button, DataTable, EmptyState, FocusedSheet, Notice, SearchField, SelectField, StatusBadge, type DataColumn } from "../ui";
+import { IndicatorDetail } from "../indicators/IndicatorDetail";
+import { IndicatorValue, indicatorValueAccessibleText } from "../indicators/IndicatorValue";
+import { formatIndicatorCoverage, formatIndicatorDate, indicatorStateLabel, indicatorTone } from "../indicators/indicatorPresentation";
 
 type Props = {
   risk: RiskRecord;
@@ -19,6 +22,7 @@ type Props = {
   onOpenMatter?: (matterID: string) => void;
   searchPrograms?: (query: string) => Promise<SummaryPage<ProgramSummary>>;
   loadChecks?: (programID: string) => Promise<MonitoringCheck[]>;
+  loadIndicatorResults?: (checkID: string, version?: number) => Promise<MonitoringResult[]>;
   linkIndicator?: (
     riskID: string,
     expectedRiskVersion: number,
@@ -45,6 +49,7 @@ export function RiskIndicatorsSection({
   onOpenMatter,
   searchPrograms = searchIndicatorPrograms,
   loadChecks = loadMonitoringChecks,
+  loadIndicatorResults,
   linkIndicator = linkRiskIndicator,
 }: Props) {
   const [linkMode, setLinkMode] = useState(false);
@@ -58,6 +63,7 @@ export function RiskIndicatorsSection({
   const [kind, setKind] = useState<RiskIndicatorKind>("KRI");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [selectedIndicator, setSelectedIndicator] = useState<RiskIndicatorDetail>();
 
   const canLink = Boolean(actorID && risk.owner_principal_id && actorID === risk.owner_principal_id);
   const linkedKeys = useMemo(
@@ -152,17 +158,17 @@ export function RiskIndicatorsSection({
       accessibleText: (item) => indicatorStateLabel(item.state),
     },
     {
-      id: "score",
-      header: "Score",
-      kind: "number",
-      render: (item) => item.score === undefined ? "—" : `${formatScore(item.score)} / ${item.denominator}`,
-      accessibleText: (item) => item.score === undefined ? "No current score" : `${formatScore(item.score)} of ${item.denominator} risk points`,
+      id: "value",
+      header: "Observed value",
+      mobileLayout: "full-width",
+      render: (item) => <IndicatorValue measurement={item.native_measurement} score={item.score} denominator={item.denominator}/>,
+      accessibleText: (item) => indicatorValueAccessibleText(item.native_measurement, item.score, item.denominator),
     },
     {
       id: "coverage",
       header: "Coverage",
-      render: (item) => item.coverage === undefined ? "—" : `${formatPercent(item.coverage)} · min ${formatPercent(item.minimum_coverage)}`,
-      accessibleText: (item) => item.coverage === undefined ? "No current coverage" : `${formatPercent(item.coverage)}, minimum ${formatPercent(item.minimum_coverage)}`,
+      render: (item) => item.coverage === undefined ? "—" : `${formatIndicatorCoverage(item.coverage)} · min ${formatIndicatorCoverage(item.minimum_coverage)}`,
+      accessibleText: (item) => item.coverage === undefined ? "No current coverage" : `${formatIndicatorCoverage(item.coverage)}, minimum ${formatIndicatorCoverage(item.minimum_coverage)}`,
     },
     {
       id: "freshness",
@@ -248,7 +254,7 @@ export function RiskIndicatorsSection({
           allowsEmpty={false}
         />
         {selectedCheck && <p className="risk-indicator-link__contract">
-          Measurement: <strong>0–100 risk points</strong>. Current state comes from check v{selectedCheck.version}, minimum coverage {formatPercent(selectedCheck.minimum_coverage)}, freshness {selectedCheck.freshness_minutes} minutes.
+          {selectedCheck.measurement ? <>Native value: <strong>{selectedCheck.measurement.unit.toLowerCase()}</strong>. Concern remains a separate 0–100 score.</> : <>Measurement: <strong>0–100 concern points</strong>.</>} Current state comes from check v{selectedCheck.version}, minimum coverage {formatIndicatorCoverage(selectedCheck.minimum_coverage)}, freshness {selectedCheck.freshness_minutes} minutes.
         </p>}
         {error && <Notice tone="error">{error}</Notice>}
         <div className="risk-record__link-actions">
@@ -266,44 +272,18 @@ export function RiskIndicatorsSection({
       rowKey={(item) => item.link.id}
       rowName={(item) => `${item.link.kind}, ${item.check_name}, ${indicatorStateLabel(item.state)}`}
       columns={columns}
-      onRowAction={onOpenProgram ? (item) => onOpenProgram(item.program_id) : undefined}
-      rowActionLabel="Open Program"
+      onRowAction={(item) => setSelectedIndicator(item)}
+      rowActionLabel="Open indicator"
     /> : <EmptyState population={risk.name} title="No linked indicators" description="No governed Program monitoring check is linked to this risk."/>}
+    {selectedIndicator && <FocusedSheet label={`${selectedIndicator.link.kind} · ${selectedIndicator.check_name}`} size="wide" onClose={() => setSelectedIndicator(undefined)}>
+      <IndicatorDetail indicator={selectedIndicator} onOpenProgram={onOpenProgram} onOpenMatter={onOpenMatter} loadResults={loadIndicatorResults}/>
+    </FocusedSheet>}
   </section>;
 }
 
 function checkKey(id: string, version: number) {
   return `${id}::${version}`;
 }
-
-function indicatorStateLabel(state: RiskIndicatorDetail["state"]) {
-  if (state === "NORMAL") return "Normal";
-  if (state === "WATCH") return "Watch";
-  if (state === "BREACH") return "Breach";
-  return "Unknown";
-}
-
-function indicatorTone(state: RiskIndicatorDetail["state"]): StatusTone {
-  if (state === "NORMAL") return "success";
-  if (state === "WATCH") return "warning";
-  if (state === "BREACH") return "error";
-  return "unknown";
-}
-
-function formatScore(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
-function formatPercent(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
-
-function formatIndicatorDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.valueOf())) return value;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
-}
-
 
 function matterStatusLabel(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());

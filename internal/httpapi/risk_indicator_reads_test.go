@@ -68,6 +68,41 @@ func TestCurrentRiskIndicatorStatePreservesUnknownSemantics(t *testing.T) {
 	}
 }
 
+func TestCurrentRiskIndicatorStateUsesNativeLimitBeforeConcernBand(t *testing.T) {
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	check := monitoring.MonitoringCheck{
+		ID:               "check-native",
+		Lifecycle:        monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 2},
+		FreshnessMinutes: 60,
+		MinimumCoverage:  1,
+	}
+	result := monitoring.MonitoringResult{
+		MonitoringCheckID:      check.ID,
+		MonitoringCheckVersion: check.Version,
+		EvaluatedAt:            now.Add(-time.Minute),
+		Evaluation: monitoring.Evaluation{
+			Band:     monitoring.RiskLow,
+			Coverage: 1,
+			Measurement: &monitoring.NativeMeasurement{
+				Unit:   monitoring.MeasurementPercent,
+				Value:  "98.70",
+				Limits: []monitoring.MeasurementLimit{{Operator: monitoring.OperatorGreaterOrEqual, Expected: "99.50"}},
+			},
+		},
+	}
+	state, reason := currentRiskIndicatorState(check, result, now)
+	if state != riskIndicatorBreach || reason != "Latest native measurement is outside its approved limit." {
+		t.Fatalf("native breach state=%s reason=%q", state, reason)
+	}
+
+	result.Evaluation.Band = monitoring.RiskCritical
+	result.Evaluation.Measurement.Value = "99.70"
+	state, reason = currentRiskIndicatorState(check, result, now)
+	if state != riskIndicatorNormal || reason != "Latest native measurement is within its approved limit." {
+		t.Fatalf("native within state=%s reason=%q", state, reason)
+	}
+}
+
 func withIndicatorBand(value monitoring.MonitoringResult, band monitoring.RiskBand) monitoring.MonitoringResult {
 	value.Evaluation.Band = band
 	return value
@@ -109,5 +144,31 @@ func TestRiskIndicatorMatterLinkedToProgramRequiresActiveProgramLink(t *testing.
 	}
 	if riskIndicatorMatterLinkedToProgram(linked, "program-2") {
 		t.Fatal("wrong Program was treated as current intervention")
+	}
+}
+
+func TestCurrentRiskIndicatorNativeMeasurementPrefersObservedValue(t *testing.T) {
+	check := monitoring.MonitoringCheck{
+		Measurement: &monitoring.MeasurementSpec{Field: "success_rate", Label: "Success rate", Unit: monitoring.MeasurementPercent, Precision: 2},
+		SourceRules: []monitoring.SourceRule{{
+			ID: "minimum", Field: "success_rate", Operator: monitoring.OperatorGreaterOrEqual, Expected: "99.50", RiskPoints: 100,
+		}},
+	}
+	configured := currentRiskIndicatorNativeMeasurement(check, nil)
+	if configured == nil || configured.Value != "" || len(configured.Limits) != 1 || configured.Limits[0].Expected != "99.50" {
+		t.Fatalf("configured measurement=%#v", configured)
+	}
+
+	result := monitoring.MonitoringResult{Evaluation: monitoring.Evaluation{Measurement: &monitoring.NativeMeasurement{
+		Field: "success_rate", Label: "Success rate", Unit: monitoring.MeasurementPercent, Precision: 2, Value: "98.70",
+		Limits: []monitoring.MeasurementLimit{{Operator: monitoring.OperatorGreaterOrEqual, Expected: "99.50"}},
+	}}}
+	observed := currentRiskIndicatorNativeMeasurement(check, &result)
+	if observed == nil || observed.Value != "98.70" || len(observed.Limits) != 1 {
+		t.Fatalf("observed measurement=%#v", observed)
+	}
+	observed.Limits[0].Expected = "mutated"
+	if result.Evaluation.Measurement.Limits[0].Expected != "99.50" {
+		t.Fatal("indicator read mutated the retained monitoring result")
 	}
 }

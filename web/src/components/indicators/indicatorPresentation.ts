@@ -1,0 +1,56 @@
+import type { RiskIndicatorState } from "../../riskTypes";
+import type { StatusTone } from "../ui";
+
+export function indicatorStateLabel(state: RiskIndicatorState) {
+  if (state === "NORMAL") return "Normal";
+  if (state === "WATCH") return "Watch";
+  if (state === "BREACH") return "Breach";
+  return "Unknown";
+}
+
+export function indicatorTone(state: RiskIndicatorState): StatusTone {
+  if (state === "NORMAL") return "success";
+  if (state === "WATCH") return "warning";
+  if (state === "BREACH") return "error";
+  return "unknown";
+}
+
+export function formatIndicatorDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return value;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+export function formatIndicatorCoverage(value: number) {
+  return `${Math.round(value * 100)}%`;
+}
+
+export function monitoringBandLabel(value: string) {
+  if (value === "LOW") return "Low concern";
+  if (value === "MODERATE") return "Moderate concern";
+  if (value === "HIGH") return "High concern";
+  if (value === "CRITICAL") return "Critical concern";
+  return "Concern not assessed";
+}
+
+export function nativeConditionLabel(value: "WITHIN" | "BREACHED" | "UNKNOWN" | undefined) {
+  if (value === "WITHIN") return "Within limit";
+  if (value === "BREACHED") return "Outside limit";
+  return "Condition unknown";
+}
+
+export function nativeConditionTone(value: "WITHIN" | "BREACHED" | "UNKNOWN" | undefined): StatusTone {
+  if (value === "WITHIN") return "success";
+  if (value === "BREACHED") return "error";
+  return "unknown";
+}
+
+export function formatIndicatorPeriod(start?: string, end?: string) {
+  if (!start || !end) return "Point-in-time observation";
+  const from = new Date(start);
+  const through = new Date(end);
+  if (Number.isNaN(from.valueOf()) || Number.isNaN(through.valueOf())) return "Reporting period unavailable";
+  const formatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+  if (from.toISOString().slice(0, 10) === through.toISOString().slice(0, 10)) return formatter.format(from);
+  return `${formatter.format(from)} – ${formatter.format(through)}`;
+}

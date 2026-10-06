@@ -32,8 +32,8 @@ func TestInsertCheckRevisionSerializesNilSourceRulesAsEmptyArray(t *testing.T) {
 	if !errors.Is(err, errSourceRulesCapture) {
 		t.Fatalf("insertCheckRevision error = %v, want capture sentinel", err)
 	}
-	if len(db.args) != 35 {
-		t.Fatalf("captured %d query arguments, want 35", len(db.args))
+	if len(db.args) != 36 {
+		t.Fatalf("captured %d query arguments, want 36", len(db.args))
 	}
 
 	rules, ok := db.args[14].([]byte)
@@ -42,5 +42,8 @@ func TestInsertCheckRevisionSerializesNilSourceRulesAsEmptyArray(t *testing.T) {
 	}
 	if got := string(rules); got != "[]" {
 		t.Fatalf("source_rules argument = %s, want []", got)
+	}
+	if db.args[35] != nil {
+		t.Fatalf("measurement argument = %#v, want nil", db.args[35])
 	}
 }

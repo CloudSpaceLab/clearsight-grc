@@ -444,12 +444,20 @@ func insertCheckRevision(ctx context.Context, db queryRower, value MonitoringChe
 	if err != nil {
 		return MonitoringCheck{}, errors.Join(ErrInvalid, err)
 	}
+	var measurement any
+	if value.Measurement != nil {
+		encodedMeasurement, encodeErr := json.Marshal(value.Measurement)
+		if encodeErr != nil {
+			return MonitoringCheck{}, errors.Join(ErrInvalid, encodeErr)
+		}
+		measurement = string(encodedMeasurement)
+	}
 	validityMonths, renewalWindowDays, reminderCount := collectionPolicyDatabaseValues(value.CollectionPolicy)
 	created, err := scanCheck(db.QueryRow(ctx, `
-		INSERT INTO monitoring_checks(id,tenant_id,program_id,requirement_id,control_implementation_id,evidence_contract_id,code,name,claim,input_kind,form_template_id,form_template_version,binding_id,binding_version,source_rules,thresholds,freshness_minutes,minimum_coverage,owner_principal_id,reviewer_principal_id,failure_action,status,is_current,effective_from,effective_until,version,created_by,submitted_by,approved_by,rejected_by,created_at,updated_at,validity_months,renewal_window_days,reminder_count)
-		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,NULLIF($6,'')::uuid,$7,$8,$9,$10,NULLIF($11,'')::uuid,NULLIF($12,0),NULLIF($13,'')::uuid,NULLIF($14,0),$15::jsonb,$16::jsonb,$17,$18,NULLIF($19,'')::uuid,NULLIF($20,'')::uuid,$21,$22,$23,$24,$25,$26,NULLIF($27,'')::uuid,NULLIF($28,'')::uuid,NULLIF($29,'')::uuid,NULLIF($30,'')::uuid,$31,$32,$33,$34,$35)
-		RETURNING id::text,tenant_id::text,program_id::text,COALESCE(requirement_id::text,''),COALESCE(control_implementation_id::text,''),COALESCE(evidence_contract_id::text,''),code,name,claim,input_kind,COALESCE(form_template_id::text,''),COALESCE(form_template_version,0),COALESCE(binding_id::text,''),COALESCE(binding_version,0),source_rules,thresholds,freshness_minutes,minimum_coverage,COALESCE(owner_principal_id::text,''),COALESCE(reviewer_principal_id::text,''),failure_action,status,is_current,effective_from,effective_until,version,COALESCE(created_by::text,''),COALESCE(submitted_by::text,''),COALESCE(approved_by::text,''),COALESCE(rejected_by::text,''),created_at,updated_at,validity_months,renewal_window_days,reminder_count`,
-		value.ID, value.TenantID, value.ProgramID, value.RequirementID, value.ControlImplementationID, value.EvidenceContractID, value.Code, value.Name, value.Claim, value.InputKind, value.FormTemplateID, value.FormTemplateVersion, value.BindingID, value.BindingVersion, rules, thresholds, value.FreshnessMinutes, value.MinimumCoverage, value.OwnerPrincipalID, value.ReviewerPrincipalID, value.FailureAction, value.Status, value.IsCurrent, value.EffectiveFrom, value.EffectiveUntil, value.Version, value.CreatedBy, value.SubmittedBy, value.ApprovedBy, value.RejectedBy, value.CreatedAt, value.UpdatedAt, validityMonths, renewalWindowDays, reminderCount))
+		INSERT INTO monitoring_checks(id,tenant_id,program_id,requirement_id,control_implementation_id,evidence_contract_id,code,name,claim,input_kind,form_template_id,form_template_version,binding_id,binding_version,source_rules,thresholds,freshness_minutes,minimum_coverage,owner_principal_id,reviewer_principal_id,failure_action,status,is_current,effective_from,effective_until,version,created_by,submitted_by,approved_by,rejected_by,created_at,updated_at,validity_months,renewal_window_days,reminder_count,measurement)
+		VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,NULLIF($6,'')::uuid,$7,$8,$9,$10,NULLIF($11,'')::uuid,NULLIF($12,0),NULLIF($13,'')::uuid,NULLIF($14,0),$15::jsonb,$16::jsonb,$17,$18,NULLIF($19,'')::uuid,NULLIF($20,'')::uuid,$21,$22,$23,$24,$25,$26,NULLIF($27,'')::uuid,NULLIF($28,'')::uuid,NULLIF($29,'')::uuid,NULLIF($30,'')::uuid,$31,$32,$33,$34,$35,$36::jsonb)
+		RETURNING id::text,tenant_id::text,program_id::text,COALESCE(requirement_id::text,''),COALESCE(control_implementation_id::text,''),COALESCE(evidence_contract_id::text,''),code,name,claim,input_kind,COALESCE(form_template_id::text,''),COALESCE(form_template_version,0),COALESCE(binding_id::text,''),COALESCE(binding_version,0),source_rules,thresholds,freshness_minutes,minimum_coverage,COALESCE(owner_principal_id::text,''),COALESCE(reviewer_principal_id::text,''),failure_action,status,is_current,effective_from,effective_until,version,COALESCE(created_by::text,''),COALESCE(submitted_by::text,''),COALESCE(approved_by::text,''),COALESCE(rejected_by::text,''),created_at,updated_at,validity_months,renewal_window_days,reminder_count,measurement`,
+		value.ID, value.TenantID, value.ProgramID, value.RequirementID, value.ControlImplementationID, value.EvidenceContractID, value.Code, value.Name, value.Claim, value.InputKind, value.FormTemplateID, value.FormTemplateVersion, value.BindingID, value.BindingVersion, rules, thresholds, value.FreshnessMinutes, value.MinimumCoverage, value.OwnerPrincipalID, value.ReviewerPrincipalID, value.FailureAction, value.Status, value.IsCurrent, value.EffectiveFrom, value.EffectiveUntil, value.Version, value.CreatedBy, value.SubmittedBy, value.ApprovedBy, value.RejectedBy, value.CreatedAt, value.UpdatedAt, validityMonths, renewalWindowDays, reminderCount, measurement))
 	return created, mapPostgresError(err)
 }
 
@@ -623,6 +631,28 @@ func (r *PostgresRepository) ListResults(ctx context.Context, tenant, checkID st
 	return values, rows.Err()
 }
 
+func (r *PostgresRepository) ListResultRevisions(ctx context.Context, tenant, checkID string, version int64, limit int) ([]MonitoringResult, error) {
+	rows, err := r.pool.Query(ctx, resultSelect+`
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND r.monitoring_check_id=$2::uuid
+		  AND r.monitoring_check_version=$3::bigint
+		ORDER BY r.evaluated_at DESC,r.id DESC
+		LIMIT $4`, tenant, checkID, version, boundedLimit(limit))
+	if err != nil {
+		return nil, mapPostgresError(err)
+	}
+	defer rows.Close()
+	values := make([]MonitoringResult, 0)
+	for rows.Next() {
+		value, scanErr := scanResult(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		values = append(values, value)
+	}
+	return values, rows.Err()
+}
+
 func (r *PostgresRepository) LatestResultRevision(ctx context.Context, tenant, checkID string, version int64) (MonitoringResult, error) {
 	value, err := scanResult(r.pool.QueryRow(ctx, resultSelect+`
 		WHERE (t.id::text=$1 OR t.slug=$1)
@@ -642,7 +672,7 @@ func (r *PostgresRepository) Result(ctx context.Context, tenant, id string) (Mon
 	return value, mapPostgresError(err)
 }
 
-const checkSelect = `SELECT c.id::text,c.tenant_id::text,c.program_id::text,COALESCE(c.requirement_id::text,''),COALESCE(c.control_implementation_id::text,''),COALESCE(c.evidence_contract_id::text,''),c.code,c.name,c.claim,c.input_kind,COALESCE(c.form_template_id::text,''),COALESCE(c.form_template_version,0),COALESCE(c.binding_id::text,''),COALESCE(c.binding_version,0),c.source_rules,c.thresholds,c.freshness_minutes,c.minimum_coverage,COALESCE(c.owner_principal_id::text,''),COALESCE(c.reviewer_principal_id::text,''),c.failure_action,c.status,c.is_current,c.effective_from,c.effective_until,c.version,COALESCE(c.created_by::text,''),COALESCE(c.submitted_by::text,''),COALESCE(c.approved_by::text,''),COALESCE(c.rejected_by::text,''),c.created_at,c.updated_at,c.validity_months,c.renewal_window_days,c.reminder_count FROM monitoring_checks c JOIN tenants t ON t.id=c.tenant_id`
+const checkSelect = `SELECT c.id::text,c.tenant_id::text,c.program_id::text,COALESCE(c.requirement_id::text,''),COALESCE(c.control_implementation_id::text,''),COALESCE(c.evidence_contract_id::text,''),c.code,c.name,c.claim,c.input_kind,COALESCE(c.form_template_id::text,''),COALESCE(c.form_template_version,0),COALESCE(c.binding_id::text,''),COALESCE(c.binding_version,0),c.source_rules,c.thresholds,c.freshness_minutes,c.minimum_coverage,COALESCE(c.owner_principal_id::text,''),COALESCE(c.reviewer_principal_id::text,''),c.failure_action,c.status,c.is_current,c.effective_from,c.effective_until,c.version,COALESCE(c.created_by::text,''),COALESCE(c.submitted_by::text,''),COALESCE(c.approved_by::text,''),COALESCE(c.rejected_by::text,''),c.created_at,c.updated_at,c.validity_months,c.renewal_window_days,c.reminder_count,c.measurement FROM monitoring_checks c JOIN tenants t ON t.id=c.tenant_id`
 const resultSelect = `SELECT r.id::text,r.tenant_id::text,r.program_id::text,r.monitoring_check_id::text,r.monitoring_check_version,r.input_kind,r.input_reference_id,r.input_reference_version,r.evaluation,r.source_receipt,r.submission_provenance,r.evaluated_at,r.evaluator_version,r.created_at FROM monitoring_results r JOIN tenants t ON t.id=r.tenant_id`
 const formProjection = `f.id::text,f.tenant_id::text,COALESCE(f.legal_entity_id::text,''),COALESCE(f.program_id::text,''),f.code,f.name,f.purpose,
 	COALESCE(f.owner_principal_id::text,''),f.responsible_team,f.approved_uses,f.tags,f.jurisdiction,f.industry,f.sensitivity,f.scoring_mode,f.score_profile,f.next_review_at,COALESCE(f.starter_catalog_code,''),COALESCE(f.starter_catalog_version,0),
@@ -686,9 +716,9 @@ func scanFormWithExtra(row scanner, extra ...any) (FormTemplate, error) {
 
 func scanCheck(row scanner) (MonitoringCheck, error) {
 	var value MonitoringCheck
-	var rules, thresholds []byte
+	var rules, thresholds, measurement []byte
 	var validityMonths, renewalWindowDays, reminderCount *int
-	err := row.Scan(&value.ID, &value.TenantID, &value.ProgramID, &value.RequirementID, &value.ControlImplementationID, &value.EvidenceContractID, &value.Code, &value.Name, &value.Claim, &value.InputKind, &value.FormTemplateID, &value.FormTemplateVersion, &value.BindingID, &value.BindingVersion, &rules, &thresholds, &value.FreshnessMinutes, &value.MinimumCoverage, &value.OwnerPrincipalID, &value.ReviewerPrincipalID, &value.FailureAction, &value.Status, &value.IsCurrent, &value.EffectiveFrom, &value.EffectiveUntil, &value.Version, &value.CreatedBy, &value.SubmittedBy, &value.ApprovedBy, &value.RejectedBy, &value.CreatedAt, &value.UpdatedAt, &validityMonths, &renewalWindowDays, &reminderCount)
+	err := row.Scan(&value.ID, &value.TenantID, &value.ProgramID, &value.RequirementID, &value.ControlImplementationID, &value.EvidenceContractID, &value.Code, &value.Name, &value.Claim, &value.InputKind, &value.FormTemplateID, &value.FormTemplateVersion, &value.BindingID, &value.BindingVersion, &rules, &thresholds, &value.FreshnessMinutes, &value.MinimumCoverage, &value.OwnerPrincipalID, &value.ReviewerPrincipalID, &value.FailureAction, &value.Status, &value.IsCurrent, &value.EffectiveFrom, &value.EffectiveUntil, &value.Version, &value.CreatedBy, &value.SubmittedBy, &value.ApprovedBy, &value.RejectedBy, &value.CreatedAt, &value.UpdatedAt, &validityMonths, &renewalWindowDays, &reminderCount, &measurement)
 	if err != nil {
 		return MonitoringCheck{}, err
 	}
@@ -697,6 +727,11 @@ func scanCheck(row scanner) (MonitoringCheck, error) {
 	}
 	if err := json.Unmarshal(thresholds, &value.Thresholds); err != nil {
 		return MonitoringCheck{}, err
+	}
+	if len(measurement) > 0 && string(measurement) != "null" {
+		if err := json.Unmarshal(measurement, &value.Measurement); err != nil {
+			return MonitoringCheck{}, err
+		}
 	}
 	if validityMonths != nil && renewalWindowDays != nil && reminderCount != nil {
 		value.CollectionPolicy = &CollectionPolicy{ValidityMonths: *validityMonths, RenewalWindowDays: *renewalWindowDays, ReminderCount: *reminderCount}

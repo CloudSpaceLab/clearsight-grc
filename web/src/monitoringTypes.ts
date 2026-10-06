@@ -2,6 +2,28 @@ import type { CaptureFieldConstraints, CapturePresentation, CaptureSection, Capt
 
 export type LifecycleStatus = "DRAFT" | "PENDING_APPROVAL" | "ACTIVE" | "REJECTED" | "PAUSED" | "RETIRED";
 export type RiskBand = "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "NOT_ASSESSED";
+export type SourceOperator = "EQUALS" | "NOT_EQUALS" | "GREATER_THAN" | "GREATER_OR_EQUAL" | "LESS_THAN" | "LESS_OR_EQUAL" | "PRESENT" | "MAX_AGE_MINUTES";
+export type MonitoringMeasurementUnit = "COUNT" | "PERCENT" | "DURATION" | "MONEY";
+export type MonitoringDurationUnit = "SECONDS" | "MINUTES" | "HOURS" | "DAYS";
+export type MonitoringMeasurementLimit = { operator: SourceOperator; expected: string };
+export type MonitoringMeasurementSpec = {
+  field: string;
+  label?: string;
+  unit: MonitoringMeasurementUnit;
+  currency?: string;
+  duration_unit?: MonitoringDurationUnit;
+  precision?: number;
+  limits?: MonitoringMeasurementLimit[];
+};
+export type MonitoringMeasurementCondition = "WITHIN" | "BREACHED" | "UNKNOWN";
+export type MonitoringNativeMeasurement = MonitoringMeasurementSpec & {
+  value?: string;
+  limits?: MonitoringMeasurementLimit[];
+  condition?: MonitoringMeasurementCondition;
+  reporting_period_start?: string;
+  reporting_period_end?: string;
+};
+export type MonitoringSourceRule = { id: string; field: string; operator: SourceOperator; expected?: string; risk_points: number; critical?: boolean };
 export type FormScoringMode = "NONE" | "RISK" | "COMPLIANCE";
 export type FormScoreDirection = "HIGH_IS_POOR" | "LOW_IS_POOR";
 export type FormConcernBand = "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
@@ -123,6 +145,8 @@ export type MonitoringCheck = Lifecycle & {
   collection_policy?: CollectionPolicy;
   binding_id?: string;
   binding_version?: number;
+  source_rules?: MonitoringSourceRule[];
+  measurement?: MonitoringMeasurementSpec;
   thresholds: { moderate_from: number; high_from: number; critical_from: number };
   freshness_minutes: number;
   minimum_coverage: number;
@@ -161,6 +185,7 @@ export type MonitoringResult = {
     score?: number;
     band: RiskBand;
     coverage: number;
+    measurement?: MonitoringNativeMeasurement;
     critical_failures?: Array<{ rule_id?: string; field_id: string; outcome: "PASS" | "FAIL" | "INDETERMINATE"; points: number; critical?: boolean; reason: string }>;
     rule_results?: Array<{ rule_id?: string; field_id: string; outcome: "PASS" | "FAIL" | "INDETERMINATE"; points: number; critical?: boolean; reason: string }>;
   };

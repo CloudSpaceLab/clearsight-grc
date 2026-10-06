@@ -345,6 +345,72 @@ func TestMonitoringListCannotCrossTenant(t *testing.T) {
 	}
 }
 
+func TestMonitoringResultsCanBindExactCheckRevision(t *testing.T) {
+	repo := monitoring.NewMemoryRepository()
+	programs := continuity.NewService(continuity.NewMemoryRepository())
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	program, err := programs.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{
+		TenantID: "bank-a", LegalEntityID: "entity-a", Code: "CHANNEL", Name: "Channel assurance", Type: "CHANNEL", OwningFunction: "Technology",
+		OwnerPrincipalID: "owner-a", AuthorityPrincipalID: "reviewer-a", EffectiveFrom: now.Add(-time.Hour), ActorID: "owner-a", Scope: json.RawMessage(`{}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, version := range []int64{1, 2} {
+		_, err = repo.CreateCheckRevision(t.Context(), monitoring.MonitoringCheck{
+			ID: "check-history", TenantID: "bank-a", ProgramID: program.Program.ID, Code: "SUCCESS-RATE", Name: "Success rate", Claim: "Success remains within the approved limit.",
+			InputKind: monitoring.InputSource, BindingID: "binding-1", BindingVersion: 1,
+			SourceRules: []monitoring.SourceRule{{ID: "minimum", Field: "success_rate", Operator: monitoring.OperatorGreaterOrEqual, Expected: "99.5", RiskPoints: 100}},
+			Thresholds:  monitoring.DefaultThresholds(), FreshnessMinutes: 60, MinimumCoverage: 1, FailureAction: monitoring.FailureReview,
+			Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: version == 2, Version: version, CreatedAt: now, UpdatedAt: now},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, result := range []monitoring.MonitoringResult{
+		{
+			ID: "result-v1", TenantID: "bank-a", ProgramID: program.Program.ID, MonitoringCheckID: "check-history", MonitoringCheckVersion: 1,
+			InputKind: monitoring.InputSource, InputReferenceID: "receipt-v1", InputReferenceVersion: 1,
+			Evaluation: monitoring.Evaluation{Band: monitoring.RiskLow, Coverage: 1}, EvaluatedAt: now.Add(-2 * time.Hour), EvaluatorVersion: "risk-v1", CreatedAt: now.Add(-2 * time.Hour),
+		},
+		{
+			ID: "result-v2", TenantID: "bank-a", ProgramID: program.Program.ID, MonitoringCheckID: "check-history", MonitoringCheckVersion: 2,
+			InputKind: monitoring.InputSource, InputReferenceID: "receipt-v2", InputReferenceVersion: 1,
+			Evaluation: monitoring.Evaluation{Band: monitoring.RiskHigh, Coverage: 1}, EvaluatedAt: now.Add(-time.Hour), EvaluatorVersion: "risk-v1", CreatedAt: now.Add(-time.Hour),
+		},
+	} {
+		if _, err = repo.AppendResult(t.Context(), result); err != nil {
+			t.Fatal(err)
+		}
+	}
+	handler := New(Dependencies{
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Identity: identity.NewDevelopmentAuthenticator("bank-a", "viewer-a", "entity-a"),
+		Monitoring: monitoring.NewService(repo, nil), Continuity: programs,
+	})
+
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/v1/monitoring-checks/check-history/results?version=2&limit=20", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("exact history returned %d: %s", response.Code, response.Body.String())
+	}
+	var payload struct {
+		Items []monitoring.MonitoringResult `json:"items"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Items) != 1 || payload.Items[0].ID != "result-v2" || payload.Items[0].MonitoringCheckVersion != 2 {
+		t.Fatalf("exact revision history = %#v", payload.Items)
+	}
+
+	invalid := httptest.NewRecorder()
+	handler.ServeHTTP(invalid, httptest.NewRequest(http.MethodGet, "/api/v1/monitoring-checks/check-history/results?version=-1", nil))
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid version returned %d: %s", invalid.Code, invalid.Body.String())
+	}
+}
+
 func TestMonitoringProgramReadsBindTheExactRecordEntity(t *testing.T) {
 	continuityService := continuity.NewService(continuity.NewMemoryRepository())
 	program, err := continuityService.CreateProgram(continuity.WithTrustedSystemScope(t.Context()), continuity.CreateProgramInput{

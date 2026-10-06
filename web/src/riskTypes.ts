@@ -1,3 +1,5 @@
+import type { MonitoringNativeMeasurement } from "./monitoringTypes";
+
 export type RiskStatus = "DRAFT" | "ACTIVE" | "RETIRED";
 export type RiskAssessmentKind = "INHERENT" | "CURRENT" | "RESIDUAL" | "TARGET" | "STRESSED" | "ACCEPTED";
 export type RiskAppetitePosition = "WITHIN" | "APPROACHING" | "BREACHED" | "UNKNOWN";
@@ -44,6 +46,7 @@ export type RiskIndicatorDetail = {
   measurement: RiskIndicatorMeasurement;
   unit: "RISK_POINTS";
   denominator: 100;
+  native_measurement?: MonitoringNativeMeasurement;
   state: RiskIndicatorState;
   reason: string;
   score?: number;

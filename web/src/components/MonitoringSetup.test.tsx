@@ -170,11 +170,35 @@ describe("monitoring setup", () => {
 
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={[]}/>);
 
-    expect(await screen.findByText("100% risk")).toBeTruthy();
+    expect(await screen.findByText("100 concern points")).toBeTruthy();
     expect(screen.getByText("100% coverage")).toBeTruthy();
     expect(screen.getByText("Critical")).toBeTruthy();
     fireEvent.click(screen.getByText("Review result"));
     expect(screen.getByText("Was identity verified?")).toBeTruthy();
+  });
+
+  it("shows the native connected-data value separately from concern and loads the exact check revision", async () => {
+    vi.mocked(loadMonitoringChecks).mockResolvedValue([{
+      id: "check-source", tenant_id: "bank-1", program_id: "program-1", code: "MOBILE-SUCCESS", name: "Mobile success rate", claim: "Mobile transaction success remains above the approved limit.", input_kind: "SOURCE",
+      binding_id: "binding-1", binding_version: 1, source_rules: [{ id: "minimum", field: "success_rate", operator: "GREATER_OR_EQUAL", expected: "99.5", risk_points: 100, critical: true }],
+      measurement: { field: "success_rate", unit: "PERCENT", precision: 2 },
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 }, freshness_minutes: 60, minimum_coverage: 1,
+      failure_action: "RECOMMEND_MATTER", status: "ACTIVE", is_current: true, version: 4, created_at: "2026-10-05T08:00:00Z", updated_at: "2026-10-05T08:00:00Z",
+    }]);
+    vi.mocked(loadMonitoringResults).mockResolvedValue([{
+      id: "result-native", monitoring_check_id: "check-source", monitoring_check_version: 4, evaluated_at: "2026-10-05T10:00:00Z",
+      evaluation: {
+        score: 100, band: "CRITICAL", coverage: 1,
+        measurement: { field: "success_rate", unit: "PERCENT", precision: 2, value: "98.70", limits: [{ operator: "GREATER_OR_EQUAL", expected: "99.5" }] },
+      },
+    }]);
+
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources={false} operations={[]}/>);
+
+    expect(await screen.findByText("98.70%")).toBeTruthy();
+    expect(screen.getByText("Limit ≥ 99.50%")).toBeTruthy();
+    expect(screen.getByText("100 / 100 concern")).toBeTruthy();
+    expect(loadMonitoringResults).toHaveBeenCalledWith("check-source", 4);
   });
 
   it("creates a channel Program from business fields without technical identifiers", async () => {
@@ -217,12 +241,12 @@ describe("monitoring setup", () => {
     fireEvent.change(screen.getByLabelText("Code"), { target: { value: "FACE-SDK" } });
     fireEvent.change(screen.getByLabelText("Status endpoint"), { target: { value: "https://status.example/sdk" } });
     fireEvent.click(screen.getByRole("button", { name: "Test endpoint" }));
-    expect(await screen.findByLabelText("Status field")).toBeTruthy();
+    expect(await screen.findByLabelText("Observed field")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Monitoring statement"), { target: { value: "The live face verification SDK is enabled on mobile banking." } });
     fireEvent.change(screen.getByLabelText("Expected value"), { target: { value: "true" } });
     fireEvent.click(screen.getByRole("button", { name: "Use this source" }));
     await waitFor(() => expect(createRESTBinding).toHaveBeenCalledWith(prepared, "sdk_present"));
-    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ binding_id: "binding-1" }), expect.objectContaining({ field: "sdk_present", expected: "true", claim: "The live face verification SDK is enabled on mobile banking." }));
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ binding_id: "binding-1" }), expect.objectContaining({ field: "sdk_present", expected: "true", operator: "EQUALS", claim: "The live face verification SDK is enabled on mobile banking." }));
   });
 
   it("does not start source configuration without configuration access", async () => {
@@ -453,4 +477,36 @@ describe("monitoring setup", () => {
     expect(loadMonitoringChecks).toHaveBeenCalledTimes(3);
   });
   vi.mocked(loadProgramOperations).mockResolvedValue({ program_id: "program-1", program_version: 1, authority_available: true, operations: ownerOperations, generated_at: "2026-08-26T00:00:00Z" });
+});
+
+
+it("configures a numeric endpoint as a native percent Indicator", async () => {
+  const prepared = {
+    source: { id: "source-2", tenant_id: "bank-1", code: "CHANNEL", name: "Mobile success rate", type: "SYSTEM", authority_class: "INTERNAL_CONTROL", expected_freshness_minutes: 60, health: "UNKNOWN", status: "ACTIVE", version: 1 },
+    connection: { connection_id: "connection-2", source_id: "source-2", version: 1, code: "CHANNEL-REST", name: "Endpoint", status: "DRAFT" },
+    view: { view_id: "view-2", connection_id: "connection-2", connection_version: 1, source_id: "source-2", version: 2, code: "CHANNEL-STATUS", name: "Status", native_schema: [{ name: "success_rate", native_type: "json:number", nullable: false }] },
+  };
+  vi.mocked(prepareRESTSource).mockResolvedValue(prepared);
+  vi.mocked(createRESTBinding).mockResolvedValue({ binding_id: "binding-2", view_id: "view-2", view_version: 3, source_id: "source-2", version: 1, code: "CHANNEL-MONITOR", name: "Monitoring", status: "DRAFT", selected_fields: ["success_rate"] });
+
+  const onSaved = vi.fn();
+  render(<DataSourceBuilder onSaved={onSaved} onCancel={vi.fn()}/>);
+  fireEvent.change(screen.getByLabelText("Source name"), { target: { value: "Mobile success rate" } });
+  fireEvent.change(screen.getByLabelText("Code"), { target: { value: "CHANNEL" } });
+  fireEvent.change(screen.getByLabelText("Status endpoint"), { target: { value: "https://status.example/mobile" } });
+  fireEvent.click(screen.getByRole("button", { name: "Test endpoint" }));
+
+  await screen.findByLabelText("Observed field");
+  fireEvent.change(screen.getByLabelText("Condition"), { target: { value: "GREATER_OR_EQUAL" } });
+  fireEvent.change(screen.getByLabelText("Expected value"), { target: { value: "99.5" } });
+  fireEvent.change(screen.getByLabelText("Display value as"), { target: { value: "PERCENT" } });
+  fireEvent.change(screen.getByLabelText("Decimal places"), { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Use this source" }));
+
+  await waitFor(() => expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ binding_id: "binding-2" }), expect.objectContaining({
+    field: "success_rate",
+    expected: "99.5",
+    operator: "GREATER_OR_EQUAL",
+    measurement: { field: "success_rate", unit: "PERCENT", precision: 2 },
+  })));
 });

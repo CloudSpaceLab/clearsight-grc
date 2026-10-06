@@ -114,3 +114,39 @@ func TestEvaluateSourceStaleOrPartialInputIsNotAssessed(t *testing.T) {
 		})
 	}
 }
+
+func TestCompareScalarKeepsExactDecimalOrdering(t *testing.T) {
+	passed, err := compareScalar(
+		sourceaccess.Scalar{Kind: sourceaccess.ScalarNumber, Text: "9007199254740993"},
+		SourceRule{ID: "precise", Field: "value", Operator: OperatorGreaterThan, Expected: "9007199254740992"},
+		time.Now().UTC(),
+	)
+	if err != nil {
+		t.Fatalf("compare exact decimal: %v", err)
+	}
+	if !passed {
+		t.Fatal("exact decimal comparison collapsed distinct integer values")
+	}
+}
+
+func TestCompareScalarNumericEqualityIsExact(t *testing.T) {
+	for _, test := range []struct {
+		operator SourceOperator
+		actual   string
+		expected string
+		want     bool
+	}{
+		{operator: OperatorEquals, actual: "1.0", expected: "1", want: true},
+		{operator: OperatorNotEquals, actual: "1.00", expected: "1", want: false},
+		{operator: OperatorNotEquals, actual: "1.0001", expected: "1", want: true},
+	} {
+		passed, err := compareScalar(
+			sourceaccess.Scalar{Kind: sourceaccess.ScalarNumber, Text: test.actual},
+			SourceRule{ID: "numeric-equality", Field: "value", Operator: test.operator, Expected: test.expected},
+			time.Now().UTC(),
+		)
+		if err != nil || passed != test.want {
+			t.Fatalf("%s %s %s = %v, err=%v, want %v", test.actual, test.operator, test.expected, passed, err, test.want)
+		}
+	}
+}

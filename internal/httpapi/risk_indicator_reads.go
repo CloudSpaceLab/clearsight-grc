@@ -45,6 +45,7 @@ type riskIndicatorRead struct {
 	Measurement         risk.IndicatorMeasurement      `json:"measurement"`
 	Unit                string                         `json:"unit"`
 	Denominator         int                            `json:"denominator"`
+	NativeMeasurement   *monitoring.NativeMeasurement  `json:"native_measurement,omitempty"`
 	State               riskIndicatorState             `json:"state"`
 	Reason              string                         `json:"reason"`
 	Score               *float64                       `json:"score,omitempty"`
@@ -100,28 +101,30 @@ func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor
 		}
 
 		detail := riskIndicatorRead{
-			Link:             link,
-			ProgramID:        program.Program.ID,
-			ProgramName:      program.Program.Name,
-			CheckID:          check.ID,
-			CheckCode:        check.Code,
-			CheckName:        check.Name,
-			Claim:            check.Claim,
-			CheckStatus:      check.Status,
-			CheckVersion:     check.Version,
-			InputKind:        check.InputKind,
-			Measurement:      risk.IndicatorMonitoringRiskScore,
-			Unit:             risk.IndicatorRiskScoreUnit,
-			Denominator:      risk.IndicatorRiskScoreDenominator,
-			State:            riskIndicatorUnknown,
-			Reason:           "No current monitoring result.",
-			MinimumCoverage:  check.MinimumCoverage,
-			FreshnessMinutes: check.FreshnessMinutes,
+			Link:              link,
+			ProgramID:         program.Program.ID,
+			ProgramName:       program.Program.Name,
+			CheckID:           check.ID,
+			CheckCode:         check.Code,
+			CheckName:         check.Name,
+			Claim:             check.Claim,
+			CheckStatus:       check.Status,
+			CheckVersion:      check.Version,
+			InputKind:         check.InputKind,
+			Measurement:       risk.IndicatorMonitoringRiskScore,
+			Unit:              risk.IndicatorRiskScoreUnit,
+			Denominator:       risk.IndicatorRiskScoreDenominator,
+			NativeMeasurement: currentRiskIndicatorNativeMeasurement(check, nil),
+			State:             riskIndicatorUnknown,
+			Reason:            "No current monitoring result.",
+			MinimumCoverage:   check.MinimumCoverage,
+			FreshnessMinutes:  check.FreshnessMinutes,
 		}
 		resultValue, resultErr := a.deps.Monitoring.LatestResultRevision(ctx, monitorActor, check.ID, check.Version)
 		switch {
 		case resultErr == nil:
 			detail.ResultID = resultValue.ID
+			detail.NativeMeasurement = currentRiskIndicatorNativeMeasurement(check, &resultValue)
 			detail.Score = resultValue.Evaluation.Score
 			detail.Band = resultValue.Evaluation.Band
 			coverage := resultValue.Evaluation.Coverage
@@ -218,6 +221,16 @@ func currentRiskIndicatorState(check monitoring.MonitoringCheck, result monitori
 	if result.Evaluation.Coverage < check.MinimumCoverage {
 		return riskIndicatorUnknown, "Monitoring coverage is below the approved minimum."
 	}
+	if result.Evaluation.Measurement != nil {
+		condition, err := monitoring.EvaluateNativeMeasurementCondition(result.Evaluation.Measurement)
+		if err != nil || condition == monitoring.MeasurementConditionUnknown {
+			return riskIndicatorUnknown, "Native measurement or approved limit is unavailable."
+		}
+		if condition == monitoring.MeasurementConditionBreached {
+			return riskIndicatorBreach, "Latest native measurement is outside its approved limit."
+		}
+		return riskIndicatorNormal, "Latest native measurement is within its approved limit."
+	}
 	switch result.Evaluation.Band {
 	case monitoring.RiskLow:
 		return riskIndicatorNormal, "Latest complete result is in the low band."
@@ -237,4 +250,13 @@ func riskIndicatorMatterLinkedToProgram(value continuity.MatterAggregate, progra
 		}
 	}
 	return false
+}
+
+func currentRiskIndicatorNativeMeasurement(check monitoring.MonitoringCheck, result *monitoring.MonitoringResult) *monitoring.NativeMeasurement {
+	if result != nil && result.Evaluation.Measurement != nil {
+		value := *result.Evaluation.Measurement
+		value.Limits = append([]monitoring.MeasurementLimit(nil), result.Evaluation.Measurement.Limits...)
+		return &value
+	}
+	return monitoring.MeasurementDefinition(check.Measurement, check.SourceRules)
 }

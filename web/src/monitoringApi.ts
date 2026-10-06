@@ -1,7 +1,7 @@
 import { loadContext } from "./api";
 import { requestJSON } from "./http";
 import type { EvidenceRequest } from "./types";
-import type { CollectionPolicy, CollectionSummary, CreateFormTemplateInput, FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringResult } from "./monitoringTypes";
+import type { CollectionPolicy, CollectionSummary, CreateFormTemplateInput, FormTemplate, LifecycleStatus, MonitoringCheck, MonitoringMeasurementSpec, MonitoringResult, SourceOperator } from "./monitoringTypes";
 import type { SourceBinding } from "./sourceConfigApi";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -55,13 +55,24 @@ export async function loadCollectionSummaries(programID: string): Promise<Collec
   return (await scoped<{ items: CollectionSummary[] }>(`/api/v1/programs/${encodeURIComponent(programID)}/collection-summaries?limit=100`)).items;
 }
 
-export function createSourceMonitoringCheck(programID: string, binding: SourceBinding, input: { code: string; name: string; claim: string; field: string; expected: string }): Promise<MonitoringCheck> {
+export type SourceCheckConfig = {
+  code: string;
+  name: string;
+  claim: string;
+  field: string;
+  expected: string;
+  operator: SourceOperator;
+  measurement?: MonitoringMeasurementSpec;
+};
+
+export function createSourceMonitoringCheck(programID: string, binding: SourceBinding, input: SourceCheckConfig): Promise<MonitoringCheck> {
   return scoped<MonitoringCheck>(`/api/v1/programs/${encodeURIComponent(programID)}/monitoring-checks`, {
     method: "POST",
     body: JSON.stringify({
       code: input.code, name: input.name, claim: input.claim, input_kind: "SOURCE",
       binding_id: binding.binding_id, binding_version: binding.version,
-      source_rules: [{ id: `${input.code}-RULE`, field: input.field, operator: "EQUALS", expected: input.expected, risk_points: 100, critical: true }],
+      source_rules: [{ id: `${input.code}-RULE`, field: input.field, operator: input.operator, expected: input.expected, risk_points: 100, critical: true }],
+      measurement: input.measurement,
       thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 },
       freshness_minutes: 60, minimum_coverage: 1, failure_action: "RECOMMEND_MATTER",
     }),
@@ -82,8 +93,10 @@ export function startFormCollection(form: FormTemplate, input: { programID: stri
   });
 }
 
-export async function loadMonitoringResults(checkID: string): Promise<MonitoringResult[]> {
-  return (await scoped<{ items: MonitoringResult[] }>(`/api/v1/monitoring-checks/${encodeURIComponent(checkID)}/results?limit=20`)).items;
+export async function loadMonitoringResults(checkID: string, version?: number): Promise<MonitoringResult[]> {
+  const query = new URLSearchParams({ limit: "20" });
+  if (version !== undefined) query.set("version", String(version));
+  return (await scoped<{ items: MonitoringResult[] }>(`/api/v1/monitoring-checks/${encodeURIComponent(checkID)}/results?${query.toString()}`)).items;
 }
 
 export function evaluateMonitoringSource(check: MonitoringCheck): Promise<MonitoringResult> {
