@@ -333,6 +333,9 @@ func (a *API) downloadReportRun(w http.ResponseWriter, r *http.Request) {
 	} else if run.Format == reporting.FormatXLSX {
 		extension = "xlsx"
 		contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	} else if run.Format == reporting.FormatPDF {
+		extension = "pdf"
+		contentType = "application/pdf"
 	}
 	filename := safeReportFilename(run.DefinitionCode) + "." + extension
 	w.Header().Set("Content-Type", contentType)
