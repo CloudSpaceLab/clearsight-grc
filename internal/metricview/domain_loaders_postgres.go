@@ -49,8 +49,9 @@ func loadOutsideAppetiteMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 			WHERE risk.tenant_id=$1::uuid
 			  AND risk.legal_entity_id=$2::uuid
 			  AND risk.status='ACTIVE'
+			  AND (NOT $4::boolean OR risk.organization_scope_id=ANY($5::uuid[]))
 		)
-		SELECT id::text,name,state FROM selected ORDER BY id`, scope.TenantID, scope.LegalEntityID, at.UTC())
+		SELECT id::text,name,state FROM selected ORDER BY id`, scope.TenantID, scope.LegalEntityID, at.UTC(), scope.OrganizationScopeID != "", scope.OrganizationScopeIDs)
 	if err != nil {
 		return domainMetricResult{}, fmt.Errorf("load outside-appetite metric: %w", err)
 	}
@@ -86,6 +87,7 @@ func loadIndicatorBreachMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 			 AND risk.status='ACTIVE'
 			WHERE link.tenant_id=$1::uuid
 			  AND link.legal_entity_id=$2::uuid
+			  AND (NOT $4::boolean OR risk.organization_scope_id=ANY($5::uuid[]))
 			ORDER BY link.risk_id,link.monitoring_check_id,link.risk_version DESC,link.id DESC
 		)
 		SELECT link.id::text,risk.id::text,risk.name,
@@ -123,7 +125,7 @@ func loadIndicatorBreachMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 			ORDER BY candidate.evaluated_at DESC,candidate.id DESC
 			LIMIT 1
 		) result ON true
-		ORDER BY link.id`, scope.TenantID, scope.LegalEntityID, at.UTC())
+		ORDER BY link.id`, scope.TenantID, scope.LegalEntityID, at.UTC(), scope.OrganizationScopeID != "", scope.OrganizationScopeIDs)
 	if err != nil {
 		return domainMetricResult{}, fmt.Errorf("load indicator-breach metric: %w", err)
 	}
@@ -154,6 +156,7 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 			WHERE risk.tenant_id=$1::uuid
 			  AND risk.legal_entity_id=$2::uuid
 			  AND risk.status='ACTIVE'
+			  AND (NOT $4::boolean OR risk.organization_scope_id=ANY($5::uuid[]))
 		), eligible_links AS (
 			SELECT risk_link.risk_id,
 			       implementation.tenant_id,
@@ -222,7 +225,7 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 			LEFT JOIN contract_facts fact ON fact.risk_id=risk.id
 			GROUP BY risk.id,risk.name
 		)
-		SELECT id::text,name,state FROM risk_state ORDER BY id`, scope.TenantID, scope.LegalEntityID, at.UTC())
+		SELECT id::text,name,state FROM risk_state ORDER BY id`, scope.TenantID, scope.LegalEntityID, at.UTC(), scope.OrganizationScopeID != "", scope.OrganizationScopeIDs)
 	if err != nil {
 		return domainMetricResult{}, fmt.Errorf("load assurance-failure metric: %w", err)
 	}
@@ -252,7 +255,8 @@ func loadLossWithoutIssueMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 		WHERE loss.tenant_id=$1::uuid
 		  AND loss.legal_entity_id=$2::uuid
 		  AND loss.status='ACTIVE'
-		ORDER BY loss.id`, scope.TenantID, scope.LegalEntityID)
+		  AND (NOT $3::boolean OR loss.organization_scope_id=ANY($4::uuid[]))
+		ORDER BY loss.id`, scope.TenantID, scope.LegalEntityID, scope.OrganizationScopeID != "", scope.OrganizationScopeIDs)
 	if err != nil {
 		return domainMetricResult{}, fmt.Errorf("load loss-without-issue metric: %w", err)
 	}
