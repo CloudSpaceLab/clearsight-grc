@@ -11,6 +11,4 @@ ALTER TABLE monitoring_form_templates
     DROP COLUMN IF EXISTS origin_id,
     DROP COLUMN IF EXISTS origin_type;
 
-DROP INDEX IF EXISTS matters_form_origin_scope_uq;
-
 COMMIT;
