@@ -111,11 +111,17 @@ export type Lifecycle = {
   updated_at: string;
 };
 
+export type FormOrigin = {
+  type: "MATTER";
+  id: string;
+};
+
 export type FormTemplate = Lifecycle & {
   id: string;
   tenant_id: string;
   legal_entity_id?: string;
   program_id?: string;
+  origin?: FormOrigin;
   code: string;
   name: string;
   purpose: string;
