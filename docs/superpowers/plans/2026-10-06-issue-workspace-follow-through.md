@@ -24,12 +24,14 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
 ### Task 1: Integrate the exact Form Library deep link
 
+**Status:** Complete on this branch in `3779ecdad`. The rebased PR #334 history and its fixture compatibility repair are local; promotion to `main` remains a separate integration decision.
+
 **Files:**
 - Modify: `web/src/components/MatterInternalFormRequestsPanel.tsx`
 - Modify: `web/src/components/MatterInternalFormRequestsPanel.test.tsx`
 - Dependency: PR #334 after rebase and merge (`web/src/components/FormsWorkspace.tsx`, `web/src/formsApi.ts`, and the exact library-item API route)
 
-- [ ] **Step 1: Rebase and verify PR #334 before relying on its route.**
+- [x] **Step 1: Rebase and verify PR #334 before relying on its route.**
 
   Run:
 
@@ -43,7 +45,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   Expected: the branch rebases without losing the exact `GET /api/v1/forms/library/{id}` authorization and a form outside the library page opens from `#forms/{id}`.
 
-- [ ] **Step 2: Add a failing handoff test at the issue boundary.**
+- [x] **Step 2: Add a failing handoff test at the issue boundary.**
 
   In `MatterInternalFormRequestsPanel.test.tsx`, make the saved draft fixture return `id: "form-created"`, then assert that the success notice contains:
 
@@ -53,7 +55,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   The test must also assert that the link is absent before a successful save and that the draft origin remains `{ type: "MATTER", id: "matter-a" }`.
 
-- [ ] **Step 3: Run the new test and confirm the missing handoff.**
+- [x] **Step 3: Run the new test and confirm the missing handoff.**
 
   Run:
 
@@ -63,7 +65,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   Expected before implementation: the test fails because the saved draft has no next action.
 
-- [ ] **Step 4: Preserve the created `FormTemplate` and render the one direct next action.**
+- [x] **Step 4: Preserve the created `FormTemplate` and render the one direct next action.**
 
   In `MatterInternalFormRequestsPanel.tsx`, add `const [createdDraft, setCreatedDraft] = useState<FormTemplate>();`, receive the `form` argument in `onSaved`, and replace the generic success string with a concise notice:
 
@@ -86,7 +88,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   Clear `createdDraft` when starting a new draft or employee request so an old action does not appear beside unrelated feedback.
 
-- [ ] **Step 5: Verify the handoff and commit it separately.**
+- [x] **Step 5: Verify the handoff and commit it separately.**
 
   Run:
 
