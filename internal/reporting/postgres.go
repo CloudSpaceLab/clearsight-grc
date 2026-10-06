@@ -713,7 +713,7 @@ func (r *PostgresRepository) RecordRunDownload(ctx context.Context, scope Report
 	tag, err := r.pool.Exec(ctx, `INSERT INTO outbox_events
 		(id,tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at)
 		SELECT uuidv7(),r.tenant_id,'REPORT_RUN',r.id,'ReportRunDownloaded',
-			jsonb_build_object('downloaded_by',$3::text,'legal_entity_id',r.legal_entity_id::text),
+			jsonb_build_object('downloaded_by',$4::text,'legal_entity_id',r.legal_entity_id::text),
 			clock_timestamp(),clock_timestamp()
 		FROM report_runs r WHERE r.tenant_id=$1::uuid AND r.legal_entity_id=$2::uuid AND r.id=$3::uuid
 		  AND r.status='READY' AND r.expires_at>clock_timestamp()`, scope.TenantID, scope.LegalEntityID, id, downloadedBy)
