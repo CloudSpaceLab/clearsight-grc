@@ -118,11 +118,11 @@ func TestMonitoringMigrationIncludesCollectionRenewal(t *testing.T) {
 }
 
 func TestMonitoringNativeMeasurementMigration(t *testing.T) {
-	up, err := os.ReadFile("../../migrations/000122_monitoring_native_measurements.up.sql")
+	up, err := os.ReadFile("../../migrations/000123_monitoring_native_measurements.up.sql")
 	if err != nil {
 		t.Fatalf("read native measurement migration: %v", err)
 	}
-	down, err := os.ReadFile("../../migrations/000122_monitoring_native_measurements.down.sql")
+	down, err := os.ReadFile("../../migrations/000123_monitoring_native_measurements.down.sql")
 	if err != nil {
 		t.Fatalf("read native measurement rollback: %v", err)
 	}
