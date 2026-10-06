@@ -76,7 +76,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
   const attention = [
     pending ? `${pending} response${pending === 1 ? "" : "s"} pending` : "",
     expired ? `${expired} request${expired === 1 ? "" : "s"} expired` : "",
-    needsReview ? `${needsReview} submitted response${needsReview === 1 ? "" : "s"} need review` : "",
+    needsReview ? `${needsReview} submitted response${needsReview === 1 ? " needs" : "s need"} review` : "",
   ].filter(Boolean);
 
   return <section className="subject-form-activity" aria-label={`Form activity for ${subjectLabel}`}>
