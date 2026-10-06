@@ -21,7 +21,7 @@ type CriticalEmailContext struct {
 	RecipientName         string
 	RecipientAddress      string
 	CurrentNoticeSequence int
-	RecipientSuperseded    bool
+	RecipientSuperseded   bool
 }
 
 type EmailDeliveryRecord struct {
