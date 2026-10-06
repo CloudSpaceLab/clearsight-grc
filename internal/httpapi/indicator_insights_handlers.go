@@ -67,6 +67,9 @@ func (a *API) indicatorInsights(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if limit > 50 {
+		limit = 50
+	}
 	page, err := service.IndicatorPortfolio(r.Context(), scope, risk.IndicatorPortfolioFilter{
 		Kind: risk.IndicatorKind(strings.TrimSpace(r.URL.Query().Get("kind"))),
 		Cursor: strings.TrimSpace(r.URL.Query().Get("cursor")),
@@ -89,6 +92,7 @@ func (a *API) indicatorInsights(w http.ResponseWriter, r *http.Request) {
 		id    string
 	}
 	pending := make([]pendingLabel, 0, len(page.Items)*2)
+	programs := make(map[string]continuity.ProgramAggregate)
 	monitorActor := monitoring.Actor{
 		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
 	}
@@ -99,13 +103,17 @@ func (a *API) indicatorInsights(w http.ResponseWriter, r *http.Request) {
 			result.Complete = false
 			continue
 		}
-		program, err := a.deps.Continuity.GetProgram(r.Context(), actor.TenantID, item.ProgramID)
-		if err == nil {
-			program, err = a.programForActor(r.Context(), program, nil)
-		}
-		if err != nil || program.Program.LegalEntityID != actor.LegalEntityID {
-			result.Complete = false
-			continue
+		program, cached := programs[item.ProgramID]
+		if !cached {
+			program, err = a.deps.Continuity.GetProgram(r.Context(), actor.TenantID, item.ProgramID)
+			if err == nil {
+				program, err = a.programForActor(r.Context(), program, nil)
+			}
+			if err != nil || program.Program.LegalEntityID != actor.LegalEntityID {
+				result.Complete = false
+				continue
+			}
+			programs[item.ProgramID] = program
 		}
 
 		detail := indicatorInsightsRead{
