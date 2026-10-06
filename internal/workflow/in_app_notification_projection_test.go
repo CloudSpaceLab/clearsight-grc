@@ -117,3 +117,31 @@ func TestInAppNotificationProjectorRendersSafeAttentionIntent(t *testing.T) {
 		t.Fatalf("raw condition/source metadata leaked into presentation: %#v", record)
 	}
 }
+
+
+func TestInAppNotificationProjectorProjectsEscalationAssignmentSafely(t *testing.T) {
+	matterID := "20000000-0000-4000-8000-000000000020"
+	principalID := "40000000-0000-4000-8000-000000000020"
+	event := workflowruntime.OutboxEvent{
+		ID: "10000000-0000-4000-8000-000000000020", TenantID: "bank",
+		AggregateType: "MATTER", AggregateID: matterID, EventType: EventMatterEscalationAssigned,
+		Payload: []byte(`{"matter_id":"` + matterID + `","task_id":"30000000-0000-4000-8000-000000000020","recipient_principal_id":"` +
+			principalID + `","previous_principal_id":"40000000-0000-4000-8000-000000000021","responsibility":"REVIEWER","sequence_id":"seq","step_index":1}`),
+		OccurredAt: time.Date(2026, 10, 6, 3, 0, 0, 0, time.UTC),
+	}
+	repo := &inAppProjectionRepoStub{context: assignmentNotificationContext{
+		LegalEntityID: "50000000-0000-4000-8000-000000000020",
+		CurrentPrincipalID: principalID, MatterID: matterID,
+	}}
+	if err := (NewInAppNotificationProjector(repo, repo)).Publish(context.Background(), event); err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.records) != 1 {
+		t.Fatalf("records=%#v", repo.records)
+	}
+	record := repo.records[0]
+	if record.Kind != matterEscalationNotificationKind || record.Title != "Escalated work assigned to you" ||
+		record.SubjectType != "MATTER" || record.SubjectID != matterID || record.PrincipalID != principalID {
+		t.Fatalf("record=%#v", record)
+	}
+}
