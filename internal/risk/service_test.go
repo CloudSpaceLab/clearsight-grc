@@ -220,7 +220,7 @@ func TestRiskMemoryRepositoryEnforcesEntityIsolationAndVersioning(t *testing.T) 
 	}
 }
 
-func TestRiskListUsesStableKeysetAndLatestAssessment(t *testing.T) {
+func TestRiskListUsesStableKeysetAndCurrentPositionAssessment(t *testing.T) {
 	ctx := context.Background()
 	repo := NewMemoryRepository()
 	service := NewService(repo)
@@ -258,13 +258,25 @@ func TestRiskListUsesStableKeysetAndLatestAssessment(t *testing.T) {
 		t.Fatal(err)
 	}
 	now = now.Add(time.Minute)
-	_, _, err = service.AddAssessment(ctx, AssessmentInput{
+	riskWithCurrent, currentAssessment, err := service.AddAssessment(ctx, AssessmentInput{
 		TenantID: "bank", LegalEntityID: "entity-a", RiskID: first.ID, ExpectedRiskVersion: riskWithAssessment.Version,
 		Kind: AssessmentCurrent, MethodCode: "QUAL-5X5", MethodVersion: "v2",
 		Dimensions: json.RawMessage(`{"likelihood":5,"impact":5}`), AppetitePosition: AppetiteUnknown, ActorID: "reviewer-1",
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	now = now.Add(time.Minute)
+	_, targetAssessment, err := service.AddAssessment(ctx, AssessmentInput{
+		TenantID: "bank", LegalEntityID: "entity-a", RiskID: first.ID, ExpectedRiskVersion: riskWithCurrent.Version,
+		Kind: AssessmentTarget, MethodCode: "QUAL-5X5", MethodVersion: "target-v1",
+		Dimensions: json.RawMessage(`{"likelihood":1,"impact":2}`), AppetitePosition: AppetiteUnknown, ActorID: "reviewer-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if targetAssessment.RiskVersion <= currentAssessment.RiskVersion {
+		t.Fatalf("target assessment did not advance aggregate version: current=%d target=%d", currentAssessment.RiskVersion, targetAssessment.RiskVersion)
 	}
 	filtered, err := service.List(ctx, Scope{TenantID: "bank", LegalEntityID: "entity-a"}, ListFilter{AppetitePosition: AppetiteUnknown, Limit: 10})
 	if err != nil {
@@ -273,8 +285,11 @@ func TestRiskListUsesStableKeysetAndLatestAssessment(t *testing.T) {
 	if len(filtered.Items) != 3 {
 		t.Fatalf("UNKNOWN must include assessed-unknown and unassessed risks: %#v", filtered)
 	}
-	if filtered.Items[0].Risk.ID != first.ID || filtered.Items[0].LatestAssessment == nil || filtered.Items[0].LatestAssessment.MethodVersion != "v2" {
-		t.Fatalf("latest assessment projection failed: %#v", filtered.Items[0])
+	if filtered.Items[0].Risk.ID != first.ID || filtered.Items[0].LatestAssessment == nil ||
+		filtered.Items[0].LatestAssessment.ID != currentAssessment.ID ||
+		filtered.Items[0].LatestAssessment.Kind != AssessmentCurrent ||
+		filtered.Items[0].LatestAssessment.MethodVersion != "v2" {
+		t.Fatalf("current-position assessment projection failed: %#v", filtered.Items[0])
 	}
 }
 
