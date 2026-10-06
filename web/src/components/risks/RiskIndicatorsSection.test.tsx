@@ -88,6 +88,7 @@ const detail: RiskIndicatorDetail = {
     measurement: "MONITORING_RISK_SCORE",
     created_at: "2026-10-02T09:30:00Z",
   },
+  kind: "KRI",
   program_id: "program-1",
   program_name: "Network resilience program",
   check_id: "check-1",
