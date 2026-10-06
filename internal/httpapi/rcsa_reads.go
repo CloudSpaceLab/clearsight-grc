@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -158,6 +159,9 @@ func (a *API) visibleRCSACycleSummaries(ctx context.Context, actor identity.Acto
 	}
 	complete := true
 	for index, outcome := range outcomes {
+		if errors.Is(outcome.Err, authority.ErrNoRoute) {
+			continue
+		}
 		if outcome.Err != nil {
 			complete = false
 			continue
