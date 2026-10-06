@@ -5,6 +5,7 @@ import type { RiskIndicatorDetail } from "../../riskTypes";
 import { IndicatorDetail } from "./IndicatorDetail";
 
 const indicator: RiskIndicatorDetail = {
+  kind: "KRI",
   link: {
     id: "link-1",
     risk_id: "risk-1",
