@@ -206,6 +206,7 @@ func (s *Service) List(ctx context.Context, scope Scope, filter ListFilter) (Pag
 	filter.EventType = EventType(strings.ToUpper(strings.TrimSpace(string(filter.EventType))))
 	filter.Currency = strings.ToUpper(strings.TrimSpace(filter.Currency))
 	filter.OrganizationScopeID = strings.TrimSpace(filter.OrganizationScopeID)
+	filter.OrganizationScopeIDs = normalizeLossOrganizationScopeIDs(filter.OrganizationScopeID, filter.OrganizationScopeIDs)
 	filter.RiskID = strings.TrimSpace(filter.RiskID)
 	filter.RecoveryStatus = strings.ToUpper(strings.TrimSpace(filter.RecoveryStatus))
 	filter.Search = strings.TrimSpace(filter.Search)
@@ -239,6 +240,29 @@ func (s *Service) ResolveLegalEntity(ctx context.Context, tenant, id string) (st
 		return "", ErrInvalid
 	}
 	return s.repo.ResolveLegalEntity(ctx, strings.TrimSpace(tenant), strings.TrimSpace(id))
+}
+
+func normalizeLossOrganizationScopeIDs(selected string, values []string) []string {
+	selected = strings.TrimSpace(selected)
+	seen := make(map[string]struct{}, len(values)+1)
+	normalized := make([]string, 0, len(values)+1)
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
+	}
+	if selected != "" {
+		if _, ok := seen[selected]; !ok {
+			normalized = append(normalized, selected)
+		}
+	}
+	return normalized
 }
 
 func validateLoss(value Loss) error {

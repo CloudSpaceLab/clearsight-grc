@@ -97,6 +97,18 @@ function evidenceConclusionLabel(value: string): string {
   return value.toLowerCase().replaceAll("_", " ");
 }
 
+export function riskCurrentPositionAssessment(assessments: readonly RiskAssessment[]): RiskAssessment | undefined {
+  let latest: RiskAssessment | undefined;
+  for (const assessment of assessments) {
+    if (assessment.kind !== "CURRENT" && assessment.kind !== "RESIDUAL") continue;
+    if (!latest || assessment.risk_version > latest.risk_version ||
+      (assessment.risk_version === latest.risk_version && Date.parse(assessment.assessed_at) > Date.parse(latest.assessed_at))) {
+      latest = assessment;
+    }
+  }
+  return latest;
+}
+
 export function assessmentKindLabel(kind: RiskAssessmentKind): string {
   const labels: Record<RiskAssessmentKind, string> = {
     INHERENT: "Inherent",

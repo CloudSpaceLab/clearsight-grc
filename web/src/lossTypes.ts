@@ -65,10 +65,12 @@ export type LossSummary = {
 export type LossPage = {
   items: LossSummary[];
   next_cursor?: string;
+  organization_scope_id?: string;
 };
 
 export type LossAggregate = {
   loss: LossRecord;
+  owner_display_name?: string;
   recoveries: LossRecovery[];
   totals: LossTotals;
   notification_history?: NotificationDeliveryHistoryItem[];
@@ -83,4 +85,30 @@ export type LossInterventionResponse = {
     status: string;
     matter_type?: string;
   };
+};
+
+export type LossCreateInput = {
+  organization_scope_id?: string;
+  code: string;
+  title: string;
+  event_type: LossEventType;
+  cause: string;
+  description?: string;
+  gross_amount_minor: number;
+  currency: string;
+  occurred_at: string;
+  discovered_at: string;
+};
+
+export type LossRecoveryInput = {
+  expected_version: number;
+  kind: LossRecoveryKind;
+  amount_minor: number;
+  reference?: string;
+  recovered_at: string;
+};
+
+export type LossRecoveryResponse = {
+  loss: LossRecord;
+  recovery: LossRecovery;
 };

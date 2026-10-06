@@ -616,7 +616,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         onOpenEvidence={(id) => navigate("work", { evidenceID: id }, "evidence")}
         onOpenMatter={(id) => navigate("work", { matterID: id }, "matters")}
       /></Suspense>}
-      {activeView === "losses" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading losses…</div>}><LossesWorkspace organizationName={organizationName} legalEntityName={legalEntityName} targetID={target.lossID} onTarget={(id) => navigate("losses", id ? { lossID: id } : {})} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")}/></Suspense>}
+      {activeView === "losses" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading losses…</div>}><LossesWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} targetID={target.lossID} onTarget={(id) => navigate("losses", id ? { lossID: id } : {})} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")}/></Suspense>}
       {activeView === "insights" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Insights…</div>}><InsightsWorkspace
         organizationName={organizationName}
         legalEntityName={legalEntityName}
@@ -653,7 +653,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
 }
 
 function supportsOrganizationScope(view: View) {
-  return view === "oversight" || view === "programs" || view === "risks" || view === "insights";
+  return view === "oversight" || view === "programs" || view === "risks" || view === "losses" || view === "insights";
 }
 
 function isAuthorityObjectType(value: AttentionItem["action_target_type"]): value is "PROGRAM" | "MATTER" | "EVIDENCE_REQUEST" {

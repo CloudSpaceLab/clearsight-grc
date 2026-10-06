@@ -19,6 +19,7 @@ type notificationDeliveryHistoryItem struct {
 
 type operationalLossRead struct {
 	oploss.Aggregate
+	OwnerDisplayName            string                            `json:"owner_display_name,omitempty"`
 	NotificationHistory         []notificationDeliveryHistoryItem `json:"notification_history"`
 	NotificationHistoryComplete bool                              `json:"notification_history_complete"`
 }

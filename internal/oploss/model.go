@@ -79,20 +79,22 @@ type Summary struct {
 }
 
 type Page struct {
-	Items      []Summary `json:"items"`
-	NextCursor string    `json:"next_cursor,omitempty"`
+	Items               []Summary `json:"items"`
+	NextCursor          string    `json:"next_cursor,omitempty"`
+	OrganizationScopeID string    `json:"organization_scope_id,omitempty"`
 }
 
 type ListFilter struct {
-	Status              Status
-	EventType           EventType
-	Currency            string
-	OrganizationScopeID string
-	RiskID              string
-	RecoveryStatus      string
-	Search              string
-	Cursor              string
-	Limit               int
+	Status               Status
+	EventType            EventType
+	Currency             string
+	OrganizationScopeID  string
+	OrganizationScopeIDs []string
+	RiskID               string
+	RecoveryStatus       string
+	Search               string
+	Cursor               string
+	Limit                int
 }
 
 type Scope struct {

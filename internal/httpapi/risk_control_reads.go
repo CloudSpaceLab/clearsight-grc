@@ -36,6 +36,7 @@ type riskControlRead struct {
 
 type riskAggregateRead struct {
 	risk.Aggregate
+	OwnerDisplayName            string                            `json:"owner_display_name,omitempty"`
 	ControlDetails              []riskControlRead                 `json:"control_details"`
 	ControlDetailsComplete      bool                              `json:"control_details_complete"`
 	IndicatorDetails            []riskIndicatorRead               `json:"indicator_details"`
@@ -46,8 +47,10 @@ type riskAggregateRead struct {
 
 func (a *API) riskAggregateWithControls(ctx context.Context, actor identity.Actor, value risk.Aggregate) riskAggregateRead {
 	notificationHistory, notificationHistoryComplete := a.notificationDeliveryHistory(ctx, actor, "RISK", value.Risk.ID)
+	ownerLabels := a.exactAssessmentLabels(ctx, actor, value.Risk.LegalEntityID, []string{value.Risk.OwnerPrincipalID})
 	result := riskAggregateRead{
 		Aggregate:                   value,
+		OwnerDisplayName:            ownerLabels[value.Risk.OwnerPrincipalID],
 		ControlDetails:              []riskControlRead{},
 		ControlDetailsComplete:      true,
 		NotificationHistory:         notificationHistory,

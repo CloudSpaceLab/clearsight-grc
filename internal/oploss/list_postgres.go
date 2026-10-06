@@ -50,21 +50,21 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 		  AND ($3::text='' OR l.status=$3::text)
 		  AND ($4::text='' OR l.event_type=$4::text)
 		  AND ($5::text='' OR l.currency=$5::text)
-		  AND ($6::text='' OR l.organization_scope_id=NULLIF($6::text,'')::uuid)
-		  AND ($7::text='' OR l.risk_id=NULLIF($7::text,'')::uuid)
-		  AND ($8::text='' OR strpos(lower(concat_ws(' ',l.code,l.title,l.cause,l.description)),lower($8::text))>0)
-		  AND ($9::text='' OR (
+		  AND (NOT $6::boolean OR l.organization_scope_id=ANY($7::uuid[]))
+		  AND ($8::text='' OR l.risk_id=NULLIF($8::text,'')::uuid)
+		  AND ($9::text='' OR strpos(lower(concat_ws(' ',l.code,l.title,l.cause,l.description)),lower($9::text))>0)
+		  AND ($10::text='' OR (
 		        CASE
 		          WHEN COALESCE(recovery.recovered_minor,0)=0 THEN 'NONE'
 		          WHEN COALESCE(recovery.recovered_minor,0)=l.gross_amount_minor THEN 'FULL'
 		          ELSE 'PARTIAL'
 		        END
-		      )=$9::text)
-		  AND ($10::boolean=false OR l.updated_at<$11::timestamptz OR (l.updated_at=$11::timestamptz AND l.id<$12::uuid))
+		      )=$10::text)
+		  AND ($11::boolean=false OR l.updated_at<$12::timestamptz OR (l.updated_at=$12::timestamptz AND l.id<$13::uuid))
 		ORDER BY l.updated_at DESC,l.id DESC
-		LIMIT $13`,
+		LIMIT $14`,
 		scope.TenantID, scope.LegalEntityID, string(filter.Status), string(filter.EventType), filter.Currency,
-		filter.OrganizationScopeID, filter.RiskID, filter.Search, filter.RecoveryStatus,
+		filter.OrganizationScopeID != "", filter.OrganizationScopeIDs, filter.RiskID, filter.Search, filter.RecoveryStatus,
 		!cursor.UpdatedAt.IsZero(), cursor.UpdatedAt, cursorID, filter.Limit+1,
 	)
 	if err != nil {
@@ -103,7 +103,7 @@ func (r *PostgresRepository) List(ctx context.Context, scope Scope, filter ListF
 	if err := rows.Err(); err != nil {
 		return Page{}, err
 	}
-	page := Page{Items: values}
+	page := Page{Items: values, OrganizationScopeID: filter.OrganizationScopeID}
 	if len(values) > filter.Limit {
 		page.Items = values[:filter.Limit]
 		page.NextCursor, err = encodeListCursor(page.Items[len(page.Items)-1].Loss)
