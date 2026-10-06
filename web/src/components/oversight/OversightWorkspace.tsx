@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadHomeMetricMembers, loadHomeMetrics, type HomeMetricBundle, type HomeMetricMemberPage } from "../../metricApi";
+import { loadDomainMetrics, loadHomeMetricMembers, loadHomeMetrics, type DomainMetricBundle, type HomeMetricBundle, type HomeMetricMemberPage } from "../../metricApi";
 import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
 import type { HomeTab } from "../../appRouting";
@@ -7,6 +7,7 @@ import type { ReportingPeriod, ReportingPeriodQuery } from "../../reportingPerio
 import { Button, DataTable, EmptyState, MetricCard, Notice, Tabs } from "../ui";
 import type { AttentionItem } from "../../types";
 import { OversightPeriodPicker } from "./OversightPeriodPicker";
+import { DomainPostureSummary } from "./DomainPostureSummary";
 import { MetricMemberDrill } from "./MetricMemberDrill";
 import "../../oversight.css";
 
@@ -22,9 +23,12 @@ type OversightWorkspaceProps = {
   organizationScopeName?: string;
   onOpenMatter: (id: string) => void;
   onOpenProgram?: (id: string) => void;
+  onOpenRisk?: (id: string) => void;
+  onOpenLoss?: (id: string) => void;
   loadSnapshot?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<OversightSnapshot>;
   loadMetrics?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<HomeMetricBundle>;
   loadMetricMembers?: typeof loadHomeMetricMembers;
+  loadDomainPosture?: typeof loadDomainMetrics;
   metricFilter?: OversightMetricFilter;
   onMetricFilterChange?: (filter: OversightMetricFilter) => void;
   todayItems?: AttentionItem[];
@@ -43,9 +47,12 @@ export function OversightWorkspace({
   organizationScopeName,
   onOpenMatter,
   onOpenProgram,
+  onOpenRisk,
+  onOpenLoss,
   loadSnapshot = loadOversight,
   loadMetrics = loadHomeMetrics,
   loadMetricMembers = loadHomeMetricMembers,
+  loadDomainPosture = loadDomainMetrics,
   metricFilter = "all",
   onMetricFilterChange,
   todayItems = [],
@@ -59,6 +66,8 @@ export function OversightWorkspace({
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [metrics, setMetrics] = useState<HomeMetricBundle | null>(null);
   const [metricState, setMetricState] = useState<"loading" | "live" | "unavailable">("loading");
+  const [domainMetrics, setDomainMetrics] = useState<DomainMetricBundle | null>(null);
+  const [domainState, setDomainState] = useState<"loading" | "live" | "unavailable">("loading");
   const [view, setView] = useState<DetailView>("pressure");
   const [localMetricFilter, setLocalMetricFilter] = useState<OversightMetricFilter>(metricFilter);
   const [periodState, setPeriodState] = useState<"idle" | "changing">("idle");
@@ -159,9 +168,11 @@ export function OversightWorkspace({
   async function load(period = activePeriod) {
     setState("loading");
     setMetricState("loading");
-    const [snapshotResult, metricResult] = await Promise.allSettled([
+    setDomainState("loading");
+    const [snapshotResult, metricResult, domainResult] = await Promise.allSettled([
       loadSnapshot(period, organizationScopeID),
       loadMetrics(period, organizationScopeID),
+      loadDomainPosture(organizationScopeID),
     ]);
     if (snapshotResult.status === "fulfilled") {
       setSnapshot(snapshotResult.value);
@@ -176,6 +187,13 @@ export function OversightWorkspace({
     } else {
       setMetrics(null);
       setMetricState("unavailable");
+    }
+    if (domainResult.status === "fulfilled") {
+      setDomainMetrics(domainResult.value);
+      setDomainState("live");
+    } else {
+      setDomainMetrics(null);
+      setDomainState("unavailable");
     }
   }
 
@@ -260,6 +278,13 @@ export function OversightWorkspace({
           {tab === "oversight" && <>
             {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading oversight…</p>}
             {state === "unavailable" && <><Notice tone="warning">Oversight information is unavailable.</Notice><div className="workspace-recovery-actions"><Button onPress={() => void load()}>Retry Home data</Button></div></>}
+            <DomainPostureSummary
+              bundle={domainMetrics}
+              state={domainState}
+              organizationScopeID={organizationScopeID}
+              onOpenRisk={onOpenRisk}
+              onOpenLoss={onOpenLoss}
+            />
             {state === "live" && snapshot && <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
               {selected === "pressure" && <RiskPressure snapshot={snapshot}/>}
               {selected === "outlook" && <ResolutionOutlook snapshot={snapshot}/>}
