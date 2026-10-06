@@ -26,6 +26,10 @@ vi.mock("../matterOperationsApi", () => ({
 vi.mock("../continuityCommands", () => ({ addMatterAction: vi.fn(), addResponsePackage: vi.fn(), recordMatterDecision: vi.fn(), recordVerificationResult: vi.fn(), transitionMatter: vi.fn(), transitionMatterAction: vi.fn(), transitionResponsePackage: vi.fn() }));
 
 vi.mock("../matterCollaborationApi", () => ({ addMatterComment: vi.fn(), loadMatterActivity: vi.fn(), requestMatterActionUpdate: vi.fn() }));
+vi.mock("../formsDistributionApi", () => ({
+  loadDistributionPage: vi.fn().mockResolvedValue({ items: [] }),
+  loadCompletedResponses: vi.fn().mockResolvedValue({ items: [] }),
+}));
 
 async function chooseSharedOption(label: string, option: string | RegExp) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(label, "i") }));
