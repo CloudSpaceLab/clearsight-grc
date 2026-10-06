@@ -133,7 +133,6 @@ func TestCriticalEmailClaimPreventsDuplicateAndUnknownOutcomeIsTerminal(t *testi
 	}
 }
 
-
 func TestCriticalEmailRecordsSupersededRecipientWithoutSending(t *testing.T) {
 	now := time.Date(2026, 10, 6, 4, 0, 0, 0, time.UTC)
 	repo := &criticalEmailRepoStub{
