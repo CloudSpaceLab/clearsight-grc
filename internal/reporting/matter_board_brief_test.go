@@ -9,22 +9,22 @@ import (
 
 func TestMatterBoardBriefDefinitionRequiresMatterScopedPDF(t *testing.T) {
 	base := ReportDefinition{
-		ID: "0199f2d0-0000-7000-8000-000000000001",
-		TenantID: "0199f2d0-0000-7000-8000-000000000002",
-		LegalEntityID: "0199f2d0-0000-7000-8000-000000000003",
-		Code: "MATTER-BOARD-BRIEF",
-		Name: "Matter board brief",
-		Dataset: DatasetMatterBoardBrief,
-		ScopeKind: ScopeMatter,
-		ScopeRef: "0199f2d0-0000-7000-8000-000000000004",
-		Format: FormatPDF,
-		Filter: &ReportFilterExpression{Kind: "group", Operator: "and", Children: []ReportFilterExpression{}},
-		Status: DefinitionDraft,
+		ID:             "0199f2d0-0000-7000-8000-000000000001",
+		TenantID:       "0199f2d0-0000-7000-8000-000000000002",
+		LegalEntityID:  "0199f2d0-0000-7000-8000-000000000003",
+		Code:           "MATTER-BOARD-BRIEF",
+		Name:           "Matter board brief",
+		Dataset:        DatasetMatterBoardBrief,
+		ScopeKind:      ScopeMatter,
+		ScopeRef:       "0199f2d0-0000-7000-8000-000000000004",
+		Format:         FormatPDF,
+		Filter:         &ReportFilterExpression{Kind: "group", Operator: "and", Children: []ReportFilterExpression{}},
+		Status:         DefinitionDraft,
 		CurrentVersion: 1,
-		MakerID: "0199f2d0-0000-7000-8000-000000000005",
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-		Version: 1,
+		MakerID:        "0199f2d0-0000-7000-8000-000000000005",
+		CreatedAt:      time.Now().UTC(),
+		UpdatedAt:      time.Now().UTC(),
+		Version:        1,
 	}
 	if err := validateDefinitionForCreate(base); err != nil {
 		t.Fatalf("valid board brief definition: %v", err)
@@ -49,13 +49,13 @@ func TestMatterBoardBriefDefinitionRequiresMatterScopedPDF(t *testing.T) {
 
 func TestMatterBoardBriefPDFIsDeterministicPaginatedAndExcludesProtectedData(t *testing.T) {
 	run := ReportRun{
-		ID: "0199f2d0-0000-7000-8000-000000000010",
+		ID:                "0199f2d0-0000-7000-8000-000000000010",
 		DefinitionVersion: 3,
-		ScopeKind: ScopeMatter,
-		ScopeRef: "0199f2d0-0000-7000-8000-000000000011",
-		AsOf: time.Date(2026, 10, 6, 18, 0, 0, 0, time.UTC),
-		Dataset: DatasetMatterBoardBrief,
-		Format: FormatPDF,
+		ScopeKind:         ScopeMatter,
+		ScopeRef:          "0199f2d0-0000-7000-8000-000000000011",
+		AsOf:              time.Date(2026, 10, 6, 18, 0, 0, 0, time.UTC),
+		Dataset:           DatasetMatterBoardBrief,
+		Format:            FormatPDF,
 	}
 	actions := make([]any, 70)
 	for index := range actions {
