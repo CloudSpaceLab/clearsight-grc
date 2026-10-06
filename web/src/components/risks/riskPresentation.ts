@@ -97,6 +97,11 @@ function evidenceConclusionLabel(value: string): string {
   return value.toLowerCase().replaceAll("_", " ");
 }
 
+export function riskCurrentPositionAssessment(assessments: readonly RiskAssessment[]): RiskAssessment | undefined {
+  return assessments.find((assessment) => assessment.kind === "CURRENT")
+    ?? assessments.find((assessment) => assessment.kind === "RESIDUAL");
+}
+
 export function assessmentKindLabel(kind: RiskAssessmentKind): string {
   const labels: Record<RiskAssessmentKind, string> = {
     INHERENT: "Inherent",
