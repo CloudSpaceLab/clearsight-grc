@@ -137,6 +137,10 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	values := make([]Summary, 0)
+	organizationScopes := make(map[string]struct{}, len(filter.OrganizationScopeIDs))
+	for _, id := range filter.OrganizationScopeIDs {
+		organizationScopes[id] = struct{}{}
+	}
 	search := strings.ToLower(strings.TrimSpace(filter.Search))
 	for key, loss := range r.losses {
 		if loss.TenantID != scope.TenantID || loss.LegalEntityID != scope.LegalEntityID {
@@ -151,8 +155,10 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 		if filter.Currency != "" && loss.Currency != filter.Currency {
 			continue
 		}
-		if filter.OrganizationScopeID != "" && loss.OrganizationScopeID != filter.OrganizationScopeID {
-			continue
+		if filter.OrganizationScopeID != "" {
+			if _, ok := organizationScopes[loss.OrganizationScopeID]; !ok {
+				continue
+			}
 		}
 		if filter.RiskID != "" && loss.RiskID != filter.RiskID {
 			continue
@@ -181,7 +187,7 @@ func (r *MemoryRepository) List(ctx context.Context, scope Scope, filter ListFil
 		}
 		return values[i].Loss.ID > values[j].Loss.ID
 	})
-	page := Page{Items: values}
+	page := Page{Items: values, OrganizationScopeID: filter.OrganizationScopeID}
 	if len(values) > filter.Limit {
 		page.Items = values[:filter.Limit]
 		page.NextCursor, err = encodeListCursor(page.Items[len(page.Items)-1].Loss)
