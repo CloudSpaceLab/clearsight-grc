@@ -28,6 +28,7 @@ type Repository interface {
 	CurrentAppetite(context.Context, Scope, string, time.Time) (*AppetiteStatement, error)
 	Controls(context.Context, Scope, string, int) ([]ControlLink, error)
 	Indicators(context.Context, Scope, string, int) ([]IndicatorLink, error)
+	IndicatorPortfolio(context.Context, Scope, IndicatorPortfolioFilter) (IndicatorPortfolioPage, error)
 	List(context.Context, Scope, ListFilter) (Page, error)
 }
 
