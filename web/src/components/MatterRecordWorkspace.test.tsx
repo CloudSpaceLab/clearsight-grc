@@ -217,6 +217,42 @@ describe("Matter record workspace", () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps exactly one Activity rail and composer on desktop", async () => {
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    expect(await screen.findByRole("heading", { name: "Updates and history" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "Activity" })).toBeNull();
+    expect(screen.getAllByLabelText("Issue activity")).toHaveLength(1);
+    expect(screen.getAllByLabelText("Add internal comment")).toHaveLength(1);
+  });
+
+  it("moves the single Activity instance into a narrow-layout tab", async () => {
+    vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
+      matches: query === "(max-width: 900px)",
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+
+    try {
+      render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+      const activityTab = await screen.findByRole("tab", { name: "Activity" });
+      expect(screen.queryByLabelText("Issue activity")).toBeNull();
+
+      fireEvent.click(activityTab);
+
+      expect(await screen.findByLabelText("Issue activity")).toBeTruthy();
+      expect(screen.getAllByLabelText("Issue activity")).toHaveLength(1);
+      expect(screen.getAllByLabelText("Add internal comment")).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("keeps an employee form request in the issue evidence work", async () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
