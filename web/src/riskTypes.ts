@@ -1,3 +1,4 @@
+import type { NotificationDeliveryHistoryItem } from "./notificationTypes";
 import type { MonitoringNativeMeasurement } from "./monitoringTypes";
 
 export type RiskStatus = "DRAFT" | "ACTIVE" | "RETIRED";
@@ -187,4 +188,6 @@ export type RiskAggregate = {
   indicators?: RiskIndicatorLink[];
   indicator_details?: RiskIndicatorDetail[];
   indicator_details_complete?: boolean;
+  notification_history?: NotificationDeliveryHistoryItem[];
+  notification_history_complete?: boolean;
 };
