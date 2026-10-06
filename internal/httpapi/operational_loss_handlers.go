@@ -78,9 +78,11 @@ func (a *API) getOperationalLoss(w http.ResponseWriter, r *http.Request) {
 		writeOperationalLossError(w, err)
 		return
 	}
+	labels := a.exactAssessmentLabels(r.Context(), actor, value.Loss.LegalEntityID, []string{value.Loss.OwnerPrincipalID})
 	notificationHistory, notificationHistoryComplete := a.notificationDeliveryHistory(r.Context(), actor, "LOSS", value.Loss.ID)
 	httpx.WriteJSON(w, http.StatusOK, operationalLossRead{
 		Aggregate:                   value,
+		OwnerDisplayName:            labels[value.Loss.OwnerPrincipalID],
 		NotificationHistory:         notificationHistory,
 		NotificationHistoryComplete: notificationHistoryComplete,
 	})
