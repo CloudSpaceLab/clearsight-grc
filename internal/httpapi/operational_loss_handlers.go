@@ -52,16 +52,16 @@ func (a *API) listOperationalLosses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page, err := service.List(r.Context(), scope, oploss.ListFilter{
-		Status:              oploss.Status(strings.TrimSpace(r.URL.Query().Get("status"))),
-		EventType:           oploss.EventType(strings.TrimSpace(r.URL.Query().Get("event_type"))),
-		Currency:            strings.TrimSpace(r.URL.Query().Get("currency")),
+		Status:               oploss.Status(strings.TrimSpace(r.URL.Query().Get("status"))),
+		EventType:            oploss.EventType(strings.TrimSpace(r.URL.Query().Get("event_type"))),
+		Currency:             strings.TrimSpace(r.URL.Query().Get("currency")),
 		OrganizationScopeID:  selection.ID,
 		OrganizationScopeIDs: selection.IDs,
-		RiskID:              strings.TrimSpace(r.URL.Query().Get("risk_id")),
-		RecoveryStatus:      strings.TrimSpace(r.URL.Query().Get("recovery_status")),
-		Search:              strings.TrimSpace(r.URL.Query().Get("search")),
-		Cursor:              strings.TrimSpace(r.URL.Query().Get("cursor")),
-		Limit:               limit,
+		RiskID:               strings.TrimSpace(r.URL.Query().Get("risk_id")),
+		RecoveryStatus:       strings.TrimSpace(r.URL.Query().Get("recovery_status")),
+		Search:               strings.TrimSpace(r.URL.Query().Get("search")),
+		Cursor:               strings.TrimSpace(r.URL.Query().Get("cursor")),
+		Limit:                limit,
 	})
 	if err != nil {
 		writeOperationalLossError(w, err)
