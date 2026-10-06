@@ -85,16 +85,16 @@ type Page struct {
 }
 
 type ListFilter struct {
-	Status              Status
-	EventType           EventType
-	Currency            string
+	Status               Status
+	EventType            EventType
+	Currency             string
 	OrganizationScopeID  string
 	OrganizationScopeIDs []string
 	RiskID               string
-	RecoveryStatus      string
-	Search              string
-	Cursor              string
-	Limit               int
+	RecoveryStatus       string
+	Search               string
+	Cursor               string
+	Limit                int
 }
 
 type Scope struct {
