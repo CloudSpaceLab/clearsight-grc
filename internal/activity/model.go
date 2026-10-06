@@ -18,6 +18,12 @@ const (
 	ActorUnknown             = "UNKNOWN"
 
 	OutcomeSucceeded = "SUCCEEDED"
+	OutcomeFailed    = "FAILED"
+	OutcomeCancelled = "CANCELLED"
+	OutcomePending   = "PENDING"
+	OutcomeRetrying  = "RETRYING"
+
+	SourceNotificationEmailDelivery = "NOTIFICATION_EMAIL_DELIVERY"
 )
 
 type Event struct {
@@ -53,6 +59,7 @@ type Query struct {
 	ActorQuery    string
 	ActorKind     string
 	LegalEntityID string
+	Source        string
 }
 
 type Page struct {
