@@ -7,6 +7,7 @@ import { addMatterLink, assignMatter, assignMatterAction, changeMatterContext, d
 import type { MatterOperations } from "../matterOperationsApi";
 import { addMatterAction, addResponsePackage, recordMatterDecision, recordVerificationResult, transitionMatter, transitionMatterAction, transitionResponsePackage } from "../continuityCommands";
 import { addMatterComment, loadMatterActivity, requestMatterActionUpdate } from "../matterCollaborationApi";
+import { loadCompletedResponses, loadDistributionPage } from "../formsDistributionApi";
 import type { MatterAggregate, ProgramAggregate } from "../types";
 import { MatterRecordWorkspace } from "./MatterRecordWorkspace";
 
@@ -217,6 +218,21 @@ describe("Matter record workspace", () => {
 
     await openRecordTab("Evidence");
     expect(await screen.findByRole("button", { name: "Request employee form" })).toBeTruthy();
+  });
+
+  it("keeps Work and Activity available when linked form reads fail", async () => {
+    vi.mocked(loadDistributionPage).mockRejectedValueOnce(new Error("distribution read unavailable"));
+    vi.mocked(loadCompletedResponses).mockRejectedValueOnce(new Error("response read unavailable"));
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
+
+    await openRecordTab("Evidence");
+    expect(await screen.findByText("Form requests are unavailable. Other issue work remains available.")).toBeTruthy();
+    expect(await screen.findByText("Submitted responses are unavailable. Other issue work remains available.")).toBeTruthy();
+
+    await openRecordTab("Actions");
+    expect(screen.getByRole("tab", { name: "Work" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("heading", { name: "Updates and history" })).toBeTruthy();
+    expect(screen.getByLabelText("Issue activity")).toBeTruthy();
   });
 
   it("keeps the issue visible and retries only responsibilities after responsibility loading fails", async () => {
