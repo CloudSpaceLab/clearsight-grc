@@ -42,12 +42,12 @@ SET tenant_id = EXCLUDED.tenant_id,
 
 INSERT INTO role_templates(id, tenant_id, code, name, description, responsibilities, capabilities, valid_from)
 VALUES
-  ('00000000-0000-4000-8000-000000000401', '00000000-0000-4000-8000-000000000001', 'CRO', 'Chief Risk Officer', 'Executive risk authorization and escalation.', ARRAY['AUTHORIZER','ESCALATION_OWNER'], ARRAY['read:all','governance:authorize'], '2020-01-01T00:00:00Z'),
+  ('00000000-0000-4000-8000-000000000401', '00000000-0000-4000-8000-000000000001', 'CRO', 'Chief Risk Officer', 'Executive risk authorization and escalation.', ARRAY['AUTHORIZER','ESCALATION_OWNER'], ARRAY['read:all','governance:authorize','REPORT_DOWNLOAD'], '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000402', '00000000-0000-4000-8000-000000000001', 'CCO', 'Chief Compliance Officer', 'Compliance authorization and external sign-off.', ARRAY['AUTHORIZER','SIGNATORY','TRANSMITTER','ACKNOWLEDGEMENT_RECORDER','PROPOSER'], ARRAY['read:all','governance:authorize','REPORT_DOWNLOAD'], '2020-01-01T00:00:00Z'),
-  ('00000000-0000-4000-8000-000000000403', '00000000-0000-4000-8000-000000000001', 'CISO', 'Chief Information Security Officer', 'Information security executive oversight.', ARRAY['ACCOUNTABLE_OWNER'], ARRAY['read:all'], '2020-01-01T00:00:00Z'),
+  ('00000000-0000-4000-8000-000000000403', '00000000-0000-4000-8000-000000000001', 'CISO', 'Chief Information Security Officer', 'Information security executive oversight.', ARRAY['ACCOUNTABLE_OWNER'], ARRAY['read:all','REPORT_DOWNLOAD'], '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000404', '00000000-0000-4000-8000-000000000001', 'GRC_ADMIN', 'GRC Administrator', 'Governance configuration administration.', ARRAY['PROPOSER'], ARRAY['configure:governance','REPORT_DOWNLOAD'], '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000405', '00000000-0000-4000-8000-000000000001', 'SYSTEM_ADMIN', 'System Administrator', 'System configuration administration.', ARRAY[]::text[], ARRAY['configure:system'], '2020-01-01T00:00:00Z'),
-  ('00000000-0000-4000-8000-000000000406', '00000000-0000-4000-8000-000000000001', 'INTERNAL_AUDITOR', 'Internal Auditor', 'Independent review and challenge.', ARRAY['REVIEWER','INDEPENDENT_CHALLENGER'], ARRAY['read:all','review:evidence'], '2020-01-01T00:00:00Z'),
+  ('00000000-0000-4000-8000-000000000406', '00000000-0000-4000-8000-000000000001', 'INTERNAL_AUDITOR', 'Internal Auditor', 'Independent review and challenge.', ARRAY['REVIEWER','INDEPENDENT_CHALLENGER'], ARRAY['read:all','review:evidence','REPORT_DOWNLOAD'], '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000407', '00000000-0000-4000-8000-000000000001', 'PROGRAM_OWNER', 'Program Owner', 'Accountable ownership and assigned implementation work.', ARRAY['ACCOUNTABLE_OWNER','PERFORMER'], ARRAY['manage:program','manage:matter'], '2020-01-01T00:00:00Z'),
   ('00000000-0000-4000-8000-000000000408', '00000000-0000-4000-8000-000000000001', 'EVIDENCE_RESPONDENT', 'Evidence Respondent', 'Assigned evidence collection work.', ARRAY['PERFORMER'], ARRAY['respond:evidence'], '2020-01-01T00:00:00Z')
 ON CONFLICT (id) DO UPDATE
@@ -136,12 +136,12 @@ BEGIN
   IF EXISTS (
     SELECT 1
     FROM (VALUES
-      ('00000000-0000-4000-8000-000000000401'::uuid, 'CRO', ARRAY['AUTHORIZER','ESCALATION_OWNER']::text[], ARRAY['read:all','governance:authorize']::text[]),
+      ('00000000-0000-4000-8000-000000000401'::uuid, 'CRO', ARRAY['AUTHORIZER','ESCALATION_OWNER']::text[], ARRAY['read:all','governance:authorize','REPORT_DOWNLOAD']::text[]),
       ('00000000-0000-4000-8000-000000000402'::uuid, 'CCO', ARRAY['AUTHORIZER','SIGNATORY','TRANSMITTER','ACKNOWLEDGEMENT_RECORDER','PROPOSER']::text[], ARRAY['read:all','governance:authorize','REPORT_DOWNLOAD']::text[]),
-      ('00000000-0000-4000-8000-000000000403'::uuid, 'CISO', ARRAY['ACCOUNTABLE_OWNER']::text[], ARRAY['read:all']::text[]),
+      ('00000000-0000-4000-8000-000000000403'::uuid, 'CISO', ARRAY['ACCOUNTABLE_OWNER']::text[], ARRAY['read:all','REPORT_DOWNLOAD']::text[]),
       ('00000000-0000-4000-8000-000000000404'::uuid, 'GRC_ADMIN', ARRAY['PROPOSER']::text[], ARRAY['configure:governance','REPORT_DOWNLOAD']::text[]),
       ('00000000-0000-4000-8000-000000000405'::uuid, 'SYSTEM_ADMIN', ARRAY[]::text[], ARRAY['configure:system']::text[]),
-      ('00000000-0000-4000-8000-000000000406'::uuid, 'INTERNAL_AUDITOR', ARRAY['REVIEWER','INDEPENDENT_CHALLENGER']::text[], ARRAY['read:all','review:evidence']::text[]),
+      ('00000000-0000-4000-8000-000000000406'::uuid, 'INTERNAL_AUDITOR', ARRAY['REVIEWER','INDEPENDENT_CHALLENGER']::text[], ARRAY['read:all','review:evidence','REPORT_DOWNLOAD']::text[]),
       ('00000000-0000-4000-8000-000000000407'::uuid, 'PROGRAM_OWNER', ARRAY['ACCOUNTABLE_OWNER','PERFORMER']::text[], ARRAY['manage:program','manage:matter']::text[]),
       ('00000000-0000-4000-8000-000000000408'::uuid, 'EVIDENCE_RESPONDENT', ARRAY['PERFORMER']::text[], ARRAY['respond:evidence']::text[])
     ) expected(id, code, responsibilities, capabilities)
