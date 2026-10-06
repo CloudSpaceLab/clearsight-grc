@@ -119,7 +119,6 @@ func TestInAppNotificationProjectorRendersSafeAttentionIntent(t *testing.T) {
 	}
 }
 
-
 func TestInAppNotificationProjectorProjectsEscalationAssignmentSafely(t *testing.T) {
 	matterID := "20000000-0000-4000-8000-000000000020"
 	principalID := "40000000-0000-4000-8000-000000000020"
@@ -131,7 +130,7 @@ func TestInAppNotificationProjectorProjectsEscalationAssignmentSafely(t *testing
 		OccurredAt: time.Date(2026, 10, 6, 3, 0, 0, 0, time.UTC),
 	}
 	repo := &inAppProjectionRepoStub{context: assignmentNotificationContext{
-		LegalEntityID: "50000000-0000-4000-8000-000000000020",
+		LegalEntityID:      "50000000-0000-4000-8000-000000000020",
 		CurrentPrincipalID: principalID, MatterID: matterID,
 	}}
 	if err := (NewInAppNotificationProjector(repo, repo)).Publish(context.Background(), event); err != nil {
@@ -147,16 +146,15 @@ func TestInAppNotificationProjectorProjectsEscalationAssignmentSafely(t *testing
 	}
 }
 
-
 type largeAssignmentProjectionRepo struct {
 	records []inAppNotificationRecord
 }
 
 func (r *largeAssignmentProjectionRepo) LoadAssignmentNotification(_ context.Context, event workflowruntime.OutboxEvent, assignment assignmentNotificationEvent) (assignmentNotificationContext, error) {
 	return assignmentNotificationContext{
-		LegalEntityID: "50000000-0000-4000-8000-000000000030",
+		LegalEntityID:      "50000000-0000-4000-8000-000000000030",
 		CurrentPrincipalID: assignment.PrincipalID,
-		MatterID: event.AggregateID,
+		MatterID:           event.AggregateID,
 	}, nil
 }
 
