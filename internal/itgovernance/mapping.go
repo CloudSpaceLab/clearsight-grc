@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	MetricSeriesSchema = "clearsight.it-governance.binding.v1"
-	MetricSeriesShape  = "METRIC_SERIES"
+	MetricSeriesSchema        = "clearsight.it-governance.binding.v1"
+	MetricSeriesShape         = "METRIC_SERIES"
 	LensChannels              = "CHANNEL_PERFORMANCE"
 	PurposeChannelPerformance = "IT_GOVERNANCE_CHANNEL_PERFORMANCE"
 )

@@ -38,14 +38,14 @@ func TestBindingDraftValidatorRejectsBeforePersistence(t *testing.T) {
 	})
 
 	_, err = service.CreateBindingDraft(ctx, CatalogActor{TenantID: catalogTenantID, PrincipalID: catalogActorID}, view.ViewID, CreateBindingDraftInput{
-		ViewVersion: view.Version,
-		Code: "CHANNEL-METRICS",
-		Name: "Channel metrics",
-		Purpose: "IT_GOVERNANCE_CHANNEL_PERFORMANCE",
-		Operations: []Operation{OperationPage},
+		ViewVersion:    view.Version,
+		Code:           "CHANNEL-METRICS",
+		Name:           "Channel metrics",
+		Purpose:        "IT_GOVERNANCE_CHANNEL_PERFORMANCE",
+		Operations:     []Operation{OperationPage},
 		SelectedFields: []string{"account_id"},
-		KeyFields: []string{"account_id"},
-		Limits: DefaultResourceLimits(),
+		KeyFields:      []string{"account_id"},
+		Limits:         DefaultResourceLimits(),
 	})
 	if !errors.Is(err, ErrCatalogInvalid) || !errors.Is(err, validationErr) {
 		t.Fatalf("binding validator error=%v", err)
