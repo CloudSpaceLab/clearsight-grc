@@ -11,11 +11,11 @@ import (
 
 var ErrFormOriginValidationUnavailable = errors.New("form origin validation is unavailable")
 
-type formOriginValidator interface {
+type FormOriginValidator interface {
 	MatterOriginExists(context.Context, string, string, string, string) (bool, error)
 }
 
-func (s *Service) ConfigureFormOriginValidator(validator formOriginValidator) {
+func (s *Service) ConfigureFormOriginValidator(validator FormOriginValidator) {
 	s.formOrigins = validator
 }
 
