@@ -259,6 +259,7 @@ func retainScopedDomainMembers(
 				memberUUID,
 				member.TargetType,
 				targetUUID,
+				nullUUID(member.OrganizationScopeID),
 				member.Title,
 				member.State,
 			})
@@ -268,7 +269,7 @@ func retainScopedDomainMembers(
 		if _, err := tx.CopyFrom(
 			ctx,
 			pgx.Identifier{"metric_runtime_memberships"},
-			[]string{"source_id", "metric_id", "definition_revision", "member_id", "target_type", "target_id", "target_title", "state"},
+			[]string{"source_id", "metric_id", "definition_revision", "member_id", "target_type", "target_id", "organization_scope_id", "target_title", "state"},
 			pgx.CopyFromRows(rows),
 		); err != nil {
 			return "", fmt.Errorf("retain scoped domain metric members: %w", err)
@@ -318,6 +319,18 @@ func scopedDomainFingerprint(scope domainScope, highWater map[string]time.Time, 
 	}
 	sum := sha256.Sum256(encoded)
 	return hex.EncodeToString(sum[:]), nil
+}
+
+func nullUUID(value string) any {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	var parsed pgtype.UUID
+	if err := parsed.Scan(value); err != nil || !parsed.Valid {
+		return nil
+	}
+	return parsed
 }
 
 func normalizeDomainScopeIDs(values []string) []string {
