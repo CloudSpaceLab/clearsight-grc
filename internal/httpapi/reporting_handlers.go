@@ -90,6 +90,27 @@ func (a *API) listReportOwners(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": owners})
 }
 
+func (a *API) getMatterBoardBriefAvailability(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.reportingService(w)
+	if !ok {
+		return
+	}
+	requestScope, ok := a.reportingReadScope(w, r)
+	if !ok {
+		return
+	}
+	availability, err := service.MatterBoardBriefAvailability(
+		r.Context(),
+		requestScope.Scope,
+		strings.TrimSpace(r.URL.Query().Get("matter_id")),
+	)
+	if err != nil {
+		writeReportError(w, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, availability)
+}
+
 func (a *API) listReportDefinitions(w http.ResponseWriter, r *http.Request) {
 	service, ok := a.reportingService(w)
 	if !ok {
