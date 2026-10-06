@@ -11,25 +11,25 @@ func TestCompareNativeMeasurementsKeepsExactSignedMovement(t *testing.T) {
 		delta     string
 	}{
 		{
-			name: "percentage points up",
+			name:      "percentage points up",
 			current: NativeMeasurement{Field: "availability", Unit: MeasurementPercent, Precision: 2, Value: "99.70"},
-			previous: NativeMeasurement{Field: "availability", Unit: MeasurementPercent, Precision: 2, Value: "99.50"},
+			previous:  NativeMeasurement{Field: "availability", Unit: MeasurementPercent, Precision: 2, Value: "99.50"},
 			direction: MeasurementMovementUp,
-			delta: "+0.20",
+			delta:      "+0.20",
 		},
 		{
-			name: "count down",
+			name:      "count down",
 			current: NativeMeasurement{Field: "exceptions", Unit: MeasurementCount, Value: "7"},
-			previous: NativeMeasurement{Field: "exceptions", Unit: MeasurementCount, Value: "10"},
+			previous:  NativeMeasurement{Field: "exceptions", Unit: MeasurementCount, Value: "10"},
 			direction: MeasurementMovementDown,
-			delta: "-3",
+			delta:      "-3",
 		},
 		{
-			name: "exact flat",
+			name:      "exact flat",
 			current: NativeMeasurement{Field: "loss", Unit: MeasurementMoney, Currency: "NGN", Precision: 2, Value: "1000000.00"},
-			previous: NativeMeasurement{Field: "loss", Unit: MeasurementMoney, Currency: "NGN", Precision: 2, Value: "1000000.00"},
+			previous:  NativeMeasurement{Field: "loss", Unit: MeasurementMoney, Currency: "NGN", Precision: 2, Value: "1000000.00"},
 			direction: MeasurementMovementFlat,
-			delta: "0.00",
+			delta:      "0.00",
 		},
 	}
 	for _, tt := range tests {
@@ -45,8 +45,8 @@ func TestCompareNativeMeasurementsKeepsExactSignedMovement(t *testing.T) {
 func TestCompareNativeMeasurementsRejectsIncompatibleDefinitions(t *testing.T) {
 	current := NativeMeasurement{Field: "availability", Unit: MeasurementPercent, Value: "99.5"}
 	for name, previous := range map[string]NativeMeasurement{
-		"field": {Field: "latency", Unit: MeasurementPercent, Value: "99.4"},
-		"unit": {Field: "availability", Unit: MeasurementCount, Value: "99"},
+		"field":         {Field: "latency", Unit: MeasurementPercent, Value: "99.4"},
+		"unit":          {Field: "availability", Unit: MeasurementCount, Value: "99"},
 		"missing value": {Field: "availability", Unit: MeasurementPercent},
 	} {
 		t.Run(name, func(t *testing.T) {

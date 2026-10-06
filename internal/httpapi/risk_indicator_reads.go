@@ -45,7 +45,7 @@ type riskIndicatorRead struct {
 	Unit                string                         `json:"unit"`
 	Denominator         int                            `json:"denominator"`
 	NativeMeasurement   *monitoring.NativeMeasurement  `json:"native_measurement,omitempty"`
-	Movement            *riskIndicatorMovementRead      `json:"movement,omitempty"`
+	Movement            *riskIndicatorMovementRead     `json:"movement,omitempty"`
 	State               riskIndicatorState             `json:"state"`
 	Reason              string                         `json:"reason"`
 	Score               *float64                       `json:"score,omitempty"`

@@ -33,9 +33,12 @@ type riskIndicatorReadBuilder struct {
 
 func newRiskIndicatorReadBuilder(api *API, ctx context.Context, actor identity.Actor) *riskIndicatorReadBuilder {
 	return &riskIndicatorReadBuilder{
-		api: api, ctx: ctx, actor: actor,
+		api:          api,
+		ctx:          ctx,
+		actor:        actor,
 		monitorActor: monitoring.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID},
-		now: time.Now().UTC(), programs: map[string]continuity.ProgramAggregate{},
+		now:          time.Now().UTC(),
+		programs:     map[string]continuity.ProgramAggregate{},
 	}
 }
 
@@ -57,13 +60,24 @@ func (b *riskIndicatorReadBuilder) build(link risk.IndicatorLink) (riskIndicator
 	}
 
 	detail := riskIndicatorRead{
-		Link: link, ProgramID: program.Program.ID, ProgramName: program.Program.Name,
-		CheckID: check.ID, CheckCode: check.Code, CheckName: check.Name, Claim: check.Claim,
-		CheckStatus: check.Status, CheckVersion: check.Version, InputKind: check.InputKind,
-		Measurement: risk.IndicatorMonitoringRiskScore, Unit: risk.IndicatorRiskScoreUnit,
-		Denominator: risk.IndicatorRiskScoreDenominator, NativeMeasurement: currentRiskIndicatorNativeMeasurement(check, nil),
-		State: riskIndicatorUnknown, Reason: "No current monitoring result.",
-		MinimumCoverage: check.MinimumCoverage, FreshnessMinutes: check.FreshnessMinutes,
+		Link:              link,
+		ProgramID:         program.Program.ID,
+		ProgramName:       program.Program.Name,
+		CheckID:           check.ID,
+		CheckCode:         check.Code,
+		CheckName:         check.Name,
+		Claim:             check.Claim,
+		CheckStatus:       check.Status,
+		CheckVersion:      check.Version,
+		InputKind:         check.InputKind,
+		Measurement:       risk.IndicatorMonitoringRiskScore,
+		Unit:              risk.IndicatorRiskScoreUnit,
+		Denominator:       risk.IndicatorRiskScoreDenominator,
+		NativeMeasurement: currentRiskIndicatorNativeMeasurement(check, nil),
+		State:             riskIndicatorUnknown,
+		Reason:            "No current monitoring result.",
+		MinimumCoverage:   check.MinimumCoverage,
+		FreshnessMinutes:  check.FreshnessMinutes,
 	}
 	complete := true
 	results, resultErr := b.api.deps.Monitoring.ListResultRevisions(b.ctx, b.monitorActor, check.ID, check.Version, 5)
@@ -142,7 +156,9 @@ func riskIndicatorMovement(results []monitoring.MonitoringResult) (riskIndicator
 			continue
 		}
 		return riskIndicatorMovementRead{
-			Direction: movement.Direction, Delta: movement.Delta, PreviousEvaluatedAt: previous.EvaluatedAt,
+			Direction:           movement.Direction,
+			Delta:               movement.Delta,
+			PreviousEvaluatedAt: previous.EvaluatedAt,
 		}, true
 	}
 	return riskIndicatorMovementRead{}, false
