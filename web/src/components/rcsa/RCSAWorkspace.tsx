@@ -146,7 +146,7 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
         </div>
       </div>
 
-      {!complete && state !== "error" && <Notice tone="warning">Some cycles could not be resolved for the current authority route.</Notice>}
+      {!complete && state !== "error" && <Notice tone="warning">Some cycles are temporarily unavailable. Available cycles remain unchanged.</Notice>}
       {state === "error" && <EmptyState population="RCSA cycles" title="RCSA cycles could not be loaded" description="The cycle register is unavailable." action={<Button variant="secondary" onPress={() => setRetry((value) => value + 1)}>Try again</Button>} role="alert"/>}
       {state === "live" && items.length === 0 && <EmptyState population="RCSA cycles" title="No cycles in this view" description={status === "ALL" ? "No RCSA cycles are available to you in this legal entity." : "No RCSA cycle matches this status."}/>}
       {(state === "loading" || items.length > 0) && <DataTable

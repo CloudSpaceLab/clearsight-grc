@@ -98,5 +98,5 @@ it("shows partial authority resolution without inventing a complete population",
   vi.mocked(listRCSACycles).mockResolvedValueOnce({ complete: false, items: [] });
   render(<RCSAWorkspace organizationName="Bank" legalEntityName="Nigeria" onTarget={() => {}}/>);
   await waitFor(() => expect(listRCSACycles).toHaveBeenCalled());
-  expect(screen.getByText("Some cycles could not be resolved for the current authority route.")).toBeTruthy();
+  expect(screen.getByText("Some cycles are temporarily unavailable. Available cycles remain unchanged.")).toBeTruthy();
 });
