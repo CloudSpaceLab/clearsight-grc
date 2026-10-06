@@ -13,6 +13,10 @@ func (r *MemoryRepository) ListIndicatorPopulation(ctx context.Context, scope Sc
 	if err != nil {
 		return IndicatorPopulationPage{}, err
 	}
+	cursor, err := decodeIndicatorPopulationCursor(filter.Cursor)
+	if err != nil {
+		return IndicatorPopulationPage{}, err
+	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -91,10 +95,23 @@ func (r *MemoryRepository) ListIndicatorPopulation(ctx context.Context, scope Sc
 		}
 		return items[i].Link.MonitoringCheckID > items[j].Link.MonitoringCheckID
 	})
+	if !cursor.CreatedAt.IsZero() {
+		filtered := items[:0]
+		for _, item := range items {
+			if indicatorPopulationAfterCursor(item, cursor) {
+				filtered = append(filtered, item)
+			}
+		}
+		items = filtered
+	}
 	page := IndicatorPopulationPage{OrganizationScopeID: filter.OrganizationScopeID}
 	if len(items) > filter.Limit {
 		page.Items = items[:filter.Limit]
 		page.Truncated = true
+		page.NextCursor, err = encodeIndicatorPopulationCursor(page.Items[len(page.Items)-1])
+		if err != nil {
+			return IndicatorPopulationPage{}, err
+		}
 	} else {
 		page.Items = items
 	}
