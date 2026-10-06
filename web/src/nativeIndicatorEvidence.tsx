@@ -14,6 +14,7 @@ const indicator: RiskIndicatorDetail = {
     measurement: "MONITORING_RISK_SCORE",
     created_at: "2026-10-05T08:00:00Z",
   },
+  kind: "KRI",
   program_id: "sample-channel-program",
   program_name: "Digital channels",
   check_id: "sample-mobile-success",
