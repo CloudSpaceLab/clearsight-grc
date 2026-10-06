@@ -263,6 +263,25 @@ it("does not offer Risk control linking to a non-owner", async () => {
   expect(screen.queryByRole("button", { name: "Link control" })).toBeNull();
 });
 
+it("uses the newer current-position assessment across CURRENT and RESIDUAL kinds", async () => {
+  const olderCurrent = {
+    ...assessment,
+    id: "assessment-current-old",
+    risk_version: 2,
+    kind: "CURRENT" as const,
+    appetite_position: "WITHIN" as const,
+    appetite_rationale: "Earlier current assessment was within appetite.",
+    assessed_at: "2026-10-02T10:30:00Z",
+    created_at: "2026-10-02T10:30:00Z",
+  };
+  render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, assessments: [olderCurrent, assessment] })}/>);
+
+  const currentState = await screen.findByRole("group", { name: "Current risk state" });
+  expect(within(currentState).getByText("Residual appetite")).toBeTruthy();
+  expect(within(currentState).getByText("Outside appetite")).toBeTruthy();
+  expect(within(currentState).queryByText("Within appetite")).toBeNull();
+});
+
 it("does not treat a later stressed assessment as current residual exposure", async () => {
   const stressed = {
     ...assessment,
