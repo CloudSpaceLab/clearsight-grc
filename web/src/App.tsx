@@ -340,8 +340,8 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const homeFocus = displayPreferences?.presentation?.effective_home_focus ?? "POSTURE";
   const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
     { label: "Home", view: "oversight", activeViews: ["oversight"] },
-    { label: "Portfolio", view: "programs", activeViews: portfolioViews },
     { label: "Work", view: "work", activeViews: ["work"] },
+    { label: "Portfolio", view: "programs", activeViews: portfolioViews },
     { label: "Insights", view: "insights", activeViews: ["insights"] },
     { label: "Reports", view: "reports", activeViews: ["reports"] },
   ];

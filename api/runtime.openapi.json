@@ -5322,6 +5322,9 @@
           "403": {
             "description": "Indicator insight access is not permitted."
           },
+          "422": {
+            "description": "Indicator cursor or filter values are invalid."
+          },
           "503": {
             "description": "Indicator information is unavailable."
           }
