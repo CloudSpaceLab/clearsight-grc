@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createLibraryFormDraft } from "../formsApi";
+import type { FormTemplate } from "../monitoringTypes";
 import { FocusedSheet } from "./FocusedSheet";
 import { FormBuilder } from "./FormBuilder";
 import { DistributionComposer } from "./forms/DistributionComposer";
 import { SubjectFormActivity } from "./forms/SubjectFormActivity";
-import { Button, Notice } from "./ui";
+import { ActionLink, Button, Notice } from "./ui";
 
 type Props = {
   matterID: string;
@@ -15,6 +16,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
   const [requestOpen, setRequestOpen] = useState(false);
   const [authorOpen, setAuthorOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [createdDraft, setCreatedDraft] = useState<FormTemplate>();
 
   return <section className="matter-record-panel" aria-labelledby="matter-form-requests-title">
     <div className="section-heading-row">
@@ -24,12 +26,12 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
         <p>Create a form for {matterReference} or request an approved form from an employee.</p>
       </div>
       <div className="matter-panel-actions">
-        <Button type="button" variant="secondary" onPress={() => { setNotice(""); setAuthorOpen(true); }}>Create linked form</Button>
-        <Button type="button" variant="secondary" onPress={() => { setNotice(""); setRequestOpen(true); }}>Request employee form</Button>
+        <Button type="button" variant="secondary" onPress={() => { setNotice(""); setCreatedDraft(undefined); setAuthorOpen(true); }}>Create linked form</Button>
+        <Button type="button" variant="secondary" onPress={() => { setNotice(""); setCreatedDraft(undefined); setRequestOpen(true); }}>Request employee form</Button>
       </div>
     </div>
 
-    {notice && <Notice tone="success">{notice}</Notice>}
+    {notice && <Notice tone="success">{notice}{createdDraft && <> <ActionLink href={`#forms/${encodeURIComponent(createdDraft.id)}`}>Open form draft</ActionLink></>}</Notice>}
     <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference}/>
 
     {authorOpen && <FocusedSheet label="Create linked form" closeLabel="Close form builder" size="wide" onClose={() => setAuthorOpen(false)}>
@@ -40,8 +42,9 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
       </div>
       <FormBuilder
         saveDraft={(input) => createLibraryFormDraft({ ...input, origin: { type: "MATTER", id: matterID } })}
-        onSaved={() => {
+        onSaved={(form) => {
           setAuthorOpen(false);
+          setCreatedDraft(form);
           setNotice("Form draft created.");
         }}
         onCancel={() => setAuthorOpen(false)}

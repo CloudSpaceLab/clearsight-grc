@@ -70,6 +70,7 @@ it("resolves the originating issue only for the selected form detail", async () 
     requestedID="form-1"
     busy={null}
     onClose={vi.fn()}
+    onRetry={vi.fn()}
     onClearFilters={vi.fn()}
     onEdit={vi.fn()}
     onTransition={vi.fn()}

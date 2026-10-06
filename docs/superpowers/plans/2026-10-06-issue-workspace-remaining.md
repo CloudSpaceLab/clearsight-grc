@@ -55,3 +55,7 @@ Use the existing report definition and run lifecycle.
 ## Completion criteria
 
 An issue can be read, assigned, discussed, updated, linked to a loss, supplied with an employee or vendor form request, created as the immutable origin of a normal form draft, and exported as a governed board brief. Every route is tenant- and legal-entity-scoped, uses existing authority and notification services, and degrades without concealing the primary issue work.
+
+## Follow-through review
+
+The delivered scope is retained as complete. The operational follow-through work identified after merge—form-draft handoff, paginated and actionable issue form activity, durable linked-form history, and board-brief recovery—is sequenced in [the follow-through plan](2026-10-06-issue-workspace-follow-through.md).

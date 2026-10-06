@@ -2,6 +2,7 @@ import { requestJSON, requestVoid } from "./http";
 import type { LifecycleStatus } from "./monitoringTypes";
 import type {
   CreateLibraryFormInput,
+  FormLibraryItem,
   FormTemplate,
   FormTemplatePage,
   FormTemplateQuery,
@@ -35,6 +36,9 @@ function formQuery(query: FormTemplateQuery = {}, options: FormTemplatePageOptio
 
 export function loadFormTemplatePage(query: FormTemplateQuery = {}, signal?: AbortSignal, options: FormTemplatePageOptions = {}): Promise<FormTemplatePage> {
   return requestJSON<FormTemplatePage>(apiBase, `/api/v1/forms/templates${formQuery(query, options)}`, signal ? { signal } : undefined);
+}
+export function loadFormTemplateItem(id: string): Promise<FormLibraryItem> {
+  return requestJSON<FormLibraryItem>(apiBase, `/api/v1/forms/templates/${encodeURIComponent(id)}`);
 }
 export function loadFormTemplateRevision(id: string, version: number): Promise<FormTemplate> {
   return requestJSON<FormTemplate>(apiBase, `/api/v1/forms/templates/${encodeURIComponent(id)}/revisions/${version}`);

@@ -179,6 +179,39 @@ func (r *MemoryRepository) ListFormLibrary(_ context.Context, filter FormLibrary
 	return page, nil
 }
 
+func (r *MemoryRepository) FormLibraryItem(_ context.Context, tenantID, legalEntityID, id string) (FormLibraryItem, error) {
+	if tenantID == "" || legalEntityID == "" || id == "" {
+		return FormLibraryItem{}, ErrInvalid
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var latest FormTemplate
+	var active FormTemplate
+	found := false
+	for _, value := range r.forms {
+		if value.TenantID != tenantID || value.LegalEntityID != legalEntityID || value.ID != id {
+			continue
+		}
+		if !found || value.Version > latest.Version {
+			latest = value
+			found = true
+		}
+		if value.IsCurrent && (value.Status == LifecycleActive || value.Status == LifecyclePaused) {
+			active = value
+		}
+	}
+	if !found {
+		return FormLibraryItem{}, ErrNotFound
+	}
+	item := FormLibraryItem{Template: cloneValue(latest)}
+	if active.Version > 0 {
+		item.ActiveVersion = active.Version
+		item.ActiveStatus = active.Status
+	}
+	return item, nil
+}
+
 func (r *MemoryRepository) ListSavedFormViews(_ context.Context, tenantID, legalEntityID, principalID string) ([]SavedFormView, error) {
 	if tenantID == "" || legalEntityID == "" || principalID == "" {
 		return nil, ErrInvalid

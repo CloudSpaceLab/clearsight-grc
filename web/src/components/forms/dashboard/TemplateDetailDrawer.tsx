@@ -11,13 +11,17 @@ type Props = {
   item?: FormLibraryItem;
   requestedID?: string;
   busy: string | null;
+  loading?: boolean;
+  error?: boolean;
+  canClearFilters?: boolean;
   onClose: () => void;
+  onRetry: () => void;
   onClearFilters: () => void;
   onEdit: () => void;
   onTransition: (to: LifecycleStatus) => void;
 };
 
-export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClearFilters, onEdit, onTransition }: Props) {
+export function TemplateDetailDrawer({ item, requestedID, busy, loading = false, error = false, canClearFilters = false, onClose, onRetry, onClearFilters, onEdit, onTransition }: Props) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const close = useCallback(() => onCloseRef.current(), []);
@@ -33,17 +37,17 @@ export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClear
     <div className="forms-detail-drawer-bar">
       <span>Form detail</span>
     </div>
-    {item ? <TemplateDetail item={item} busy={busy} onEdit={onEdit} onTransition={onTransition}/>
-      : <div className="forms-detail-drawer-body">
+    {item ? <TemplateDetail item={item} busy={busy} canClearFilters={canClearFilters} onClearFilters={onClearFilters} onEdit={onEdit} onTransition={onTransition}/>
+      : <div className="forms-detail-drawer-body" aria-live="polite">
         <span className="forms-detail-kicker">Selected template</span>
-        <h2>Template isn’t in this view</h2>
-        <p>Clear the active filters to bring the selected template back into the current result set.</p>
-        <Button onPress={onClearFilters}>Clear filters</Button>
+        <h2>{loading ? "Loading form…" : "Form unavailable"}</h2>
+        {!loading && <p>{error ? "The form could not be loaded." : "This form is not available in the current legal entity."}</p>}
+        {!loading && error && <Button onPress={onRetry}>Retry</Button>}
       </div>}
   </FocusedSheet>;
 }
 
-function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibraryItem; busy: string | null; onEdit: () => void; onTransition: (to: LifecycleStatus) => void }) {
+function TemplateDetail({ item, busy, canClearFilters, onClearFilters, onEdit, onTransition }: { item: FormLibraryItem; busy: string | null; canClearFilters: boolean; onClearFilters: () => void; onEdit: () => void; onTransition: (to: LifecycleStatus) => void }) {
   const form = item.template;
   const [originReference, setOriginReference] = useState<string | null>();
   useEffect(() => {
@@ -100,6 +104,7 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
         {canTransition("RETIRED") && <Button variant="destructive" isDisabled={busy !== null} onPress={() => onTransition("RETIRED")}>Retire revision</Button>}
       </>}
       {!canRevise && !canTransition("PENDING_APPROVAL") && !canTransition("ACTIVE") && !canTransition("REJECTED") && !canTransition("PAUSED") && !canTransition("RETIRED") && unavailableReason && <small className="forms-muted">{unavailableReason}</small>}
+      {canClearFilters && <Button variant="quiet" isDisabled={busy !== null} onPress={onClearFilters}>Clear filters</Button>}
     </div>
 
     <div className="forms-detail-state">

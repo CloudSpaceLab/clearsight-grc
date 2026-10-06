@@ -14,6 +14,7 @@ import { loadGroupOversight, type GroupOversightSnapshot } from "./groupOversigh
 const { listEvidenceRecipientCandidates, subscribeInvalidations } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn(), subscribeInvalidations: vi.fn() }));
 
 vi.mock("./formsApi", () => ({
+  loadFormTemplateItem: vi.fn().mockRejectedValue(new Error("No exact form selected")),
   loadFormTemplatePage: vi.fn().mockResolvedValue({ items: [] }),
   loadFormTemplateRevision: vi.fn(),
   loadReusableFormTemplateRefs: vi.fn().mockResolvedValue([]),

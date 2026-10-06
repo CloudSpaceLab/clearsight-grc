@@ -212,6 +212,7 @@ func (a *API) routes() []routeSpec {
 
 		read("/api/v1/form-templates", a.listReusableFormTemplates),
 		read("/api/v1/forms/templates", a.listLibraryForms),
+		read("/api/v1/forms/templates/{id}", a.getLibraryForm),
 		material("/api/v1/forms/templates", "forms.template.create", a.createLibraryForm, commandPolicy{ObjectType: "LEGAL_ENTITY", Responsibility: authority.ResponsibilityOwner, Materiality: 2, BindLegalEntity: true, ActorField: noActorField}),
 		read("/api/v1/forms/templates/{id}/revisions/{version}", a.getLibraryFormRevision),
 		material("/api/v1/forms/templates/{id}/revisions", "forms.template.revise", a.createLibraryFormRevision, commandPolicy{ObjectType: "FORM_TEMPLATE", ObjectIDPath: "id", Responsibility: authority.ResponsibilityOwner, Materiality: 2, ActorField: noActorField}),

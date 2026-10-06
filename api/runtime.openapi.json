@@ -3501,6 +3501,12 @@
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
+    "/api/v1/forms/templates/{id}": {
+      "get": {
+        "operationId": "getFormTemplateLibraryItem",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/forms/templates/{id}/revisions/{version}": {
       "get": {
         "operationId": "getFormTemplateRevision",

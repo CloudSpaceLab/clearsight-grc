@@ -41,6 +41,34 @@ func TestFormLibraryReturnsLatestRevisionAndActiveVersionWithKeysetPaging(t *tes
 	}
 }
 
+func TestFormLibraryItemReturnsLatestRevisionOutsidePagedView(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 8, 27, 9, 0, 0, 0, time.UTC)
+	for _, form := range []FormTemplate{
+		libraryForm("form-a", "entity-a", "program-a", "ACCESS", LifecycleActive, 2, true, now.Add(-time.Hour)),
+		libraryForm("form-a", "entity-a", "program-a", "ACCESS", LifecycleDraft, 3, false, now),
+		libraryForm("form-b", "entity-a", "", "VENDOR", LifecycleActive, 1, true, now.Add(time.Hour)),
+	} {
+		if _, err := repo.CreateFormRevision(t.Context(), form); err != nil {
+			t.Fatal(err)
+		}
+	}
+	page, err := repo.ListFormLibrary(t.Context(), FormLibraryFilter{TenantID: "bank-a", LegalEntityID: "entity-a", Limit: 1})
+	if err != nil || len(page.Items) != 1 || page.Items[0].Template.ID != "form-b" {
+		t.Fatalf("paged library = %#v, err = %v", page, err)
+	}
+	item, err := repo.FormLibraryItem(t.Context(), "bank-a", "entity-a", "form-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if item.Template.ID != "form-a" || item.Template.Version != 3 || item.ActiveVersion != 2 || item.ActiveStatus != LifecycleActive {
+		t.Fatalf("exact item = %#v", item)
+	}
+	if _, err := repo.FormLibraryItem(t.Context(), "bank-a", "entity-b", "form-a"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cross-entity exact read error = %v", err)
+	}
+}
+
 func TestFormLibraryFiltersBeforeLimit(t *testing.T) {
 	repo := NewMemoryRepository()
 	now := time.Date(2026, 8, 27, 10, 0, 0, 0, time.UTC)
