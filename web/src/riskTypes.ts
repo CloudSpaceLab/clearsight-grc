@@ -30,8 +30,8 @@ export type RiskIndicatorIntervention = {
   created_at: string;
 };
 
-export type RiskIndicatorDetail = {
-  link: RiskIndicatorLink;
+export type IndicatorDetailBase = {
+  kind: RiskIndicatorKind;
   program_id: string;
   program_name: string;
   check_id: string;
@@ -57,6 +57,10 @@ export type RiskIndicatorDetail = {
   result_id?: string;
   evaluated_at?: string;
   intervention?: RiskIndicatorIntervention;
+};
+
+export type RiskIndicatorDetail = IndicatorDetailBase & {
+  link: RiskIndicatorLink;
 };
 
 export type RiskControlImplementationStatus = "PLANNED" | "IN_PROGRESS" | "IMPLEMENTED" | "INACTIVE" | "RETIRED";
