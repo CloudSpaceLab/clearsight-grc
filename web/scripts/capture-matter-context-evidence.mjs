@@ -38,11 +38,15 @@ try {
     const route = "#work/matters/matter-gaid-change";
     await page.goto(`${baseURL}/?fixture=${capture.fixture}${route}`, { waitUntil: "networkidle" });
 
-    const issueWork = page.getByLabel("Issue work");
-    await issueWork.getByRole("tab", { name: "Details" }).waitFor({ state: "visible" });
-    await issueWork.getByRole("tab", { name: "Actions" }).waitFor({ state: "visible" });
-    await issueWork.getByRole("tab", { name: "Evidence" }).waitFor({ state: "visible" });
-    await issueWork.getByRole("tab", { name: "Decisions" }).waitFor({ state: "visible" });
+    if (capture.viewport.width <= 760) {
+      await page.getByLabel("Issue section", { exact: true }).waitFor({ state: "visible" });
+    } else {
+      const issueWork = page.getByLabel("Issue work");
+      await issueWork.getByRole("tab", { name: "Details" }).waitFor({ state: "visible" });
+      await issueWork.getByRole("tab", { name: "Actions" }).waitFor({ state: "visible" });
+      await issueWork.getByRole("tab", { name: "Evidence" }).waitFor({ state: "visible" });
+      await issueWork.getByRole("tab", { name: "Decisions" }).waitFor({ state: "visible" });
+    }
 
     if (capture.fixture === "matter-loss-context") {
       await page.getByRole("region", { name: "Operational loss context" }).waitFor({ state: "visible" });
