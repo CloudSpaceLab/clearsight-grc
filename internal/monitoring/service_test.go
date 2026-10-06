@@ -320,6 +320,7 @@ func TestServiceAllowsMeasurementOnlyFormMonitoringCheck(t *testing.T) {
 	check, err := service.CreateCheck(t.Context(), Actor{TenantID: "bank-a", LegalEntityID: "entity-a", PrincipalID: "owner"}, CreateCheckInput{
 		ProgramID: "program-1", Code: "BRANCH-AVAILABILITY", Name: "Branch availability", Claim: "Branch availability remains within the approved limit.",
 		InputKind: InputForm, FormTemplateID: form.ID, FormTemplateVersion: form.Version,
+		CollectionPolicy: &CollectionPolicy{ValidityMonths: 12},
 		Measurement: &MeasurementSpec{
 			Field: "availability", Label: "Availability", Unit: MeasurementPercent, Precision: 2,
 			Limits: []MeasurementLimit{{Operator: OperatorGreaterOrEqual, Expected: "99.50"}},
