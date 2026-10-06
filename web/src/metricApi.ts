@@ -141,3 +141,40 @@ export function loadDomainMetricMembers(
     signal ? { signal } : undefined,
   );
 }
+
+
+export type OrganizationMetricBucket = {
+  key: string;
+  scope_id?: string;
+  label: string;
+  kind: "ORGANIZATION_SCOPE" | "DIRECT" | "UNATTRIBUTED" | "UNAVAILABLE";
+  value: number;
+};
+
+export type OrganizationMetricBreakdown = {
+  source_id: string;
+  metric_id: string;
+  definition_revision: string;
+  count: number;
+  scope_id?: string;
+  items: OrganizationMetricBucket[];
+};
+
+export function loadDomainMetricOrganizationBreakdown(
+  metricID: string,
+  sourceID: string,
+  definitionRevision: string,
+  organizationScopeID?: string,
+  signal?: AbortSignal,
+): Promise<OrganizationMetricBreakdown> {
+  const query = new URLSearchParams({
+    source_id: sourceID,
+    definition_revision: definitionRevision,
+  });
+  if (organizationScopeID) query.set("organization_scope_id", organizationScopeID);
+  return requestJSON<OrganizationMetricBreakdown>(
+    apiBase,
+    `/api/v1/metrics/domain/${encodeURIComponent(metricID)}/organization-breakdown?${query.toString()}`,
+    signal ? { signal } : undefined,
+  );
+}
