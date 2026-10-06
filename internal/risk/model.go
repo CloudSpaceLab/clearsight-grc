@@ -137,7 +137,7 @@ type IndicatorLink struct {
 
 type Summary struct {
 	Risk             Risk               `json:"risk"`
-	LatestAssessment *Assessment        `json:"latest_assessment,omitempty"`
+	LatestAssessment *Assessment        `json:"latest_assessment,omitempty"` // Legacy field name; list summaries project the current-position assessment.
 	ActiveAppetite   *AppetiteStatement `json:"active_appetite,omitempty"`
 }
 
