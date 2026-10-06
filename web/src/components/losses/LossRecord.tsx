@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { loadMatter } from "../../api";
 import { apiErrorKind } from "../../http";
-import { getLoss, openLossIntervention } from "../../lossApi";
+import { getLoss, openLossIntervention, recordLossRecovery } from "../../lossApi";
 import type { LossAggregate, LossRecovery } from "../../lossTypes";
 import { getRisk } from "../../riskApi";
 import type { RiskAggregate } from "../../riskTypes";
@@ -22,6 +22,7 @@ type Props = {
   loadRiskRecord?: (id: string) => Promise<Pick<RiskAggregate, "risk">>;
   loadMatterRecord?: (id: string) => Promise<Pick<MatterAggregate, "matter" | "status_label">>;
   openIntervention?: typeof openLossIntervention;
+  recordRecovery?: typeof recordLossRecovery;
 };
 
 type LoadState = "loading" | "live" | "not-found" | "error";
@@ -38,6 +39,7 @@ export function LossRecord({
   loadRiskRecord = getRisk,
   loadMatterRecord = loadMatter,
   openIntervention = openLossIntervention,
+  recordRecovery = recordLossRecovery,
 }: Props) {
   const [value, setValue] = useState<LossAggregate>();
   const [state, setState] = useState<LoadState>("loading");
@@ -236,6 +238,7 @@ export function LossRecord({
       loss={loss}
       totals={totals}
       onClose={() => setRecoveryOpen(false)}
+      submit={recordRecovery}
       onRecorded={() => {
         setRecoveryOpen(false);
         setRetry((current) => current + 1);
