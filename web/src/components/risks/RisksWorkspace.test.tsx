@@ -63,6 +63,7 @@ const page: RiskPage = {
 
 const aggregate: RiskAggregate = {
   risk,
+  owner_display_name: "Ada Okafor",
   assessments: [assessment],
   appetite: [appetite],
   active_appetite: appetite,
@@ -178,7 +179,7 @@ it("shows statement, impact, scope and history without exposing principal identi
   expect(screen.getByText(risk.impact)).toBeTruthy();
   expect(screen.getByText("Critical network")).toBeTruthy();
   expect(screen.getByText("Service continuity")).toBeTruthy();
-  expect(screen.getByText("Assigned")).toBeTruthy();
+  expect(screen.getByText("Ada Okafor")).toBeTruthy();
   expect(screen.getByRole("table", { name: "Risk assessments" })).toBeTruthy();
   expect(screen.getByRole("table", { name: "Risk appetite history" })).toBeTruthy();
   expect(screen.queryByText(risk.owner_principal_id!)).toBeNull();
@@ -260,6 +261,24 @@ it("does not offer Risk control linking to a non-owner", async () => {
   render(<RiskRecord riskID="risk-1" actorID="someone-else" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue(aggregate)}/>);
   await screen.findByRole("heading", { name: "Network resilience" });
   expect(screen.queryByRole("button", { name: "Link control" })).toBeNull();
+});
+
+it("does not treat a later stressed assessment as current residual exposure", async () => {
+  const stressed = {
+    ...assessment,
+    id: "assessment-stressed",
+    kind: "STRESSED" as const,
+    appetite_position: "WITHIN" as const,
+    appetite_rationale: "Stress scenario remains bounded.",
+    assessed_at: "2026-10-02T10:12:00Z",
+    created_at: "2026-10-02T10:12:00Z",
+  };
+  render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, assessments: [stressed, assessment] })}/>);
+
+  const currentState = await screen.findByRole("group", { name: "Current risk state" });
+  expect(within(currentState).getByText("Residual appetite")).toBeTruthy();
+  expect(within(currentState).getByText("Outside appetite")).toBeTruthy();
+  expect(within(currentState).queryByText("Within appetite")).toBeNull();
 });
 
 it("does not present a stale assessment as the current appetite position", async () => {
