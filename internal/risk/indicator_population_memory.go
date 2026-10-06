@@ -65,7 +65,10 @@ func (r *MemoryRepository) ListIndicatorPopulation(ctx context.Context, scope Sc
 	}
 
 	items := make([]IndicatorPopulationItem, 0, len(groups))
-	for _, group := range groups {
+	for checkID, group := range groups {
+		if filter.MonitoringCheckID != "" && checkID != filter.MonitoringCheckID {
+			continue
+		}
 		if filter.Kind != "" && group.item.Link.Kind != filter.Kind {
 			continue
 		}

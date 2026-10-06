@@ -44,7 +44,7 @@ func (a *API) listRiskIndicators(w http.ResponseWriter, r *http.Request) {
 	}
 	kind := risk.IndicatorKind(strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("kind"))))
 	page, err := service.ListIndicatorPopulation(r.Context(), scope, risk.IndicatorPopulationFilter{
-		Kind: kind, OrganizationScopeID: selection.ID, OrganizationScopeIDs: selection.IDs, Limit: limit,
+		Kind: kind, MonitoringCheckID: strings.TrimSpace(r.URL.Query().Get("check_id")), OrganizationScopeID: selection.ID, OrganizationScopeIDs: selection.IDs, Limit: limit,
 	})
 	if err != nil {
 		writeRiskError(w, err)

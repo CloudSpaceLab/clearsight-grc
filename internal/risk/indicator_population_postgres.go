@@ -47,10 +47,11 @@ func (r *PostgresRepository) ListIndicatorPopulation(ctx context.Context, scope 
 		       (SELECT count(*) FROM current_links x WHERE x.current_rank=1 AND x.monitoring_check_id=c.monitoring_check_id),
 		       EXISTS(SELECT 1 FROM current_links x WHERE x.current_rank=1 AND x.monitoring_check_id=c.monitoring_check_id AND x.kind<>c.kind)
 		FROM canonical c
-		WHERE ($5='' OR c.kind=$5)
+		WHERE ($5='' OR c.monitoring_check_id::text=$5)
+		  AND ($6='' OR c.kind=$6)
 		ORDER BY c.created_at DESC,c.monitoring_check_id DESC
 		LIMIT $6
-	`, scope.TenantID, scope.LegalEntityID, filter.OrganizationScopeID != "", filter.OrganizationScopeIDs, string(filter.Kind), filter.Limit+1)
+	`, scope.TenantID, scope.LegalEntityID, filter.OrganizationScopeID != "", filter.OrganizationScopeIDs, filter.MonitoringCheckID, string(filter.Kind), filter.Limit+1)
 	if err != nil {
 		return IndicatorPopulationPage{}, fmt.Errorf("list indicator population: %w", err)
 	}

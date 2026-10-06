@@ -31,6 +31,7 @@ type IndicatorPopulationPage struct {
 
 type IndicatorPopulationFilter struct {
 	Kind                 IndicatorKind
+	MonitoringCheckID    string
 	OrganizationScopeID  string
 	OrganizationScopeIDs []string
 	Limit                int
@@ -53,6 +54,7 @@ func (s *Service) ListIndicatorPopulation(ctx context.Context, scope Scope, filt
 		return IndicatorPopulationPage{}, err
 	}
 	filter.Kind = IndicatorKind(strings.ToUpper(strings.TrimSpace(string(filter.Kind))))
+	filter.MonitoringCheckID = strings.TrimSpace(filter.MonitoringCheckID)
 	filter.OrganizationScopeID = strings.TrimSpace(filter.OrganizationScopeID)
 	filter.OrganizationScopeIDs = normalizeOrganizationScopeIDs(filter.OrganizationScopeID, filter.OrganizationScopeIDs)
 	if filter.Kind != "" && !validIndicatorKind(filter.Kind) {
