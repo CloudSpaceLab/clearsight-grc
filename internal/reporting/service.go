@@ -797,6 +797,8 @@ func validateDefinitionForCreate(definition ReportDefinition) error {
 		utf8.RuneCountInString(definition.Description) > 1000 ||
 		!validReportDataset(definition.Dataset) || !validReportDatasetScope(definition.Dataset, definition.ScopeKind) || !validReportScope(definition.ScopeKind, definition.ScopeRef) ||
 		(definition.Format != FormatCSV && definition.Format != FormatNDJSON && definition.Format != FormatXLSX && definition.Format != FormatPDF) ||
+		(definition.Dataset == DatasetMatterBoardBrief && definition.Format != FormatPDF) ||
+		(definition.Dataset != DatasetMatterBoardBrief && definition.Format == FormatPDF) ||
 		strings.TrimSpace(definition.MakerID) == "" || definition.Filter == nil {
 		return ErrInvalid
 	}
