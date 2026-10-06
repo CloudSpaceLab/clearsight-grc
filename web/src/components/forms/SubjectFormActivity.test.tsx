@@ -89,7 +89,7 @@ it("loads bounded Matter requests and responses without treating a page as the t
 
   expect(await screen.findByText("2 shown · More available")).toBeTruthy();
   expect(screen.getByText("1 shown · More available")).toBeTruthy();
-  expect(screen.getByText("1 response pending · 1 request expired · 1 submitted response need review.")).toBeTruthy();
+  expect(screen.getByText("1 response pending · 1 request expired · 1 submitted response needs review.")).toBeTruthy();
   expect(screen.getByText("Control owner confirmation")).toBeTruthy();
   expect(screen.getByText("Remediation evidence")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Review response" }).getAttribute("href")).toBe("#forms?section=responses&response=response-a");
