@@ -17,6 +17,7 @@ import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidenceP
 import { OperatingMutationsEvidencePage } from "./components/OperatingMutationsEvidencePage";
 import { OversightEvidencePage } from "./components/oversight/OversightEvidencePage";
 import { NativeIndicatorEvidencePage } from "./nativeIndicatorEvidence";
+import { InsightsEvidencePage } from "./insightsEvidence";
 import { DisplayPreferencesRoot } from "./components/DisplayPreferences";
 import { SessionGate } from "./components/SessionGate";
 import "./styles.css";
@@ -66,6 +67,8 @@ const application = invitationToken !== null
     ? <OversightEvidencePage/>
     : fixture === "native-indicator"
       ? <NativeIndicatorEvidencePage/>
+    : fixture === "insights-indicators"
+      ? <InsightsEvidencePage/>
     : fixture === "ui-component-gallery"
       ? <Suspense fallback={<p role="status">Loading the sample component gallery…</p>}><UIComponentGallery/></Suspense>
       : fixture === "today-lifecycle"
