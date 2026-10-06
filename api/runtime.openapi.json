@@ -2102,6 +2102,39 @@
         }
       }
     },
+    "/api/v1/reports/matter-board-brief": {
+      "get": {
+        "operationId": "getMatterBoardBriefAvailability",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matter_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Governed board-brief availability for the selected issue."
+          },
+          "default": {
+            "description": "Board-brief availability could not be read."
+          }
+        }
+      }
+    },
     "/api/v1/metrics/home/{metric_id}/members": {
       "get": {
         "operationId": "homeMetricMembers",
