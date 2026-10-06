@@ -79,6 +79,7 @@ func normalizeQuery(query Query) Query {
 	query.ActorQuery = strings.TrimSpace(query.ActorQuery)
 	query.ActorKind = strings.ToUpper(strings.TrimSpace(query.ActorKind))
 	query.LegalEntityID = strings.TrimSpace(query.LegalEntityID)
+	query.Source = strings.ToUpper(strings.TrimSpace(query.Source))
 	if query.Limit <= 0 {
 		query.Limit = defaultLimit
 	} else if query.Limit > maxLimit {
@@ -110,15 +111,21 @@ func decorate(value *Event) {
 	}
 	value.ObjectType = strings.ToUpper(strings.TrimSpace(value.ObjectType))
 	value.EventType = strings.TrimSpace(value.EventType)
-	value.Category = categoryFor(value.ObjectType)
-	value.Action = humanize(value.EventType)
-	if value.Outcome == "" {
-		value.Outcome = OutcomeSucceeded
-	}
 	if value.Source == "" {
 		value.Source = "OUTBOX_EVENT"
 	}
-	value.ActorKind = actorKind(value.ActorKind, value.ObjectType)
+	if value.Source == SourceNotificationEmailDelivery {
+		value.Category = CategorySystem
+		value.ActorKind = ActorSystem
+		value.Outcome = notificationDeliveryOutcome(value.EventType)
+	} else {
+		value.Category = categoryFor(value.ObjectType)
+		value.ActorKind = actorKind(value.ActorKind, value.ObjectType)
+		if value.Outcome == "" {
+			value.Outcome = OutcomeSucceeded
+		}
+	}
+	value.Action = humanize(value.EventType)
 }
 
 func categoryFor(objectType string) string {
@@ -184,4 +191,20 @@ func humanize(value string) string {
 	runes := []rune(text)
 	runes[0] = unicode.ToUpper(runes[0])
 	return string(runes)
+}
+
+
+func notificationDeliveryOutcome(eventType string) string {
+	switch strings.ToUpper(strings.TrimSpace(eventType)) {
+	case "NOTIFICATION_EMAIL_RETRYING":
+		return OutcomeRetrying
+	case "NOTIFICATION_EMAIL_STARTED":
+		return OutcomePending
+	case "NOTIFICATION_NOTICE_SUPERSEDED":
+		return OutcomeCancelled
+	case "NOTIFICATION_EMAIL_FAILED", "NOTIFICATION_EMAIL_OUTCOME_UNKNOWN", "NOTIFICATION_CONTACT_UNAVAILABLE", "NOTIFICATION_RECIPIENT_REJECTED":
+		return OutcomeFailed
+	default:
+		return OutcomeSucceeded
+	}
 }
