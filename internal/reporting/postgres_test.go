@@ -312,6 +312,50 @@ func TestListQueuedRunScopesReturnsOnlyDurableQueuedWork(t *testing.T) {
 	}
 }
 
+func TestRecordRunDownloadWritesTheActorAndRunReceipt(t *testing.T) {
+	fixture := newReportingPostgresFixture(t)
+	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
+	run := fixture.createRun(t, definition, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
+
+	claimed, err := fixture.repository.ClaimQueuedRuns(context.Background(), fixture.scope, "report-worker-download-test", 1)
+	if err != nil || len(claimed) != 1 {
+		t.Fatalf("claim run: claimed=%#v err=%v", claimed, err)
+	}
+	ready := claimed[0]
+	ready.Status = RunReady
+	ready.RowCount = 1
+	ready.DataObjectKey = "reports/" + fixture.tenantID + "/" + fixture.entityAID + "/" + ready.ID + "/report.csv"
+	ready.DataSHA256 = strings.Repeat("a", 64)
+	ready.ManifestObjectKey = "reports/" + fixture.tenantID + "/" + fixture.entityAID + "/" + ready.ID + "/manifest.json"
+	ready.ManifestSHA256 = strings.Repeat("b", 64)
+	ready.CompletedAt = timePtr(fixture.now.Add(3 * time.Second))
+	ready.ExpiresAt = fixture.now.Add(24 * time.Hour)
+	ready, err = fixture.repository.CompleteRun(context.Background(), fixture.scope, ready)
+	if err != nil {
+		t.Fatalf("complete ready run: %v", err)
+	}
+
+	if err := fixture.repository.RecordRunDownload(context.Background(), fixture.scope, ready.ID, fixture.reviewerID); err != nil {
+		t.Fatalf("record run download: %v", err)
+	}
+
+	var downloadedBy, legalEntityID string
+	if err := fixture.pool.QueryRow(context.Background(), `
+		SELECT payload->>'downloaded_by', payload->>'legal_entity_id'
+		FROM outbox_events
+		WHERE tenant_id=$1::uuid
+		  AND aggregate_type='REPORT_RUN'
+		  AND aggregate_id=$2::uuid
+		  AND event_type='ReportRunDownloaded'
+		ORDER BY occurred_at DESC,id DESC
+		LIMIT 1`, fixture.tenantID, ready.ID).Scan(&downloadedBy, &legalEntityID); err != nil {
+		t.Fatalf("read download outbox receipt: %v", err)
+	}
+	if downloadedBy != fixture.reviewerID || legalEntityID != fixture.entityAID {
+		t.Fatalf("download receipt actor/entity = %q/%q, want %q/%q", downloadedBy, legalEntityID, fixture.reviewerID, fixture.entityAID)
+	}
+}
+
 func TestCompleteRunRefusesWithoutArtefacts(t *testing.T) {
 	fixture := newReportingPostgresFixture(t)
 	definition, _ := fixture.proposal(t, DatasetProcessingActivities, ScopeLegalEntity, "", emptyReportFilter())
