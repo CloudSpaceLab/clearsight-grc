@@ -11,6 +11,19 @@ const eventLabels: Record<LossEventType, string> = {
   OTHER: "Other",
 };
 
+export const lossEventTypes: readonly LossEventType[] = [
+  "INTERNAL_FRAUD",
+  "EXTERNAL_FRAUD",
+  "EMPLOYMENT_PRACTICES",
+  "CLIENT_PRODUCTS_BUSINESS_PRACTICES",
+  "DAMAGE_TO_PHYSICAL_ASSETS",
+  "BUSINESS_DISRUPTION_SYSTEM_FAILURES",
+  "EXECUTION_DELIVERY_PROCESS_MANAGEMENT",
+  "OTHER",
+];
+
+export const lossEventOptions = lossEventTypes.map((id) => ({ id, label: eventLabels[id] }));
+
 export function lossEventLabel(value: LossEventType) {
   return eventLabels[value];
 }
