@@ -31,6 +31,7 @@ type riskIndicatorInterventionRead struct {
 
 type riskIndicatorRead struct {
 	Link                risk.IndicatorLink             `json:"link"`
+	Kind                risk.IndicatorKind             `json:"kind"`             `json:"link"`
 	ProgramID           string                         `json:"program_id"`
 	ProgramName         string                         `json:"program_name"`
 	CheckID             string                         `json:"check_id"`
@@ -102,6 +103,7 @@ func (a *API) riskAggregateWithDetails(ctx context.Context, actor identity.Actor
 
 		detail := riskIndicatorRead{
 			Link:              link,
+			Kind:              link.Kind,
 			ProgramID:         program.Program.ID,
 			ProgramName:       program.Program.Name,
 			CheckID:           check.ID,
