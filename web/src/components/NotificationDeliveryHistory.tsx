@@ -47,14 +47,16 @@ const columns: readonly DataColumn<NotificationDeliveryHistoryItem>[] = [
 export function NotificationDeliveryHistory({
   items,
   complete = true,
+  className,
 }: {
   items?: NotificationDeliveryHistoryItem[];
   complete?: boolean;
+  className?: string;
 }) {
   const history = items ?? [];
   if (complete && history.length === 0) return null;
 
-  return <section className="risk-record__history" aria-labelledby="notification-delivery-history-heading">
+  return <section className={className} aria-labelledby="notification-delivery-history-heading">
     <div className="section-header">
       <div>
         <h2 id="notification-delivery-history-heading">Delivery history</h2>
