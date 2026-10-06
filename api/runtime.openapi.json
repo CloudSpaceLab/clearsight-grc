@@ -2168,6 +2168,17 @@
         }
       }
     },
+    "/api/v1/metrics/indicators": {
+      "get": {
+        "operationId": "indicatorPortfolio",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "responses": {
+          "200": {"description": "Bounded current KRI/KCI portfolio for the verified legal entity."},
+          "503": {"description": "Indicator insights are unavailable."}
+        }
+      }
+    },
     "/api/v1/metrics/matrices/risk-appetite": {
       "get": {
         "operationId": "riskAppetiteMatrix",
