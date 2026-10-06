@@ -2,6 +2,7 @@ import type { CoverageDecision, DocumentCoverage, DocumentImport, ProposalStatus
 import staticDemoFixturesURL from "./staticDemoFixtures.json?url";
 import staticDemoWorkflowRuntimeURL from "./staticDemoWorkflowRuntime.js?url";
 import type { FormTemplate } from "./monitoringTypes";
+import { sampleATMIndicatorHistory, sampleIndicatorHistory, sampleIndicatorInsightsPage } from "./indicatorEvidenceData";
 import { vendorDueDiligenceStarterForm } from "./vendorDueDiligenceForm";
 import type { VendorAssessment, VendorAssessmentRequestSummary, VendorAssessmentReviewAnswer, VendorAssessmentReviewView, VendorAssessmentSendOutcome } from "./vendorAssessmentTypes";
 import type { PrepareVendorCollectionResult, VendorCollection, VendorCollectionField } from "./vendorCollectionApi";
@@ -659,7 +660,27 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/context") {
     const productionUnavailable = fixture === "today-unavailable";
     const noConfig = fixture === "no-config-access";
-    return clone({ tenant: { id: "bank-demo", name: "Meridian Trust Bank" }, legal_entity: { id: "bank-ng", name: "Meridian Trust Bank Nigeria" }, actor: { ...currentStaticActor, assurance_level: "MFA", authentication: "STATIC_DEMO", session_id: "pages-demo" }, mode: "static-stakeholder-demo", demo_mode: !productionUnavailable, capabilities: { document_import: true, reference_journeys: !productionUnavailable, config_read: !noConfig, config_write: !noConfig, platform_operations_read: !noConfig, platform_operations_write: !noConfig, identity_read: !noConfig, identity_configure: !noConfig } }) as T;
+    return clone({
+      tenant: { id: "bank-demo", name: "Meridian Trust Bank" },
+      legal_entity: { id: "bank-ng", name: "Meridian Trust Bank Nigeria" },
+      actor: { ...currentStaticActor, assurance_level: "MFA", authentication: "STATIC_DEMO", session_id: "pages-demo" },
+      mode: "static-stakeholder-demo",
+      demo_mode: !productionUnavailable,
+      capabilities: { document_import: true, reference_journeys: !productionUnavailable, config_read: !noConfig, config_write: !noConfig, platform_operations_read: !noConfig, platform_operations_write: !noConfig, identity_read: !noConfig, identity_configure: !noConfig },
+      ...(fixture === "indicator-insights" ? {
+        scope_hierarchy: {
+          state: "COMPLETE",
+          root: { id: "bank-demo", name: "Meridian Trust Bank", kind: "ORGANIZATION", filterable: false },
+          current: { id: "bank-ng", name: "Meridian Trust Bank Nigeria", kind: "LEGAL_ENTITY", current: true, filterable: false },
+          legal_entities: [{ id: "bank-ng", code: "BANK-NG", name: "Meridian Trust Bank Nigeria", kind: "LEGAL_ENTITY", current: true, filterable: false }],
+          organization_scopes: [
+            { id: "scope-head-office", code: "HEAD-OFFICE", name: "Head Office", kind: "BUSINESS_UNIT", department_path: ["BANK", "HEAD OFFICE"], filterable: true },
+            { id: "scope-branch-cac", code: "CAC", name: "CAC Branch", kind: "BRANCH", department_path: ["BANK", "BRANCHES", "CAC"], filterable: true },
+          ],
+          organization_scopes_truncated: false,
+        },
+      } : {}),
+    }) as T;
   }
   if (pathname === "/api/v1/access/overview" && method === "GET") return clone({
     sign_in: { mode: "OIDC", authentication: "MFA", assurance_level: "AAL2" },
@@ -855,6 +876,21 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     vendorWorkRequests = vendorWorkRequests.map((item, itemIndex) => itemIndex === index ? updated : item);
     return clone(outcome ?? updated) as T;
   }
+  if (fixture === "indicator-insights" && pathname === "/api/v1/risk-indicators" && method === "GET") {
+    const kind = url.searchParams.get("kind");
+    const checkID = url.searchParams.get("check_id");
+    const items = sampleIndicatorInsightsPage.items.filter((item) =>
+      (!kind || item.indicator.link.kind === kind) && (!checkID || item.indicator.check_id === checkID));
+    return clone({ ...sampleIndicatorInsightsPage, items }) as T;
+  }
+  if (fixture === "indicator-insights" && /^\/api\/v1\/monitoring-checks\/[^/]+\/results$/.test(pathname) && method === "GET") {
+    const checkID = decodeURIComponent(pathname.split("/")[4] ?? "");
+    const items = checkID === "sample-mobile-success" ? sampleIndicatorHistory
+      : checkID === "sample-atm-failures" ? sampleATMIndicatorHistory
+      : [];
+    return clone({ items }) as T;
+  }
+
   const collectionFixture = fixture === "collection-renewal-states" || fixture === "collection-long-content";
   if (collectionFixture && pathname === `/api/v1/programs/${programID}/monitoring-checks` && method === "GET") return clone({ items: collectionFixtures(fixture).checks }) as T;
   if (collectionFixture && pathname === `/api/v1/programs/${programID}/collection-summaries` && method === "GET") return clone({ items: collectionFixtures(fixture).summaries }) as T;

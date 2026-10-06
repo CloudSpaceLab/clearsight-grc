@@ -109,6 +109,8 @@ const expectedNames = [
   "180-import-selected-light-mobile-390x844",
   "181-native-indicator-light-1440x900",
   "182-native-indicator-dark-mobile-390x844",
+  "183-indicator-insights-light-1440x900",
+  "184-indicator-insights-dark-mobile-390x844",
   ...formsEvidenceScenarios.map((scenario) => scenario.name),
 ];
 const requiredStates = [
@@ -131,6 +133,8 @@ const requiredStates = [
   "document-selected-before-import",
   "native-indicator-detail",
   "native-indicator-detail-mobile",
+  "indicator-insights",
+  "indicator-insights-mobile",
   "lifecycle-work-mobile-expanded",
   "operating-actions-desktop",
   "operating-actions-mobile",
