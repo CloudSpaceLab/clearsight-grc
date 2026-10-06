@@ -1,3 +1,5 @@
+import type { NotificationDeliveryHistoryItem } from "./notificationTypes";
+
 export type RiskStatus = "DRAFT" | "ACTIVE" | "RETIRED";
 export type RiskAssessmentKind = "INHERENT" | "CURRENT" | "RESIDUAL" | "TARGET" | "STRESSED" | "ACCEPTED";
 export type RiskAppetitePosition = "WITHIN" | "APPROACHING" | "BREACHED" | "UNKNOWN";
@@ -180,4 +182,6 @@ export type RiskAggregate = {
   indicators?: RiskIndicatorLink[];
   indicator_details?: RiskIndicatorDetail[];
   indicator_details_complete?: boolean;
+  notification_history?: NotificationDeliveryHistoryItem[];
+  notification_history_complete?: boolean;
 };
