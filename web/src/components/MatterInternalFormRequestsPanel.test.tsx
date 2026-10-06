@@ -62,5 +62,6 @@ it("creates an ordinary form draft with the current issue as immutable origin", 
     origin: { type: "MATTER", id: "matter-a" },
   });
   expect(await screen.findByText("Form draft created.")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Open form draft" }).getAttribute("href")).toBe("#forms/form-a");
   expect(screen.queryByRole("button", { name: "Save linked form" })).toBeNull();
 });
