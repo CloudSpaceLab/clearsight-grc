@@ -122,6 +122,9 @@ func (r *PostgresRepository) ListReportRows(ctx context.Context, scope ReportSco
 	if persisted.Status != RunQueued && persisted.Status != RunRunning {
 		return ReportPage{}, ErrConflict
 	}
+	if persisted.Dataset == DatasetMatterBoardBrief {
+		return r.listMatterBoardBriefRows(ctx, scope, persisted, cursor, limit)
+	}
 	if persisted.Dataset == DatasetPrograms {
 		return r.listProgramReportRows(ctx, scope, persisted, cursor, limit)
 	}
