@@ -44,12 +44,13 @@ Use the existing report definition and run lifecycle.
 - Render a deterministic PDF without comments or protected recipient addresses.
 - Surface `Generate board brief` only when an authorised effective definition exists; retain generated files and downloads in Reports.
 - Test authorization, source boundary, PDF content, and permission-checked download.
+- Freeze mutable board-brief populations including verification contracts and organisation scope; label directory display names as render-time resolution rather than historical fact.
 
-### 5. Complete responsive and usability proof — verification in progress
+### 5. Complete responsive and usability proof — complete
 
 - [x] Keep the desktop activity rail on the right; replace it with a single Activity tab at narrow widths, without a duplicate composer.
 - [x] Register rendered issue header, Work, Evidence and requests, and Activity evidence at desktop and narrow viewports.
-- [ ] Require exact-head CI, Compose runtime and managed UI/UX review to pass before release.
+- [x] Exact-head CI, Compose runtime and managed UI/UX review passed before release.
 
 ## Completion criteria
 
