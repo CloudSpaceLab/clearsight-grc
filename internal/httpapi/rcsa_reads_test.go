@@ -18,9 +18,9 @@ func TestRCSACycleVisibilityUsesOwnerAndExactReviewerAuthority(t *testing.T) {
 		ID: "review-rule", TenantID: "bank", LegalEntityID: "entity-a",
 		ObjectType: "RCSA_CYCLE", ObjectID: "cycle-review",
 		Responsibility: authority.ResponsibilityReviewer,
-		DecisionType: "rcsa.challenge.start", MinMateriality: 3,
+		DecisionType:   "rcsa.challenge.start", MinMateriality: 3,
 		Principal: authority.Principal{ID: "reviewer-a", DisplayName: "Reviewer A", Kind: "PERSON"},
-		Priority: 1, ValidFrom: now.Add(-time.Hour), ValidUntil: now.Add(time.Hour),
+		Priority:  1, ValidFrom: now.Add(-time.Hour), ValidUntil: now.Add(time.Hour),
 	}})
 	api := &API{deps: Dependencies{Authority: resolver}}
 	items := []rcsa.CycleSummary{

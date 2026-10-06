@@ -110,7 +110,6 @@ func cloneAggregate(value Aggregate) Aggregate {
 	return cloned
 }
 
-
 func (r *MemoryRepository) ListCycles(ctx context.Context, scope Scope, filter CycleFilter) (CyclePage, error) {
 	if err := ctx.Err(); err != nil {
 		return CyclePage{}, err

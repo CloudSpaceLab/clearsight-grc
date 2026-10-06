@@ -312,7 +312,6 @@ func mapPostgresError(err error) error {
 	return err
 }
 
-
 func (r *PostgresRepository) ListCycles(ctx context.Context, scope Scope, filter CycleFilter) (CyclePage, error) {
 	if r == nil || r.pool == nil {
 		return CyclePage{}, ErrInvalid

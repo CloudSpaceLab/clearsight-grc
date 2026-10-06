@@ -19,7 +19,7 @@ func TestCycleListUsesFrozenPopulationCountsAndStablePagination(t *testing.T) {
 			Code: "RCSA-" + string(rune('1'+index)), Name: "Cycle " + string(rune('1'+index)),
 			TriggerKind: TriggerScheduled, FirstLineOwnerID: "owner-1", Status: StatusDraft,
 			PopulationChecksum: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-			Version: 1, CreatedAt: now, UpdatedAt: now.Add(time.Duration(index) * time.Minute),
+			Version:            1, CreatedAt: now, UpdatedAt: now.Add(time.Duration(index) * time.Minute),
 		}
 		risks := []RiskSnapshot{{CycleID: id, RiskID: "risk-" + id, RiskVersion: 1, Code: "R", Name: "Risk"}}
 		controls := []ControlSnapshot{}
