@@ -18,6 +18,7 @@ const template: FormTemplate = {
   tenant_id: "bank-1",
   legal_entity_id: "entity-1",
   program_id: "program-1",
+  origin: { type: "MATTER", id: "matter-1" },
   code: "VENDOR",
   name: "Vendor review",
   purpose: "Collect current vendor evidence.",
@@ -45,6 +46,7 @@ describe("preserveLibraryRevisionMetadata", () => {
     const next = preserveLibraryRevisionMetadata(template, contract);
     expect(next).toMatchObject({
       program_id: "program-1",
+      origin: { type: "MATTER", id: "matter-1" },
       owner_principal_id: "owner-1",
       responsible_team: "Third-party risk",
       approved_uses: ["VENDOR_DUE_DILIGENCE"],
@@ -57,5 +59,6 @@ describe("preserveLibraryRevisionMetadata", () => {
     expect(next.fields).toEqual(contract.fields);
     expect(next.approved_uses).not.toBe(template.approved_uses);
     expect(next.tags).not.toBe(template.tags);
+    expect(next.origin).not.toBe(template.origin);
   });
 });
