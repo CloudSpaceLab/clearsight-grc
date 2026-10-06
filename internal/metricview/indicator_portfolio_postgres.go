@@ -47,17 +47,21 @@ func (r *DomainRepository) ListIndicators(ctx context.Context, tenantID, legalEn
 			 AND risk.id=link.risk_id
 			 AND risk.status='ACTIVE'
 			ORDER BY link.risk_id,link.monitoring_check_id,link.risk_version DESC,link.id DESC
-		), grouped AS (
-			SELECT link.monitoring_check_id,link.monitoring_check_version,link.program_id,link.kind,
-			       jsonb_agg(DISTINCT jsonb_build_object('id',risk.id::text,'name',risk.name)) AS risks,
-			       string_agg(DISTINCT lower(risk.name),' ') AS risk_search
+		), linked_risks AS (
+			SELECT DISTINCT link.monitoring_check_id,link.monitoring_check_version,link.program_id,link.kind,
+			       risk.id risk_id,risk.name risk_name
 			FROM current_links link
 			JOIN scope ON true
 			JOIN risks risk
 			  ON risk.tenant_id=scope.tenant_id
 			 AND risk.legal_entity_id=scope.legal_entity_id
 			 AND risk.id=link.risk_id
-			GROUP BY link.monitoring_check_id,link.monitoring_check_version,link.program_id,link.kind
+		), grouped AS (
+			SELECT monitoring_check_id,monitoring_check_version,program_id,kind,
+			       jsonb_agg(jsonb_build_object('id',risk_id::text,'name',risk_name) ORDER BY lower(risk_name),risk_id) AS risks,
+			       string_agg(lower(risk_name),' ' ORDER BY lower(risk_name),risk_id) AS risk_search
+			FROM linked_risks
+			GROUP BY monitoring_check_id,monitoring_check_version,program_id,kind
 		), materialized AS (
 			SELECT grouped.kind,grouped.risks,
 			       check_config.id::text check_id,check_config.version check_version,check_config.code check_code,
