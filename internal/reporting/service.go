@@ -535,6 +535,20 @@ func (s *Service) ExecuteRun(ctx context.Context, requested ReportRun) (ReportRu
 }
 
 func (s *Service) renderRun(ctx context.Context, run ReportRun) ([]byte, int, error) {
+	if run.Format == FormatPDF {
+		if run.Dataset != DatasetMatterBoardBrief {
+			return nil, 0, ErrInvalid
+		}
+		page, err := s.repo.ListReportRows(ctx, ReportScope{TenantID: run.TenantID, LegalEntityID: run.LegalEntityID}, run, "", 1)
+		if err != nil {
+			return nil, 0, err
+		}
+		if len(page.Rows) != 1 || page.NextCursor != "" {
+			return nil, 0, ErrInvalid
+		}
+		data, err := renderMatterBoardBriefPDF(run, page.Rows[0])
+		return data, 1, err
+	}
 	buffer := &boundedReportBuffer{max: MaxReportRunBytes}
 	var csvWriter *csv.Writer
 	var jsonEncoder *json.Encoder
@@ -782,7 +796,7 @@ func validateDefinitionForCreate(definition ReportDefinition) error {
 		utf8.RuneCountInString(definition.Name) < 3 || utf8.RuneCountInString(definition.Name) > 120 ||
 		utf8.RuneCountInString(definition.Description) > 1000 ||
 		!validReportDataset(definition.Dataset) || !validReportDatasetScope(definition.Dataset, definition.ScopeKind) || !validReportScope(definition.ScopeKind, definition.ScopeRef) ||
-		(definition.Format != FormatCSV && definition.Format != FormatNDJSON && definition.Format != FormatXLSX) ||
+		(definition.Format != FormatCSV && definition.Format != FormatNDJSON && definition.Format != FormatXLSX && definition.Format != FormatPDF) ||
 		strings.TrimSpace(definition.MakerID) == "" || definition.Filter == nil {
 		return ErrInvalid
 	}
@@ -804,13 +818,15 @@ func validateDefinitionRevision(revision ReportDefinitionRevision, definition Re
 
 func validReportDataset(dataset ReportDataset) bool {
 	return dataset == DatasetProcessingActivities || dataset == DatasetProcessingActivityExceptions ||
-		dataset == DatasetPrograms || dataset == DatasetMatters || dataset == DatasetMatterExceptions || dataset == DatasetVendors
+		dataset == DatasetPrograms || dataset == DatasetMatters || dataset == DatasetMatterExceptions || dataset == DatasetMatterBoardBrief || dataset == DatasetVendors
 }
 
 func validReportDatasetScope(dataset ReportDataset, kind ReportScopeKind) bool {
 	switch dataset {
 	case DatasetPrograms:
 		return kind == ScopeLegalEntity || kind == ScopeProgram
+	case DatasetMatterBoardBrief:
+		return kind == ScopeMatter
 	case DatasetMatters, DatasetMatterExceptions:
 		return kind == ScopeLegalEntity || kind == ScopeMatter
 	case DatasetVendors:
@@ -1044,6 +1060,9 @@ func reportObjectKeys(run ReportRun) (string, string) {
 func reportExtension(format ReportFormat) string {
 	if format == FormatXLSX {
 		return ".xlsx"
+	}
+	if format == FormatPDF {
+		return ".pdf"
 	}
 	if format == FormatNDJSON {
 		return ".ndjson"
