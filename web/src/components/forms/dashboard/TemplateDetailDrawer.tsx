@@ -1,4 +1,5 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { loadMatter } from "../../../api";
 import type { FormLibraryItem } from "../../../formsTypes";
 import type { LifecycleStatus } from "../../../monitoringTypes";
 import { Button, FocusedSheet } from "../../ui";
@@ -44,6 +45,20 @@ export function TemplateDetailDrawer({ item, requestedID, busy, onClose, onClear
 
 function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibraryItem; busy: string | null; onEdit: () => void; onTransition: (to: LifecycleStatus) => void }) {
   const form = item.template;
+  const [originReference, setOriginReference] = useState<string | null>();
+  useEffect(() => {
+    const origin = form.origin;
+    if (!origin || origin.type !== "MATTER") {
+      setOriginReference(undefined);
+      return;
+    }
+    let active = true;
+    setOriginReference(undefined);
+    void loadMatter(origin.id)
+      .then((matter) => { if (active) setOriginReference(matter.matter.reference); })
+      .catch(() => { if (active) setOriginReference(null); });
+    return () => { active = false; };
+  }, [form.origin?.id, form.origin?.type]);
   const approvalReady = form.status === "DRAFT" && isTemplateApprovalReady(form);
   const owner = form.responsible_team || (form.owner_principal_id ? "Assigned owner" : "Not assigned");
   const revise = item.operations?.find((operation) => operation.command === "forms.template.revise");
@@ -100,6 +115,7 @@ function TemplateDetail({ item, busy, onEdit, onTransition }: { item: FormLibrar
 
     <dl className="forms-detail-facts">
       <div><dt>Reference</dt><dd>{form.code}</dd></div>
+      {form.origin?.type === "MATTER" && <div><dt>Originating issue</dt><dd>{originReference === undefined ? "Loading…" : originReference ?? "Unavailable"}</dd></div>}
       <div><dt>Owner</dt><dd>{owner}</dd></div>
       <div><dt>Questions</dt><dd>{form.fields.length}</dd></div>
       <div><dt>Scoring</dt><dd>{form.scoring_mode === "RISK" ? "Risk" : form.scoring_mode === "COMPLIANCE" ? "Compliance" : "Not scored"}</dd></div>
