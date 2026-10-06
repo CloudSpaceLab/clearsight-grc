@@ -69,6 +69,7 @@ export type LossPage = {
 
 export type LossAggregate = {
   loss: LossRecord;
+  owner_display_name?: string;
   recoveries: LossRecovery[];
   totals: LossTotals;
   notification_history?: NotificationDeliveryHistoryItem[];
