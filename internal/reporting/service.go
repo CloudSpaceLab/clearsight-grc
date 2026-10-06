@@ -636,15 +636,16 @@ func (s *Service) Open(ctx context.Context, scope ReportScope, runID string) (Re
 	if s.repo == nil || s.objects == nil || runID == "" {
 		return ReportRun{}, nil, ErrInvalid
 	}
-	if !identity.HasPermission(actor, identity.PermissionReportDownload) {
-		return ReportRun{}, nil, ErrClosureBlocked
-	}
 	run, err := s.repo.GetRun(ctx, verifiedScope, runID)
 	if err != nil {
 		return ReportRun{}, nil, err
 	}
 	if run.TenantID != verifiedScope.TenantID || run.LegalEntityID != verifiedScope.LegalEntityID {
 		return ReportRun{}, nil, ErrNotFound
+	}
+	if !identity.HasPermission(actor, identity.PermissionReportDownload) &&
+		strings.TrimSpace(run.RequestedByRef) != actor.PrincipalID {
+		return ReportRun{}, nil, ErrReportDownloadForbidden
 	}
 	if run.Status == RunFailed && run.FailureCode == FailureRowLimitExceeded {
 		return ReportRun{}, nil, ErrReportBoundStopped
