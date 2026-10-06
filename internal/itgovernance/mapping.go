@@ -14,7 +14,8 @@ import (
 const (
 	MetricSeriesSchema = "clearsight.it-governance.binding.v1"
 	MetricSeriesShape  = "METRIC_SERIES"
-	LensChannels       = "CHANNEL_PERFORMANCE"
+	LensChannels              = "CHANNEL_PERFORMANCE"
+	PurposeChannelPerformance = "IT_GOVERNANCE_CHANNEL_PERFORMANCE"
 )
 
 var ErrMappingInvalid = errors.New("IT governance source mapping is invalid")
