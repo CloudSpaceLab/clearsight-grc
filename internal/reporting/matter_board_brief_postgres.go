@@ -20,6 +20,7 @@ var matterBoardBriefBoundaryQueries = []struct {
 	{"matter_actions", `SELECT max(updated_at) FROM matter_actions WHERE tenant_id=$1::uuid AND matter_id=$3::uuid`},
 	{"matter_decisions", `SELECT max(updated_at) FROM matter_decisions WHERE tenant_id=$1::uuid AND matter_id=$3::uuid`},
 	{"verification_results", `SELECT max(created_at) FROM verification_results WHERE tenant_id=$1::uuid AND matter_id=$3::uuid`},
+	{"verification_contracts", `SELECT max(updated_at) FROM verification_contracts WHERE tenant_id=$1::uuid AND matter_id=$3::uuid`},
 	{"operational_losses", `SELECT max(updated_at) FROM operational_losses WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND matter_id=$3::uuid`},
 	{"operational_loss_recoveries", `SELECT max(r.created_at) FROM operational_loss_recoveries r JOIN operational_losses l ON l.tenant_id=r.tenant_id AND l.legal_entity_id=r.legal_entity_id AND l.id=r.loss_id WHERE l.tenant_id=$1::uuid AND l.legal_entity_id=$2::uuid AND l.matter_id=$3::uuid`},
 	{"form_distributions", `SELECT max(updated_at) FROM capture_form_distributions WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND subject_type='MATTER' AND subject_id=$3::uuid`},
@@ -28,6 +29,7 @@ var matterBoardBriefBoundaryQueries = []struct {
 	{"matter_links", `SELECT max(GREATEST(created_at,COALESCE(retired_at,created_at))) FROM matter_links WHERE tenant_id=$1::uuid AND matter_id=$3::uuid`},
 	{"programs", `SELECT max(p.updated_at) FROM matter_links ml JOIN programs p ON p.tenant_id=ml.tenant_id AND p.id=ml.program_id WHERE ml.tenant_id=$1::uuid AND ml.matter_id=$3::uuid AND p.legal_entity_id=$2::uuid`},
 	{"monitoring_results", `SELECT max(r.created_at) FROM matters m JOIN monitoring_results r ON m.source_type='MONITORING_RESULT' AND r.tenant_id=m.tenant_id AND r.id::text=m.source_id WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.id=$3::uuid`},
+	{"organization_scopes", `SELECT max(os.updated_at) FROM matters m JOIN organization_scopes os ON os.tenant_id=m.tenant_id AND os.legal_entity_id=m.legal_entity_id AND os.id=m.organization_scope_id WHERE m.tenant_id=$1::uuid AND m.legal_entity_id=$2::uuid AND m.id=$3::uuid`},
 }
 
 var noBoardBriefRows = time.Unix(0, 0).UTC()
@@ -45,7 +47,7 @@ func (r *PostgresRepository) captureMatterBoardBriefSourceBoundary(ctx context.C
 	}
 	return SourceBoundary{
 		CapturedAt:         time.Now().UTC(),
-		ProjectionVersion:  "matter-board-brief.v1",
+		ProjectionVersion:  "matter-board-brief.v2",
 		SourceHighWater:    high,
 		Population:         1,
 		PopulationComplete: true,
@@ -143,12 +145,27 @@ SELECT t.id::text,t.reference,t.title,t.status,t.version,t.priority,t.summary,
 		) bounded
 	),'[]'::jsonb),
 	COALESCE((
-		SELECT jsonb_agg(jsonb_build_object('result',bounded.result,'observed_at',bounded.observed_at,'rationale',bounded.rationale) ORDER BY bounded.observed_at DESC,bounded.id DESC)
+		SELECT jsonb_agg(jsonb_build_object(
+			'expected_outcome',bounded.expected_outcome,
+			'status',bounded.status,
+			'result',bounded.result,
+			'observed_at',bounded.observed_at,
+			'rationale',bounded.rationale
+		) ORDER BY CASE WHEN bounded.status='ACTIVE' THEN 0 ELSE 1 END,bounded.updated_at DESC,bounded.id DESC)
 		FROM (
-			SELECT vr.id,vr.result,vr.observed_at,vr.rationale
-			FROM verification_results vr
-			WHERE vr.tenant_id=t.tenant_id AND vr.matter_id=t.id AND vr.created_at<=$8::timestamptz
-			ORDER BY vr.observed_at DESC,vr.id DESC
+			SELECT vc.id,vc.expected_outcome,vc.status,vc.updated_at,
+				COALESCE(vr.result,'') AS result,vr.observed_at,COALESCE(vr.rationale,'') AS rationale
+			FROM verification_contracts vc
+			LEFT JOIN LATERAL (
+				SELECT result,observed_at,rationale
+				FROM verification_results
+				WHERE tenant_id=vc.tenant_id AND matter_id=vc.matter_id AND contract_id=vc.id
+				  AND created_at<=$8::timestamptz
+				ORDER BY observed_at DESC,id DESC
+				LIMIT 1
+			) vr ON TRUE
+			WHERE vc.tenant_id=t.tenant_id AND vc.matter_id=t.id AND vc.updated_at<=$17::timestamptz
+			ORDER BY CASE WHEN vc.status='ACTIVE' THEN 0 ELSE 1 END,vc.updated_at DESC,vc.id DESC
 			LIMIT 20
 		) bounded
 	),'[]'::jsonb),
@@ -221,12 +238,13 @@ SELECT t.id::text,t.reference,t.title,t.status,t.version,t.priority,t.summary,
 		LIMIT 1
 	),'[]'::jsonb)
 FROM target t
-LEFT JOIN organization_scopes os ON os.tenant_id=t.tenant_id AND os.legal_entity_id=t.legal_entity_id AND os.id=t.organization_scope_id
+LEFT JOIN organization_scopes os ON os.tenant_id=t.tenant_id AND os.legal_entity_id=t.legal_entity_id AND os.id=t.organization_scope_id AND os.updated_at<=$18::timestamptz
 LEFT JOIN principals owner ON owner.tenant_id=t.tenant_id AND owner.id=t.owner_principal_id
 `, scope.TenantID, scope.LegalEntityID, run.ScopeRef, run.RequestedByRef,
 		h["matters"], h["matter_actions"], h["matter_decisions"], h["verification_results"],
 		h["operational_losses"], h["operational_loss_recoveries"], h["form_distributions"], h["form_responses"],
-		h["vendor_work"], h["matter_links"], h["programs"], h["monitoring_results"]).
+		h["vendor_work"], h["matter_links"], h["programs"], h["monitoring_results"],
+		h["verification_contracts"], h["organization_scopes"]).
 		Scan(&id, &reference, &title, &status, &version, &priority, &summary, &organizationScope, &affectedArea, &ownerName, &dueAt,
 			&programsRaw, &actionsRaw, &decisionsRaw, &outcomesRaw, &lossesRaw, &formsRaw, &vendorRaw, &sourceRaw)
 	if errors.Is(err, pgx.ErrNoRows) {
