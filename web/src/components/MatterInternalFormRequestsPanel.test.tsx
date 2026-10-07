@@ -5,6 +5,10 @@ import { MatterInternalFormRequestsPanel } from "./MatterInternalFormRequestsPan
 
 vi.mock("../formsApi", () => ({ createLibraryFormDraft: vi.fn() }));
 vi.mock("./forms/DistributionComposer", () => ({ DistributionComposer: () => null }));
+vi.mock("./forms/OriginFormList", () => ({
+  OriginFormList: ({ originType, originID, subjectLabel }: { originType: string; originID: string; subjectLabel: string }) =>
+    <div data-testid="origin-form-list">{originType}:{originID}:{subjectLabel}</div>,
+}));
 vi.mock("./forms/SubjectFormActivity", () => ({ SubjectFormActivity: () => <div>Form activity</div> }));
 vi.mock("./FormBuilder", () => ({
   FormBuilder: ({ saveDraft, onSaved, onCancel }: {
@@ -50,6 +54,7 @@ beforeEach(() => {
 it("creates an ordinary form draft with the current issue as immutable origin", async () => {
   render(<MatterInternalFormRequestsPanel matterID="matter-a" matterReference="MAT-82BF"/>);
 
+  expect(screen.getByTestId("origin-form-list").textContent).toBe("MATTER:matter-a:MAT-82BF");
   fireEvent.click(screen.getByRole("button", { name: "Create linked form" }));
   expect(await screen.findByRole("heading", { name: "Create linked form" })).toBeTruthy();
   expect(screen.queryByText("matter-a")).toBeNull();
