@@ -176,7 +176,7 @@ describe("GroupOversightWorkspace", () => {
       complete: false,
     };
     posture.children[1] = {
-      ...posture.children[1],
+      ...posture.children[1]!,
       risk_state: "MISSING",
       completeness: "UNKNOWN",
       source_id: undefined,
