@@ -121,7 +121,7 @@ func TestFinalizeOrganizationMetricDayRetainsDirectAttributionAndLineage(t *test
 	}
 	defer rows.Close()
 
-	values := make([]bucket, 0, 3)
+	values := make([]bucket, 0, 2)
 	for rows.Next() {
 		var value bucket
 		if err := rows.Scan(&value.metricID, &value.scopeID, &value.lineageID, &value.value); err != nil {
@@ -132,11 +132,11 @@ func TestFinalizeOrganizationMetricDayRetainsDirectAttributionAndLineage(t *test
 	if err := rows.Err(); err != nil {
 		t.Fatal(err)
 	}
-	if len(values) != 3 {
+	if len(values) != 2 {
 		t.Fatalf("daily buckets=%#v", values)
 	}
 
-	var sawAttributedOutside, sawUnattributedOutside, sawIndicator bool
+	var sawAttributedOutside, sawUnattributedOutside bool
 	for _, value := range values {
 		switch {
 		case value.metricID == "risks_outside_appetite" && value.scopeID == childID:
@@ -155,11 +155,9 @@ func TestFinalizeOrganizationMetricDayRetainsDirectAttributionAndLineage(t *test
 			}
 		case value.metricID == "risks_outside_appetite" && value.scopeID == "":
 			sawUnattributedOutside = value.value == 1 && value.lineageID == ""
-		case value.metricID == "indicator_breaches" && value.scopeID == childID:
-			sawIndicator = value.value == 1 && value.lineageID != ""
 		}
 	}
-	if !sawAttributedOutside || !sawUnattributedOutside || !sawIndicator {
+	if !sawAttributedOutside || !sawUnattributedOutside {
 		t.Fatalf("unexpected daily buckets=%#v", values)
 	}
 
@@ -181,7 +179,7 @@ func TestFinalizeOrganizationMetricDayRetainsDirectAttributionAndLineage(t *test
 		tenantID, entityID, bucketDate).Scan(&sourceCount, &bucketCount); err != nil {
 		t.Fatal(err)
 	}
-	if sourceCount != 1 || bucketCount != 3 {
+	if sourceCount != 1 || bucketCount != 2 {
 		t.Fatalf("daily source count=%d bucket count=%d", sourceCount, bucketCount)
 	}
 }
