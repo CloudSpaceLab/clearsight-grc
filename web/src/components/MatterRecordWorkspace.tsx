@@ -26,6 +26,7 @@ import { StatusBadge, Tabs } from "./ui";
 type Props = {
   matterID: string;
   onBack: () => void;
+  backLabel?: string;
   onOpenRequest?: (requestID: string) => void;
   onOpenLoss?: (lossID: string) => void;
   onOpenIndicator?: (indicatorID: string, kind?: "KRI" | "KCI") => void;
@@ -41,7 +42,7 @@ const matterWorkspaceTabs: ReadonlyArray<{ id: Exclude<MatterWorkspaceTab, "acti
   { id: "decisions", label: "Decisions" },
 ];
 
-export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenLoss, onOpenIndicator }: Props) {
+export function MatterRecordWorkspace({ matterID, onBack, backLabel = "Back to issues and changes", onOpenRequest, onOpenLoss, onOpenIndicator }: Props) {
   const [aggregateState, setAggregateState] = useState<LoadState>("loading");
   const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [aggregate, setAggregate] = useState<MatterAggregate | null>(null);
@@ -149,7 +150,7 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
   const organizationScope = aggregate?.organization_scope_label || "Not assigned";
 
   return <section className="matter-record-workspace" aria-label="Issue or change record">
-    <button aria-label="Back to issues and changes" className="text-button matter-record-back" type="button" onClick={onBack}>← Back to issues and changes</button>
+    <button aria-label={backLabel} className="text-button matter-record-back" type="button" onClick={onBack}>← {backLabel}</button>
     {aggregateState === "loading" && !aggregate && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading issue record…</div>}
     {aggregateState === "unavailable" && !aggregate && <EmptyState kind="unavailable" label="Issue or change" title="Issue record could not be loaded" description="The current issue information is unavailable. Retry the issue record before relying on its status or assigned work." action="Retry issue record" onAction={() => void loadAggregate()}/>}
     {aggregate && <>

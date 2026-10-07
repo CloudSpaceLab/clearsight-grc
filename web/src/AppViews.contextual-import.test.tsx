@@ -23,6 +23,33 @@ describe("contextual document analysis entry", () => {
     expect(onAnalyzeDocument).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps a governed return action above exact evidence work", async () => {
+    const onReturn = vi.fn();
+    render(<WorkView
+      organizationName="Meridian Trust Bank"
+      actorPrincipalID="role-cro"
+      evidenceScopeToken={0}
+      tab="evidence"
+      onTab={vi.fn()}
+      onBackMatter={vi.fn()}
+      returnContext={{ label: "Back to RCSA cycle", onReturn }}
+      assignedItems={[]}
+      assignedState="live"
+      onOpenAssignedItem={vi.fn()}
+      sources={[]}
+      requests={[]}
+      evidenceSourceState="live"
+      evidenceRequestState="live"
+      onEvidenceRetry={vi.fn()}
+      onEvidenceRequestUpdated={vi.fn(() => true)}
+      onOpenEvidence={vi.fn()}
+    />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Back to RCSA cycle" }));
+    expect(onReturn).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Evidence workspace")).toBeTruthy();
+  });
+
   it("offers document analysis for issues and changes but not evidence review", () => {
     const onAnalyzeDocument = vi.fn();
     const props = {

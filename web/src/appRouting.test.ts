@@ -44,6 +44,18 @@ describe("workspace routes", () => {
     expect(routeHash("work", { evidenceID: "request-1" }, "evidence")).toBe("#work/evidence/request-1");
   });
 
+  it("round-trips an originating RCSA cycle through Work records", () => {
+    const matterTarget = { matterID: "matter/1", returnRCSACycleID: "cycle/1" };
+    const matterHash = routeHash("work", matterTarget, "matters");
+    expect(matterHash).toBe("#work/matters/matter%2F1?return_rcsa=cycle%2F1");
+    expect(parseRoute(matterHash)).toEqual({ view: "work", workTab: "matters", target: matterTarget });
+
+    const evidenceTarget = { evidenceID: "request/1", returnRCSACycleID: "cycle/1" };
+    const evidenceHash = routeHash("work", evidenceTarget, "evidence");
+    expect(evidenceHash).toBe("#work/evidence/request%2F1?return_rcsa=cycle%2F1");
+    expect(parseRoute(evidenceHash)).toEqual({ view: "work", workTab: "evidence", target: evidenceTarget });
+  });
+
   it("keeps filter queries out of record targets", () => {
     expect(parseRoute("#work/matters/matter%2F1?status=OPEN&priority=4")).toEqual({ view: "work", workTab: "matters", target: { matterID: "matter/1" } });
     expect(parseRoute("#programs/program%2F1?overall_state=CURRENT")).toEqual({ view: "programs", target: { programID: "program/1", programSection: "overview" } });

@@ -42,13 +42,27 @@ try {
       await page.getByRole("table", { name: "RCSA cycles" }).waitFor({ state: "visible" });
       await page.getByText("Q3 Technology RCSA", { exact: true }).waitFor({ state: "visible" });
       await page.getByText("3 Risks", { exact: true }).waitFor({ state: "visible" });
-      await page.getByText("Complete independent challenge", { exact: true }).waitFor({ state: "visible" });
+      await page.getByText("Independent challenge in progress", { exact: true }).waitFor({ state: "visible" });
     } else {
       await page.getByRole("heading", { name: "Q3 Technology RCSA" }).waitFor({ state: "visible" });
       await page.getByText("1 Jul 2026 – 30 Sep 2026", { exact: true }).waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Open challenge work" }).waitFor({ state: "visible" });
+      const phase = page.getByRole("region", { name: "RCSA cycle path" });
+      await phase.waitFor({ state: "visible" });
+      await phase.getByText("First-line collection", { exact: true }).waitFor({ state: "visible" });
+      await phase.getByText("Risk acceptance", { exact: true }).waitFor({ state: "visible" });
+      await phase.getByText("Remediation verification", { exact: true }).waitFor({ state: "visible" });
+      const openChallenge = page.getByRole("button", { name: "Open challenge work" });
+      await openChallenge.waitFor({ state: "visible" });
       await page.getByRole("table", { name: "RCSA frozen Risks" }).waitFor({ state: "visible" });
       if (!page.url().includes("#rcsa/cycle-rcsa-1")) throw new Error("Exact RCSA cycle route was not retained.");
+
+      await openChallenge.click();
+      await page.waitForURL(/#work\/matters\/matter-gaid-change\?return_rcsa=cycle-rcsa-1$/);
+      const returnToCycle = page.getByRole("button", { name: "Back to RCSA cycle" });
+      await returnToCycle.waitFor({ state: "visible" });
+      await returnToCycle.click();
+      await page.waitForURL(/#rcsa\/cycle-rcsa-1$/);
+      await page.getByRole("heading", { name: "Q3 Technology RCSA" }).waitFor({ state: "visible" });
     }
 
     if (errors.length) throw new Error(`${capture.name} emitted browser errors: ${errors.join("; ")}`);

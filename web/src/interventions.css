@@ -42,6 +42,7 @@
 .continuous-checks-detail ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 11px; line-height: 1.55; }
 .continuous-checks-detail p { margin: 9px 0 0; font-size: 11px; }
 
+.workspace-context-return { justify-self: start; margin: 14px 0 2px; }
 .workspace-brief { display: flex; justify-content: space-between; align-items: end; gap: 28px; margin: 28px 0 18px; padding: 0 2px 16px; border-bottom: 1px solid var(--border); }
 .workspace-brief > div:first-child { min-width: 0; }
 .workspace-brief h2 { margin-top: 7px; font-size: 25px; }

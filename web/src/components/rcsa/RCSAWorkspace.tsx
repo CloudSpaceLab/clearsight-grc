@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getRCSACycle, listRCSACycles } from "../../rcsaApi";
 import type { RCSAControlSnapshot, RCSACycleDetail, RCSACycleSummary, RCSARiskSnapshot, RCSAStatus } from "../../rcsaTypes";
-import { formatRCSADate, formatRCSAPeriod, rcsaHandoffTone, rcsaOwnerLabel, rcsaStatusLabel, rcsaStatusTone, rcsaTriggerLabel } from "../../rcsaPresentation";
+import { formatRCSADate, formatRCSAPeriod, rcsaHandoffTone, rcsaOwnerLabel, rcsaPhasePath, rcsaPhaseTone, rcsaStatusLabel, rcsaStatusTone, rcsaTriggerLabel } from "../../rcsaPresentation";
 import { Button, DataTable, EmptyState, FocusedSheet, Notice, SelectField, StatusBadge, Surface, type DataColumn } from "../ui";
 import "./rcsa.css";
 
@@ -10,8 +10,8 @@ type Props = {
   legalEntityName?: string;
   targetID?: string;
   onTarget: (id?: string) => void;
-  onOpenEvidence?: (requestID: string) => void;
-  onOpenMatter?: (matterID: string) => void;
+  onOpenEvidence?: (requestID: string, cycleID: string) => void;
+  onOpenMatter?: (matterID: string, cycleID: string) => void;
 };
 
 type LoadState = "loading" | "live" | "error";
@@ -175,7 +175,7 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
   </section>;
 }
 
-function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail: RCSACycleDetail; onOpenEvidence?: (id: string) => void; onOpenMatter?: (id: string) => void }) {
+function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail: RCSACycleDetail; onOpenEvidence?: (id: string, cycleID: string) => void; onOpenMatter?: (id: string, cycleID: string) => void }) {
   const riskColumns: readonly DataColumn<RCSARiskSnapshot>[] = [
     { id: "risk", header: "Risk", mobileLayout: "full-width", render: (risk) => <span className="rcsa-stack"><strong>{risk.name}</strong><small>{risk.code}</small></span>, accessibleText: (risk) => `${risk.name}. ${risk.code}` },
     { id: "category", header: "Category", render: (risk) => risk.category || "Not classified", accessibleText: (risk) => risk.category || "Not classified" },
@@ -189,8 +189,8 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
 
   const openHandoff = () => {
     if (!detail.handoff.target_id) return;
-    if (detail.handoff.target_type === "EVIDENCE_REQUEST") onOpenEvidence?.(detail.handoff.target_id);
-    if (detail.handoff.target_type === "MATTER") onOpenMatter?.(detail.handoff.target_id);
+    if (detail.handoff.target_type === "EVIDENCE_REQUEST") onOpenEvidence?.(detail.handoff.target_id, detail.cycle.id);
+    if (detail.handoff.target_type === "MATTER") onOpenMatter?.(detail.handoff.target_id, detail.cycle.id);
   };
 
   return <article className="rcsa-detail">
@@ -202,7 +202,7 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
       <StatusBadge tone={rcsaStatusTone(detail.cycle.status)}>{rcsaStatusLabel(detail.cycle.status)}</StatusBadge>
     </header>
 
-    {!detail.complete && <Notice tone="warning">Some first-line context is unavailable. The frozen cycle record remains unchanged.</Notice>}
+    {!detail.complete && <Notice tone="warning">Some cycle context is unavailable. The frozen cycle record remains unchanged.</Notice>}
 
     <section className="rcsa-detail__facts" aria-label="Cycle facts">
       <div><span>Assessment period</span><strong>{formatRCSAPeriod(detail.assessment_period_start, detail.assessment_period_end)}</strong></div>
@@ -210,6 +210,25 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
       <div><span>Frozen population</span><strong>{detail.risks.length} Risks · {detail.controls.length} controls</strong></div>
       <div><span>Updated</span><strong>{formatRCSADate(detail.cycle.updated_at)}</strong></div>
     </section>
+
+    <Surface>
+      <section className="rcsa-detail__phase" aria-label="RCSA cycle path">
+        <div className="rcsa-detail__phase-heading">
+          <div>
+            <span className="eyebrow">Current phase</span>
+            <h3>{detail.phase.label}</h3>
+            <p>{detail.phase.detail}</p>
+          </div>
+          <StatusBadge tone={rcsaPhaseTone(detail.phase.stage)}>{detail.phase.label}</StatusBadge>
+        </div>
+        <ol className="rcsa-phase-path">
+          {rcsaPhasePath(detail.phase.stage).map((step) => <li className={`is-${step.state}`} key={step.id}>
+            <span aria-hidden="true"/>
+            <div><strong>{step.label}</strong><small>{phaseStepStateLabel(step.state)}</small></div>
+          </li>)}
+        </ol>
+      </section>
+    </Surface>
 
     <Surface>
       <div className="rcsa-detail__handoff">
@@ -240,4 +259,12 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
       </dl>
     </details>
   </article>;
+}
+
+function phaseStepStateLabel(state: "complete" | "current" | "pending" | "not_required" | "unknown") {
+  if (state === "complete") return "Complete";
+  if (state === "current") return "Current";
+  if (state === "not_required") return "Not required";
+  if (state === "unknown") return "Outcome not classified";
+  return "Pending decision";
 }

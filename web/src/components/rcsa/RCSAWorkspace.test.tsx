@@ -36,7 +36,7 @@ beforeEach(() => {
       risk_count: 2,
       control_count: 3,
       first_line_owner_display_name: "Technology Risk Owner",
-      handoff: { stage: "CHALLENGE", label: "Complete independent challenge", target_type: "MATTER", target_id: "matter-1" },
+      handoff: { stage: "CHALLENGE", label: "Independent challenge in progress", target_type: "MATTER", target_id: "matter-1" },
     }],
   });
   vi.mocked(getRCSACycle).mockResolvedValue({
@@ -46,7 +46,8 @@ beforeEach(() => {
     assessment_period_start: "2026-07-01T00:00:00Z",
     assessment_period_end: "2026-09-30T23:59:59Z",
     first_line_request_id: "request-1",
-    handoff: { stage: "CHALLENGE", label: "Complete independent challenge", target_type: "MATTER", target_id: "matter-1" },
+    handoff: { stage: "CHALLENGE", label: "Independent challenge in progress", target_type: "MATTER", target_id: "matter-1" },
+    phase: { stage: "INDEPENDENT_CHALLENGE", label: "Independent challenge", detail: "Independent review of the first-line assessment is in progress." },
     risks: [
       { cycle_id: cycle.id, risk_id: "risk-1", risk_version: 3, code: "TECH-01", name: "Service interruption", category: "Technology" },
       { cycle_id: cycle.id, risk_id: "risk-2", risk_version: 2, code: "TECH-02", name: "Privileged access misuse", category: "Cyber" },
@@ -89,9 +90,46 @@ it("renders a restrained cycle register and opens the exact challenge handoff", 
   expect(screen.getByText("1 Jul 2026 – 30 Sep 2026")).toBeTruthy();
   expect(screen.getByRole("table", { name: "RCSA frozen Risks" })).toBeTruthy();
   expect(screen.getByRole("table", { name: "RCSA frozen Controls" })).toBeTruthy();
+  expect(screen.getByRole("region", { name: "RCSA cycle path" })).toBeTruthy();
+  expect(screen.getByText("First-line collection")).toBeTruthy();
+  expect(screen.getAllByText("Independent challenge").length).toBeGreaterThan(0);
+  expect(screen.getByText("Risk acceptance")).toBeTruthy();
+  expect(screen.getByText("Remediation verification")).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Open challenge work" }));
-  expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
+  expect(onOpenMatter).toHaveBeenCalledWith("matter-1", "cycle-1");
+});
+
+it("opens the first-line evidence request with the originating cycle", async () => {
+  const firstLineCycle = {
+    ...cycle,
+    status: "ASSESSMENT_OPEN" as const,
+    first_line_response_revision_id: undefined,
+    challenge_matter_id: undefined,
+    version: 2,
+  };
+  vi.mocked(getRCSACycle).mockResolvedValueOnce({
+    cycle: firstLineCycle,
+    complete: true,
+    first_line_owner_display_name: "Technology Risk Owner",
+    first_line_request_id: "request-1",
+    handoff: { stage: "FIRST_LINE", label: "First-line assessment in progress", target_type: "EVIDENCE_REQUEST", target_id: "request-1" },
+    phase: { stage: "COLLECTION", label: "First-line collection", detail: "First-line assessment is in progress." },
+    risks: [],
+    controls: [],
+  });
+  const onOpenEvidence = vi.fn();
+
+  render(<RCSAWorkspace
+    organizationName="Meridian Trust Bank"
+    legalEntityName="Nigeria"
+    targetID="cycle-1"
+    onTarget={vi.fn()}
+    onOpenEvidence={onOpenEvidence}
+  />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Open first-line assessment" }));
+  expect(onOpenEvidence).toHaveBeenCalledWith("request-1", "cycle-1");
 });
 
 it("shows partial authority resolution without inventing a complete population", async () => {

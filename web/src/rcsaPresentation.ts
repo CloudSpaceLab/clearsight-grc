@@ -1,5 +1,5 @@
 import type { StatusTone } from "./components/ui";
-import type { RCSACycle, RCSAHandoff, RCSAStatus, RCSATriggerKind } from "./rcsaTypes";
+import type { RCSACycle, RCSAHandoff, RCSAPhaseStage, RCSAStatus, RCSATriggerKind } from "./rcsaTypes";
 
 export function rcsaStatusLabel(status: RCSAStatus) {
   switch (status) {
@@ -37,6 +37,45 @@ export function rcsaHandoffTone(handoff: RCSAHandoff): StatusTone {
     case "CANCELLED": return "neutral";
     default: return "unknown";
   }
+}
+
+export type RCSAPhasePathStep = {
+  id: "COLLECTION" | "INDEPENDENT_CHALLENGE" | "RISK_ACCEPTANCE" | "REMEDIATION_VERIFICATION";
+  label: string;
+  state: "complete" | "current" | "pending" | "not_required" | "unknown";
+};
+
+export function rcsaPhaseTone(stage: RCSAPhaseStage): StatusTone {
+  switch (stage) {
+    case "RISK_ACCEPTANCE": return "success";
+    case "REMEDIATION_VERIFICATION": return "warning";
+    case "INDEPENDENT_CHALLENGE": return "warning";
+    case "COLLECTION": return "info";
+    case "COMPLETE": return "success";
+    case "CANCELLED": return "neutral";
+    default: return "unknown";
+  }
+}
+
+export function rcsaPhasePath(stage: RCSAPhaseStage): RCSAPhasePathStep[] {
+  const states: Partial<Record<RCSAPhasePathStep["id"], RCSAPhasePathStep["state"]>> =
+    stage === "COLLECTION"
+      ? { COLLECTION: "current" }
+      : stage === "INDEPENDENT_CHALLENGE"
+        ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "current" }
+        : stage === "RISK_ACCEPTANCE"
+          ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "complete", RISK_ACCEPTANCE: "current", REMEDIATION_VERIFICATION: "not_required" }
+          : stage === "REMEDIATION_VERIFICATION"
+            ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "complete", RISK_ACCEPTANCE: "not_required", REMEDIATION_VERIFICATION: "current" }
+            : stage === "COMPLETE"
+              ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "complete", RISK_ACCEPTANCE: "unknown", REMEDIATION_VERIFICATION: "unknown" }
+              : {};
+  return [
+    { id: "COLLECTION", label: "First-line collection", state: states.COLLECTION ?? "pending" },
+    { id: "INDEPENDENT_CHALLENGE", label: "Independent challenge", state: states.INDEPENDENT_CHALLENGE ?? "pending" },
+    { id: "RISK_ACCEPTANCE", label: "Risk acceptance", state: states.RISK_ACCEPTANCE ?? "pending" },
+    { id: "REMEDIATION_VERIFICATION", label: "Remediation verification", state: states.REMEDIATION_VERIFICATION ?? "pending" },
+  ];
 }
 
 export function formatRCSADate(value?: string) {

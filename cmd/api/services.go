@@ -188,8 +188,6 @@ func configureOperationalLosses(
 	})
 }
 
-const rcsaChallengeDecisionType = "RCSA_CHALLENGE"
-
 var rcsaChallengeOptions = json.RawMessage(`["ACCEPT_FIRST_LINE","REQUIRE_CHANGES","DEFICIENCY_CONFIRMED"]`)
 
 func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
@@ -238,10 +236,10 @@ func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
 			if err != nil || !validRCSAChallengeMatter(aggregate, scope, cycle) {
 				return "", rcsa.ErrInvalid
 			}
-			if continuity.CurrentDecisionForType(aggregate.Decisions, rcsaChallengeDecisionType) == nil {
+			if continuity.CurrentDecisionForType(aggregate.Decisions, rcsa.ChallengeDecisionType) == nil {
 				aggregate, err = matters.RecordDecisionLifecycle(trusted, continuity.AddDecisionInput{
 					TenantID: scope.TenantID, MatterID: aggregate.Matter.ID, ExpectedVersion: aggregate.Matter.Version,
-					Type: rcsaChallengeDecisionType, Status: continuity.DecisionProposed,
+					Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionProposed,
 					Options:    rcsaChallengeOptions,
 					Rationale:  "Independent challenge of the submitted first-line RCSA assessment.",
 					Conditions: json.RawMessage(`[]`), AuthorityPrincipalID: actorID,
@@ -261,7 +259,7 @@ func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
 			if err != nil || !validRCSAChallengeMatter(aggregate, scope, cycle) {
 				return rcsa.ErrInvalid
 			}
-			decision := continuity.CurrentDecisionForType(aggregate.Decisions, rcsaChallengeDecisionType)
+			decision := continuity.CurrentDecisionForType(aggregate.Decisions, rcsa.ChallengeDecisionType)
 			if decision == nil || decision.AuthorityPrincipalID == "" || decision.AuthorityPrincipalID == cycle.FirstLineOwnerID {
 				return rcsa.ErrInvalid
 			}
@@ -271,7 +269,7 @@ func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
 				return rcsa.ErrInvalid
 			}
 			switch decision.SelectedOption {
-			case "ACCEPT_FIRST_LINE", "REQUIRE_CHANGES", "DEFICIENCY_CONFIRMED":
+			case rcsa.ChallengeOptionAcceptFirstLine, rcsa.ChallengeOptionRequireChanges, rcsa.ChallengeOptionDeficiencyConfirmed:
 				return nil
 			default:
 				return rcsa.ErrInvalid

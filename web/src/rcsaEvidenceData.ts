@@ -27,9 +27,7 @@ export const sampleRCSAPage: RCSACyclePage = {
     first_line_owner_display_name: "Morgan Ellis",
     handoff: {
       stage: "CHALLENGE",
-      label: "Complete independent challenge",
-      target_type: "MATTER",
-      target_id: "matter-gaid-change",
+      label: "Independent challenge in progress",
     },
   }, {
     cycle: {
@@ -49,7 +47,7 @@ export const sampleRCSAPage: RCSACyclePage = {
     risk_count: 2,
     control_count: 2,
     first_line_owner_display_name: "Operations Risk",
-    handoff: { stage: "FIRST_LINE", label: "Complete first-line assessment" },
+    handoff: { stage: "FIRST_LINE", label: "First-line assessment in progress" },
   }],
 };
 
@@ -62,9 +60,14 @@ export const sampleRCSADetail: RCSACycleDetail = {
   first_line_request_id: "request-rcsa-1",
   handoff: {
     stage: "CHALLENGE",
-    label: "Complete independent challenge",
+    label: "Independent challenge in progress",
     target_type: "MATTER",
     target_id: "matter-gaid-change",
+  },
+  phase: {
+    stage: "INDEPENDENT_CHALLENGE",
+    label: "Independent challenge",
+    detail: "Independent review of the first-line assessment is in progress.",
   },
   risks: [
     { cycle_id: cycle.id, risk_id: "risk-rcsa-1", risk_version: 3, code: "TECH-001", name: "Digital service interruption", category: "Technology" },
