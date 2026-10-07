@@ -24,6 +24,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/risk"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/thirdparty"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -75,6 +76,8 @@ type sourceRecordReceipt struct {
 	Groups            int              `json:"groups"`
 	Records           int              `json:"records"`
 	Matters           int              `json:"matters"`
+	Risks             int              `json:"risks"`
+	RiskAssessments   int              `json:"risk_assessments"`
 	Captures          int              `json:"captures"`
 	ReportDefinitions int              `json:"report_definitions"`
 	Items             []map[string]any `json:"items"`
@@ -154,6 +157,7 @@ func sourceMatterProjection(group sourceRecordGroup, record sourceRecord) source
 	for key, value := range map[string]string{
 		"finding":              finding,
 		"risk_implication":     implication,
+		"source_risk_id":       sourceFieldValue(record, "RISK ID", "Risk ID"),
 		"severity":             sourceFieldValue(record, "Severity", "RISK LEVEL", "Risk Level (Inherent Risk)", "Inherent Risk Rating"),
 		"recommendation":       sourceFieldValue(record, "RECOMMENDATIONS", "Required Actions", "Additional/Proposed controls"),
 		"assessment_date":      sourceFieldValue(record, "DATE OF ASSESSMENT", "Source assessment date", "RISK ASSESSMENT PUBLICATION DATE"),
@@ -200,6 +204,8 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 	seed.Now = time.Now().UTC()
 	cr := continuity.NewPostgresRepository(pool)
 	cs := continuity.NewService(cr)
+	rr := risk.NewPostgresRepository(pool)
+	rs := risk.NewService(rr)
 	er := evidence.NewPostgresRepository(pool)
 	mr := monitoring.NewPostgresRepository(pool)
 	ms := monitoring.NewService(mr, evidence.NewService(er, evidence.NewMemoryObjectStore()))
@@ -252,6 +258,16 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 			receipt.Records += len(group.Records)
 			vendor := strings.HasPrefix(group.Key, "third-party-risk-register")
 			for _, record := range group.Records {
+				_, riskCandidate, assessmentCreated, riskErr := ensureSourceRisk(ctx, pool, rs, seed, group, record)
+				if riskErr != nil {
+					return receipt, fmt.Errorf("source risk %s: %w", record.Key, riskErr)
+				}
+				if riskCandidate {
+					receipt.Risks++
+				}
+				if assessmentCreated {
+					receipt.RiskAssessments++
+				}
 				if !record.CreateMatter {
 					continue
 				}
