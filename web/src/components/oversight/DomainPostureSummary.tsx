@@ -173,8 +173,8 @@ export function DomainPostureSummary({
     <div className="section-header">
       <div>
         <span className="eyebrow">Current posture</span>
-        <h2 id="domain-posture-heading">Material risk signals</h2>
-        <p>Current posture and period Loss flow for this scope.</p>
+        <h2 id="domain-posture-heading">Enterprise posture</h2>
+        <p>Current risk posture and operational Loss flow for this scope.</p>
       </div>
     </div>
 
