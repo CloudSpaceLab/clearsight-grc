@@ -5,42 +5,42 @@ import "testing"
 func TestValidObservationMeasureKeepsCountAndMoneyContractsSeparate(t *testing.T) {
 	memberCount := int64(2)
 	cases := []struct {
-		name       string
+		name        string
 		observation Observation
-		definition Definition
-		want       bool
+		definition  Definition
+		want        bool
 	}{
 		{
-			name: "count",
+			name:        "count",
 			observation: Observation{Value: 2},
-			definition: Definition{Unit: MetricUnitCount},
-			want: true,
+			definition:  Definition{Unit: MetricUnitCount},
+			want:        true,
 		},
 		{
-			name: "count rejects currency",
+			name:        "count rejects currency",
 			observation: Observation{Value: 2, Currency: "NGN"},
-			definition: Definition{Unit: MetricUnitCount},
+			definition:  Definition{Unit: MetricUnitCount},
 		},
 		{
-			name: "money",
+			name:        "money",
 			observation: Observation{Value: 250000, Currency: "NGN", MemberCount: &memberCount},
-			definition: Definition{Unit: MetricUnitMoney},
-			want: true,
+			definition:  Definition{Unit: MetricUnitMoney},
+			want:        true,
 		},
 		{
-			name: "money requires currency",
+			name:        "money requires currency",
 			observation: Observation{Value: 250000, MemberCount: &memberCount},
-			definition: Definition{Unit: MetricUnitMoney},
+			definition:  Definition{Unit: MetricUnitMoney},
 		},
 		{
-			name: "money requires member count",
+			name:        "money requires member count",
 			observation: Observation{Value: 250000, Currency: "NGN"},
-			definition: Definition{Unit: MetricUnitMoney},
+			definition:  Definition{Unit: MetricUnitMoney},
 		},
 		{
-			name: "negative value rejected",
+			name:        "negative value rejected",
 			observation: Observation{Value: -1, Currency: "NGN", MemberCount: &memberCount},
-			definition: Definition{Unit: MetricUnitMoney},
+			definition:  Definition{Unit: MetricUnitMoney},
 		},
 	}
 	for _, tc := range cases {
