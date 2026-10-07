@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadDomainMetrics, loadHomeMetricMembers, loadHomeMetrics, type DomainMetricBundle, type HomeMetricBundle, type HomeMetricMemberPage } from "../../metricApi";
+import { loadDomainMetrics, loadHomeMetricMembers, loadHomeMetrics, loadLossPeriodMetrics, type DomainMetricBundle, type HomeMetricBundle, type HomeMetricMemberPage, type LossPeriodBundle } from "../../metricApi";
 import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
 import type { HomeTab } from "../../appRouting";
@@ -10,6 +10,8 @@ import { OversightPeriodPicker } from "./OversightPeriodPicker";
 import { DomainPostureSummary } from "./DomainPostureSummary";
 import { OrganizationRiskSummary } from "./OrganizationRiskSummary";
 import { RiskMovement } from "./RiskMovement";
+import { OrganizationLossSummary } from "./OrganizationLossSummary";
+import { LossMovement } from "./LossMovement";
 import { MetricMemberDrill } from "./MetricMemberDrill";
 import "../../oversight.css";
 
@@ -32,6 +34,7 @@ type OversightWorkspaceProps = {
   loadMetrics?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<HomeMetricBundle>;
   loadMetricMembers?: typeof loadHomeMetricMembers;
   loadDomainPosture?: typeof loadDomainMetrics;
+  loadLossMetrics?: typeof loadLossPeriodMetrics;
   metricFilter?: OversightMetricFilter;
   onMetricFilterChange?: (filter: OversightMetricFilter) => void;
   todayItems?: AttentionItem[];
@@ -57,6 +60,7 @@ export function OversightWorkspace({
   loadMetrics = loadHomeMetrics,
   loadMetricMembers = loadHomeMetricMembers,
   loadDomainPosture = loadDomainMetrics,
+  loadLossMetrics = loadLossPeriodMetrics,
   metricFilter = "all",
   onMetricFilterChange,
   todayItems = [],
@@ -72,6 +76,8 @@ export function OversightWorkspace({
   const [metricState, setMetricState] = useState<"loading" | "live" | "unavailable">("loading");
   const [domainMetrics, setDomainMetrics] = useState<DomainMetricBundle | null>(null);
   const [domainState, setDomainState] = useState<"loading" | "live" | "unavailable">("loading");
+  const [lossMetrics, setLossMetrics] = useState<LossPeriodBundle | null>(null);
+  const [lossState, setLossState] = useState<"loading" | "live" | "unavailable">("loading");
   const [view, setView] = useState<DetailView>("pressure");
   const [localMetricFilter, setLocalMetricFilter] = useState<OversightMetricFilter>(metricFilter);
   const [periodState, setPeriodState] = useState<"idle" | "changing">("idle");
@@ -210,6 +216,34 @@ export function OversightWorkspace({
     return () => controller.abort();
   }, [loadDomainPosture, organizationScopeID, refreshToken, selectedHomeTab]);
 
+  const lossPeriod = activePeriod ?? (snapshot ? {
+    start_date: snapshot.reporting_period.start_date,
+    end_date: snapshot.reporting_period.end_date,
+  } : undefined);
+
+  useEffect(() => {
+    if (selectedHomeTab !== "oversight" || !lossPeriod) return;
+    const controller = new AbortController();
+    setLossState("loading");
+    void loadLossMetrics(lossPeriod, organizationScopeID, controller.signal).then((value) => {
+      if (controller.signal.aborted) return;
+      setLossMetrics(value);
+      setLossState("live");
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      setLossMetrics(null);
+      setLossState("unavailable");
+    });
+    return () => controller.abort();
+  }, [
+    loadLossMetrics,
+    lossPeriod?.start_date,
+    lossPeriod?.end_date,
+    organizationScopeID,
+    refreshToken,
+    selectedHomeTab,
+  ]);
+
   async function changePeriod(period: ReportingPeriodQuery) {
     if (periodState === "changing") return;
     setPeriodState("changing");
@@ -292,6 +326,8 @@ export function OversightWorkspace({
             <DomainPostureSummary
               bundle={domainMetrics}
               state={domainState}
+              lossBundle={lossMetrics}
+              lossState={lossState}
               organizationScopeID={organizationScopeID}
               onOpenRisk={onOpenRisk}
               onOpenLoss={onOpenLoss}
@@ -305,6 +341,17 @@ export function OversightWorkspace({
               <RiskMovement
                 bundle={domainMetrics}
                 organizationScopeID={organizationScopeID}
+              />
+            </div>
+            <div className="oversight-loss-overview">
+              <OrganizationLossSummary
+                bundle={lossMetrics}
+                state={lossState}
+                onOpenScope={onOrganizationScopeChange}
+              />
+              <LossMovement
+                bundle={lossMetrics}
+                state={lossState}
               />
             </div>
             {state === "live" && snapshot && <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
