@@ -19,11 +19,35 @@ type FormLibraryFilter struct {
 	OwnerPrincipalID string                `json:"owner_principal_id,omitempty"`
 	Use              string                `json:"use,omitempty"`
 	Tag              string                `json:"tag,omitempty"`
+	OriginType       FormOriginType        `json:"origin_type,omitempty"`
+	OriginID         string                `json:"origin_id,omitempty"`
 	Status           LifecycleStatus       `json:"status,omitempty"`
 	Sort             FormLibrarySort       `json:"sort,omitempty"`
 	Expression       *FormFilterExpression `json:"expression,omitempty"`
 	Cursor           string                `json:"-"`
 	Limit            int                   `json:"limit,omitempty"`
+}
+
+func normalizeFormLibraryOriginFilter(filter *FormLibraryFilter) error {
+	if filter == nil {
+		return ErrInvalid
+	}
+	filter.OriginType = FormOriginType(strings.ToUpper(strings.TrimSpace(string(filter.OriginType))))
+	filter.OriginID = strings.TrimSpace(filter.OriginID)
+	if (filter.OriginType == "") != (filter.OriginID == "") {
+		return errors.Join(ErrInvalid, fmt.Errorf("form origin type and id must be provided together"))
+	}
+	if filter.OriginType != "" && filter.OriginType != FormOriginMatter {
+		return errors.Join(ErrInvalid, fmt.Errorf("unsupported form origin type"))
+	}
+	return nil
+}
+
+func formLibraryOriginMatches(value FormTemplate, filter FormLibraryFilter) bool {
+	if filter.OriginType == "" {
+		return true
+	}
+	return value.Origin != nil && value.Origin.Type == filter.OriginType && value.Origin.ID == filter.OriginID
 }
 
 type FormLibrarySort string
