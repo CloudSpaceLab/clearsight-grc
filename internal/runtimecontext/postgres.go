@@ -246,6 +246,73 @@ func (r *PostgresResolver) SearchOrganizationScopes(ctx context.Context, scope S
 	return r.queryOrganizationScopes(ctx, scope, currentEntityID, search, limit, "", []string{})
 }
 
+func (r *PostgresResolver) ResolveOrganizationScopeSelection(
+	ctx context.Context,
+	scope Scope,
+	requested string,
+	includeDescendants bool,
+) (OrganizationScopeSelection, error) {
+	scope.TenantID = strings.TrimSpace(scope.TenantID)
+	scope.LegalEntityID = strings.TrimSpace(scope.LegalEntityID)
+	scope.PrincipalID = strings.TrimSpace(scope.PrincipalID)
+	requested = strings.TrimSpace(requested)
+	if r == nil || r.pool == nil || scope.TenantID == "" || scope.LegalEntityID == "" || scope.PrincipalID == "" || requested == "" {
+		return OrganizationScopeSelection{}, ErrInvalid
+	}
+	if _, err := r.Resolve(ctx, scope); err != nil {
+		return OrganizationScopeSelection{}, err
+	}
+
+	var currentEntityID string
+	err := r.pool.QueryRow(ctx, `
+		SELECT le.id::text
+		FROM tenants t
+		JOIN legal_entities le ON le.tenant_id=t.id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND le.valid_from<=clock_timestamp()
+		  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
+		LIMIT 1`, scope.TenantID, scope.LegalEntityID).Scan(&currentEntityID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return OrganizationScopeSelection{}, ErrNotFound
+	}
+	if err != nil {
+		return OrganizationScopeSelection{}, err
+	}
+
+	selectedPage, err := r.queryOrganizationScopes(ctx, scope, currentEntityID, "", 1, requested, []string{})
+	if err != nil {
+		return OrganizationScopeSelection{}, err
+	}
+	if len(selectedPage.Items) != 1 || selectedPage.Items[0].ID != requested || !selectedPage.Items[0].Filterable {
+		return OrganizationScopeSelection{}, ErrNotFound
+	}
+	selected := selectedPage.Items[0]
+	result := OrganizationScopeSelection{Node: selected, IDs: []string{selected.ID}}
+	if !includeDescendants {
+		return result, nil
+	}
+
+	page, err := r.queryOrganizationScopes(
+		ctx, scope, currentEntityID, "", maxOrganizationScopeSelectionIDs, "", selected.DepartmentPath,
+	)
+	if err != nil {
+		return OrganizationScopeSelection{}, err
+	}
+	if page.HasMore {
+		return OrganizationScopeSelection{}, ErrInvalid
+	}
+	result.IDs = result.IDs[:0]
+	for _, item := range page.Items {
+		if item.Filterable {
+			result.IDs = append(result.IDs, item.ID)
+		}
+	}
+	if len(result.IDs) == 0 {
+		result.IDs = []string{selected.ID}
+	}
+	return result, nil
+}
 func (r *PostgresResolver) queryOrganizationScopes(
 	ctx context.Context,
 	scope Scope,
@@ -437,3 +504,4 @@ func (r *PostgresResolver) queryOrganizationScopes(
 var _ Resolver = (*PostgresResolver)(nil)
 var _ HierarchyResolver = (*PostgresResolver)(nil)
 var _ OrganizationScopeSearcher = (*PostgresResolver)(nil)
+var _ OrganizationScopeSelectionResolver = (*PostgresResolver)(nil)
