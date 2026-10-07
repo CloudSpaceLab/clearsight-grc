@@ -58,17 +58,17 @@ type sourceRecord struct {
 	CreateMatter bool                `json:"create_matter"`
 }
 type sourceRecordGroup struct {
-	Key               string         `json:"key"`
-	ProgramCode       string         `json:"program_code"`
-	Title             string         `json:"title"`
-	SourceFile        string         `json:"source_file"`
-	SourceSHA256      string         `json:"source_sha256"`
-	SourceSheet       string         `json:"source_sheet"`
-	Period            string         `json:"period"`
-	Limitations       []string       `json:"limitations"`
-	ResponsePerRecord bool           `json:"response_per_record"`
-	PresentationVersion int           `json:"presentation_version,omitempty"`
-	Records           []sourceRecord `json:"records"`
+	Key                 string         `json:"key"`
+	ProgramCode         string         `json:"program_code"`
+	Title               string         `json:"title"`
+	SourceFile          string         `json:"source_file"`
+	SourceSHA256        string         `json:"source_sha256"`
+	SourceSheet         string         `json:"source_sheet"`
+	Period              string         `json:"period"`
+	Limitations         []string       `json:"limitations"`
+	ResponsePerRecord   bool           `json:"response_per_record"`
+	PresentationVersion int            `json:"presentation_version,omitempty"`
+	Records             []sourceRecord `json:"records"`
 }
 type sourceRecordManifest struct {
 	Version int                 `json:"version"`
@@ -255,6 +255,9 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 		for _, group := range manifest.Groups {
 			if group.PresentationVersion != 0 && group.PresentationVersion != 2 {
 				return receipt, fmt.Errorf("unsupported source presentation version for %s", group.Key)
+			}
+			if group.PresentationVersion == 2 && (isNDPAChecklistGroup(group) || strings.HasPrefix(group.Key, "third-party-risk-register")) {
+				return receipt, fmt.Errorf("source presentation v2 is unavailable for governed semantic forms: %s", group.Key)
 			}
 			if err = validateNDPAChecklistGroup(group); err != nil {
 				return receipt, err
