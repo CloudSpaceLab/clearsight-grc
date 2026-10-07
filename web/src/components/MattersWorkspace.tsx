@@ -14,7 +14,7 @@ import { matterDeadlinePresentation, matterPriorityLabel, matterPriorityTone } f
 import { Notice, StatusBadge } from "./ui";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { refreshToken?: string; targetID?: string; openFirst?: boolean; onBack?: () => void; onOpenRequest?: (requestID: string) => void; onOpenLoss?: (lossID: string) => void; onOpenIndicator?: (indicatorID: string, kind?: "KRI" | "KCI") => void };
+type Props = { refreshToken?: string; targetID?: string; openFirst?: boolean; onBack?: () => void; backLabel?: string; onOpenRequest?: (requestID: string) => void; onOpenLoss?: (lossID: string) => void; onOpenIndicator?: (indicatorID: string, kind?: "KRI" | "KCI") => void };
 
 function MatterIcon({ type }: { type: string }) {
   const common = { width: 21, height: 21, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
@@ -92,8 +92,8 @@ function summaryFromAggregate(detail: MatterAggregate): MatterSummary {
   };
 }
 
-export function MattersWorkspace({ refreshToken, targetID, openFirst = false, onBack, onOpenRequest, onOpenLoss, onOpenIndicator }: Props) {
-  if (targetID) return <MatterRecordWorkspace key={`${targetID}:${refreshToken ?? ""}`} matterID={targetID} onBack={onBack ?? (() => { window.location.hash = workspaceHash("#work/matters", readWorkspaceFilters(window.location.hash)); })} onOpenRequest={onOpenRequest} onOpenLoss={onOpenLoss} onOpenIndicator={onOpenIndicator}/>;
+export function MattersWorkspace({ refreshToken, targetID, openFirst = false, onBack, backLabel, onOpenRequest, onOpenLoss, onOpenIndicator }: Props) {
+  if (targetID) return <MatterRecordWorkspace key={`${targetID}:${refreshToken ?? ""}`} matterID={targetID} onBack={onBack ?? (() => { window.location.hash = workspaceHash("#work/matters", readWorkspaceFilters(window.location.hash)); })} backLabel={backLabel} onOpenRequest={onOpenRequest} onOpenLoss={onOpenLoss} onOpenIndicator={onOpenIndicator}/>;
   return <MatterListWorkspace refreshToken={refreshToken} openFirst={openFirst} onOpenRequest={onOpenRequest}/>;
 }
 
