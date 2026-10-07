@@ -231,7 +231,7 @@ export function OversightWorkspace({
   } : undefined);
 
   useEffect(() => {
-    if (selectedHomeTab !== "oversight" || !lossPeriod) return;
+    if (selectedHomeTab !== "oversight" || state !== "live" || !lossPeriod) return;
     const controller = new AbortController();
     setLossState("loading");
     void loadLossMetrics(lossPeriod, organizationScopeID, controller.signal).then((value) => {
@@ -249,8 +249,8 @@ export function OversightWorkspace({
     lossPeriod?.start_date,
     lossPeriod?.end_date,
     organizationScopeID,
-    refreshToken,
     selectedHomeTab,
+    state,
   ]);
 
   async function changePeriod(period: ReportingPeriodQuery) {
