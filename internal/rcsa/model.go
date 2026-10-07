@@ -103,7 +103,7 @@ type Event struct {
 }
 
 const (
-	ChallengeDecisionType             = "RCSA_CHALLENGE"
+	ChallengeDecisionType              = "RCSA_CHALLENGE"
 	ChallengeOptionAcceptFirstLine     = "ACCEPT_FIRST_LINE"
 	ChallengeOptionRequireChanges      = "REQUIRE_CHANGES"
 	ChallengeOptionDeficiencyConfirmed = "DEFICIENCY_CONFIRMED"
