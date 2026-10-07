@@ -139,6 +139,77 @@ func TestLibraryFormMatterOriginIsValidatedAndImmutable(t *testing.T) {
 	}
 }
 
+func TestFormLibraryMatterOriginFilterIsExactScopedAndValidated(t *testing.T) {
+	repo := NewMemoryRepository()
+	service := libraryService(t, repo, "maker-a")
+	ids := []string{"form-a", "form-b"}
+	service.newID = func() (string, error) {
+		id := ids[0]
+		ids = ids[1:]
+		return id, nil
+	}
+	service.ConfigureFormOriginValidator(formOriginValidatorStub{allowed: map[string]bool{
+		"bank-a\x00entity-a\x00maker-a\x00matter-a": true,
+		"bank-a\x00entity-a\x00maker-a\x00matter-b": true,
+	}})
+	ctx := formActorContext("bank-a", "entity-a", "maker-a")
+
+	first := validLibraryFormInput()
+	first.Name = "Issue A evidence"
+	first.Origin = &FormOrigin{Type: FormOriginMatter, ID: "matter-a"}
+	if _, err := service.CreateLibraryForm(ctx, first); err != nil {
+		t.Fatal(err)
+	}
+	second := validLibraryFormInput()
+	second.Name = "Issue B evidence"
+	second.Origin = &FormOrigin{Type: FormOriginMatter, ID: "matter-b"}
+	if _, err := service.CreateLibraryForm(ctx, second); err != nil {
+		t.Fatal(err)
+	}
+
+	otherService := libraryService(t, repo, "maker-b")
+	otherService.newID = func() (string, error) { return "form-cross", nil }
+	otherService.ConfigureFormOriginValidator(formOriginValidatorStub{allowed: map[string]bool{
+		"bank-a\x00entity-b\x00maker-b\x00matter-cross": true,
+	}})
+	cross := validLibraryFormInput()
+	cross.Name = "Other entity issue evidence"
+	cross.Origin = &FormOrigin{Type: FormOriginMatter, ID: "matter-cross"}
+	if _, err := otherService.CreateLibraryForm(formActorContext("bank-a", "entity-b", "maker-b"), cross); err != nil {
+		t.Fatal(err)
+	}
+
+	page, err := service.ListFormLibrary(ctx, FormLibraryFilter{
+		TenantID: "tampered", LegalEntityID: "tampered",
+		OriginType: FormOriginMatter, OriginID: "matter-a", Limit: 25,
+	})
+	if err != nil || len(page.Items) != 1 || page.Items[0].Template.ID != "form-a" {
+		t.Fatalf("origin-filtered page = %#v, err = %v", page, err)
+	}
+	crossPage, err := service.ListFormLibrary(ctx, FormLibraryFilter{OriginType: FormOriginMatter, OriginID: "matter-cross", Limit: 25})
+	if err != nil || len(crossPage.Items) != 0 {
+		t.Fatalf("cross-entity origin page = %#v, err = %v", crossPage, err)
+	}
+
+	advanced, err := service.ListAdvancedFormLibrary(ctx, FormLibraryFilter{
+		OriginType: FormOriginMatter, OriginID: "matter-a", Limit: 25,
+		Expression: &FormFilterExpression{Kind: "condition", Field: FormFilterStatus, Operator: "is", Value: string(LifecycleDraft)},
+	}, true)
+	if err != nil || len(advanced.Items) != 1 || advanced.Total == nil || *advanced.Total != 1 {
+		t.Fatalf("advanced origin page = %#v, err = %v", advanced, err)
+	}
+
+	for _, filter := range []FormLibraryFilter{
+		{OriginType: FormOriginMatter},
+		{OriginID: "matter-a"},
+		{OriginType: FormOriginType("OTHER"), OriginID: "matter-a"},
+	} {
+		if _, err := service.ListFormLibrary(ctx, filter); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("origin filter %#v error = %v, want invalid", filter, err)
+		}
+	}
+}
+
 func TestLibraryFormMatterOriginRejectsMissingOrCrossEntityMatter(t *testing.T) {
 	for _, test := range []struct {
 		name   string
