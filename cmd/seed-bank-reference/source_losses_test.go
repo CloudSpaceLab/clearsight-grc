@@ -18,9 +18,9 @@ func syntheticOpsLossGroup() sourceRecordGroup {
 
 func syntheticOpsLossRecord(index int, month string) sourceRecord {
 	return sourceRecord{
-		Key: fmt.Sprintf("ops-loss-%d-%s", index, month),
+		Key:         fmt.Sprintf("ops-loss-%d-%s", index, month),
 		SourceRange: "Sheet1!A2:R2",
-		Fields: []sourceRecordField{
+		Fields:      []sourceRecordField{
 			{Label: "ACCT_NAME", Value: "Synthetic operations loss"},
 			{Label: "LOSS GROUP", Value: "CASH SHORTAGES"},
 			{Label: "Month", Value: month},
