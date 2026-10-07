@@ -29,7 +29,7 @@ type GroupPostureCounts struct {
 
 type GroupPostureChild struct {
 	GroupPostureEntity
-	State              string               `json:"state"`
+	RiskState          string               `json:"risk_state"`
 	Completeness       Completeness         `json:"completeness"`
 	SourceID           string               `json:"source_id,omitempty"`
 	SourceGeneratedAt  *time.Time           `json:"source_generated_at,omitempty"`
@@ -55,7 +55,8 @@ type GroupPostureBundle struct {
 	PeriodStart        time.Time            `json:"period_start"`
 	PeriodEnd          time.Time            `json:"period_end"`
 	DefinitionRevision string               `json:"definition_revision"`
-	Coverage           GroupPostureCoverage `json:"coverage"`
+	RiskCoverage       GroupPostureCoverage `json:"risk_coverage"`
+	LossCoverage       GroupPostureCoverage `json:"loss_coverage"`
 	Counts             GroupPostureCounts   `json:"counts"`
 	Children           []GroupPostureChild  `json:"children"`
 }
