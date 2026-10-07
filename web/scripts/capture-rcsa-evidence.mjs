@@ -42,7 +42,7 @@ try {
       await page.getByRole("table", { name: "RCSA cycles" }).waitFor({ state: "visible" });
       await page.getByText("Q3 Technology RCSA", { exact: true }).waitFor({ state: "visible" });
       await page.getByText("3 Risks", { exact: true }).waitFor({ state: "visible" });
-      await page.getByText("Complete independent challenge", { exact: true }).waitFor({ state: "visible" });
+      await page.getByText("Independent challenge in progress", { exact: true }).waitFor({ state: "visible" });
     } else {
       await page.getByRole("heading", { name: "Q3 Technology RCSA" }).waitFor({ state: "visible" });
       await page.getByText("1 Jul 2026 – 30 Sep 2026", { exact: true }).waitFor({ state: "visible" });
