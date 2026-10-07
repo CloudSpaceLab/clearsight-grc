@@ -152,3 +152,34 @@ func TestSourcePresentationVersionRequiresNewFormAndResponseIdentity(t *testing.
 		t.Fatalf("revised form still has row label: %s", got)
 	}
 }
+
+func TestSourceV2UniformRegistersUseOneFormWithRecordResponses(t *testing.T) {
+	group := sourceRecordGroup{
+		Key: "ops-branch-kri", Title: "Branch KRI", PresentationVersion: 2,
+		Records: make([]sourceRecord, 31),
+	}
+	for i := range group.Records {
+		group.Records[i] = sourceRecord{
+			Key: "branch-key", Title: "Row 14",
+			Fields: []sourceRecordField{
+				{Label: "Directorate", Value: "North"},
+				{Label: "Region", Value: "Region A"},
+				{Label: "Branch", Value: "Sample Branch"},
+				{Label: "Value of cash shortage", Value: "0"},
+			},
+		}
+	}
+	normalized := sourceNormalizePresentation(group)
+	if !normalized.ResponsePerRecord || len(sourceCaptureParts(normalized)) != 1 {
+		t.Fatal("uniform V2 source must use one form and independent responses")
+	}
+	group.Records[14].Fields[3].Label = "Different source metric"
+	if sourceNormalizePresentation(group).ResponsePerRecord {
+		t.Fatal("mixed source columns must not silently share another row's form schema")
+	}
+	group.Records[14].Fields[3].Label = "Value of cash shortage"
+	group.Records[14].Fields[3].Value = ""
+	if !sourceNormalizePresentation(group).ResponsePerRecord {
+		t.Fatal("unanswered branch cells must not be mistaken for schema changes")
+	}
+}
