@@ -47,6 +47,13 @@ func normalizeFormLibraryOriginFilter(originType FormOriginType, originID string
 	return originType, originID, nil
 }
 
+func formTemplateMatchesOrigin(value FormTemplate, originType FormOriginType, originID string) bool {
+	if originType == "" {
+		return true
+	}
+	return value.Origin != nil && value.Origin.Type == originType && value.Origin.ID == originID
+}
+
 func normalizedFormLibrarySort(value FormLibrarySort) (FormLibrarySort, error) {
 	if value == "" || value == FormLibraryUpdatedDesc {
 		return FormLibraryUpdatedDesc, nil
