@@ -58,6 +58,42 @@ export function formatLossMoney(minor: number, currency: string) {
   return formatter.format(minor / (10 ** digits));
 }
 
+export function formatLossMoneyExact(minorUnits: string | bigint, currency: string) {
+  const normalized = currency.trim().toUpperCase();
+  const digits = lossCurrencyFractionDigits(normalized);
+  if (digits === undefined) return `${minorUnits} ${normalized || "currency"}`;
+
+  let minor: bigint;
+  try {
+    minor = typeof minorUnits === "bigint" ? minorUnits : BigInt(minorUnits.trim());
+  } catch {
+    return `${minorUnits} ${normalized}`;
+  }
+
+  const scale = 10n ** BigInt(digits);
+  const negative = minor < 0n;
+  const absolute = negative ? -minor : minor;
+  const whole = absolute / scale;
+  const fraction = absolute % scale;
+
+  const formatter = new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: normalized,
+    currencyDisplay: "narrowSymbol",
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  const signedWhole: bigint | number = negative
+    ? whole === 0n ? -0 : -whole
+    : whole;
+  const exactFraction = digits ? fraction.toString().padStart(digits, "0") : "";
+
+  return formatter.formatToParts(signedWhole).map((part) => {
+    if (part.type === "fraction") return exactFraction;
+    return part.value;
+  }).join("");
+}
+
 export function formatLossDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return "Unknown";
