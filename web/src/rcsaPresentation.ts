@@ -121,7 +121,7 @@ export function rcsaJourneyStages(detail: RCSACycleDetail): RCSAJourneyStage[] {
   } else if (challenge.inconclusive_verification_count > 0) {
     remediation = { id: "REMEDIATION", label: "Remediation verification", state: "ATTENTION", status: "Verification inconclusive", detail: "At least one current outcome check is inconclusive." };
   } else if (challenge.open_action_count > 0) {
-    remediation = { id: "REMEDIATION", label: "Remediation verification", state: "IN_PROGRESS", status: "Remediation in progress", detail: `${challenge.open_action_count} open remediation action${challenge.open_action_count === 1 ? "" : "s"} remain.` };
+    remediation = { id: "REMEDIATION", label: "Remediation verification", state: "IN_PROGRESS", status: "Remediation in progress", detail: `${challenge.open_action_count} follow-up action${challenge.open_action_count === 1 ? "" : "s"} remain.` };
   } else if (challenge.active_verification_count > 0 && challenge.passed_verification_count === challenge.active_verification_count) {
     remediation = { id: "REMEDIATION", label: "Remediation verification", state: "COMPLETE", status: "Verified", detail: "All current outcome checks passed." };
   } else if (challenge.active_verification_count > 0) {
