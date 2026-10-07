@@ -537,7 +537,7 @@ func lossBreakdownMatchesAggregate(values []LossOrganizationFlow, aggregate loss
 	eventCount := 0
 	contributorCount := 0
 	type totals struct {
-		gross, recovery, reversal                   int64
+		gross, recovery, reversal                  int64
 		lossEvents, recoveryEvents, reversalEvents int
 	}
 	byCurrency := make(map[string]*totals)
