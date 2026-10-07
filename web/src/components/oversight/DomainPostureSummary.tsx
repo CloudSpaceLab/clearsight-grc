@@ -83,7 +83,7 @@ export function DomainPostureSummary({
         kind: "domain",
       };
     }
-    if (selectedID === lossCard?.metricID && lossBundle) {
+    if (lossCard && selectedID === lossCard.metricID && lossBundle) {
       return {
         id: lossCard.metricID,
         label: "Net operational loss",
