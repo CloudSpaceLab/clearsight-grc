@@ -91,7 +91,7 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 	if err != nil {
 		return LossPeriodBundle{}, err
 	}
-	sourceID, err := retainLossPeriodSnapshot(
+	sourceID, sourceGeneratedAt, err := retainLossPeriodSnapshot(
 		ctx, tx, scope, periodStart, periodEnd, generatedAt, aggregate,
 	)
 	if err != nil {
@@ -102,7 +102,7 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 	}
 
 	bundle := LossPeriodBundle{
-		GeneratedAt: generatedAt, PeriodStart: periodStart, PeriodEnd: periodEnd,
+		GeneratedAt: sourceGeneratedAt, PeriodStart: periodStart, PeriodEnd: periodEnd,
 		ScopeID: scope.LegalEntityID, ScopeKind: "LEGAL_ENTITY",
 		SourceID: sourceID, SourceRevision: LossPeriodSourceRevision,
 		DefinitionRevision: LossPeriodDefinitionRevision,
@@ -296,19 +296,38 @@ func retainLossPeriodSnapshot(
 	periodEnd time.Time,
 	generatedAt time.Time,
 	aggregate lossPeriodAggregate,
-) (string, error) {
+) (string, time.Time, error) {
 	fingerprint, err := lossPeriodFingerprint(scope, periodStart, periodEnd, aggregate)
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 	if _, err := tx.Exec(ctx, `
 		DELETE FROM metric_runtime_membership_sets
 		WHERE definition_revision=$1
-		  AND expires_at<=clock_timestamp()`, LossPeriodDefinitionRevision); err != nil {
-		return "", fmt.Errorf("expire Loss period snapshots: %w", err)
+		  AND tenant_id=$2::uuid
+		  AND legal_entity_id=$3::uuid
+		  AND organization_scope_id IS NOT DISTINCT FROM NULLIF($4,'')::uuid
+		  AND request_fingerprint=$5
+		  AND expires_at<=clock_timestamp()`,
+		LossPeriodDefinitionRevision, scope.TenantID, scope.LegalEntityID, scope.OrganizationScopeID, fingerprint,
+	); err != nil {
+		return "", time.Time{}, fmt.Errorf("expire matching Loss period snapshot: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM metric_runtime_membership_sets
+		WHERE source_id IN (
+			SELECT source_id
+			FROM metric_runtime_membership_sets
+			WHERE definition_revision=$1
+			  AND expires_at<=clock_timestamp()
+			ORDER BY expires_at,source_id
+			LIMIT 25
+		)`, LossPeriodDefinitionRevision); err != nil {
+		return "", time.Time{}, fmt.Errorf("expire old Loss period snapshots: %w", err)
 	}
 
 	var sourceID string
+	var sourceGeneratedAt time.Time
 	err = tx.QueryRow(ctx, `
 		INSERT INTO metric_runtime_membership_sets(
 			tenant_id,legal_entity_id,organization_scope_id,definition_revision,
@@ -319,15 +338,15 @@ func retainLossPeriodSnapshot(
 			$7+interval '24 hours'
 		)
 		ON CONFLICT DO NOTHING
-		RETURNING source_id::text`,
+		RETURNING source_id::text,generated_at`,
 		scope.TenantID, scope.LegalEntityID, scope.OrganizationScopeID,
 		LossPeriodDefinitionRevision, LossPeriodSourceRevision, fingerprint,
 		generatedAt, periodStart, periodEnd,
-	).Scan(&sourceID)
+	).Scan(&sourceID, &sourceGeneratedAt)
 	inserted := err == nil
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = tx.QueryRow(ctx, `
-			SELECT source_id::text
+			SELECT source_id::text,generated_at
 			FROM metric_runtime_membership_sets
 			WHERE tenant_id=$1::uuid
 			  AND legal_entity_id=$2::uuid
@@ -338,21 +357,21 @@ func retainLossPeriodSnapshot(
 			LIMIT 1`,
 			scope.TenantID, scope.LegalEntityID, scope.OrganizationScopeID,
 			LossPeriodDefinitionRevision, fingerprint,
-		).Scan(&sourceID)
+		).Scan(&sourceID, &sourceGeneratedAt)
 		if err != nil {
-			return "", fmt.Errorf("resolve Loss period snapshot: %w", err)
+			return "", time.Time{}, fmt.Errorf("resolve Loss period snapshot: %w", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE metric_runtime_membership_sets
 			SET expires_at=GREATEST(expires_at,$2+interval '24 hours')
 			WHERE source_id=$1::uuid`, sourceID, generatedAt); err != nil {
-			return "", fmt.Errorf("extend Loss period snapshot: %w", err)
+			return "", time.Time{}, fmt.Errorf("extend Loss period snapshot: %w", err)
 		}
 	} else if err != nil {
-		return "", fmt.Errorf("retain Loss period snapshot: %w", err)
+		return "", time.Time{}, fmt.Errorf("retain Loss period snapshot: %w", err)
 	}
 	if !inserted {
-		return sourceID, nil
+		return sourceID, sourceGeneratedAt.UTC(), nil
 	}
 
 	if _, err := tx.Exec(ctx, `
@@ -372,7 +391,7 @@ func retainLossPeriodSnapshot(
 		scope.OrganizationScopeID != "", scope.OrganizationScopeIDs,
 		sourceID, LossPeriodMetricEvents, LossPeriodDefinitionRevision,
 	); err != nil {
-		return "", fmt.Errorf("retain Loss event members: %w", err)
+		return "", time.Time{}, fmt.Errorf("retain Loss event members: %w", err)
 	}
 
 	if _, err := tx.Exec(ctx, `
@@ -419,9 +438,9 @@ func retainLossPeriodSnapshot(
 		scope.OrganizationScopeID != "", scope.OrganizationScopeIDs,
 		sourceID, LossPeriodMetricNet, LossPeriodDefinitionRevision,
 	); err != nil {
-		return "", fmt.Errorf("retain net Loss members: %w", err)
+		return "", time.Time{}, fmt.Errorf("retain net Loss members: %w", err)
 	}
-	return sourceID, nil
+	return sourceID, sourceGeneratedAt.UTC(), nil
 }
 
 func lossPeriodFingerprint(
@@ -456,7 +475,7 @@ func lossPeriodFingerprint(
 	sort.Strings(payload.OrganizationScopeIDs)
 	encoded, err := json.Marshal(payload)
 	if err != nil {
-		return "", fmt.Errorf("encode Loss period fingerprint: %w", err)
+		return "", time.Time{}, fmt.Errorf("encode Loss period fingerprint: %w", err)
 	}
 	sum := sha256.Sum256(encoded)
 	return hex.EncodeToString(sum[:]), nil
