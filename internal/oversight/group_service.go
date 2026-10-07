@@ -72,7 +72,8 @@ func (s *GroupService) Get(ctx context.Context, actor identity.Actor) (GroupSnap
 
 	value := GroupSnapshot{
 		RevisionID: projection.ID, GeneratedAt: projection.GeneratedAt, ProjectionVersion: projection.ProjectionVersion,
-		Freshness: FreshnessCurrent, Children: make([]GroupChildSummary, 0, len(allowed)),
+		Freshness: FreshnessCurrent, PostureFreshness: FreshnessCurrent,
+		Children: make([]GroupChildSummary, 0, len(allowed)),
 	}
 	excludedKnown, unknownKnown := true, true
 	excludedTotal, unknownTotal := 0, 0
@@ -86,8 +87,25 @@ func (s *GroupService) Get(ctx context.Context, actor identity.Actor) (GroupSnap
 			Jurisdiction: child.Jurisdiction, State: child.State, ChildSnapshotID: child.ChildSnapshotID,
 			ChildGeneratedAt: child.ChildGeneratedAt, ChildProjectionVersion: child.ChildProjectionVersion,
 			Coverage: child.Coverage, Counts: child.Counts, SourceHighWater: child.SourceHighWater,
+			DomainState: child.DomainState, DomainSourceID: child.DomainSourceID,
+			DomainGeneratedAt: child.DomainGeneratedAt, DomainDefinitionRevision: child.DomainDefinitionRevision,
+			DomainPosture: child.DomainPosture, DomainSourceHighWater: child.DomainSourceHighWater,
 		}
 		value.Children = append(value.Children, summary)
+		value.PostureCoverage.AuthorizedChildren++
+		switch child.DomainState {
+		case GroupChildMissing:
+			value.PostureCoverage.MissingChildren++
+		case GroupChildStale:
+			value.PostureCoverage.StaleChildren++
+			value.PostureCoverage.IncludedChildren++
+			addGroupDomainPosture(&value.Posture, child.DomainPosture)
+		case GroupChildAvailable:
+			value.PostureCoverage.IncludedChildren++
+			addGroupDomainPosture(&value.Posture, child.DomainPosture)
+		default:
+			return GroupSnapshot{}, ErrGroupUnavailable
+		}
 		switch child.State {
 		case GroupChildMissing:
 			value.Coverage.MissingChildren++
@@ -117,6 +135,7 @@ func (s *GroupService) Get(ctx context.Context, actor identity.Actor) (GroupSnap
 		return GroupSnapshot{}, ErrGroupForbidden
 	}
 	value.Coverage.Complete = value.Coverage.MissingChildren == 0 && value.Coverage.StaleChildren == 0
+	value.PostureCoverage.Complete = value.PostureCoverage.MissingChildren == 0 && value.PostureCoverage.StaleChildren == 0
 	if excludedKnown {
 		value.RecordCoverage.Excluded = intPtr(excludedTotal)
 	}
@@ -128,7 +147,17 @@ func (s *GroupService) Get(ctx context.Context, actor identity.Actor) (GroupSnap
 		projection.GeneratedAt.IsZero() || now.Sub(projection.GeneratedAt) > s.StaleAfter {
 		value.Freshness = FreshnessStale
 	}
+	if !value.PostureCoverage.Complete || projection.ProjectionVersion != GroupProjectionVersion ||
+		projection.GeneratedAt.IsZero() || now.Sub(projection.GeneratedAt) > s.StaleAfter {
+		value.PostureFreshness = FreshnessStale
+	}
 	return value, nil
+}
+
+func addGroupDomainPosture(target *GroupDomainPosture, value GroupDomainPosture) {
+	target.RisksOutsideAppetite += value.RisksOutsideAppetite
+	target.IndicatorBreaches += value.IndicatorBreaches
+	target.AssuranceFailures += value.AssuranceFailures
 }
 
 func addCounts(target *Counts, value Counts) {
