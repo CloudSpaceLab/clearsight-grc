@@ -117,6 +117,21 @@ func TestRCSASemanticPhaseDoesNotTreatRejectedAcceptanceAsRiskAcceptance(t *test
 	}
 }
 
+func TestRCSAPhaseContextFailsClosedWhenChallengeWorkCannotBeRead(t *testing.T) {
+	api := &API{}
+	cycle := rcsa.Cycle{
+		ID: "cycle-1", TenantID: "bank", LegalEntityID: "entity-a",
+		Status: rcsa.StatusCompleted, ChallengeMatterID: "matter-restricted",
+	}
+	phase, complete := api.rcsaCyclePhaseContext(t.Context(), cycle)
+	if complete {
+		t.Fatal("restricted challenge work was presented as complete semantic context")
+	}
+	if phase.Stage != "COMPLETE" || phase.Label != "Challenge completed" {
+		t.Fatalf("fallback phase=%#v", phase)
+	}
+}
+
 func TestRCSAHandoffUsesExistingEvidenceAndMatterTargets(t *testing.T) {
 	cases := []struct {
 		name       string
