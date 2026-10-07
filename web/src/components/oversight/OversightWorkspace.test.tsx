@@ -254,8 +254,9 @@ it("keeps oversight analysis separate from attention and assigned work", async (
   expect(await screen.findByRole("list", { name: "Net operational Loss by organization area" })).toBeTruthy();
   expect(screen.getByRole("img", { name: "Net operational Loss movement" })).toBeTruthy();
   expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
-  expect(screen.getByText("Technology")).toBeTruthy();
-  expect(screen.getByText("Unattributed")).toBeTruthy();
+  const riskConcentration = screen.getByRole("list", { name: "Outside-appetite risks by organization area" });
+  expect(riskConcentration.textContent).toContain("Technology");
+  expect(riskConcentration.textContent).toContain("Unattributed");
   expect(screen.queryByText("Critical and high")).toBeNull();
   expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
 
