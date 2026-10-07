@@ -39,6 +39,20 @@ type Observation struct {
 	Unknown            *int
 }
 
+func validObservationMeasure(value Observation, definition Definition) bool {
+	if value.Value < 0 {
+		return false
+	}
+	switch definition.Unit {
+	case MetricUnitCount:
+		return strings.TrimSpace(value.Currency) == "" && value.MemberCount == nil
+	case MetricUnitMoney:
+		return validMetricCurrency(strings.TrimSpace(value.Currency)) && value.MemberCount != nil && *value.MemberCount >= 0
+	default:
+		return false
+	}
+}
+
 func ObservationsFromBundle(
 	tenantID string,
 	legalEntityID string,
