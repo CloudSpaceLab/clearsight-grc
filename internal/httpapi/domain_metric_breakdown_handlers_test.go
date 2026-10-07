@@ -78,10 +78,10 @@ func TestDomainMetricOrganizationBreakdownBindsExactSourceAndRejectsTruncatedHie
 		ParentID: technology.ID, DepartmentPath: []string{"TECH", "INFRA"}, Filterable: true,
 	}
 	reader := &organizationMembershipReaderStub{counts: metricview.OrganizationMemberCounts{
-		SourceID: "8f730000-0000-4000-8000-000000000001",
-		MetricID: "risks_outside_appetite",
+		SourceID:           "8f730000-0000-4000-8000-000000000001",
+		MetricID:           "risks_outside_appetite",
 		DefinitionRevision: metricview.DomainDefinitionRevision,
-		Count: 3,
+		Count:              3,
 		Items: []metricview.OrganizationMemberCount{
 			{OrganizationScopeID: technology.ID, Count: 1},
 			{OrganizationScopeID: infrastructure.ID, Count: 2},
