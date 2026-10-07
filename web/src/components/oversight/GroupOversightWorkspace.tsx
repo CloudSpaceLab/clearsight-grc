@@ -144,7 +144,7 @@ export function GroupOversightWorkspace({
         return left.legal_entity_name.localeCompare(right.legal_entity_name);
       });
 
-    const visible = available.slice(0, 8).map((child) => ({
+    const visible: RankedBarItem[] = available.slice(0, 8).map((child) => ({
       id: child.legal_entity_id,
       label: child.legal_entity_name,
       value: groupPostureValue(child, postureMetric),
