@@ -133,10 +133,13 @@ function groupSnapshot(): GroupOversightSnapshot {
   return {
     revision_id: "group-run-1",
     generated_at: "2026-10-03T20:00:00Z",
-    projection_version: "group-oversight-v1",
+    projection_version: "group-oversight-v2",
     freshness: "CURRENT",
+    posture_freshness: "CURRENT",
     coverage: { authorized_children: 2, included_children: 2, missing_children: 0, stale_children: 0, complete: true },
+    posture_coverage: { authorized_children: 2, included_children: 2, missing_children: 0, stale_children: 0, complete: true },
     record_coverage: { population: 10, excluded: 0, unknown: 0 },
+    posture: { risks_outside_appetite: 9, indicator_breaches: 3, assurance_failures: 2 },
     counts: { critical_high: 5, overdue: 2, due_soon: 1, routing_failures: 1, unassigned: 0, outcome_failures: 3 },
     children: [
       {
@@ -144,12 +147,18 @@ function groupSnapshot(): GroupOversightSnapshot {
         jurisdiction: "NG", state: "AVAILABLE", child_snapshot_id: "snapshot-ng", child_generated_at: "2026-10-03T20:00:00Z",
         child_projection_version: "oversight-v5", coverage: { population: 4, excluded: 0, unknown: 0 },
         counts: { critical_high: 2, overdue: 1, due_soon: 1, routing_failures: 0, unassigned: 0, outcome_failures: 1 },
+        domain_state: "AVAILABLE", domain_source_id: "domain-ng", domain_generated_at: "2026-10-03T20:00:00Z",
+        domain_definition_revision: "enterprise-domain-v1",
+        domain_posture: { risks_outside_appetite: 6, indicator_breaches: 2, assurance_failures: 1 },
       },
       {
         legal_entity_id: "entity-gh-uuid", legal_entity_code: "bank-gh", legal_entity_name: "Clear Bank Ghana",
         jurisdiction: "GH", state: "AVAILABLE", child_snapshot_id: "snapshot-gh", child_generated_at: "2026-10-03T20:00:00Z",
         child_projection_version: "oversight-v5", coverage: { population: 6, excluded: 0, unknown: 0 },
         counts: { critical_high: 3, overdue: 1, due_soon: 0, routing_failures: 1, unassigned: 0, outcome_failures: 2 },
+        domain_state: "AVAILABLE", domain_source_id: "domain-gh", domain_generated_at: "2026-10-03T20:00:00Z",
+        domain_definition_revision: "enterprise-domain-v1",
+        domain_posture: { risks_outside_appetite: 3, indicator_breaches: 1, assurance_failures: 1 },
       },
     ],
   };
