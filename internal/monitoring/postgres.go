@@ -221,25 +221,29 @@ const listFormLibrarySQL = `
 		SELECT DISTINCT ON (f.tenant_id,f.id) f.revision_id
 		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid
+		  AND ($3='' OR (f.origin_type=$3 AND f.origin_id=NULLIF($4,'')::uuid))
 		ORDER BY f.tenant_id,f.id,f.version DESC
 	)
 	SELECT ` + formProjection + `,COALESCE(active.version,0),COALESCE(active.status,'')
 	FROM latest_ids latest
 	JOIN monitoring_form_templates f ON f.revision_id=latest.revision_id
 	LEFT JOIN monitoring_form_templates active ON active.tenant_id=f.tenant_id AND active.id=f.id AND active.is_current
-	WHERE ($3='' OR lower(f.code) LIKE '%'||lower($3)||'%' OR lower(f.name) LIKE '%'||lower($3)||'%' OR lower(f.purpose) LIKE '%'||lower($3)||'%')
-	  AND ($4='' OR f.program_id=NULLIF($4,'')::uuid)
-	  AND ($5='' OR f.owner_principal_id=NULLIF($5,'')::uuid)
-	  AND ($6='' OR f.approved_uses @> ARRAY[$6]::text[])
-	  AND ($7='' OR f.tags @> ARRAY[$7]::text[])
-	  AND ($8='' OR f.status=$8)
-	  AND ($9='' OR (f.updated_at,f.id) {{CURSOR_OPERATOR}} (NULLIF($9,'')::timestamptz,NULLIF($10,'')::uuid))
+	WHERE ($5='' OR lower(f.code) LIKE '%'||lower($5)||'%' OR lower(f.name) LIKE '%'||lower($5)||'%' OR lower(f.purpose) LIKE '%'||lower($5)||'%')
+	  AND ($6='' OR f.program_id=NULLIF($6,'')::uuid)
+	  AND ($7='' OR f.owner_principal_id=NULLIF($7,'')::uuid)
+	  AND ($8='' OR f.approved_uses @> ARRAY[$8]::text[])
+	  AND ($9='' OR f.tags @> ARRAY[$9]::text[])
+	  AND ($10='' OR f.status=$10)
+	  AND ($11='' OR (f.updated_at,f.id) {{CURSOR_OPERATOR}} (NULLIF($11,'')::timestamptz,NULLIF($12,'')::uuid))
 	ORDER BY f.updated_at {{SORT_DIRECTION}},f.id {{SORT_DIRECTION}}
-	LIMIT $11`
+	LIMIT $13`
 
 func (r *PostgresRepository) ListFormLibrary(ctx context.Context, filter FormLibraryFilter) (FormTemplatePage, error) {
 	if filter.TenantID == "" || filter.LegalEntityID == "" {
 		return FormTemplatePage{}, ErrInvalid
+	}
+	if err := normalizeFormLibraryOriginFilter(&filter); err != nil {
+		return FormTemplatePage{}, err
 	}
 	cursor, err := decodeFormLibraryCursor(filter.Cursor)
 	if err != nil {
@@ -261,8 +265,10 @@ func (r *PostgresRepository) ListFormLibrary(ctx context.Context, filter FormLib
 	}
 	limit := boundedFormLibraryLimit(filter.Limit)
 	rows, err := r.pool.Query(ctx, query,
-		filter.TenantID, filter.LegalEntityID, strings.TrimSpace(filter.Search), filter.ProgramID, filter.OwnerPrincipalID,
-		strings.ToUpper(strings.TrimSpace(filter.Use)), strings.ToLower(strings.TrimSpace(filter.Tag)), string(filter.Status), cursorTime, cursor.ID, limit+1,
+		filter.TenantID, filter.LegalEntityID, string(filter.OriginType), filter.OriginID,
+		strings.TrimSpace(filter.Search), filter.ProgramID, filter.OwnerPrincipalID,
+		strings.ToUpper(strings.TrimSpace(filter.Use)), strings.ToLower(strings.TrimSpace(filter.Tag)), string(filter.Status),
+		cursorTime, cursor.ID, limit+1,
 	)
 	if err != nil {
 		return FormTemplatePage{}, mapPostgresError(err)
