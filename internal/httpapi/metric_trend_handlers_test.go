@@ -114,7 +114,7 @@ func TestDomainMetricOrganizationTrendBindsAuthorizedScopeAndPeriod(t *testing.T
 		Start:               start,
 		End:                 now,
 		Resolution:          metricview.TrendResolutionDay,
-		Points: []metricview.OrganizationTrendPoint{{
+		Points:              []metricview.OrganizationTrendPoint{{
 			Date:           start.Format("2006-01-02"),
 			At:             start.Add(23 * time.Hour),
 			Value:          7,
