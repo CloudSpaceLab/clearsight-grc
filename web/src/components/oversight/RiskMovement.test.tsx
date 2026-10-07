@@ -64,7 +64,7 @@ it("compares current scoped Risk posture to the exact historical day", async () 
   ));
   expect(await screen.findByText("+5 worse vs 30 days ago")).toBeTruthy();
   expect(screen.getByText("14 now")).toBeTruthy();
-  expect(screen.getByRole("img", { name: /Outside-appetite risk movement/ })).toBeTruthy();
+  expect(screen.getByRole("img", { name: /Outside-appetite risk trend/ })).toBeTruthy();
   expect(loadLegalEntityTrend).not.toHaveBeenCalled();
 });
 
@@ -89,7 +89,7 @@ it("does not claim direction without an exact complete baseline", async () => {
   />);
 
   expect(await screen.findByText("No comparable history")).toBeTruthy();
-  expect(screen.queryByRole("img", { name: /Outside-appetite risk movement/ })).toBeNull();
+  expect(screen.queryByRole("img", { name: /Outside-appetite risk trend/ })).toBeNull();
 });
 
 it("forces a daily legal-entity series for the seven-day comparison", async () => {
