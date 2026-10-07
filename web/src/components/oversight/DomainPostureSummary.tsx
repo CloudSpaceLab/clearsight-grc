@@ -8,7 +8,7 @@ import {
   type LossPeriodBundle,
 } from "../../metricApi";
 import { homeMetricQuality } from "../../homeMetricPresentation";
-import { formatLossMoneyExact } from "../losses/lossPresentation";
+import { lossComparisonLabel, lossPeriodValue } from "./lossOverviewPresentation";
 import { MetricCard, Notice } from "../ui";
 import type { StatusTone } from "../ui";
 import { MetricMemberDrill } from "./MetricMemberDrill";
@@ -261,8 +261,8 @@ function lossCardModel(bundle: LossPeriodBundle | null) {
     return {
       metricID: "operational_loss_events" as const,
       expectedCount: bundle.event_count,
-      value: `${bundle.event_count} ${bundle.event_count === 1 ? "event" : "events"}`,
-      delta: eventDeltaLabel(bundle.comparison.event_delta),
+      value: lossPeriodValue(bundle),
+      delta: lossComparisonLabel(bundle),
       detail: "Mixed currencies; amounts kept separate",
       meta: `${bundle.currencies.length} currencies · ${bundle.contributing_loss_count} contributing Losses`,
     };
@@ -271,8 +271,8 @@ function lossCardModel(bundle: LossPeriodBundle | null) {
     return {
       metricID: "operational_loss_net" as const,
       expectedCount: bundle.contributing_loss_count,
-      value: formatLossMoneyExact(bundle.net_loss.minor_units, bundle.net_loss.currency),
-      delta: lossMoneyDeltaLabel(bundle),
+      value: lossPeriodValue(bundle),
+      delta: lossComparisonLabel(bundle),
       detail: "Net Loss flow in the selected period",
       meta: `${bundle.event_count} new ${bundle.event_count === 1 ? "event" : "events"} · ${bundle.contributing_loss_count} contributing Losses`,
     };
@@ -280,27 +280,11 @@ function lossCardModel(bundle: LossPeriodBundle | null) {
   return {
     metricID: "operational_loss_events" as const,
     expectedCount: bundle.event_count,
-    value: `${bundle.event_count} events`,
-    delta: eventDeltaLabel(bundle.comparison.event_delta),
+    value: lossPeriodValue(bundle),
+    delta: lossComparisonLabel(bundle),
     detail: "No monetary Loss flow in this period",
     meta: "No gross Loss or recovery activity",
   };
-}
-
-function lossMoneyDeltaLabel(bundle: LossPeriodBundle) {
-  const comparison = bundle.comparison;
-  if (comparison.comparison_quality !== "COMPLETE" || !comparison.net_delta) return "No comparable amount";
-  const amount = formatLossMoneyExact(comparison.net_delta.minor_units, comparison.net_delta.currency);
-  if (comparison.direction === "IMPROVED") return `${amount} improved vs prior period`;
-  if (comparison.direction === "WORSENED") return `+${amount.replace(/^\+/, "")} worse vs prior period`;
-  if (comparison.direction === "UNCHANGED") return "No change vs prior period";
-  return "No comparable amount";
-}
-
-function eventDeltaLabel(delta: number) {
-  if (delta > 0) return `+${delta} events vs prior period`;
-  if (delta < 0) return `${delta} events vs prior period`;
-  return "No event-count change";
 }
 
 function postureLabel(id: (typeof postureOrder)[number]) {
