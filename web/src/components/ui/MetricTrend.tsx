@@ -23,8 +23,10 @@ export function MetricTrend({
 
   if (values.length === 0) return null;
 
-  const minTime = values[0].timestamp;
-  const maxTime = values[values.length - 1].timestamp;
+  const first = values[0]!;
+  const last = values[values.length - 1]!;
+  const minTime = first.timestamp;
+  const maxTime = last.timestamp;
   const minValue = Math.min(...values.map((point) => point.value));
   const maxValue = Math.max(...values.map((point) => point.value));
   const timeRange = Math.max(1, maxTime - minTime);
@@ -80,8 +82,8 @@ export function MetricTrend({
       />)}
     </svg>
     <figcaption className="cs-metric-trend__range">
-      <span>{values[0].label}</span>
-      <span>{values[values.length - 1].label}</span>
+      <span>{first.label}</span>
+      <span>{last.label}</span>
     </figcaption>
     <table className="cs-sr-only">
       <caption>{ariaLabel}</caption>
