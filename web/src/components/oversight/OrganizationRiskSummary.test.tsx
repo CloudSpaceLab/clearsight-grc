@@ -90,3 +90,22 @@ it("fails closed when the organization breakdown does not match the exact metric
   expect(await screen.findByText("Risk concentration is unavailable for this scope.")).toBeTruthy();
   expect(screen.queryByRole("list", { name: "Outside-appetite risks by organization area" })).toBeNull();
 });
+
+it("shows a compact empty state without editorial labels", async () => {
+  const emptyBundle = bundle();
+  emptyBundle.items[0]!.value = 0;
+  const loadBreakdown = vi.fn().mockResolvedValue({
+    source_id: emptyBundle.source_id,
+    metric_id: "risks_outside_appetite",
+    definition_revision: "enterprise-domain-v1",
+    count: 0,
+    items: [],
+  });
+
+  render(<OrganizationRiskSummary bundle={emptyBundle} loadBreakdown={loadBreakdown}/>);
+
+  expect(await screen.findByRole("heading", { name: "No risks outside appetite" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Risk concentration" })).toBeTruthy();
+  expect(screen.queryByText("Where risk is concentrated")).toBeNull();
+  expect(screen.queryByText("Current outside-appetite risk population")).toBeNull();
+});
