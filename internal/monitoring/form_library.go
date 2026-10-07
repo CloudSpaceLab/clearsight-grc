@@ -12,10 +12,10 @@ import (
 )
 
 type FormLibraryFilter struct {
-	TenantID         string
-	OriginType       FormOriginType        `json:"origin_type,omitempty"`
-	OriginID         string                `json:"origin_id,omitempty"`                `json:"-"`
+	TenantID         string                `json:"-"`
 	LegalEntityID    string                `json:"-"`
+	OriginType       FormOriginType        `json:"origin_type,omitempty"`
+	OriginID         string                `json:"origin_id,omitempty"`
 	Search           string                `json:"search,omitempty"`
 	ProgramID        string                `json:"program_id,omitempty"`
 	OwnerPrincipalID string                `json:"owner_principal_id,omitempty"`
