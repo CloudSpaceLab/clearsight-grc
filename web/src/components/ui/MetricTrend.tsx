@@ -3,6 +3,7 @@ export type MetricTrendDatum = {
   at: string;
   label: string;
   value: number;
+  displayValue?: string;
 };
 
 export type MetricTrendProps = {
@@ -90,7 +91,7 @@ export function MetricTrend({
     <table className="cs-sr-only">
       <caption>{ariaLabel}</caption>
       <thead><tr><th>Date</th><th>Value</th></tr></thead>
-      <tbody>{values.map((point) => <tr key={`row-${point.id}`}><td>{point.label}</td><td>{point.value}</td></tr>)}</tbody>
+      <tbody>{values.map((point) => <tr key={`row-${point.id}`}><td>{point.label}</td><td>{point.displayValue ?? point.value}</td></tr>)}</tbody>
     </table>
   </figure>;
 }
