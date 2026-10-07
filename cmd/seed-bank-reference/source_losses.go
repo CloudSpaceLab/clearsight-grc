@@ -26,17 +26,17 @@ const opsLossSourceFile = "LOSS DATA BASE.xlsx"
 var opsLossAmountPattern = regexp.MustCompile(`^[0-9]+(?:\.[0-9]{1,2})?$`)
 
 type sourceLossValue struct {
-	Code        string
-	Title       string
-	EventType   oploss.EventType
-	Cause       string
-	Description string
-	AmountMinor int64
-	Currency    string
-	OccurredAt  time.Time
+	Code         string
+	Title        string
+	EventType    oploss.EventType
+	Cause        string
+	Description  string
+	AmountMinor  int64
+	Currency     string
+	OccurredAt   time.Time
 	DiscoveredAt time.Time
-	Identity    string
-	SourceSHA   string
+	Identity     string
+	SourceSHA    string
 }
 
 // The historical OpsRisk workbook repeats the same events in monthly display
