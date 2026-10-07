@@ -93,7 +93,7 @@ func TestOpsLossRejectsUnsupportedCurrenciesAndImpreciseAmounts(t *testing.T) {
 			t.Fatalf("unsafe amount %q accepted: %d", value, minor)
 		}
 	}
-	if minor, err := opsLossMinor("1011805.54"); err != nil || minor != 101180554 {
+	if minor, err := opsLossMinor("1234567.89"); err != nil || minor != 123456789 {
 		t.Fatalf("minor units %d err=%v", minor, err)
 	}
 	group := syntheticOpsLossGroup()
