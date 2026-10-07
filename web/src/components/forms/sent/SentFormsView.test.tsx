@@ -87,13 +87,14 @@ describe("SentFormsView", () => {
 
   it("opens an exact sent-form deep link outside the current list page without changing the filters", async () => {
     window.history.replaceState(null, "", "/?safe=1#forms?section=sent-forms&dist_due=OVERDUE&distribution=distribution-99");
+    api.loadDistributionPage.mockResolvedValueOnce({ items: [] });
     api.loadDistribution.mockResolvedValueOnce(outsideDetail);
 
     render(<SentFormsView/>);
 
     await waitFor(() => expect(api.loadDistribution).toHaveBeenCalledWith("distribution-99"));
     expect(await screen.findByText("Off-page annual review")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Open Quarterly control review" })).toBeTruthy();
+    expect(screen.getByText("The selected sent form is outside this filtered list.")).toBeTruthy();
     expect(api.loadDistributionPage).toHaveBeenCalledWith(expect.objectContaining({ due_state: "OVERDUE" }));
     expect(window.location.hash).toContain("distribution=distribution-99");
     expect(window.location.hash).toContain("dist_due=OVERDUE");
