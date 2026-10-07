@@ -111,6 +111,7 @@ type Dependencies struct {
 	MetricTrends            metricview.TrendReader
 	MetricMatrices          metricview.MatrixReader
 	DomainMetrics           metricview.DomainReader
+	GroupPostureMetrics     metricview.GroupPostureReader
 	LossPeriodMetrics       metricview.LossPeriodReader
 	PresentationPreferences *presentationprefs.Service
 	NotificationPreferences *notificationprefs.Service
