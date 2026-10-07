@@ -38,9 +38,15 @@ func TestValidObservationMeasureKeepsCountAndMoneyContractsSeparate(t *testing.T
 			definition:  Definition{Unit: MetricUnitMoney},
 		},
 		{
-			name:        "negative value rejected",
+			name:        "negative money flow",
 			observation: Observation{Value: -1, Currency: "NGN", MemberCount: &memberCount},
 			definition:  Definition{Unit: MetricUnitMoney},
+			want:        true,
+		},
+		{
+			name:        "negative count rejected",
+			observation: Observation{Value: -1},
+			definition:  Definition{Unit: MetricUnitCount},
 		},
 	}
 	for _, tc := range cases {
