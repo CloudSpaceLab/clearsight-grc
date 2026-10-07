@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CloudSpaceLab/clearsight-grc/internal/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/itgovernance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/database"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
 )
 
