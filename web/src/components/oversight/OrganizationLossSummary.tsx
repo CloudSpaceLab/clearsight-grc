@@ -44,9 +44,9 @@ export function OrganizationLossSummary({ bundle, state, onOpenScope }: Props) {
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading Loss concentration…</p>}
     {state === "unavailable" && <Notice tone="warning">Loss concentration is unavailable for this period.</Notice>}
     {state === "live" && bundle && bundle.event_count === 0 && bundle.contributing_loss_count === 0 && <EmptyState
-      population="Operational Loss flow in the selected period"
-      title="No Loss flow in this period"
-      description="No active Loss or recovery contributed to this scope during the selected period."
+      population="No loss activity"
+      title="No loss activity"
+      description="No loss or recovery events in the selected period."
     />}
     {state === "live" && bundle && bundle.contributing_loss_count > 0 && <RankedBarList
       ariaLabel={lossPresentationMode(bundle) === "money"
