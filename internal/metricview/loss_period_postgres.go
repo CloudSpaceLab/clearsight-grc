@@ -146,9 +146,9 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 		MixedCurrencies:        len(aggregate.Currencies) > 1,
 		Currencies:             make([]LossCurrencyFlow, 0, len(aggregate.Currencies)),
 		OrganizationBreakdown: breakdown,
-		FlowResolution:       flowResolution,
-		FlowPoints:           flowPoints,
-		Comparison:           comparison,
+		FlowResolution:        flowResolution,
+		FlowPoints:            flowPoints,
+		Comparison:            comparison,
 	}
 	if organizationScopeID != "" {
 		bundle.ScopeID = organizationScopeID
