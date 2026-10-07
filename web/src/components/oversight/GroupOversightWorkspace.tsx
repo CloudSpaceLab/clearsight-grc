@@ -236,7 +236,7 @@ export function GroupOversightWorkspace({
       </div>
       {selectedHomeTab === "oversight" && <OversightPeriodPicker
         period={period}
-        freshness={postureState === "live" && posture?.risk_coverage.complete ? "CURRENT" : "STALE"}
+        freshness={postureState === "live" && posture && groupPostureCoverage(posture, postureMetric).complete ? "CURRENT" : "STALE"}
         generatedAt={posture?.generated_at ?? new Date(nowMs ?? Date.now()).toISOString()}
         error={postureState === "unavailable" ? "Group CRO posture is unavailable." : undefined}
         onApply={applyPeriod}
@@ -325,7 +325,7 @@ function GroupPostureView({
   }
 
   return <>
-    {value && <GroupPostureCoverageNotice value={value}/>}
+    {value && <GroupPostureCoverageNotice value={value} metric={metric}/>} 
     <div className="oversight-counts" aria-label="Group CRO posture" aria-busy={state === "loading" || undefined}>
       {postureMetrics.map((definition) => {
         const metricValue = value?.counts[definition.id];
@@ -526,14 +526,16 @@ function entityColumn(): DataColumn<GroupChild> {
   };
 }
 
-function GroupPostureCoverageNotice({ value }: { value: GroupPostureBundle }) {
-  if (value.risk_coverage.missing_children > 0) {
-    return <Notice tone="warning">{value.risk_coverage.missing_children} {value.risk_coverage.missing_children === 1 ? "OpCo has" : "OpCos have"} no current Risk posture. Group Risk posture is incomplete.</Notice>;
+function GroupPostureCoverageNotice({ value, metric }: { value: GroupPostureBundle; metric: GroupPostureMetric }) {
+  const coverage = groupPostureCoverage(value, metric);
+  const label = metric === "loss_events" ? "Loss data" : "Risk posture";
+  if (coverage.missing_children > 0) {
+    return <Notice tone="warning">{coverage.missing_children} {coverage.missing_children === 1 ? "OpCo has" : "OpCos have"} no current {label}. Group {label.toLowerCase()} is incomplete.</Notice>;
   }
-  if (value.risk_coverage.stale_children > 0 || value.risk_coverage.partial_children > 0) {
-    return <Notice tone="warning">Some OpCo Risk posture is stale or incomplete.</Notice>;
+  if (coverage.stale_children > 0 || coverage.partial_children > 0) {
+    return <Notice tone="warning">Some OpCo {label.toLowerCase()} is stale or incomplete.</Notice>;
   }
-  return <p className="group-oversight-quality">{value.risk_coverage.authorized_children} OpCos · current CRO posture</p>;
+  return <p className="group-oversight-quality">{coverage.authorized_children} OpCos · current {label.toLowerCase()}</p>;
 }
 
 function GroupAttentionCoverageNotice({ value }: { value: GroupOversightSnapshot }) {
@@ -546,15 +548,19 @@ function GroupAttentionCoverageNotice({ value }: { value: GroupOversightSnapshot
   return <p className="group-oversight-quality">{value.coverage.authorized_children} OpCos · {value.record_coverage.population} issues checked</p>;
 }
 
+function groupPostureCoverage(value: GroupPostureBundle, metric: GroupPostureMetric) {
+  return metric === "loss_events" ? value.loss_coverage : value.risk_coverage;
+}
+
 function groupPostureMetricQuality(value: GroupPostureBundle, metric: GroupPostureMetric) {
-  const coverage = metric === "loss_events" ? value.loss_coverage : value.risk_coverage;
+  const coverage = groupPostureCoverage(value, metric);
   if (coverage.missing_children > 0) return "unknown" as const;
   if (coverage.stale_children > 0 || coverage.partial_children > 0) return "partial" as const;
   return "current" as const;
 }
 
 function groupPostureMetricMeta(value: GroupPostureBundle, metric: GroupPostureMetric, period: ReportingPeriod) {
-  const coverage = metric === "loss_events" ? value.loss_coverage : value.risk_coverage;
+  const coverage = groupPostureCoverage(value, metric);
   if (metric === "loss_events") {
     return `${coverage.included_children} OpCos · ${daysInPeriod(period)} days`;
   }
@@ -562,7 +568,7 @@ function groupPostureMetricMeta(value: GroupPostureBundle, metric: GroupPostureM
 }
 
 function groupPostureCoverageText(value: GroupPostureBundle, metric: GroupPostureMetric) {
-  const coverage = metric === "loss_events" ? value.loss_coverage : value.risk_coverage;
+  const coverage = groupPostureCoverage(value, metric);
   return `${coverage.included_children} of ${coverage.authorized_children} OpCos contributing`;
 }
 
