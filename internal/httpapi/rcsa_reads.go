@@ -38,17 +38,17 @@ type rcsaCyclePageRead struct {
 }
 
 type rcsaChallengeContextRead struct {
-	MatterID                     string `json:"matter_id,omitempty"`
-	MatterStatus                 string `json:"matter_status,omitempty"`
-	DecisionStatus               string `json:"decision_status,omitempty"`
-	DecisionOption               string `json:"decision_option,omitempty"`
-	OpenActionCount              int    `json:"open_action_count"`
-	ImplementedActionCount       int    `json:"implemented_action_count"`
-	BlockedActionCount           int    `json:"blocked_action_count"`
-	ActiveVerificationCount      int    `json:"active_verification_count"`
-	PassedVerificationCount      int    `json:"passed_verification_count"`
-	FailedVerificationCount      int    `json:"failed_verification_count"`
-	InconclusiveVerificationCount int   `json:"inconclusive_verification_count"`
+	MatterID                      string `json:"matter_id,omitempty"`
+	MatterStatus                  string `json:"matter_status,omitempty"`
+	DecisionStatus                string `json:"decision_status,omitempty"`
+	DecisionOption                string `json:"decision_option,omitempty"`
+	OpenActionCount               int    `json:"open_action_count"`
+	ImplementedActionCount        int    `json:"implemented_action_count"`
+	BlockedActionCount            int    `json:"blocked_action_count"`
+	ActiveVerificationCount       int    `json:"active_verification_count"`
+	PassedVerificationCount       int    `json:"passed_verification_count"`
+	FailedVerificationCount       int    `json:"failed_verification_count"`
+	InconclusiveVerificationCount int    `json:"inconclusive_verification_count"`
 }
 
 type rcsaCycleDetailRead struct {
