@@ -559,6 +559,33 @@ it("shows My work as a separate bounded Home intent", async () => {
   expect(metricApi.loadLossPeriodMetrics).not.toHaveBeenCalled();
 });
 
+it("ignores a previous organization-scope response that arrives after a newer scope", async () => {
+  const baselineSnapshot = await api.loadOversight();
+  const baselineMetrics = await metricApi.loadHomeMetrics();
+  let resolveOldSnapshot!: (value: typeof baselineSnapshot) => void;
+  let resolveOldMetrics!: (value: typeof baselineMetrics) => void;
+  const oldSnapshot = new Promise<typeof baselineSnapshot>((resolve) => { resolveOldSnapshot = resolve; });
+  const oldMetrics = new Promise<typeof baselineMetrics>((resolve) => { resolveOldMetrics = resolve; });
+  const currentSnapshot = { ...baselineSnapshot, organization_scope_id: "scope-new", coverage: { population: 7, excluded: 0 }, counts: { ...baselineSnapshot.counts, critical_high: 3 } };
+  const currentMetrics = { ...baselineMetrics, scope_id: "scope-new", scope_kind: "ORGANIZATION_SCOPE" as const, population: 7, items: baselineMetrics.items.map((item: any) => item.id === "critical_high_open" ? { ...item, value: 3 } : item) };
+  api.loadOversight.mockImplementation((_period: unknown, scope: string) => scope === "scope-old" ? oldSnapshot : Promise.resolve(currentSnapshot));
+  metricApi.loadHomeMetrics.mockImplementation((_period: unknown, scope: string) => scope === "scope-old" ? oldMetrics : Promise.resolve(currentMetrics));
+
+  const props = { organizationName: "Clear Bank", legalEntityName: "Clear Bank Nigeria", onOpenMatter: vi.fn(), homeTab: "attention" as const };
+  const { rerender } = render(<OversightWorkspace {...props} organizationScopeID="scope-old"/>);
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith(undefined, "scope-old"));
+  rerender(<OversightWorkspace {...props} organizationScopeID="scope-new"/>);
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith(undefined, "scope-new"));
+  expect(await screen.findByText(/7 issues/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Critical and high: 3/ })).toBeTruthy();
+
+  resolveOldSnapshot({ ...baselineSnapshot, organization_scope_id: "scope-old", coverage: { population: 88, excluded: 0 } });
+  resolveOldMetrics({ ...baselineMetrics, scope_id: "scope-old", scope_kind: "ORGANIZATION_SCOPE" });
+  await waitFor(() => expect(screen.getByText(/7 issues/)).toBeTruthy());
+  expect(screen.queryByText(/88 issues/)).toBeNull();
+  expect(screen.getByRole("button", { name: /Critical and high: 3/ })).toBeTruthy();
+});
+
 it("reloads Home projections when the actor invalidation revision changes", async () => {
   const { rerender } = render(<OversightWorkspace refreshToken="rev-1" organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
   await screen.findByRole("heading", { name: "Home" });

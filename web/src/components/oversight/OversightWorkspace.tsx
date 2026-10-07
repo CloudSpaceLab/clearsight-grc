@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { loadDomainMetrics, loadHomeMetricMembers, loadHomeMetrics, loadLossPeriodMetrics, type DomainMetricBundle, type HomeMetricBundle, type HomeMetricMemberPage, type LossPeriodBundle } from "../../metricApi";
 import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
@@ -80,6 +80,7 @@ export function OversightWorkspace({
   const [lossState, setLossState] = useState<"loading" | "live" | "unavailable">("loading");
   const [view, setView] = useState<DetailView>("pressure");
   const [localMetricFilter, setLocalMetricFilter] = useState<OversightMetricFilter>(metricFilter);
+  const homeReadRevision = useRef(0);
   const [periodState, setPeriodState] = useState<"idle" | "changing">("idle");
   const [periodError, setPeriodError] = useState("");
   const [activePeriod, setActivePeriod] = useState<ReportingPeriodQuery>();
@@ -176,12 +177,17 @@ export function OversightWorkspace({
   }
 
   async function load(period = activePeriod) {
+    const revision = ++homeReadRevision.current;
     setState("loading");
     setMetricState("loading");
+    setSnapshot(null);
+    setMetrics(null);
+    setPeriodState("idle");
     const [snapshotResult, metricResult] = await Promise.allSettled([
       loadSnapshot(period, organizationScopeID),
       loadMetrics(period, organizationScopeID),
     ]);
+    if (revision !== homeReadRevision.current) return;
     if (snapshotResult.status === "fulfilled") {
       setSnapshot(snapshotResult.value);
       setState("live");
@@ -198,12 +204,16 @@ export function OversightWorkspace({
     }
   }
 
-  useEffect(() => { void load(); }, [organizationScopeID, refreshToken]);
+  useEffect(() => {
+    void load();
+    return () => { homeReadRevision.current++; };
+  }, [organizationScopeID, refreshToken]);
 
   useEffect(() => {
     if (selectedHomeTab !== "oversight") return;
     const controller = new AbortController();
     setDomainState("loading");
+    setDomainMetrics(null);
     void loadDomainPosture(organizationScopeID, controller.signal).then((value) => {
       if (controller.signal.aborted) return;
       setDomainMetrics(value);
@@ -222,9 +232,10 @@ export function OversightWorkspace({
   } : undefined);
 
   useEffect(() => {
-    if (selectedHomeTab !== "oversight" || !lossPeriod) return;
+    if (selectedHomeTab !== "oversight" || state !== "live" || !lossPeriod) return;
     const controller = new AbortController();
     setLossState("loading");
+    setLossMetrics(null);
     void loadLossMetrics(lossPeriod, organizationScopeID, controller.signal).then((value) => {
       if (controller.signal.aborted) return;
       setLossMetrics(value);
@@ -240,18 +251,20 @@ export function OversightWorkspace({
     lossPeriod?.start_date,
     lossPeriod?.end_date,
     organizationScopeID,
-    refreshToken,
     selectedHomeTab,
+    state,
   ]);
 
   async function changePeriod(period: ReportingPeriodQuery) {
     if (periodState === "changing") return;
+    const revision = ++homeReadRevision.current;
     setPeriodState("changing");
     setPeriodError("");
     const [snapshotResult, metricResult] = await Promise.allSettled([
       loadSnapshot(period, organizationScopeID),
       loadMetrics(period, organizationScopeID),
     ]);
+    if (revision !== homeReadRevision.current) return;
     if (snapshotResult.status === "fulfilled" && metricResult.status === "fulfilled"
       && sameReportingPeriod(snapshotResult.value.reporting_period, metricResult.value.reporting_period)
       && sameOrganizationScope(snapshotResult.value, metricResult.value, organizationScopeID)) {
