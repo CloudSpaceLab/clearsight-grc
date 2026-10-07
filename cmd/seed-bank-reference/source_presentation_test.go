@@ -47,6 +47,13 @@ func TestSourceDisplayTitleUsesRealFieldsInsteadOfRowReferences(t *testing.T) {
 			}}, want: "Service restoration",
 		},
 		{
+			name: "generic row prefix with a real title",
+			group: sourceRecordGroup{Title: "IT exceptions"},
+			record: sourceRecord{Title: "Row 12: Review access provisioning", Fields: []sourceRecordField{
+				{Label: "RISK ID", Value: "075"},
+			}}, want: "Review access provisioning",
+		},
+		{
 			name: "source-defined title preserved",
 			group: sourceRecordGroup{Title: "Branch KRI"},
 			record: sourceRecord{Title: "Quarterly branch liquidity review", Fields: []sourceRecordField{
@@ -76,7 +83,7 @@ func TestSourceHeaderLookupNormalizesWhitespaceWithoutInventingValues(t *testing
 		{Label: "RISK\t DESCRIPTION", Value: "Control gaps", SourceCell: "B10"},
 		{Label: "MONTH", Value: "January"},
 	}}
-	if got := sourceFieldValue(record, "APPLICATION/ SERVICES AFFECTED"); got != "Sample digital gateway" {
+	if got := sourceFieldValue(record, "APPLICATION / SERVICES AFFECTED"); got != "Sample digital gateway" {
 		t.Fatalf("linebreak header lost: %q", got)
 	}
 	if got := sourceFieldValue(record, "risk description"); got != "Control gaps" {
