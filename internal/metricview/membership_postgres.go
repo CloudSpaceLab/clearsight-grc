@@ -352,6 +352,9 @@ func (r *MembershipRepository) CountSnapshotMembersByOrganization(
 		JOIN legal_entities entity
 		  ON entity.tenant_id=membership_set.tenant_id
 		 AND entity.id=membership_set.legal_entity_id
+		JOIN metric_definitions definition
+		  ON definition.metric_id=$5
+		 AND definition.revision=membership_set.definition_revision
 		WHERE membership_set.source_id=$4::uuid
 		  AND membership_set.definition_revision=$6
 		  AND membership_set.organization_scope_id IS NOT DISTINCT FROM NULLIF($3,'')::uuid
