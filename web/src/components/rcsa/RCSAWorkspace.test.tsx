@@ -46,6 +46,19 @@ beforeEach(() => {
     assessment_period_start: "2026-07-01T00:00:00Z",
     assessment_period_end: "2026-09-30T23:59:59Z",
     first_line_request_id: "request-1",
+    challenge_context_complete: true,
+    challenge_context: {
+      matter_id: "matter-1",
+      matter_status: "ACTION_IN_PROGRESS",
+      decision_status: "PROPOSED",
+      open_action_count: 1,
+      implemented_action_count: 0,
+      blocked_action_count: 0,
+      active_verification_count: 0,
+      passed_verification_count: 0,
+      failed_verification_count: 0,
+      inconclusive_verification_count: 0,
+    },
     handoff: { stage: "CHALLENGE", label: "Complete independent challenge", target_type: "MATTER", target_id: "matter-1" },
     risks: [
       { cycle_id: cycle.id, risk_id: "risk-1", risk_version: 3, code: "TECH-01", name: "Service interruption", category: "Technology" },
@@ -89,9 +102,48 @@ it("renders a restrained cycle register and opens the exact challenge handoff", 
   expect(screen.getByText("1 Jul 2026 – 30 Sep 2026")).toBeTruthy();
   expect(screen.getByRole("table", { name: "RCSA frozen Risks" })).toBeTruthy();
   expect(screen.getByRole("table", { name: "RCSA frozen Controls" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Cycle progress" })).toBeTruthy();
+  expect(screen.getByText("Submitted")).toBeTruthy();
+  expect(screen.getByText("Decision pending")).toBeTruthy();
+  expect(screen.getByText("Not started", { selector: ".cs-status-badge" })).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Open challenge work" }));
   expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
+});
+
+it("does not present a completed challenge as verified remediation", async () => {
+  vi.mocked(getRCSACycle).mockResolvedValueOnce({
+    cycle: { ...cycle, status: "COMPLETED" },
+    complete: true,
+    challenge_context_complete: true,
+    challenge_context: {
+      matter_id: "matter-1",
+      matter_status: "ACTION_IN_PROGRESS",
+      decision_status: "APPROVED",
+      decision_option: "DEFICIENCY_CONFIRMED",
+      open_action_count: 2,
+      implemented_action_count: 0,
+      blocked_action_count: 0,
+      active_verification_count: 1,
+      passed_verification_count: 0,
+      failed_verification_count: 0,
+      inconclusive_verification_count: 0,
+    },
+    first_line_owner_display_name: "Technology Risk Owner",
+    assessment_period_start: "2026-07-01T00:00:00Z",
+    assessment_period_end: "2026-09-30T23:59:59Z",
+    first_line_request_id: "request-1",
+    handoff: { stage: "COMPLETE", label: "Completed", target_type: "MATTER", target_id: "matter-1" },
+    risks: [],
+    controls: [],
+  });
+
+  render(<RCSAWorkspace organizationName="Bank" legalEntityName="Nigeria" targetID="cycle-1" onTarget={() => {}}/>);
+
+  expect(await screen.findByText("Deficiency confirmed")).toBeTruthy();
+  expect(screen.getByText("Remediation in progress")).toBeTruthy();
+  expect(screen.getByText("2 open remediation actions remain.")).toBeTruthy();
+  expect(screen.queryByText("Verified")).toBeNull();
 });
 
 it("shows partial authority resolution without inventing a complete population", async () => {
