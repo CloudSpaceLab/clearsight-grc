@@ -1,6 +1,10 @@
 BEGIN;
 
-DO $$
+DROP TRIGGER metric_daily_rollups_validate_native_measure ON metric_observation_daily_rollups;
+DROP TRIGGER metric_observations_validate_native_measure ON metric_observations;
+DROP FUNCTION validate_metric_native_measure();
+
+DO $
 BEGIN
     IF EXISTS (
         SELECT 1 FROM metric_definitions
