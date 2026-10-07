@@ -11,6 +11,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/runtimecontext"
 )
 
 type metricMembershipReaderStub struct {
@@ -135,5 +136,48 @@ func TestHomeMetricMembersRejectInvalidPageSizeBeforeRepositoryRead(t *testing.T
 
 	if response.Code != http.StatusBadRequest || reader.got.metricID != "" {
 		t.Fatalf("status=%d repository=%#v body=%s", response.Code, reader.got, response.Body.String())
+	}
+}
+
+func TestDomainMetricMembersAllowAuthorizedOrganizationScope(t *testing.T) {
+	entity := runtimecontext.ScopeNode{ID: "entity-a", Name: "Entity A", Kind: runtimecontext.ScopeKindLegalEntity}
+	scope := runtimecontext.ScopeNode{
+		ID: "scope-risk", Name: "Risk", Kind: runtimecontext.ScopeKindDepartment,
+		ParentID: entity.ID, DepartmentPath: []string{"BANK", "RISK"}, Filterable: true,
+	}
+	reader := &metricMembershipReaderStub{page: metricview.MemberPage{
+		SourceID: "8f600000-0000-4000-8000-000000000001",
+		MetricID: "risks_outside_appetite", DefinitionRevision: metricview.DomainDefinitionRevision, Count: 1,
+		Items: []metricview.Member{{
+			MemberID: "8f600000-0000-4000-8000-000000000010", TargetType: "RISK",
+			TargetID: "8f600000-0000-4000-8000-000000000020", TargetTitle: "Outside appetite risk", State: "BREACHED", Accessible: true,
+		}},
+	}}
+	api := &API{deps: Dependencies{
+		MetricMembership: reader,
+		RuntimeContext: scopeContextResolverStub{hierarchy: runtimecontext.ScopeHierarchy{
+			State: runtimecontext.HierarchyComplete, Current: entity, LegalEntities: []runtimecontext.ScopeNode{entity},
+			OrganizationScopes: []runtimecontext.ScopeNode{scope},
+		}},
+	}}
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/metrics/domain/risks_outside_appetite/members?organization_scope_id=scope-risk&source_id=8f600000-0000-4000-8000-000000000001&definition_revision=enterprise-domain-v1",
+		nil,
+	)
+	request.SetPathValue("metric_id", "risks_outside_appetite")
+	request = request.WithContext(identity.WithActor(request.Context(), identity.Actor{
+		TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "cro-1", ExpiresAt: time.Now().Add(time.Hour),
+	}))
+	response := httptest.NewRecorder()
+
+	api.domainMetricMembers(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	if reader.got.organizationScopeID != scope.ID || reader.got.metricID != "risks_outside_appetite" ||
+		reader.got.revision != metricview.DomainDefinitionRevision {
+		t.Fatalf("bound request=%#v", reader.got)
 	}
 }

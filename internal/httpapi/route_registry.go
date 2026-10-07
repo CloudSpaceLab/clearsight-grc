@@ -85,6 +85,7 @@ func (a *API) routes() []routeSpec {
 		withPermission(read("/api/v1/metrics/home/{metric_id}/trend", a.homeMetricTrend), identity.PermissionOversightRead),
 		withPermission(read("/api/v1/metrics/domain", a.domainMetrics), identity.PermissionOversightRead),
 		withPermission(read("/api/v1/metrics/domain/{metric_id}/members", a.domainMetricMembers), identity.PermissionOversightRead),
+		withPermission(read("/api/v1/metrics/domain/{metric_id}/organization-breakdown", a.domainMetricOrganizationBreakdown), identity.PermissionOversightRead),
 		withPermission(read("/api/v1/metrics/domain/{metric_id}/trend", a.domainMetricTrend), identity.PermissionOversightRead),
 		withPermission(read("/api/v1/metrics/matrices/risk-appetite", a.riskAppetiteMatrix), identity.PermissionOversightRead),
 		withPermission(read("/api/v1/metrics/matrices/assurance", a.assuranceCoverageMatrix), identity.PermissionOversightRead),

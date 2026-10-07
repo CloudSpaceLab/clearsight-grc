@@ -2272,6 +2272,59 @@
         }
       }
     },
+    "/api/v1/metrics/domain/{metric_id}/organization-breakdown": {
+      "get": {
+        "operationId": "domainMetricOrganizationBreakdown",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "parameters": [
+          {
+            "name": "metric_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "definition_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization_scope_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact organization-area breakdown of one retained cross-domain metric snapshot."
+          },
+          "404": {
+            "description": "The retained source snapshot is no longer available."
+          },
+          "503": {
+            "description": "The full authorized organization hierarchy cannot be verified."
+          }
+        }
+      }
+    },
     "/api/v1/metrics/domain/{metric_id}/trend": {
       "get": {
         "operationId": "domainMetricTrend",

@@ -14,7 +14,7 @@ func loadOutsideAppetiteMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 	definition, _ := DomainDefinition("risks_outside_appetite")
 	rows, err := tx.Query(ctx, `
 		WITH selected AS (
-			SELECT risk.id,risk.name,risk.version,
+			SELECT risk.id,risk.name,risk.version,risk.organization_scope_id,
 			       CASE
 			         WHEN assessment.id IS NULL OR assessment.risk_version<>risk.version THEN 'UNKNOWN'
 			         WHEN assessment.appetite_statement_id IS NULL THEN 'UNKNOWN'
@@ -49,16 +49,17 @@ func loadOutsideAppetiteMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 			WHERE risk.tenant_id=$1::uuid
 			  AND risk.legal_entity_id=$2::uuid
 			  AND risk.status='ACTIVE'
+			  AND (NOT $4::boolean OR risk.organization_scope_id=ANY($5::uuid[]))
 		)
-		SELECT id::text,name,state FROM selected ORDER BY id`, scope.TenantID, scope.LegalEntityID, at.UTC())
+		SELECT id::text,name,COALESCE(organization_scope_id::text,''),state FROM selected ORDER BY id`, scope.TenantID, scope.LegalEntityID, at.UTC(), scope.OrganizationScopeID != "", scope.OrganizationScopeIDs)
 	if err != nil {
 		return domainMetricResult{}, fmt.Errorf("load outside-appetite metric: %w", err)
 	}
 	defer rows.Close()
 	result := domainMetricResult{Definition: definition, Members: []domainMetricMember{}}
 	for rows.Next() {
-		var id, title, state string
-		if err := rows.Scan(&id, &title, &state); err != nil {
+		var id, title, organizationScopeID, state string
+		if err := rows.Scan(&id, &title, &organizationScopeID, &state); err != nil {
 			return domainMetricResult{}, err
 		}
 		result.Population++
@@ -66,7 +67,7 @@ func loadOutsideAppetiteMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 			result.Unknown++
 		}
 		if state == "BREACHED" {
-			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "RISK", TargetID: id, Title: title, State: state})
+			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "RISK", TargetID: id, OrganizationScopeID: organizationScopeID, Title: title, State: state})
 		}
 	}
 	return result, rows.Err()
@@ -86,9 +87,10 @@ func loadIndicatorBreachMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 			 AND risk.status='ACTIVE'
 			WHERE link.tenant_id=$1::uuid
 			  AND link.legal_entity_id=$2::uuid
+			  AND (NOT $4::boolean OR risk.organization_scope_id=ANY($5::uuid[]))
 			ORDER BY link.risk_id,link.monitoring_check_id,link.risk_version DESC,link.id DESC
 		)
-		SELECT link.id::text,risk.id::text,risk.name,
+		SELECT link.id::text,risk.id::text,risk.name,COALESCE(risk.organization_scope_id::text,''),
 		       CASE
 		         WHEN check_config.revision_id IS NULL OR check_config.status<>'ACTIVE' OR NOT check_config.is_current THEN 'UNKNOWN'
 		         WHEN program.id IS NULL OR program.status<>'ACTIVE' THEN 'UNKNOWN'
@@ -123,15 +125,15 @@ func loadIndicatorBreachMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 			ORDER BY candidate.evaluated_at DESC,candidate.id DESC
 			LIMIT 1
 		) result ON true
-		ORDER BY link.id`, scope.TenantID, scope.LegalEntityID, at.UTC())
+		ORDER BY link.id`, scope.TenantID, scope.LegalEntityID, at.UTC(), scope.OrganizationScopeID != "", scope.OrganizationScopeIDs)
 	if err != nil {
 		return domainMetricResult{}, fmt.Errorf("load indicator-breach metric: %w", err)
 	}
 	defer rows.Close()
 	result := domainMetricResult{Definition: definition, Members: []domainMetricMember{}}
 	for rows.Next() {
-		var memberID, riskID, title, state string
-		if err := rows.Scan(&memberID, &riskID, &title, &state); err != nil {
+		var memberID, riskID, title, organizationScopeID, state string
+		if err := rows.Scan(&memberID, &riskID, &title, &organizationScopeID, &state); err != nil {
 			return domainMetricResult{}, err
 		}
 		result.Population++
@@ -139,7 +141,7 @@ func loadIndicatorBreachMetric(ctx context.Context, tx pgx.Tx, scope domainScope
 			result.Unknown++
 		}
 		if state == "HIGH" || state == "CRITICAL" {
-			result.Members = append(result.Members, domainMetricMember{MemberID: memberID, TargetType: "RISK", TargetID: riskID, Title: title, State: state})
+			result.Members = append(result.Members, domainMetricMember{MemberID: memberID, TargetType: "RISK", TargetID: riskID, OrganizationScopeID: organizationScopeID, Title: title, State: state})
 		}
 	}
 	return result, rows.Err()
@@ -149,11 +151,12 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 	definition, _ := DomainDefinition("assurance_failures")
 	rows, err := tx.Query(ctx, `
 		WITH selected_risks AS (
-			SELECT risk.id,risk.tenant_id,risk.legal_entity_id,risk.name
+			SELECT risk.id,risk.tenant_id,risk.legal_entity_id,risk.name,risk.organization_scope_id
 			FROM risks risk
 			WHERE risk.tenant_id=$1::uuid
 			  AND risk.legal_entity_id=$2::uuid
 			  AND risk.status='ACTIVE'
+			  AND (NOT $4::boolean OR risk.organization_scope_id=ANY($5::uuid[]))
 		), eligible_links AS (
 			SELECT risk_link.risk_id,
 			       implementation.tenant_id,
@@ -209,7 +212,7 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 				LIMIT 1
 			) assessment ON true
 		), risk_state AS (
-			SELECT risk.id,risk.name,
+			SELECT risk.id,risk.name,risk.organization_scope_id,
 			       CASE
 			         WHEN bool_or(fact.state='FAILED') THEN 'FAILED'
 			         WHEN bool_or(fact.state='UNKNOWN') AND bool_or(fact.state IN ('SUPPORTED','PARTIAL')) THEN 'PARTIAL'
@@ -220,17 +223,17 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 			       END state
 			FROM selected_risks risk
 			LEFT JOIN contract_facts fact ON fact.risk_id=risk.id
-			GROUP BY risk.id,risk.name
+			GROUP BY risk.id,risk.name,risk.organization_scope_id
 		)
-		SELECT id::text,name,state FROM risk_state ORDER BY id`, scope.TenantID, scope.LegalEntityID, at.UTC())
+		SELECT id::text,name,COALESCE(organization_scope_id::text,''),state FROM risk_state ORDER BY id`, scope.TenantID, scope.LegalEntityID, at.UTC(), scope.OrganizationScopeID != "", scope.OrganizationScopeIDs)
 	if err != nil {
 		return domainMetricResult{}, fmt.Errorf("load assurance-failure metric: %w", err)
 	}
 	defer rows.Close()
 	result := domainMetricResult{Definition: definition, Members: []domainMetricMember{}}
 	for rows.Next() {
-		var id, title, state string
-		if err := rows.Scan(&id, &title, &state); err != nil {
+		var id, title, organizationScopeID, state string
+		if err := rows.Scan(&id, &title, &organizationScopeID, &state); err != nil {
 			return domainMetricResult{}, err
 		}
 		result.Population++
@@ -238,7 +241,7 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 			result.Unknown++
 		}
 		if state == "FAILED" {
-			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "RISK", TargetID: id, Title: title, State: state})
+			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "RISK", TargetID: id, OrganizationScopeID: organizationScopeID, Title: title, State: state})
 		}
 	}
 	return result, rows.Err()
@@ -247,26 +250,27 @@ func loadAssuranceFailureMetric(ctx context.Context, tx pgx.Tx, scope domainScop
 func loadLossWithoutIssueMetric(ctx context.Context, tx pgx.Tx, scope domainScope, _ time.Time) (domainMetricResult, error) {
 	definition, _ := DomainDefinition("losses_without_issue")
 	rows, err := tx.Query(ctx, `
-		SELECT loss.id::text,loss.title,loss.matter_id IS NULL
+		SELECT loss.id::text,loss.title,COALESCE(loss.organization_scope_id::text,''),loss.matter_id IS NULL
 		FROM operational_losses loss
 		WHERE loss.tenant_id=$1::uuid
 		  AND loss.legal_entity_id=$2::uuid
 		  AND loss.status='ACTIVE'
-		ORDER BY loss.id`, scope.TenantID, scope.LegalEntityID)
+		  AND (NOT $3::boolean OR loss.organization_scope_id=ANY($4::uuid[]))
+		ORDER BY loss.id`, scope.TenantID, scope.LegalEntityID, scope.OrganizationScopeID != "", scope.OrganizationScopeIDs)
 	if err != nil {
 		return domainMetricResult{}, fmt.Errorf("load loss-without-issue metric: %w", err)
 	}
 	defer rows.Close()
 	result := domainMetricResult{Definition: definition, Members: []domainMetricMember{}}
 	for rows.Next() {
-		var id, title string
+		var id, title, organizationScopeID string
 		var withoutIssue bool
-		if err := rows.Scan(&id, &title, &withoutIssue); err != nil {
+		if err := rows.Scan(&id, &title, &organizationScopeID, &withoutIssue); err != nil {
 			return domainMetricResult{}, err
 		}
 		result.Population++
 		if withoutIssue {
-			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "LOSS", TargetID: id, Title: title, State: "WITHOUT_ISSUE"})
+			result.Members = append(result.Members, domainMetricMember{MemberID: id, TargetType: "LOSS", TargetID: id, OrganizationScopeID: organizationScopeID, Title: title, State: "WITHOUT_ISSUE"})
 		}
 	}
 	return result, rows.Err()
