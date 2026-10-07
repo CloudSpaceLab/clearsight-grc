@@ -92,3 +92,12 @@ it("shows implemented treatment as awaiting verification until current checks pa
   expect(rcsaJourneyStages(value).find((stage) => stage.id === "REMEDIATION"))
     .toMatchObject({ state: "COMPLETE", status: "Verified" });
 });
+
+
+it("marks restricted challenge context unavailable instead of inferring outcome state", () => {
+  const value = detail({ challenge_context: undefined, challenge_context_complete: false });
+  const stages = rcsaJourneyStages(value);
+  expect(stages.find((stage) => stage.id === "CHALLENGE")).toMatchObject({ state: "UNAVAILABLE", status: "Unavailable" });
+  expect(stages.find((stage) => stage.id === "DECISION")).toMatchObject({ state: "UNAVAILABLE", status: "Unavailable" });
+  expect(stages.find((stage) => stage.id === "REMEDIATION")).toMatchObject({ state: "NOT_STARTED", status: "Not started" });
+});
