@@ -1,16 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import type { DomainMetricBundle } from "../../metricApi";
 import { RiskMovement } from "./RiskMovement";
-
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-10-07T12:00:00Z"));
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 function bundle(value = 14): DomainMetricBundle {
   return {
@@ -61,6 +52,7 @@ it("compares current scoped Risk posture to the exact historical day", async () 
     organizationScopeID="technology"
     loadOrganizationTrend={loadOrganizationTrend}
     loadLegalEntityTrend={loadLegalEntityTrend}
+    now={new Date("2026-10-07T12:00:00Z")}
   />);
 
   await waitFor(() => expect(loadOrganizationTrend).toHaveBeenCalledWith(
@@ -92,6 +84,7 @@ it("does not claim direction without an exact complete baseline", async () => {
     bundle={bundle()}
     organizationScopeID="technology"
     loadOrganizationTrend={loadOrganizationTrend}
+    now={new Date("2026-10-07T12:00:00Z")}
   />);
 
   expect(await screen.findByText("No comparable history")).toBeTruthy();
@@ -117,6 +110,7 @@ it("forces a daily legal-entity series for the seven-day comparison", async () =
   render(<RiskMovement
     bundle={{ ...bundle(), scope_id: "bank-ng", scope_kind: "LEGAL_ENTITY" }}
     loadLegalEntityTrend={loadLegalEntityTrend}
+    now={new Date("2026-10-07T12:00:00Z")}
   />);
 
   fireEvent.click(screen.getByRole("button", { name: "7d" }));
