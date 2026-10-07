@@ -113,23 +113,33 @@ export function RiskMovement({
       && (current.unknown ?? 0) === 0;
     const comparable = Boolean(baseline?.complete && currentComplete);
 
-    const chartPoints: MetricTrendDatum[] = relevant.map((point) => ({
-      id: point.id,
-      at: point.at,
-      label: shortDate(point.at),
-      value: point.value,
-    }));
-    chartPoints.push({
-      id: `current-${bundle.source_id}`,
-      at: bundle.generated_at,
-      label: "Now",
-      value: current.value,
-    });
+    const reliable = relevant.filter((point) => point.complete);
+    const first = reliable[0];
+    const last = reliable[reliable.length - 1];
+    const observedSpan = first && last ? Date.parse(last.at) - Date.parse(first.at) : 0;
+    const canPlot = currentComplete
+      && (Boolean(baseline?.complete) || (reliable.length >= 2 && observedSpan >= 7 * 24 * 60 * 60 * 1000));
+
+    const chartPoints: MetricTrendDatum[] = canPlot
+      ? [
+        ...reliable.map((point) => ({
+          id: point.id,
+          at: point.at,
+          label: shortDate(point.at),
+          value: point.value,
+        })),
+        {
+          id: `current-${bundle.source_id}`,
+          at: bundle.generated_at,
+          label: "Now",
+          value: current.value,
+        },
+      ]
+      : [];
 
     return {
       chartPoints,
       comparison: comparisonLabel(current.value, baseline?.value, range, comparable),
-      baselineValue: comparable ? baseline?.value : undefined,
       currentValue: current.value,
     };
   }, [bundle, current, legalTrend, nowMs, organizationTrend, range]);
@@ -158,7 +168,7 @@ export function RiskMovement({
 
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading risk movement…</p>}
     {(state === "missing" || state === "unavailable") && <p className="risk-movement__empty">No comparable history yet.</p>}
-    {state === "live" && model && <MetricTrend
+    {state === "live" && model && model.chartPoints.length >= 2 && <MetricTrend
       ariaLabel={`Outside-appetite risk movement for the last ${range} days`}
       points={model.chartPoints}
     />}
