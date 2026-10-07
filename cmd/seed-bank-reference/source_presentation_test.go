@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -160,7 +161,7 @@ func TestSourceV2UniformRegistersUseOneFormWithRecordResponses(t *testing.T) {
 	}
 	for i := range group.Records {
 		group.Records[i] = sourceRecord{
-			Key: "branch-key", Title: "Row 14",
+			Key: fmt.Sprintf("branch-%d", i), Title: "Row 14",
 			Fields: []sourceRecordField{
 				{Label: "Directorate", Value: "North"},
 				{Label: "Region", Value: "Region A"},
@@ -181,5 +182,16 @@ func TestSourceV2UniformRegistersUseOneFormWithRecordResponses(t *testing.T) {
 	group.Records[14].Fields[3].Value = ""
 	if !sourceNormalizePresentation(group).ResponsePerRecord {
 		t.Fatal("unanswered branch cells must not be mistaken for schema changes")
+	}
+	for i := range group.Records {
+		group.Records[i].SourceRange = fmt.Sprintf("Sheet1!A%d:C%d", i+2, i+2)
+	}
+	group.ProgramCode = "OPS-RESILIENCE"
+	if err := sourceValidateV2Group(group); err != nil {
+		t.Fatalf("legitimate V2 source must validate: %v", err)
+	}
+	group.Records[1].Key = group.Records[0].Key
+	if err := sourceValidateV2Group(group); err == nil {
+		t.Fatal("duplicate source keys must not collapse multiple responses into one")
 	}
 }
