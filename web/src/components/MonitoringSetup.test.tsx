@@ -170,7 +170,7 @@ describe("monitoring setup", () => {
 
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1" canConfigureSources operations={[]}/>);
 
-    expect(await screen.findByText("100 concern points")).toBeTruthy();
+    expect(await screen.findByText("100 / 100 concern points")).toBeTruthy();
     expect(screen.getByText("100% coverage")).toBeTruthy();
     expect(screen.getByText("Critical")).toBeTruthy();
     fireEvent.click(screen.getByText("Review result"));
