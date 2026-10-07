@@ -166,10 +166,10 @@ export function RiskMovement({
       <span>{model.comparison}</span>
     </div>}
 
-    {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading risk movement…</p>}
+    {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading risk trend…</p>}
     {(state === "missing" || state === "unavailable") && <p className="risk-movement__empty">No comparable history yet.</p>}
     {state === "live" && model && model.chartPoints.length >= 2 && <MetricTrend
-      ariaLabel={`Outside-appetite risk movement for the last ${range} days`}
+      ariaLabel={`Outside-appetite risk trend for the last ${range} days`}
       points={model.chartPoints}
     />}
   </section>;
