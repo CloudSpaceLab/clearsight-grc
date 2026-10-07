@@ -128,16 +128,7 @@ func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 	labels := a.exactAssessmentLabels(r.Context(), actor, actor.LegalEntityID, []string{value.Cycle.FirstLineOwnerID})
 	requestID, periodStart, periodEnd, firstLineComplete := a.rcsaFirstLineContext(r.Context(), value.Cycle)
 	phase, phaseComplete := a.rcsaCyclePhaseContext(r.Context(), value.Cycle)
-	handoff := rcsaCycleHandoff(value.Cycle, requestID)
-	if strings.TrimSpace(value.Cycle.ChallengeMatterID) != "" && !phaseComplete {
-		handoff.TargetType = ""
-		handoff.TargetID = ""
-		if value.Cycle.Status == rcsa.StatusCompleted {
-			handoff.Label = "Completed · challenge context unavailable"
-		} else {
-			handoff.Label = "Independent challenge context unavailable"
-		}
-	}
+	handoff := rcsaCycleDetailHandoff(value.Cycle, requestID, phaseComplete)
 	httpx.WriteJSON(w, http.StatusOK, rcsaCycleDetailRead{
 		Cycle:                     value.Cycle,
 		Risks:                     value.Risks,
@@ -325,6 +316,21 @@ func rcsaChallengeDecisionFinal(status continuity.DecisionStatus) bool {
 	default:
 		return false
 	}
+}
+
+func rcsaCycleDetailHandoff(cycle rcsa.Cycle, firstLineRequestID string, challengeContextComplete bool) rcsaHandoffRead {
+	value := rcsaCycleHandoff(cycle, firstLineRequestID)
+	if strings.TrimSpace(cycle.ChallengeMatterID) == "" || challengeContextComplete {
+		return value
+	}
+	value.TargetType = ""
+	value.TargetID = ""
+	if cycle.Status == rcsa.StatusCompleted {
+		value.Label = "Completed · challenge context unavailable"
+	} else {
+		value.Label = "Independent challenge context unavailable"
+	}
+	return value
 }
 
 func rcsaCycleSummaryHandoff(cycle rcsa.Cycle) rcsaHandoffRead {
