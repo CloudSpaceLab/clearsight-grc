@@ -2,7 +2,7 @@ package oversight
 
 import "time"
 
-const GroupProjectionVersion = "group-oversight-v1"
+const GroupProjectionVersion = "group-oversight-v2"
 
 type GroupChildState string
 
@@ -11,6 +11,12 @@ const (
 	GroupChildStale     GroupChildState = "STALE"
 	GroupChildMissing   GroupChildState = "MISSING"
 )
+
+type GroupDomainPosture struct {
+	RisksOutsideAppetite int `json:"risks_outside_appetite"`
+	IndicatorBreaches    int `json:"indicator_breaches"`
+	AssuranceFailures    int `json:"assurance_failures"`
+}
 
 type GroupChildFact struct {
 	LegalEntityID          string
@@ -24,6 +30,12 @@ type GroupChildFact struct {
 	Coverage               Coverage
 	Counts                 Counts
 	SourceHighWater        map[string]time.Time
+	DomainState            GroupChildState
+	DomainSourceID         string
+	DomainGeneratedAt      *time.Time
+	DomainDefinitionRevision string
+	DomainPosture          GroupDomainPosture
+	DomainSourceHighWater  map[string]time.Time
 }
 
 type GroupProjection struct {
@@ -59,6 +71,12 @@ type GroupChildSummary struct {
 	Coverage               Coverage             `json:"coverage"`
 	Counts                 Counts               `json:"counts"`
 	SourceHighWater        map[string]time.Time `json:"source_high_water,omitempty"`
+	DomainState            GroupChildState      `json:"domain_state"`
+	DomainSourceID         string               `json:"domain_source_id,omitempty"`
+	DomainGeneratedAt      *time.Time           `json:"domain_generated_at,omitempty"`
+	DomainDefinitionRevision string             `json:"domain_definition_revision,omitempty"`
+	DomainPosture          GroupDomainPosture   `json:"domain_posture"`
+	DomainSourceHighWater  map[string]time.Time `json:"domain_source_high_water,omitempty"`
 }
 
 type GroupSnapshot struct {
@@ -66,8 +84,11 @@ type GroupSnapshot struct {
 	GeneratedAt       time.Time           `json:"generated_at"`
 	ProjectionVersion string              `json:"projection_version"`
 	Freshness         Freshness           `json:"freshness"`
+	PostureFreshness  Freshness           `json:"posture_freshness"`
 	Coverage          GroupCoverage       `json:"coverage"`
 	RecordCoverage    Coverage            `json:"record_coverage"`
+	PostureCoverage   GroupCoverage       `json:"posture_coverage"`
+	Posture           GroupDomainPosture  `json:"posture"`
 	Counts            Counts              `json:"counts"`
 	Children          []GroupChildSummary `json:"children"`
 }
