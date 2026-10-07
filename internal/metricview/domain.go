@@ -77,8 +77,5 @@ func metricDefinition(id string) (Definition, bool) {
 	if definition, ok := HomeDefinition(id); ok {
 		return definition, true
 	}
-	if definition, ok := DomainDefinition(id); ok {
-		return definition, true
-	}
-	return LossPeriodDefinition(id)
+	return DomainDefinition(id)
 }
