@@ -48,24 +48,27 @@ func TestLossPeriodMetricsBindsAuthorizedScopeAndPeriod(t *testing.T) {
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	start := today.Add(-30 * 24 * time.Hour)
 	reader := &lossPeriodReaderStub{bundle: metricview.LossPeriodBundle{
-		GeneratedAt: now, PeriodStart: start, PeriodEnd: now,
-		ScopeID: "scope-ops", ScopeKind: "ORGANIZATION_SCOPE",
-		SourceID: "8f780000-0000-4000-8000-000000000001",
-		SourceRevision: metricview.LossPeriodSourceRevision,
-		DefinitionRevision: metricview.LossPeriodDefinitionRevision,
-		EventCount: 3,
+		GeneratedAt:           now,
+		PeriodStart:           start,
+		PeriodEnd:             now,
+		ScopeID:               "scope-ops",
+		ScopeKind:             "ORGANIZATION_SCOPE",
+		SourceID:              "8f780000-0000-4000-8000-000000000001",
+		SourceRevision:        metricview.LossPeriodSourceRevision,
+		DefinitionRevision:    metricview.LossPeriodDefinitionRevision,
+		EventCount:            3,
 		ContributingLossCount: 4,
 		Currencies: []metricview.LossCurrencyFlow{{
 			Currency: "NGN",
-			Gross: metricview.MoneyValue{MinorUnits: "1500", Currency: "NGN"},
+			Gross:    metricview.MoneyValue{MinorUnits: "1500", Currency: "NGN"},
 			Recovery: metricview.MoneyValue{MinorUnits: "500", Currency: "NGN"},
 			Reversal: metricview.MoneyValue{MinorUnits: "50", Currency: "NGN"},
-			Net: metricview.MoneyValue{MinorUnits: "1050", Currency: "NGN"},
+			Net:      metricview.MoneyValue{MinorUnits: "1050", Currency: "NGN"},
 		}},
 	}}
 	resolver := &exactOrganizationScopeResolverStub{selection: runtimecontext.OrganizationScopeSelection{
 		Node: runtimecontext.ScopeNode{ID: "scope-ops", Filterable: true},
-		IDs: []string{"scope-ops", "scope-branch"},
+		IDs:  []string{"scope-ops", "scope-branch"},
 	}}
 	api := &API{deps: Dependencies{LossPeriodMetrics: reader, RuntimeContext: resolver}}
 	request := httptest.NewRequest(
