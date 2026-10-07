@@ -214,6 +214,7 @@ it("keeps Attention and My work isolated while preserving their actions", async 
   await screen.findByRole("heading", { name: "Home" });
   expect(screen.getByRole("heading", { name: "Priority interventions" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
+  expect(metricApi.loadDomainMetrics).not.toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /Overdue.*4/i }));
   expect(onMetricFilterChange).toHaveBeenCalledWith("overdue");
