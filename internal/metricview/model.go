@@ -13,7 +13,22 @@ const (
 
 type MetricBasis string
 
-const MetricBasisCurrentPosture MetricBasis = "CURRENT_POSTURE"
+const (
+	MetricBasisCurrentPosture MetricBasis = "CURRENT_POSTURE"
+	MetricBasisPeriodFlow     MetricBasis = "PERIOD_FLOW"
+)
+
+type MetricUnit string
+
+const (
+	MetricUnitCount MetricUnit = "COUNT"
+	MetricUnitMoney MetricUnit = "MONEY"
+)
+
+type MoneyValue struct {
+	MinorUnits string `json:"minor_units"`
+	Currency   string `json:"currency"`
+}
 
 type Completeness string
 
@@ -28,6 +43,7 @@ type Condition string
 const (
 	ConditionClear     Condition = "CLEAR"
 	ConditionAttention Condition = "ATTENTION"
+	ConditionNeutral   Condition = "NEUTRAL"
 )
 
 type DrillConsistency string
@@ -50,7 +66,7 @@ type Metric struct {
 	ID                 string              `json:"id"`
 	Label              string              `json:"label"`
 	Value              int                 `json:"value"`
-	Unit               string              `json:"unit"`
+	Unit               MetricUnit          `json:"unit"`
 	Condition          Condition           `json:"condition"`
 	Freshness          oversight.Freshness `json:"freshness"`
 	Completeness       Completeness        `json:"completeness"`
