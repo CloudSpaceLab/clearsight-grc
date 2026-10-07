@@ -108,7 +108,7 @@ function GroupPostureCoverageNotice({ value, metric }: { value: GroupPostureBund
   return <p className="group-oversight-quality">{coverage.authorized_children} OpCos · current {label.toLowerCase()}</p>;
 }
 
-function groupPostureCoverage(value: GroupPostureBundle, metric: GroupPostureMetric) {
+export function groupPostureCoverage(value: GroupPostureBundle, metric: GroupPostureMetric) {
   return metric === "loss_events" ? value.loss_coverage : value.risk_coverage;
 }
 
@@ -140,7 +140,7 @@ function groupPostureTone(
   if (quality !== "current") return "neutral";
   if (metric === "loss_events") return "neutral";
   if (value === 0) return "success";
-  if (metric === "indicator_breaches" || metric === "loss_events") return "warning";
+  if (metric === "indicator_breaches") return "warning";
   return "error";
 }
 
