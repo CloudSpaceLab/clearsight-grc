@@ -2,7 +2,7 @@ import type { CoverageDecision, DocumentCoverage, DocumentImport, ProposalStatus
 import staticDemoFixturesURL from "./staticDemoFixtures.json?url";
 import staticDemoWorkflowRuntimeURL from "./staticDemoWorkflowRuntime.js?url";
 import type { FormTemplate } from "./monitoringTypes";
-import { sampleRCSADetail, sampleRCSAPage } from "./rcsaEvidenceData";
+import { sampleRCSADetail, sampleRCSAFirstLineDetail, sampleRCSAPage } from "./rcsaEvidenceData";
 import { sampleATMIndicatorHistory, sampleIndicatorHistory, sampleIndicatorInsightsPage } from "./indicatorEvidenceData";
 import { vendorDueDiligenceStarterForm } from "./vendorDueDiligenceForm";
 import type { VendorAssessment, VendorAssessmentRequestSummary, VendorAssessmentReviewAnswer, VendorAssessmentReviewView, VendorAssessmentSendOutcome } from "./vendorAssessmentTypes";
@@ -1023,6 +1023,9 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   }
   if (fixture === "rcsa-cycles" && pathname === "/api/v1/rcsa/cycles/cycle-rcsa-1" && method === "GET") {
     return clone(sampleRCSADetail) as T;
+  }
+  if (fixture === "rcsa-cycles" && pathname === "/api/v1/rcsa/cycles/cycle-rcsa-2" && method === "GET") {
+    return clone(sampleRCSAFirstLineDetail) as T;
   }
 
   if ((fixture === "indicator-insights" || fixture === "matter-indicator-context") && pathname === "/api/v1/risk-indicators" && method === "GET") {
