@@ -86,7 +86,7 @@ func TestRCSASemanticPhaseDistinguishesGovernedCyclePaths(t *testing.T) {
 		{name: "collection draft", cycle: rcsa.Cycle{Status: rcsa.StatusDraft}, stage: "COLLECTION", label: "First-line collection"},
 		{name: "collection open", cycle: rcsa.Cycle{Status: rcsa.StatusAssessmentOpen}, stage: "COLLECTION", label: "First-line collection"},
 		{name: "independent challenge", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge}, challenge: &continuity.MatterAggregate{
-			Matter: continuity.Matter{Status: continuity.MatterDecisionRequired},
+			Matter:    continuity.Matter{Status: continuity.MatterDecisionRequired},
 			Decisions: []continuity.Decision{{Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionInReview}},
 		}, stage: "INDEPENDENT_CHALLENGE", label: "Independent challenge"},
 		{name: "risk acceptance", cycle: rcsa.Cycle{Status: rcsa.StatusCompleted}, challenge: &accepted, stage: "RISK_ACCEPTANCE", label: "Risk acceptance"},
