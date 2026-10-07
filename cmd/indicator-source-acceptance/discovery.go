@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/itgovernance"
@@ -40,6 +41,7 @@ type acceptanceBindingCandidate struct {
 func discoverAcceptanceBinding(
 	ctx context.Context,
 	tenantID, legalEntityID, requestedBindingID string,
+	at time.Time,
 	sources acceptanceSourceLister,
 	catalog acceptanceCatalogReader,
 ) (acceptanceBindingCandidate, error) {
@@ -47,6 +49,10 @@ func discoverAcceptanceBinding(
 		return acceptanceBindingCandidate{}, fmt.Errorf("tenant, legal entity, source lister and catalog are required")
 	}
 	requestedBindingID = strings.TrimSpace(requestedBindingID)
+	at = at.UTC()
+	if at.IsZero() {
+		return acceptanceBindingCandidate{}, fmt.Errorf("acceptance time is required")
+	}
 	candidates := make([]acceptanceBindingCandidate, 0, 2)
 	cursor := ""
 	seenSources := 0
@@ -70,7 +76,7 @@ func discoverAcceptanceBinding(
 				return acceptanceBindingCandidate{}, fmt.Errorf("list current source connections: %w", err)
 			}
 			for _, connection := range connections {
-				if connection.Status != sourceaccess.RevisionActive || !connection.IsCurrent {
+				if !acceptanceRevisionEffective(connection.Status, connection.IsCurrent, connection.EffectiveFrom, connection.EffectiveUntil, at) {
 					continue
 				}
 				views, err := catalog.ListCurrentViews(ctx, tenantID, connection.ConnectionID, acceptanceCatalogLimit)
@@ -78,7 +84,7 @@ func discoverAcceptanceBinding(
 					return acceptanceBindingCandidate{}, fmt.Errorf("list current source views: %w", err)
 				}
 				for _, view := range views {
-					if view.Status != sourceaccess.RevisionActive || !view.IsCurrent || view.ConnectionID != connection.ConnectionID {
+					if !acceptanceRevisionEffective(view.Status, view.IsCurrent, view.EffectiveFrom, view.EffectiveUntil, at) || view.ConnectionID != connection.ConnectionID {
 						continue
 					}
 					bindings, err := catalog.ListCurrentBindings(ctx, tenantID, view.ViewID, acceptanceCatalogLimit)
@@ -86,7 +92,7 @@ func discoverAcceptanceBinding(
 						return acceptanceBindingCandidate{}, fmt.Errorf("list current source bindings: %w", err)
 					}
 					for _, binding := range bindings {
-						if binding.Status != sourceaccess.RevisionActive || !binding.IsCurrent ||
+						if !acceptanceRevisionEffective(binding.Status, binding.IsCurrent, binding.EffectiveFrom, binding.EffectiveUntil, at) ||
 							binding.ViewID != view.ViewID ||
 							strings.TrimSpace(binding.Purpose) != itgovernance.PurposeChannelPerformance {
 							continue
@@ -117,4 +123,11 @@ func discoverAcceptanceBinding(
 		return acceptanceBindingCandidate{}, errAmbiguousAcceptanceBinding
 	}
 	return candidates[0], nil
+}
+
+func acceptanceRevisionEffective(status sourceaccess.RevisionStatus, current bool, from, until *time.Time, at time.Time) bool {
+	if status != sourceaccess.RevisionActive || !current || from == nil || at.Before(from.UTC()) {
+		return false
+	}
+	return until == nil || at.Before(until.UTC())
 }
