@@ -36,9 +36,9 @@ func TestGroupServiceAggregatesOnlyAuthorizedChildrenAndKeepsIncompleteCoverage(
 		ID: "group-run-1", TenantID: "bank", GeneratedAt: now, ProjectionVersion: GroupProjectionVersion,
 		ActiveChildCount: 4, CapturedChildCount: 3, MissingChildCount: 1, StaleChildCount: 1,
 		Children: []GroupChildFact{
-			{LegalEntityID: "entity-a", LegalEntityCode: "A", LegalEntityName: "A", State: GroupChildAvailable, ChildSnapshotID: "snapshot-a", ChildGeneratedAt: timePtr(now.Add(-2 * time.Minute)), ChildProjectionVersion: ProjectionVersion, Coverage: Coverage{Population: 10, Excluded: &excluded, Unknown: &unknown}, Counts: Counts{CriticalHigh: 2, Overdue: 1}},
-			{LegalEntityID: "entity-b", LegalEntityCode: "B", LegalEntityName: "B", State: GroupChildStale, ChildSnapshotID: "snapshot-b", ChildGeneratedAt: timePtr(now.Add(-30 * time.Minute)), ChildProjectionVersion: ProjectionVersion, Coverage: Coverage{Population: 20, Excluded: intPtr(0), Unknown: intPtr(1)}, Counts: Counts{CriticalHigh: 3, DueSoon: 4}},
-			{LegalEntityID: "entity-c", LegalEntityCode: "C", LegalEntityName: "Restricted sibling", State: GroupChildAvailable, ChildSnapshotID: "snapshot-c", ChildGeneratedAt: timePtr(now), ChildProjectionVersion: ProjectionVersion, Coverage: Coverage{Population: 999}, Counts: Counts{CriticalHigh: 999}},
+			{LegalEntityID: "entity-a", LegalEntityCode: "A", LegalEntityName: "A", State: GroupChildAvailable, ChildSnapshotID: "snapshot-a", ChildGeneratedAt: timePtr(now.Add(-2 * time.Minute)), ChildProjectionVersion: ProjectionVersion, Coverage: Coverage{Population: 10, Excluded: &excluded, Unknown: &unknown}, Counts: Counts{CriticalHigh: 2, Overdue: 1}, DomainState: GroupChildAvailable, DomainSourceID: "domain-a", DomainGeneratedAt: timePtr(now.Add(-2 * time.Minute)), DomainDefinitionRevision: GroupDomainDefinitionRevision, DomainPosture: GroupDomainPosture{RisksOutsideAppetite: 7, IndicatorBreaches: 2, AssuranceFailures: 1}},
+			{LegalEntityID: "entity-b", LegalEntityCode: "B", LegalEntityName: "B", State: GroupChildStale, ChildSnapshotID: "snapshot-b", ChildGeneratedAt: timePtr(now.Add(-30 * time.Minute)), ChildProjectionVersion: ProjectionVersion, Coverage: Coverage{Population: 20, Excluded: intPtr(0), Unknown: intPtr(1)}, Counts: Counts{CriticalHigh: 3, DueSoon: 4}, DomainState: GroupChildStale, DomainSourceID: "domain-b", DomainGeneratedAt: timePtr(now.Add(-30 * time.Minute)), DomainDefinitionRevision: GroupDomainDefinitionRevision, DomainPosture: GroupDomainPosture{RisksOutsideAppetite: 3, IndicatorBreaches: 1, AssuranceFailures: 2}},
+			{LegalEntityID: "entity-c", LegalEntityCode: "C", LegalEntityName: "Restricted sibling", State: GroupChildAvailable, ChildSnapshotID: "snapshot-c", ChildGeneratedAt: timePtr(now), ChildProjectionVersion: ProjectionVersion, Coverage: Coverage{Population: 999}, Counts: Counts{CriticalHigh: 999}, DomainState: GroupChildAvailable, DomainSourceID: "domain-c", DomainGeneratedAt: timePtr(now), DomainDefinitionRevision: GroupDomainDefinitionRevision, DomainPosture: GroupDomainPosture{RisksOutsideAppetite: 999, IndicatorBreaches: 999, AssuranceFailures: 999}},
 			{LegalEntityID: "entity-d", LegalEntityCode: "D", LegalEntityName: "D", State: GroupChildMissing},
 		},
 	}}
@@ -68,6 +68,14 @@ func TestGroupServiceAggregatesOnlyAuthorizedChildrenAndKeepsIncompleteCoverage(
 	if value.Counts.CriticalHigh != 5 || value.Counts.Overdue != 1 || value.Counts.DueSoon != 4 {
 		t.Fatalf("group counts = %#v", value.Counts)
 	}
+	if value.Posture.RisksOutsideAppetite != 10 || value.Posture.IndicatorBreaches != 3 || value.Posture.AssuranceFailures != 3 {
+		t.Fatalf("group posture = %#v", value.Posture)
+	}
+	if value.PostureCoverage.AuthorizedChildren != 3 || value.PostureCoverage.IncludedChildren != 2 ||
+		value.PostureCoverage.MissingChildren != 1 || value.PostureCoverage.StaleChildren != 1 || value.PostureCoverage.Complete ||
+		value.PostureFreshness != FreshnessStale {
+		t.Fatalf("group posture coverage=%#v freshness=%s", value.PostureCoverage, value.PostureFreshness)
+	}
 	if value.RecordCoverage.Population != 30 || value.RecordCoverage.Excluded != nil || value.RecordCoverage.Unknown != nil {
 		t.Fatalf("record coverage = %#v", value.RecordCoverage)
 	}
@@ -75,7 +83,7 @@ func TestGroupServiceAggregatesOnlyAuthorizedChildrenAndKeepsIncompleteCoverage(
 		t.Fatalf("authorized children = %#v", value.Children)
 	}
 	for _, child := range value.Children {
-		if child.LegalEntityID == "entity-c" || child.Counts.CriticalHigh == 999 {
+		if child.LegalEntityID == "entity-c" || child.Counts.CriticalHigh == 999 || child.DomainPosture.RisksOutsideAppetite == 999 {
 			t.Fatalf("restricted sibling leaked into group snapshot: %#v", child)
 		}
 	}
