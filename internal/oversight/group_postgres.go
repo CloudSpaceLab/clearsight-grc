@@ -50,7 +50,9 @@ func (r *PostgresRepository) LatestGroup(ctx context.Context, tenantID string) (
 	rows, err := r.pool.Query(ctx, `
 		SELECT legal_entity_id::text,legal_entity_code,legal_entity_name,jurisdiction,state,
 		       COALESCE(child_snapshot_id::text,''),child_generated_at,COALESCE(child_projection_version,''),
-		       coverage_population,coverage_excluded,coverage_unknown,counts,source_high_water
+		       coverage_population,coverage_excluded,coverage_unknown,counts,source_high_water,
+		       domain_state,COALESCE(domain_source_id::text,''),domain_generated_at,
+		       COALESCE(domain_definition_revision,''),domain_posture,domain_source_high_water
 		FROM group_oversight_child_facts
 		WHERE run_id=$1::uuid
 		ORDER BY lower(legal_entity_name),legal_entity_id`, value.ID)
@@ -151,7 +153,10 @@ func (r *PostgresRepository) buildGroupProjection(ctx context.Context, tenantID 
 		SELECT tenant.id::text,entity.id::text,entity.code,entity.name,COALESCE(entity.jurisdiction,''),
 		       snapshot.id::text,snapshot.generated_at,snapshot.projection_version,
 		       snapshot.source_high_water,snapshot.coverage_population,snapshot.coverage_excluded,
-		       snapshot.coverage_unknown,snapshot.payload
+		       snapshot.coverage_unknown,snapshot.payload,
+		       domain_source.id::text,domain_source.generated_at,domain_source.definition_revision,
+		       domain_source.source_high_water,domain_source.risks_outside_appetite,
+		       domain_source.indicator_breaches,domain_source.assurance_failures
 		FROM selected_tenant tenant
 		JOIN legal_entities entity ON entity.tenant_id=tenant.id
 		LEFT JOIN LATERAL (
@@ -164,9 +169,31 @@ func (r *PostgresRepository) buildGroupProjection(ctx context.Context, tenantID 
 			ORDER BY value.generated_at DESC,value.id DESC
 			LIMIT 1
 		) snapshot ON true
+		LEFT JOIN LATERAL (
+		    SELECT source.id,source.generated_at,source.definition_revision,source.source_high_water,
+		           max(observation.value) FILTER (WHERE observation.metric_id='risks_outside_appetite')::bigint AS risks_outside_appetite,
+		           max(observation.value) FILTER (WHERE observation.metric_id='indicator_breaches')::bigint AS indicator_breaches,
+		           max(observation.value) FILTER (WHERE observation.metric_id='assurance_failures')::bigint AS assurance_failures
+		    FROM domain_metric_snapshots source
+		    JOIN metric_observations observation
+		      ON observation.tenant_id=source.tenant_id
+		     AND observation.legal_entity_id=source.legal_entity_id
+		     AND observation.source_kind='DOMAIN_SNAPSHOT'
+		     AND observation.source_id=source.id
+		     AND observation.definition_revision=source.definition_revision
+		    WHERE source.tenant_id=tenant.id
+		      AND source.legal_entity_id=entity.id
+		      AND source.definition_revision=$3
+		      AND source.generated_at<=$2
+		      AND observation.metric_id IN ('risks_outside_appetite','indicator_breaches','assurance_failures')
+		    GROUP BY source.id,source.generated_at,source.definition_revision,source.source_high_water
+		    HAVING count(DISTINCT observation.metric_id)=3
+		    ORDER BY source.generated_at DESC,source.id DESC
+		    LIMIT 1
+		) domain_source ON true
 		WHERE entity.valid_from<=$2
 		  AND (entity.valid_until IS NULL OR $2<entity.valid_until)
-		ORDER BY entity.id`, tenantID, now)
+		ORDER BY entity.id`, tenantID, now, GroupDomainDefinitionRevision)
 	if err != nil {
 		return GroupProjection{}, err
 	}
