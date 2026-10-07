@@ -186,7 +186,7 @@ describe("GroupOversightWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "90 days" }));
 
     expect(screen.queryByRole("button", { name: /Outside appetite: 9/ })).toBeNull();
-    expect(screen.getByRole("article", { name: /Outside appetite: —.*Loading/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Outside appetite: —.*Loading/ })).toBeTruthy();
 
     const next = postureFixture();
     next.counts.risks_outside_appetite = 12;
