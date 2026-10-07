@@ -171,11 +171,9 @@ export function OversightWorkspace({
   async function load(period = activePeriod) {
     setState("loading");
     setMetricState("loading");
-    setDomainState("loading");
-    const [snapshotResult, metricResult, domainResult] = await Promise.allSettled([
+    const [snapshotResult, metricResult] = await Promise.allSettled([
       loadSnapshot(period, organizationScopeID),
       loadMetrics(period, organizationScopeID),
-      loadDomainPosture(organizationScopeID),
     ]);
     if (snapshotResult.status === "fulfilled") {
       setSnapshot(snapshotResult.value);
@@ -191,16 +189,25 @@ export function OversightWorkspace({
       setMetrics(null);
       setMetricState("unavailable");
     }
-    if (domainResult.status === "fulfilled") {
-      setDomainMetrics(domainResult.value);
-      setDomainState("live");
-    } else {
-      setDomainMetrics(null);
-      setDomainState("unavailable");
-    }
   }
 
   useEffect(() => { void load(); }, [organizationScopeID, refreshToken]);
+
+  useEffect(() => {
+    if (selectedHomeTab !== "oversight") return;
+    const controller = new AbortController();
+    setDomainState("loading");
+    void loadDomainPosture(organizationScopeID, controller.signal).then((value) => {
+      if (controller.signal.aborted) return;
+      setDomainMetrics(value);
+      setDomainState("live");
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      setDomainMetrics(null);
+      setDomainState("unavailable");
+    });
+    return () => controller.abort();
+  }, [loadDomainPosture, organizationScopeID, refreshToken, selectedHomeTab]);
 
   async function changePeriod(period: ReportingPeriodQuery) {
     if (periodState === "changing") return;
