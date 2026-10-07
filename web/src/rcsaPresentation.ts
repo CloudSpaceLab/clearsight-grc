@@ -110,12 +110,12 @@ export function rcsaJourneyStages(detail: RCSACycleDetail): RCSAJourneyStage[] {
   }
 
   let remediation: RCSAJourneyStage;
-  if (!decisionFinal || !option) {
+  if (cycle.challenge_matter_id && (!detail.challenge_context_complete || !challenge)) {
+    remediation = { id: "REMEDIATION", label: "Remediation verification", state: "UNAVAILABLE", status: "Unavailable", detail: "Treatment state is not available to this view." };
+  } else if (!decisionFinal || !option) {
     remediation = { id: "REMEDIATION", label: "Remediation verification", state: "NOT_STARTED", status: "Not started", detail: "Remediation follows the final challenge decision when treatment is required." };
   } else if (option === "ACCEPT_FIRST_LINE") {
     remediation = { id: "REMEDIATION", label: "Remediation verification", state: "NOT_REQUIRED", status: "Not required", detail: "The independent challenge accepted the first-line assessment without required treatment." };
-  } else if (!detail.challenge_context_complete || !challenge) {
-    remediation = { id: "REMEDIATION", label: "Remediation verification", state: "UNAVAILABLE", status: "Unavailable", detail: "Treatment work exists but its current state is not available to this view." };
   } else if (challenge.failed_verification_count > 0) {
     remediation = { id: "REMEDIATION", label: "Remediation verification", state: "ATTENTION", status: "Verification failed", detail: "At least one current outcome check failed; follow-up work remains required." };
   } else if (challenge.inconclusive_verification_count > 0) {
