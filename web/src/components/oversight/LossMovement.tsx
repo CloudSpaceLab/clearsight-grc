@@ -25,8 +25,7 @@ export function LossMovement({ bundle, state }: Props) {
   return <section className="loss-movement" aria-labelledby="loss-movement-heading">
     <div className="section-header">
       <div>
-        <span className="eyebrow">What changed</span>
-        <h2 id="loss-movement-heading">Loss movement</h2>
+        <h2 id="loss-movement-heading">Loss trend</h2>
         <p>{mode === "money" ? "Net Loss flow across the selected period." : "Loss events across the selected period."}</p>
       </div>
     </div>
@@ -36,10 +35,10 @@ export function LossMovement({ bundle, state }: Props) {
       <span>{lossComparisonLabel(bundle)}</span>
     </div>}
 
-    {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading Loss movement…</p>}
-    {state === "unavailable" && <Notice tone="warning">Loss movement is unavailable for this period.</Notice>}
+    {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading loss trend…</p>}
+    {state === "unavailable" && <Notice tone="warning">Loss trend is unavailable for this period.</Notice>}
     {state === "live" && bundle && points.length > 0 && <MetricTrend
-      ariaLabel={mode === "money" ? "Net operational Loss movement" : "Operational Loss event movement"}
+      ariaLabel={mode === "money" ? "Net operational loss trend" : "Operational loss event trend"}
       points={points}
       gapThresholdMs={gapThresholdMs}
     />}

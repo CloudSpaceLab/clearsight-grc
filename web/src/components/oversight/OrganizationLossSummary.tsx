@@ -36,7 +36,6 @@ export function OrganizationLossSummary({ bundle, state, onOpenScope }: Props) {
   return <section className="organization-loss-summary" aria-labelledby="organization-loss-summary-heading">
     <div className="section-header">
       <div>
-        <span className="eyebrow">Where Loss is concentrated</span>
         <h2 id="organization-loss-summary-heading">Loss concentration</h2>
         <p>{bundle && lossPresentationMode(bundle) === "money" ? "Net Loss flow by area." : "Loss events by area; currencies stay separate."}</p>
       </div>
@@ -44,10 +43,10 @@ export function OrganizationLossSummary({ bundle, state, onOpenScope }: Props) {
 
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading Loss concentration…</p>}
     {state === "unavailable" && <Notice tone="warning">Loss concentration is unavailable for this period.</Notice>}
-    {state === "live" && bundle && bundle.event_count === 0 && bundle.contributing_loss_count === 0 && <EmptyState
-      population="Operational Loss flow in the selected period"
-      title="No Loss flow in this period"
-      description="No active Loss or recovery contributed to this scope during the selected period."
+    {state === "live" && bundle && bundle.event_count === 0 && bundle.contributing_loss_count === 0 && <EmptyState compact
+      population="No loss activity"
+      title="No loss activity"
+      description="No loss or recovery events in the selected period."
     />}
     {state === "live" && bundle && bundle.contributing_loss_count > 0 && <RankedBarList
       ariaLabel={lossPresentationMode(bundle) === "money"

@@ -47,3 +47,15 @@
   flex-wrap: wrap;
   gap: var(--cs-space-inline);
 }
+
+.cs-empty-state--compact {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: var(--cs-primitive-space-3) 0;
+  gap: var(--cs-primitive-space-2);
+}
+
+.cs-empty-state--compact .cs-empty-state__title {
+  font-size: var(--cs-primitive-font-size-18);
+}

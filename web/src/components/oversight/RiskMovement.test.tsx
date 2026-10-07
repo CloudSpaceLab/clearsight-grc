@@ -64,6 +64,7 @@ it("compares current scoped Risk posture to the exact historical day", async () 
   ));
   expect(await screen.findByText("+5 worse vs 30 days ago")).toBeTruthy();
   expect(screen.getByText("14 now")).toBeTruthy();
+  expect(screen.getByRole("img", { name: /Outside-appetite risk trend/ })).toBeTruthy();
   expect(loadLegalEntityTrend).not.toHaveBeenCalled();
 });
 
@@ -88,6 +89,36 @@ it("does not claim direction without an exact complete baseline", async () => {
   />);
 
   expect(await screen.findByText("No comparable history")).toBeTruthy();
+  expect(screen.queryByRole("img", { name: /Outside-appetite risk trend/ })).toBeNull();
+});
+
+it("does not plot a flat zero trend from only two recent observations", async () => {
+  const loadOrganizationTrend = vi.fn().mockResolvedValue({
+    metric_id: "risks_outside_appetite",
+    definition_revision: "enterprise-domain-v1",
+    organization_scope_id: "technology",
+    start: "2026-09-07T00:00:00Z",
+    end: "2026-10-07T12:00:00Z",
+    resolution: "DAY",
+    points: [
+      { date: "2026-10-05", at: "2026-10-05T23:55:00Z", value: 0, source_revision: "enterprise-domain-v1", source_complete: true },
+      { date: "2026-10-06", at: "2026-10-06T23:55:00Z", value: 0, source_revision: "enterprise-domain-v1", source_complete: true },
+    ],
+  });
+
+  render(<RiskMovement
+    bundle={bundle(0)}
+    organizationScopeID="technology"
+    loadOrganizationTrend={loadOrganizationTrend}
+    now={new Date("2026-10-07T12:00:00Z")}
+  />);
+
+  await waitFor(() => expect(screen.queryByText("Loading risk trend…")).toBeNull());
+  expect(screen.getByText("No comparable history")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Risk trend" })).toBeTruthy();
+  expect(screen.getByText("0 now")).toBeTruthy();
+  expect(screen.queryByRole("img", { name: /Outside-appetite risk trend/ })).toBeNull();
+  expect(screen.queryByText("What changed")).toBeNull();
 });
 
 it("forces a daily legal-entity series for the seven-day comparison", async () => {

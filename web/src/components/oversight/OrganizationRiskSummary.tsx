@@ -63,6 +63,10 @@ export function OrganizationRiskSummary({
   }, [bundle, loadBreakdown, metric, organizationScopeID]);
 
   const displayItems = useMemo(() => compactBuckets(value?.items ?? []), [value?.items]);
+  const coverageComplete = metric?.freshness === "CURRENT"
+    && metric.completeness === "COMPLETE"
+    && (metric.excluded ?? 0) === 0
+    && (metric.unknown ?? 0) === 0;
   const rankedItems = useMemo<RankedBarItem[]>(() => displayItems.map((item) => ({
     id: item.key,
     label: item.label,
@@ -75,7 +79,6 @@ export function OrganizationRiskSummary({
   return <section className="organization-risk-summary" aria-labelledby="organization-risk-summary-heading">
     <div className="section-header">
       <div>
-        <span className="eyebrow">Where risk is concentrated</span>
         <h2 id="organization-risk-summary-heading">Risk concentration</h2>
         <p>Outside-appetite risks by area.</p>
       </div>
@@ -83,10 +86,12 @@ export function OrganizationRiskSummary({
 
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading risk concentration…</p>}
     {state === "unavailable" && <Notice tone="warning">Risk concentration is unavailable for this scope.</Notice>}
-    {state === "live" && value?.count === 0 && <EmptyState
-      population="Current outside-appetite risk population"
-      title="No outside-appetite risks"
-      description="No current risk in this scope is outside appetite."
+    {state === "live" && value?.count === 0 && <EmptyState compact
+      population={coverageComplete ? "No risks outside appetite" : "No identified appetite breaches"}
+      title={coverageComplete ? "No risks outside appetite" : "No identified appetite breaches"}
+      description={coverageComplete
+        ? "No current risks exceed approved appetite."
+        : "Risk coverage is incomplete; some assessments may be missing."}
     />}
     {state === "live" && value && value.count > 0 && <RankedBarList
       ariaLabel="Outside-appetite risks by organization area"
