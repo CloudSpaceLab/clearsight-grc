@@ -17,6 +17,7 @@ import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
 import { OperatingMutationsEvidencePage } from "./components/OperatingMutationsEvidencePage";
 import { OversightEvidencePage } from "./components/oversight/OversightEvidencePage";
+import { HomeT7GroupEvidence } from "./homeT7Evidence";
 import { NativeIndicatorEvidencePage } from "./nativeIndicatorEvidence";
 import { DisplayPreferencesRoot } from "./components/DisplayPreferences";
 import { SessionGate } from "./components/SessionGate";
@@ -64,7 +65,9 @@ const application = invitationToken !== null
   : fixture === "field-assessment-policy" ? <PolicyAssessmentEvidence/>
   : fixture === "field-assessment-builder" || fixture === "field-assessment-review"
     ? <FieldAssessmentEvidencePage review={fixture === "field-assessment-review"}/>
-  : fixture === "oversight"
+  : fixture === "home-t7-group" || fixture === "home-t7-group-partial"
+    ? <HomeT7GroupEvidence partial={fixture === "home-t7-group-partial"}/>
+    : fixture === "oversight"
     ? <OversightEvidencePage/>
     : fixture === "native-indicator"
       ? <NativeIndicatorEvidencePage/>
