@@ -259,11 +259,11 @@ function lossCardModel(bundle: LossPeriodBundle | null) {
   if (!bundle) return undefined;
   if (bundle.mixed_currencies) {
     return {
-      metricID: "operational_loss_events" as const,
-      expectedCount: bundle.event_count,
+      metricID: bundle.contributing_loss_count > 0 ? "operational_loss_net" as const : "operational_loss_events" as const,
+      expectedCount: bundle.contributing_loss_count > 0 ? bundle.contributing_loss_count : bundle.event_count,
       value: lossPeriodValue(bundle),
       delta: lossComparisonLabel(bundle),
-      detail: "Mixed currencies; amounts kept separate",
+      detail: `Mixed currencies; ${bundle.event_count} new ${bundle.event_count === 1 ? "event" : "events"}, amounts kept separate`,
       meta: `${bundle.currencies.length} currencies · ${bundle.contributing_loss_count} contributing Losses`,
     };
   }
