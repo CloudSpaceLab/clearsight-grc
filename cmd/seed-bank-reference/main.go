@@ -27,9 +27,11 @@ func main() {
 	var sourceEmployeesOnly bool
 	var cloudspaceRelationshipID string
 	var sourceRecordsOnly bool
+	var sourceLossesOnly bool
 	var sourceManifestDir string
 	flag.StringVar(&sourceManifestDir, "source-manifest-dir", "", "private directory containing the source-record manifests")
 	flag.BoolVar(&sourceRecordsOnly, "source-records-only", false, "install the supplied IT, vendor and operational risk captures and linked issues only")
+	flag.BoolVar(&sourceLossesOnly, "source-losses-only", false, "import canonical OpsRisk losses from private manifests without rerunning Forms or Matters")
 	flag.BoolVar(&sourceEmployeesOnly, "source-employees-only", false, "install named Fidelity and Ops Risk demo employees with scoped performer assignments")
 	flag.StringVar(&cloudspaceRelationshipID, "cloudspace-relationship", "", "install only the Cloudspace sample response for this exact existing demo relationship UUID")
 	flag.BoolVar(&documentSamplesOnly, "document-samples-only", false, "install only fictional submitted document samples after the normal worker is ready")
@@ -42,7 +44,7 @@ func main() {
 	flag.StringVar(&seed.ReviewerPrincipalID, "reviewer", "", "independent reviewer principal UUID")
 	flag.StringVar(&seed.SignatoryPrincipalID, "signatory", "", "authorized signatory principal UUID")
 	flag.Parse()
-	if (sourceRecordsOnly && (sourceEmployeesOnly || documentSamplesOnly || cloudspaceRelationshipID != "")) || (sourceEmployeesOnly && (documentSamplesOnly || cloudspaceRelationshipID != "")) || (documentSamplesOnly && cloudspaceRelationshipID != "") {
+	if (sourceRecordsOnly && (sourceLossesOnly || sourceEmployeesOnly || documentSamplesOnly || cloudspaceRelationshipID != "")) || (sourceLossesOnly && (sourceEmployeesOnly || documentSamplesOnly || cloudspaceRelationshipID != "")) || (sourceEmployeesOnly && (documentSamplesOnly || cloudspaceRelationshipID != "")) || (documentSamplesOnly && cloudspaceRelationshipID != "") {
 		fatalIf(fmt.Errorf("choose one scoped sample operation"))
 	}
 
@@ -63,6 +65,16 @@ func main() {
 	pool, err := database.Open(ctx, cfg)
 	fatalIf(err)
 	defer pool.Close()
+	if sourceLossesOnly {
+		if strings.TrimSpace(sourceManifestDir) == "" {
+			fatalIf(fmt.Errorf("source-losses-only requires -source-manifest-dir"))
+		}
+		sourceRecordFiles = os.DirFS(sourceManifestDir)
+		receipt, installErr := installSourceLossesOnly(ctx, cfg, pool, seed)
+		fatalIf(installErr)
+		fatalIf(json.NewEncoder(os.Stdout).Encode(receipt))
+		return
+	}
 	if sourceRecordsOnly {
 		if strings.TrimSpace(sourceManifestDir) == "" {
 			fatalIf(fmt.Errorf("source-records-only requires -source-manifest-dir"))
