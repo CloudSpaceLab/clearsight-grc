@@ -43,6 +43,18 @@ type LossCurrencyFlow struct {
 	ReversalEventCount int        `json:"reversal_event_count"`
 }
 
+type LossOrganizationFlow struct {
+	Key                   string             `json:"key"`
+	ScopeID               string             `json:"scope_id,omitempty"`
+	Label                 string             `json:"label"`
+	Kind                  string             `json:"kind"`
+	LossEventCount        int                `json:"loss_event_count"`
+	ContributingLossCount int                `json:"contributing_loss_count"`
+	MixedCurrencies       bool               `json:"mixed_currencies"`
+	NetLoss               *MoneyValue        `json:"net_loss,omitempty"`
+	Currencies            []LossCurrencyFlow `json:"currencies"`
+}
+
 type LossPeriodBundle struct {
 	GeneratedAt            time.Time          `json:"generated_at"`
 	PeriodStart            time.Time          `json:"period_start"`
@@ -58,6 +70,7 @@ type LossPeriodBundle struct {
 	MixedCurrencies        bool               `json:"mixed_currencies"`
 	NetLoss                *MoneyValue        `json:"net_loss,omitempty"`
 	Currencies             []LossCurrencyFlow `json:"currencies"`
+	OrganizationBreakdown  []LossOrganizationFlow `json:"organization_breakdown"`
 }
 
 type LossPeriodReader interface {
