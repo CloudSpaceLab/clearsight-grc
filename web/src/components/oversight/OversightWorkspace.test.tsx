@@ -252,7 +252,7 @@ it("keeps oversight analysis separate from attention and assigned work", async (
   expect(screen.getByRole("button", { name: /Indicator breaches: 4/ })).toBeTruthy();
   expect(await screen.findByText("Net operational loss")).toBeTruthy();
   expect(await screen.findByRole("list", { name: "Net operational Loss by organization area" })).toBeTruthy();
-  expect(screen.getByRole("img", { name: "Net operational Loss movement" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: "Net operational loss trend" })).toBeTruthy();
   expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
   const riskConcentration = screen.getByRole("list", { name: "Outside-appetite risks by organization area" });
   expect(riskConcentration.textContent).toContain("Technology");
