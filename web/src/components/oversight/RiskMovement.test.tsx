@@ -113,7 +113,8 @@ it("does not plot a flat zero trend from only two recent observations", async ()
     now={new Date("2026-10-07T12:00:00Z")}
   />);
 
-  expect(await screen.findByText("No comparable history")).toBeTruthy();
+  await waitFor(() => expect(screen.queryByText("Loading risk trend…")).toBeNull());
+  expect(screen.getByText("No comparable history")).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Risk trend" })).toBeTruthy();
   expect(screen.getByText("0 now")).toBeTruthy();
   expect(screen.queryByRole("img", { name: /Outside-appetite risk trend/ })).toBeNull();
