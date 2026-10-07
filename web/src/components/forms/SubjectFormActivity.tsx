@@ -29,18 +29,15 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
   const [loadingMoreResponses, setLoadingMoreResponses] = useState(false);
   const [requestPageError, setRequestPageError] = useState("");
   const [responsePageError, setResponsePageError] = useState("");
+  const [requestReload, setRequestReload] = useState(0);
+  const [responseReload, setResponseReload] = useState(0);
 
   useEffect(() => {
     let active = true;
     setRequestState("loading");
-    setResponseState("loading");
     setRequests([]);
-    setResponses([]);
     setRequestCursor(undefined);
-    setResponseCursor(undefined);
     setRequestPageError("");
-    setResponsePageError("");
-
     void loadDistributionPage({ subject_type: subjectType, subject_id: subjectID, limit })
       .then((page) => {
         if (!active) return;
@@ -51,7 +48,15 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
       .catch(() => {
         if (active) setRequestState("unavailable");
       });
+    return () => { active = false; };
+  }, [limit, requestReload, subjectID, subjectType]);
 
+  useEffect(() => {
+    let active = true;
+    setResponseState("loading");
+    setResponses([]);
+    setResponseCursor(undefined);
+    setResponsePageError("");
     void loadCompletedResponses({
       subject_type: subjectType,
       subject_id: subjectID,
@@ -66,9 +71,8 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
     }).catch(() => {
       if (active) setResponseState("unavailable");
     });
-
     return () => { active = false; };
-  }, [limit, subjectID, subjectType]);
+  }, [limit, responseReload, subjectID, subjectType]);
 
   async function loadMoreRequests() {
     if (!requestCursor || loadingMoreRequests) return;
@@ -133,7 +137,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
     <div className="subject-form-activity__group">
       <header><h3>Requests</h3>{requestState === "live" && <span>{requests.length} shown</span>}</header>
       {requestState === "loading" && <p role="status">Loading form requests…</p>}
-      {requestState === "unavailable" && <Notice tone="warning">Form requests are unavailable. Other issue work remains available.</Notice>}
+      {requestState === "unavailable" && <Notice tone="warning">Form requests are unavailable. Other issue work remains available. <Button variant="secondary" size="compact" onPress={() => setRequestReload((value) => value + 1)}>Retry form requests</Button></Notice>}
       {requestState === "live" && requests.length === 0 && <p>No form requests recorded.</p>}
       {requests.length > 0 && <ul>{requests.map((request) => <li key={request.id}>
         <div><strong>{request.title}</strong><span>{distributionStatusLabel(request.status)} · Due {formatDate(request.deadline)}</span></div>
@@ -149,7 +153,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
     <div className="subject-form-activity__group">
       <header><h3>Submitted responses</h3>{responseState === "live" && <span>{responses.length} shown</span>}</header>
       {responseState === "loading" && <p role="status">Loading submitted responses…</p>}
-      {responseState === "unavailable" && <Notice tone="warning">Submitted responses are unavailable. Other issue work remains available.</Notice>}
+      {responseState === "unavailable" && <Notice tone="warning">Submitted responses are unavailable. Other issue work remains available. <Button variant="secondary" size="compact" onPress={() => setResponseReload((value) => value + 1)}>Retry submitted responses</Button></Notice>}
       {responseState === "live" && responses.length === 0 && <p>No submitted responses recorded.</p>}
       {responses.length > 0 && <ul>{responses.map((response) => <li key={response.id}>
         <div>
