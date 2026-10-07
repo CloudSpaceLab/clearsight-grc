@@ -117,8 +117,8 @@ func sourceLossProjection(group sourceRecordGroup, record sourceRecord) (sourceL
 		notes = append(notes, "Source recovery date (no amount posted): "+recoveryDate)
 	}
 	return sourceLossValue{
-		Code: "OPSL-" + strings.ToUpper(hex.EncodeToString(eventDigest[:10])),
-		Title: sourceShort(particular, 240),
+		Code:      "OPSL-" + strings.ToUpper(hex.EncodeToString(eventDigest[:10])),
+		Title:     sourceShort(particular, 240),
 		EventType: kind, Cause: cause, Description: strings.Join(notes, "\n"),
 		AmountMinor: amount, Currency: currency, OccurredAt: occurred, DiscoveredAt: recognized,
 		Identity: identity, SourceSHA: sourceSHA,
