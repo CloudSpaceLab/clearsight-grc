@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/bankverticals"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
@@ -192,6 +193,106 @@ func TestSourceRecordCaptureContractAndITVendorCoverage(t *testing.T) {
 		if itCounts[kind] != count {
 			t.Fatalf("%s records=%d, want %d", kind, itCounts[kind], count)
 		}
+	}
+}
+
+func TestPersistedSourceRiskRecordReconstructsOnlyTheStoredSourceFacts(t *testing.T) {
+	knownFacts := sourceJSON(map[string]any{
+		"source_file":     "Sample IT Risk Exception Register (1).xlsx",
+		"source_sha256":   strings.Repeat("a", 64),
+		"source_sheet":    "Sheet1",
+		"source_range":    "Sheet1!A2:R2",
+		"source_rating":   "High",
+		"source_owner":    "CISO",
+		"source_assessor": "",
+		"source_fields": []sourceRecordField{
+			{Label: "RISK ID", Value: "072"},
+			{Label: "RISK DESCRIPTION", Value: "User Access Management"},
+			{Label: "RISK/ IMPLICATIONS", Value: "Unauthorized access."},
+			{Label: "RISK ASSESSMENT PUBLICATION DATE", Value: "2025-10-29"},
+		},
+	})
+	group, record, err := persistedSourceRiskRecord(sourceRecordPackage+":it-risk-exceptions-row-2", knownFacts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if group.Key != "it-risk-exceptions" || group.SourceSHA256 != strings.Repeat("a", 64) ||
+		record.Key != "it-risk-exceptions-row-2" || record.Rating != "High" || len(record.Fields) != 4 {
+		t.Fatalf("persisted source risk changed: group=%#v record=%#v", group, record)
+	}
+}
+
+func TestITRiskExceptionProjectsCanonicalERMRiskWithoutInventingAppetite(t *testing.T) {
+	group := sourceRecordGroup{
+		Key: "it-risk-exceptions", ProgramCode: "IT-RISK", Title: "IT risk exception register",
+		SourceFile: "Sample IT Risk Exception Register (1).xlsx", SourceSheet: "Sheet1",
+		SourceSHA256: strings.Repeat("a", 64),
+	}
+	record := sourceRecord{
+		Key: "it-risk-exceptions-row-2", Title: "User Access Management", SourceRange: "Sheet1!A2:R2",
+		Rating: "High", Status: "OPEN", Owner: "CISO",
+		Fields: []sourceRecordField{
+			{Label: "RISK ID", Value: "072"},
+			{Label: "RISK ASSESSMENT", Value: "Azure Infrastructure_2025"},
+			{Label: "RISK DESCRIPTION", Value: "User Access Management"},
+			{Label: "APPLICATION/ SERVICES AFFECTED", Value: "Azure portal"},
+			{Label: "FINDINGS", Value: "Stale staff and guest accounts remain active."},
+			{Label: "RISK CATEGORY", Value: "Identity and Access Risk"},
+			{Label: "RISK/ IMPLICATIONS", Value: "Unauthorized access to sensitive corporate resources."},
+			{Label: "RISK LEVEL", Value: "High"},
+			{Label: "CONTROL FRAMEWORK AND REFERENCES", Value: "ISO 27002:2022 A.5.18"},
+			{Label: "RISK ASSESSMENT PUBLICATION DATE", Value: "2025-10-29"},
+		},
+	}
+
+	projection, candidate, err := sourceRiskProjection(group, record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !candidate || projection.Code != "072" || projection.Name != "User Access Management" ||
+		projection.Category != "Identity and Access Risk" || projection.Impact != "Unauthorized access to sensitive corporate resources." {
+		t.Fatalf("unexpected ERM projection: %#v", projection)
+	}
+	if !projection.HasAssessment || !projection.AssessedAt.Equal(time.Date(2025, 10, 29, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("source assessment date changed: %#v", projection.AssessedAt)
+	}
+	var dimensions map[string]any
+	if err = json.Unmarshal(projection.Dimensions, &dimensions); err != nil {
+		t.Fatal(err)
+	}
+	if dimensions["risk_level"] != "High" || dimensions["source_assessment"] != "Azure Infrastructure_2025" {
+		t.Fatalf("source assessment dimensions changed: %#v", dimensions)
+	}
+	var scope map[string]any
+	if err = json.Unmarshal(projection.Scope, &scope); err != nil {
+		t.Fatal(err)
+	}
+	if scope["source_risk_id"] != "072" || scope["affected_area"] != "Azure portal" || scope["source_sha256"] != group.SourceSHA256 {
+		t.Fatalf("source lineage changed: %#v", scope)
+	}
+}
+
+func TestSourceRiskProjectionIsRestrictedToTheExplicitITExceptionRegister(t *testing.T) {
+	record := sourceRecord{Key: "other-row", Fields: []sourceRecordField{
+		{Label: "RISK ID", Value: "072"},
+		{Label: "RISK DESCRIPTION", Value: "User Access Management"},
+		{Label: "RISK/ IMPLICATIONS", Value: "Unauthorized access."},
+	}}
+	for _, key := range []string{"third-party-risk-register", "it-workplan", "ops-risk-treatment"} {
+		if _, candidate, err := sourceRiskProjection(sourceRecordGroup{Key: key}, record); err != nil || candidate {
+			t.Fatalf("%s must not become an ERM Risk automatically: candidate=%v err=%v", key, candidate, err)
+		}
+	}
+}
+
+func TestSourceRiskDateAcceptsExcelSerialWithoutChangingTheCalendarDate(t *testing.T) {
+	value, err := sourceRiskDate("45959")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := time.Date(2025, 10, 29, 0, 0, 0, 0, time.UTC)
+	if !value.Equal(expected) {
+		t.Fatalf("excel source date=%s want %s", value, expected)
 	}
 }
 
