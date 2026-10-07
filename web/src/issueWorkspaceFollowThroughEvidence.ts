@@ -14,6 +14,11 @@ export function installIssueWorkspaceFollowThroughEvidence() {
     if (method !== "GET") return previous(input, init);
 
     if (url.pathname === "/api/v1/forms/templates") return json(formLibraryPage(url));
+    const formItem = /^\/api\/v1\/forms\/templates\/([^/]+)$/.exec(url.pathname);
+    if (formItem) {
+      const selected = linkedForms().find((item) => item.template.id === decodeURIComponent(formItem[1]!));
+      return selected ? json(selected) : notFound("form_not_found", "The selected form is not available.");
+    }
     if (url.pathname === "/api/v1/forms/distributions") return json(distributionPage(url));
     if (url.pathname === "/api/v1/forms/responses") return json(responsePage(url));
 
