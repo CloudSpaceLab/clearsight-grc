@@ -37,3 +37,15 @@ it("centers flat and single-point series inside the plot", () => {
   expect(container.querySelector(".cs-metric-trend__point")?.getAttribute("cx")).toBe("500");
   expect(container.querySelector(".cs-metric-trend__point")?.getAttribute("cy")).toBe("90");
 });
+
+it("uses exact display values in the accessible table without changing plot values", () => {
+  const { container } = render(<MetricTrend
+    ariaLabel="Loss movement"
+    points={[
+      { id: "1", at: "2026-10-01T12:00:00Z", label: "Oct 1", value: 0.25, displayValue: "₦9,223,372,036,854,775.80" },
+      { id: "2", at: "2026-10-02T12:00:00Z", label: "Oct 2", value: 1, displayValue: "₦36,893,488,147,419,103.20" },
+    ]}
+  />);
+  expect(container.querySelector("table")?.textContent).toContain("₦9,223,372,036,854,775.80");
+  expect(container.querySelector("table")?.textContent).toContain("₦36,893,488,147,419,103.20");
+});
