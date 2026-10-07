@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getRCSACycle, listRCSACycles } from "../../rcsaApi";
 import type { RCSAControlSnapshot, RCSACycleDetail, RCSACycleSummary, RCSARiskSnapshot, RCSAStatus } from "../../rcsaTypes";
-import { formatRCSADate, formatRCSAPeriod, rcsaHandoffTone, rcsaOwnerLabel, rcsaStatusLabel, rcsaStatusTone, rcsaTriggerLabel } from "../../rcsaPresentation";
+import { formatRCSADate, formatRCSAPeriod, rcsaHandoffTone, rcsaJourneyStages, rcsaJourneyTone, rcsaOwnerLabel, rcsaStatusLabel, rcsaStatusTone, rcsaTriggerLabel } from "../../rcsaPresentation";
 import { Button, DataTable, EmptyState, FocusedSheet, Notice, SelectField, StatusBadge, Surface, type DataColumn } from "../ui";
 import "./rcsa.css";
 
@@ -209,6 +209,24 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
       <div><span>First-line owner</span><strong>{rcsaOwnerLabel(detail.cycle, detail.first_line_owner_display_name)}</strong></div>
       <div><span>Frozen population</span><strong>{detail.risks.length} Risks · {detail.controls.length} controls</strong></div>
       <div><span>Updated</span><strong>{formatRCSADate(detail.cycle.updated_at)}</strong></div>
+    </section>
+
+    <section className="rcsa-journey" aria-labelledby="rcsa-journey-heading">
+      <div className="section-header">
+        <div>
+          <h3 id="rcsa-journey-heading">Cycle progress</h3>
+          <p>Collection, independent challenge, decision and any required treatment remain separate.</p>
+        </div>
+      </div>
+      <ol className="rcsa-journey__list">
+        {rcsaJourneyStages(detail).map((stage) => <li key={stage.id} className="rcsa-journey__stage">
+          <div className="rcsa-journey__stage-heading">
+            <span>{stage.label}</span>
+            <StatusBadge tone={rcsaJourneyTone(stage.state)}>{stage.status}</StatusBadge>
+          </div>
+          <p>{stage.detail}</p>
+        </li>)}
+      </ol>
     </section>
 
     <Surface>
