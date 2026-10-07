@@ -31,7 +31,7 @@ func (a *API) resolveOrganizationScopeSelection(ctx context.Context, actor ident
 			TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
 		}, requested, includeDescendants)
 		if err != nil {
-			if errors.Is(err, runtimecontext.ErrNotFound) || errors.Is(err, runtimecontext.ErrInvalid) {
+			if errors.Is(err, runtimecontext.ErrNotFound) {
 				return organizationScopeSelection{}, errOrganizationScopeForbidden
 			}
 			return organizationScopeSelection{}, errOrganizationScopeUnavailable
