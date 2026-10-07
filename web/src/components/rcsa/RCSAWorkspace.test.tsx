@@ -100,6 +100,38 @@ it("renders a restrained cycle register and opens the exact challenge handoff", 
   expect(onOpenMatter).toHaveBeenCalledWith("matter-1", "cycle-1");
 });
 
+it("opens the first-line evidence request with the originating cycle", async () => {
+  const firstLineCycle = {
+    ...cycle,
+    status: "ASSESSMENT_OPEN" as const,
+    first_line_response_revision_id: undefined,
+    challenge_matter_id: undefined,
+    version: 2,
+  };
+  vi.mocked(getRCSACycle).mockResolvedValueOnce({
+    cycle: firstLineCycle,
+    complete: true,
+    first_line_owner_display_name: "Technology Risk Owner",
+    first_line_request_id: "request-1",
+    handoff: { stage: "FIRST_LINE", label: "Complete first-line assessment", target_type: "EVIDENCE_REQUEST", target_id: "request-1" },
+    phase: { stage: "COLLECTION", label: "First-line collection", detail: "First-line assessment is in progress." },
+    risks: [],
+    controls: [],
+  });
+  const onOpenEvidence = vi.fn();
+
+  render(<RCSAWorkspace
+    organizationName="Meridian Trust Bank"
+    legalEntityName="Nigeria"
+    targetID="cycle-1"
+    onTarget={vi.fn()}
+    onOpenEvidence={onOpenEvidence}
+  />);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Open first-line assessment" }));
+  expect(onOpenEvidence).toHaveBeenCalledWith("request-1", "cycle-1");
+});
+
 it("shows partial authority resolution without inventing a complete population", async () => {
   vi.mocked(listRCSACycles).mockResolvedValueOnce({ complete: false, items: [] });
   render(<RCSAWorkspace organizationName="Bank" legalEntityName="Nigeria" onTarget={() => {}}/>);
