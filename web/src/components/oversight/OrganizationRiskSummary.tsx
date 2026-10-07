@@ -75,7 +75,6 @@ export function OrganizationRiskSummary({
   return <section className="organization-risk-summary" aria-labelledby="organization-risk-summary-heading">
     <div className="section-header">
       <div>
-        <span className="eyebrow">Where risk is concentrated</span>
         <h2 id="organization-risk-summary-heading">Risk concentration</h2>
         <p>Outside-appetite risks by area.</p>
       </div>
