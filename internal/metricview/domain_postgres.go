@@ -28,16 +28,19 @@ type DomainMaintainer struct {
 }
 
 type domainScope struct {
-	TenantID      string
-	LegalEntityID string
+	TenantID             string
+	LegalEntityID        string
+	OrganizationScopeID  string
+	OrganizationScopeIDs []string
 }
 
 type domainMetricMember struct {
-	MemberID   string
-	TargetType string
-	TargetID   string
-	Title      string
-	State      string
+	MemberID            string
+	TargetType          string
+	TargetID            string
+	OrganizationScopeID string
+	Title               string
+	State               string
 }
 
 type domainMetricResult struct {
