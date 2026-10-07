@@ -30,13 +30,13 @@ func main() {
 
 func run() error {
 	var (
-		tenantID       string
-		legalEntity    string
-		bindingID      string
-		branchRef      string
-		headOfficeRef  string
+		tenantID        string
+		legalEntity     string
+		bindingID       string
+		branchRef       string
+		headOfficeRef   string
 		monitoringCheck string
-		limit          int
+		limit           int
 	)
 	flag.StringVar(&tenantID, "tenant", "", "Tenant UUID or slug.")
 	flag.StringVar(&legalEntity, "legal-entity", "", "Active legal-entity UUID or code.")
@@ -124,14 +124,14 @@ func run() error {
 	}
 
 	receipt, err := itgovernance.BuildIndicatorSourceAcceptance(itgovernance.IndicatorSourceAcceptanceInput{
-		Binding: candidate.Binding,
-		View: candidate.View,
-		Page: page,
-		BranchRef: branchRef,
+		Binding:       candidate.Binding,
+		View:          candidate.View,
+		Page:          page,
+		BranchRef:     branchRef,
 		HeadOfficeRef: headOfficeRef,
-		Check: check,
-		Result: result,
-		GeneratedAt: time.Now().UTC(),
+		Check:         check,
+		Result:        result,
+		GeneratedAt:   time.Now().UTC(),
 	})
 	if err != nil {
 		return err
