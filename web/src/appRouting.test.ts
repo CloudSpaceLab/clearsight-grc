@@ -10,6 +10,20 @@ describe("workspace routes", () => {
     expect(parseRoute("#insights?kind=UNKNOWN&indicator=check-1")).toEqual({ view: "insights", target: { indicatorID: "check-1" } });
   });
 
+  it("round-trips Home Risk/Loss context without widening a department after reload", () => {
+    const target = {
+      insightsView: "risk-loss" as const,
+      insightsPeriod: { start_date: "2026-09-08", end_date: "2026-10-07" },
+      insightsOrganizationScopeID: "00000000-0000-4000-8000-000000000001",
+    };
+    const hash = routeHash("insights", target, "assigned");
+    expect(hash).toBe("#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&organization_scope_id=00000000-0000-4000-8000-000000000001");
+    expect(parseRoute(hash)).toEqual({ view: "insights", target });
+    expect(parseRoute("#insights?view=risk-loss&start_date=2026-02-30&end_date=2026-10-07")).toEqual({ view: "insights", target: {} });
+    expect(parseRoute("#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&organization_scope_id=malformed")).toEqual({ view: "insights", target: {} });
+    expect(parseRoute("#insights?view=risk-loss&start_date=2025-01-01&end_date=2026-10-07")).toEqual({ view: "insights", target: {} });
+  });
+
   it("opens Reports as a product-level workspace", () => {
     expect(parseRoute("#reports")).toEqual({ view: "reports", target: {} });
     expect(parseRoute("#ropa/reports")).toEqual({ view: "reports", target: {} });
