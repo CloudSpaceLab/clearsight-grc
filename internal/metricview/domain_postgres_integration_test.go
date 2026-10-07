@@ -296,20 +296,20 @@ func TestScopedDomainMetricsIncludeAuthorizedDescendantsAndRetainExactMembers(t 
 		mustExec(`
 			INSERT INTO risks(
 				id,tenant_id,legal_entity_id,organization_scope_id,code,name,category,statement,impact,status,version,created_at,updated_at
-			) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$5,'Operational','Scoped exposure','Material impact','ACTIVE',1,$6,$6)`,
+			) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$5,'Operational','Scoped exposure','Material impact','ACTIVE',2,$6,$6)`,
 			riskID, tenantID, entityID, scopeID, code, now.Add(-time.Hour))
 		mustExec(`
 			INSERT INTO risk_appetite_statements(
 				id,tenant_id,legal_entity_id,risk_id,risk_version,version,statement,rule,
 				owner_principal_id,authority_principal_id,status,effective_from,created_at
-			) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,1,1,'Scoped appetite','{}'::jsonb,
+			) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,2,1,'Scoped appetite','{}'::jsonb,
 			         $5::uuid,$5::uuid,'ACTIVE',$6,$6)`,
 			appetiteID, tenantID, entityID, riskID, principalID, now.Add(-24*time.Hour))
 		mustExec(`
 			INSERT INTO risk_assessments(
 				tenant_id,legal_entity_id,risk_id,risk_version,assessment_kind,method_code,method_version,
 				dimensions,assumptions,evidence_references,assessed_by,appetite_statement_id,appetite_position,assessed_at,created_at
-			) VALUES($1::uuid,$2::uuid,$3::uuid,1,'CURRENT','SCOPED','1',
+			) VALUES($1::uuid,$2::uuid,$3::uuid,2,'CURRENT','SCOPED','1',
 			         '{}'::jsonb,'{}'::jsonb,'[]'::jsonb,$4::uuid,$5::uuid,'BREACHED',$6,$6)`,
 			tenantID, entityID, riskID, principalID, appetiteID, now.Add(-20*time.Minute))
 	}
