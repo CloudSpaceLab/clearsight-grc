@@ -114,6 +114,13 @@ func TestLossPeriodProjectionPreservesCurrencyRecoveryScopeAndExactMembers(t *te
 	assertLossCurrencyFlow(t, legal.Currencies, "NGN", "1500", "500", "50", "1050", 2, 2, 1)
 	assertLossCurrencyFlow(t, legal.Currencies, "USD", "200", "0", "0", "200", 1, 0, 0)
 
+	if len(legal.OrganizationBreakdown) != 3 {
+		t.Fatalf("legal breakdown=%#v", legal.OrganizationBreakdown)
+	}
+	assertLossOrganizationFlow(t, legal.OrganizationBreakdown, "scope:"+childScopeID, childScopeID, "Operations", "ORGANIZATION_SCOPE", 1, 2, false, "NGN", "550")
+	assertLossOrganizationFlow(t, legal.OrganizationBreakdown, "scope:"+siblingScopeID, siblingScopeID, "Finance", "ORGANIZATION_SCOPE", 1, 1, false, "USD", "200")
+	assertLossOrganizationFlow(t, legal.OrganizationBreakdown, "unattributed", "", "Unattributed", "UNATTRIBUTED", 1, 1, false, "NGN", "500")
+
 	members := NewMembershipRepository(pool)
 	eventPage, err := members.ListSnapshotMembers(
 		ctx, tenantID, entityID, "", legal.SourceID, LossPeriodMetricEvents,
@@ -151,6 +158,11 @@ func TestLossPeriodProjectionPreservesCurrencyRecoveryScopeAndExactMembers(t *te
 		scoped.NetLoss.MinorUnits != "550" || len(scoped.Currencies) != 1 {
 		t.Fatalf("scoped bundle=%#v", scoped)
 	}
+
+	if len(scoped.OrganizationBreakdown) != 1 {
+		t.Fatalf("scoped breakdown=%#v", scoped.OrganizationBreakdown)
+	}
+	assertLossOrganizationFlow(t, scoped.OrganizationBreakdown, "direct", "", "Direct", "DIRECT", 1, 2, false, "NGN", "550")
 	scopedEventPage, err := members.ListSnapshotMembers(
 		ctx, tenantID, entityID, childScopeID, scoped.SourceID, LossPeriodMetricEvents,
 		LossPeriodDefinitionRevision, ownerID, "", 20,
@@ -205,6 +217,35 @@ func assertLossCurrencyFlow(
 		return
 	}
 	t.Fatalf("currency %s not found in %#v", currency, values)
+}
+
+func assertLossOrganizationFlow(
+	t *testing.T,
+	values []LossOrganizationFlow,
+	key string,
+	scopeID string,
+	label string,
+	kind string,
+	lossEvents int,
+	contributors int,
+	mixed bool,
+	currency string,
+	net string,
+) {
+	t.Helper()
+	for _, value := range values {
+		if value.Key != key {
+			continue
+		}
+		if value.ScopeID != scopeID || value.Label != label || value.Kind != kind ||
+			value.LossEventCount != lossEvents || value.ContributingLossCount != contributors ||
+			value.MixedCurrencies != mixed || len(value.Currencies) != 1 || value.NetLoss == nil ||
+			value.NetLoss.Currency != currency || value.NetLoss.MinorUnits != net {
+			t.Fatalf("organization flow %q=%#v", key, value)
+		}
+		return
+	}
+	t.Fatalf("organization flow %q not found in %#v", key, values)
 }
 
 func assertLossMemberTargets(t *testing.T, page MemberPage, want ...string) {
