@@ -217,6 +217,17 @@ describe("Matter record workspace", () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
+  it("uses a contextual return label when opened from another governed record", async () => {
+    const onBack = vi.fn();
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack} backLabel="Back to RCSA cycle"/>);
+
+    const back = await screen.findByRole("button", { name: "Back to RCSA cycle" });
+    expect(back.textContent).toBe("← Back to RCSA cycle");
+    fireEvent.click(back);
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Back to issues and changes" })).toBeNull();
+  });
+
   it("keeps exactly one Activity rail and composer on desktop", async () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
