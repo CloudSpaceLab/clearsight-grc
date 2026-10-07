@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"sort"
+	"strconv"
 	"testing"
 	"time"
 
@@ -121,6 +122,18 @@ func TestLossPeriodProjectionPreservesCurrencyRecoveryScopeAndExactMembers(t *te
 	assertLossOrganizationFlow(t, legal.OrganizationBreakdown, "scope:"+siblingScopeID, siblingScopeID, "Finance", "ORGANIZATION_SCOPE", 1, 1, false, "USD", "200")
 	assertLossOrganizationFlow(t, legal.OrganizationBreakdown, "unattributed", "", "Unattributed", "UNATTRIBUTED", 1, 1, false, "NGN", "500")
 
+	if legal.FlowResolution != LossFlowResolutionDay || len(legal.FlowPoints) < 7 {
+		t.Fatalf("legal flow points=%#v", legal.FlowPoints)
+	}
+	if legal.Comparison.EventCount != 1 || legal.Comparison.EventDelta != 2 ||
+		legal.Comparison.MixedCurrencies || legal.Comparison.NetLoss == nil ||
+		legal.Comparison.NetLoss.Currency != "NGN" || legal.Comparison.NetLoss.MinorUnits != "1000" ||
+		legal.Comparison.NetDelta != nil || legal.Comparison.Direction != TrendUnknown ||
+		legal.Comparison.ComparisonQuality != ComparisonLimited {
+		t.Fatalf("legal comparison=%#v", legal.Comparison)
+	}
+	assertLossFlowPointTotals(t, legal.FlowPoints, 3, "NGN", "1050", "USD", "200")
+
 	members := NewMembershipRepository(pool)
 	eventPage, err := members.ListSnapshotMembers(
 		ctx, tenantID, entityID, "", legal.SourceID, LossPeriodMetricEvents,
@@ -163,6 +176,19 @@ func TestLossPeriodProjectionPreservesCurrencyRecoveryScopeAndExactMembers(t *te
 		t.Fatalf("scoped breakdown=%#v", scoped.OrganizationBreakdown)
 	}
 	assertLossOrganizationFlow(t, scoped.OrganizationBreakdown, "direct", "", "Direct", "DIRECT", 1, 2, false, "NGN", "550")
+
+	if scoped.FlowResolution != LossFlowResolutionDay || len(scoped.FlowPoints) < 7 {
+		t.Fatalf("scoped flow points=%#v", scoped.FlowPoints)
+	}
+	if scoped.Comparison.EventCount != 1 || scoped.Comparison.EventDelta != 0 ||
+		scoped.Comparison.MixedCurrencies || scoped.Comparison.NetLoss == nil ||
+		scoped.Comparison.NetLoss.Currency != "NGN" || scoped.Comparison.NetLoss.MinorUnits != "1000" ||
+		scoped.Comparison.NetDelta == nil || scoped.Comparison.NetDelta.Currency != "NGN" ||
+		scoped.Comparison.NetDelta.MinorUnits != "-450" || scoped.Comparison.Direction != TrendImproved ||
+		scoped.Comparison.ComparisonQuality != ComparisonComplete {
+		t.Fatalf("scoped comparison=%#v", scoped.Comparison)
+	}
+	assertLossFlowPointTotals(t, scoped.FlowPoints, 1, "NGN", "550", "", "")
 	scopedEventPage, err := members.ListSnapshotMembers(
 		ctx, tenantID, entityID, childScopeID, scoped.SourceID, LossPeriodMetricEvents,
 		LossPeriodDefinitionRevision, ownerID, "", 20,
@@ -217,6 +243,55 @@ func assertLossCurrencyFlow(
 		return
 	}
 	t.Fatalf("currency %s not found in %#v", currency, values)
+}
+
+func assertLossFlowPointTotals(
+	t *testing.T,
+	points []LossFlowPoint,
+	wantEvents int,
+	currencyA string,
+	netA string,
+	currencyB string,
+	netB string,
+) {
+	t.Helper()
+	eventCount := 0
+	zeroBuckets := 0
+	netByCurrency := make(map[string]int64)
+	for _, point := range points {
+		eventCount += point.LossEventCount
+		if point.LossEventCount == 0 && len(point.Currencies) == 0 {
+			zeroBuckets++
+		}
+		for _, flow := range point.Currencies {
+			net, err := parseMoneyMinorUnits(flow.Net)
+			if err != nil {
+				t.Fatal(err)
+			}
+			netByCurrency[flow.Currency] += net
+		}
+	}
+	if eventCount != wantEvents || zeroBuckets == 0 {
+		t.Fatalf("flow event count=%d zero buckets=%d points=%#v", eventCount, zeroBuckets, points)
+	}
+	if currencyA != "" {
+		want, err := strconv.ParseInt(netA, 10, 64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if netByCurrency[currencyA] != want {
+			t.Fatalf("%s flow net=%d want=%d", currencyA, netByCurrency[currencyA], want)
+		}
+	}
+	if currencyB != "" {
+		want, err := strconv.ParseInt(netB, 10, 64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if netByCurrency[currencyB] != want {
+			t.Fatalf("%s flow net=%d want=%d", currencyB, netByCurrency[currencyB], want)
+		}
+	}
 }
 
 func assertLossOrganizationFlow(
@@ -276,4 +351,26 @@ func mustLossPeriodID(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return value
+}
+
+func TestLossPeriodComparisonTreatsRecoveryOnlyImprovementAsSignedMoney(t *testing.T) {
+	current := lossPeriodAggregate{Currencies: []lossCurrencyAggregate{{
+		Currency: "NGN", RecoveryMinor: 700, RecoveryEventCount: 1,
+	}}}
+	previous := lossPeriodAggregate{Currencies: []lossCurrencyAggregate{{
+		Currency: "NGN", GrossMinor: 500, LossEventCount: 1,
+	}}}
+	start := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 10, 7, 23, 59, 59, 999999999, time.UTC)
+
+	comparison, err := buildLossPeriodComparison(current, previous, start, end)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if comparison.NetDelta == nil || comparison.NetDelta.Currency != "NGN" ||
+		comparison.NetDelta.MinorUnits != "-1200" ||
+		comparison.Direction != TrendImproved ||
+		comparison.ComparisonQuality != ComparisonComplete {
+		t.Fatalf("comparison=%#v", comparison)
+	}
 }
