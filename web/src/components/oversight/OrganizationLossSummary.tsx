@@ -44,12 +44,12 @@ export function OrganizationLossSummary({ bundle, state, onOpenScope }: Props) {
 
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading Loss concentration…</p>}
     {state === "unavailable" && <Notice tone="warning">Loss concentration is unavailable for this period.</Notice>}
-    {state === "live" && bundle?.event_count === 0 && <EmptyState
-      population="Operational Loss events in the selected period"
-      title="No Loss events in this period"
-      description="No active operational Loss occurred in this scope during the selected period."
+    {state === "live" && bundle && bundle.event_count === 0 && bundle.contributing_loss_count === 0 && <EmptyState
+      population="Operational Loss flow in the selected period"
+      title="No Loss flow in this period"
+      description="No active Loss or recovery contributed to this scope during the selected period."
     />}
-    {state === "live" && bundle && bundle.event_count > 0 && <RankedBarList
+    {state === "live" && bundle && bundle.contributing_loss_count > 0 && <RankedBarList
       ariaLabel={lossPresentationMode(bundle) === "money"
         ? "Net operational Loss by organization area"
         : "Operational Loss events by organization area"}
@@ -151,11 +151,14 @@ function compareRows(left: RowModel, right: RowModel, mode: "money" | "events") 
 
 function rowMeta(row: RowModel, mode: "money" | "events") {
   const contributors = `${row.contributors} contributing ${row.contributors === 1 ? "Loss" : "Losses"}`;
-  if (row.kind === "DIRECT") return `Direct · ${contributors}`;
-  if (row.kind === "UNATTRIBUTED") return `No area recorded · ${contributors}`;
+  const flowState = mode === "money" && row.minor !== undefined
+    ? row.minor < 0n ? "Net recovery · " : row.minor === 0n ? "No net Loss · " : ""
+    : "";
+  if (row.kind === "DIRECT") return `Direct · ${flowState}${contributors}`;
+  if (row.kind === "UNATTRIBUTED") return `No area recorded · ${flowState}${contributors}`;
   if (row.kind === "UNAVAILABLE") {
-    return row.id === "other-areas" ? `${contributors} across remaining areas` : `Area unavailable · ${contributors}`;
+    return row.id === "other-areas" ? `${flowState}${contributors} across remaining areas` : `Area unavailable · ${flowState}${contributors}`;
   }
   if (mode === "events" && row.currencyCount > 1) return `${row.currencyCount} currencies · ${contributors}`;
-  return contributors;
+  return `${flowState}${contributors}`;
 }
