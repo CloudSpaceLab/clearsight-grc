@@ -1,5 +1,5 @@
 import type { StatusTone } from "./components/ui";
-import type { RCSACycle, RCSAHandoff, RCSAStatus, RCSATriggerKind } from "./rcsaTypes";
+import type { RCSACycle, RCSAHandoff, RCSAPhaseStage, RCSAStatus, RCSATriggerKind } from "./rcsaTypes";
 
 export function rcsaStatusLabel(status: RCSAStatus) {
   switch (status) {
@@ -37,6 +37,61 @@ export function rcsaHandoffTone(handoff: RCSAHandoff): StatusTone {
     case "CANCELLED": return "neutral";
     default: return "unknown";
   }
+}
+
+export type RCSAPhasePathStep = {
+  id: "COLLECTION" | "INDEPENDENT_CHALLENGE" | "RISK_ACCEPTANCE" | "REMEDIATION_VERIFICATION";
+  label: string;
+  state: "complete" | "current" | "pending" | "not_required";
+};
+
+export function rcsaPhaseTone(stage: RCSAPhaseStage): StatusTone {
+  switch (stage) {
+    case "RISK_ACCEPTANCE": return "success";
+    case "REMEDIATION_VERIFICATION": return "warning";
+    case "INDEPENDENT_CHALLENGE": return "warning";
+    case "COLLECTION": return "info";
+    case "COMPLETE": return "success";
+    case "CANCELLED": return "neutral";
+    default: return "unknown";
+  }
+}
+
+export function rcsaPhasePath(stage: RCSAPhaseStage): RCSAPhasePathStep[] {
+  const steps: RCSAPhasePathStep[] = [
+    { id: "COLLECTION", label: "First-line collection", state: "pending" },
+    { id: "INDEPENDENT_CHALLENGE", label: "Independent challenge", state: "pending" },
+    { id: "RISK_ACCEPTANCE", label: "Risk acceptance", state: "pending" },
+    { id: "REMEDIATION_VERIFICATION", label: "Remediation verification", state: "pending" },
+  ];
+  if (stage === "COLLECTION") {
+    steps[0].state = "current";
+    return steps;
+  }
+  if (stage === "INDEPENDENT_CHALLENGE") {
+    steps[0].state = "complete";
+    steps[1].state = "current";
+    return steps;
+  }
+  if (stage === "RISK_ACCEPTANCE") {
+    steps[0].state = "complete";
+    steps[1].state = "complete";
+    steps[2].state = "current";
+    steps[3].state = "not_required";
+    return steps;
+  }
+  if (stage === "REMEDIATION_VERIFICATION") {
+    steps[0].state = "complete";
+    steps[1].state = "complete";
+    steps[2].state = "not_required";
+    steps[3].state = "current";
+    return steps;
+  }
+  if (stage === "COMPLETE") {
+    steps[0].state = "complete";
+    steps[1].state = "complete";
+  }
+  return steps;
 }
 
 export function formatRCSADate(value?: string) {
