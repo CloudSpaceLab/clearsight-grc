@@ -115,7 +115,7 @@ export function groupPostureCoverage(value: GroupPostureBundle, metric: GroupPos
 function groupPostureMetricQuality(value: GroupPostureBundle, metric: GroupPostureMetric) {
   const coverage = groupPostureCoverage(value, metric);
   if (coverage.missing_children > 0) return "unknown" as const;
-  if (coverage.stale_children > 0 || coverage.partial_children > 0) return "partial" as const;
+  if (!coverage.complete || coverage.stale_children > 0 || coverage.partial_children > 0) return "partial" as const;
   return "current" as const;
 }
 
@@ -150,7 +150,7 @@ export function groupPostureValue(item: GroupPostureChild, metric: GroupPostureM
 
 export function postureRowMeta(item: GroupPostureChild, metric: GroupPostureMetric) {
   if (metric === "loss_events") return item.jurisdiction || item.legal_entity_code || "OpCo";
-  return [item.jurisdiction || item.legal_entity_code || "OpCo", groupRiskStateLabel(item.risk_state)].join(" · ");
+  return [item.jurisdiction || item.legal_entity_code || "OpCo", item.completeness !== "COMPLETE" && item.risk_state !== "MISSING" ? "Partial" : groupRiskStateLabel(item.risk_state), item.unknown > 0 ? `${item.unknown} unknown` : "", item.excluded > 0 ? `${item.excluded} excluded` : ""].filter(Boolean).join(" · ");
 }
 
 function postureMetricLabel(metric: GroupPostureMetric) {
