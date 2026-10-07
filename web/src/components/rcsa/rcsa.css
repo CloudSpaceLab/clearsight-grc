@@ -60,6 +60,89 @@
     align-items: center;
   }
 
+  .rcsa-detail__phase {
+    display: grid;
+    gap: var(--cs-space-group);
+  }
+
+  .rcsa-detail__phase-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--cs-space-group);
+  }
+
+  .rcsa-detail__phase-heading > div {
+    display: grid;
+    gap: var(--cs-primitive-space-1);
+    min-inline-size: 0;
+  }
+
+  .rcsa-detail__phase-heading h3,
+  .rcsa-detail__phase-heading p {
+    margin: 0;
+  }
+
+  .rcsa-detail__phase-heading p {
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+
+  .rcsa-phase-path {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--cs-space-inline);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .rcsa-phase-path li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--cs-primitive-space-2);
+    align-items: start;
+    min-inline-size: 0;
+  }
+
+  .rcsa-phase-path li > span {
+    inline-size: .7rem;
+    block-size: .7rem;
+    margin-block-start: .18rem;
+    border: 2px solid var(--border-subtle);
+    border-radius: 50%;
+    background: var(--surface);
+  }
+
+  .rcsa-phase-path li > div {
+    display: grid;
+    gap: 2px;
+    min-inline-size: 0;
+  }
+
+  .rcsa-phase-path strong {
+    font-size: var(--cs-font-size-caption);
+    overflow-wrap: anywhere;
+  }
+
+  .rcsa-phase-path small {
+    color: var(--cs-text-muted);
+  }
+
+  .rcsa-phase-path .is-complete > span {
+    border-color: var(--green);
+    background: var(--green);
+  }
+
+  .rcsa-phase-path .is-current > span {
+    border-color: var(--cyan);
+    background: color-mix(in srgb, var(--cyan) 24%, var(--surface));
+  }
+
+  .rcsa-phase-path .is-not_required {
+    opacity: .62;
+  }
+
   .rcsa-detail__population {
     display: grid;
     gap: var(--cs-space-group);
@@ -95,8 +178,13 @@
   @media (max-width: 720px) {
     .rcsa-register__heading,
     .rcsa-detail__header,
-    .rcsa-detail__handoff {
+    .rcsa-detail__handoff,
+    .rcsa-detail__phase-heading {
       display: grid;
+    }
+
+    .rcsa-phase-path {
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .rcsa-register__filter {
