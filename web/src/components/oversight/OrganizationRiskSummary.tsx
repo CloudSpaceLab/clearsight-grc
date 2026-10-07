@@ -82,7 +82,7 @@ export function OrganizationRiskSummary({
 
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading risk concentration…</p>}
     {state === "unavailable" && <Notice tone="warning">Risk concentration is unavailable for this scope.</Notice>}
-    {state === "live" && value?.count === 0 && <EmptyState
+    {state === "live" && value?.count === 0 && <EmptyState compact
       population="No risks outside appetite"
       title="No risks outside appetite"
       description="No current risks exceed approved appetite."
