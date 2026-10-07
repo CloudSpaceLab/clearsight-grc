@@ -101,9 +101,9 @@ func TestIndicatorSourceAcceptanceRejectsReceiptOrSchemaDrift(t *testing.T) {
 		Receipt: acceptancePageReceipt(binding, view, observedAt, 1),
 	}
 	for name, mutate := range map[string]func(*sourceaccess.RecordPage){
-		"binding revision": func(page *sourceaccess.RecordPage) { page.Receipt.BindingVersion = "99" },
+		"binding revision":   func(page *sourceaccess.RecordPage) { page.Receipt.BindingVersion = "99" },
 		"schema fingerprint": func(page *sourceaccess.RecordPage) { page.Receipt.SchemaFingerprint = strings.Repeat("b", 64) },
-		"receipt count": func(page *sourceaccess.RecordPage) { page.Receipt.Count = 2 },
+		"receipt count":      func(page *sourceaccess.RecordPage) { page.Receipt.Count = 2 },
 	} {
 		t.Run(name, func(t *testing.T) {
 			page := base
@@ -193,15 +193,17 @@ func TestIndicatorSourceAcceptanceRejectsPersistedResultRevisionMismatchOrMissin
 	}
 	page := sourceaccess.RecordPage{
 		Records: []sourceaccess.Record{{
-			"location": {Kind: sourceaccess.ScalarString, Text: "CAC"},
-			"period": {Kind: sourceaccess.ScalarTime, Text: "2025-11-01T00:00:00Z"},
+			"location":     {Kind: sourceaccess.ScalarString, Text: "CAC"},
+			"period":       {Kind: sourceaccess.ScalarTime, Text: "2025-11-01T00:00:00Z"},
 			"success_rate": {Kind: sourceaccess.ScalarNumber, Text: "98.7"},
 		}},
 		Receipt: pageReceipt,
 	}
 	for name, mutate := range map[string]func(*monitoring.MonitoringCheck, *monitoring.MonitoringResult){
 		"binding version": func(check *monitoring.MonitoringCheck, _ *monitoring.MonitoringResult) { check.BindingVersion++ },
-		"missing native measure": func(_ *monitoring.MonitoringCheck, result *monitoring.MonitoringResult) { result.Evaluation.Measurement = nil },
+		"missing native measure": func(_ *monitoring.MonitoringCheck, result *monitoring.MonitoringResult) {
+			result.Evaluation.Measurement = nil
+		},
 		"stored schema drift": func(_ *monitoring.MonitoringCheck, result *monitoring.MonitoringResult) {
 			var receipt sourceaccess.OperationReceipt
 			_ = json.Unmarshal(result.SourceReceipt, &receipt)
@@ -224,21 +226,21 @@ func TestIndicatorSourceAcceptanceRejectsPersistedResultRevisionMismatchOrMissin
 
 func acceptancePageReceipt(binding sourceaccess.BindingRevision, view sourceaccess.ViewRevision, observedAt time.Time, count int64) sourceaccess.OperationReceipt {
 	return sourceaccess.OperationReceipt{
-		SourceID: binding.SourceID,
-		ConnectionID: view.ConnectionID,
-		ConnectionVersion: "1",
-		AdapterKind: sourceaccess.AdapterPostgres,
-		AdapterVersion: "postgres-v1",
-		ViewID: view.ViewID,
-		ViewVersion: "1",
-		BindingID: binding.BindingID,
-		BindingVersion: "1",
+		SourceID:              binding.SourceID,
+		ConnectionID:          view.ConnectionID,
+		ConnectionVersion:     "1",
+		AdapterKind:           sourceaccess.AdapterPostgres,
+		AdapterVersion:        "postgres-v1",
+		ViewID:                view.ViewID,
+		ViewVersion:           "1",
+		BindingID:             binding.BindingID,
+		BindingVersion:        "1",
 		DefinitionFingerprint: strings.Repeat("d", 64),
-		SchemaFingerprint: view.SchemaFingerprint,
-		Operation: sourceaccess.OperationPage,
-		ObservedAt: observedAt,
-		Count: count,
-		Bytes: 1024,
-		Completeness: sourceaccess.CompletenessComplete,
+		SchemaFingerprint:     view.SchemaFingerprint,
+		Operation:             sourceaccess.OperationPage,
+		ObservedAt:            observedAt,
+		Count:                 count,
+		Bytes:                 1024,
+		Completeness:          sourceaccess.CompletenessComplete,
 	}
 }
