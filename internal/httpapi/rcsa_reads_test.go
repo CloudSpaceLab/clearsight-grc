@@ -158,6 +158,43 @@ func TestRCSAHandoffUsesExistingEvidenceAndMatterTargets(t *testing.T) {
 	}
 }
 
+func TestRCSASummaryHandoffNeverExposesChallengeMatterID(t *testing.T) {
+	got := rcsaCycleSummaryHandoff(rcsa.Cycle{
+		Status: rcsa.StatusAwaitingChallenge, ChallengeMatterID: "restricted-matter",
+	})
+	if got.TargetType != "" || got.TargetID != "" {
+		t.Fatalf("summary handoff leaked challenge target: %#v", got)
+	}
+	if got.Label != "Complete independent challenge" {
+		t.Fatalf("summary handoff label=%q", got.Label)
+	}
+}
+
+func TestRCSADetailHandoffRequiresExactChallengeContext(t *testing.T) {
+	cycle := rcsa.Cycle{
+		Status: rcsa.StatusAwaitingChallenge, ChallengeMatterID: "matter-1",
+	}
+	restricted := rcsaCycleDetailHandoff(cycle, "", false)
+	if restricted.TargetType != "" || restricted.TargetID != "" ||
+		restricted.Label != "Independent challenge context unavailable" {
+		t.Fatalf("restricted detail handoff=%#v", restricted)
+	}
+
+	allowed := rcsaCycleDetailHandoff(cycle, "", true)
+	if allowed.TargetType != "MATTER" || allowed.TargetID != "matter-1" ||
+		allowed.Label != "Complete independent challenge" {
+		t.Fatalf("allowed detail handoff=%#v", allowed)
+	}
+
+	completed := rcsaCycleDetailHandoff(rcsa.Cycle{
+		Status: rcsa.StatusCompleted, ChallengeMatterID: "matter-1",
+	}, "", false)
+	if completed.TargetType != "" || completed.TargetID != "" ||
+		completed.Label != "Completed · challenge context unavailable" {
+		t.Fatalf("completed restricted handoff=%#v", completed)
+	}
+}
+
 func TestRCSAListAuthorityInfrastructureFailureIsPartial(t *testing.T) {
 	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "reviewer-a"}
 	api := &API{deps: Dependencies{Authority: failingRCSAAuthority{}}}
