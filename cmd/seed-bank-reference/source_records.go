@@ -775,6 +775,9 @@ func buildNDPAChecklistDraft(group sourceRecordGroup) (monitoring.CreateFormInpu
 func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankverticals.SeedConfig, programID string, group sourceRecordGroup, records []sourceRecord, index, total int) (monitoring.FormTemplate, map[string]formcontract.AnswerValue, error) {
 	code, _ := sourceFormIdentity(group, index)
 	name := group.Title
+	if group.PresentationVersion == 2 {
+		name = sourceGroupDisplayTitle(group)
+	}
 	if total > 1 {
 		name += fmt.Sprintf(" · %d/%d", index+1, total)
 	}
