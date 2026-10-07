@@ -1367,6 +1367,42 @@
         }
       }
     },
+    "/api/v1/metrics/group/posture": {
+      "get": {
+        "operationId": "groupPostureMetrics",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized Group CRO posture and period Loss-event counts by legal entity. No child record identity is exposed."
+          },
+          "403": {
+            "description": "Fewer than two legal entities are authorized for Group oversight."
+          },
+          "503": {
+            "description": "Group posture is unavailable."
+          }
+        }
+      }
+    },
     "/api/v1/metrics/home": {
       "get": {
         "operationId": "homeMetrics",
