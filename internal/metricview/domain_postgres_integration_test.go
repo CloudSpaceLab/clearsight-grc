@@ -343,7 +343,7 @@ func TestScopedDomainMetricsIncludeAuthorizedDescendantsAndRetainExactMembers(t 
 		t.Fatalf("bundle=%#v", bundle)
 	}
 	outside := domainMetricByID(t, bundle, "risks_outside_appetite")
-	if outside.Value != 1 || outside.Population != 1 || outside.Completeness != CompletenessUnknown {
+	if outside.Value != 1 || outside.Population != 1 || outside.Completeness != CompletenessComplete {
 		t.Fatalf("outside appetite=%#v", outside)
 	}
 	losses := domainMetricByID(t, bundle, "losses_without_issue")
