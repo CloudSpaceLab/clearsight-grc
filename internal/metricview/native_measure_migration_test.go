@@ -18,6 +18,9 @@ func TestNativeMoneyMigrationExtendsMetricContractWithoutWeakeningCounts(t *test
 		"ADD COLUMN currency text",
 		"ADD COLUMN member_count bigint",
 		"condition IN ('CLEAR','ATTENTION','NEUTRAL')",
+		"CREATE FUNCTION validate_metric_native_measure",
+		"metric_observations_validate_native_measure",
+		"metric_daily_rollups_validate_native_measure",
 	} {
 		if !strings.Contains(up, required) {
 			t.Fatalf("up migration lacks %q", required)
