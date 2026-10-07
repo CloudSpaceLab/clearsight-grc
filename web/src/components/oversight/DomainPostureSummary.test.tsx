@@ -76,7 +76,7 @@ it("opens exact scoped Risk members from the canonical posture card", async () =
   ));
   expect(await screen.findByText("Payments availability risk")).toBeTruthy();
 
-  fireEvent.click(screen.getByRole("row", { name: /Payments availability risk, Risk/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Open record for Payments availability risk/ }));
   expect(onOpenRisk).toHaveBeenCalledWith("8f720000-0000-4000-8000-000000000020");
 });
 
