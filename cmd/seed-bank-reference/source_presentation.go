@@ -167,3 +167,13 @@ func sourceNormalizePresentation(group sourceRecordGroup) sourceRecordGroup {
 	group.ResponsePerRecord = true
 	return group
 }
+
+func sourceGroupDisplayTitle(group sourceRecordGroup) string {
+	for _, candidate := range []string{group.Title, group.SourceSheet, strings.TrimSuffix(group.SourceFile, ".xlsx")} {
+		label := strings.TrimSpace(candidate)
+		if label != "" && !sourcePlaceholderTitle.MatchString(label) {
+			return sourceShort(label, 200)
+		}
+	}
+	return "Source records"
+}
