@@ -27,6 +27,12 @@ export type GroupCoverage = {
   complete: boolean;
 };
 
+export type GroupDomainPosture = {
+  risks_outside_appetite: number;
+  indicator_breaches: number;
+  assurance_failures: number;
+};
+
 export type GroupChild = {
   legal_entity_id: string;
   legal_entity_code: string;
@@ -39,6 +45,12 @@ export type GroupChild = {
   coverage: GroupRecordCoverage;
   counts: GroupCounts;
   source_high_water?: Record<string, string>;
+  domain_state: GroupChildState;
+  domain_source_id?: string;
+  domain_generated_at?: string;
+  domain_definition_revision?: string;
+  domain_posture: GroupDomainPosture;
+  domain_source_high_water?: Record<string, string>;
 };
 
 export type GroupOversightSnapshot = {
@@ -46,7 +58,10 @@ export type GroupOversightSnapshot = {
   generated_at: string;
   projection_version: string;
   freshness: "CURRENT" | "STALE";
+  posture_freshness: "CURRENT" | "STALE";
   coverage: GroupCoverage;
+  posture_coverage: GroupCoverage;
+  posture: GroupDomainPosture;
   record_coverage: GroupRecordCoverage;
   counts: GroupCounts;
   children: GroupChild[];
