@@ -137,8 +137,7 @@ export function RiskMovement({
   return <section className="risk-movement" aria-labelledby="risk-movement-heading">
     <div className="section-header risk-movement__header">
       <div>
-        <span className="eyebrow">What changed</span>
-        <h2 id="risk-movement-heading">Risk movement</h2>
+        <h2 id="risk-movement-heading">Risk trend</h2>
         <p>Outside-appetite risk posture over time.</p>
       </div>
       <div className="risk-movement__ranges" aria-label="Risk movement period">
