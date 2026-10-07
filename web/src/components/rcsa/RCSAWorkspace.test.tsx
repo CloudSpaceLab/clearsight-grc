@@ -142,7 +142,7 @@ it("does not present a completed challenge as verified remediation", async () =>
 
   expect(await screen.findByText("Deficiency confirmed")).toBeTruthy();
   expect(screen.getByText("Remediation in progress")).toBeTruthy();
-  expect(screen.getByText("2 open remediation actions remain.")).toBeTruthy();
+  expect(screen.getByText("2 follow-up actions remain.")).toBeTruthy();
   expect(screen.queryByText("Verified")).toBeNull();
 });
 
