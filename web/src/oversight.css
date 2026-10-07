@@ -1,5 +1,7 @@
 .oversight-workspace { width: min(1500px, 100%); margin: 0 auto; padding: 34px clamp(20px, 3vw, 48px) 80px; color: var(--text); }
 .oversight-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.oversight-header__actions { display: flex; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; gap: 10px; min-width: 0; }
+.oversight-header__actions > .oversight-period-control { min-width: 0; }
 .oversight-header h1, .oversight-unavailable h1 { margin: 8px 0 6px; font-size: clamp(1.9rem, 3vw, 2.8rem); letter-spacing: -.035em; }
 .oversight-header p, .oversight-unavailable p { max-width: 720px; margin: 0; color: var(--muted); }
 .oversight-period-summary { display: grid; gap: 3px; min-width: 210px; padding: 11px 13px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-10); background: var(--surface); }
