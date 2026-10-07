@@ -266,7 +266,20 @@ describe("GroupOversightWorkspace", () => {
     await screen.findByRole("heading", { name: "Group Home" });
     fireEvent.click(screen.getByRole("tab", { name: "My work" }));
     expect(await screen.findByRole("heading", { name: "Assigned work stays within an OpCo" })).toBeTruthy();
+    expect(screen.getByText("Group scope does not combine OpCo work queues.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open current OpCo My work" }));
     expect(onOpenWork).toHaveBeenCalledTimes(1);
+  });
+
+  it("states the Group Attention recovery actions without interface narration", async () => {
+    render(<GroupOversightWorkspace
+      organizationName="Clear Bank"
+      homeTab="attention"
+      onOpenLegalEntity={vi.fn()}
+      loadGroup={vi.fn().mockRejectedValue(new Error("unavailable"))}
+      loadPosture={vi.fn().mockResolvedValue(postureFixture())}
+    />);
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Refresh Group Attention or select an OpCo.");
   });
 });

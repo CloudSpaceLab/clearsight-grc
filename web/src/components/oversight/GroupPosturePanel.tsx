@@ -47,7 +47,7 @@ export function GroupPostureView({
   }
 
   return <>
-    {value && <GroupPostureCoverageNotice value={value} metric={metric}/>} 
+    {value && <GroupPostureCoverageNotice value={value} metric={metric}/>}
     <div className="oversight-counts" aria-label="Group CRO posture" aria-busy={state === "loading" || undefined}>
       {postureMetrics.map((definition) => {
         const metricValue = value?.counts[definition.id];

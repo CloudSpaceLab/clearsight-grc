@@ -28,7 +28,7 @@ export function GroupAttentionView({
     return <EmptyState
       population="Authorized Group Attention"
       title="Group Attention unavailable"
-      description="Refresh or return to the current legal entity."
+      description="Refresh Group Attention or select an OpCo."
       action={<Button variant="secondary" onPress={onRetry}>Try again</Button>}
       role="alert"
     />;

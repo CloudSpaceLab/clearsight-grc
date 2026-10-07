@@ -229,7 +229,7 @@ export function GroupOversightWorkspace({
         {tab === "my-work" && <EmptyState
           population="Group scope"
           title="Assigned work stays within an OpCo"
-          description="Open an OpCo to work its queue, or return to your current OpCo work list."
+          description="Group scope does not combine OpCo work queues."
           action={onOpenWork ? <Button onPress={onOpenWork}>Open current OpCo My work</Button> : undefined}
         />}
       </div>}
@@ -256,14 +256,13 @@ export function GroupOversightWorkspace({
   </section>;
 }
 
-
 function reportingPeriod(endDate: string, days: number): ReportingPeriod {
   return {
     start_date: startDateForDays(endDate, days),
     end_date: endDate,
     mode: "CURRENT_WINDOW",
     max_days: 365,
-      historical_end_supported: false,
+    historical_end_supported: false,
   };
 }
 
