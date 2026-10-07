@@ -117,14 +117,14 @@ func insertPersistedITException(t *testing.T, ctx context.Context, pool *pgxpool
 		{Label: "RISK ASSESSMENT PUBLICATION DATE", Value: "2025-10-29"},
 	}
 	facts := sourceJSON(map[string]any{
-		"source_file": "Sample IT Risk Exception Register (1).xlsx",
-		"source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		"source_sheet": "Sheet1",
-		"source_range": "Sheet1!A2:R2",
-		"source_rating": "High",
-		"source_owner": "CISO",
-		"source_assessor": "",
-		"source_fields": fields,
+		"source_file":      "Sample IT Risk Exception Register (1).xlsx",
+		"source_sha256":    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		"source_sheet":     "Sheet1",
+		"source_range":     "Sheet1!A2:R2",
+		"source_rating":    "High",
+		"source_owner":     "CISO",
+		"source_assessor":  "",
+		"source_fields":    fields,
 	})
 	scope := sourceJSON(map[string]any{"sample": true, "seed_package": sourceRecordPackage, "source_group": "it-risk-exceptions"})
 	query := `
