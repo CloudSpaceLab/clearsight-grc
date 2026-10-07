@@ -25,7 +25,7 @@ export function reportingPeriodPath(path: string, period?: ReportingPeriodQuery,
 export function reportingPeriodLabel(period: ReportingPeriod) {
   const days = utcDayDifference(period.start_date, period.end_date);
   const calendarDays = days + 1;
-  if (calendarDays === 30 || calendarDays === 90 || calendarDays === 180) return `Last ${calendarDays} days`;
+  if (calendarDays === 7 || calendarDays === 30 || calendarDays === 90 || calendarDays === 180) return `Last ${calendarDays} days`;
   return `${shortDate(period.start_date)} – ${shortDate(period.end_date)}`;
 }
 
