@@ -102,15 +102,19 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 	}
 
 	bundle := LossPeriodBundle{
-		GeneratedAt: sourceGeneratedAt, PeriodStart: periodStart, PeriodEnd: periodEnd,
-		ScopeID: scope.LegalEntityID, ScopeKind: "LEGAL_ENTITY",
-		SourceID: sourceID, SourceRevision: LossPeriodSourceRevision,
-		DefinitionRevision: LossPeriodDefinitionRevision,
-		EventCount: aggregate.EventCount,
-		ContributingLossCount: aggregate.ContributingLossCount,
+		GeneratedAt:            sourceGeneratedAt,
+		PeriodStart:            periodStart,
+		PeriodEnd:              periodEnd,
+		ScopeID:                scope.LegalEntityID,
+		ScopeKind:              "LEGAL_ENTITY",
+		SourceID:               sourceID,
+		SourceRevision:         LossPeriodSourceRevision,
+		DefinitionRevision:     LossPeriodDefinitionRevision,
+		EventCount:             aggregate.EventCount,
+		ContributingLossCount:  aggregate.ContributingLossCount,
 		UnattributedEventCount: aggregate.UnattributedEventCount,
-		MixedCurrencies: len(aggregate.Currencies) > 1,
-		Currencies: make([]LossCurrencyFlow, 0, len(aggregate.Currencies)),
+		MixedCurrencies:        len(aggregate.Currencies) > 1,
+		Currencies:             make([]LossCurrencyFlow, 0, len(aggregate.Currencies)),
 	}
 	if organizationScopeID != "" {
 		bundle.ScopeID = organizationScopeID
@@ -134,9 +138,12 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 			return LossPeriodBundle{}, err
 		}
 		bundle.Currencies = append(bundle.Currencies, LossCurrencyFlow{
-			Currency: value.Currency,
-			Gross: gross, Recovery: recovery, Reversal: reversal, Net: net,
-			LossEventCount: value.LossEventCount,
+			Currency:           value.Currency,
+			Gross:              gross,
+			Recovery:           recovery,
+			Reversal:           reversal,
+			Net:                net,
+			LossEventCount:     value.LossEventCount,
 			RecoveryEventCount: value.RecoveryEventCount,
 			ReversalEventCount: value.ReversalEventCount,
 		})
@@ -476,16 +483,16 @@ func lossPeriodFingerprint(
 		ContributorHash      string                  `json:"contributor_hash"`
 		Currencies           []lossCurrencyAggregate `json:"currencies"`
 	}{
-		OrganizationScopeID: scope.OrganizationScopeID,
+		OrganizationScopeID:  scope.OrganizationScopeID,
 		OrganizationScopeIDs: append([]string(nil), scope.OrganizationScopeIDs...),
-		PeriodStart: periodStart.UTC().Format(time.RFC3339Nano),
-		PeriodEnd: periodEnd.UTC().Format(time.RFC3339Nano),
-		EventCount: aggregate.EventCount,
-		ContributorCount: aggregate.ContributingLossCount,
-		UnattributedCount: aggregate.UnattributedEventCount,
-		EventHash: aggregate.EventHash,
-		ContributorHash: aggregate.ContributorHash,
-		Currencies: append([]lossCurrencyAggregate(nil), aggregate.Currencies...),
+		PeriodStart:          periodStart.UTC().Format(time.RFC3339Nano),
+		PeriodEnd:            periodEnd.UTC().Format(time.RFC3339Nano),
+		EventCount:           aggregate.EventCount,
+		ContributorCount:     aggregate.ContributingLossCount,
+		UnattributedCount:    aggregate.UnattributedEventCount,
+		EventHash:            aggregate.EventHash,
+		ContributorHash:      aggregate.ContributorHash,
+		Currencies:           append([]lossCurrencyAggregate(nil), aggregate.Currencies...),
 	}
 	sort.Strings(payload.OrganizationScopeIDs)
 	encoded, err := json.Marshal(payload)
