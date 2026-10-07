@@ -99,6 +99,25 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 	if !lossBreakdownMatchesAggregate(breakdown, aggregate) {
 		return LossPeriodBundle{}, ErrLossPeriodInvalid
 	}
+	periodDuration := periodEnd.Sub(periodStart)
+	previousEnd := periodStart.Add(-time.Nanosecond)
+	previousStart := previousEnd.Add(-periodDuration)
+	previousAggregate, err := loadLossPeriodAggregate(ctx, tx, scope, previousStart, previousEnd)
+	if err != nil {
+		return LossPeriodBundle{}, err
+	}
+	flowResolution := LossFlowResolutionDay
+	if periodDuration > 45*24*time.Hour {
+		flowResolution = LossFlowResolutionWeek
+	}
+	flowPoints, err := loadLossFlowPoints(ctx, tx, scope, periodStart, periodEnd, flowResolution, aggregate)
+	if err != nil {
+		return LossPeriodBundle{}, err
+	}
+	comparison, err := buildLossPeriodComparison(aggregate, previousAggregate, previousStart, previousEnd)
+	if err != nil {
+		return LossPeriodBundle{}, err
+	}
 	sourceID, sourceGeneratedAt, err := retainLossPeriodSnapshot(
 		ctx, tx, scope, periodStart, periodEnd, generatedAt, aggregate,
 	)
@@ -123,45 +142,129 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 		UnattributedEventCount: aggregate.UnattributedEventCount,
 		MixedCurrencies:        len(aggregate.Currencies) > 1,
 		Currencies:             make([]LossCurrencyFlow, 0, len(aggregate.Currencies)),
-		OrganizationBreakdown:  breakdown,
+		OrganizationBreakdown: breakdown,
+		FlowResolution:       flowResolution,
+		FlowPoints:           flowPoints,
+		Comparison:           comparison,
 	}
 	if organizationScopeID != "" {
 		bundle.ScopeID = organizationScopeID
 		bundle.ScopeKind = "ORGANIZATION_SCOPE"
 	}
-	for _, value := range aggregate.Currencies {
+	bundle.Currencies, bundle.NetLoss, err = lossCurrencyFlows(aggregate.Currencies)
+	if err != nil {
+		return LossPeriodBundle{}, err
+	}
+	return bundle, nil
+}
+
+func lossCurrencyFlows(values []lossCurrencyAggregate) ([]LossCurrencyFlow, *MoneyValue, error) {
+	result := make([]LossCurrencyFlow, 0, len(values))
+	for _, value := range values {
 		gross, err := NewMoneyValue(value.GrossMinor, value.Currency)
 		if err != nil {
-			return LossPeriodBundle{}, err
+			return nil, nil, err
 		}
 		recovery, err := NewMoneyValue(value.RecoveryMinor, value.Currency)
 		if err != nil {
-			return LossPeriodBundle{}, err
+			return nil, nil, err
 		}
 		reversal, err := NewMoneyValue(value.ReversalMinor, value.Currency)
 		if err != nil {
-			return LossPeriodBundle{}, err
+			return nil, nil, err
 		}
 		net, err := NewMoneyValue(value.GrossMinor-value.RecoveryMinor+value.ReversalMinor, value.Currency)
 		if err != nil {
-			return LossPeriodBundle{}, err
+			return nil, nil, err
 		}
-		bundle.Currencies = append(bundle.Currencies, LossCurrencyFlow{
-			Currency:           value.Currency,
-			Gross:              gross,
-			Recovery:           recovery,
-			Reversal:           reversal,
-			Net:                net,
-			LossEventCount:     value.LossEventCount,
+		result = append(result, LossCurrencyFlow{
+			Currency: value.Currency, Gross: gross, Recovery: recovery, Reversal: reversal, Net: net,
+			LossEventCount: value.LossEventCount,
 			RecoveryEventCount: value.RecoveryEventCount,
 			ReversalEventCount: value.ReversalEventCount,
 		})
 	}
-	if len(bundle.Currencies) == 1 {
-		net := bundle.Currencies[0].Net
-		bundle.NetLoss = &net
+	if len(result) == 1 {
+		net := result[0].Net
+		return result, &net, nil
 	}
-	return bundle, nil
+	return result, nil, nil
+}
+
+func buildLossPeriodComparison(
+	current lossPeriodAggregate,
+	previous lossPeriodAggregate,
+	periodStart time.Time,
+	periodEnd time.Time,
+) (LossPeriodComparison, error) {
+	currencies, netLoss, err := lossCurrencyFlows(previous.Currencies)
+	if err != nil {
+		return LossPeriodComparison{}, err
+	}
+	comparison := LossPeriodComparison{
+		PeriodStart: periodStart,
+		PeriodEnd: periodEnd,
+		EventCount: previous.EventCount,
+		ContributingLossCount: previous.ContributingLossCount,
+		MixedCurrencies: len(previous.Currencies) > 1,
+		NetLoss: netLoss,
+		Currencies: currencies,
+		EventDelta: current.EventCount - previous.EventCount,
+		Direction: TrendUnknown,
+		ComparisonQuality: ComparisonLimited,
+	}
+	currentCurrency, currentNet, currentComparable := comparableLossNet(current.Currencies)
+	previousCurrency, previousNet, previousComparable := comparableLossNet(previous.Currencies)
+	switch {
+	case len(current.Currencies) == 0 && len(previous.Currencies) == 0:
+		comparison.Direction = TrendUnchanged
+		comparison.ComparisonQuality = ComparisonComplete
+	case currentComparable && len(previous.Currencies) == 0:
+		delta, err := NewMoneyValue(currentNet, currentCurrency)
+		if err != nil {
+			return LossPeriodComparison{}, err
+		}
+		comparison.NetDelta = &delta
+		comparison.Direction = lossFlowDirection(currentNet)
+		comparison.ComparisonQuality = ComparisonComplete
+	case previousComparable && len(current.Currencies) == 0:
+		delta, err := NewMoneyValue(-previousNet, previousCurrency)
+		if err != nil {
+			return LossPeriodComparison{}, err
+		}
+		comparison.NetDelta = &delta
+		comparison.Direction = lossFlowDirection(-previousNet)
+		comparison.ComparisonQuality = ComparisonComplete
+	case currentComparable && previousComparable && currentCurrency == previousCurrency:
+		deltaValue := currentNet - previousNet
+		delta, err := NewMoneyValue(deltaValue, currentCurrency)
+		if err != nil {
+			return LossPeriodComparison{}, err
+		}
+		comparison.NetDelta = &delta
+		comparison.Direction = lossFlowDirection(deltaValue)
+		comparison.ComparisonQuality = ComparisonComplete
+	}
+	return comparison, nil
+}
+
+func comparableLossNet(values []lossCurrencyAggregate) (string, int64, bool) {
+	if len(values) != 1 {
+		return "", 0, false
+	}
+	value := values[0]
+	return value.Currency, value.GrossMinor - value.RecoveryMinor + value.ReversalMinor, true
+}
+
+func lossFlowDirection(delta int64) TrendDirection {
+	switch {
+	case delta < 0:
+		return TrendImproved
+	case delta > 0:
+		return TrendWorsened
+	default:
+		return TrendUnchanged
+	}
 }
 
 func resolveLossPeriodScope(
