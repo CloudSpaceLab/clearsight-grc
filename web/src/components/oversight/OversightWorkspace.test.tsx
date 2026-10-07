@@ -316,6 +316,7 @@ it("keeps Attention and My work isolated while preserving their actions", async 
   expect(metricApi.loadDomainMetrics).not.toHaveBeenCalled();
   expect(metricApi.loadDomainMetricTrend).not.toHaveBeenCalled();
   expect(metricApi.loadDomainMetricOrganizationTrend).not.toHaveBeenCalled();
+  expect(metricApi.loadLossPeriodMetrics).not.toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /Overdue.*4/i }));
   expect(onMetricFilterChange).toHaveBeenCalledWith("overdue");
@@ -444,6 +445,11 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
 
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }, undefined));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }, undefined);
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledWith(
+    { start_date: "2026-08-03", end_date: "2026-09-01" },
+    undefined,
+    expect.any(AbortSignal),
+  ));
   expect(screen.getByRole("button", { name: /Reporting period/ }).textContent).toContain("Last 30 days");
   expect(screen.queryByText("7")).toBeNull();
 
@@ -514,6 +520,11 @@ it("reloads both Home reads for an organization scope and excludes unattributed 
 
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith(undefined, "scope-risk"));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith(undefined, "scope-risk");
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledWith(
+    { start_date: "2026-06-03", end_date: "2026-09-01" },
+    "scope-risk",
+    expect.any(AbortSignal),
+  ));
   expect(await screen.findByText(/4 issues/)).toBeTruthy();
   expect(screen.getByText(/unassigned area excluded/)).toBeTruthy();
   expect(screen.getByText("Current risk posture and operating context in BANK / RISK.")).toBeTruthy();
@@ -544,6 +555,7 @@ it("shows My work as a separate bounded Home intent", async () => {
   expect(metricApi.loadDomainMetrics).not.toHaveBeenCalled();
   expect(metricApi.loadDomainMetricTrend).not.toHaveBeenCalled();
   expect(metricApi.loadDomainMetricOrganizationTrend).not.toHaveBeenCalled();
+  expect(metricApi.loadLossPeriodMetrics).not.toHaveBeenCalled();
 });
 
 it("reloads Home projections when the actor invalidation revision changes", async () => {
@@ -551,8 +563,10 @@ it("reloads Home projections when the actor invalidation revision changes", asyn
   await screen.findByRole("heading", { name: "Home" });
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledTimes(1));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledTimes(1));
 
   rerender(<OversightWorkspace refreshToken="rev-2" organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledTimes(2));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledTimes(2);
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledTimes(2));
 });
