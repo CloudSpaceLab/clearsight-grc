@@ -71,6 +71,15 @@ type OrganizationScopeSearchPage struct {
 	HasMore bool        `json:"has_more"`
 }
 
+type OrganizationScopeSelection struct {
+	Node ScopeNode
+	IDs  []string
+}
+
+type OrganizationScopeSelectionResolver interface {
+	ResolveOrganizationScopeSelection(context.Context, Scope, string, bool) (OrganizationScopeSelection, error)
+}
+
 type Resolver interface {
 	Resolve(context.Context, Scope) (DisplayContext, error)
 }

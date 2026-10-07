@@ -5,6 +5,7 @@ package runtimecontext
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -132,6 +133,23 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 		t.Fatalf("global search page = %#v", page)
 	}
 
+	remoteScopeID := page.Items[0].ID
+	remoteSelection, err := resolver.ResolveOrganizationScopeSelection(ctx, globalScope, remoteScopeID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if remoteSelection.Node.ID != remoteScopeID || len(remoteSelection.IDs) != 1 || remoteSelection.IDs[0] != remoteScopeID {
+		t.Fatalf("remote selection = %#v", remoteSelection)
+	}
+
+	rootSelection, err := resolver.ResolveOrganizationScopeSelection(ctx, globalScope, rootScopeID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rootSelection.Node.ID != rootScopeID || len(rootSelection.IDs) != 20000 {
+		t.Fatalf("root selection node=%#v count=%d", rootSelection.Node, len(rootSelection.IDs))
+	}
+
 	localScope := Scope{TenantID: "scope-scale-test", LegalEntityID: "SCALE-NG", PrincipalID: localPrincipal}
 	forbiddenPage, err := resolver.SearchOrganizationScopes(ctx, localScope, "SITE19999", 20)
 	if err != nil {
@@ -139,6 +157,20 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 	}
 	if len(forbiddenPage.Items) != 0 {
 		t.Fatalf("local reader discovered sibling scope: %#v", forbiddenPage.Items)
+	}
+
+	if _, err := resolver.ResolveOrganizationScopeSelection(ctx, localScope, remoteScopeID, true); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("local sibling selection err=%v", err)
+	}
+	if _, err := resolver.ResolveOrganizationScopeSelection(ctx, localScope, rootScopeID, true); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("structural ancestor selection err=%v", err)
+	}
+	localSelection, err := resolver.ResolveOrganizationScopeSelection(ctx, localScope, localScopeID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(localSelection.IDs) != 1 || localSelection.IDs[0] != localScopeID {
+		t.Fatalf("local exact selection = %#v", localSelection)
 	}
 
 	if _, err = pool.Exec(ctx, "ANALYZE organization_scopes"); err != nil {

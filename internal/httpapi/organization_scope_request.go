@@ -26,6 +26,18 @@ func (a *API) resolveOrganizationScopeSelection(ctx context.Context, actor ident
 	if requested == "" {
 		return organizationScopeSelection{}, nil
 	}
+	if resolver, ok := a.deps.RuntimeContext.(runtimecontext.OrganizationScopeSelectionResolver); ok {
+		resolved, err := resolver.ResolveOrganizationScopeSelection(ctx, runtimecontext.Scope{
+			TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
+		}, requested, includeDescendants)
+		if err != nil {
+			if errors.Is(err, runtimecontext.ErrNotFound) {
+				return organizationScopeSelection{}, errOrganizationScopeForbidden
+			}
+			return organizationScopeSelection{}, errOrganizationScopeUnavailable
+		}
+		return organizationScopeSelection{ID: resolved.Node.ID, IDs: resolved.IDs}, nil
+	}
 	resolver, ok := a.deps.RuntimeContext.(runtimecontext.HierarchyResolver)
 	if !ok {
 		return organizationScopeSelection{}, errOrganizationScopeUnavailable
