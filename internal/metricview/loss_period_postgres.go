@@ -187,8 +187,13 @@ func loadLossPeriodAggregate(
 	var aggregate lossPeriodAggregate
 	err := tx.QueryRow(ctx, `
 		WITH loss_events AS (
-			SELECT loss.id,loss.version,loss.title,loss.organization_scope_id,loss.currency,loss.gross_amount_minor
+			SELECT loss.id,loss.version,COALESCE(organization.version,0) AS organization_version,
+			       loss.title,loss.organization_scope_id,loss.currency,loss.gross_amount_minor
 			FROM operational_losses loss
+			LEFT JOIN organization_scopes organization
+			  ON organization.tenant_id=loss.tenant_id
+			 AND organization.legal_entity_id=loss.legal_entity_id
+			 AND organization.id=loss.organization_scope_id
 			WHERE loss.tenant_id=$1::uuid
 			  AND loss.legal_entity_id=$2::uuid
 			  AND loss.status='ACTIVE'
@@ -198,6 +203,7 @@ func loadLossPeriodAggregate(
 		), recovery_events AS (
 			SELECT recovery.loss_id AS id,
 			       loss.version,
+			       COALESCE(organization.version,0) AS organization_version,
 			       loss.title,
 			       loss.organization_scope_id,
 			       loss.currency,
@@ -208,6 +214,10 @@ func loadLossPeriodAggregate(
 			  ON loss.tenant_id=recovery.tenant_id
 			 AND loss.legal_entity_id=recovery.legal_entity_id
 			 AND loss.id=recovery.loss_id
+			LEFT JOIN organization_scopes organization
+			  ON organization.tenant_id=loss.tenant_id
+			 AND organization.legal_entity_id=loss.legal_entity_id
+			 AND organization.id=loss.organization_scope_id
 			WHERE loss.tenant_id=$1::uuid
 			  AND loss.legal_entity_id=$2::uuid
 			  AND loss.status='ACTIVE'
@@ -215,9 +225,9 @@ func loadLossPeriodAggregate(
 			  AND recovery.recovered_at<=$4
 			  AND (NOT $5::boolean OR loss.organization_scope_id=ANY($6::uuid[]))
 		), contributors AS (
-			SELECT id,version FROM loss_events
+			SELECT id,version,organization_version FROM loss_events
 			UNION
-			SELECT id,version FROM recovery_events
+			SELECT id,version,organization_version FROM recovery_events
 		), currencies AS (
 			SELECT currency FROM loss_events
 			UNION
@@ -252,7 +262,7 @@ func loadLossPeriodAggregate(
 		  (SELECT count(*) FROM loss_events),
 		  (SELECT count(*) FROM contributors),
 		  (SELECT count(*) FROM loss_events WHERE organization_scope_id IS NULL),
-		  (SELECT md5(COALESCE(string_agg(id::text||':'||version::text,',' ORDER BY id),'')) FROM loss_events),
+		  (SELECT md5(COALESCE(string_agg(id::text||':'||version::text||':'||organization_version::text,',' ORDER BY id),'')) FROM loss_events),
 		  (SELECT md5(COALESCE(string_agg(id::text||':'||version::text,',' ORDER BY id),'')) FROM contributors),
 		  COALESCE((
 			SELECT jsonb_agg(jsonb_build_object(
