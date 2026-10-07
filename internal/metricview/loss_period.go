@@ -69,8 +69,8 @@ type LossPeriodBundle struct {
 	UnattributedEventCount int                `json:"unattributed_event_count"`
 	MixedCurrencies        bool               `json:"mixed_currencies"`
 	NetLoss                *MoneyValue        `json:"net_loss,omitempty"`
-	Currencies             []LossCurrencyFlow `json:"currencies"`
-	OrganizationBreakdown  []LossOrganizationFlow `json:"organization_breakdown"`
+	Currencies            []LossCurrencyFlow    `json:"currencies"`
+	OrganizationBreakdown []LossOrganizationFlow `json:"organization_breakdown"`
 }
 
 type LossPeriodReader interface {
