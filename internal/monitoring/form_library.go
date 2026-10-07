@@ -12,7 +12,9 @@ import (
 )
 
 type FormLibraryFilter struct {
-	TenantID         string                `json:"-"`
+	TenantID         string
+	OriginType       FormOriginType        `json:"origin_type,omitempty"`
+	OriginID         string                `json:"origin_id,omitempty"`                `json:"-"`
 	LegalEntityID    string                `json:"-"`
 	Search           string                `json:"search,omitempty"`
 	ProgramID        string                `json:"program_id,omitempty"`
@@ -32,6 +34,18 @@ const (
 	FormLibraryUpdatedDesc FormLibrarySort = "UPDATED_DESC"
 	FormLibraryUpdatedAsc  FormLibrarySort = "UPDATED_ASC"
 )
+
+func normalizeFormLibraryOriginFilter(originType FormOriginType, originID string) (FormOriginType, string, error) {
+	originType = FormOriginType(strings.ToUpper(strings.TrimSpace(string(originType))))
+	originID = strings.TrimSpace(originID)
+	if originType == "" && originID == "" {
+		return "", "", nil
+	}
+	if originType == "" || originID == "" || originType != FormOriginMatter {
+		return "", "", errors.Join(ErrInvalid, fmt.Errorf("form origin filter must identify one Matter"))
+	}
+	return originType, originID, nil
+}
 
 func normalizedFormLibrarySort(value FormLibrarySort) (FormLibrarySort, error) {
 	if value == "" || value == FormLibraryUpdatedDesc {
