@@ -14,15 +14,15 @@ import (
 )
 
 type metricTrendReaderStub struct {
-	series             metricview.TrendSeries
-	organizationSeries metricview.OrganizationTrendSeries
-	err                error
-	tenantID           string
-	legalEntityID      string
+	series              metricview.TrendSeries
+	organizationSeries  metricview.OrganizationTrendSeries
+	err                 error
+	tenantID            string
+	legalEntityID       string
 	organizationScopeID string
-	metricID           string
-	start              time.Time
-	end                time.Time
+	metricID            string
+	start               time.Time
+	end                 time.Time
 }
 
 func (s *metricTrendReaderStub) Trend(_ context.Context, tenantID, legalEntityID, metricID string, start, end time.Time) (metricview.TrendSeries, error) {
@@ -108,23 +108,23 @@ func TestDomainMetricOrganizationTrendBindsAuthorizedScopeAndPeriod(t *testing.T
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	start := today.Add(-30 * 24 * time.Hour)
 	reader := &metricTrendReaderStub{organizationSeries: metricview.OrganizationTrendSeries{
-		MetricID: "risks_outside_appetite",
-		DefinitionRevision: metricview.DomainDefinitionRevision,
+		MetricID:            "risks_outside_appetite",
+		DefinitionRevision:  metricview.DomainDefinitionRevision,
 		OrganizationScopeID: "scope-risk",
-		Start: start,
-		End: now,
-		Resolution: metricview.TrendResolutionDay,
+		Start:               start,
+		End:                 now,
+		Resolution:          metricview.TrendResolutionDay,
 		Points: []metricview.OrganizationTrendPoint{{
-			Date: start.Format("2006-01-02"),
-			At: start.Add(23 * time.Hour),
-			Value: 7,
+			Date:           start.Format("2006-01-02"),
+			At:             start.Add(23 * time.Hour),
+			Value:          7,
 			SourceRevision: metricview.DomainSourceRevision,
 			SourceComplete: true,
 		}},
 	}}
 	resolver := &exactOrganizationScopeResolverStub{selection: runtimecontext.OrganizationScopeSelection{
 		Node: runtimecontext.ScopeNode{ID: "scope-risk", Filterable: true},
-		IDs: []string{"scope-risk"},
+		IDs:  []string{"scope-risk"},
 	}}
 	api := &API{deps: Dependencies{MetricTrends: reader, RuntimeContext: resolver}}
 	request := httptest.NewRequest(
