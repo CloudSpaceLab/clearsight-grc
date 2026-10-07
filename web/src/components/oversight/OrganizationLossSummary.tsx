@@ -43,7 +43,7 @@ export function OrganizationLossSummary({ bundle, state, onOpenScope }: Props) {
 
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading Loss concentration…</p>}
     {state === "unavailable" && <Notice tone="warning">Loss concentration is unavailable for this period.</Notice>}
-    {state === "live" && bundle && bundle.event_count === 0 && bundle.contributing_loss_count === 0 && <EmptyState
+    {state === "live" && bundle && bundle.event_count === 0 && bundle.contributing_loss_count === 0 && <EmptyState compact
       population="No loss activity"
       title="No loss activity"
       description="No loss or recovery events in the selected period."
