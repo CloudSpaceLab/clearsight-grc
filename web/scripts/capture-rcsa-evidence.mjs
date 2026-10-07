@@ -82,6 +82,27 @@ try {
     await appendRecord(capture, metrics);
     await context.close();
   }
+
+  const returnContext = await browser.newContext({
+    viewport: { width: 1280, height: 800 },
+    colorScheme: "light",
+    reducedMotion: "reduce",
+    locale: "en-NG",
+    timezoneId: "Africa/Lagos",
+  });
+  try {
+    const page = await returnContext.newPage();
+    await page.goto(`${baseURL}/?fixture=rcsa-cycles#rcsa/cycle-rcsa-2`, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Q4 Operations RCSA" }).waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Open first-line assessment" }).click();
+    await page.waitForURL(/#work\/evidence\/request-rcsa-2/);
+    await page.goBack({ waitUntil: "networkidle" });
+    await page.waitForURL(/#rcsa\/cycle-rcsa-2/);
+    await page.getByRole("heading", { name: "Q4 Operations RCSA" }).waitFor({ state: "visible" });
+    await page.getByText("First-line collection", { exact: true }).waitFor({ state: "visible" });
+  } finally {
+    await returnContext.close();
+  }
 } finally {
   await browser.close();
 }
