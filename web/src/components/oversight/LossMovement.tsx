@@ -44,6 +44,6 @@ export function LossMovement({ bundle, state }: Props) {
       gapThresholdMs={gapThresholdMs}
     />}
     {state === "live" && bundle && points.length === 0 && <p className="risk-movement__empty">No Loss flow in this period.</p>}
-    {state === "live" && bundle?.mixed_currencies && <p className="loss-movement__currency-note">Amounts remain separated by currency.</p>}
+    {state === "live" && bundle?.mixed_currencies && <p className="loss-movement__currency-note">Amounts remain separated: {bundle.currencies.map((item) => item.currency).join(", ")}.</p>}
   </section>;
 }
