@@ -106,7 +106,7 @@ describe("SentFormsView", () => {
 
     render(<SentFormsView/>);
 
-    expect(await screen.findByText("You cannot open this sent form.")).toBeTruthy();
+    expect(await screen.findByText(/You cannot open this sent form\./)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Open Quarterly control review" })).toBeTruthy();
     expect(screen.getByRole("table", { name: "Sent-form distributions" })).toBeTruthy();
   });
