@@ -4,6 +4,7 @@ import { ApiError } from "../../http";
 import { ActionLink, Button, EmptyState, FocusedSheet, Notice, Surface } from "../ui";
 import { DistributionChangePanel } from "./DistributionChangePanel";
 import { DistributionComposer } from "./DistributionComposer";
+import { readFormsHashParams, updateFormsHashParams } from "./formsLocation";
 import { SentFormDetail } from "./sent/SentFormDetail";
 import { SentFormsFilters } from "./sent/SentFormsFilters";
 import { SentFormsTable } from "./sent/SentFormsTable";
@@ -18,7 +19,7 @@ export function SentFormsView() {
   const [listState, setListState] = useState<ListState>("loading");
   const [items, setItems] = useState<Distribution[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
-  const [selectedID, setSelectedID] = useState<string>();
+  const [selectedID, setSelectedID] = useState<string | undefined>(() => readDistributionTarget());
   const [detailState, setDetailState] = useState<DetailState>("idle");
   const [detail, setDetail] = useState<DistributionDetail>();
   const [composerOpen, setComposerOpen] = useState(false);
@@ -33,6 +34,18 @@ export function SentFormsView() {
     if (selectedID) void loadSelectedDetail(selectedID);
     else { setDetail(undefined); setDetailState("idle"); setDetailError(undefined); }
   }, [selectedID]);
+  useEffect(() => {
+    const syncFromLocation = () => {
+      setQuery(readQuery());
+      setSelectedID(readDistributionTarget());
+    };
+    window.addEventListener("hashchange", syncFromLocation);
+    window.addEventListener("popstate", syncFromLocation);
+    return () => {
+      window.removeEventListener("hashchange", syncFromLocation);
+      window.removeEventListener("popstate", syncFromLocation);
+    };
+  }, []);
 
   async function refresh() {
     setListState("loading");
@@ -41,7 +54,6 @@ export function SentFormsView() {
       const page = await loadDistributionPage({ ...query, cursor: undefined, limit: query.limit ?? 25 });
       setItems(page.items);
       setNextCursor(page.next_cursor);
-      setSelectedID((current) => current && page.items.some((value) => value.id === current) ? current : undefined);
       setListState("live");
     } catch (cause) {
       setError(message(cause, "Sent forms could not be loaded for the current filters."));
@@ -67,7 +79,7 @@ export function SentFormsView() {
     setBusy("more");
     try {
       const page = await loadDistributionPage({ ...query, cursor: nextCursor, limit: query.limit ?? 25 });
-      setItems((current) => [...current, ...page.items]);
+      setItems((current) => appendUniqueByID(current, page.items));
       setNextCursor(page.next_cursor);
     } catch (cause) {
       setError(message(cause, "More sent forms could not be loaded."));
@@ -84,6 +96,16 @@ export function SentFormsView() {
 
   function clearFilters() {
     updateQuery({ status: undefined, due_state: undefined, subject_type: undefined, subject_id: undefined, owner: undefined });
+  }
+
+  function selectDistribution(id: string) {
+    setSelectedID(id);
+    writeDistributionTarget(id);
+  }
+
+  function closeSelectedDistribution() {
+    setSelectedID(undefined);
+    writeDistributionTarget(undefined);
   }
 
   async function lifecycle(action: "lock" | "reopen" | "revoke") {
@@ -104,14 +126,26 @@ export function SentFormsView() {
   }
 
   if (composerOpen) return <DistributionComposer onCancel={() => setComposerOpen(false)} onCreated={(value) => {
-    setComposerOpen(false); setItems((current) => [value.distribution, ...current]); setSelectedID(value.distribution.id); setDetail(value); setDetailState("live");
+    setComposerOpen(false);
+    setItems((current) => [value.distribution, ...current.filter((item) => item.id !== value.distribution.id)]);
+    selectDistribution(value.distribution.id);
+    setDetail(value);
+    setDetailState("live");
   }}/>;
   if (changeMode && detail) return <DistributionChangePanel mode={changeMode} detail={detail} onCancel={() => setChangeMode(undefined)} onSaved={(value, resultNotice) => {
-    setChangeMode(undefined); setItems((current) => [value.distribution, ...current.filter((item) => item.id !== detail.distribution.id && item.id !== value.distribution.id)]); setSelectedID(value.distribution.id); setDetail(value); setDetailState("live"); setNotice(resultNotice);
+    setChangeMode(undefined);
+    setItems((current) => [value.distribution, ...current.filter((item) => item.id !== detail.distribution.id && item.id !== value.distribution.id)]);
+    selectDistribution(value.distribution.id);
+    setDetail(value);
+    setDetailState("live");
+    setNotice(resultNotice);
   }}/>;
 
   const selectedItem = items.find((item) => item.id === selectedID);
-  const detailContent = selectedID ? renderDetailState(detailState, detail, detailError, busy, lifecycle, () => setChangeMode("amend"), () => setChangeMode("supersede")) : <><p className="forms-sent-detail__type">Distribution detail</p><h3>Select a sent form</h3></>;
+  const selectedTitle = selectedItem?.title ?? detail?.distribution.title;
+  const detailContent = selectedID
+    ? renderDetailState(detailState, detail, detailError, busy, lifecycle, () => setChangeMode("amend"), () => setChangeMode("supersede"))
+    : <><p className="forms-sent-detail__type">Distribution detail</p><h3>Select a sent form</h3></>;
 
   return <section className="forms-sent" aria-labelledby="sent-forms-title">
     <header className="forms-sent__heading"><div><p>Sender workspace</p><h2 id="sent-forms-title">Sent forms</h2></div><Button variant="primary" onPress={() => setComposerOpen(true)}>Send form</Button></header>
@@ -121,13 +155,15 @@ export function SentFormsView() {
       {listState === "loading" && <Surface><p role="status" aria-label="Loading sent forms matching the current filters">Loading sent forms…</p></Surface>}
       {listState === "sign-in-required" && <EmptyState population="Sent forms matching the current filters" title="Sign in to review sent forms" description="Session expired." action={<ActionLink href="/">Sign in again</ActionLink>}/>}
       {listState === "error" && <EmptyState population="Sent forms matching the current filters" title="Sent forms could not be loaded" description={error ?? "Retry."} action={<Button onPress={() => void refresh()}>Try again</Button>}/>}
-      {listState === "live" && items.length === 0 && <EmptyState population="Sent forms matching the current filters" title="No sent forms match these filters" description="Change filters."/>}
-      {listState === "live" && items.length > 0 && <div className={`forms-sent__layout${wideDetail ? "" : " forms-sent__layout--single"}`}>
-        <SentFormsTable items={items} selectedID={selectedID} nextCursor={nextCursor} loadingMore={busy === "more"} onSelect={setSelectedID} onLoadMore={() => void loadMore()}/>
-        {wideDetail && <aside className="forms-sent__detail" aria-label={selectedItem ? `${selectedItem.title} details` : "Selected distribution"}>{detailContent}</aside>}
+      {listState === "live" && items.length === 0 && !selectedID && <EmptyState population="Sent forms matching the current filters" title="No sent forms match these filters" description="Change filters."/>}
+      {listState === "live" && (items.length > 0 || selectedID) && <div className={`forms-sent__layout${wideDetail ? "" : " forms-sent__layout--single"}`}>
+        {items.length > 0
+          ? <SentFormsTable items={items} selectedID={selectedID} nextCursor={nextCursor} loadingMore={busy === "more"} onSelect={selectDistribution} onLoadMore={() => void loadMore()}/>
+          : <EmptyState population="Sent forms matching the current filters" title="No sent forms match these filters" description="The selected sent form is outside this filtered list."/>}
+        {wideDetail && <aside className="forms-sent__detail" aria-label={selectedTitle ? `${selectedTitle} details` : "Selected distribution"}>{detailContent}</aside>}
       </div>}
     </div>
-    {!wideDetail && selectedID && selectedItem && <FocusedSheet label={`${selectedItem.title} details`} panelClassName="forms-sent__detail-sheet" onClose={() => setSelectedID(undefined)}>{detailContent}</FocusedSheet>}
+    {!wideDetail && selectedID && <FocusedSheet label={`${selectedTitle ?? "Sent form"} details`} panelClassName="forms-sent__detail-sheet" onClose={closeSelectedDistribution}>{detailContent}</FocusedSheet>}
   </section>;
 }
 
@@ -151,17 +187,46 @@ function useMediaQuery(query: string) {
 }
 
 function readQuery(): DistributionQuery {
-  const params = new URLSearchParams(window.location.search);
+  const params = readFormsHashParams(window.location.hash);
   const status = params.get("dist_status") as DistributionQuery["status"] | null;
   const due = params.get("dist_due") as DistributionQuery["due_state"] | null;
-  return { status: status || undefined, due_state: due || undefined, subject_type: params.get("dist_subject_type") || undefined, subject_id: params.get("dist_subject_id") || undefined, owner: params.get("dist_owner") || undefined, limit: 25 };
+  return {
+    status: status || undefined,
+    due_state: due || undefined,
+    subject_type: params.get("dist_subject_type") || undefined,
+    subject_id: params.get("dist_subject_id") || undefined,
+    owner: params.get("dist_owner") || undefined,
+    limit: 25,
+  };
+}
+
+function readDistributionTarget() {
+  return readFormsHashParams(window.location.hash).get("distribution") || undefined;
 }
 
 function writeQuery(query: DistributionQuery) {
-  const url = new URL(window.location.href);
-  const set = (key: string, value?: string) => value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
-  set("dist_status", query.status); set("dist_due", query.due_state); set("dist_subject_type", query.subject_type?.trim()); set("dist_subject_id", query.subject_id?.trim()); set("dist_owner", query.owner?.trim());
-  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  updateFormsHashParams((params) => {
+    setParam(params, "dist_status", query.status);
+    setParam(params, "dist_due", query.due_state);
+    setParam(params, "dist_subject_type", query.subject_type?.trim());
+    setParam(params, "dist_subject_id", query.subject_id?.trim());
+    setParam(params, "dist_owner", query.owner?.trim());
+  });
+}
+
+function writeDistributionTarget(id?: string) {
+  updateFormsHashParams((params) => setParam(params, "distribution", id));
+}
+
+function setParam(params: URLSearchParams, key: string, value?: string) {
+  if (value) params.set(key, value);
+  else params.delete(key);
+}
+
+function appendUniqueByID<T extends { id: string }>(current: T[], incoming: T[]) {
+  if (incoming.length === 0) return current;
+  const seen = new Set(current.map((item) => item.id));
+  return [...current, ...incoming.filter((item) => !seen.has(item.id))];
 }
 
 function message(cause: unknown, fallback: string) { return cause instanceof Error ? cause.message : fallback; }

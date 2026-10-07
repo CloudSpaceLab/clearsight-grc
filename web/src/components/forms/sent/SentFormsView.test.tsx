@@ -13,6 +13,8 @@ const distribution = {
   created_at: "2026-08-28T10:00:00Z", updated_at: "2026-08-28T10:00:00Z",
 } as const;
 const detail = { distribution, recipients: [{ id: "r1", role: "TO", type: "INTERNAL_PRINCIPAL", principal_id: "jane", state: "PENDING", version: 1 }], workspace: { id: "workspace-a", status: "OPEN", version: 3, updated_at: "2026-08-28T10:00:00Z" } } as const;
+const outsideDistribution = { ...distribution, id: "distribution-99", title: "Off-page annual review", subject_id: "matter-99" } as const;
+const outsideDetail = { ...detail, distribution: outsideDistribution, workspace: { ...detail.workspace, id: "workspace-99" } } as const;
 
 beforeEach(() => {
   setMediaQuery("(min-width: 1180px)", true);
@@ -54,17 +56,17 @@ describe("SentFormsView", () => {
     expect(screen.queryByRole("complementary", { name: "Selected distribution" })).toBeNull();
   });
 
-  it("preserves unrelated route state and existing distribution filters", async () => {
-    window.history.replaceState(null, "", "/?safe=1&dist_due=OVERDUE&dist_owner=owner-a#forms");
+  it("preserves unrelated route state and writes distribution filters inside the Forms hash", async () => {
+    window.history.replaceState(null, "", "/?safe=1#forms?section=sent-forms&dist_due=OVERDUE&dist_owner=owner-a");
     render(<SentFormsView/>);
     const status = await screen.findByRole("button", { name: /Status/ });
     fireEvent.click(status);
     fireEvent.click(await screen.findByRole("option", { name: "Responses open" }));
-    await waitFor(() => expect(window.location.search).toContain("dist_status=OPEN"));
-    expect(window.location.href).toContain("safe=1");
-    expect(window.location.href).toContain("dist_due=OVERDUE");
-    expect(window.location.href).toContain("dist_owner=owner-a");
-    expect(window.location.hash).toBe("#forms");
+    await waitFor(() => expect(window.location.hash).toContain("dist_status=OPEN"));
+    expect(window.location.search).toBe("?safe=1");
+    expect(window.location.hash).toContain("section=sent-forms");
+    expect(window.location.hash).toContain("dist_due=OVERDUE");
+    expect(window.location.hash).toContain("dist_owner=owner-a");
   });
 
   it("shows partial-page handling only when the server returns a cursor", async () => {
@@ -81,6 +83,32 @@ describe("SentFormsView", () => {
     expect(api.loadDistribution).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Open Quarterly control review" }));
     await waitFor(() => expect(api.loadDistribution).toHaveBeenCalledWith("dist-a"));
+  });
+
+  it("opens an exact sent-form deep link outside the current list page without changing the filters", async () => {
+    window.history.replaceState(null, "", "/?safe=1#forms?section=sent-forms&dist_due=OVERDUE&distribution=distribution-99");
+    api.loadDistributionPage.mockResolvedValueOnce({ items: [] });
+    api.loadDistribution.mockResolvedValueOnce(outsideDetail);
+
+    render(<SentFormsView/>);
+
+    await waitFor(() => expect(api.loadDistribution).toHaveBeenCalledWith("distribution-99"));
+    expect(await screen.findByText("Off-page annual review")).toBeTruthy();
+    expect(screen.getByText("The selected sent form is outside this filtered list.")).toBeTruthy();
+    expect(api.loadDistributionPage).toHaveBeenCalledWith(expect.objectContaining({ due_state: "OVERDUE" }));
+    expect(window.location.hash).toContain("distribution=distribution-99");
+    expect(window.location.hash).toContain("dist_due=OVERDUE");
+  });
+
+  it("keeps the sent-form list usable when an exact deep-linked detail is forbidden", async () => {
+    window.history.replaceState(null, "", "/#forms?section=sent-forms&distribution=distribution-99");
+    api.loadDistribution.mockRejectedValueOnce(new ApiError(403, "You cannot open this sent form."));
+
+    render(<SentFormsView/>);
+
+    expect(await screen.findByText(/You cannot open this sent form\./)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open Quarterly control review" })).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Sent-form distributions" })).toBeTruthy();
   });
 
   it("keeps lifecycle feedback after the confirmed command", async () => {
@@ -106,8 +134,10 @@ describe("SentFormsView", () => {
     open.focus();
     fireEvent.click(open);
     expect(await screen.findByRole("dialog", { name: "Quarterly control review details" })).toBeTruthy();
+    expect(window.location.hash).toContain("distribution=dist-a");
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(window.location.hash).not.toContain("distribution=");
     await waitFor(() => expect(document.activeElement).toBe(open));
   });
 });
