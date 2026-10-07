@@ -13,8 +13,8 @@ CREATE TABLE organization_metric_daily_sources (
     PRIMARY KEY(tenant_id,legal_entity_id,definition_revision,bucket_date),
     FOREIGN KEY(legal_entity_id,tenant_id) REFERENCES legal_entities(id,tenant_id),
     CHECK (
-        source_generated_at>=bucket_date::timestamptz
-        AND source_generated_at<(bucket_date+1)::timestamptz
+        source_generated_at>=(bucket_date::timestamp AT TIME ZONE 'UTC')
+        AND source_generated_at<((bucket_date+1)::timestamp AT TIME ZONE 'UTC')
     )
 );
 
