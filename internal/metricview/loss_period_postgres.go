@@ -99,6 +99,28 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 	if !lossBreakdownMatchesAggregate(breakdown, aggregate) {
 		return LossPeriodBundle{}, ErrLossPeriodInvalid
 	}
+	periodDuration := periodEnd.Sub(periodStart)
+	previousEnd := periodStart.Add(-time.Nanosecond)
+	previousStart := previousEnd.Add(-periodDuration)
+	previousAggregate, err := loadLossPeriodAggregate(ctx, tx, scope, previousStart, previousEnd)
+	if err != nil {
+		return LossPeriodBundle{}, err
+	}
+	flowResolution := LossFlowResolutionDay
+	if periodDuration > 45*24*time.Hour {
+		flowResolution = LossFlowResolutionWeek
+	}
+	flowPoints, err := loadLossFlowPoints(ctx, tx, scope, periodStart, periodEnd, flowResolution, aggregate)
+	if err != nil {
+		return LossPeriodBundle{}, err
+	}
+	if !lossFlowPointsMatchAggregate(flowPoints, aggregate) {
+		return LossPeriodBundle{}, ErrLossPeriodInvalid
+	}
+	comparison, err := buildLossPeriodComparison(aggregate, previousAggregate, previousStart, previousEnd)
+	if err != nil {
+		return LossPeriodBundle{}, err
+	}
 	sourceID, sourceGeneratedAt, err := retainLossPeriodSnapshot(
 		ctx, tx, scope, periodStart, periodEnd, generatedAt, aggregate,
 	)
@@ -124,42 +146,17 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 		MixedCurrencies:        len(aggregate.Currencies) > 1,
 		Currencies:             make([]LossCurrencyFlow, 0, len(aggregate.Currencies)),
 		OrganizationBreakdown:  breakdown,
+		FlowResolution:         flowResolution,
+		FlowPoints:             flowPoints,
+		Comparison:             comparison,
 	}
 	if organizationScopeID != "" {
 		bundle.ScopeID = organizationScopeID
 		bundle.ScopeKind = "ORGANIZATION_SCOPE"
 	}
-	for _, value := range aggregate.Currencies {
-		gross, err := NewMoneyValue(value.GrossMinor, value.Currency)
-		if err != nil {
-			return LossPeriodBundle{}, err
-		}
-		recovery, err := NewMoneyValue(value.RecoveryMinor, value.Currency)
-		if err != nil {
-			return LossPeriodBundle{}, err
-		}
-		reversal, err := NewMoneyValue(value.ReversalMinor, value.Currency)
-		if err != nil {
-			return LossPeriodBundle{}, err
-		}
-		net, err := NewMoneyValue(value.GrossMinor-value.RecoveryMinor+value.ReversalMinor, value.Currency)
-		if err != nil {
-			return LossPeriodBundle{}, err
-		}
-		bundle.Currencies = append(bundle.Currencies, LossCurrencyFlow{
-			Currency:           value.Currency,
-			Gross:              gross,
-			Recovery:           recovery,
-			Reversal:           reversal,
-			Net:                net,
-			LossEventCount:     value.LossEventCount,
-			RecoveryEventCount: value.RecoveryEventCount,
-			ReversalEventCount: value.ReversalEventCount,
-		})
-	}
-	if len(bundle.Currencies) == 1 {
-		net := bundle.Currencies[0].Net
-		bundle.NetLoss = &net
+	bundle.Currencies, bundle.NetLoss, err = lossCurrencyFlows(aggregate.Currencies)
+	if err != nil {
+		return LossPeriodBundle{}, err
 	}
 	return bundle, nil
 }
