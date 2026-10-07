@@ -9,6 +9,7 @@ import type { AttentionItem } from "../../types";
 import { OversightPeriodPicker } from "./OversightPeriodPicker";
 import { DomainPostureSummary } from "./DomainPostureSummary";
 import { OrganizationRiskSummary } from "./OrganizationRiskSummary";
+import { RiskMovement } from "./RiskMovement";
 import { MetricMemberDrill } from "./MetricMemberDrill";
 import "../../oversight.css";
 
@@ -295,11 +296,17 @@ export function OversightWorkspace({
               onOpenRisk={onOpenRisk}
               onOpenLoss={onOpenLoss}
             />
-            <OrganizationRiskSummary
-              bundle={domainMetrics}
-              organizationScopeID={organizationScopeID}
-              onOpenScope={onOrganizationScopeChange}
-            />
+            <div className="oversight-risk-overview">
+              <OrganizationRiskSummary
+                bundle={domainMetrics}
+                organizationScopeID={organizationScopeID}
+                onOpenScope={onOrganizationScopeChange}
+              />
+              <RiskMovement
+                bundle={domainMetrics}
+                organizationScopeID={organizationScopeID}
+              />
+            </div>
             {state === "live" && snapshot && <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
               {selected === "pressure" && <RiskPressure snapshot={snapshot}/>}
               {selected === "outlook" && <ResolutionOutlook snapshot={snapshot}/>}
