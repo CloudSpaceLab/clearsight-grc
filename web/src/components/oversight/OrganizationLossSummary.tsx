@@ -36,7 +36,6 @@ export function OrganizationLossSummary({ bundle, state, onOpenScope }: Props) {
   return <section className="organization-loss-summary" aria-labelledby="organization-loss-summary-heading">
     <div className="section-header">
       <div>
-        <span className="eyebrow">Where Loss is concentrated</span>
         <h2 id="organization-loss-summary-heading">Loss concentration</h2>
         <p>{bundle && lossPresentationMode(bundle) === "money" ? "Net Loss flow by area." : "Loss events by area; currencies stay separate."}</p>
       </div>
