@@ -278,6 +278,35 @@ func TestLibraryFormAllowsPartialComplianceDraftButBlocksApproval(t *testing.T) 
 	}
 }
 
+func TestLibraryOriginFilterUsesVerifiedEntityScope(t *testing.T) {
+	repo := NewMemoryRepository()
+	now := time.Date(2026, 10, 7, 8, 30, 0, 0, time.UTC)
+	entityA := libraryForm("form-origin-a", "entity-a", "", "ORIGIN-A", LifecycleDraft, 1, false, now)
+	entityA.Origin = &FormOrigin{Type: FormOriginMatter, ID: "matter-a"}
+	entityB := libraryForm("form-origin-b", "entity-b", "", "ORIGIN-B", LifecycleDraft, 1, false, now.Add(-time.Minute))
+	entityB.Origin = &FormOrigin{Type: FormOriginMatter, ID: "matter-a"}
+	for _, value := range []FormTemplate{entityA, entityB} {
+		if _, err := repo.CreateFormRevision(t.Context(), value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	service := libraryService(t, repo, "maker-a")
+	ctx := formActorContext("bank-a", "entity-a", "maker-a")
+	page, err := service.ListFormLibrary(ctx, FormLibraryFilter{
+		TenantID: "other-bank", LegalEntityID: "entity-b",
+		OriginType: FormOriginMatter, OriginID: "matter-a", Limit: 6,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].Template.ID != "form-origin-a" || page.Items[0].Template.LegalEntityID != "entity-a" {
+		t.Fatalf("verified origin page = %#v", page)
+	}
+	if _, err := service.ListFormLibrary(ctx, FormLibraryFilter{OriginType: FormOriginMatter, Limit: 6}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("partial origin filter error = %v, want invalid", err)
+	}
+}
+
 func TestLibraryReadsAndSavedViewsUseVerifiedScope(t *testing.T) {
 	repo := NewMemoryRepository()
 	service := libraryService(t, repo, "maker-a")

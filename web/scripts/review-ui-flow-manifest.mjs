@@ -123,6 +123,10 @@ const expectedNames = [
   "191-loss-register-light-1440x900",
   "192-loss-detail-light-1440x900",
   "193-loss-authoring-dark-mobile-390x844",
+  "194-issue-linked-form-handoff-light-1440x900",
+  "195-issue-paged-form-activity-dark-mobile-390x844",
+  "196-issue-off-page-sent-form-light-1440x900",
+  "197-issue-board-brief-unavailable-light-1440x900",
   "183-indicator-insights-light-1440x900",
   "184-indicator-insights-dark-mobile-390x844",
   ...formsEvidenceScenarios.map((scenario) => scenario.name),
@@ -223,6 +227,10 @@ const requiredStates = [
   "issue-workspace-evidence",
   "issue-workspace-evidence-mobile",
   "issue-workspace-activity-mobile",
+  "issue-linked-form-handoff",
+  "issue-paged-form-activity-mobile",
+  "issue-off-page-sent-form",
+  "issue-board-brief-unavailable",
   ...formsEvidenceScenarios.map((scenario) => scenario.state),
 ];
 
