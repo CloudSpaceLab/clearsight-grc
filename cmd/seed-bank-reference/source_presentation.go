@@ -143,3 +143,27 @@ func sourceRecordTextV2(record sourceRecord) string {
 	}
 	return strings.Join(lines, "\n")
 }
+
+func sourceNormalizePresentation(group sourceRecordGroup) sourceRecordGroup {
+	if group.PresentationVersion != 2 || group.ResponsePerRecord || len(group.Records) <= 20 {
+		return group
+	}
+	first := group.Records[0].Fields
+	// Shared field schema: one governed form, one response for each source
+	// record. Mixed-layout historical registers retain the bounded text view.
+	if len(first) == 0 || len(first)+1 > 180 {
+		return group
+	}
+	for _, record := range group.Records[1:] {
+		if len(record.Fields) != len(first) {
+			return group
+		}
+		for i, field := range record.Fields {
+			if sourceHeaderKey(field.Label) != sourceHeaderKey(first[i].Label) {
+				return group
+			}
+		}
+	}
+	group.ResponsePerRecord = true
+	return group
+}
