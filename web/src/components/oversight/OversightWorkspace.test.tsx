@@ -12,6 +12,8 @@ const metricApi = vi.hoisted(() => ({
   loadDomainMetricOrganizationBreakdown: vi.fn(),
   loadDomainMetricTrend: vi.fn(),
   loadDomainMetricOrganizationTrend: vi.fn(),
+  loadLossPeriodMetrics: vi.fn(),
+  loadLossPeriodMetricMembers: vi.fn(),
 }));
 vi.mock("../../oversightApi", () => api);
 vi.mock("../../metricApi", () => metricApi);
@@ -26,6 +28,10 @@ beforeEach(() => {
   metricApi.loadDomainMetricTrend.mockRejectedValue(new Error("Risk history not configured"));
   metricApi.loadDomainMetricOrganizationTrend.mockReset();
   metricApi.loadDomainMetricOrganizationTrend.mockRejectedValue(new Error("Organization Risk history not configured"));
+  metricApi.loadLossPeriodMetricMembers.mockReset();
+  metricApi.loadLossPeriodMetricMembers.mockRejectedValue(new Error("Exact Loss membership not configured"));
+  metricApi.loadLossPeriodMetrics.mockReset();
+  metricApi.loadLossPeriodMetrics.mockResolvedValue(lossPeriodBundle());
   metricApi.loadDomainMetricOrganizationBreakdown.mockReset();
   metricApi.loadDomainMetricOrganizationBreakdown.mockResolvedValue({
     source_id: "8f710000-0000-4000-8000-000000000001",
@@ -95,6 +101,90 @@ beforeEach(() => {
   });
 });
 
+function lossPeriodBundle() {
+  return {
+    generated_at: "2026-09-01T07:56:00Z",
+    period_start: "2026-06-03T00:00:00Z",
+    period_end: "2026-09-01T23:59:59Z",
+    scope_id: "bank-ng",
+    scope_kind: "LEGAL_ENTITY",
+    source_id: "8f790000-0000-4000-8000-000000000001",
+    source_revision: "operational-loss-ledger-v1",
+    definition_revision: "operational-loss-period-v1",
+    event_count: 3,
+    contributing_loss_count: 4,
+    unattributed_event_count: 1,
+    mixed_currencies: false,
+    net_loss: { minor_units: "105000", currency: "NGN" },
+    currencies: [{
+      currency: "NGN",
+      gross: { minor_units: "150000", currency: "NGN" },
+      recovery: { minor_units: "50000", currency: "NGN" },
+      reversal: { minor_units: "5000", currency: "NGN" },
+      net: { minor_units: "105000", currency: "NGN" },
+      loss_event_count: 3,
+      recovery_event_count: 2,
+      reversal_event_count: 1,
+    }],
+    organization_breakdown: [
+      {
+        key: "scope:technology", scope_id: "technology", label: "Technology", kind: "ORGANIZATION_SCOPE",
+        loss_event_count: 2, contributing_loss_count: 3, mixed_currencies: false,
+        net_loss: { minor_units: "80000", currency: "NGN" },
+        currencies: [{
+          currency: "NGN",
+          gross: { minor_units: "100000", currency: "NGN" },
+          recovery: { minor_units: "25000", currency: "NGN" },
+          reversal: { minor_units: "5000", currency: "NGN" },
+          net: { minor_units: "80000", currency: "NGN" },
+          loss_event_count: 2, recovery_event_count: 1, reversal_event_count: 1,
+        }],
+      },
+      {
+        key: "unattributed", label: "Unattributed", kind: "UNATTRIBUTED",
+        loss_event_count: 1, contributing_loss_count: 1, mixed_currencies: false,
+        net_loss: { minor_units: "25000", currency: "NGN" },
+        currencies: [{
+          currency: "NGN",
+          gross: { minor_units: "50000", currency: "NGN" },
+          recovery: { minor_units: "25000", currency: "NGN" },
+          reversal: { minor_units: "0", currency: "NGN" },
+          net: { minor_units: "25000", currency: "NGN" },
+          loss_event_count: 1, recovery_event_count: 1, reversal_event_count: 0,
+        }],
+      },
+    ],
+    flow_resolution: "WEEK",
+    flow_points: [
+      {
+        start: "2026-06-03T00:00:00Z", end: "2026-06-09T23:59:59Z",
+        loss_event_count: 1, contributing_loss_count: 1, mixed_currencies: false,
+        net_loss: { minor_units: "50000", currency: "NGN" },
+        currencies: [{ currency: "NGN", gross: { minor_units: "50000", currency: "NGN" }, recovery: { minor_units: "0", currency: "NGN" }, reversal: { minor_units: "0", currency: "NGN" }, net: { minor_units: "50000", currency: "NGN" }, loss_event_count: 1, recovery_event_count: 0, reversal_event_count: 0 }],
+      },
+      {
+        start: "2026-08-27T00:00:00Z", end: "2026-09-01T23:59:59Z",
+        loss_event_count: 2, contributing_loss_count: 3, mixed_currencies: false,
+        net_loss: { minor_units: "55000", currency: "NGN" },
+        currencies: [{ currency: "NGN", gross: { minor_units: "100000", currency: "NGN" }, recovery: { minor_units: "50000", currency: "NGN" }, reversal: { minor_units: "5000", currency: "NGN" }, net: { minor_units: "55000", currency: "NGN" }, loss_event_count: 2, recovery_event_count: 2, reversal_event_count: 1 }],
+      },
+    ],
+    comparison: {
+      period_start: "2026-03-04T00:00:00Z",
+      period_end: "2026-06-02T23:59:59Z",
+      event_count: 2,
+      contributing_loss_count: 2,
+      mixed_currencies: false,
+      net_loss: { minor_units: "125000", currency: "NGN" },
+      currencies: [],
+      event_delta: 1,
+      net_delta: { minor_units: "-20000", currency: "NGN" },
+      direction: "IMPROVED",
+      comparison_quality: "COMPLETE",
+    },
+  };
+}
+
 function metric(id: string, label: string, value: number, filter: string) {
   return {
     id, label, value, unit: "COUNT", condition: value > 0 ? "ATTENTION" : "CLEAR",
@@ -160,6 +250,9 @@ it("keeps oversight analysis separate from attention and assigned work", async (
   expect(screen.getByRole("table", { name: "Risk pressure by issue type" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Outside appetite: 9/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Indicator breaches: 4/ })).toBeTruthy();
+  expect(await screen.findByText("Net operational loss")).toBeTruthy();
+  expect(await screen.findByRole("list", { name: "Net operational Loss by organization area" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: "Net operational Loss movement" })).toBeTruthy();
   expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
   expect(screen.getByText("Technology")).toBeTruthy();
   expect(screen.getByText("Unattributed")).toBeTruthy();
