@@ -35,10 +35,10 @@ type GroupPostureChild struct {
 	SourceGeneratedAt  *time.Time           `json:"source_generated_at,omitempty"`
 	SourceRevision     string               `json:"source_revision,omitempty"`
 	DefinitionRevision string               `json:"definition_revision,omitempty"`
-	Counts              GroupPostureCounts   `json:"counts"`
-	Unknown             int                  `json:"unknown"`
-	Excluded            int                  `json:"excluded"`
-	Freshness           oversight.Freshness  `json:"freshness"`
+	Counts             GroupPostureCounts  `json:"counts"`
+	Unknown            int                 `json:"unknown"`
+	Excluded           int                 `json:"excluded"`
+	Freshness          oversight.Freshness `json:"freshness"`
 }
 
 type GroupPostureCoverage struct {
