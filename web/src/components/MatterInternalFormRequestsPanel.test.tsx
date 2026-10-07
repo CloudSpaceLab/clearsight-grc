@@ -1,8 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { createLibraryFormDraft, loadFormTemplatePage } from "../formsApi";
-import type { FormLibraryItem } from "../formsTypes";
-import type { FormTemplate } from "../monitoringTypes";
+import type { FormLibraryItem, FormTemplate } from "../formsTypes";
 import { MatterInternalFormRequestsPanel } from "./MatterInternalFormRequestsPanel";
 
 vi.mock("../formsApi", () => ({
