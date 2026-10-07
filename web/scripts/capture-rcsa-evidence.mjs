@@ -42,7 +42,8 @@ try {
       await page.getByRole("table", { name: "RCSA cycles" }).waitFor({ state: "visible" });
       await page.getByText("Q3 Technology RCSA", { exact: true }).waitFor({ state: "visible" });
       await page.getByText("3 Risks", { exact: true }).waitFor({ state: "visible" });
-      await page.getByText("Completed", { exact: true }).waitFor({ state: "visible" });
+      const q3Row = page.getByRole("row", { name: /Q3 Technology RCSA/ });
+      await q3Row.getByRole("cell", { name: /Stage: Completed/ }).waitFor({ state: "visible" });
     } else {
       await page.getByRole("heading", { name: "Q3 Technology RCSA" }).waitFor({ state: "visible" });
       await page.getByText("1 Jul 2026 – 30 Sep 2026", { exact: true }).waitFor({ state: "visible" });
