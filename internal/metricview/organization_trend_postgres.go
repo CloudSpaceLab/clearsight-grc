@@ -53,10 +53,13 @@ func (r *ObservationRepository) OrganizationTrend(
 		return OrganizationTrendSeries{}, ErrTrendNotFound
 	}
 	return OrganizationTrendSeries{
-		MetricID: metricID, DefinitionRevision: DomainDefinitionRevision,
+		MetricID:            metricID,
+		DefinitionRevision:  DomainDefinitionRevision,
 		OrganizationScopeID: organizationScopeID,
-		Start: start.UTC(), End: end.UTC(), Resolution: TrendResolutionDay,
-		Points: points,
+		Start:               start.UTC(),
+		End:                 end.UTC(),
+		Resolution:          TrendResolutionDay,
+		Points:              points,
 	}, nil
 }
 
