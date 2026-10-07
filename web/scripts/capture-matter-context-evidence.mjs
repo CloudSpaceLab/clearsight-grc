@@ -13,6 +13,10 @@ const captures = [
   { name: "188-matter-loss-context-light-1440x900", fixture: "matter-loss-context", state: "matter-loss-context", theme: "light", viewport: { width: 1440, height: 900 } },
   { name: "189-matter-indicator-context-light-1440x900", fixture: "matter-indicator-context", state: "matter-indicator-context", theme: "light", viewport: { width: 1440, height: 900 } },
   { name: "190-matter-indicator-context-dark-mobile-390x844", fixture: "matter-indicator-context", state: "matter-indicator-context-mobile", theme: "dark", viewport: { width: 390, height: 844 }, touch: true },
+  { name: "194-issue-linked-form-handoff-light-1440x900", fixture: "matter-workspace-follow-through", state: "issue-linked-form-handoff", kind: "linked-form", tab: "Evidence and requests", theme: "light", viewport: { width: 1440, height: 900 } },
+  { name: "195-issue-paged-form-activity-dark-mobile-390x844", fixture: "matter-workspace-follow-through", state: "issue-paged-form-activity-mobile", kind: "paged-activity", tab: "Evidence and requests", theme: "dark", viewport: { width: 390, height: 844 }, touch: true },
+  { name: "196-issue-off-page-sent-form-light-1440x900", fixture: "matter-workspace-follow-through", state: "issue-off-page-sent-form", kind: "off-page-sent-form", route: "#forms?section=sent-forms&distribution=distribution-matter-28", theme: "light", viewport: { width: 1440, height: 900 } },
+  { name: "197-issue-board-brief-unavailable-light-1440x900", fixture: "matter-workspace-follow-through", state: "issue-board-brief-unavailable", kind: "board-brief-unavailable", theme: "light", viewport: { width: 1440, height: 900 } },
 ];
 
 const browser = await chromium.launch({ headless: true });
