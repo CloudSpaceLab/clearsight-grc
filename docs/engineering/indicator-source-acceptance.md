@@ -44,7 +44,7 @@ Use the same application configuration and source credential environment used
 by the deployment:
 
 ```sh
-go run ./cmd/indicator-source-acceptance \
+go run -tags postgres ./cmd/indicator-source-acceptance \
   -tenant <tenant-uuid-or-slug> \
   -legal-entity <legal-entity-uuid-or-code> \
   -binding <binding-uuid> \
