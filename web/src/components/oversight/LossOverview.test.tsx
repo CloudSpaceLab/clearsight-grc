@@ -171,6 +171,39 @@ it("falls back to event counts when currencies are mixed", () => {
 
   expect(screen.getByRole("list", { name: "Operational Loss events by organization area" })).toBeTruthy();
   expect(screen.getByRole("img", { name: "Operational Loss event movement" })).toBeTruthy();
-  expect(screen.getByText("Amounts remain separated by currency.")).toBeTruthy();
-  expect(screen.queryByText(/NGN.*USD|USD.*NGN/)).toBeNull();
+  expect(screen.getByText("Amounts remain separated: NGN, USD.")).toBeTruthy();
+});
+
+it("keeps recovery-only Loss flow visible when no new Loss occurred", () => {
+  const bundle = singleCurrencyBundle();
+  bundle.event_count = 0;
+  bundle.contributing_loss_count = 1;
+  bundle.net_loss = { minor_units: "-25000", currency: "NGN" };
+  bundle.currencies = [{
+    currency: "NGN",
+    gross: { minor_units: "0", currency: "NGN" },
+    recovery: { minor_units: "25000", currency: "NGN" },
+    reversal: { minor_units: "0", currency: "NGN" },
+    net: { minor_units: "-25000", currency: "NGN" },
+    loss_event_count: 0,
+    recovery_event_count: 1,
+    reversal_event_count: 0,
+  }];
+  bundle.organization_breakdown = [{
+    key: "scope:technology",
+    scope_id: "technology",
+    label: "Technology",
+    kind: "ORGANIZATION_SCOPE",
+    loss_event_count: 0,
+    contributing_loss_count: 1,
+    mixed_currencies: false,
+    net_loss: { minor_units: "-25000", currency: "NGN" },
+    currencies: bundle.currencies,
+  }];
+
+  render(<OrganizationLossSummary bundle={bundle} state="live" onOpenScope={vi.fn()}/>);
+
+  expect(screen.queryByText("No Loss flow in this period")).toBeNull();
+  expect(screen.getByRole("list", { name: "Net operational Loss by organization area" })).toBeTruthy();
+  expect(screen.getByText(/Net recovery/)).toBeTruthy();
 });
