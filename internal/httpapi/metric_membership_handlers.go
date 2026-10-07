@@ -16,7 +16,7 @@ func (a *API) homeMetricMembers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) domainMetricMembers(w http.ResponseWriter, r *http.Request) {
-	a.metricMembers(w, r, false)
+	a.metricMembers(w, r, true)
 }
 
 func (a *API) metricMembers(w http.ResponseWriter, r *http.Request, allowOrganizationScope bool) {
