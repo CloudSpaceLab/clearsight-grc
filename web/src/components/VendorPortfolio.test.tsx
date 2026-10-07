@@ -43,7 +43,23 @@ beforeEach(() => {
   api.loadVendorRiskWork.mockResolvedValue(work);
 });
 
+async function chooseFilter(label: RegExp, option: string) {
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+}
+
 describe("vendor exception overview", () => {
+  it("uses shared selectors for the exception filters", async () => {
+    render(<VendorPortfolio records={records} hasMore={false}/>);
+    await screen.findByText("Contract audit rights missing");
+
+    expect(screen.getByRole("button", { name: /Vendor$/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Owner$/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Source rating$/ })).toBeTruthy();
+    expect(document.querySelectorAll(".vendor-facet-filters .cs-select-field")).toHaveLength(3);
+    expect(document.querySelector(".vendor-facet-filters select")?.getAttribute("tabindex")).toBe("-1");
+  });
+
   it("shows a compact reconciled summary and an overdue-first operational queue", async () => {
     render(<VendorPortfolio records={records} hasMore={false}/>);
     const first = await screen.findByText("Contract audit rights missing");
@@ -65,19 +81,19 @@ describe("vendor exception overview", () => {
   it("filters the queue by summary state, vendor, owner and recorded rating", async () => {
     render(<VendorPortfolio records={records} hasMore={false}/>);
     await screen.findByText("Contract audit rights missing");
-    fireEvent.change(screen.getByLabelText("Vendor"), { target: { value: "v2" } });
+    await chooseFilter(/Vendor$/, "Sentinel Collections");
     expect(screen.queryByText("Contract audit rights missing")).toBeNull();
     expect(screen.getByText("Incident reporting gap")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Owner"), { target: { value: "Ada" } });
-    fireEvent.change(screen.getByLabelText("Source rating"), { target: { value: "Low" } });
+    await chooseFilter(/Owner$/, "Ada");
+    await chooseFilter(/Source rating$/, "Low");
     expect(screen.queryByText("Incident reporting gap")).toBeNull();
     expect(screen.getByText("Recovery evidence missing")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "All open" }));
     expect(screen.queryByText("Closed exception")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "All exceptions" }));
-    fireEvent.change(screen.getByLabelText("Vendor"), { target: { value: "v1" } });
-    fireEvent.change(screen.getByLabelText("Owner"), { target: { value: "Hakeem" } });
-    fireEvent.change(screen.getByLabelText("Source rating"), { target: { value: "Low" } });
+    await chooseFilter(/Vendor$/, "Cloudspace Technologies Ltd");
+    await chooseFilter(/Owner$/, "Hakeem");
+    await chooseFilter(/Source rating$/, "Low");
     expect(screen.getByText("Closed exception")).toBeTruthy();
   });
 

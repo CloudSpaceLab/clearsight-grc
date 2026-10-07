@@ -139,19 +139,57 @@ textarea.cs-field__control {
   gap: var(--cs-space-inline);
   text-align: left;
   cursor: pointer;
+  transition: border-color var(--cs-motion-fast) var(--cs-ease-standard), background-color var(--cs-motion-fast) var(--cs-ease-standard), box-shadow var(--cs-motion-fast) var(--cs-ease-standard);
 }
 
 .cs-select-field__trigger[data-disabled] {
   cursor: not-allowed;
 }
 
+.cs-select-field__trigger[data-hovered]:not([data-disabled]),
+.cs-select-field__trigger[aria-expanded="true"] {
+  border-color: var(--cs-border-interactive);
+  background: var(--cs-bg-surface-hover);
+}
+
+.cs-select-field__trigger[data-pressed]:not([data-disabled]) {
+  background: var(--cs-bg-surface-3);
+}
+
 .cs-select-field__value[data-placeholder] {
   color: var(--cs-field-description);
 }
 
-.cs-select-field__chevron {
+.cs-select-field__indicator {
+  display: grid;
   flex: none;
+  inline-size: 28px;
+  block-size: 28px;
+  margin-inline-end: calc(var(--cs-primitive-space-1) * -1);
+  place-items: center;
+  border-radius: var(--cs-primitive-radius-6);
   color: var(--cs-field-description);
+  transition: background-color var(--cs-motion-fast) var(--cs-ease-standard), color var(--cs-motion-fast) var(--cs-ease-standard), transform var(--cs-motion-fast) var(--cs-ease-standard);
+}
+
+.cs-select-field__indicator svg {
+  inline-size: var(--cs-primitive-icon-16);
+  block-size: var(--cs-primitive-icon-16);
+}
+
+.cs-select-field__trigger[data-hovered]:not([data-disabled]) .cs-select-field__indicator,
+.cs-select-field__trigger[aria-expanded="true"] .cs-select-field__indicator {
+  background: var(--cs-bg-surface-2);
+  color: var(--cs-text-primary);
+}
+
+.cs-select-field__trigger[aria-expanded="true"] .cs-select-field__indicator {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-select-field__trigger,
+  .cs-select-field__indicator { transition: none; }
 }
 
 .cs-select-field__popover {

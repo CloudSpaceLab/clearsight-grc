@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
 import { presentVendorExceptions, type VendorExceptionBand, type VendorExceptionFilter } from "../vendorExceptionPresentation";
 import { loadVendorRiskWork, summarizeVendorRiskWork, type VendorRiskWork } from "../vendorRiskWork";
-import { Button, Notice, StatusBadge } from "./ui";
+import { Button, Notice, SelectField, StatusBadge } from "./ui";
 import "./vendor-portfolio.css";
 
 type StoredView = { filter: VendorExceptionFilter; vendor: string; owner: string; rating: string };
@@ -107,11 +107,11 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
         <div className="vendor-attention-filters" aria-label="Exception status">
           {([ ["ATTENTION", "Needs attention"], ["OVERDUE", "Overdue"], ["OPEN", "All open"], ["ALL", "All exceptions"] ] as const).map(([value, label]) => <Button key={value} variant={filter === value ? "secondary" : "quiet"} aria-pressed={filter === value} onPress={() => select(value)}>{label}</Button>)}
         </div>
-        <label className="vendor-mobile-status-filter">Status<select aria-label="Exception status" value={filter} onChange={event => select(event.target.value as VendorExceptionFilter)}><option value="ATTENTION">Needs attention</option><option value="OVERDUE">Overdue</option><option value="OPEN">All open</option><option value="ALL">All exceptions</option></select></label>
+        <div className="vendor-mobile-status-filter"><SelectField label="Exception status" value={filter} placeholder="Needs attention" allowsEmpty={false} options={[{ id: "ATTENTION", label: "Needs attention" }, { id: "OVERDUE", label: "Overdue" }, { id: "OPEN", label: "All open" }, { id: "ALL", label: "All exceptions" }]} onChange={value => value && select(value)}/></div>
         <div className="vendor-facet-filters">
-          <label>Vendor<select aria-label="Vendor" value={vendor} onChange={event => { setVendor(event.target.value); setPage(1); }}><option value="">All vendors</option>{vendorOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
-          <label>Owner<select aria-label="Owner" value={owner} onChange={event => { setOwner(event.target.value); setPage(1); }}><option value="">All owners</option>{ownerOptions.map(value => <option key={value}>{value}</option>)}</select></label>
-          <label>Source rating<select aria-label="Source rating" value={rating} onChange={event => { setRating(event.target.value); setPage(1); }}><option value="">All ratings</option>{ratingOptions.map(value => <option key={value}>{value}</option>)}</select></label>
+          <SelectField label="Vendor" value={vendor || undefined} placeholder="All vendors" options={vendorOptions.map(([id, label]) => ({ id, label }))} onChange={value => { setVendor(value ?? ""); setPage(1); }}/>
+          <SelectField label="Owner" value={owner || undefined} placeholder="All owners" options={ownerOptions.map(value => ({ id: value, label: value }))} onChange={value => { setOwner(value ?? ""); setPage(1); }}/>
+          <SelectField label="Source rating" value={rating || undefined} placeholder="All ratings" options={ratingOptions.map(value => ({ id: value, label: value }))} onChange={value => { setRating(value ?? ""); setPage(1); }}/>
         </div>
       </header>
 

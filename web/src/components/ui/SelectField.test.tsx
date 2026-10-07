@@ -11,6 +11,20 @@ const options = [
 ] as const satisfies readonly SelectOption<string>[];
 
 describe("SelectField", () => {
+  it("uses a dedicated disclosure indicator whose state follows the option list", async () => {
+    render(<SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/>);
+    const trigger = screen.getByRole("button", { name: /Status/ });
+
+    expect(trigger.querySelector(".cs-select-field__indicator svg")).toBeTruthy();
+    expect(trigger.querySelector(".cs-select-field__indicator")).toBeTruthy();
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(trigger);
+    await screen.findByRole("listbox");
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("shows only the selected label in the trigger and retains option guidance in the menu", () => {
     render(<SelectField label="Priority" value="attention" placeholder="Choose priority" options={[{ id: "attention", label: "Needs attention first", description: "Highest adverse score, then most recent" }]} onChange={() => undefined}/>);
     const trigger = screen.getByRole("button", { name: /Priority/ });
