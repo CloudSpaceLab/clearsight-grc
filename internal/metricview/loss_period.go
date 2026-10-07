@@ -56,21 +56,21 @@ type LossOrganizationFlow struct {
 }
 
 type LossPeriodBundle struct {
-	GeneratedAt            time.Time          `json:"generated_at"`
-	PeriodStart            time.Time          `json:"period_start"`
-	PeriodEnd              time.Time          `json:"period_end"`
-	ScopeID                string             `json:"scope_id"`
-	ScopeKind              string             `json:"scope_kind"`
-	SourceID               string             `json:"source_id"`
-	SourceRevision         string             `json:"source_revision"`
-	DefinitionRevision     string             `json:"definition_revision"`
-	EventCount             int                `json:"event_count"`
-	ContributingLossCount  int                `json:"contributing_loss_count"`
-	UnattributedEventCount int                `json:"unattributed_event_count"`
-	MixedCurrencies        bool               `json:"mixed_currencies"`
-	NetLoss                *MoneyValue        `json:"net_loss,omitempty"`
-	Currencies            []LossCurrencyFlow    `json:"currencies"`
-	OrganizationBreakdown []LossOrganizationFlow `json:"organization_breakdown"`
+	GeneratedAt            time.Time              `json:"generated_at"`
+	PeriodStart            time.Time              `json:"period_start"`
+	PeriodEnd              time.Time              `json:"period_end"`
+	ScopeID                string                 `json:"scope_id"`
+	ScopeKind              string                 `json:"scope_kind"`
+	SourceID               string                 `json:"source_id"`
+	SourceRevision         string                 `json:"source_revision"`
+	DefinitionRevision     string                 `json:"definition_revision"`
+	EventCount             int                    `json:"event_count"`
+	ContributingLossCount  int                    `json:"contributing_loss_count"`
+	UnattributedEventCount int                    `json:"unattributed_event_count"`
+	MixedCurrencies        bool                   `json:"mixed_currencies"`
+	NetLoss                *MoneyValue            `json:"net_loss,omitempty"`
+	Currencies             []LossCurrencyFlow     `json:"currencies"`
+	OrganizationBreakdown  []LossOrganizationFlow `json:"organization_breakdown"`
 }
 
 type LossPeriodReader interface {
