@@ -66,6 +66,11 @@ export const sampleRCSADetail: RCSACycleDetail = {
     target_type: "MATTER",
     target_id: "matter-gaid-change",
   },
+  phase: {
+    stage: "INDEPENDENT_CHALLENGE",
+    label: "Independent challenge",
+    detail: "Independent review of the first-line assessment is in progress.",
+  },
   risks: [
     { cycle_id: cycle.id, risk_id: "risk-rcsa-1", risk_version: 3, code: "TECH-001", name: "Digital service interruption", category: "Technology" },
     { cycle_id: cycle.id, risk_id: "risk-rcsa-2", risk_version: 2, code: "CYB-012", name: "Privileged access misuse", category: "Cyber" },
