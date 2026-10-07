@@ -25,3 +25,10 @@ it("keeps collection and independent challenge sequential before the outcome bra
     ["REMEDIATION_VERIFICATION", "pending"],
   ]);
 });
+
+
+it("does not call a completed challenge outcome pending when the branch is unclassified", () => {
+  const complete = rcsaPhasePath("COMPLETE");
+  expect(complete.find((step) => step.id === "RISK_ACCEPTANCE")?.state).toBe("unknown");
+  expect(complete.find((step) => step.id === "REMEDIATION_VERIFICATION")?.state).toBe("unknown");
+});
