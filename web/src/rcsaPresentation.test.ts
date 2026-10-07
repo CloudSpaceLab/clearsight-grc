@@ -99,5 +99,5 @@ it("marks restricted challenge context unavailable instead of inferring outcome 
   const stages = rcsaJourneyStages(value);
   expect(stages.find((stage) => stage.id === "CHALLENGE")).toMatchObject({ state: "UNAVAILABLE", status: "Unavailable" });
   expect(stages.find((stage) => stage.id === "DECISION")).toMatchObject({ state: "UNAVAILABLE", status: "Unavailable" });
-  expect(stages.find((stage) => stage.id === "REMEDIATION")).toMatchObject({ state: "NOT_STARTED", status: "Not started" });
+  expect(stages.find((stage) => stage.id === "REMEDIATION")).toMatchObject({ state: "UNAVAILABLE", status: "Unavailable" });
 });
