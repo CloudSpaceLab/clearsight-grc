@@ -193,6 +193,22 @@ func TestFormsCreateAndRevisePreserveMatterOrigin(t *testing.T) {
 		t.Fatalf("created origin = %#v", created.Origin)
 	}
 
+	listResponse := httptest.NewRecorder()
+	handler.ServeHTTP(listResponse, httptest.NewRequest(http.MethodGet, "/api/v1/forms/templates?origin_type=MATTER&origin_id=matter-a&limit=25", nil))
+	if listResponse.Code != http.StatusOK || !bytes.Contains(listResponse.Body.Bytes(), []byte(`"id":"`+created.ID+`"`)) {
+		t.Fatalf("origin-filtered list returned %d: %s", listResponse.Code, listResponse.Body.String())
+	}
+	for _, raw := range []string{
+		"/api/v1/forms/templates?origin_type=MATTER",
+		"/api/v1/forms/templates?origin_id=matter-a",
+	} {
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, raw, nil))
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("partial origin filter %q returned %d: %s", raw, response.Code, response.Body.String())
+		}
+	}
+
 	revisionBody := []byte(`{"expected_version":1,"form":` + form + `}`)
 	revisedResponse := httptest.NewRecorder()
 	handler.ServeHTTP(revisedResponse, httptest.NewRequest(http.MethodPost, "/api/v1/forms/templates/"+created.ID+"/revisions", bytes.NewReader(revisionBody)))
