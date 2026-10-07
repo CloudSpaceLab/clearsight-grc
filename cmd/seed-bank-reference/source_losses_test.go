@@ -109,6 +109,28 @@ func TestOpsLossRejectsUnsupportedCurrenciesAndImpreciseAmounts(t *testing.T) {
 	}
 }
 
+func TestOpsLossRevisedAmountKeepsEventCodeButRequiresReconciliation(t *testing.T) {
+	group := syntheticOpsLossGroup()
+	original := syntheticOpsLossRecord(1, "Jan")
+	changed := syntheticOpsLossRecord(1, "Dec")
+	for index := range changed.Fields {
+		if changed.Fields[index].Label == "Amount" {
+			changed.Fields[index].Value = "999.99"
+		}
+	}
+	first, _, err := sourceLossProjection(group, original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, _, err := sourceLossProjection(group, changed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Code != second.Code || first.Identity == second.Identity {
+		t.Fatal("a revised amount must not silently create a second Loss identity")
+	}
+}
+
 func TestOpsLossIdentityDetectsChangedSourceDigestAndIgnoresViewMonth(t *testing.T) {
 	group := syntheticOpsLossGroup()
 	first, _, err := sourceLossProjection(group, syntheticOpsLossRecord(1, "Jan"))
