@@ -64,7 +64,7 @@ function attention(): GroupOversightSnapshot {
       child_snapshot_id: `snapshot-${child.legal_entity_code}`,
       child_generated_at: at,
       child_projection_version: "oversight-v5",
-      coverage: { population: [5, 4, 2][index], excluded: 0, unknown: 0 },
+      coverage: { population: [5, 4, 2][index] ?? 0, excluded: 0, unknown: 0 },
       counts: [
         { critical_high: 3, overdue: 1, due_soon: 1, routing_failures: 0, unassigned: 0, outcome_failures: 1 },
         { critical_high: 2, overdue: 1, due_soon: 0, routing_failures: 1, unassigned: 0, outcome_failures: 2 },
