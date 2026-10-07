@@ -35,8 +35,9 @@ func TestPostgresFormMatterOriginIsScopedPersistedAndImmutable(t *testing.T) {
 		matterB     = "9d333333-3333-7333-8333-333333333336"
 		formID      = "9d333333-3333-7333-8333-333333333337"
 		changedID   = "9d333333-3333-7333-8333-333333333338"
-		missingID   = "9d333333-3333-7333-8333-333333333339"
-		tenantSlug  = "form-origin-pg-test"
+		missingID     = "9d333333-3333-7333-8333-333333333339"
+		entityBFormID = "9d333333-3333-7333-8333-333333333341"
+		tenantSlug    = "form-origin-pg-test"
 	)
 	now := time.Date(2026, 10, 6, 18, 0, 0, 0, time.UTC)
 
@@ -94,6 +95,36 @@ func TestPostgresFormMatterOriginIsScopedPersistedAndImmutable(t *testing.T) {
 	}
 	if stored.Origin == nil || stored.Origin.Type != FormOriginMatter || stored.Origin.ID != matterA {
 		t.Fatalf("stored form origin = %#v", stored.Origin)
+	}
+
+	entityBForm := stored
+	entityBForm.ID = entityBFormID
+	entityBForm.LegalEntityID = entityB
+	entityBForm.Version = 1
+	entityBForm.Origin = &FormOrigin{Type: FormOriginMatter, ID: matterB}
+	entityBForm.CreatedAt = now.Add(time.Minute)
+	entityBForm.UpdatedAt = entityBForm.CreatedAt
+	if _, err := repository.CreateFormRevision(ctx, entityBForm); err != nil {
+		t.Fatalf("create entity-B origin form: %v", err)
+	}
+
+	pageA, err := repository.ListFormLibrary(ctx, FormLibraryFilter{
+		TenantID: tenantSlug, LegalEntityID: entityA, OriginType: FormOriginMatter, OriginID: matterA, Limit: 25,
+	})
+	if err != nil || len(pageA.Items) != 1 || pageA.Items[0].Template.ID != formID {
+		t.Fatalf("entity-A origin page = %#v, err = %v", pageA, err)
+	}
+	crossPage, err := repository.ListFormLibrary(ctx, FormLibraryFilter{
+		TenantID: tenantSlug, LegalEntityID: entityA, OriginType: FormOriginMatter, OriginID: matterB, Limit: 25,
+	})
+	if err != nil || len(crossPage.Items) != 0 {
+		t.Fatalf("entity-A cross-origin page = %#v, err = %v", crossPage, err)
+	}
+	pageB, err := repository.ListFormLibrary(ctx, FormLibraryFilter{
+		TenantID: tenantSlug, LegalEntityID: entityB, OriginType: FormOriginMatter, OriginID: matterB, Limit: 25,
+	})
+	if err != nil || len(pageB.Items) != 1 || pageB.Items[0].Template.ID != entityBFormID {
+		t.Fatalf("entity-B origin page = %#v, err = %v", pageB, err)
 	}
 
 	changed := stored
