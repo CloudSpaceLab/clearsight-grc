@@ -325,14 +325,20 @@ func scanLatestGroupSource(rows pgx.Rows, now time.Time) (GroupChildFact, string
 		child.ChildGeneratedAt = &generatedAt.Time
 		child.ChildProjectionVersion = projectionVersion.String
 		child.Coverage.Population = int(population.Int64)
-		if excluded.Valid { child.Coverage.Excluded = intPtr(int(excluded.Int64)) }
-		if unknown.Valid { child.Coverage.Unknown = intPtr(int(unknown.Int64)) }
+		if excluded.Valid {
+			child.Coverage.Excluded = intPtr(int(excluded.Int64))
+		}
+		if unknown.Valid {
+			child.Coverage.Unknown = intPtr(int(unknown.Int64))
+		}
 		if len(highWater) > 0 {
 			if err := json.Unmarshal(highWater, &child.SourceHighWater); err != nil {
 				return GroupChildFact{}, "", fmt.Errorf("decode group child high-water marks: %w", err)
 			}
 		}
-		var metadata struct { Counts Counts `json:"counts"` }
+		var metadata struct {
+			Counts Counts `json:"counts"`
+		}
 		if len(payload) > 0 {
 			if err := json.Unmarshal(payload, &metadata); err != nil {
 				return GroupChildFact{}, "", fmt.Errorf("decode group child snapshot: %w", err)
@@ -367,6 +373,7 @@ func scanLatestGroupSource(rows pgx.Rows, now time.Time) (GroupChildFact, string
 	}
 	return child, tenantID, nil
 }
+
 func scanGroupChild(rows pgx.Rows) (GroupChildFact, error) {
 	var state, domainState string
 	var generatedAt, domainGeneratedAt sql.NullTime
@@ -384,11 +391,21 @@ func scanGroupChild(rows pgx.Rows) (GroupChildFact, error) {
 	}
 	child.State = GroupChildState(state)
 	child.DomainState = GroupChildState(domainState)
-	if generatedAt.Valid { child.ChildGeneratedAt = &generatedAt.Time }
-	if domainGeneratedAt.Valid { child.DomainGeneratedAt = &domainGeneratedAt.Time }
-	if population.Valid { child.Coverage.Population = int(population.Int64) }
-	if excluded.Valid { child.Coverage.Excluded = intPtr(int(excluded.Int64)) }
-	if unknown.Valid { child.Coverage.Unknown = intPtr(int(unknown.Int64)) }
+	if generatedAt.Valid {
+		child.ChildGeneratedAt = &generatedAt.Time
+	}
+	if domainGeneratedAt.Valid {
+		child.DomainGeneratedAt = &domainGeneratedAt.Time
+	}
+	if population.Valid {
+		child.Coverage.Population = int(population.Int64)
+	}
+	if excluded.Valid {
+		child.Coverage.Excluded = intPtr(int(excluded.Int64))
+	}
+	if unknown.Valid {
+		child.Coverage.Unknown = intPtr(int(unknown.Int64))
+	}
 	child.SourceHighWater = map[string]time.Time{}
 	child.DomainSourceHighWater = map[string]time.Time{}
 	if len(countsJSON) > 0 {
@@ -413,6 +430,7 @@ func scanGroupChild(rows pgx.Rows) (GroupChildFact, error) {
 	}
 	return child, nil
 }
+
 func nullableCoveragePopulation(child GroupChildFact) any {
 	if child.State == GroupChildMissing {
 		return nil
