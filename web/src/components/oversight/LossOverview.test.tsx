@@ -153,8 +153,8 @@ it("keeps exact large money values through the Loss movement presentation", () =
   expect(points[1]?.displayValue?.replace(/\D/g, "")).toBe("9223372036854775807");
 
   render(<LossMovement bundle={bundle} state="live"/>);
-  expect(screen.getByRole("img", { name: "Net operational Loss movement" })).toBeTruthy();
-  expect(screen.getByRole("table", { name: "Net operational Loss movement" }).textContent?.replace(/\D/g, ""))
+  expect(screen.getByRole("img", { name: "Net operational loss trend" })).toBeTruthy();
+  expect(screen.getByRole("table", { name: "Net operational loss trend" }).textContent?.replace(/\D/g, ""))
     .toContain("9223372036854775807");
 });
 
@@ -170,7 +170,7 @@ it("falls back to event counts when currencies are mixed", () => {
   </>);
 
   expect(screen.getByRole("list", { name: "Operational Loss events by organization area" })).toBeTruthy();
-  expect(screen.getByRole("img", { name: "Operational Loss event movement" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: "Operational loss event trend" })).toBeTruthy();
   expect(screen.getByText("Amounts remain separated: NGN, USD.")).toBeTruthy();
 });
 
