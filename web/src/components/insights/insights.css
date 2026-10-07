@@ -5,6 +5,20 @@
     min-inline-size: 0;
   }
 
+  .insights-risk-loss {
+    display: grid;
+    gap: var(--cs-space-section);
+    min-inline-size: 0;
+  }
+
+  .insights-risk-loss__basis {
+    margin: 0;
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+
+  .insights-risk-loss__basis strong { color: var(--cs-text-strong); }
+
   .insights-indicator__heading {
     margin-block-end: var(--cs-space-group);
   }
