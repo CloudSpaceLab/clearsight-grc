@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/rcsa"
 )
@@ -54,6 +55,65 @@ func TestRCSAReviewerReadDoesNotExposeFirstLineStage(t *testing.T) {
 	})
 	if !ok || input.DecisionType != "rcsa.challenge.complete" {
 		t.Fatalf("challenge completion input=%#v ok=%v", input, ok)
+	}
+}
+
+func TestRCSASemanticPhaseDistinguishesGovernedCyclePaths(t *testing.T) {
+	accepted := continuity.MatterAggregate{
+		Matter: continuity.Matter{Status: continuity.MatterDecisionRequired},
+		Decisions: []continuity.Decision{{
+			Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionApproved,
+			SelectedOption: rcsa.ChallengeOptionAcceptFirstLine,
+		}},
+	}
+	remediation := continuity.MatterAggregate{
+		Matter: continuity.Matter{Status: continuity.MatterActionsInProgress},
+		Decisions: []continuity.Decision{{
+			Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionRejected,
+			SelectedOption: rcsa.ChallengeOptionDeficiencyConfirmed,
+		}},
+	}
+	verified := remediation
+	verified.Matter.Status = continuity.MatterClosed
+
+	cases := []struct {
+		name      string
+		cycle     rcsa.Cycle
+		challenge *continuity.MatterAggregate
+		stage     string
+		label     string
+	}{
+		{name: "collection draft", cycle: rcsa.Cycle{Status: rcsa.StatusDraft}, stage: "COLLECTION", label: "First-line collection"},
+		{name: "collection open", cycle: rcsa.Cycle{Status: rcsa.StatusAssessmentOpen}, stage: "COLLECTION", label: "First-line collection"},
+		{name: "independent challenge", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge}, challenge: &continuity.MatterAggregate{
+			Matter: continuity.Matter{Status: continuity.MatterDecisionRequired},
+			Decisions: []continuity.Decision{{Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionInReview}},
+		}, stage: "INDEPENDENT_CHALLENGE", label: "Independent challenge"},
+		{name: "risk acceptance", cycle: rcsa.Cycle{Status: rcsa.StatusCompleted}, challenge: &accepted, stage: "RISK_ACCEPTANCE", label: "Risk acceptance"},
+		{name: "remediation verification", cycle: rcsa.Cycle{Status: rcsa.StatusCompleted}, challenge: &remediation, stage: "REMEDIATION_VERIFICATION", label: "Remediation verification"},
+		{name: "remediation verified", cycle: rcsa.Cycle{Status: rcsa.StatusCompleted}, challenge: &verified, stage: "REMEDIATION_VERIFICATION", label: "Remediation verified"},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			got := rcsaSemanticPhase(test.cycle, test.challenge)
+			if got.Stage != test.stage || got.Label != test.label {
+				t.Fatalf("phase=%#v", got)
+			}
+		})
+	}
+}
+
+func TestRCSASemanticPhaseDoesNotTreatRejectedAcceptanceAsRiskAcceptance(t *testing.T) {
+	challenge := continuity.MatterAggregate{
+		Matter: continuity.Matter{Status: continuity.MatterDecisionRequired},
+		Decisions: []continuity.Decision{{
+			Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionRejected,
+			SelectedOption: rcsa.ChallengeOptionAcceptFirstLine,
+		}},
+	}
+	got := rcsaSemanticPhase(rcsa.Cycle{Status: rcsa.StatusCompleted}, &challenge)
+	if got.Stage != "COMPLETE" || got.Label != "Challenge completed" {
+		t.Fatalf("phase=%#v", got)
 	}
 }
 
