@@ -133,7 +133,7 @@ func TestIndicatorSourceAcceptanceProvesPersistedNativeResultAgainstExactRevisio
 	check := &monitoring.MonitoringCheck{
 		ID: "check-private-1", TenantID: binding.TenantID, ProgramID: "program-1",
 		InputKind: monitoring.InputSource, BindingID: binding.BindingID, BindingVersion: binding.Version,
-		Status: monitoring.LifecycleActive, IsCurrent: true, Version: 4,
+		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 4},
 	}
 	storedReceipt := pageReceipt
 	storedReceipt.ObservedAt = observedAt.Add(-24 * time.Hour)
@@ -184,7 +184,7 @@ func TestIndicatorSourceAcceptanceRejectsPersistedResultRevisionMismatchOrMissin
 	check := monitoring.MonitoringCheck{
 		ID: "check-1", TenantID: binding.TenantID, InputKind: monitoring.InputSource,
 		BindingID: binding.BindingID, BindingVersion: binding.Version,
-		Status: monitoring.LifecycleActive, IsCurrent: true, Version: 2,
+		Lifecycle: monitoring.Lifecycle{Status: monitoring.LifecycleActive, IsCurrent: true, Version: 2},
 	}
 	result := monitoring.MonitoringResult{
 		ID: "result-1", TenantID: binding.TenantID, MonitoringCheckID: check.ID, MonitoringCheckVersion: check.Version,
