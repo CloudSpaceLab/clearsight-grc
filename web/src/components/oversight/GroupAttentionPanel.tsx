@@ -67,16 +67,19 @@ export function GroupAttentionView({
         </div>
       </div>
       {value?.children.length
-        ? <DataTable
-          ariaLabel="Group OpCo attention"
-          rows={rows}
-          rowKey={(item) => item.legal_entity_id}
-          rowName={(item) => `${item.legal_entity_name}, ${groupChildStateLabel(item.state)}`}
-          columns={columns}
-          onRowAction={(item) => onOpenLegalEntity(item.legal_entity_id)}
-          rowActionLabel="Open OpCo"
-          isLoading={state === "loading"}
-        />
+        ? <>
+          <DataTable
+            ariaLabel="Group OpCo attention"
+            rows={rows.slice(0, 10)}
+            rowKey={(item) => item.legal_entity_id}
+            rowName={(item) => `${item.legal_entity_name}, ${groupChildStateLabel(item.state)}`}
+            columns={columns}
+            onRowAction={(item) => onOpenLegalEntity(item.legal_entity_id)}
+            rowActionLabel="Open OpCo"
+            isLoading={state === "loading"}
+          />
+          {rows.length > 10 && <p className="group-oversight-quality">{rows.length - 10} additional OpCos. Use the organization switcher for the full set.</p>}
+        </>
         : state === "loading"
           ? <p className="group-oversight-status" role="status">Loading Group attention…</p>
           : <EmptyState population="Authorized Group legal entities" title="No OpCo attention available" description="No authorized legal entity returned an Attention snapshot."/>}
