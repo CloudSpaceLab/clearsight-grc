@@ -10,8 +10,8 @@ type Props = {
   legalEntityName?: string;
   targetID?: string;
   onTarget: (id?: string) => void;
-  onOpenEvidence?: (requestID: string) => void;
-  onOpenMatter?: (matterID: string) => void;
+  onOpenEvidence?: (requestID: string, cycleID: string) => void;
+  onOpenMatter?: (matterID: string, cycleID: string) => void;
 };
 
 type LoadState = "loading" | "live" | "error";
@@ -175,7 +175,7 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
   </section>;
 }
 
-function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail: RCSACycleDetail; onOpenEvidence?: (id: string) => void; onOpenMatter?: (id: string) => void }) {
+function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail: RCSACycleDetail; onOpenEvidence?: (id: string, cycleID: string) => void; onOpenMatter?: (id: string, cycleID: string) => void }) {
   const riskColumns: readonly DataColumn<RCSARiskSnapshot>[] = [
     { id: "risk", header: "Risk", mobileLayout: "full-width", render: (risk) => <span className="rcsa-stack"><strong>{risk.name}</strong><small>{risk.code}</small></span>, accessibleText: (risk) => `${risk.name}. ${risk.code}` },
     { id: "category", header: "Category", render: (risk) => risk.category || "Not classified", accessibleText: (risk) => risk.category || "Not classified" },
@@ -189,8 +189,8 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
 
   const openHandoff = () => {
     if (!detail.handoff.target_id) return;
-    if (detail.handoff.target_type === "EVIDENCE_REQUEST") onOpenEvidence?.(detail.handoff.target_id);
-    if (detail.handoff.target_type === "MATTER") onOpenMatter?.(detail.handoff.target_id);
+    if (detail.handoff.target_type === "EVIDENCE_REQUEST") onOpenEvidence?.(detail.handoff.target_id, detail.cycle.id);
+    if (detail.handoff.target_type === "MATTER") onOpenMatter?.(detail.handoff.target_id, detail.cycle.id);
   };
 
   return <article className="rcsa-detail">
