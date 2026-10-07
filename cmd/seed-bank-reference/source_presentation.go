@@ -80,12 +80,22 @@ func sourceRecordDisplayTitle(group sourceRecordGroup, record sourceRecord) stri
 	if existing != "" && !sourcePlaceholderTitle.MatchString(existing) {
 		return sourceShort(existing, 200)
 	}
-	for _, label := range []string{
-		"Branch", "RISK DESCRIPTION", "Risk Event Description", "RISK METRICS",
-		"Requirement / Checklist Item", "TRAN_PARTICULAR", "Process Name",
-		"Business Process", "Activity", "SERVICE", "Asset Name", "FINDINGS",
-		"Control Area", "Risk Driver Descriptions Level 1",
-	} {
+	preferred := []string{
+		"RISK DESCRIPTION", "Risk Event Description", "RISK METRICS",
+		"Requirement / Checklist Item", "Process Name", "Business Process",
+		"Activity", "SERVICE", "Asset Name", "FINDINGS", "Branch",
+		"TRAN_PARTICULAR", "Control Area", "Risk Driver Descriptions Level 1",
+	}
+	sourceFile := strings.ToLower(group.SourceFile)
+	switch {
+	case strings.Contains(sourceFile, "loss data base"):
+		preferred = append([]string{"TRAN_PARTICULAR", "ACCT_NAME", "Branch"}, preferred...)
+	case strings.Contains(sourceFile, "branch kri"):
+		preferred = append([]string{"Branch", "Region"}, preferred...)
+	case strings.Contains(sourceFile, "head office kri"):
+		preferred = append([]string{"RISK METRICS", "RISK OWNERS"}, preferred...)
+	}
+	for _, label := range preferred {
 		if value, ok := sourceLookupField(record, label); ok && sourceDescriptiveValue(value) {
 			return sourceShort(value, 200)
 		}
