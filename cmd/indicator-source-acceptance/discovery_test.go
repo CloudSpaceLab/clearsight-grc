@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/itgovernance"
@@ -43,27 +44,28 @@ func (s acceptanceCatalogStub) ListCurrentBindings(_ context.Context, _, viewID 
 }
 
 func TestDiscoverAcceptanceBindingUsesOnlyActiveScopedChannelBinding(t *testing.T) {
+	now := time.Date(2026, 10, 7, 9, 0, 0, 0, time.UTC)
 	lister := &acceptanceSourceListerStub{pages: []evidence.SourcePage{{Items: []evidence.Source{
 		{ID: "source-a", Status: evidence.SourceActive},
 		{ID: "source-retired", Status: evidence.SourceRetired},
 	}}}}
 	catalog := acceptanceCatalogStub{
 		connections: map[string][]sourceaccess.ConnectionRevision{
-			"source-a": {{ConnectionID: "connection-a", Status: sourceaccess.RevisionActive, IsCurrent: true}},
-			"source-retired": {{ConnectionID: "connection-retired", Status: sourceaccess.RevisionActive, IsCurrent: true}},
+			"source-a": {acceptanceConnection("connection-a", now.Add(-time.Hour))},
+			"source-retired": {acceptanceConnection("connection-retired", now.Add(-time.Hour))},
 		},
 		views: map[string][]sourceaccess.ViewRevision{
-			"connection-a": {{ViewID: "view-a", ConnectionID: "connection-a", Status: sourceaccess.RevisionActive, IsCurrent: true}},
+			"connection-a": {acceptanceView("view-a", "connection-a", now.Add(-time.Hour))},
 		},
 		bindings: map[string][]sourceaccess.BindingRevision{
 			"view-a": {
-				{BindingID: "binding-other", ViewID: "view-a", Purpose: "OTHER", Status: sourceaccess.RevisionActive, IsCurrent: true},
-				{BindingID: "binding-channel", ViewID: "view-a", Purpose: itgovernance.PurposeChannelPerformance, Status: sourceaccess.RevisionActive, IsCurrent: true},
+				acceptanceBinding("binding-other", "view-a", "OTHER", sourceaccess.RevisionActive, now.Add(-time.Hour)),
+				acceptanceBinding("binding-channel", "view-a", itgovernance.PurposeChannelPerformance, sourceaccess.RevisionActive, now.Add(-time.Hour)),
 			},
 		},
 	}
 
-	candidate, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "", lister, catalog)
+	candidate, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "", now, lister, catalog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,31 +75,32 @@ func TestDiscoverAcceptanceBindingUsesOnlyActiveScopedChannelBinding(t *testing.
 }
 
 func TestDiscoverAcceptanceBindingRequiresExactSelectionWhenMultipleExist(t *testing.T) {
+	now := time.Date(2026, 10, 7, 9, 0, 0, 0, time.UTC)
 	lister := &acceptanceSourceListerStub{pages: []evidence.SourcePage{{Items: []evidence.Source{
 		{ID: "source-a", Status: evidence.SourceActive},
 		{ID: "source-b", Status: evidence.SourceActive},
 	}}}}
 	catalog := acceptanceCatalogStub{
 		connections: map[string][]sourceaccess.ConnectionRevision{
-			"source-a": {{ConnectionID: "connection-a", Status: sourceaccess.RevisionActive, IsCurrent: true}},
-			"source-b": {{ConnectionID: "connection-b", Status: sourceaccess.RevisionActive, IsCurrent: true}},
+			"source-a": {acceptanceConnection("connection-a", now.Add(-time.Hour))},
+			"source-b": {acceptanceConnection("connection-b", now.Add(-time.Hour))},
 		},
 		views: map[string][]sourceaccess.ViewRevision{
-			"connection-a": {{ViewID: "view-a", ConnectionID: "connection-a", Status: sourceaccess.RevisionActive, IsCurrent: true}},
-			"connection-b": {{ViewID: "view-b", ConnectionID: "connection-b", Status: sourceaccess.RevisionActive, IsCurrent: true}},
+			"connection-a": {acceptanceView("view-a", "connection-a", now.Add(-time.Hour))},
+			"connection-b": {acceptanceView("view-b", "connection-b", now.Add(-time.Hour))},
 		},
 		bindings: map[string][]sourceaccess.BindingRevision{
-			"view-a": {{BindingID: "binding-a", ViewID: "view-a", Purpose: itgovernance.PurposeChannelPerformance, Status: sourceaccess.RevisionActive, IsCurrent: true}},
-			"view-b": {{BindingID: "binding-b", ViewID: "view-b", Purpose: itgovernance.PurposeChannelPerformance, Status: sourceaccess.RevisionActive, IsCurrent: true}},
+			"view-a": {acceptanceBinding("binding-a", "view-a", itgovernance.PurposeChannelPerformance, sourceaccess.RevisionActive, now.Add(-time.Hour))},
+			"view-b": {acceptanceBinding("binding-b", "view-b", itgovernance.PurposeChannelPerformance, sourceaccess.RevisionActive, now.Add(-time.Hour))},
 		},
 	}
 
-	if _, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "", lister, catalog); !errors.Is(err, errAmbiguousAcceptanceBinding) {
+	if _, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "", now, lister, catalog); !errors.Is(err, errAmbiguousAcceptanceBinding) {
 		t.Fatalf("ambiguous error = %v", err)
 	}
 
 	lister.calls = 0
-	selected, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "binding-b", lister, catalog)
+	selected, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "binding-b", now, lister, catalog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,28 +109,29 @@ func TestDiscoverAcceptanceBindingRequiresExactSelectionWhenMultipleExist(t *tes
 	}
 }
 
-func TestDiscoverAcceptanceBindingRejectsMissingOrInactiveExactBinding(t *testing.T) {
-	for _, test := range []struct {
-		name   string
-		status sourceaccess.RevisionStatus
+func TestDiscoverAcceptanceBindingRejectsMissingPausedOrFutureExactBinding(t *testing.T) {
+	now := time.Date(2026, 10, 7, 9, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name      string
+		binding   *sourceaccess.BindingRevision
 	}{
-		{name: "missing", status: ""},
-		{name: "paused", status: sourceaccess.RevisionPaused},
-	} {
+		{name: "missing"},
+		{name: "paused", binding: bindingPtr(acceptanceBinding("binding-a", "view-a", itgovernance.PurposeChannelPerformance, sourceaccess.RevisionPaused, now.Add(-time.Hour)))},
+		{name: "future", binding: bindingPtr(acceptanceBinding("binding-a", "view-a", itgovernance.PurposeChannelPerformance, sourceaccess.RevisionActive, now.Add(time.Hour)))},
+	}
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			lister := &acceptanceSourceListerStub{pages: []evidence.SourcePage{{Items: []evidence.Source{{ID: "source-a", Status: evidence.SourceActive}}}}}
 			bindings := []sourceaccess.BindingRevision{}
-			if test.status != "" {
-				bindings = append(bindings, sourceaccess.BindingRevision{
-					BindingID: "binding-a", ViewID: "view-a", Purpose: itgovernance.PurposeChannelPerformance, Status: test.status, IsCurrent: true,
-				})
+			if test.binding != nil {
+				bindings = append(bindings, *test.binding)
 			}
 			catalog := acceptanceCatalogStub{
-				connections: map[string][]sourceaccess.ConnectionRevision{"source-a": {{ConnectionID: "connection-a", Status: sourceaccess.RevisionActive, IsCurrent: true}}},
-				views: map[string][]sourceaccess.ViewRevision{"connection-a": {{ViewID: "view-a", ConnectionID: "connection-a", Status: sourceaccess.RevisionActive, IsCurrent: true}}},
+				connections: map[string][]sourceaccess.ConnectionRevision{"source-a": {acceptanceConnection("connection-a", now.Add(-time.Hour))}},
+				views: map[string][]sourceaccess.ViewRevision{"connection-a": {acceptanceView("view-a", "connection-a", now.Add(-time.Hour))}},
 				bindings: map[string][]sourceaccess.BindingRevision{"view-a": bindings},
 			}
-			if _, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "binding-a", lister, catalog); !errors.Is(err, errNoAcceptanceBinding) {
+			if _, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "binding-a", now, lister, catalog); !errors.Is(err, errNoAcceptanceBinding) {
 				t.Fatalf("error = %v", err)
 			}
 		})
@@ -135,22 +139,23 @@ func TestDiscoverAcceptanceBindingRejectsMissingOrInactiveExactBinding(t *testin
 }
 
 func TestDiscoverAcceptanceBindingFollowsBoundedSourcePagination(t *testing.T) {
+	now := time.Date(2026, 10, 7, 9, 0, 0, 0, time.UTC)
 	lister := &acceptanceSourceListerStub{pages: []evidence.SourcePage{
 		{Items: []evidence.Source{{ID: "source-a", Status: evidence.SourceActive}}, HasMore: true, NextCursor: "page-2"},
 		{Items: []evidence.Source{{ID: "source-b", Status: evidence.SourceActive}}},
 	}}
 	catalog := acceptanceCatalogStub{
 		connections: map[string][]sourceaccess.ConnectionRevision{
-			"source-b": {{ConnectionID: "connection-b", Status: sourceaccess.RevisionActive, IsCurrent: true}},
+			"source-b": {acceptanceConnection("connection-b", now.Add(-time.Hour))},
 		},
 		views: map[string][]sourceaccess.ViewRevision{
-			"connection-b": {{ViewID: "view-b", ConnectionID: "connection-b", Status: sourceaccess.RevisionActive, IsCurrent: true}},
+			"connection-b": {acceptanceView("view-b", "connection-b", now.Add(-time.Hour))},
 		},
 		bindings: map[string][]sourceaccess.BindingRevision{
-			"view-b": {{BindingID: "binding-b", ViewID: "view-b", Purpose: itgovernance.PurposeChannelPerformance, Status: sourceaccess.RevisionActive, IsCurrent: true}},
+			"view-b": {acceptanceBinding("binding-b", "view-b", itgovernance.PurposeChannelPerformance, sourceaccess.RevisionActive, now.Add(-time.Hour))},
 		},
 	}
-	candidate, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "", lister, catalog)
+	candidate, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "", now, lister, catalog)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,3 +163,33 @@ func TestDiscoverAcceptanceBindingFollowsBoundedSourcePagination(t *testing.T) {
 		t.Fatalf("calls=%d candidate=%#v", lister.calls, candidate)
 	}
 }
+
+func acceptanceConnection(id string, effectiveFrom time.Time) sourceaccess.ConnectionRevision {
+	return sourceaccess.ConnectionRevision{
+		ConnectionID: id,
+		RevisionLifecycle: acceptanceLifecycle(sourceaccess.RevisionActive, effectiveFrom),
+	}
+}
+
+func acceptanceView(id, connectionID string, effectiveFrom time.Time) sourceaccess.ViewRevision {
+	return sourceaccess.ViewRevision{
+		ViewID: id, ConnectionID: connectionID,
+		RevisionLifecycle: acceptanceLifecycle(sourceaccess.RevisionActive, effectiveFrom),
+	}
+}
+
+func acceptanceBinding(id, viewID, purpose string, status sourceaccess.RevisionStatus, effectiveFrom time.Time) sourceaccess.BindingRevision {
+	return sourceaccess.BindingRevision{
+		BindingID: id, ViewID: viewID, Purpose: purpose,
+		RevisionLifecycle: acceptanceLifecycle(status, effectiveFrom),
+	}
+}
+
+func acceptanceLifecycle(status sourceaccess.RevisionStatus, effectiveFrom time.Time) sourceaccess.RevisionLifecycle {
+	return sourceaccess.RevisionLifecycle{
+		Status: status, IsCurrent: true, EffectiveFrom: &effectiveFrom, Version: 1,
+		CreatedAt: effectiveFrom, UpdatedAt: effectiveFrom,
+	}
+}
+
+func bindingPtr(value sourceaccess.BindingRevision) *sourceaccess.BindingRevision { return &value }
