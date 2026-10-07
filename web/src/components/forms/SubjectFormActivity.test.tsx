@@ -143,13 +143,36 @@ it("retains request rows and offers local retry when an additional page fails", 
   await waitFor(() => expect(screen.queryByText("More form requests could not be loaded.")).toBeNull());
 });
 
-it("keeps available response context visible when request reads fail", async () => {
-  vi.mocked(loadDistributionPage).mockRejectedValue(new Error("requests unavailable"));
+it("keeps available response context visible and retries an initial request read locally", async () => {
+  vi.mocked(loadDistributionPage)
+    .mockRejectedValueOnce(new Error("requests unavailable"))
+    .mockResolvedValueOnce({ items: [openRequest] });
   vi.mocked(loadCompletedResponses).mockResolvedValue({ items: [secondResponse] });
 
   render(<SubjectFormActivity subjectType="MATTER" subjectID="matter-a" subjectLabel="MAT-82BF"/>);
 
-  expect(await screen.findByText("Form requests are unavailable. Other issue work remains available.")).toBeTruthy();
+  expect(await screen.findByText(/Form requests are unavailable\. Other issue work remains available\./)).toBeTruthy();
   expect(await screen.findByText("Owner evidence response")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Review response" })).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: "Retry form requests" }));
+  expect(await screen.findByText("Control owner confirmation")).toBeTruthy();
+  await waitFor(() => expect(loadDistributionPage).toHaveBeenCalledTimes(2));
+});
+
+it("keeps available request context visible and retries an initial response read locally", async () => {
+  vi.mocked(loadDistributionPage).mockResolvedValue({ items: [openRequest] });
+  vi.mocked(loadCompletedResponses)
+    .mockRejectedValueOnce(new Error("responses unavailable"))
+    .mockResolvedValueOnce({ items: [firstResponse] });
+
+  render(<SubjectFormActivity subjectType="MATTER" subjectID="matter-a" subjectLabel="MAT-82BF"/>);
+
+  expect(await screen.findByText(/Submitted responses are unavailable\. Other issue work remains available\./)).toBeTruthy();
+  expect(screen.getByText("Control owner confirmation")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Open sent form" })).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: "Retry submitted responses" }));
+  expect(await screen.findByText("Remediation evidence")).toBeTruthy();
+  await waitFor(() => expect(loadCompletedResponses).toHaveBeenCalledTimes(2));
 });
