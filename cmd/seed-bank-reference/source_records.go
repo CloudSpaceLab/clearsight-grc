@@ -79,8 +79,8 @@ type sourceRecordReceipt struct {
 	Matters           int              `json:"matters"`
 	Risks             int              `json:"risks"`
 	RiskAssessments   int              `json:"risk_assessments"`
-	Losses             int              `json:"losses"`
-	LossesCreated      int              `json:"losses_created"`
+	Losses            int              `json:"losses"`
+	LossesCreated     int              `json:"losses_created"`
 	Captures          int              `json:"captures"`
 	ReportDefinitions int              `json:"report_definitions"`
 	Items             []map[string]any `json:"items"`
