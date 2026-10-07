@@ -154,8 +154,8 @@ it("keeps exact large money values through the Loss movement presentation", () =
 
   render(<LossMovement bundle={bundle} state="live"/>);
   expect(screen.getByRole("img", { name: "Net operational Loss movement" })).toBeTruthy();
-  expect(screen.getByRole("table", { name: "Net operational Loss movement" }).textContent)
-    .toContain("9223372036854775807".slice(0, 6));
+  expect(screen.getByRole("table", { name: "Net operational Loss movement" }).textContent?.replace(/\D/g, ""))
+    .toContain("9223372036854775807");
 });
 
 it("falls back to event counts when currencies are mixed", () => {
