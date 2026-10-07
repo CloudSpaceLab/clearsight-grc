@@ -55,6 +55,37 @@ type LossOrganizationFlow struct {
 	Currencies            []LossCurrencyFlow `json:"currencies"`
 }
 
+type LossFlowResolution string
+
+const (
+	LossFlowResolutionDay  LossFlowResolution = "DAY"
+	LossFlowResolutionWeek LossFlowResolution = "WEEK"
+)
+
+type LossFlowPoint struct {
+	Start                 time.Time          `json:"start"`
+	End                   time.Time          `json:"end"`
+	LossEventCount        int                `json:"loss_event_count"`
+	ContributingLossCount int                `json:"contributing_loss_count"`
+	MixedCurrencies       bool               `json:"mixed_currencies"`
+	NetLoss               *MoneyValue        `json:"net_loss,omitempty"`
+	Currencies            []LossCurrencyFlow `json:"currencies"`
+}
+
+type LossPeriodComparison struct {
+	PeriodStart           time.Time          `json:"period_start"`
+	PeriodEnd             time.Time          `json:"period_end"`
+	EventCount            int                `json:"event_count"`
+	ContributingLossCount int                `json:"contributing_loss_count"`
+	MixedCurrencies       bool               `json:"mixed_currencies"`
+	NetLoss               *MoneyValue        `json:"net_loss,omitempty"`
+	Currencies            []LossCurrencyFlow `json:"currencies"`
+	EventDelta            int                `json:"event_delta"`
+	NetDelta              *MoneyValue        `json:"net_delta,omitempty"`
+	Direction             TrendDirection     `json:"direction"`
+	ComparisonQuality     ComparisonQuality  `json:"comparison_quality"`
+}
+
 type LossPeriodBundle struct {
 	GeneratedAt            time.Time              `json:"generated_at"`
 	PeriodStart            time.Time              `json:"period_start"`
@@ -71,6 +102,9 @@ type LossPeriodBundle struct {
 	NetLoss                *MoneyValue            `json:"net_loss,omitempty"`
 	Currencies             []LossCurrencyFlow     `json:"currencies"`
 	OrganizationBreakdown  []LossOrganizationFlow `json:"organization_breakdown"`
+	FlowResolution         LossFlowResolution     `json:"flow_resolution"`
+	FlowPoints             []LossFlowPoint        `json:"flow_points"`
+	Comparison             LossPeriodComparison   `json:"comparison"`
 }
 
 type LossPeriodReader interface {
