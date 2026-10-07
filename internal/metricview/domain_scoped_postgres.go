@@ -86,6 +86,10 @@ func (r *DomainRepository) CurrentDomainMetrics(
 			condition = ConditionAttention
 		}
 		unknown := result.Unknown
+		completeness := CompletenessComplete
+		if unknown > 0 {
+			completeness = CompletenessPartial
+		}
 		bundle.Items = append(bundle.Items, Metric{
 			ID:                 result.Definition.ID,
 			Label:              result.Definition.Label,
@@ -93,7 +97,7 @@ func (r *DomainRepository) CurrentDomainMetrics(
 			Unit:               result.Definition.Unit,
 			Condition:          condition,
 			Freshness:          oversight.FreshnessCurrent,
-			Completeness:       CompletenessUnknown,
+			Completeness:       completeness,
 			Population:         result.Population,
 			Excluded:           &zero,
 			Unknown:            &unknown,
