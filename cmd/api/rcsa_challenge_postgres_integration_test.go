@@ -114,8 +114,8 @@ func TestPostgresRCSAChallengeBridgeUsesCanonicalMatterTruth(t *testing.T) {
 
 	matter, err = matters.RecordDecisionLifecycle(trusted, continuity.AddDecisionInput{
 		TenantID: tenantID, MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
-		Type: rcsaChallengeDecisionType, Status: continuity.DecisionConditionallyApproved,
-		Options: rcsaChallengeOptions, SelectedOption: "DEFICIENCY_CONFIRMED",
+		Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionConditionallyApproved,
+		Options: rcsaChallengeOptions, SelectedOption: rcsa.ChallengeOptionDeficiencyConfirmed,
 		Rationale:            "Independent challenge confirmed a deficiency requiring governed remediation.",
 		Conditions:           json.RawMessage(`["Track remediation through this Matter"]`),
 		AuthorityPrincipalID: authorizerID,
@@ -137,9 +137,9 @@ func TestPostgresRCSAChallengeBridgeUsesCanonicalMatterTruth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	decision := continuity.CurrentDecisionForType(persisted.Decisions, rcsaChallengeDecisionType)
+	decision := continuity.CurrentDecisionForType(persisted.Decisions, rcsa.ChallengeDecisionType)
 	if decision == nil || decision.Status != continuity.DecisionConditionallyApproved ||
-		decision.SelectedOption != "DEFICIENCY_CONFIRMED" || decision.AuthorityPrincipalID != authorizerID {
+		decision.SelectedOption != rcsa.ChallengeOptionDeficiencyConfirmed || decision.AuthorityPrincipalID != authorizerID {
 		t.Fatalf("persisted challenge decision=%#v", decision)
 	}
 	if persisted.Matter.Status == continuity.MatterClosed || persisted.Matter.Status == continuity.MatterCancelled {
