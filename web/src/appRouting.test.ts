@@ -15,12 +15,13 @@ describe("workspace routes", () => {
       insightsView: "risk-loss" as const,
       insightsPeriod: { start_date: "2026-09-08", end_date: "2026-10-07" },
       insightsOrganizationScopeID: "00000000-0000-4000-8000-000000000001",
+      insightsLegalEntityID: "00000000-0000-4000-8000-000000000002",
     };
     const hash = routeHash("insights", target, "assigned");
-    expect(hash).toBe("#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&organization_scope_id=00000000-0000-4000-8000-000000000001");
+    expect(hash).toBe("#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&legal_entity_id=00000000-0000-4000-8000-000000000002&organization_scope_id=00000000-0000-4000-8000-000000000001");
     expect(parseRoute(hash)).toEqual({ view: "insights", target });
     expect(parseRoute("#insights?view=risk-loss&start_date=2026-02-30&end_date=2026-10-07")).toEqual({ view: "insights", target: {} });
-    expect(parseRoute("#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&organization_scope_id=malformed")).toEqual({ view: "insights", target: {} });
+    expect(parseRoute("#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&legal_entity_id=00000000-0000-4000-8000-000000000002&organization_scope_id=malformed")).toEqual({ view: "insights", target: {} });
     expect(parseRoute("#insights?view=risk-loss&start_date=2025-01-01&end_date=2026-10-07")).toEqual({ view: "insights", target: {} });
   });
 
