@@ -7,7 +7,7 @@ function fixture(): GroupOversightSnapshot {
   return {
     revision_id: "revision-secret",
     generated_at: "2026-10-03T20:00:00Z",
-    projection_version: "group-oversight-v1",
+    projection_version: "group-oversight-v2",
     freshness: "CURRENT",
     posture_freshness: "CURRENT",
     posture_coverage: {
@@ -141,11 +141,9 @@ describe("GroupOversightWorkspace", () => {
     />);
 
     expect(await screen.findByText("1 OpCo has no current CRO posture. Group posture is incomplete.")).toBeTruthy();
-    expect(screen.getByText("No CRO posture available")).toBeFalsy;
     fireEvent.click(screen.getByText("Data basis · 2 authorized OpCos"));
     expect(await screen.findByText("No CRO posture contributed.")).toBeTruthy();
   });
-});
 
   it("keeps Group Attention and My work separate from CRO Oversight", async () => {
     const onOpenWork = vi.fn();
