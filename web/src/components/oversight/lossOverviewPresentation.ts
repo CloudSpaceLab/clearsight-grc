@@ -19,9 +19,11 @@ export function lossComparisonLabel(bundle: LossPeriodBundle) {
   const comparison = bundle.comparison;
   if (lossPresentationMode(bundle) === "money") {
     if (comparison.comparison_quality !== "COMPLETE" || !comparison.net_delta) return "No comparable amount";
-    const amount = formatLossMoneyExact(comparison.net_delta.minor_units, comparison.net_delta.currency);
-    if (comparison.direction === "IMPROVED") return `${amount} improved vs prior period`;
-    if (comparison.direction === "WORSENED") return `${prefixPositive(amount)} worse vs prior period`;
+    const minor = parseMoneyMinor(comparison.net_delta);
+    if (minor === undefined) return "No comparable amount";
+    const amount = formatLossMoneyExact(bigintAbs(minor), comparison.net_delta.currency);
+    if (comparison.direction === "IMPROVED") return `${amount} lower vs prior period`;
+    if (comparison.direction === "WORSENED") return `${amount} higher vs prior period`;
     if (comparison.direction === "UNCHANGED") return "No change vs prior period";
     return "No comparable amount";
   }
@@ -75,10 +77,6 @@ export function normalizedMinor(value: bigint, maximum: bigint) {
 
 export function bigintAbs(value: bigint) { return value < 0n ? -value : value; }
 export function bigintMax(left: bigint, right: bigint) { return left > right ? left : right; }
-
-function prefixPositive(value: string) {
-  return value.startsWith("-") || value.startsWith("+") ? value : `+${value}`;
-}
 
 function shortDate(value: string) {
   const parsed = new Date(value);
