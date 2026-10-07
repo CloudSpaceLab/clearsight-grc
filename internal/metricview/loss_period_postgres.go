@@ -263,7 +263,7 @@ func loadLossPeriodAggregate(
 		  (SELECT count(*) FROM contributors),
 		  (SELECT count(*) FROM loss_events WHERE organization_scope_id IS NULL),
 		  (SELECT md5(COALESCE(string_agg(id::text||':'||version::text||':'||organization_version::text,',' ORDER BY id),'')) FROM loss_events),
-		  (SELECT md5(COALESCE(string_agg(id::text||':'||version::text,',' ORDER BY id),'')) FROM contributors),
+		  (SELECT md5(COALESCE(string_agg(id::text||':'||version::text||':'||organization_version::text,',' ORDER BY id),'')) FROM contributors),
 		  COALESCE((
 			SELECT jsonb_agg(jsonb_build_object(
 				'currency',currency,
