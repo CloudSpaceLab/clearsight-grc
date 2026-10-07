@@ -19,7 +19,7 @@ type lossPeriodReaderStub struct {
 	got    struct {
 		tenantID, legalEntityID, organizationScopeID string
 		organizationScopeIDs                         []string
-		start, end, generatedAt                     time.Time
+		start, end, generatedAt                      time.Time
 	}
 }
 
