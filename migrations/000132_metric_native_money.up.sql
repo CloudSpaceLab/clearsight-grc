@@ -52,4 +52,43 @@ ALTER TABLE metric_observation_daily_rollups
     ADD CONSTRAINT metric_observation_daily_rollups_condition_check
         CHECK (condition IN ('CLEAR','ATTENTION','NEUTRAL'));
 
+CREATE FUNCTION validate_metric_native_measure() RETURNS trigger
+LANGUAGE plpgsql
+AS $metric_native_measure$
+DECLARE
+    metric_unit text;
+BEGIN
+    SELECT definition.unit
+      INTO metric_unit
+      FROM metric_definitions definition
+     WHERE definition.metric_id=NEW.metric_id
+       AND definition.revision=NEW.definition_revision;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Metric definition is unavailable';
+    END IF;
+
+    IF metric_unit='COUNT' THEN
+        IF NEW.value<0 OR NEW.currency IS NOT NULL OR NEW.member_count IS NOT NULL THEN
+            RAISE EXCEPTION 'COUNT metric observation has invalid native measure fields';
+        END IF;
+    ELSIF metric_unit='MONEY' THEN
+        IF NEW.currency IS NULL OR NEW.member_count IS NULL OR NEW.member_count<0 THEN
+            RAISE EXCEPTION 'MONEY metric observation requires currency and member count';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'Metric observation unit is unsupported';
+    END IF;
+    RETURN NEW;
+END;
+$metric_native_measure$;
+
+CREATE TRIGGER metric_observations_validate_native_measure
+    BEFORE INSERT OR UPDATE ON metric_observations
+    FOR EACH ROW EXECUTE FUNCTION validate_metric_native_measure();
+
+CREATE TRIGGER metric_daily_rollups_validate_native_measure
+    BEFORE INSERT OR UPDATE ON metric_observation_daily_rollups
+    FOR EACH ROW EXECUTE FUNCTION validate_metric_native_measure();
+
 COMMIT;
