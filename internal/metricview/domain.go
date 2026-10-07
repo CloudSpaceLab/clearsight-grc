@@ -8,7 +8,7 @@ import (
 
 const (
 	DomainDefinitionRevision = "enterprise-domain-v1"
-	DomainSourceRevision     = "enterprise-domain-v1"
+	DomainSourceRevision     = "enterprise-domain-v2"
 )
 
 var (
@@ -52,6 +52,10 @@ type DomainBundle struct {
 
 type DomainReader interface {
 	LatestDomainMetrics(context.Context, string, string) (DomainBundle, error)
+}
+
+type ScopedDomainReader interface {
+	CurrentDomainMetrics(context.Context, string, string, string, []string, time.Time) (DomainBundle, error)
 }
 
 func DomainDefinitionList() []Definition {
