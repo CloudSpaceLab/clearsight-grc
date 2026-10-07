@@ -54,7 +54,7 @@ for (const item of scenarios) {
 
     if (item.mode === "entity") {
       await page.getByRole("heading", { name: "Home", exact: true }).waitFor({ state: "visible" });
-      const tabs = page.getByRole("tab");
+      const tabs = page.getByRole("tablist", { name: "Home views" }).getByRole("tab");
       assert(await tabs.count() === 3, "Legal-entity Home exposes three intent tabs");
       assert(await page.getByRole("tab", { name: "Oversight" }).getAttribute("aria-selected") === "true", "Oversight is initial entity tab");
       await page.getByRole("tab", { name: "Attention" }).click();
@@ -65,7 +65,7 @@ for (const item of scenarios) {
     } else {
       await page.getByRole("heading", { name: "Group Home" }).waitFor({ state: "visible" });
       await page.getByRole("button", { name: /Outside appetite: 9/ }).waitFor({ state: "visible" });
-      const tabs = page.getByRole("tab");
+      const tabs = page.getByRole("tablist", { name: "Group Home views" }).getByRole("tab");
       assert(await tabs.count() === 3, "Group Home exposes three intent tabs");
       assert(await page.getByRole("tab", { name: "Oversight" }).getAttribute("aria-selected") === "true", "Group Oversight initial tab");
       assert(await page.getByRole("list", { name: "Outside appetite by OpCo" }).isVisible(), "Authorized OpCo risk concentration visible");
@@ -118,6 +118,7 @@ for (const item of scenarios) {
       await page.getByRole("tab", { name: "Oversight" }).click();
       await page.getByRole("button", { name: /Reporting period/ }).click();
       await page.getByRole("button", { name: "90 days" }).click();
+      await page.getByRole("button", { name: /Loss events: 9/ }).waitFor({ state: "visible" });
       assert(await page.getByRole("button", { name: /Loss events: 9/ }).count() === 1, "Loss period change updates Group counts");
     }
   } catch (error) {
