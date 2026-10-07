@@ -9,10 +9,10 @@ import (
 
 func TestSourceDisplayTitleUsesRealFieldsInsteadOfRowReferences(t *testing.T) {
 	cases := []struct {
-		name string
-		group sourceRecordGroup
+		name   string
+		group  sourceRecordGroup
 		record sourceRecord
-		want string
+		want   string
 	}{
 		{
 			name: "branch KRI",
