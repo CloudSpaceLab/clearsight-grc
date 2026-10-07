@@ -39,7 +39,11 @@ export function MatterBoardBriefAction({ matterID }: Props) {
   if (state === "unavailable") {
     return <p className="matter-board-brief-state">Board brief availability could not be checked.</p>;
   }
-  if (!availability?.definition) return null;
+  if (!availability?.definition) {
+    return <p className="matter-board-brief-state">
+      {availability?.reason || "No active board brief setup is available for this issue."} <ActionLink href="#reports">Open Reports</ActionLink>
+    </p>;
+  }
   if (!availability.authority_available) {
     return <p className="matter-board-brief-state">{availability.reason || "Board brief authority could not be checked."}</p>;
   }
