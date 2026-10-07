@@ -281,7 +281,12 @@ func (a *API) rcsaChallengeContext(ctx context.Context, cycle rcsa.Cycle) (*rcsa
 	if err != nil || aggregate.Matter.LegalEntityID != cycle.LegalEntityID || !canReadMatterAggregate(ctx, aggregate) {
 		return nil, false
 	}
-	context := &rcsaChallengeContextRead{
+	context := summarizeRCSAChallengeAggregate(aggregate)
+	return &context, true
+}
+
+func summarizeRCSAChallengeAggregate(aggregate continuity.MatterAggregate) rcsaChallengeContextRead {
+	context := rcsaChallengeContextRead{
 		MatterID:     aggregate.Matter.ID,
 		MatterStatus: string(aggregate.Matter.Status),
 	}
@@ -326,7 +331,7 @@ func (a *API) rcsaChallengeContext(ctx context.Context, cycle rcsa.Cycle) (*rcsa
 			context.InconclusiveVerificationCount++
 		}
 	}
-	return context, true
+	return context
 }
 
 func rcsaCycleHandoff(cycle rcsa.Cycle, firstLineRequestID string) rcsaHandoffRead {
