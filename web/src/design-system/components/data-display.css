@@ -318,3 +318,54 @@ button.cs-ranked-bars__row[data-focus-visible] {
     background: Highlight;
   }
 }
+
+
+.cs-metric-trend {
+  display: grid;
+  gap: var(--cs-primitive-space-2);
+  margin: 0;
+}
+
+.cs-metric-trend__plot {
+  width: 100%;
+  height: 150px;
+  overflow: visible;
+}
+
+.cs-metric-trend__baseline {
+  stroke: var(--cs-border-default);
+  stroke-width: var(--cs-primitive-border-1);
+}
+
+.cs-metric-trend__line {
+  stroke: var(--cs-action-primary);
+  stroke-width: var(--cs-primitive-border-2);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cs-metric-trend__point {
+  fill: var(--cs-bg-surface-1);
+  stroke: var(--cs-action-primary);
+  stroke-width: var(--cs-primitive-border-2);
+}
+
+.cs-metric-trend__range {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--cs-primitive-space-3);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+
+@media (forced-colors: active) {
+  .cs-metric-trend__baseline,
+  .cs-metric-trend__line,
+  .cs-metric-trend__point {
+    stroke: CanvasText;
+  }
+
+  .cs-metric-trend__point {
+    fill: Canvas;
+  }
+}
