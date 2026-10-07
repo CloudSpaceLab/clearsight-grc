@@ -298,19 +298,6 @@ func validObservationMeasure(value Observation, definition Definition) bool {
 	}
 }
 
-func validMetricCurrency(value string) bool {
-	value = strings.TrimSpace(value)
-	if len(value) != 3 {
-		return false
-	}
-	for _, char := range value {
-		if char < 'A' || char > 'Z' {
-			return false
-		}
-	}
-	return true
-}
-
 func storeObservationRows(ctx context.Context, tx pgx.Tx, values []Observation) (bool, error) {
 	if tx == nil || !validObservationSet(values) {
 		return false, ErrInvalidObservation
