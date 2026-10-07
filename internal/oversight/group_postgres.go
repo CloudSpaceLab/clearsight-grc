@@ -300,55 +300,73 @@ func (r *PostgresRepository) storeGroupProjection(ctx context.Context, value Gro
 
 func scanLatestGroupSource(rows pgx.Rows, now time.Time) (GroupChildFact, string, error) {
 	var tenantID, entityID, code, name, jurisdiction string
-	var snapshotID, projectionVersion sql.NullString
-	var generatedAt sql.NullTime
-	var highWater, payload []byte
+	var snapshotID, projectionVersion, domainSourceID, domainDefinitionRevision sql.NullString
+	var generatedAt, domainGeneratedAt sql.NullTime
+	var highWater, payload, domainHighWater []byte
 	var population, excluded, unknown sql.NullInt64
+	var risksOutsideAppetite, indicatorBreaches, assuranceFailures sql.NullInt64
 	if err := rows.Scan(
 		&tenantID, &entityID, &code, &name, &jurisdiction,
 		&snapshotID, &generatedAt, &projectionVersion, &highWater,
 		&population, &excluded, &unknown, &payload,
+		&domainSourceID, &domainGeneratedAt, &domainDefinitionRevision, &domainHighWater,
+		&risksOutsideAppetite, &indicatorBreaches, &assuranceFailures,
 	); err != nil {
 		return GroupChildFact{}, "", err
 	}
 	child := GroupChildFact{
 		LegalEntityID: entityID, LegalEntityCode: code, LegalEntityName: name, Jurisdiction: jurisdiction,
 		State: GroupChildMissing, SourceHighWater: map[string]time.Time{},
+		DomainState: GroupChildMissing, DomainSourceHighWater: map[string]time.Time{},
 	}
-	if !snapshotID.Valid {
-		return child, tenantID, nil
-	}
-	child.ChildSnapshotID = snapshotID.String
-	child.ChildGeneratedAt = &generatedAt.Time
-	child.ChildProjectionVersion = projectionVersion.String
-	child.Coverage.Population = int(population.Int64)
-	if excluded.Valid {
-		child.Coverage.Excluded = intPtr(int(excluded.Int64))
-	}
-	if unknown.Valid {
-		child.Coverage.Unknown = intPtr(int(unknown.Int64))
-	}
-	if len(highWater) > 0 {
-		if err := json.Unmarshal(highWater, &child.SourceHighWater); err != nil {
-			return GroupChildFact{}, "", fmt.Errorf("decode group child high-water marks: %w", err)
+
+	if snapshotID.Valid {
+		child.ChildSnapshotID = snapshotID.String
+		child.ChildGeneratedAt = &generatedAt.Time
+		child.ChildProjectionVersion = projectionVersion.String
+		child.Coverage.Population = int(population.Int64)
+		if excluded.Valid { child.Coverage.Excluded = intPtr(int(excluded.Int64)) }
+		if unknown.Valid { child.Coverage.Unknown = intPtr(int(unknown.Int64)) }
+		if len(highWater) > 0 {
+			if err := json.Unmarshal(highWater, &child.SourceHighWater); err != nil {
+				return GroupChildFact{}, "", fmt.Errorf("decode group child high-water marks: %w", err)
+			}
+		}
+		var metadata struct { Counts Counts `json:"counts"` }
+		if len(payload) > 0 {
+			if err := json.Unmarshal(payload, &metadata); err != nil {
+				return GroupChildFact{}, "", fmt.Errorf("decode group child snapshot: %w", err)
+			}
+		}
+		child.Counts = metadata.Counts
+		child.State = GroupChildAvailable
+		if child.ChildProjectionVersion != ProjectionVersion || now.Sub(generatedAt.Time.UTC()) > groupChildStaleAfter {
+			child.State = GroupChildStale
 		}
 	}
-	var metadata struct {
-		Counts Counts `json:"counts"`
-	}
-	if len(payload) > 0 {
-		if err := json.Unmarshal(payload, &metadata); err != nil {
-			return GroupChildFact{}, "", fmt.Errorf("decode group child snapshot: %w", err)
+
+	if domainSourceID.Valid && domainGeneratedAt.Valid && domainDefinitionRevision.Valid &&
+		risksOutsideAppetite.Valid && indicatorBreaches.Valid && assuranceFailures.Valid {
+		child.DomainSourceID = domainSourceID.String
+		child.DomainGeneratedAt = &domainGeneratedAt.Time
+		child.DomainDefinitionRevision = domainDefinitionRevision.String
+		child.DomainPosture = GroupDomainPosture{
+			RisksOutsideAppetite: int(risksOutsideAppetite.Int64),
+			IndicatorBreaches: int(indicatorBreaches.Int64),
+			AssuranceFailures: int(assuranceFailures.Int64),
 		}
-	}
-	child.Counts = metadata.Counts
-	child.State = GroupChildAvailable
-	if child.ChildProjectionVersion != ProjectionVersion || now.Sub(generatedAt.Time.UTC()) > groupChildStaleAfter {
-		child.State = GroupChildStale
+		if len(domainHighWater) > 0 {
+			if err := json.Unmarshal(domainHighWater, &child.DomainSourceHighWater); err != nil {
+				return GroupChildFact{}, "", fmt.Errorf("decode group child domain high-water marks: %w", err)
+			}
+		}
+		child.DomainState = GroupChildAvailable
+		if child.DomainDefinitionRevision != GroupDomainDefinitionRevision || now.Sub(domainGeneratedAt.Time.UTC()) > groupChildStaleAfter {
+			child.DomainState = GroupChildStale
+		}
 	}
 	return child, tenantID, nil
 }
-
 func scanGroupChild(rows pgx.Rows) (GroupChildFact, error) {
 	var state string
 	var generatedAt sql.NullTime
