@@ -146,7 +146,7 @@ function mixedCurrencyBundle(): LossPeriodBundle {
 it("keeps exact large money values through the Loss movement presentation", () => {
   const bundle = singleCurrencyBundle();
   expect(lossPeriodValue(bundle).replace(/\D/g, "")).toBe("9223372036854775807");
-  expect(lossComparisonLabel(bundle)).toContain("improved");
+  expect(lossComparisonLabel(bundle)).toContain("lower vs prior period");
 
   const points = lossMovementPoints(bundle);
   expect(points[0]?.displayValue?.replace(/\D/g, "")).toBe("900719925474099300");
