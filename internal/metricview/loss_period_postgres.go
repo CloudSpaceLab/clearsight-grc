@@ -627,7 +627,7 @@ func lossTimeMax(left, right time.Time) time.Time {
 func lossFlowPointsMatchAggregate(points []LossFlowPoint, aggregate lossPeriodAggregate) bool {
 	eventCount := 0
 	type totals struct {
-		gross, recovery, reversal int64
+		gross, recovery, reversal                  int64
 		lossEvents, recoveryEvents, reversalEvents int
 	}
 	byCurrency := make(map[string]*totals)
@@ -894,7 +894,7 @@ func lossBreakdownMatchesAggregate(values []LossOrganizationFlow, aggregate loss
 	eventCount := 0
 	contributorCount := 0
 	type totals struct {
-		gross, recovery, reversal                   int64
+		gross, recovery, reversal                  int64
 		lossEvents, recoveryEvents, reversalEvents int
 	}
 	byCurrency := make(map[string]*totals)
