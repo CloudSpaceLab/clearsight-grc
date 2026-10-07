@@ -347,16 +347,16 @@ func rcsaCycleHandoff(cycle rcsa.Cycle, firstLineRequestID string) rcsaHandoffRe
 	case rcsa.StatusDraft:
 		return rcsaHandoffRead{Stage: "SETUP", Label: "First-line assessment not started"}
 	case rcsa.StatusAssessmentOpen:
-		value := rcsaHandoffRead{Stage: "FIRST_LINE", Label: "Complete first-line assessment"}
+		value := rcsaHandoffRead{Stage: "FIRST_LINE", Label: "First-line assessment in progress"}
 		if firstLineRequestID != "" {
 			value.TargetType, value.TargetID = "EVIDENCE_REQUEST", firstLineRequestID
 		}
 		return value
 	case rcsa.StatusAwaitingChallenge:
 		if cycle.ChallengeMatterID == "" {
-			return rcsaHandoffRead{Stage: "CHALLENGE", Label: "Start independent challenge"}
+			return rcsaHandoffRead{Stage: "CHALLENGE", Label: "Independent challenge ready"}
 		}
-		return rcsaHandoffRead{Stage: "CHALLENGE", Label: "Complete independent challenge", TargetType: "MATTER", TargetID: cycle.ChallengeMatterID}
+		return rcsaHandoffRead{Stage: "CHALLENGE", Label: "Independent challenge in progress", TargetType: "MATTER", TargetID: cycle.ChallengeMatterID}
 	case rcsa.StatusCompleted:
 		value := rcsaHandoffRead{Stage: "COMPLETE", Label: "Completed"}
 		if cycle.ChallengeMatterID != "" {
