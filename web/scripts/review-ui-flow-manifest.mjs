@@ -5,6 +5,18 @@ import { assessInteractionBundle, collectInteractionBundleMetrics } from "./ui-b
 import { formsEvidenceScenarios, requiredFormsCapabilities } from "./forms-evidence-scenarios.mjs";
 
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
+const homeT7ScenarioNames = [
+  "group-light-desktop",
+  "group-dark-desktop",
+  "group-dark-mobile",
+  "group-light-320",
+  "group-dark-200pct-proxy",
+  "group-partial-light-desktop",
+  "entity-light-desktop",
+  "entity-dark-320",
+];
+const homeT7ScreenshotNames = homeT7ScenarioNames.map((name) => `home-t7-${name}.png`);
+
 const expectedNames = [
   "01-today-dark-comfortable-1440x900",
   "02-today-light-comfortable-1440x900",
@@ -344,7 +356,7 @@ if (manifest) {
 let evidence = [];
 try {
   const files = (await readdir(outputDir)).filter((name) => name.endsWith(".png")).sort();
-  const expectedFiles = expectedNames.map((name) => `${name}.png`).sort();
+  const expectedFiles = [...expectedNames.map((name) => `${name}.png`), ...homeT7ScreenshotNames].sort();
   const missingFiles = expectedFiles.filter((name) => !files.includes(name));
   const unexpectedFiles = files.filter((name) => !expectedFiles.includes(name));
   if (missingFiles.length) failures.push(`screenshots are missing: ${missingFiles.join(", ")}`);
@@ -359,6 +371,24 @@ try {
   checks.push({ name: "review artifact completeness", status: missingFiles.length || unexpectedFiles.length ? "FAIL" : "PASS", detail: `${files.length}/${expectedFiles.length} screenshots retained` });
 } catch (error) {
   failures.push(`screenshot artifacts could not be read: ${error instanceof Error ? error.message : String(error)}`);
+}
+
+const homeT7 = await safeReadJSON("home-t7.json");
+if (homeT7) {
+  const scenarios = Array.isArray(homeT7.scenarios) ? homeT7.scenarios : [];
+  const seen = new Set(scenarios.map((scenario) => scenario.id));
+  const requiredMissing = homeT7ScenarioNames.filter((name) => !seen.has(name));
+  const failuresByScenario = scenarios.filter((scenario) => scenario.status !== "PASS");
+  if (homeT7.status !== "PASS") failures.push("Home T7 browser receipt failed");
+  if (requiredMissing.length || scenarios.length !== homeT7ScenarioNames.length) {
+    failures.push(`Home T7 scenarios missing or duplicated: ${requiredMissing.join(", ") || "count mismatch"}`);
+  }
+  for (const scenario of failuresByScenario) failures.push(`Home T7 ${scenario.id}: ${scenario.failures?.join("; ") || "failed"}`);
+  checks.push({
+    name: "Home T7 rendered acceptance",
+    status: homeT7.status === "PASS" && requiredMissing.length === 0 && failuresByScenario.length === 0 && scenarios.length === homeT7ScenarioNames.length ? "PASS" : "FAIL",
+    detail: `${scenarios.length} Group/entity browser scenarios; CSS zoom proxy only`,
+  });
 }
 
 const accessibility = await safeReadJSON("accessibility.json");
