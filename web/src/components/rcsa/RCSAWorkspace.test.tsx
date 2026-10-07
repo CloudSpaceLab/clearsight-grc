@@ -36,7 +36,7 @@ beforeEach(() => {
       risk_count: 2,
       control_count: 3,
       first_line_owner_display_name: "Technology Risk Owner",
-      handoff: { stage: "CHALLENGE", label: "Complete independent challenge", target_type: "MATTER", target_id: "matter-1" },
+      handoff: { stage: "CHALLENGE", label: "Independent challenge in progress", target_type: "MATTER", target_id: "matter-1" },
     }],
   });
   vi.mocked(getRCSACycle).mockResolvedValue({
@@ -46,7 +46,7 @@ beforeEach(() => {
     assessment_period_start: "2026-07-01T00:00:00Z",
     assessment_period_end: "2026-09-30T23:59:59Z",
     first_line_request_id: "request-1",
-    handoff: { stage: "CHALLENGE", label: "Complete independent challenge", target_type: "MATTER", target_id: "matter-1" },
+    handoff: { stage: "CHALLENGE", label: "Independent challenge in progress", target_type: "MATTER", target_id: "matter-1" },
     phase: { stage: "INDEPENDENT_CHALLENGE", label: "Independent challenge", detail: "Independent review of the first-line assessment is in progress." },
     risks: [
       { cycle_id: cycle.id, risk_id: "risk-1", risk_version: 3, code: "TECH-01", name: "Service interruption", category: "Technology" },
@@ -113,7 +113,7 @@ it("opens the first-line evidence request with the originating cycle", async () 
     complete: true,
     first_line_owner_display_name: "Technology Risk Owner",
     first_line_request_id: "request-1",
-    handoff: { stage: "FIRST_LINE", label: "Complete first-line assessment", target_type: "EVIDENCE_REQUEST", target_id: "request-1" },
+    handoff: { stage: "FIRST_LINE", label: "First-line assessment in progress", target_type: "EVIDENCE_REQUEST", target_id: "request-1" },
     phase: { stage: "COLLECTION", label: "First-line collection", detail: "First-line assessment is in progress." },
     risks: [],
     controls: [],
