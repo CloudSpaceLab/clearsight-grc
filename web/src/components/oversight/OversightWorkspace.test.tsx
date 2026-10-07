@@ -154,7 +154,7 @@ it("keeps oversight analysis separate from attention and assigned work", async (
   expect(screen.getByRole("button", { name: /Outside appetite: 9/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Indicator breaches: 4/ })).toBeTruthy();
   expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Open Technology" })).toBeTruthy();
+  expect(screen.getByText("Technology")).toBeTruthy();
   expect(screen.getByText("Unattributed")).toBeTruthy();
   expect(screen.queryByText("Critical and high")).toBeNull();
   expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
