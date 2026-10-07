@@ -333,7 +333,7 @@ button.cs-ranked-bars__row[data-focus-visible] {
 }
 
 .cs-metric-trend__baseline {
-  stroke: var(--cs-border-subtle);
+  stroke: var(--cs-border-default);
   stroke-width: var(--cs-primitive-border-1);
 }
 
@@ -345,7 +345,7 @@ button.cs-ranked-bars__row[data-focus-visible] {
 }
 
 .cs-metric-trend__point {
-  fill: var(--cs-surface-primary);
+  fill: var(--cs-bg-surface-1);
   stroke: var(--cs-action-primary);
   stroke-width: var(--cs-primitive-border-2);
 }
