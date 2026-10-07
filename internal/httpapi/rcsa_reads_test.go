@@ -143,9 +143,9 @@ func TestRCSAHandoffUsesExistingEvidenceAndMatterTargets(t *testing.T) {
 		targetID   string
 	}{
 		{name: "draft", cycle: rcsa.Cycle{Status: rcsa.StatusDraft}, stage: "SETUP", label: "First-line assessment not started"},
-		{name: "first line", cycle: rcsa.Cycle{Status: rcsa.StatusAssessmentOpen}, requestID: "request-1", stage: "FIRST_LINE", label: "Complete first-line assessment", targetType: "EVIDENCE_REQUEST", targetID: "request-1"},
-		{name: "challenge ready", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge}, stage: "CHALLENGE", label: "Start independent challenge"},
-		{name: "challenge work", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge, ChallengeMatterID: "matter-1"}, stage: "CHALLENGE", label: "Complete independent challenge", targetType: "MATTER", targetID: "matter-1"},
+		{name: "first line", cycle: rcsa.Cycle{Status: rcsa.StatusAssessmentOpen}, requestID: "request-1", stage: "FIRST_LINE", label: "First-line assessment in progress", targetType: "EVIDENCE_REQUEST", targetID: "request-1"},
+		{name: "challenge ready", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge}, stage: "CHALLENGE", label: "Independent challenge ready"},
+		{name: "challenge work", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge, ChallengeMatterID: "matter-1"}, stage: "CHALLENGE", label: "Independent challenge in progress", targetType: "MATTER", targetID: "matter-1"},
 		{name: "complete", cycle: rcsa.Cycle{Status: rcsa.StatusCompleted, ChallengeMatterID: "matter-1"}, stage: "COMPLETE", label: "Completed", targetType: "MATTER", targetID: "matter-1"},
 	}
 	for _, test := range cases {
@@ -165,7 +165,7 @@ func TestRCSASummaryHandoffNeverExposesChallengeMatterID(t *testing.T) {
 	if got.TargetType != "" || got.TargetID != "" {
 		t.Fatalf("summary handoff leaked challenge target: %#v", got)
 	}
-	if got.Label != "Complete independent challenge" {
+	if got.Label != "Independent challenge in progress" {
 		t.Fatalf("summary handoff label=%q", got.Label)
 	}
 }
@@ -182,7 +182,7 @@ func TestRCSADetailHandoffRequiresExactChallengeContext(t *testing.T) {
 
 	allowed := rcsaCycleDetailHandoff(cycle, "", true)
 	if allowed.TargetType != "MATTER" || allowed.TargetID != "matter-1" ||
-		allowed.Label != "Complete independent challenge" {
+		allowed.Label != "Independent challenge in progress" {
 		t.Fatalf("allowed detail handoff=%#v", allowed)
 	}
 
