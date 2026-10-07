@@ -162,4 +162,3 @@ func TestDomainMetricOrganizationTrendBindsAuthorizedScopeAndPeriod(t *testing.T
 		t.Fatalf("series=%#v", series)
 	}
 }
-
