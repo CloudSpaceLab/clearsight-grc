@@ -629,8 +629,8 @@ func retainLossPeriodSnapshot(
 			source_revision,request_fingerprint,generated_at,period_start,period_end,expires_at
 		)
 		VALUES(
-			$1::uuid,$2::uuid,NULLIF($3,'')::uuid,$4,$5,$6,$7,$8,$9,
-			$7+interval '24 hours'
+			$1::uuid,$2::uuid,NULLIF($3,'')::uuid,$4,$5,$6,$7::timestamptz,$8::timestamptz,$9::timestamptz,
+			$7::timestamptz+interval '24 hours'
 		)
 		ON CONFLICT DO NOTHING
 		RETURNING source_id::text,generated_at`,
@@ -658,7 +658,7 @@ func retainLossPeriodSnapshot(
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE metric_runtime_membership_sets
-			SET expires_at=GREATEST(expires_at,$2+interval '24 hours')
+			SET expires_at=GREATEST(expires_at,$2::timestamptz+interval '24 hours')
 			WHERE source_id=$1::uuid`, sourceID, generatedAt); err != nil {
 			return "", time.Time{}, fmt.Errorf("extend Loss period snapshot: %w", err)
 		}
