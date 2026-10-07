@@ -9,7 +9,30 @@ import (
 	"unicode"
 )
 
-var sourcePlaceholderTitle = regexp.MustCompile(`(?i)^(?:(?:sheet[0-9]*|item|source|entry)[[:space:][:punct:]]+)?(?:row|record|line)[[:space:][:punct:]]*[0-9]+$`)
+var sourcePlaceholderTitle = regexp.MustCompile(`(?i)^(?:.*[[:space:]])?(?:row|record|line)[[:space:]#:-]*[0-9]+//go:build postgres
+
+package main
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+	"unicode"
+)
+
+)
+var sourceTitleRowPrefix = regexp.MustCompile(`(?i)^(?:.*[[:space:]])?(?:row|record|line)[[:space:]#:-]*[0-9]+[[:space:]]*[:–—-][[:space:]]*(.+)//go:build postgres
+
+package main
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+	"unicode"
+)
+
+)
 
 // Header matching is semantic only. Preserve the original label, cell and
 // value in immutable source_fields; never normalize or mutate those facts.
@@ -22,7 +45,9 @@ func sourceHeaderKey(value string) string {
 			return r
 		}
 	}, value)
-	return strings.ToLower(strings.Join(strings.Fields(value), " "))
+	normalized := strings.ToLower(strings.Join(strings.Fields(value), " "))
+	normalized = strings.NewReplacer(" / ", "/", "/ ", "/", " /", "/", " : ", ":", " & ", "&").Replace(normalized)
+	return normalized
 }
 
 func sourceLookupField(record sourceRecord, label string) (string, bool) {
@@ -49,6 +74,9 @@ func sourceLookupField(record sourceRecord, label string) (string, bool) {
 
 func sourceRecordDisplayTitle(group sourceRecordGroup, record sourceRecord) string {
 	existing := strings.TrimSpace(record.Title)
+	if parts := sourceTitleRowPrefix.FindStringSubmatch(existing); len(parts) == 2 && sourceDescriptiveValue(parts[1]) {
+		return sourceShort(strings.TrimSpace(parts[1]), 200)
+	}
 	if existing != "" && !sourcePlaceholderTitle.MatchString(existing) {
 		return sourceShort(existing, 200)
 	}
