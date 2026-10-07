@@ -30,16 +30,16 @@ type IndicatorSourceAcceptanceInput struct {
 }
 
 type PersistedIndicatorAcceptance struct {
-	Proved                  bool      `json:"proved"`
-	CheckIdentitySHA256     string    `json:"check_identity_sha256,omitempty"`
-	CheckVersion            int64     `json:"check_version,omitempty"`
-	ResultIdentitySHA256    string    `json:"result_identity_sha256,omitempty"`
-	ResultEvaluatedAt       time.Time `json:"result_evaluated_at,omitempty"`
-	SourceReceiptSHA256     string    `json:"source_receipt_sha256,omitempty"`
-	NativeMeasurement       bool      `json:"native_measurement"`
-	BindingRevisionMatched  bool      `json:"binding_revision_matched"`
-	ViewRevisionMatched     bool      `json:"view_revision_matched"`
-	SchemaFingerprintMatched bool     `json:"schema_fingerprint_matched"`
+	Proved                   bool      `json:"proved"`
+	CheckIdentitySHA256      string    `json:"check_identity_sha256,omitempty"`
+	CheckVersion             int64     `json:"check_version,omitempty"`
+	ResultIdentitySHA256     string    `json:"result_identity_sha256,omitempty"`
+	ResultEvaluatedAt        time.Time `json:"result_evaluated_at,omitempty"`
+	SourceReceiptSHA256      string    `json:"source_receipt_sha256,omitempty"`
+	NativeMeasurement        bool      `json:"native_measurement"`
+	BindingRevisionMatched   bool      `json:"binding_revision_matched"`
+	ViewRevisionMatched      bool      `json:"view_revision_matched"`
+	SchemaFingerprintMatched bool      `json:"schema_fingerprint_matched"`
 }
 
 type IndicatorSourceAcceptanceReceipt struct {
