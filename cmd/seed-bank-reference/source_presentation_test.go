@@ -54,6 +54,14 @@ func TestSourceDisplayTitleUsesRealFieldsInsteadOfRowReferences(t *testing.T) {
 			}}, want: "Review access provisioning",
 		},
 		{
+			name: "operational loss",
+			group: sourceRecordGroup{Title: "Operational loss register", SourceFile: "LOSS DATA BASE.xlsx"},
+			record: sourceRecord{Title: "Row 17", Fields: []sourceRecordField{
+				{Label: "Branch", Value: "Sample Branch"},
+				{Label: "TRAN_PARTICULAR", Value: "Duplicate settlement posting"},
+			}}, want: "Duplicate settlement posting",
+		},
+		{
 			name: "source-defined title preserved",
 			group: sourceRecordGroup{Title: "Branch KRI"},
 			record: sourceRecord{Title: "Quarterly branch liquidity review", Fields: []sourceRecordField{
