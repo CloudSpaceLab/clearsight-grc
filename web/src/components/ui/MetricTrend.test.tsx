@@ -18,3 +18,22 @@ it("preserves missing-day gaps instead of drawing through them", () => {
   expect(container.querySelector("table")?.textContent).toContain("Oct 1");
   expect(container.querySelector("table")?.textContent).toContain("2");
 });
+
+it("centers flat and single-point series inside the plot", () => {
+  const { container, rerender } = render(<MetricTrend
+    ariaLabel="Flat risk movement"
+    points={[
+      { id: "1", at: "2026-10-01T12:00:00Z", label: "Oct 1", value: 4 },
+      { id: "2", at: "2026-10-02T12:00:00Z", label: "Oct 2", value: 4 },
+    ]}
+  />);
+  const flat = [...container.querySelectorAll(".cs-metric-trend__point")];
+  expect(flat.map((point) => point.getAttribute("cy"))).toEqual(["90", "90"]);
+
+  rerender(<MetricTrend
+    ariaLabel="Single risk movement"
+    points={[{ id: "only", at: "2026-10-01T12:00:00Z", label: "Now", value: 4 }]}
+  />);
+  expect(container.querySelector(".cs-metric-trend__point")?.getAttribute("cx")).toBe("500");
+  expect(container.querySelector(".cs-metric-trend__point")?.getAttribute("cy")).toBe("90");
+});
