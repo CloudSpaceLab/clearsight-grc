@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { DomainPostureSummary } from "./DomainPostureSummary";
-import type { DomainMetricBundle } from "../../metricApi";
+import type { DomainMetricBundle, LossPeriodBundle } from "../../metricApi";
 
 function bundle(): DomainMetricBundle {
   const metric = (id: string, label: string, value: number, workspace: string) => ({
@@ -94,3 +94,106 @@ it("fails closed when exact membership does not match the card value", async () 
   fireEvent.click(screen.getByRole("button", { name: /Outside appetite: 1/ }));
   expect(await screen.findByText(/Exact snapshot detail is unavailable/)).toBeTruthy();
 });
+
+function mixedLossBundle(): LossPeriodBundle {
+  return {
+    generated_at: "2026-10-06T18:00:00Z",
+    period_start: "2026-09-07T00:00:00Z",
+    period_end: "2026-10-06T18:00:00Z",
+    scope_id: "scope-risk",
+    scope_kind: "ORGANIZATION_SCOPE",
+    source_id: "8f720000-0000-4000-8000-000000000101",
+    source_revision: "operational-loss-ledger-v1",
+    definition_revision: "operational-loss-period-v1",
+    event_count: 0,
+    contributing_loss_count: 2,
+    unattributed_event_count: 0,
+    mixed_currencies: true,
+    currencies: [
+      {
+        currency: "NGN",
+        gross: { minor_units: "0", currency: "NGN" },
+        recovery: { minor_units: "10000", currency: "NGN" },
+        reversal: { minor_units: "0", currency: "NGN" },
+        net: { minor_units: "-10000", currency: "NGN" },
+        loss_event_count: 0,
+        recovery_event_count: 1,
+        reversal_event_count: 0,
+      },
+      {
+        currency: "USD",
+        gross: { minor_units: "0", currency: "USD" },
+        recovery: { minor_units: "500", currency: "USD" },
+        reversal: { minor_units: "0", currency: "USD" },
+        net: { minor_units: "-500", currency: "USD" },
+        loss_event_count: 0,
+        recovery_event_count: 1,
+        reversal_event_count: 0,
+      },
+    ],
+    organization_breakdown: [],
+    flow_resolution: "DAY",
+    flow_points: [],
+    comparison: {
+      period_start: "2026-08-08T00:00:00Z",
+      period_end: "2026-09-06T23:59:59Z",
+      event_count: 0,
+      contributing_loss_count: 0,
+      mixed_currencies: false,
+      currencies: [],
+      event_delta: 0,
+      direction: "UNKNOWN",
+      comparison_quality: "LIMITED",
+    },
+  };
+}
+
+it("keeps mixed-currency recovery contributors drillable even with zero new events", async () => {
+  const loadLossMembers = vi.fn().mockResolvedValue({
+    source_id: "8f720000-0000-4000-8000-000000000101",
+    metric_id: "operational_loss_net",
+    definition_revision: "operational-loss-period-v1",
+    count: 2,
+    items: [
+      {
+        member_id: "8f720000-0000-4000-8000-000000000110",
+        target_type: "LOSS",
+        target_id: "8f720000-0000-4000-8000-000000000120",
+        target_title: "Recovery-only NGN Loss",
+        state: "RECOVERY",
+        accessible: true,
+      },
+      {
+        member_id: "8f720000-0000-4000-8000-000000000111",
+        target_type: "LOSS",
+        target_id: "8f720000-0000-4000-8000-000000000121",
+        target_title: "Recovery-only USD Loss",
+        state: "RECOVERY",
+        accessible: true,
+      },
+    ],
+  });
+
+  render(<DomainPostureSummary
+    bundle={bundle()}
+    state="live"
+    lossBundle={mixedLossBundle()}
+    lossState="live"
+    organizationScopeID="scope-risk"
+    loadLossMembers={loadLossMembers}
+  />);
+
+  fireEvent.click(screen.getByRole("button", { name: /Net operational loss: 0 events/ }));
+
+  await waitFor(() => expect(loadLossMembers).toHaveBeenCalledWith(
+    "operational_loss_net",
+    "8f720000-0000-4000-8000-000000000101",
+    "operational-loss-period-v1",
+    "scope-risk",
+    undefined,
+    50,
+    expect.any(AbortSignal),
+  ));
+  expect(await screen.findByText("2 exact records in this metric snapshot.")).toBeTruthy();
+});
+
