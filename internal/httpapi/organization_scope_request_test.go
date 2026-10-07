@@ -55,7 +55,7 @@ func TestResolveOrganizationScopeSelectionMapsExactResolverDenials(t *testing.T)
 		want error
 	}{
 		{name: "not found", err: runtimecontext.ErrNotFound, want: errOrganizationScopeForbidden},
-		{name: "invalid", err: runtimecontext.ErrInvalid, want: errOrganizationScopeForbidden},
+		{name: "invalid", err: runtimecontext.ErrInvalid, want: errOrganizationScopeUnavailable},
 		{name: "backend", err: errors.New("database unavailable"), want: errOrganizationScopeUnavailable},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
