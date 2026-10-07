@@ -199,7 +199,7 @@ function readInsightsPeriod(query: URLSearchParams): ReportingPeriodQuery | unde
 
 function validInsightsPeriod(period: ReportingPeriodQuery): boolean {
   const parse = (value: string) => {
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return NaN;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return NaN;
     const timestamp = Date.parse(`${value}T00:00:00Z`);
     return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value ? timestamp : NaN;
   };
