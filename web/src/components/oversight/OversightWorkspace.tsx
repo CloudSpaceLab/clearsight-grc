@@ -43,6 +43,7 @@ type OversightWorkspaceProps = {
   homeTab?: HomeTab;
   onHomeTabChange?: (tab: HomeTab) => void;
   onOpenWork?: () => void;
+  onOpenInsights?: (period: ReportingPeriodQuery) => void;
 };
 
 export function OversightWorkspace({
@@ -69,6 +70,7 @@ export function OversightWorkspace({
   homeTab,
   onHomeTabChange,
   onOpenWork,
+  onOpenInsights,
 }: OversightWorkspaceProps) {
   const [snapshot, setSnapshot] = useState<OversightSnapshot | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
@@ -308,14 +310,25 @@ export function OversightWorkspace({
         <h1>Home</h1>
         <p>{homeTabDescription(selectedHomeTab, organizationScopeName)}</p>
       </div>
-      {selectedHomeTab !== "my-work" && periodSource && <OversightPeriodPicker
-        period={periodSource.reporting_period}
-        freshness={periodSource.freshness}
-        generatedAt={periodSource.generated_at}
-        isChanging={periodState === "changing"}
-        error={periodError}
-        onApply={(period) => void changePeriod(period)}
-      />}
+      {selectedHomeTab !== "my-work" && periodSource && <div className="oversight-header__actions">
+        {selectedHomeTab === "oversight" && onOpenInsights && <Button
+          variant="secondary"
+          size="compact"
+          isDisabled={periodState === "changing" || state !== "live"}
+          onPress={() => onOpenInsights({
+            start_date: periodSource.reporting_period.start_date,
+            end_date: periodSource.reporting_period.end_date,
+          })}
+        >Open in Insights</Button>}
+        <OversightPeriodPicker
+          period={periodSource.reporting_period}
+          freshness={periodSource.freshness}
+          generatedAt={periodSource.generated_at}
+          isChanging={periodState === "changing"}
+          error={periodError}
+          onApply={(period) => void changePeriod(period)}
+        />
+      </div>}
     </header>
 
     {selectedHomeTab !== "my-work" && snapshot && <>
