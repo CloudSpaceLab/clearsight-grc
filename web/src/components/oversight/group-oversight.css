@@ -17,6 +17,12 @@
     color: var(--cs-text-muted);
   }
 
+  .group-home-panel {
+    display: grid;
+    min-inline-size: 0;
+    gap: var(--cs-space-section);
+  }
+
   .group-opcos {
     display: grid;
     min-inline-size: 0;
