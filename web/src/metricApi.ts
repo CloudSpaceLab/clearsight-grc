@@ -57,7 +57,7 @@ export function loadHomeMetrics(period?: ReportingPeriodQuery, organizationScope
 
 export type HomeMetricMember = {
   member_id: string;
-  target_type: "MATTER" | "PROGRAM";
+  target_type: "MATTER" | "PROGRAM" | "RISK" | "LOSS";
   target_id?: string;
   target_title: string;
   state: string;
@@ -92,6 +92,89 @@ export function loadHomeMetricMembers(
   return requestJSON<HomeMetricMemberPage>(
     apiBase,
     `/api/v1/metrics/home/${encodeURIComponent(metricID)}/members?${query.toString()}`,
+    signal ? { signal } : undefined,
+  );
+}
+
+
+export type DomainMetricBundle = {
+  generated_at: string;
+  posture_as_of: string;
+  scope_id: string;
+  scope_kind: "LEGAL_ENTITY" | "ORGANIZATION_SCOPE";
+  source_id: string;
+  source_revision: string;
+  definition_revision: string;
+  items: HomeMetric[];
+};
+
+export function loadDomainMetrics(organizationScopeID?: string, signal?: AbortSignal): Promise<DomainMetricBundle> {
+  const query = new URLSearchParams();
+  if (organizationScopeID) query.set("organization_scope_id", organizationScopeID);
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return requestJSON<DomainMetricBundle>(
+    apiBase,
+    `/api/v1/metrics/domain${suffix}`,
+    signal ? { signal } : undefined,
+  );
+}
+
+export function loadDomainMetricMembers(
+  metricID: string,
+  sourceID: string,
+  definitionRevision: string,
+  organizationScopeID?: string,
+  cursor?: string,
+  limit = 50,
+  signal?: AbortSignal,
+): Promise<HomeMetricMemberPage> {
+  const query = new URLSearchParams({
+    source_id: sourceID,
+    definition_revision: definitionRevision,
+    limit: String(limit),
+  });
+  if (organizationScopeID) query.set("organization_scope_id", organizationScopeID);
+  if (cursor) query.set("cursor", cursor);
+  return requestJSON<HomeMetricMemberPage>(
+    apiBase,
+    `/api/v1/metrics/domain/${encodeURIComponent(metricID)}/members?${query.toString()}`,
+    signal ? { signal } : undefined,
+  );
+}
+
+
+export type OrganizationMetricBucket = {
+  key: string;
+  scope_id?: string;
+  label: string;
+  kind: "ORGANIZATION_SCOPE" | "DIRECT" | "UNATTRIBUTED" | "UNAVAILABLE";
+  value: number;
+};
+
+export type OrganizationMetricBreakdown = {
+  source_id: string;
+  metric_id: string;
+  definition_revision: string;
+  count: number;
+  scope_id?: string;
+  items: OrganizationMetricBucket[];
+};
+
+export function loadDomainMetricOrganizationBreakdown(
+  metricID: string,
+  sourceID: string,
+  definitionRevision: string,
+  organizationScopeID?: string,
+  signal?: AbortSignal,
+): Promise<OrganizationMetricBreakdown> {
+  const query = new URLSearchParams({
+    source_id: sourceID,
+    definition_revision: definitionRevision,
+  });
+  if (organizationScopeID) query.set("organization_scope_id", organizationScopeID);
+  return requestJSON<OrganizationMetricBreakdown>(
+    apiBase,
+    `/api/v1/metrics/domain/${encodeURIComponent(metricID)}/organization-breakdown?${query.toString()}`,
     signal ? { signal } : undefined,
   );
 }
