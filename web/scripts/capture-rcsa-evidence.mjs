@@ -42,13 +42,24 @@ try {
       await page.getByRole("table", { name: "RCSA cycles" }).waitFor({ state: "visible" });
       await page.getByText("Q3 Technology RCSA", { exact: true }).waitFor({ state: "visible" });
       await page.getByText("3 Risks", { exact: true }).waitFor({ state: "visible" });
-      await page.getByText("Complete independent challenge", { exact: true }).waitFor({ state: "visible" });
+      await page.getByText("Completed", { exact: true }).waitFor({ state: "visible" });
     } else {
       await page.getByRole("heading", { name: "Q3 Technology RCSA" }).waitFor({ state: "visible" });
       await page.getByText("1 Jul 2026 – 30 Sep 2026", { exact: true }).waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Open challenge work" }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Cycle progress" }).waitFor({ state: "visible" });
+      await page.getByText("Deficiency confirmed", { exact: true }).waitFor({ state: "visible" });
+      await page.getByText("Remediation in progress", { exact: true }).waitFor({ state: "visible" });
       await page.getByRole("table", { name: "RCSA frozen Risks" }).waitFor({ state: "visible" });
       if (!page.url().includes("#rcsa/cycle-rcsa-1")) throw new Error("Exact RCSA cycle route was not retained.");
+      if (capture.state === "rcsa-detail") {
+        await page.getByRole("button", { name: "Open challenge work" }).click();
+        await page.waitForURL(/#work\/matters\/matter-gaid-change/);
+        await page.goBack({ waitUntil: "networkidle" });
+        await page.waitForURL(/#rcsa\/cycle-rcsa-1/);
+        await page.getByRole("heading", { name: "Q3 Technology RCSA" }).waitFor({ state: "visible" });
+        await page.getByText("Remediation in progress", { exact: true }).waitFor({ state: "visible" });
+      }
     }
 
     if (errors.length) throw new Error(`${capture.name} emitted browser errors: ${errors.join("; ")}`);
