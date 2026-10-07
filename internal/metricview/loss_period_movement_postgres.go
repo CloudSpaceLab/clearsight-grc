@@ -31,7 +31,7 @@ func lossCurrencyFlows(values []lossCurrencyAggregate) ([]LossCurrencyFlow, *Mon
 		}
 		result = append(result, LossCurrencyFlow{
 			Currency: value.Currency, Gross: gross, Recovery: recovery, Reversal: reversal, Net: net,
-			LossEventCount: value.LossEventCount,
+			LossEventCount:     value.LossEventCount,
 			RecoveryEventCount: value.RecoveryEventCount,
 			ReversalEventCount: value.ReversalEventCount,
 		})
@@ -254,7 +254,7 @@ func loadLossFlowPoints(
 		point.LossEventCount += lossEvents
 		point.Currencies = append(point.Currencies, LossCurrencyFlow{
 			Currency: currency, Gross: gross, Recovery: recovery, Reversal: reversal, Net: net,
-			LossEventCount: lossEvents,
+			LossEventCount:     lossEvents,
 			RecoveryEventCount: recoveryEvents,
 			ReversalEventCount: reversalEvents,
 		})
