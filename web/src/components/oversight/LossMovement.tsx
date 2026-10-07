@@ -25,8 +25,7 @@ export function LossMovement({ bundle, state }: Props) {
   return <section className="loss-movement" aria-labelledby="loss-movement-heading">
     <div className="section-header">
       <div>
-        <span className="eyebrow">What changed</span>
-        <h2 id="loss-movement-heading">Loss movement</h2>
+        <h2 id="loss-movement-heading">Loss trend</h2>
         <p>{mode === "money" ? "Net Loss flow across the selected period." : "Loss events across the selected period."}</p>
       </div>
     </div>
