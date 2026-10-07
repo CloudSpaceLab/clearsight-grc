@@ -88,10 +88,10 @@ func TestFinalizeOrganizationMetricDayRetainsDirectAttributionAndLineage(t *test
 	candidate := organizationDailySourceCandidate{
 		TenantID: tenantID, LegalEntityID: entityID,
 		DefinitionRevision: DomainDefinitionRevision,
-		BucketDate: bucketDate,
-		SourceID: sourceID, SourceRevision: DomainSourceRevision,
+		BucketDate:         bucketDate,
+		SourceID:           sourceID, SourceRevision: DomainSourceRevision,
 		SourceGeneratedAt: sourceAt,
-		SourceHighWater: []byte(`{}`),
+		SourceHighWater:   []byte(`{}`),
 	}
 	inserted, err := finalizeOrganizationMetricDay(ctx, tx, candidate)
 	if err != nil {
