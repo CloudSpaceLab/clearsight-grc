@@ -19,7 +19,7 @@ export function SentFormsView() {
   const [listState, setListState] = useState<ListState>("loading");
   const [items, setItems] = useState<Distribution[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
-  const [selectedID, setSelectedID] = useState<string>(() => readDistributionTarget());
+  const [selectedID, setSelectedID] = useState<string | undefined>(() => readDistributionTarget());
   const [detailState, setDetailState] = useState<DetailState>("idle");
   const [detail, setDetail] = useState<DistributionDetail>();
   const [composerOpen, setComposerOpen] = useState(false);
