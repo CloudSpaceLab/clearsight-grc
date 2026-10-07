@@ -765,9 +765,9 @@ func loadLossOrganizationBreakdown(
 			  AND recovery.recovered_at<=$4
 		), currency_totals AS (
 			SELECT bucket_key,
-			       max(bucket_scope_id) AS bucket_scope_id,
-			       max(bucket_label) AS bucket_label,
-			       max(bucket_kind) AS bucket_kind,
+			       bucket_scope_id,
+			       bucket_label,
+			       bucket_kind,
 			       currency,
 			       sum(gross_minor)::bigint AS gross_minor,
 			       sum(recovery_minor)::bigint AS recovery_minor,
@@ -776,7 +776,7 @@ func loadLossOrganizationBreakdown(
 			       sum(recovery_event_count)::bigint AS recovery_event_count,
 			       sum(reversal_event_count)::bigint AS reversal_event_count
 			FROM flows
-			GROUP BY bucket_key,currency
+			GROUP BY bucket_key,bucket_scope_id,bucket_label,bucket_kind,currency
 		), contributors AS (
 			SELECT bucket_key,count(DISTINCT loss_id)::bigint AS contributor_count
 			FROM flows
