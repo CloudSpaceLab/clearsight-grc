@@ -3,7 +3,7 @@ package oversight
 import "time"
 
 const (
-	GroupProjectionVersion       = "group-oversight-v2"
+	GroupProjectionVersion        = "group-oversight-v2"
 	GroupDomainDefinitionRevision = "enterprise-domain-v1"
 )
 
@@ -22,23 +22,23 @@ type GroupDomainPosture struct {
 }
 
 type GroupChildFact struct {
-	LegalEntityID          string
-	LegalEntityCode        string
-	LegalEntityName        string
-	Jurisdiction           string
-	State                  GroupChildState
-	ChildSnapshotID        string
-	ChildGeneratedAt       *time.Time
-	ChildProjectionVersion string
-	Coverage               Coverage
-	Counts                 Counts
-	SourceHighWater        map[string]time.Time
-	DomainState            GroupChildState
-	DomainSourceID         string
-	DomainGeneratedAt      *time.Time
+	LegalEntityID            string
+	LegalEntityCode          string
+	LegalEntityName          string
+	Jurisdiction             string
+	State                    GroupChildState
+	ChildSnapshotID          string
+	ChildGeneratedAt         *time.Time
+	ChildProjectionVersion   string
+	Coverage                 Coverage
+	Counts                   Counts
+	SourceHighWater          map[string]time.Time
+	DomainState              GroupChildState
+	DomainSourceID           string
+	DomainGeneratedAt        *time.Time
 	DomainDefinitionRevision string
-	DomainPosture          GroupDomainPosture
-	DomainSourceHighWater  map[string]time.Time
+	DomainPosture            GroupDomainPosture
+	DomainSourceHighWater    map[string]time.Time
 }
 
 type GroupProjection struct {
@@ -63,23 +63,23 @@ type GroupCoverage struct {
 }
 
 type GroupChildSummary struct {
-	LegalEntityID          string               `json:"legal_entity_id"`
-	LegalEntityCode        string               `json:"legal_entity_code"`
-	LegalEntityName        string               `json:"legal_entity_name"`
-	Jurisdiction           string               `json:"jurisdiction,omitempty"`
-	State                  GroupChildState      `json:"state"`
-	ChildSnapshotID        string               `json:"child_snapshot_id,omitempty"`
-	ChildGeneratedAt       *time.Time           `json:"child_generated_at,omitempty"`
-	ChildProjectionVersion string               `json:"child_projection_version,omitempty"`
-	Coverage               Coverage             `json:"coverage"`
-	Counts                 Counts               `json:"counts"`
-	SourceHighWater        map[string]time.Time `json:"source_high_water,omitempty"`
-	DomainState            GroupChildState      `json:"domain_state"`
-	DomainSourceID         string               `json:"domain_source_id,omitempty"`
-	DomainGeneratedAt      *time.Time           `json:"domain_generated_at,omitempty"`
-	DomainDefinitionRevision string             `json:"domain_definition_revision,omitempty"`
-	DomainPosture          GroupDomainPosture   `json:"domain_posture"`
-	DomainSourceHighWater  map[string]time.Time `json:"domain_source_high_water,omitempty"`
+	LegalEntityID            string               `json:"legal_entity_id"`
+	LegalEntityCode          string               `json:"legal_entity_code"`
+	LegalEntityName          string               `json:"legal_entity_name"`
+	Jurisdiction             string               `json:"jurisdiction,omitempty"`
+	State                    GroupChildState      `json:"state"`
+	ChildSnapshotID          string               `json:"child_snapshot_id,omitempty"`
+	ChildGeneratedAt         *time.Time           `json:"child_generated_at,omitempty"`
+	ChildProjectionVersion   string               `json:"child_projection_version,omitempty"`
+	Coverage                 Coverage             `json:"coverage"`
+	Counts                   Counts               `json:"counts"`
+	SourceHighWater          map[string]time.Time `json:"source_high_water,omitempty"`
+	DomainState              GroupChildState      `json:"domain_state"`
+	DomainSourceID           string               `json:"domain_source_id,omitempty"`
+	DomainGeneratedAt        *time.Time           `json:"domain_generated_at,omitempty"`
+	DomainDefinitionRevision string               `json:"domain_definition_revision,omitempty"`
+	DomainPosture            GroupDomainPosture   `json:"domain_posture"`
+	DomainSourceHighWater    map[string]time.Time `json:"domain_source_high_water,omitempty"`
 }
 
 type GroupSnapshot struct {
