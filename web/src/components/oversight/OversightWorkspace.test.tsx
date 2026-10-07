@@ -19,6 +19,7 @@ beforeEach(() => {
   metricApi.loadHomeMetricMembers.mockRejectedValue(new Error("Exact membership not configured"));
   metricApi.loadDomainMetricMembers.mockReset();
   metricApi.loadDomainMetricMembers.mockRejectedValue(new Error("Exact domain membership not configured"));
+  metricApi.loadDomainMetrics.mockReset();
   metricApi.loadDomainMetricOrganizationBreakdown.mockReset();
   metricApi.loadDomainMetricOrganizationBreakdown.mockResolvedValue({
     source_id: "8f710000-0000-4000-8000-000000000001",
@@ -438,6 +439,7 @@ it("shows My work as a separate bounded Home intent", async () => {
   expect(screen.queryByText("Critical and high")).toBeNull();
   expect(screen.queryByRole("table", { name: "Risk pressure by issue type" })).toBeNull();
   expect(screen.queryByRole("button", { name: /Reporting period/ })).toBeNull();
+  expect(metricApi.loadDomainMetrics).not.toHaveBeenCalled();
 });
 
 it("reloads Home projections when the actor invalidation revision changes", async () => {
