@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -513,6 +514,17 @@ func loadLossOrganizationBreakdown(
 		result = append(result, *item)
 	}
 	return result, nil
+}
+
+func parseMoneyMinorUnits(value MoneyValue) (int64, error) {
+	if !validMetricCurrency(value.Currency) {
+		return 0, ErrInvalidMeasure
+	}
+	parsed, err := strconv.ParseInt(value.MinorUnits, 10, 64)
+	if err != nil {
+		return 0, ErrInvalidMeasure
+	}
+	return parsed, nil
 }
 
 func lossBreakdownMatchesAggregate(values []LossOrganizationFlow, aggregate lossPeriodAggregate) bool {
