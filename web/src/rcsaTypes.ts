@@ -64,6 +64,20 @@ export type RCSACyclePage = {
   complete: boolean;
 };
 
+export type RCSAChallengeContext = {
+  matter_id?: string;
+  matter_status?: string;
+  decision_status?: string;
+  decision_option?: "ACCEPT_FIRST_LINE" | "REQUIRE_CHANGES" | "DEFICIENCY_CONFIRMED" | string;
+  open_action_count: number;
+  implemented_action_count: number;
+  blocked_action_count: number;
+  active_verification_count: number;
+  passed_verification_count: number;
+  failed_verification_count: number;
+  inconclusive_verification_count: number;
+};
+
 export type RCSACycleDetail = {
   cycle: RCSACycle;
   risks: RCSARiskSnapshot[];
@@ -72,6 +86,8 @@ export type RCSACycleDetail = {
   assessment_period_start?: string;
   assessment_period_end?: string;
   first_line_request_id?: string;
+  challenge_context?: RCSAChallengeContext;
+  challenge_context_complete: boolean;
   handoff: RCSAHandoff;
   complete: boolean;
 };
