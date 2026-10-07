@@ -28,8 +28,6 @@ export const sampleRCSAPage: RCSACyclePage = {
     handoff: {
       stage: "CHALLENGE",
       label: "Complete independent challenge",
-      target_type: "MATTER",
-      target_id: "matter-gaid-change",
     },
   }, {
     cycle: {
