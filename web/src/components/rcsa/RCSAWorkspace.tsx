@@ -202,7 +202,7 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
       <StatusBadge tone={rcsaStatusTone(detail.cycle.status)}>{rcsaStatusLabel(detail.cycle.status)}</StatusBadge>
     </header>
 
-    {!detail.complete && <Notice tone="warning">Some first-line context is unavailable. The frozen cycle record remains unchanged.</Notice>}
+    {!detail.complete && <Notice tone="warning">Some linked cycle context is unavailable. The frozen cycle record remains unchanged.</Notice>}
 
     <section className="rcsa-detail__facts" aria-label="Cycle facts">
       <div><span>Assessment period</span><strong>{formatRCSAPeriod(detail.assessment_period_start, detail.assessment_period_end)}</strong></div>
