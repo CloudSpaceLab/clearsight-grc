@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lossCurrencyFractionDigits, lossMajorToMinor } from "./lossPresentation";
+import { formatLossMoneyExact, lossCurrencyFractionDigits, lossMajorToMinor } from "./lossPresentation";
 
 describe("loss amount presentation", () => {
   it("converts decimal major units to exact integer minor units", () => {
@@ -19,5 +19,16 @@ describe("loss amount presentation", () => {
   it("uses the currency's declared minor-unit precision", () => {
     expect(lossCurrencyFractionDigits("ngn")).toBe(2);
     expect(lossCurrencyFractionDigits("JPY")).toBe(0);
+  });
+
+  it("formats exact minor units beyond Number.MAX_SAFE_INTEGER without losing digits", () => {
+    const formatted = formatLossMoneyExact("9223372036854775807", "USD");
+    expect(formatted.replace(/\D/g, "")).toBe("9223372036854775807");
+  });
+
+  it("preserves signed money flows", () => {
+    const formatted = formatLossMoneyExact("-450", "NGN");
+    expect(formatted).toContain("-");
+    expect(formatted.replace(/\D/g, "")).toBe("450");
   });
 });
