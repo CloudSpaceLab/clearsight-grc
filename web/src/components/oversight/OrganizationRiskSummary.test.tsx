@@ -109,3 +109,23 @@ it("shows a compact empty state without editorial labels", async () => {
   expect(screen.queryByText("Where risk is concentrated")).toBeNull();
   expect(screen.queryByText("Current outside-appetite risk population")).toBeNull();
 });
+
+it("qualifies zero identified breaches when assessment coverage is incomplete", async () => {
+  const partial = bundle();
+  partial.items[0]!.value = 0;
+  partial.items[0]!.completeness = "PARTIAL";
+  partial.items[0]!.unknown = 2;
+  const loadBreakdown = vi.fn().mockResolvedValue({
+    source_id: partial.source_id,
+    metric_id: "risks_outside_appetite",
+    definition_revision: "enterprise-domain-v1",
+    count: 0,
+    items: [],
+  });
+
+  render(<OrganizationRiskSummary bundle={partial} loadBreakdown={loadBreakdown}/>);
+
+  expect(await screen.findByRole("heading", { name: "No identified appetite breaches" })).toBeTruthy();
+  expect(screen.getByText("Risk coverage is incomplete; some assessments may be missing.")).toBeTruthy();
+  expect(screen.queryByText("No current risks exceed approved appetite.")).toBeNull();
+});
