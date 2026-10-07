@@ -331,7 +331,7 @@ func loadLossOrganizationBreakdown(
 			  AND organization.legal_entity_id=$2::uuid
 			  AND (
 			    (NOT $5::boolean AND organization.parent_scope_id IS NULL)
-			    OR ($5::boolean AND organization.parent_scope_id=$7::uuid)
+			    OR ($5::boolean AND organization.parent_scope_id=NULLIF($7,'')::uuid)
 			  )
 		), scope_tree AS (
 			SELECT scope_id,bucket_id,bucket_label
@@ -348,7 +348,7 @@ func loadLossOrganizationBreakdown(
 			       loss.currency,
 			       CASE
 			         WHEN loss.organization_scope_id IS NULL THEN 'unattributed'
-			         WHEN $5::boolean AND loss.organization_scope_id=$7::uuid THEN 'direct'
+			         WHEN $5::boolean AND loss.organization_scope_id=NULLIF($7,'')::uuid THEN 'direct'
 			         WHEN tree.bucket_id IS NOT NULL THEN 'scope:'||tree.bucket_id::text
 			         ELSE 'unavailable'
 			       END AS bucket_key,
@@ -358,13 +358,13 @@ func loadLossOrganizationBreakdown(
 			       END AS bucket_scope_id,
 			       CASE
 			         WHEN loss.organization_scope_id IS NULL THEN 'Unattributed'
-			         WHEN $5::boolean AND loss.organization_scope_id=$7::uuid THEN 'Direct'
+			         WHEN $5::boolean AND loss.organization_scope_id=NULLIF($7,'')::uuid THEN 'Direct'
 			         WHEN tree.bucket_label IS NOT NULL THEN tree.bucket_label
 			         ELSE 'Organization unavailable'
 			       END AS bucket_label,
 			       CASE
 			         WHEN loss.organization_scope_id IS NULL THEN 'UNATTRIBUTED'
-			         WHEN $5::boolean AND loss.organization_scope_id=$7::uuid THEN 'DIRECT'
+			         WHEN $5::boolean AND loss.organization_scope_id=NULLIF($7,'')::uuid THEN 'DIRECT'
 			         WHEN tree.bucket_id IS NOT NULL THEN 'ORGANIZATION_SCOPE'
 			         ELSE 'UNAVAILABLE'
 			       END AS bucket_kind
@@ -674,7 +674,7 @@ func retainLossPeriodSnapshot(
 			source_id,metric_id,definition_revision,member_id,target_type,target_id,
 			organization_scope_id,target_title,state
 		)
-		SELECT $7::uuid,$8,$9,loss.id,'LOSS',loss.id,loss.organization_scope_id,loss.title,'OCCURRED'
+		SELECT NULLIF($7,'')::uuid,$8,$9,loss.id,'LOSS',loss.id,loss.organization_scope_id,loss.title,'OCCURRED'
 		FROM operational_losses loss
 		WHERE loss.tenant_id=$1::uuid
 		  AND loss.legal_entity_id=$2::uuid
@@ -725,7 +725,7 @@ func retainLossPeriodSnapshot(
 			source_id,metric_id,definition_revision,member_id,target_type,target_id,
 			organization_scope_id,target_title,state
 		)
-		SELECT $7::uuid,$8,$9,id,'LOSS',id,organization_scope_id,title,
+		SELECT NULLIF($7,'')::uuid,$8,$9,id,'LOSS',id,organization_scope_id,title,
 		       CASE
 		         WHEN has_gross AND (has_recovery OR has_reversal) THEN 'GROSS_AND_RECOVERY_ACTIVITY'
 		         WHEN has_recovery AND has_reversal THEN 'RECOVERY_AND_REVERSAL'
