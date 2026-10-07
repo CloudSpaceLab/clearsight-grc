@@ -14,15 +14,31 @@ const sectionSlugs: Record<FormsTab, string> = {
   Communications: "communications",
 };
 
-export function readFormsSection(hash: string): FormsTab {
+export function readFormsHashParams(hash: string) {
   const raw = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
-  const section = new URLSearchParams(raw).get("section");
+  return new URLSearchParams(raw);
+}
+
+export function updateFormsHashParams(update: (params: URLSearchParams) => void, replace = true) {
+  const hash = window.location.hash || "#forms";
+  const queryIndex = hash.indexOf("?");
+  const base = queryIndex >= 0 ? hash.slice(0, queryIndex) : hash;
+  const params = readFormsHashParams(hash);
+  update(params);
+  const encoded = params.toString();
+  const nextHash = `${base}${encoded ? `?${encoded}` : ""}`;
+  const next = `${window.location.pathname}${window.location.search}${nextHash}`;
+  if (replace) window.history.replaceState(null, "", next);
+  else window.history.pushState(null, "", next);
+}
+
+export function readFormsSection(hash: string): FormsTab {
+  const section = readFormsHashParams(hash).get("section");
   return (Object.keys(sectionSlugs) as FormsTab[]).find((tab) => sectionSlugs[tab] === section) ?? "Templates";
 }
 
 export function readFormsQuery(hash: string, fallbackSearch?: string): FormTemplateQuery {
-  const raw = hash.includes("?") ? hash.slice(hash.indexOf("?") + 1) : "";
-  const params = new URLSearchParams(raw);
+  const params = readFormsHashParams(hash);
   const limitValue = Number(params.get("limit") || String(DEFAULT_LIMIT));
   return {
     search: params.get("search") || fallbackSearch || undefined,
