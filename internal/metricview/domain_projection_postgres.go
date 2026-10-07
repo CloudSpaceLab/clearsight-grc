@@ -172,7 +172,7 @@ func maintainDomainScope(ctx context.Context, pool *pgxpool.Pool, scope domainSc
 			SourceKind: ObservationSourceDomainSnapshot, SourceID: sourceID, SourceRevision: DomainSourceRevision,
 			SourceHighWater: cloneHighWater(highWater), GeneratedAt: at.UTC(),
 			PeriodStart: at.UTC(), PeriodEnd: at.UTC(), PostureAsOf: at.UTC(),
-			Value: len(result.Members), Condition: condition, Freshness: oversight.FreshnessCurrent,
+			Value: int64(len(result.Members)), Condition: condition, Freshness: oversight.FreshnessCurrent,
 			Completeness: completeness, Population: result.Population, Excluded: &zero, Unknown: &unknown,
 		})
 	}
