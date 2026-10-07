@@ -52,17 +52,17 @@ type rcsaChallengeContextRead struct {
 }
 
 type rcsaCycleDetailRead struct {
-	Cycle                     rcsa.Cycle               `json:"cycle"`
-	Risks                     []rcsa.RiskSnapshot      `json:"risks"`
-	Controls                  []rcsa.ControlSnapshot   `json:"controls"`
-	FirstLineOwnerDisplayName string                   `json:"first_line_owner_display_name,omitempty"`
-	AssessmentPeriodStart     *time.Time               `json:"assessment_period_start,omitempty"`
-	AssessmentPeriodEnd       *time.Time               `json:"assessment_period_end,omitempty"`
-	FirstLineRequestID        string                   `json:"first_line_request_id,omitempty"`
+	Cycle                     rcsa.Cycle                `json:"cycle"`
+	Risks                     []rcsa.RiskSnapshot       `json:"risks"`
+	Controls                  []rcsa.ControlSnapshot    `json:"controls"`
+	FirstLineOwnerDisplayName string                    `json:"first_line_owner_display_name,omitempty"`
+	AssessmentPeriodStart     *time.Time                `json:"assessment_period_start,omitempty"`
+	AssessmentPeriodEnd       *time.Time                `json:"assessment_period_end,omitempty"`
+	FirstLineRequestID        string                    `json:"first_line_request_id,omitempty"`
 	ChallengeContext          *rcsaChallengeContextRead `json:"challenge_context,omitempty"`
-	ChallengeContextComplete  bool                     `json:"challenge_context_complete"`
-	Handoff                   rcsaHandoffRead          `json:"handoff"`
-	Complete                  bool                     `json:"complete"`
+	ChallengeContextComplete  bool                      `json:"challenge_context_complete"`
+	Handoff                   rcsaHandoffRead           `json:"handoff"`
+	Complete                  bool                      `json:"complete"`
 }
 
 func (a *API) listRCSACycles(w http.ResponseWriter, r *http.Request) {
