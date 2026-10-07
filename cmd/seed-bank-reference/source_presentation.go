@@ -9,30 +9,8 @@ import (
 	"unicode"
 )
 
-var sourcePlaceholderTitle = regexp.MustCompile(`(?i)^(?:.*[[:space:]])?(?:row|record|line)[[:space:]#:-]*[0-9]+//go:build postgres
-
-package main
-
-import (
-	"fmt"
-	"regexp"
-	"strings"
-	"unicode"
-)
-
-)
-var sourceTitleRowPrefix = regexp.MustCompile(`(?i)^(?:.*[[:space:]])?(?:row|record|line)[[:space:]#:-]*[0-9]+[[:space:]]*[:–—-][[:space:]]*(.+)//go:build postgres
-
-package main
-
-import (
-	"fmt"
-	"regexp"
-	"strings"
-	"unicode"
-)
-
-)
+var sourcePlaceholderTitle = regexp.MustCompile(`(?i)^(?:.*[[:space:]])?(?:row|record|line)[[:space:]#:-]*[0-9]+$`)
+var sourceTitleRowPrefix = regexp.MustCompile(`(?i)^(?:.*[[:space:]])?(?:row|record|line)[[:space:]#:-]*[0-9]+[[:space:]]*[:–—-][[:space:]]*(.+)$`)
 
 // Header matching is semantic only. Preserve the original label, cell and
 // value in immutable source_fields; never normalize or mutate those facts.
