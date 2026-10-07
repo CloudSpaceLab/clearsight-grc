@@ -43,6 +43,9 @@ func (s *Service) ListAdvancedFormLibrary(ctx context.Context, filter FormLibrar
 	if err != nil {
 		return FormTemplatePage{}, err
 	}
+	if err := normalizeFormLibraryOriginFilter(&filter); err != nil {
+		return FormTemplatePage{}, err
+	}
 	normalized, err := NormalizeFormFilterExpression(filter.Expression)
 	if err != nil {
 		return FormTemplatePage{}, err
