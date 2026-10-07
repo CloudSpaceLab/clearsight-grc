@@ -129,6 +129,8 @@ export function GroupOversightWorkspace({
   }
 
   function applyPeriod(next: ReportingPeriodQuery) {
+    setPosture(null);
+    setPostureState("loading");
     setPeriod({
       start_date: next.start_date,
       end_date: next.end_date,
