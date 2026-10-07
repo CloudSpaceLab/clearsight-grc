@@ -259,6 +259,9 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 			if group.PresentationVersion == 2 && (isNDPAChecklistGroup(group) || strings.HasPrefix(group.Key, "third-party-risk-register")) {
 				return receipt, fmt.Errorf("source presentation v2 is unavailable for governed semantic forms: %s", group.Key)
 			}
+			if err = sourceValidateV2Group(group); err != nil {
+				return receipt, err
+			}
 			group = sourceNormalizePresentation(group)
 			if err = validateNDPAChecklistGroup(group); err != nil {
 				return receipt, err
