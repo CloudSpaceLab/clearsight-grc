@@ -4,10 +4,10 @@ import { loadGroupOversight, type GroupChild, type GroupOversightSnapshot } from
 import { loadGroupPosture, type GroupPostureBundle } from "../../groupPostureApi";
 import type { HomeMetricFilter } from "../../homeMetricPresentation";
 import { startDateForDays, type ReportingPeriod, type ReportingPeriodQuery } from "../../reportingPeriod";
-import { Button, DataTable, EmptyState, Tabs, type RankedBarItem } from "../ui";
+import { Button, DataTable, EmptyState, Tabs, type RankedBarItem, type DataColumn } from "../ui";
 import { OversightPeriodPicker } from "./OversightPeriodPicker";
 import { GroupAttentionView, groupAttentionColumns, groupAttentionBasisColumns, groupAttentionMetricValue, groupChildStateLabel, formatGroupTime, formatHighWater } from "./GroupAttentionPanel";
-import { GroupPostureView, groupPostureValue, postureRowMeta, type GroupPostureMetric } from "./GroupPosturePanel";
+import { GroupPostureView, groupPostureCoverage, groupPostureValue, postureRowMeta, type GroupPostureMetric } from "./GroupPosturePanel";
 import "./group-oversight.css";
 
 type Props = {
