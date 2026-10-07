@@ -35,7 +35,7 @@ export function RankedBarList({
           <strong>{renderedValue}</strong>
         </span>
         <span className="cs-ranked-bars__track" aria-hidden="true">
-          <span className="cs-ranked-bars__fill" style={{ inlineSize: `${Math.max(2, item.value / max * 100)}%` }}/>
+          <span className="cs-ranked-bars__fill" style={{ inlineSize: item.value <= 0 ? "0%" : `${Math.max(2, item.value / max * 100)}%` }}/>
         </span>
         {item.meta && <small>{item.meta}</small>}
       </>;
