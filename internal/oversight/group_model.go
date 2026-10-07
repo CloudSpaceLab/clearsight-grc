@@ -2,7 +2,10 @@ package oversight
 
 import "time"
 
-const GroupProjectionVersion = "group-oversight-v2"
+const (
+	GroupProjectionVersion       = "group-oversight-v2"
+	GroupDomainDefinitionRevision = "enterprise-domain-v1"
+)
 
 type GroupChildState string
 
