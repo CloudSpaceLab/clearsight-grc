@@ -17,6 +17,7 @@ type Props = {
   organizationScopeID?: string;
   loadLegalEntityTrend?: typeof loadDomainMetricTrend;
   loadOrganizationTrend?: typeof loadDomainMetricOrganizationTrend;
+  now?: Date;
 };
 
 const ranges: readonly RangeDays[] = [7, 30, 90];
@@ -26,12 +27,14 @@ export function RiskMovement({
   organizationScopeID,
   loadLegalEntityTrend = loadDomainMetricTrend,
   loadOrganizationTrend = loadDomainMetricOrganizationTrend,
+  now,
 }: Props) {
   const [range, setRange] = useState<RangeDays>(30);
   const [state, setState] = useState<LoadState>("loading");
   const [legalTrend, setLegalTrend] = useState<MetricTrendSeries | null>(null);
   const [organizationTrend, setOrganizationTrend] = useState<OrganizationTrendSeries | null>(null);
   const current = bundle?.items.find((item) => item.id === "risks_outside_appetite");
+  const nowMs = now?.getTime();
 
   useEffect(() => {
     if (!bundle || !current) {
@@ -42,7 +45,7 @@ export function RiskMovement({
     }
 
     const controller = new AbortController();
-    const today = utcDay(new Date());
+    const today = utcDay(nowMs === undefined ? new Date() : new Date(nowMs));
     const baselineDate = addUTCDays(today, -range);
     const requestedStart = organizationScopeID || range !== 7 ? baselineDate : addUTCDays(baselineDate, -1);
     const startDate = formatDate(requestedStart);
@@ -76,12 +79,12 @@ export function RiskMovement({
     });
 
     return () => controller.abort();
-  }, [bundle?.source_id, current, loadLegalEntityTrend, loadOrganizationTrend, organizationScopeID, range]);
+  }, [bundle?.source_id, current, loadLegalEntityTrend, loadOrganizationTrend, nowMs, organizationScopeID, range]);
 
   const model = useMemo(() => {
     if (!bundle || !current) return null;
 
-    const today = utcDay(new Date());
+    const today = utcDay(nowMs === undefined ? new Date() : new Date(nowMs));
     const baselineDate = addUTCDays(today, -range);
     const baselineKey = formatDate(baselineDate);
     const todayKey = formatDate(today);
@@ -129,7 +132,7 @@ export function RiskMovement({
       baselineValue: comparable ? baseline?.value : undefined,
       currentValue: current.value,
     };
-  }, [bundle, current, legalTrend, organizationTrend, range]);
+  }, [bundle, current, legalTrend, nowMs, organizationTrend, range]);
 
   return <section className="risk-movement" aria-labelledby="risk-movement-heading">
     <div className="section-header risk-movement__header">
