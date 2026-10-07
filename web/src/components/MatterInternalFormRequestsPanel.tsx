@@ -4,6 +4,7 @@ import type { FormTemplate } from "../monitoringTypes";
 import { FocusedSheet } from "./FocusedSheet";
 import { FormBuilder } from "./FormBuilder";
 import { DistributionComposer } from "./forms/DistributionComposer";
+import { OriginFormList } from "./forms/OriginFormList";
 import { SubjectFormActivity } from "./forms/SubjectFormActivity";
 import { ActionLink, Button, Notice } from "./ui";
 
@@ -32,7 +33,10 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
     </div>
 
     {notice && <Notice tone="success">{notice}{createdDraft && <> <ActionLink href={`#forms/${encodeURIComponent(createdDraft.id)}`}>Open form draft</ActionLink></>}</Notice>}
-    <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference}/>
+    <div className="subject-form-activity">
+      <OriginFormList originType="MATTER" originID={matterID} subjectLabel={matterReference}/>
+      <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference}/>
+    </div>
 
     {authorOpen && <FocusedSheet label="Create linked form" closeLabel="Close form builder" size="wide" onClose={() => setAuthorOpen(false)}>
       <div className="cs-sheet-heading">
