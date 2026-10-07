@@ -10,7 +10,7 @@ var ErrInvalidMeasure = errors.New("metric measure is invalid")
 
 func NewMoneyValue(minorUnits int64, currency string) (MoneyValue, error) {
 	currency = strings.ToUpper(strings.TrimSpace(currency))
-	if minorUnits < 0 || !validMetricCurrency(currency) {
+	if !validMetricCurrency(currency) {
 		return MoneyValue{}, ErrInvalidMeasure
 	}
 	return MoneyValue{
