@@ -14,4 +14,25 @@ Source-only calendar deadlines use West Africa Time. Bank accountability for ini
 
 Normal reference deployments also reconcile those Risk profiles from the already-persisted source Matter facts, so an existing source install does not require the private workbook again. The reconciliation is bounded to the exact source-package trigger prefix and refuses changed source lineage or user-modified baseline records.
 
+## OpsRisk historical Loss register
+
+Use the private `LOSS DATA BASE.xlsx` from `Ops Risk (2).zip`, not screenshots or synthetic examples. The 2025 worksheet repeats each event in 12 monthly display rows: its 96 rows represent **8 distinct historical events**, not 96 new 2025 occurrences. Source occurrence and recognition dates must be preserved independently. `CURRENCY OF LOSS=Naira` maps to NGN and source decimal amounts are converted to integer kobo without float rounding.
+
+Place a private source manifest named `source_records_ops_loss.json` in the same `-source-manifest-dir`. It uses the existing version-1 `groups/records/fields` contract, the group `source_file: "LOSS DATA BASE.xlsx"`, the full source SHA-256, source sheet/ranges, and the recorded loss fields. The operator may provide either deduplicated eight records or all 96 monthly rows; the installer deduplicates event identity by account, category, transaction, branch, exact amount/currency, occurrence and recognition dates. It never uses month/quarter/reporting year as a new Loss identity.
+
+After a backup and under the non-production demo scope, run the dedicated seed option with the existing explicit tenant/legal-entity/actor/owner flags:
+
+```sh
+clearsight-seed-bank-reference -source-losses-only -source-manifest-dir /secure/private/manifest-directory \
+  -tenant 00000000-0000-4000-8000-000000000001 \
+  -legal-entity 00000000-0000-4000-8000-000000000002 \
+  -actor <existing-demo-actor-uuid> -owner <existing-demo-owner-uuid>
+```
+
+The full `-source-records-only` operation also imports canonical Losses when an eligible OpsRisk Loss group is included in the ordinary OpsRisk source manifest, or in the optional supplementary loss manifest. The dedicated command avoids rerunning unrelated Forms/Matters. The receipt reports `losses` and `losses_created`; on a repeat, the expected result is 8 and 0. It refuses conflicting source digests and edited existing entries rather than silently overwriting them.
+
+The private workbook has a recovery narrative without a dated recovery amount. That text is retained as *unverified source narrative*, **not** posted to `operational_loss_recoveries`. Net loss remains gross less **posted, evidenced** recoveries. Branch/region/directorate values remain source provenance unless an authorized organization-scope identity is explicitly established; do not force a location onto an unrelated demo branch. Unknown event classifications remain `OTHER` rather than assigning unsupported fraud provenance.
+
+The underlying workbook and private manifest must never be committed, uploaded in public CI evidence or logged with source rows. Public tests use synthetic values. Acceptance requires a real operator-run receipt, inspection of all eight exact Loss records and a rerun/backup comparison.
+
 Verification is intentionally limited for this demo: build, synthetic contract check, optional source-contract check with `CLEARSIGHT_SOURCE_MANIFEST_DIR`, scoped source/count reconciliation and hosted representative reads. New source responses remain unscored and outcomes unverified. The previous generic Cloudspace questionnaire is revoked only after replacement captures exist; its history remains available. Archived generic work is recoverable through attributed archive restoration.
