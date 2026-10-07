@@ -58,40 +58,24 @@ export function rcsaPhaseTone(stage: RCSAPhaseStage): StatusTone {
 }
 
 export function rcsaPhasePath(stage: RCSAPhaseStage): RCSAPhasePathStep[] {
-  const steps: RCSAPhasePathStep[] = [
-    { id: "COLLECTION", label: "First-line collection", state: "pending" },
-    { id: "INDEPENDENT_CHALLENGE", label: "Independent challenge", state: "pending" },
-    { id: "RISK_ACCEPTANCE", label: "Risk acceptance", state: "pending" },
-    { id: "REMEDIATION_VERIFICATION", label: "Remediation verification", state: "pending" },
+  const states: Partial<Record<RCSAPhasePathStep["id"], RCSAPhasePathStep["state"]>> =
+    stage === "COLLECTION"
+      ? { COLLECTION: "current" }
+      : stage === "INDEPENDENT_CHALLENGE"
+        ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "current" }
+        : stage === "RISK_ACCEPTANCE"
+          ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "complete", RISK_ACCEPTANCE: "current", REMEDIATION_VERIFICATION: "not_required" }
+          : stage === "REMEDIATION_VERIFICATION"
+            ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "complete", RISK_ACCEPTANCE: "not_required", REMEDIATION_VERIFICATION: "current" }
+            : stage === "COMPLETE"
+              ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "complete" }
+              : {};
+  return [
+    { id: "COLLECTION", label: "First-line collection", state: states.COLLECTION ?? "pending" },
+    { id: "INDEPENDENT_CHALLENGE", label: "Independent challenge", state: states.INDEPENDENT_CHALLENGE ?? "pending" },
+    { id: "RISK_ACCEPTANCE", label: "Risk acceptance", state: states.RISK_ACCEPTANCE ?? "pending" },
+    { id: "REMEDIATION_VERIFICATION", label: "Remediation verification", state: states.REMEDIATION_VERIFICATION ?? "pending" },
   ];
-  if (stage === "COLLECTION") {
-    steps[0].state = "current";
-    return steps;
-  }
-  if (stage === "INDEPENDENT_CHALLENGE") {
-    steps[0].state = "complete";
-    steps[1].state = "current";
-    return steps;
-  }
-  if (stage === "RISK_ACCEPTANCE") {
-    steps[0].state = "complete";
-    steps[1].state = "complete";
-    steps[2].state = "current";
-    steps[3].state = "not_required";
-    return steps;
-  }
-  if (stage === "REMEDIATION_VERIFICATION") {
-    steps[0].state = "complete";
-    steps[1].state = "complete";
-    steps[2].state = "not_required";
-    steps[3].state = "current";
-    return steps;
-  }
-  if (stage === "COMPLETE") {
-    steps[0].state = "complete";
-    steps[1].state = "complete";
-  }
-  return steps;
 }
 
 export function formatRCSADate(value?: string) {
