@@ -409,7 +409,7 @@ func (a *API) deleteSavedFormView(w http.ResponseWriter, r *http.Request) {
 }
 
 func formLibraryFilterFromRequest(r *http.Request) (monitoring.FormLibraryFilter, error) {
-	allowed := map[string]bool{"tenant_id": true, "search": true, "status": true, "owner": true, "program": true, "use": true, "tag": true, "filter": true, "facets": true, "sort": true, "cursor": true, "limit": true}
+	allowed := map[string]bool{"tenant_id": true, "search": true, "status": true, "owner": true, "program": true, "use": true, "tag": true, "origin_type": true, "origin_id": true, "filter": true, "facets": true, "sort": true, "cursor": true, "limit": true}
 	for key := range r.URL.Query() {
 		if !allowed[key] {
 			return monitoring.FormLibraryFilter{}, errors.New("Use only the supported form search and filter options.")
@@ -434,6 +434,7 @@ func formLibraryFilterFromRequest(r *http.Request) (monitoring.FormLibraryFilter
 	return monitoring.FormLibraryFilter{
 		Search: r.URL.Query().Get("search"), Status: monitoring.LifecycleStatus(r.URL.Query().Get("status")),
 		OwnerPrincipalID: r.URL.Query().Get("owner"), ProgramID: r.URL.Query().Get("program"), Use: r.URL.Query().Get("use"), Tag: r.URL.Query().Get("tag"),
+		OriginType: monitoring.FormOriginType(r.URL.Query().Get("origin_type")), OriginID: r.URL.Query().Get("origin_id"),
 		Expression: expression, Sort: sortOrder, Cursor: r.URL.Query().Get("cursor"), Limit: limit,
 	}, nil
 }
