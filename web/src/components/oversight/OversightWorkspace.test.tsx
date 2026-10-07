@@ -4,13 +4,49 @@ import { OversightWorkspace } from "./OversightWorkspace";
 import type { AttentionItem } from "../../types";
 
 const api = vi.hoisted(() => ({ loadOversight: vi.fn() }));
-const metricApi = vi.hoisted(() => ({ loadHomeMetrics: vi.fn(), loadHomeMetricMembers: vi.fn() }));
+const metricApi = vi.hoisted(() => ({
+  loadHomeMetrics: vi.fn(),
+  loadHomeMetricMembers: vi.fn(),
+  loadDomainMetrics: vi.fn(),
+  loadDomainMetricMembers: vi.fn(),
+  loadDomainMetricOrganizationBreakdown: vi.fn(),
+}));
 vi.mock("../../oversightApi", () => api);
 vi.mock("../../metricApi", () => metricApi);
 
 beforeEach(() => {
   metricApi.loadHomeMetricMembers.mockReset();
   metricApi.loadHomeMetricMembers.mockRejectedValue(new Error("Exact membership not configured"));
+  metricApi.loadDomainMetricMembers.mockReset();
+  metricApi.loadDomainMetricMembers.mockRejectedValue(new Error("Exact domain membership not configured"));
+  metricApi.loadDomainMetrics.mockReset();
+  metricApi.loadDomainMetricOrganizationBreakdown.mockReset();
+  metricApi.loadDomainMetricOrganizationBreakdown.mockResolvedValue({
+    source_id: "8f710000-0000-4000-8000-000000000001",
+    metric_id: "risks_outside_appetite",
+    definition_revision: "enterprise-domain-v1",
+    count: 9,
+    items: [
+      { key: "scope:technology", scope_id: "technology", label: "Technology", kind: "ORGANIZATION_SCOPE", value: 4 },
+      { key: "scope:operations", scope_id: "operations", label: "Operations", kind: "ORGANIZATION_SCOPE", value: 3 },
+      { key: "unattributed", label: "Unattributed", kind: "UNATTRIBUTED", value: 2 },
+    ],
+  });
+  metricApi.loadDomainMetrics.mockResolvedValue({
+    generated_at: "2026-09-01T07:55:00Z",
+    posture_as_of: "2026-09-01T07:55:00Z",
+    scope_id: "bank-ng",
+    scope_kind: "LEGAL_ENTITY",
+    source_id: "8f710000-0000-4000-8000-000000000001",
+    source_revision: "enterprise-domain-v1",
+    definition_revision: "enterprise-domain-v1",
+    items: [
+      domainMetric("risks_outside_appetite", "Outside appetite", 9, 20, 1),
+      domainMetric("indicator_breaches", "Indicator breaches", 4, 12, 0),
+      domainMetric("assurance_failures", "Assurance failures", 3, 20, 2),
+      domainMetric("losses_without_issue", "Losses without issue", 2, 5, 0),
+    ],
+  });
   metricApi.loadHomeMetrics.mockResolvedValue({
     generated_at: "2026-09-01T07:55:00Z",
     period_start: "2026-06-03T08:00:00Z",
@@ -62,6 +98,19 @@ function metric(id: string, label: string, value: number, filter: string) {
   };
 }
 
+function domainMetric(id: string, label: string, value: number, population: number, unknown: number) {
+  return {
+    id, label, value, unit: "COUNT", condition: value > 0 ? "ATTENTION" : "CLEAR",
+    freshness: "CURRENT", completeness: unknown > 0 ? "PARTIAL" : "COMPLETE",
+    population, excluded: 0, unknown,
+    generated_at: "2026-09-01T07:55:00Z",
+    source_revision: "enterprise-domain-v1",
+    definition_revision: "enterprise-domain-v1",
+    basis: "CURRENT_POSTURE",
+    drill: { workspace: id === "losses_without_issue" ? "losses" : "risks", filter: id, consistency: "SOURCE_SNAPSHOT" },
+  };
+}
+
 function exactMetric(id: string, label: string, value: number, filter: string) {
   return {
     ...metric(id, label, value, filter),
@@ -103,6 +152,11 @@ it("keeps oversight analysis separate from attention and assigned work", async (
   await screen.findByRole("heading", { name: "Home" });
   expect(screen.getByRole("tab", { name: "Oversight" }).getAttribute("aria-selected")).toBe("true");
   expect(screen.getByRole("table", { name: "Risk pressure by issue type" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Outside appetite: 9/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Indicator breaches: 4/ })).toBeTruthy();
+  expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
+  expect(screen.getByText("Technology")).toBeTruthy();
+  expect(screen.getByText("Unattributed")).toBeTruthy();
   expect(screen.queryByText("Critical and high")).toBeNull();
   expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
 
@@ -160,6 +214,7 @@ it("keeps Attention and My work isolated while preserving their actions", async 
   await screen.findByRole("heading", { name: "Home" });
   expect(screen.getByRole("heading", { name: "Priority interventions" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
+  expect(metricApi.loadDomainMetrics).not.toHaveBeenCalled();
 
   fireEvent.click(screen.getByRole("button", { name: /Overdue.*4/i }));
   expect(onMetricFilterChange).toHaveBeenCalledWith("overdue");
@@ -385,6 +440,7 @@ it("shows My work as a separate bounded Home intent", async () => {
   expect(screen.queryByText("Critical and high")).toBeNull();
   expect(screen.queryByRole("table", { name: "Risk pressure by issue type" })).toBeNull();
   expect(screen.queryByRole("button", { name: /Reporting period/ })).toBeNull();
+  expect(metricApi.loadDomainMetrics).not.toHaveBeenCalled();
 });
 
 it("reloads Home projections when the actor invalidation revision changes", async () => {
