@@ -352,3 +352,25 @@ func mustLossPeriodID(t *testing.T) string {
 	}
 	return value
 }
+
+func TestLossPeriodComparisonTreatsRecoveryOnlyImprovementAsSignedMoney(t *testing.T) {
+	current := lossPeriodAggregate{Currencies: []lossCurrencyAggregate{{
+		Currency: "NGN", RecoveryMinor: 700, RecoveryEventCount: 1,
+	}}}
+	previous := lossPeriodAggregate{Currencies: []lossCurrencyAggregate{{
+		Currency: "NGN", GrossMinor: 500, LossEventCount: 1,
+	}}}
+	start := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 10, 7, 23, 59, 59, 999999999, time.UTC)
+
+	comparison, err := buildLossPeriodComparison(current, previous, start, end)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if comparison.NetDelta == nil || comparison.NetDelta.Currency != "NGN" ||
+		comparison.NetDelta.MinorUnits != "-1200" ||
+		comparison.Direction != TrendImproved ||
+		comparison.ComparisonQuality != ComparisonComplete {
+		t.Fatalf("comparison=%#v", comparison)
+	}
+}
