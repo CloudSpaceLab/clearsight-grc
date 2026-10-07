@@ -32,6 +32,7 @@ export type WorkspaceTarget = {
   openFirstProgram?: boolean;
   openFirstMatter?: boolean;
   openFirstEvidence?: boolean;
+  returnRCSACycleID?: string;
 };
 
 export function parseRoute(hash: string): { view: View; workTab?: WorkTab; target: WorkspaceTarget } {
@@ -100,11 +101,13 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
   if (view === "imports") return { view, target: { documentID: decodeTarget(parts[1]) } };
   if (view === "work") {
     const workTab: WorkTab = parts[1] === "evidence" ? "evidence" : parts[1] === "matters" ? "matters" : "assigned";
-    const target = workTab === "evidence"
+    const target: WorkspaceTarget = workTab === "evidence"
       ? { evidenceID: decodeTarget(parts[2]) }
       : workTab === "matters"
         ? { matterID: decodeTarget(parts[2]) }
         : {};
+    const returnRCSACycleID = query.get("return_rcsa")?.trim();
+    if (returnRCSACycleID) target.returnRCSACycleID = returnRCSACycleID;
     return { view, workTab, target };
   }
   return { view, target: {} };
@@ -149,7 +152,10 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
   if (view === "work") {
     if (workTab === "assigned") return "#work";
     const id = workTab === "evidence" ? target.evidenceID : target.matterID;
-    return `#work/${workTab}${id ? `/${encodeURIComponent(id)}` : ""}`;
+    const base = `#work/${workTab}${id ? `/${encodeURIComponent(id)}` : ""}`;
+    if (!target.returnRCSACycleID?.trim()) return base;
+    const query = new URLSearchParams({ return_rcsa: target.returnRCSACycleID.trim() });
+    return `${base}?${query.toString()}`;
   }
   return `#${view}`;
 }
