@@ -42,7 +42,7 @@ func TestFinalizeOrganizationMetricDayRetainsDirectAttributionAndLineage(t *test
 	indicatorMemberID := mustOrganizationDailyID(t)
 	indicatorTargetID := mustOrganizationDailyID(t)
 
-	sourceAt := time.Now().UTC().Add(2 * time.Minute).Truncate(DomainSnapshotInterval).Add(time.Minute)
+	sourceAt := time.Now().UTC().Truncate(DomainSnapshotInterval).Add(11 * time.Minute)
 	bucketDate := time.Date(sourceAt.Year(), sourceAt.Month(), sourceAt.Day(), 0, 0, 0, 0, time.UTC)
 
 	mustExec := func(query string, args ...any) {
