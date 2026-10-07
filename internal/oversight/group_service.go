@@ -82,18 +82,22 @@ func (s *GroupService) Get(ctx context.Context, actor identity.Actor) (GroupSnap
 			continue
 		}
 		value.Coverage.AuthorizedChildren++
+		domainState := child.DomainState
+		if domainState == "" {
+			domainState = GroupChildMissing
+		}
 		summary := GroupChildSummary{
 			LegalEntityID: child.LegalEntityID, LegalEntityCode: child.LegalEntityCode, LegalEntityName: child.LegalEntityName,
 			Jurisdiction: child.Jurisdiction, State: child.State, ChildSnapshotID: child.ChildSnapshotID,
 			ChildGeneratedAt: child.ChildGeneratedAt, ChildProjectionVersion: child.ChildProjectionVersion,
 			Coverage: child.Coverage, Counts: child.Counts, SourceHighWater: child.SourceHighWater,
-			DomainState: child.DomainState, DomainSourceID: child.DomainSourceID,
+			DomainState: domainState, DomainSourceID: child.DomainSourceID,
 			DomainGeneratedAt: child.DomainGeneratedAt, DomainDefinitionRevision: child.DomainDefinitionRevision,
 			DomainPosture: child.DomainPosture, DomainSourceHighWater: child.DomainSourceHighWater,
 		}
 		value.Children = append(value.Children, summary)
 		value.PostureCoverage.AuthorizedChildren++
-		switch child.DomainState {
+		switch domainState {
 		case GroupChildMissing:
 			value.PostureCoverage.MissingChildren++
 		case GroupChildStale:
