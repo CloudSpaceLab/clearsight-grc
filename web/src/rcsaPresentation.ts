@@ -114,6 +114,8 @@ export function rcsaJourneyStages(detail: RCSACycleDetail): RCSAJourneyStage[] {
     remediation = { id: "REMEDIATION", label: "Remediation verification", state: "UNAVAILABLE", status: "Unavailable", detail: "Treatment state is not available to this view." };
   } else if (!decisionFinal || !option) {
     remediation = { id: "REMEDIATION", label: "Remediation verification", state: "NOT_STARTED", status: "Not started", detail: "Remediation follows the final challenge decision when treatment is required." };
+  } else if (!challenge) {
+    remediation = { id: "REMEDIATION", label: "Remediation verification", state: "UNAVAILABLE", status: "Unavailable", detail: "Treatment state is not available to this view." };
   } else if (option === "ACCEPT_FIRST_LINE") {
     remediation = { id: "REMEDIATION", label: "Remediation verification", state: "NOT_REQUIRED", status: "Not required", detail: "The independent challenge accepted the first-line assessment without required treatment." };
   } else if (challenge.failed_verification_count > 0) {
