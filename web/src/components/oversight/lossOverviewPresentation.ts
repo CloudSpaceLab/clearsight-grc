@@ -1,4 +1,5 @@
 import type { LossPeriodBundle, MoneyValue } from "../../metricApi";
+import type { MetricTrendDatum } from "../ui";
 import { formatLossMoneyExact } from "../losses/lossPresentation";
 
 export type LossPresentationMode = "money" | "events";
@@ -33,6 +34,34 @@ export function lossComparisonLabel(bundle: LossPeriodBundle) {
   return "No event-count change";
 }
 
+export function lossMovementPoints(bundle: LossPeriodBundle): MetricTrendDatum[] {
+  if (lossPresentationMode(bundle) === "events") {
+    return bundle.flow_points.map((point, index) => ({
+      id: `${point.start}-${index}`,
+      at: point.start,
+      label: shortDate(point.start),
+      value: point.loss_event_count,
+      displayValue: `${point.loss_event_count} ${point.loss_event_count === 1 ? "event" : "events"}`,
+    }));
+  }
+
+  const currency = bundle.net_loss?.currency;
+  if (!currency) return [];
+  const values = bundle.flow_points.map((point) => parseMoneyMinor(point.net_loss, currency) ?? 0n);
+  const maxAbsolute = values.reduce((max, value) => bigintMax(max, bigintAbs(value)), 0n);
+
+  return bundle.flow_points.map((point, index) => {
+    const minor = values[index] ?? 0n;
+    return {
+      id: `${point.start}-${index}`,
+      at: point.start,
+      label: shortDate(point.start),
+      value: normalizedMinor(minor, maxAbsolute),
+      displayValue: formatLossMoneyExact(minor, currency),
+    };
+  });
+}
+
 export function parseMoneyMinor(value: MoneyValue | undefined, expectedCurrency?: string) {
   if (!value || (expectedCurrency && value.currency !== expectedCurrency)) return undefined;
   try { return BigInt(value.minor_units); } catch { return undefined; }
@@ -49,4 +78,10 @@ export function bigintMax(left: bigint, right: bigint) { return left > right ? l
 
 function prefixPositive(value: string) {
   return value.startsWith("-") || value.startsWith("+") ? value : `+${value}`;
+}
+
+function shortDate(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value.slice(0, 10);
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" }).format(parsed);
 }
