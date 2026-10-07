@@ -172,9 +172,8 @@ export function DomainPostureSummary({
   return <section className="domain-posture" aria-labelledby="domain-posture-heading">
     <div className="section-header">
       <div>
-        <span className="eyebrow">Current posture</span>
-        <h2 id="domain-posture-heading">Enterprise posture</h2>
-        <p>Current risk posture and operational Loss flow for this scope.</p>
+        <h2 id="domain-posture-heading">Risk and loss</h2>
+        <p>Current risk posture · Loss flow for the selected period</p>
       </div>
     </div>
 
