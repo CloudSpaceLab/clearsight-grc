@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { createLibraryFormDraft } from "../formsApi";
+import { useEffect, useState } from "react";
+import { createLibraryFormDraft, loadFormTemplatePage } from "../formsApi";
+import type { FormLibraryItem } from "../formsTypes";
 import type { FormTemplate } from "../monitoringTypes";
 import { FocusedSheet } from "./FocusedSheet";
 import { FormBuilder } from "./FormBuilder";
 import { DistributionComposer } from "./forms/DistributionComposer";
 import { SubjectFormActivity } from "./forms/SubjectFormActivity";
+import { StatusPill } from "./forms/dashboard/TemplateLibraryTable";
 import { ActionLink, Button, Notice } from "./ui";
 
 type Props = {
@@ -12,11 +14,61 @@ type Props = {
   matterReference: string;
 };
 
+type LinkedFormsState = "loading" | "live" | "unavailable";
+const linkedFormsPageSize = 6;
+
 export function MatterInternalFormRequestsPanel({ matterID, matterReference }: Props) {
   const [requestOpen, setRequestOpen] = useState(false);
   const [authorOpen, setAuthorOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [createdDraft, setCreatedDraft] = useState<FormTemplate>();
+  const [linkedFormsState, setLinkedFormsState] = useState<LinkedFormsState>("loading");
+  const [linkedForms, setLinkedForms] = useState<FormLibraryItem[]>([]);
+  const [linkedFormsCursor, setLinkedFormsCursor] = useState<string>();
+  const [linkedFormsReload, setLinkedFormsReload] = useState(0);
+  const [linkedFormsPageError, setLinkedFormsPageError] = useState("");
+  const [loadingMoreLinkedForms, setLoadingMoreLinkedForms] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLinkedFormsState("loading");
+    setLinkedForms([]);
+    setLinkedFormsCursor(undefined);
+    setLinkedFormsPageError("");
+    void loadFormTemplatePage(
+      { origin_type: "MATTER", origin_id: matterID, limit: linkedFormsPageSize },
+      controller.signal,
+    ).then((page) => {
+      if (controller.signal.aborted) return;
+      setLinkedForms(page.items);
+      setLinkedFormsCursor(page.next_cursor);
+      setLinkedFormsState("live");
+    }).catch(() => {
+      if (!controller.signal.aborted) setLinkedFormsState("unavailable");
+    });
+    return () => controller.abort();
+  }, [linkedFormsReload, matterID]);
+
+  async function loadMoreLinkedForms() {
+    if (!linkedFormsCursor || loadingMoreLinkedForms) return;
+    const cursor = linkedFormsCursor;
+    setLoadingMoreLinkedForms(true);
+    setLinkedFormsPageError("");
+    try {
+      const page = await loadFormTemplatePage({
+        origin_type: "MATTER",
+        origin_id: matterID,
+        cursor,
+        limit: linkedFormsPageSize,
+      });
+      setLinkedForms((current) => appendUniqueFormItems(current, page.items));
+      setLinkedFormsCursor(page.next_cursor);
+    } catch {
+      setLinkedFormsPageError("More linked forms could not be loaded.");
+    } finally {
+      setLoadingMoreLinkedForms(false);
+    }
+  }
 
   return <section className="matter-record-panel" aria-labelledby="matter-form-requests-title">
     <div className="section-heading-row">
@@ -32,6 +84,33 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
     </div>
 
     {notice && <Notice tone="success">{notice}{createdDraft && <> <ActionLink href={`#forms/${encodeURIComponent(createdDraft.id)}`}>Open form draft</ActionLink></>}</Notice>}
+
+    <div className="subject-form-activity__group" aria-labelledby="linked-forms-title">
+      <header>
+        <h3 id="linked-forms-title">Linked forms</h3>
+        {linkedFormsState === "live" && <span>{linkedForms.length} shown</span>}
+      </header>
+      {linkedFormsState === "loading" && <p role="status">Loading linked forms…</p>}
+      {linkedFormsState === "unavailable" && <Notice tone="warning">
+        Linked forms are unavailable. Other issue work remains available. <Button variant="secondary" size="compact" onPress={() => setLinkedFormsReload((value) => value + 1)}>Retry linked forms</Button>
+      </Notice>}
+      {linkedFormsState === "live" && linkedForms.length === 0 && <p>No linked forms recorded.</p>}
+      {linkedForms.length > 0 && <ul>{linkedForms.map((item) => <li key={item.template.id}>
+        <div>
+          <strong>{item.template.name}</strong>
+          <span>Revision {item.template.version}</span>
+        </div>
+        <div className="subject-form-activity__actions">
+          <StatusPill status={item.template.status}/>
+          <ActionLink href={`#forms/${encodeURIComponent(item.template.id)}`}>Open form</ActionLink>
+        </div>
+      </li>)}</ul>}
+      {linkedFormsPageError && <Notice tone="warning">
+        {linkedFormsPageError} <Button variant="secondary" size="compact" isLoading={loadingMoreLinkedForms} onPress={() => void loadMoreLinkedForms()}>Retry linked forms</Button>
+      </Notice>}
+      {linkedFormsCursor && !linkedFormsPageError && <Button variant="secondary" size="compact" isLoading={loadingMoreLinkedForms} onPress={() => void loadMoreLinkedForms()}>Load more linked forms</Button>}
+    </div>
+
     <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference}/>
 
     {authorOpen && <FocusedSheet label="Create linked form" closeLabel="Close form builder" size="wide" onClose={() => setAuthorOpen(false)}>
@@ -46,6 +125,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
           setAuthorOpen(false);
           setCreatedDraft(form);
           setNotice("Form draft created.");
+          setLinkedFormsReload((value) => value + 1);
         }}
         onCancel={() => setAuthorOpen(false)}
         allowIncompleteComplianceDraft
@@ -69,4 +149,10 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
       />
     </FocusedSheet>}
   </section>;
+}
+
+function appendUniqueFormItems(current: FormLibraryItem[], incoming: FormLibraryItem[]) {
+  if (incoming.length === 0) return current;
+  const seen = new Set(current.map((item) => item.template.id));
+  return [...current, ...incoming.filter((item) => !seen.has(item.template.id))];
 }
