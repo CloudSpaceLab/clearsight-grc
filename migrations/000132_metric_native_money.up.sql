@@ -44,8 +44,7 @@ ALTER TABLE metric_observation_daily_rollups
 
 ALTER TABLE metric_observation_daily_rollups
     ADD CONSTRAINT metric_daily_rollups_currency_check
-        CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}
-),
+        CHECK (currency IS NULL OR currency ~ '^[A-Z]{3}$'),
     ADD CONSTRAINT metric_daily_rollups_member_count_check
         CHECK (member_count IS NULL OR member_count>=0),
     ADD CONSTRAINT metric_daily_rollups_typed_value_check
