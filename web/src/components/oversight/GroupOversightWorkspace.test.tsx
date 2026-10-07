@@ -183,7 +183,7 @@ describe("GroupOversightWorkspace", () => {
       source_generated_at: undefined,
       source_revision: undefined,
       definition_revision: undefined,
-      counts: { ...posture.children[1].counts, risks_outside_appetite: 0, indicator_breaches: 0, assurance_failures: 0 },
+      counts: { ...posture.children[1]!.counts, risks_outside_appetite: 0, indicator_breaches: 0, assurance_failures: 0 },
       freshness: "STALE",
     };
 
