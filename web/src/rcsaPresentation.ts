@@ -42,7 +42,7 @@ export function rcsaHandoffTone(handoff: RCSAHandoff): StatusTone {
 export type RCSAPhasePathStep = {
   id: "COLLECTION" | "INDEPENDENT_CHALLENGE" | "RISK_ACCEPTANCE" | "REMEDIATION_VERIFICATION";
   label: string;
-  state: "complete" | "current" | "pending" | "not_required";
+  state: "complete" | "current" | "pending" | "not_required" | "unknown";
 };
 
 export function rcsaPhaseTone(stage: RCSAPhaseStage): StatusTone {
@@ -68,7 +68,7 @@ export function rcsaPhasePath(stage: RCSAPhaseStage): RCSAPhasePathStep[] {
           : stage === "REMEDIATION_VERIFICATION"
             ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "complete", RISK_ACCEPTANCE: "not_required", REMEDIATION_VERIFICATION: "current" }
             : stage === "COMPLETE"
-              ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "complete" }
+              ? { COLLECTION: "complete", INDEPENDENT_CHALLENGE: "complete", RISK_ACCEPTANCE: "unknown", REMEDIATION_VERIFICATION: "unknown" }
               : {};
   return [
     { id: "COLLECTION", label: "First-line collection", state: states.COLLECTION ?? "pending" },
