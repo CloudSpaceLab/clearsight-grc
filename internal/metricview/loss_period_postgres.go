@@ -406,7 +406,7 @@ func retainLossPeriodSnapshot(
 
 	if _, err := tx.Exec(ctx, `
 		WITH contributors AS (
-			SELECT loss.id,loss.title,loss.organization_scope_id,true AS gross,false AS recovery
+			SELECT loss.id,loss.title,loss.organization_scope_id,true AS gross,false AS recovery,false AS reversal
 			FROM operational_losses loss
 			WHERE loss.tenant_id=$1::uuid
 			  AND loss.legal_entity_id=$2::uuid
@@ -415,7 +415,8 @@ func retainLossPeriodSnapshot(
 			  AND loss.occurred_at<=$4
 			  AND (NOT $5::boolean OR loss.organization_scope_id=ANY($6::uuid[]))
 			UNION ALL
-			SELECT loss.id,loss.title,loss.organization_scope_id,false,true
+			SELECT loss.id,loss.title,loss.organization_scope_id,false,
+			       recovery.kind='RECOVERY',recovery.kind='REVERSAL'
 			FROM operational_loss_recoveries recovery
 			JOIN operational_losses loss
 			  ON loss.tenant_id=recovery.tenant_id
@@ -429,7 +430,9 @@ func retainLossPeriodSnapshot(
 			  AND (NOT $5::boolean OR loss.organization_scope_id=ANY($6::uuid[]))
 		), rolled AS (
 			SELECT id,title,organization_scope_id,
-			       bool_or(gross) AS has_gross,bool_or(recovery) AS has_recovery
+			       bool_or(gross) AS has_gross,
+			       bool_or(recovery) AS has_recovery,
+			       bool_or(reversal) AS has_reversal
 			FROM contributors
 			GROUP BY id,title,organization_scope_id
 		)
@@ -439,7 +442,9 @@ func retainLossPeriodSnapshot(
 		)
 		SELECT $7::uuid,$8,$9,id,'LOSS',id,organization_scope_id,title,
 		       CASE
-		         WHEN has_gross AND has_recovery THEN 'GROSS_AND_RECOVERY'
+		         WHEN has_gross AND (has_recovery OR has_reversal) THEN 'GROSS_AND_RECOVERY_ACTIVITY'
+		         WHEN has_recovery AND has_reversal THEN 'RECOVERY_AND_REVERSAL'
+		         WHEN has_reversal THEN 'REVERSAL'
 		         WHEN has_recovery THEN 'RECOVERY'
 		         ELSE 'GROSS'
 		       END
