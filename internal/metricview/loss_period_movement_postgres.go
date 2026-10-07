@@ -54,16 +54,16 @@ func buildLossPeriodComparison(
 		return LossPeriodComparison{}, err
 	}
 	comparison := LossPeriodComparison{
-		PeriodStart: periodStart,
-		PeriodEnd: periodEnd,
-		EventCount: previous.EventCount,
+		PeriodStart:           periodStart,
+		PeriodEnd:             periodEnd,
+		EventCount:            previous.EventCount,
 		ContributingLossCount: previous.ContributingLossCount,
-		MixedCurrencies: len(previous.Currencies) > 1,
-		NetLoss: netLoss,
-		Currencies: currencies,
-		EventDelta: current.EventCount - previous.EventCount,
-		Direction: TrendUnknown,
-		ComparisonQuality: ComparisonLimited,
+		MixedCurrencies:       len(previous.Currencies) > 1,
+		NetLoss:               netLoss,
+		Currencies:            currencies,
+		EventDelta:            current.EventCount - previous.EventCount,
+		Direction:             TrendUnknown,
+		ComparisonQuality:     ComparisonLimited,
 	}
 	currentCurrency, currentNet, currentComparable := comparableLossNet(current.Currencies)
 	previousCurrency, previousNet, previousComparable := comparableLossNet(previous.Currencies)
@@ -229,9 +229,9 @@ func loadLossFlowPoints(
 		point := byStart[key]
 		if point == nil {
 			point = &LossFlowPoint{
-				Start: bucketStart,
+				Start:                 bucketStart,
 				ContributingLossCount: contributors,
-				Currencies: make([]LossCurrencyFlow, 0, 1),
+				Currencies:            make([]LossCurrencyFlow, 0, 1),
 			}
 			byStart[key] = point
 		}
@@ -268,8 +268,8 @@ func loadLossFlowPoints(
 	for bucketStart := first; !bucketStart.After(periodEnd); bucketStart = lossFlowNextBucket(bucketStart, resolution) {
 		next := lossFlowNextBucket(bucketStart, resolution)
 		point := LossFlowPoint{
-			Start: lossTimeMax(bucketStart, periodStart),
-			End: lossTimeMin(next.Add(-time.Nanosecond), periodEnd),
+			Start:      lossTimeMax(bucketStart, periodStart),
+			End:        lossTimeMin(next.Add(-time.Nanosecond), periodEnd),
 			Currencies: []LossCurrencyFlow{},
 		}
 		if stored := byStart[bucketStart.UnixNano()]; stored != nil {
