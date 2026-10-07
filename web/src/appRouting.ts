@@ -103,10 +103,11 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (indicator) target.indicatorID = indicator;
     if (kind === "KRI" || kind === "KCI") target.indicatorKind = kind;
     if (query.get("view") === "risk-loss") {
+      target.insightsView = "risk-loss";
       const period = readInsightsPeriod(query);
       if (period) {
         const legalEntityID = query.get("legal_entity_id")?.trim();
-        if (!legalEntityID || !/^[A-Za-z0-9-]{1,128}$/.test(legalEntityID)) return { view, target: {} };
+        if (!legalEntityID || !/^[A-Za-z0-9-]{1,128}$/.test(legalEntityID)) return { view, target: { insightsView: "risk-loss" } };
         target.insightsLegalEntityID = legalEntityID;
         target.insightsView = "risk-loss";
         target.insightsPeriod = period;
@@ -115,7 +116,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
           target.insightsOrganizationScopeID = scopeID;
         } else if (scopeID) {
           // A malformed or unrecognized scope must never fall back to legal-entity reads.
-          return { view, target: {} };
+          return { view, target: { insightsView: "risk-loss" } };
         }
       }
     }
