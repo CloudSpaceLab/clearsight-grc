@@ -13,8 +13,6 @@ import (
 
 var organizationDailyPostureMetricIDs = []string{
 	"risks_outside_appetite",
-	"indicator_breaches",
-	"assurance_failures",
 }
 
 type organizationDailySourceCandidate struct {
