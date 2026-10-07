@@ -40,6 +40,12 @@ func (m *DomainMaintainer) Maintain(ctx context.Context, now time.Time, limit in
 			completed++
 		}
 	}
+	dailyCompleted, err := maintainOrganizationDailyHistory(ctx, m.Repository.pool, now, limit)
+	if err != nil {
+		return completed, err
+	}
+	completed += dailyCompleted
+
 	if _, err := m.Repository.pool.Exec(ctx, `
 		DELETE FROM domain_metric_snapshots
 		WHERE id IN (
