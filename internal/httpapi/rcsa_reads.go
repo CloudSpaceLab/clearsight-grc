@@ -99,7 +99,7 @@ func (a *API) listRCSACycles(w http.ResponseWriter, r *http.Request) {
 			RiskCount:                 item.RiskCount,
 			ControlCount:              item.ControlCount,
 			FirstLineOwnerDisplayName: labels[item.Cycle.FirstLineOwnerID],
-			Handoff:                   rcsaCycleHandoff(item.Cycle, ""),
+			Handoff:                   rcsaCycleSummaryHandoff(item.Cycle),
 		})
 	}
 	httpx.WriteJSON(w, http.StatusOK, rcsaCyclePageRead{
@@ -128,6 +128,16 @@ func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 	labels := a.exactAssessmentLabels(r.Context(), actor, actor.LegalEntityID, []string{value.Cycle.FirstLineOwnerID})
 	requestID, periodStart, periodEnd, firstLineComplete := a.rcsaFirstLineContext(r.Context(), value.Cycle)
 	phase, phaseComplete := a.rcsaCyclePhaseContext(r.Context(), value.Cycle)
+	handoff := rcsaCycleHandoff(value.Cycle, requestID)
+	if strings.TrimSpace(value.Cycle.ChallengeMatterID) != "" && !phaseComplete {
+		handoff.TargetType = ""
+		handoff.TargetID = ""
+		if value.Cycle.Status == rcsa.StatusCompleted {
+			handoff.Label = "Completed · challenge context unavailable"
+		} else {
+			handoff.Label = "Independent challenge context unavailable"
+		}
+	}
 	httpx.WriteJSON(w, http.StatusOK, rcsaCycleDetailRead{
 		Cycle:                     value.Cycle,
 		Risks:                     value.Risks,
@@ -136,7 +146,7 @@ func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 		AssessmentPeriodStart:     periodStart,
 		AssessmentPeriodEnd:       periodEnd,
 		FirstLineRequestID:        requestID,
-		Handoff:                   rcsaCycleHandoff(value.Cycle, requestID),
+		Handoff:                   handoff,
 		Phase:                     phase,
 		Complete:                  firstLineComplete && phaseComplete,
 	})
@@ -315,6 +325,15 @@ func rcsaChallengeDecisionFinal(status continuity.DecisionStatus) bool {
 	default:
 		return false
 	}
+}
+
+func rcsaCycleSummaryHandoff(cycle rcsa.Cycle) rcsaHandoffRead {
+	value := rcsaCycleHandoff(cycle, "")
+	if value.TargetType == "MATTER" {
+		value.TargetType = ""
+		value.TargetID = ""
+	}
+	return value
 }
 
 func rcsaCycleHandoff(cycle rcsa.Cycle, firstLineRequestID string) rcsaHandoffRead {
