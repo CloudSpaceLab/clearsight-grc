@@ -475,7 +475,7 @@ func lossPeriodFingerprint(
 	sort.Strings(payload.OrganizationScopeIDs)
 	encoded, err := json.Marshal(payload)
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("encode Loss period fingerprint: %w", err)
+		return "", fmt.Errorf("encode Loss period fingerprint: %w", err)
 	}
 	sum := sha256.Sum256(encoded)
 	return hex.EncodeToString(sum[:]), nil
