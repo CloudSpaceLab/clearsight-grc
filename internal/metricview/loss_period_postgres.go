@@ -187,7 +187,7 @@ func loadLossPeriodAggregate(
 	var aggregate lossPeriodAggregate
 	err := tx.QueryRow(ctx, `
 		WITH loss_events AS (
-			SELECT loss.id,loss.title,loss.organization_scope_id,loss.currency,loss.gross_amount_minor
+			SELECT loss.id,loss.version,loss.title,loss.organization_scope_id,loss.currency,loss.gross_amount_minor
 			FROM operational_losses loss
 			WHERE loss.tenant_id=$1::uuid
 			  AND loss.legal_entity_id=$2::uuid
@@ -197,6 +197,7 @@ func loadLossPeriodAggregate(
 			  AND (NOT $5::boolean OR loss.organization_scope_id=ANY($6::uuid[]))
 		), recovery_events AS (
 			SELECT recovery.loss_id AS id,
+			       loss.version,
 			       loss.title,
 			       loss.organization_scope_id,
 			       loss.currency,
@@ -214,9 +215,9 @@ func loadLossPeriodAggregate(
 			  AND recovery.recovered_at<=$4
 			  AND (NOT $5::boolean OR loss.organization_scope_id=ANY($6::uuid[]))
 		), contributors AS (
-			SELECT id FROM loss_events
+			SELECT id,version FROM loss_events
 			UNION
-			SELECT id FROM recovery_events
+			SELECT id,version FROM recovery_events
 		), currencies AS (
 			SELECT currency FROM loss_events
 			UNION
@@ -251,8 +252,8 @@ func loadLossPeriodAggregate(
 		  (SELECT count(*) FROM loss_events),
 		  (SELECT count(*) FROM contributors),
 		  (SELECT count(*) FROM loss_events WHERE organization_scope_id IS NULL),
-		  (SELECT md5(COALESCE(string_agg(id::text,',' ORDER BY id),'')) FROM loss_events),
-		  (SELECT md5(COALESCE(string_agg(id::text,',' ORDER BY id),'')) FROM contributors),
+		  (SELECT md5(COALESCE(string_agg(id::text||':'||version::text,',' ORDER BY id),'')) FROM loss_events),
+		  (SELECT md5(COALESCE(string_agg(id::text||':'||version::text,',' ORDER BY id),'')) FROM contributors),
 		  COALESCE((
 			SELECT jsonb_agg(jsonb_build_object(
 				'currency',currency,
@@ -398,10 +399,10 @@ func retainLossPeriodSnapshot(
 			  AND recovery.recovered_at<=$4
 			  AND (NOT $5::boolean OR loss.organization_scope_id=ANY($6::uuid[]))
 		), rolled AS (
-			SELECT id,max(title) AS title,max(organization_scope_id) AS organization_scope_id,
+			SELECT id,title,organization_scope_id,
 			       bool_or(gross) AS has_gross,bool_or(recovery) AS has_recovery
 			FROM contributors
-			GROUP BY id
+			GROUP BY id,title,organization_scope_id
 		)
 		INSERT INTO metric_runtime_memberships(
 			source_id,metric_id,definition_revision,member_id,target_type,target_id,
