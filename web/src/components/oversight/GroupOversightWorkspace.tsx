@@ -193,10 +193,10 @@ export function GroupOversightWorkspace({
         <h1 id="group-oversight-heading">Group Home</h1>
         <p>Authorized OpCo aggregates only. Open an OpCo before viewing record detail.</p>
       </div>
-      {selectedHomeTab === "oversight" && <OversightPeriodPicker
+      {selectedHomeTab === "oversight" && posture && <OversightPeriodPicker
         period={period}
         freshness={postureState === "live" && posture && groupPostureCoverage(posture, postureMetric).complete ? "CURRENT" : "STALE"}
-        generatedAt={posture?.generated_at ?? new Date(nowMs ?? Date.now()).toISOString()}
+        generatedAt={posture.generated_at}
         error={postureState === "unavailable" ? "Group CRO posture is unavailable." : undefined}
         onApply={applyPeriod}
       />}
