@@ -167,6 +167,33 @@ describe("GroupOversightWorkspace", () => {
     expect(screen.getByRole("table", { name: "Group OpCo attention" })).toBeTruthy();
   });
 
+
+  it("does not display previous-period Group totals while the new period loads", async () => {
+    let resolveNext: ((value: GroupPostureBundle) => void) | undefined;
+    const pending = new Promise<GroupPostureBundle>((resolve) => { resolveNext = resolve; });
+    const loadPosture = vi.fn().mockResolvedValueOnce(postureFixture()).mockReturnValueOnce(pending);
+
+    render(<GroupOversightWorkspace
+      organizationName="Clear Bank"
+      initialSnapshot={attentionFixture()}
+      onOpenLegalEntity={vi.fn()}
+      loadPosture={loadPosture}
+      now={new Date("2026-10-07T12:00:00Z")}
+    />);
+
+    expect(await screen.findByRole("button", { name: /Outside appetite: 9/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Reporting period, Last 30 days/ }));
+    fireEvent.click(screen.getByRole("button", { name: "90 days" }));
+
+    expect(screen.queryByRole("button", { name: /Outside appetite: 9/ })).toBeNull();
+    expect(screen.getByRole("article", { name: /Outside appetite: —.*Loading/ })).toBeTruthy();
+
+    const next = postureFixture();
+    next.counts.risks_outside_appetite = 12;
+    resolveNext?.(next);
+    expect(await screen.findByRole("button", { name: /Outside appetite: 12/ })).toBeTruthy();
+  });
+
   it("keeps Risk quality separate from complete Group Loss-event coverage", async () => {
     const posture = postureFixture();
     posture.risk_coverage = {
