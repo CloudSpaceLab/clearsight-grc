@@ -19,6 +19,29 @@ const scenarios = [
   { id: "entity-dark-320", fixture: "oversight", theme: "dark", width: 320, height: 800, mode: "entity" },
 ];
 
+// Shared Home Tabs use a compact React Aria Select at <=760px.
+function primaryTabs(page) {
+  return page.locator(".cs-tabs--compact-select").first();
+}
+
+function primaryTab(page, label) {
+  return primaryTabs(page).locator(":scope > .cs-tabs__list [role=tab]").filter({ hasText: label });
+}
+
+async function selectPrimaryTab(page, label) {
+  const tab = primaryTab(page, label);
+  if (await tab.isVisible()) {
+    await tab.click();
+    return;
+  }
+  await primaryTabs(page).locator(":scope > .cs-tabs__compact button").click();
+  await page.getByRole("listbox").getByRole("option", { name: label, exact: true }).click();
+}
+
+async function primaryTabSelected(page, label) {
+  return (await primaryTab(page, label).getAttribute("aria-selected")) === "true";
+}
+
 await mkdir(outputDir, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const records = [];
@@ -54,20 +77,20 @@ for (const item of scenarios) {
 
     if (item.mode === "entity") {
       await page.getByRole("heading", { name: "Home", exact: true }).waitFor({ state: "visible" });
-      const tabs = page.getByRole("tablist", { name: "Home views" }).getByRole("tab");
+      const tabs = primaryTabs(page).locator(":scope > .cs-tabs__list [role=tab]");
       assert(await tabs.count() === 3, "Legal-entity Home exposes three intent tabs");
-      assert(await page.getByRole("tab", { name: "Oversight" }).getAttribute("aria-selected") === "true", "Oversight is initial entity tab");
-      await page.getByRole("tab", { name: "Attention" }).click();
-      assert(await page.getByRole("tab", { name: "Attention" }).getAttribute("aria-selected") === "true", "Attention opens independently");
-      await page.getByRole("tab", { name: "My work" }).click();
-      assert(await page.getByRole("tab", { name: "My work" }).getAttribute("aria-selected") === "true", "My work opens independently");
-      await page.getByRole("tab", { name: "Oversight" }).click();
+      assert(await primaryTabSelected(page, "Oversight"), "Oversight is initial entity tab");
+      await selectPrimaryTab(page, "Attention");
+      assert(await primaryTabSelected(page, "Attention"), "Attention opens independently");
+      await selectPrimaryTab(page, "My work");
+      assert(await primaryTabSelected(page, "My work"), "My work opens independently");
+      await selectPrimaryTab(page, "Oversight");
     } else {
       await page.getByRole("heading", { name: "Group Home" }).waitFor({ state: "visible" });
       await page.getByRole("button", { name: /Outside appetite: 9/ }).waitFor({ state: "visible" });
-      const tabs = page.getByRole("tablist", { name: "Group Home views" }).getByRole("tab");
+      const tabs = primaryTabs(page).locator(":scope > .cs-tabs__list [role=tab]");
       assert(await tabs.count() === 3, "Group Home exposes three intent tabs");
-      assert(await page.getByRole("tab", { name: "Oversight" }).getAttribute("aria-selected") === "true", "Group Oversight initial tab");
+      assert(await primaryTabSelected(page, "Oversight"), "Group Oversight initial tab");
       assert(await page.getByRole("list", { name: "Outside appetite by OpCo" }).isVisible(), "Authorized OpCo risk concentration visible");
       assert(await page.getByRole("button", { name: /Loss events: 5/ }).isVisible(), "Loss is period event count, not cross-currency money");
       if (item.mode === "partial") {
@@ -106,16 +129,25 @@ for (const item of scenarios) {
       await page.keyboard.press("Enter");
       assert(await page.locator("main[data-opened-opco='opco-alpha']").count() > 0, "Keyboard opens only the selected authorized OpCo");
 
-      const oversightTab = page.getByRole("tab", { name: "Oversight" });
-      await oversightTab.focus();
-      await page.keyboard.press("ArrowRight");
-      assert(await page.getByRole("tab", { name: "Attention" }).getAttribute("aria-selected") === "true", "Right arrow moves to Attention");
+      const oversightTab = primaryTab(page, "Oversight");
+      if (await oversightTab.isVisible()) {
+        await oversightTab.focus();
+        await page.keyboard.press("ArrowRight");
+        assert(await primaryTabSelected(page, "Attention"), "Right arrow moves to Attention");
+        await page.keyboard.press("ArrowRight");
+        assert(await primaryTabSelected(page, "My work"), "Right arrow moves to My work");
+      } else {
+        await selectPrimaryTab(page, "Attention");
+        assert(await primaryTabSelected(page, "Attention"), "Compact navigation opens Attention");
+        await selectPrimaryTab(page, "My work");
+        assert(await primaryTabSelected(page, "My work"), "Compact navigation opens My work");
+      }
+      await selectPrimaryTab(page, "Attention");
       assert(await page.getByRole("table", { name: "Group OpCo attention" }).isVisible(), "Workflow pressure remains in Attention");
-      await page.keyboard.press("ArrowRight");
-      assert(await page.getByRole("tab", { name: "My work" }).getAttribute("aria-selected") === "true", "Right arrow moves to My work");
+      await selectPrimaryTab(page, "My work");
       await page.getByRole("button", { name: "Open current OpCo My work" }).click();
       assert(await page.locator("main[data-work-handoff='true']").count() > 0, "My work hands off to OpCo work instead of aggregating Group identities");
-      await page.getByRole("tab", { name: "Oversight" }).click();
+      await selectPrimaryTab(page, "Oversight");
       await page.getByRole("button", { name: /Reporting period/ }).click();
       await page.getByRole("button", { name: "90 days" }).click();
       await page.getByRole("button", { name: /Loss events: 9/ }).waitFor({ state: "visible" });
