@@ -14,7 +14,7 @@ import (
 
 const (
 	acceptanceSourcePageSize = 200
-	acceptanceCatalogLimit   = 100
+	acceptanceCatalogLimit   = sourceaccess.HardMaxCatalogListRows
 	acceptanceMaxSources     = 1000
 )
 
