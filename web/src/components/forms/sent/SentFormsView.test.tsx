@@ -107,7 +107,7 @@ describe("SentFormsView", () => {
 
     expect(await screen.findByText("You cannot open this sent form.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Open Quarterly control review" })).toBeTruthy();
-    expect(screen.getByRole("table", { name: "Sent forms" })).toBeTruthy();
+    expect(screen.getByRole("table", { name: "Sent-form distributions" })).toBeTruthy();
   });
 
   it("keeps lifecycle feedback after the confirmed command", async () => {
