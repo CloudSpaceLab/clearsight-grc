@@ -284,20 +284,6 @@ func validObservationSet(values []Observation) bool {
 	return true
 }
 
-func validObservationMeasure(value Observation, definition Definition) bool {
-	if value.Value < 0 {
-		return false
-	}
-	switch definition.Unit {
-	case MetricUnitCount:
-		return strings.TrimSpace(value.Currency) == "" && value.MemberCount == nil
-	case MetricUnitMoney:
-		return validMetricCurrency(value.Currency) && value.MemberCount != nil && *value.MemberCount >= 0
-	default:
-		return false
-	}
-}
-
 func storeObservationRows(ctx context.Context, tx pgx.Tx, values []Observation) (bool, error) {
 	if tx == nil || !validObservationSet(values) {
 		return false, ErrInvalidObservation
