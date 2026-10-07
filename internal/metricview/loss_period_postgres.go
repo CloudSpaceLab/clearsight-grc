@@ -91,6 +91,13 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 	if err != nil {
 		return LossPeriodBundle{}, err
 	}
+	breakdown, err := loadLossOrganizationBreakdown(ctx, tx, scope, periodStart, periodEnd)
+	if err != nil {
+		return LossPeriodBundle{}, err
+	}
+	if !lossBreakdownMatchesAggregate(breakdown, aggregate) {
+		return LossPeriodBundle{}, ErrLossPeriodInvalid
+	}
 	sourceID, sourceGeneratedAt, err := retainLossPeriodSnapshot(
 		ctx, tx, scope, periodStart, periodEnd, generatedAt, aggregate,
 	)
@@ -115,6 +122,7 @@ func (r *LossPeriodRepository) CurrentLossPeriod(
 		UnattributedEventCount: aggregate.UnattributedEventCount,
 		MixedCurrencies:        len(aggregate.Currencies) > 1,
 		Currencies:             make([]LossCurrencyFlow, 0, len(aggregate.Currencies)),
+		OrganizationBreakdown:  breakdown,
 	}
 	if organizationScopeID != "" {
 		bundle.ScopeID = organizationScopeID
@@ -303,6 +311,258 @@ func loadLossPeriodAggregate(
 		return aggregate.Currencies[i].Currency < aggregate.Currencies[j].Currency
 	})
 	return aggregate, nil
+}
+
+func loadLossOrganizationBreakdown(
+	ctx context.Context,
+	tx pgx.Tx,
+	scope domainScope,
+	periodStart time.Time,
+	periodEnd time.Time,
+) ([]LossOrganizationFlow, error) {
+	rows, err := tx.Query(ctx, `
+		WITH RECURSIVE roots AS (
+			SELECT organization.id AS scope_id,
+			       organization.id AS bucket_id,
+			       organization.name AS bucket_label
+			FROM organization_scopes organization
+			WHERE organization.tenant_id=$1::uuid
+			  AND organization.legal_entity_id=$2::uuid
+			  AND (
+			    (NOT $5::boolean AND organization.parent_scope_id IS NULL)
+			    OR ($5::boolean AND organization.parent_scope_id=$7::uuid)
+			  )
+		), scope_tree AS (
+			SELECT scope_id,bucket_id,bucket_label
+			FROM roots
+			UNION ALL
+			SELECT child.id,tree.bucket_id,tree.bucket_label
+			FROM organization_scopes child
+			JOIN scope_tree tree ON child.parent_scope_id=tree.scope_id
+			WHERE child.tenant_id=$1::uuid
+			  AND child.legal_entity_id=$2::uuid
+		), losses AS (
+			SELECT loss.id,
+			       loss.organization_scope_id,
+			       loss.currency,
+			       CASE
+			         WHEN loss.organization_scope_id IS NULL THEN 'unattributed'
+			         WHEN $5::boolean AND loss.organization_scope_id=$7::uuid THEN 'direct'
+			         WHEN tree.bucket_id IS NOT NULL THEN 'scope:'||tree.bucket_id::text
+			         ELSE 'unavailable'
+			       END AS bucket_key,
+			       CASE
+			         WHEN tree.bucket_id IS NOT NULL THEN tree.bucket_id
+			         ELSE NULL
+			       END AS bucket_scope_id,
+			       CASE
+			         WHEN loss.organization_scope_id IS NULL THEN 'Unattributed'
+			         WHEN $5::boolean AND loss.organization_scope_id=$7::uuid THEN 'Direct'
+			         WHEN tree.bucket_label IS NOT NULL THEN tree.bucket_label
+			         ELSE 'Organization unavailable'
+			       END AS bucket_label,
+			       CASE
+			         WHEN loss.organization_scope_id IS NULL THEN 'UNATTRIBUTED'
+			         WHEN $5::boolean AND loss.organization_scope_id=$7::uuid THEN 'DIRECT'
+			         WHEN tree.bucket_id IS NOT NULL THEN 'ORGANIZATION_SCOPE'
+			         ELSE 'UNAVAILABLE'
+			       END AS bucket_kind
+			FROM operational_losses loss
+			LEFT JOIN scope_tree tree ON tree.scope_id=loss.organization_scope_id
+			WHERE loss.tenant_id=$1::uuid
+			  AND loss.legal_entity_id=$2::uuid
+			  AND loss.status='ACTIVE'
+			  AND (NOT $5::boolean OR loss.organization_scope_id=ANY($6::uuid[]))
+		), flows AS (
+			SELECT loss.bucket_key,loss.bucket_scope_id,loss.bucket_label,loss.bucket_kind,
+			       loss.id AS loss_id,loss.currency,
+			       source.gross_amount_minor::bigint AS gross_minor,
+			       0::bigint AS recovery_minor,
+			       0::bigint AS reversal_minor,
+			       1::bigint AS loss_event_count,
+			       0::bigint AS recovery_event_count,
+			       0::bigint AS reversal_event_count
+			FROM losses loss
+			JOIN operational_losses source
+			  ON source.tenant_id=$1::uuid
+			 AND source.legal_entity_id=$2::uuid
+			 AND source.id=loss.id
+			WHERE source.occurred_at>=$3
+			  AND source.occurred_at<=$4
+			UNION ALL
+			SELECT loss.bucket_key,loss.bucket_scope_id,loss.bucket_label,loss.bucket_kind,
+			       loss.id AS loss_id,loss.currency,
+			       0::bigint,
+			       CASE WHEN recovery.kind='RECOVERY' THEN recovery.amount_minor ELSE 0 END::bigint,
+			       CASE WHEN recovery.kind='REVERSAL' THEN recovery.amount_minor ELSE 0 END::bigint,
+			       0::bigint,
+			       CASE WHEN recovery.kind='RECOVERY' THEN 1 ELSE 0 END::bigint,
+			       CASE WHEN recovery.kind='REVERSAL' THEN 1 ELSE 0 END::bigint
+			FROM losses loss
+			JOIN operational_loss_recoveries recovery
+			  ON recovery.tenant_id=$1::uuid
+			 AND recovery.legal_entity_id=$2::uuid
+			 AND recovery.loss_id=loss.id
+			WHERE recovery.recovered_at>=$3
+			  AND recovery.recovered_at<=$4
+		), currency_totals AS (
+			SELECT bucket_key,
+			       max(bucket_scope_id) AS bucket_scope_id,
+			       max(bucket_label) AS bucket_label,
+			       max(bucket_kind) AS bucket_kind,
+			       currency,
+			       sum(gross_minor)::bigint AS gross_minor,
+			       sum(recovery_minor)::bigint AS recovery_minor,
+			       sum(reversal_minor)::bigint AS reversal_minor,
+			       sum(loss_event_count)::bigint AS loss_event_count,
+			       sum(recovery_event_count)::bigint AS recovery_event_count,
+			       sum(reversal_event_count)::bigint AS reversal_event_count
+			FROM flows
+			GROUP BY bucket_key,currency
+		), contributors AS (
+			SELECT bucket_key,count(DISTINCT loss_id)::bigint AS contributor_count
+			FROM flows
+			GROUP BY bucket_key
+		)
+		SELECT total.bucket_key,
+		       COALESCE(total.bucket_scope_id::text,''),
+		       total.bucket_label,
+		       total.bucket_kind,
+		       total.currency,
+		       total.gross_minor,
+		       total.recovery_minor,
+		       total.reversal_minor,
+		       total.loss_event_count,
+		       total.recovery_event_count,
+		       total.reversal_event_count,
+		       contributor.contributor_count
+		FROM currency_totals total
+		JOIN contributors contributor USING(bucket_key)
+		ORDER BY
+		  CASE total.bucket_kind WHEN 'ORGANIZATION_SCOPE' THEN 0 ELSE 1 END,
+		  total.bucket_label,
+		  total.currency`,
+		scope.TenantID, scope.LegalEntityID, periodStart, periodEnd,
+		scope.OrganizationScopeID != "", scope.OrganizationScopeIDs, scope.OrganizationScopeID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("load Loss organization breakdown: %w", err)
+	}
+	defer rows.Close()
+
+	byKey := make(map[string]*LossOrganizationFlow)
+	order := make([]string, 0)
+	for rows.Next() {
+		var key, scopeID, label, kind, currency string
+		var grossMinor, recoveryMinor, reversalMinor int64
+		var lossEvents, recoveryEvents, reversalEvents, contributors int
+		if err := rows.Scan(
+			&key, &scopeID, &label, &kind, &currency,
+			&grossMinor, &recoveryMinor, &reversalMinor,
+			&lossEvents, &recoveryEvents, &reversalEvents, &contributors,
+		); err != nil {
+			return nil, fmt.Errorf("scan Loss organization breakdown: %w", err)
+		}
+		item := byKey[key]
+		if item == nil {
+			item = &LossOrganizationFlow{
+				Key: key, ScopeID: scopeID, Label: label, Kind: kind,
+				ContributingLossCount: contributors,
+				Currencies: make([]LossCurrencyFlow, 0, 1),
+			}
+			byKey[key] = item
+			order = append(order, key)
+		}
+		gross, err := NewMoneyValue(grossMinor, currency)
+		if err != nil {
+			return nil, err
+		}
+		recovery, err := NewMoneyValue(recoveryMinor, currency)
+		if err != nil {
+			return nil, err
+		}
+		reversal, err := NewMoneyValue(reversalMinor, currency)
+		if err != nil {
+			return nil, err
+		}
+		net, err := NewMoneyValue(grossMinor-recoveryMinor+reversalMinor, currency)
+		if err != nil {
+			return nil, err
+		}
+		item.LossEventCount += lossEvents
+		item.Currencies = append(item.Currencies, LossCurrencyFlow{
+			Currency: currency,
+			Gross: gross, Recovery: recovery, Reversal: reversal, Net: net,
+			LossEventCount: lossEvents,
+			RecoveryEventCount: recoveryEvents,
+			ReversalEventCount: reversalEvents,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate Loss organization breakdown: %w", err)
+	}
+
+	result := make([]LossOrganizationFlow, 0, len(order))
+	for _, key := range order {
+		item := byKey[key]
+		item.MixedCurrencies = len(item.Currencies) > 1
+		if len(item.Currencies) == 1 {
+			net := item.Currencies[0].Net
+			item.NetLoss = &net
+		}
+		result = append(result, *item)
+	}
+	return result, nil
+}
+
+func lossBreakdownMatchesAggregate(values []LossOrganizationFlow, aggregate lossPeriodAggregate) bool {
+	eventCount := 0
+	contributorCount := 0
+	type totals struct {
+		gross, recovery, reversal int64
+		lossEvents, recoveryEvents, reversalEvents int
+	}
+	byCurrency := make(map[string]*totals)
+	for _, item := range values {
+		eventCount += item.LossEventCount
+		contributorCount += item.ContributingLossCount
+		for _, currency := range item.Currencies {
+			value := byCurrency[currency.Currency]
+			if value == nil {
+				value = &totals{}
+				byCurrency[currency.Currency] = value
+			}
+			gross, err1 := parseMoneyMinorUnits(currency.Gross)
+			recovery, err2 := parseMoneyMinorUnits(currency.Recovery)
+			reversal, err3 := parseMoneyMinorUnits(currency.Reversal)
+			if err1 != nil || err2 != nil || err3 != nil {
+				return false
+			}
+			value.gross += gross
+			value.recovery += recovery
+			value.reversal += reversal
+			value.lossEvents += currency.LossEventCount
+			value.recoveryEvents += currency.RecoveryEventCount
+			value.reversalEvents += currency.ReversalEventCount
+		}
+	}
+	if eventCount != aggregate.EventCount || contributorCount != aggregate.ContributingLossCount ||
+		len(byCurrency) != len(aggregate.Currencies) {
+		return false
+	}
+	for _, currency := range aggregate.Currencies {
+		value := byCurrency[currency.Currency]
+		if value == nil ||
+			value.gross != currency.GrossMinor ||
+			value.recovery != currency.RecoveryMinor ||
+			value.reversal != currency.ReversalMinor ||
+			value.lossEvents != currency.LossEventCount ||
+			value.recoveryEvents != currency.RecoveryEventCount ||
+			value.reversalEvents != currency.ReversalEventCount {
+			return false
+		}
+	}
+	return true
 }
 
 func retainLossPeriodSnapshot(
