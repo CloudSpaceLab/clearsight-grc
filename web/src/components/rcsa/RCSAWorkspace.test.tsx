@@ -47,6 +47,7 @@ beforeEach(() => {
     assessment_period_end: "2026-09-30T23:59:59Z",
     first_line_request_id: "request-1",
     handoff: { stage: "CHALLENGE", label: "Complete independent challenge", target_type: "MATTER", target_id: "matter-1" },
+    phase: { stage: "INDEPENDENT_CHALLENGE", label: "Independent challenge", detail: "Independent review of the first-line assessment is in progress." },
     risks: [
       { cycle_id: cycle.id, risk_id: "risk-1", risk_version: 3, code: "TECH-01", name: "Service interruption", category: "Technology" },
       { cycle_id: cycle.id, risk_id: "risk-2", risk_version: 2, code: "TECH-02", name: "Privileged access misuse", category: "Cyber" },
@@ -89,9 +90,14 @@ it("renders a restrained cycle register and opens the exact challenge handoff", 
   expect(screen.getByText("1 Jul 2026 – 30 Sep 2026")).toBeTruthy();
   expect(screen.getByRole("table", { name: "RCSA frozen Risks" })).toBeTruthy();
   expect(screen.getByRole("table", { name: "RCSA frozen Controls" })).toBeTruthy();
+  expect(screen.getByRole("region", { name: "RCSA cycle path" })).toBeTruthy();
+  expect(screen.getByText("First-line collection")).toBeTruthy();
+  expect(screen.getAllByText("Independent challenge").length).toBeGreaterThan(0);
+  expect(screen.getByText("Risk acceptance")).toBeTruthy();
+  expect(screen.getByText("Remediation verification")).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Open challenge work" }));
-  expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
+  expect(onOpenMatter).toHaveBeenCalledWith("matter-1", "cycle-1");
 });
 
 it("shows partial authority resolution without inventing a complete population", async () => {
