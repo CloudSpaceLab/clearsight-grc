@@ -369,4 +369,3 @@ func lossFlowPointsMatchAggregate(points []LossFlowPoint, aggregate lossPeriodAg
 	}
 	return true
 }
-
