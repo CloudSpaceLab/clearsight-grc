@@ -100,3 +100,37 @@ export const sampleRCSADetail: RCSACycleDetail = {
     },
   ],
 };
+
+
+export const sampleRCSAFirstLineDetail: RCSACycleDetail = {
+  cycle: {
+    ...cycle,
+    id: "cycle-rcsa-2",
+    code: "RCSA-Q4-OPS",
+    name: "Q4 Operations RCSA",
+    trigger_kind: "CHANGE",
+    status: "ASSESSMENT_OPEN",
+    first_line_distribution_id: "distribution-rcsa-2",
+    first_line_response_revision_id: undefined,
+    challenge_matter_id: undefined,
+    version: 2,
+    created_at: "2026-10-01T08:00:00Z",
+    updated_at: "2026-10-04T11:30:00Z",
+  },
+  complete: true,
+  challenge_context_complete: true,
+  first_line_owner_display_name: "Operations Risk",
+  assessment_period_start: "2026-10-01T00:00:00Z",
+  assessment_period_end: "2026-12-31T23:59:59Z",
+  first_line_request_id: "request-rcsa-2",
+  handoff: {
+    stage: "FIRST_LINE",
+    label: "Complete first-line assessment",
+    target_type: "EVIDENCE_REQUEST",
+    target_id: "request-rcsa-2",
+  },
+  risks: [
+    { cycle_id: "cycle-rcsa-2", risk_id: "risk-rcsa-4", risk_version: 1, code: "OPS-031", name: "Settlement processing error", category: "Operational" },
+  ],
+  controls: [],
+};
