@@ -2403,6 +2403,114 @@
         }
       }
     },
+    "/api/v1/metrics/losses/period": {
+      "get": {
+        "operationId": "lossPeriodMetrics",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "parameters": [
+          {
+            "name": "organization_scope_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical operational Loss period flow with per-currency gross, recovery, reversal and net values plus exact drill source."
+          },
+          "503": {
+            "description": "Loss metric projection is unavailable."
+          }
+        }
+      }
+    },
+    "/api/v1/metrics/losses/{metric_id}/members": {
+      "get": {
+        "operationId": "lossPeriodMetricMembers",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "parameters": [
+          {
+            "name": "metric_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization_scope_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "definition_revision",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact retained Loss contributors for one period metric snapshot."
+          },
+          "404": {
+            "description": "The retained Loss period snapshot is unavailable."
+          }
+        }
+      }
+    },
     "/api/v1/metrics/matrices/assurance": {
       "get": {
         "operationId": "assuranceCoverageMatrix",
