@@ -467,9 +467,12 @@ func loadLossOrganizationBreakdown(
 		item := byKey[key]
 		if item == nil {
 			item = &LossOrganizationFlow{
-				Key: key, ScopeID: scopeID, Label: label, Kind: kind,
+				Key:                   key,
+				ScopeID:               scopeID,
+				Label:                 label,
+				Kind:                  kind,
 				ContributingLossCount: contributors,
-				Currencies: make([]LossCurrencyFlow, 0, 1),
+				Currencies:            make([]LossCurrencyFlow, 0, 1),
 			}
 			byKey[key] = item
 			order = append(order, key)
@@ -492,9 +495,12 @@ func loadLossOrganizationBreakdown(
 		}
 		item.LossEventCount += lossEvents
 		item.Currencies = append(item.Currencies, LossCurrencyFlow{
-			Currency: currency,
-			Gross: gross, Recovery: recovery, Reversal: reversal, Net: net,
-			LossEventCount: lossEvents,
+			Currency:           currency,
+			Gross:              gross,
+			Recovery:           recovery,
+			Reversal:           reversal,
+			Net:                net,
+			LossEventCount:     lossEvents,
 			RecoveryEventCount: recoveryEvents,
 			ReversalEventCount: reversalEvents,
 		})
@@ -531,7 +537,7 @@ func lossBreakdownMatchesAggregate(values []LossOrganizationFlow, aggregate loss
 	eventCount := 0
 	contributorCount := 0
 	type totals struct {
-		gross, recovery, reversal int64
+		gross, recovery, reversal                   int64
 		lossEvents, recoveryEvents, reversalEvents int
 	}
 	byCurrency := make(map[string]*totals)
