@@ -202,11 +202,11 @@ func (r *GroupPostureRepository) GroupPosture(
 	defer rows.Close()
 
 	value := GroupPostureBundle{
-		GeneratedAt: generatedAt,
-		PeriodStart: periodStart,
-		PeriodEnd: periodEnd,
+		GeneratedAt:        generatedAt,
+		PeriodStart:        periodStart,
+		PeriodEnd:          periodEnd,
 		DefinitionRevision: DomainDefinitionRevision,
-		Children: make([]GroupPostureChild, 0, len(legalEntityIDs)),
+		Children:           make([]GroupPostureChild, 0, len(legalEntityIDs)),
 	}
 	value.RiskCoverage.AuthorizedChildren = len(legalEntityIDs)
 	value.LossCoverage.AuthorizedChildren = len(legalEntityIDs)
