@@ -155,9 +155,11 @@ export function SentFormsView() {
       {listState === "loading" && <Surface><p role="status" aria-label="Loading sent forms matching the current filters">Loading sent forms…</p></Surface>}
       {listState === "sign-in-required" && <EmptyState population="Sent forms matching the current filters" title="Sign in to review sent forms" description="Session expired." action={<ActionLink href="/">Sign in again</ActionLink>}/>}
       {listState === "error" && <EmptyState population="Sent forms matching the current filters" title="Sent forms could not be loaded" description={error ?? "Retry."} action={<Button onPress={() => void refresh()}>Try again</Button>}/>}
-      {listState === "live" && items.length === 0 && <EmptyState population="Sent forms matching the current filters" title="No sent forms match these filters" description="Change filters."/>}
-      {listState === "live" && items.length > 0 && <div className={`forms-sent__layout${wideDetail ? "" : " forms-sent__layout--single"}`}>
-        <SentFormsTable items={items} selectedID={selectedID} nextCursor={nextCursor} loadingMore={busy === "more"} onSelect={selectDistribution} onLoadMore={() => void loadMore()}/>
+      {listState === "live" && items.length === 0 && !selectedID && <EmptyState population="Sent forms matching the current filters" title="No sent forms match these filters" description="Change filters."/>}
+      {listState === "live" && (items.length > 0 || selectedID) && <div className={`forms-sent__layout${wideDetail ? "" : " forms-sent__layout--single"}`}>
+        {items.length > 0
+          ? <SentFormsTable items={items} selectedID={selectedID} nextCursor={nextCursor} loadingMore={busy === "more"} onSelect={selectDistribution} onLoadMore={() => void loadMore()}/>
+          : <EmptyState population="Sent forms matching the current filters" title="No sent forms match these filters" description="The selected sent form is outside this filtered list."/>}
         {wideDetail && <aside className="forms-sent__detail" aria-label={selectedTitle ? `${selectedTitle} details` : "Selected distribution"}>{detailContent}</aside>}
       </div>}
     </div>
