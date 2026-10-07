@@ -1,3 +1,6 @@
+import type { InsightView } from "../../appRouting";
+import type { ReportingPeriodQuery } from "../../reportingPeriod";
+import { RiskLossInsights } from "./RiskLossInsights";
 import { useEffect, useMemo, useState } from "react";
 import type { ScopeNode } from "../../api";
 import { loadIndicatorPopulation } from "../../indicatorApi";
@@ -17,6 +20,11 @@ type Props = {
   organizationScopeName?: string;
   organizationScopes?: ScopeNode[];
   kind: RiskIndicatorKind;
+  view?: InsightView;
+  riskLossPeriod?: ReportingPeriodQuery;
+  scopeAuthorized?: boolean;
+  onOpenLoss?: (lossID: string) => void;
+  onOpenOrganizationScope?: (scopeID: string) => void;
   targetID?: string;
   onKindChange: (kind: RiskIndicatorKind) => void;
   onTarget: (id: string | undefined, kind: RiskIndicatorKind) => void;
@@ -40,6 +48,11 @@ export function InsightsWorkspace({
   organizationScopeName,
   organizationScopes = [],
   kind,
+  view,
+  riskLossPeriod,
+  scopeAuthorized = true,
+  onOpenLoss,
+  onOpenOrganizationScope,
   targetID,
   onKindChange,
   onTarget,
@@ -58,9 +71,10 @@ export function InsightsWorkspace({
 
   useEffect(() => {
     setCursorStack([]);
-  }, [kind, organizationScopeID]);
+  }, [kind, view, organizationScopeID]);
 
   useEffect(() => {
+    if (view === "risk-loss") return;
     const controller = new AbortController();
     setState("loading");
     void loadIndicatorPopulation({ kind, organizationScopeID, cursor, limit: 50 }, controller.signal).then((value) => {
@@ -73,9 +87,10 @@ export function InsightsWorkspace({
       setState("error");
     });
     return () => controller.abort();
-  }, [cursor, kind, organizationScopeID, retry]);
+  }, [cursor, kind, organizationScopeID, retry, view]);
 
   useEffect(() => {
+    if (view === "risk-loss") return;
     if (!targetID) {
       setTargetItem(undefined);
       setTargetState("live");
@@ -99,7 +114,7 @@ export function InsightsWorkspace({
       setTargetState("error");
     });
     return () => controller.abort();
-  }, [kind, organizationScopeID, page.items, targetID]);
+  }, [kind, organizationScopeID, page.items, targetID, view]);
 
   const scopeNames = useMemo(
     () => new Map(organizationScopes.map((scope) => [scope.id, scope.department_path?.join(" / ") || scope.name])),
@@ -156,6 +171,36 @@ export function InsightsWorkspace({
   ];
 
   const scopeLabel = organizationScopeName || legalEntityName || "current scope";
+  if (view === "risk-loss") {
+    return <section className="insights-workspace">
+      <header className="topbar">
+        <div>
+          <span className="eyebrow">{organizationName}</span>
+          <h1>Insights</h1>
+          <p>Governed Risk posture and selected-period Loss analysis for {scopeLabel}.</p>
+        </div>
+        {onOpenReports && <Button variant="secondary" onPress={onOpenReports}>Reports</Button>}
+      </header>
+      <WorkspaceSwitcher
+        ariaLabel="Insight lenses"
+        compactLabel="Insight lens"
+        items={[...indicatorKinds, { id: "risk-loss", label: "Risk & loss" }]}
+        selectedKey="risk-loss"
+        onSelectionChange={(next) => { if (next === "KRI" || next === "KCI") onKindChange(next); }}
+      />
+      {riskLossPeriod
+        ? <RiskLossInsights
+          period={riskLossPeriod}
+          organizationScopeID={organizationScopeID}
+          scopeAuthorized={scopeAuthorized}
+          onOpenRisk={onOpenRisk}
+          onOpenLoss={onOpenLoss}
+          onOpenScope={onOpenOrganizationScope}
+        />
+        : <Notice tone="warning">This saved Risk/Loss period or scope is invalid. Open Home to select a current authorized reporting period.</Notice>}
+    </section>;
+  }
+
   return <section className="insights-workspace">
     <header className="topbar">
       <div>

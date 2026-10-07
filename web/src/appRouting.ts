@@ -1,3 +1,4 @@
+import type { ReportingPeriodQuery } from "./reportingPeriod";
 export type View = "today" | "oversight" | "programs" | "risks" | "rcsa" | "losses" | "forms" | "vendors" | "ropa" | "reports" | "insights" | "work" | "people" | "imports" | "explore" | "configure";
 export type WorkTab = "assigned" | "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "monitoring" | "evidence-results" | "issues-actions" | "history";
@@ -8,6 +9,7 @@ export type OversightMetric = "critical-high" | "overdue" | "routing-gaps" | "ou
 export type HomeTab = "oversight" | "attention" | "my-work";
 export type OversightScopeMode = "group";
 export type InsightKind = "KRI" | "KCI";
+export type InsightView = "risk-loss";
 export type WorkspaceTarget = {
   programID?: string;
   riskID?: string;
@@ -15,6 +17,10 @@ export type WorkspaceTarget = {
   rcsaCycleID?: string;
   indicatorID?: string;
   indicatorKind?: InsightKind;
+  insightsView?: InsightView;
+  insightsPeriod?: ReportingPeriodQuery;
+  insightsOrganizationScopeID?: string;
+  insightsLegalEntityID?: string;
   formTemplateID?: string;
   programSection?: ProgramSection;
   programItem?: ProgramItemTarget;
@@ -96,6 +102,24 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     const target: WorkspaceTarget = {};
     if (indicator) target.indicatorID = indicator;
     if (kind === "KRI" || kind === "KCI") target.indicatorKind = kind;
+    if (query.get("view") === "risk-loss") {
+      target.insightsView = "risk-loss";
+      const period = readInsightsPeriod(query);
+      if (period) {
+        const legalEntityID = query.get("legal_entity_id")?.trim();
+        if (!legalEntityID || !/^[A-Za-z0-9-]{1,128}$/.test(legalEntityID)) return { view, target: { insightsView: "risk-loss" } };
+        target.insightsLegalEntityID = legalEntityID;
+        target.insightsView = "risk-loss";
+        target.insightsPeriod = period;
+        const scopeID = query.get("organization_scope_id")?.trim();
+        if (scopeID && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(scopeID)) {
+          target.insightsOrganizationScopeID = scopeID;
+        } else if (scopeID) {
+          // A malformed or unrecognized scope must never fall back to legal-entity reads.
+          return { view, target: { insightsView: "risk-loss" } };
+        }
+      }
+    }
     return { view, target };
   }
   if (view === "imports") return { view, target: { documentID: decodeTarget(parts[1]) } };
@@ -145,6 +169,13 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
     const params = new URLSearchParams();
     if (target.indicatorKind) params.set("kind", target.indicatorKind);
     if (target.indicatorID?.trim()) params.set("indicator", target.indicatorID.trim());
+    if (target.insightsView === "risk-loss" && target.insightsPeriod && validInsightsPeriod(target.insightsPeriod)) {
+      if (target.insightsLegalEntityID) params.set("view", "risk-loss");
+      if (target.insightsLegalEntityID) params.set("start_date", target.insightsPeriod.start_date);
+      if (target.insightsLegalEntityID) params.set("end_date", target.insightsPeriod.end_date);
+      if (target.insightsLegalEntityID) params.set("legal_entity_id", target.insightsLegalEntityID);
+      if (target.insightsLegalEntityID && target.insightsOrganizationScopeID) params.set("organization_scope_id", target.insightsOrganizationScopeID);
+    }
     const query = params.toString();
     return query ? `#insights?${query}` : "#insights";
   }
@@ -158,4 +189,22 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
     return `${base}?${query.toString()}`;
   }
   return `#${view}`;
+}
+
+function readInsightsPeriod(query: URLSearchParams): ReportingPeriodQuery | undefined {
+  const start_date = query.get("start_date") || "";
+  const end_date = query.get("end_date") || "";
+  const period = { start_date, end_date };
+  return validInsightsPeriod(period) ? period : undefined;
+}
+
+function validInsightsPeriod(period: ReportingPeriodQuery): boolean {
+  const parse = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return NaN;
+    const timestamp = Date.parse(`${value}T00:00:00Z`);
+    return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value ? timestamp : NaN;
+  };
+  const start = parse(period.start_date);
+  const end = parse(period.end_date);
+  return Number.isFinite(start) && Number.isFinite(end) && start <= end && end - start < 365 * 86400000;
 }

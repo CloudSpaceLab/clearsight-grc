@@ -417,6 +417,21 @@ it("keeps v2 current-state metric drills on the existing bounded intervention pa
   expect(screen.getByText(/ranked issue shown for overdue interventions/i)).toBeTruthy();
 });
 
+it("passes the applied Home reporting period into Insights rather than opening current-only indicators", async () => {
+  const onOpenInsights = vi.fn();
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    onOpenMatter={vi.fn()}
+    onOpenInsights={onOpenInsights}
+  />);
+  const action = await screen.findByRole("button", { name: "Open in Insights" });
+  fireEvent.click(action);
+  expect(onOpenInsights).toHaveBeenCalledExactlyOnceWith({ start_date: "2026-06-03", end_date: "2026-09-01" });
+  fireEvent.click(screen.getByRole("tab", { name: "My work" }));
+  expect(screen.queryByRole("button", { name: "Open in Insights" })).toBeNull();
+});
+
 it("applies one exact server-backed period to both Home reads and keeps the end date current", async () => {
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
   await screen.findByRole("heading", { name: "Home" });
