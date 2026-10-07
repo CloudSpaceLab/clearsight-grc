@@ -227,6 +227,30 @@ describe("GroupOversightWorkspace", () => {
     expect(await screen.findByText("2 OpCos · current loss data")).toBeTruthy();
   });
 
+  it("bounds Group Attention to ten OpCos without discarding the complete scope count", async () => {
+    const attention = attentionFixture();
+    attention.children = Array.from({ length: 12 }, (_, index) => ({
+      ...attention.children[0]!,
+      legal_entity_id: `entity-${index}`,
+      legal_entity_name: `OpCo ${String(index).padStart(2, "0")}`,
+    }));
+    attention.coverage.authorized_children = 12;
+    attention.coverage.included_children = 12;
+
+    render(<GroupOversightWorkspace
+      organizationName="Clear Bank"
+      homeTab="attention"
+      initialSnapshot={attention}
+      onOpenLegalEntity={vi.fn()}
+      loadPosture={vi.fn().mockResolvedValue(postureFixture())}
+    />);
+
+    const table = screen.getByRole("table", { name: "Group OpCo attention" });
+    expect(table.querySelectorAll("tbody tr")).toHaveLength(10);
+    expect(screen.getByText("2 additional OpCos. Use the organization switcher for the full set.")).toBeTruthy();
+    expect(screen.queryByText("OpCo 11")).toBeNull();
+  });
+
   it("keeps Group My work as an OpCo handoff instead of cross-entity aggregation", async () => {
     const onOpenWork = vi.fn();
 
