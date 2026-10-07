@@ -285,10 +285,10 @@ func TestScopedDomainMetricsIncludeAuthorizedDescendantsAndRetainExactMembers(t 
 	mustExec(`
 		INSERT INTO organization_scopes(id,tenant_id,legal_entity_id,code,name,kind,department_path,origin,status,valid_from)
 		VALUES
-		  ($1::uuid,$4::uuid,$5::uuid,'TECH','Technology','BUSINESS_UNIT',ARRAY['TECH'],'MANAGED','ACTIVE',$7),
-		  ($2::uuid,$4::uuid,$5::uuid,'INFRA','Infrastructure','DEPARTMENT',ARRAY['TECH','INFRA'],'MANAGED','ACTIVE',$7),
-		  ($3::uuid,$4::uuid,$5::uuid,'OPS','Operations','BUSINESS_UNIT',ARRAY['OPS'],'MANAGED','ACTIVE',$7)`,
-		technologyID, infrastructureID, operationsID, tenantID, entityID, principalID, now.Add(-30*24*time.Hour))
+		  ($1::uuid,$4::uuid,$5::uuid,'TECH','Technology','BUSINESS_UNIT',ARRAY['TECH'],'MANAGED','ACTIVE',$6),
+		  ($2::uuid,$4::uuid,$5::uuid,'INFRA','Infrastructure','DEPARTMENT',ARRAY['TECH','INFRA'],'MANAGED','ACTIVE',$6),
+		  ($3::uuid,$4::uuid,$5::uuid,'OPS','Operations','BUSINESS_UNIT',ARRAY['OPS'],'MANAGED','ACTIVE',$6)`,
+		technologyID, infrastructureID, operationsID, tenantID, entityID, now.Add(-30*24*time.Hour))
 	mustExec(`UPDATE organization_scopes SET parent_scope_id=$1::uuid WHERE id=$2::uuid`, technologyID, infrastructureID)
 
 	insertRisk := func(riskID, scopeID, appetiteID, code string) {
