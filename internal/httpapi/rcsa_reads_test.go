@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/rcsa"
 )
@@ -54,6 +56,45 @@ func TestRCSAReviewerReadDoesNotExposeFirstLineStage(t *testing.T) {
 	})
 	if !ok || input.DecisionType != "rcsa.challenge.complete" {
 		t.Fatalf("challenge completion input=%#v ok=%v", input, ok)
+	}
+}
+
+func TestRCSAChallengeSummaryUsesCurrentDecisionActionsAndLatestActiveVerification(t *testing.T) {
+	now := time.Date(2026, 10, 7, 8, 0, 0, 0, time.UTC)
+	aggregate := continuity.MatterAggregate{
+		Matter: continuity.Matter{ID: "matter-1", Status: continuity.MatterActionsInProgress},
+		Decisions: []continuity.Decision{
+			{ID: "decision-old", Type: "RCSA_CHALLENGE", Status: continuity.DecisionSuperseded, SelectedOption: "REQUIRE_CHANGES", Version: 1},
+			{ID: "decision-current", Type: "RCSA_CHALLENGE", Status: continuity.DecisionApproved, SelectedOption: "DEFICIENCY_CONFIRMED", Version: 2},
+		},
+		Actions: []continuity.Action{
+			{ID: "action-open", Status: continuity.ActionInProgress},
+			{ID: "action-blocked", Status: continuity.ActionBlocked},
+			{ID: "action-done", Status: continuity.ActionImplemented},
+			{ID: "action-cancelled", Status: continuity.ActionCancelled},
+		},
+		VerificationContracts: []continuity.VerificationContract{
+			{ID: "contract-a", Status: continuity.VerificationActive},
+			{ID: "contract-b", Status: continuity.VerificationActive},
+			{ID: "contract-retired", Status: continuity.VerificationRetired},
+		},
+		VerificationResults: []continuity.VerificationResult{
+			{ID: "result-a-old", ContractID: "contract-a", Result: continuity.VerificationFailed, ObservedAt: now.Add(-2 * time.Hour), CreatedAt: now.Add(-2 * time.Hour)},
+			{ID: "result-a-new", ContractID: "contract-a", Result: continuity.VerificationPassed, ObservedAt: now.Add(-time.Hour), CreatedAt: now.Add(-time.Hour)},
+			{ID: "result-b", ContractID: "contract-b", Result: continuity.VerificationInconclusive, ObservedAt: now, CreatedAt: now},
+			{ID: "result-retired", ContractID: "contract-retired", Result: continuity.VerificationFailed, ObservedAt: now, CreatedAt: now},
+		},
+	}
+	got := summarizeRCSAChallengeAggregate(aggregate)
+	if got.DecisionStatus != "APPROVED" || got.DecisionOption != "DEFICIENCY_CONFIRMED" {
+		t.Fatalf("decision summary=%#v", got)
+	}
+	if got.OpenActionCount != 2 || got.BlockedActionCount != 1 || got.ImplementedActionCount != 1 {
+		t.Fatalf("action summary=%#v", got)
+	}
+	if got.ActiveVerificationCount != 2 || got.PassedVerificationCount != 1 ||
+		got.FailedVerificationCount != 0 || got.InconclusiveVerificationCount != 1 {
+		t.Fatalf("verification summary=%#v", got)
 	}
 }
 
