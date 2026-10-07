@@ -23,7 +23,7 @@ describe("contextual document analysis entry", () => {
     expect(onAnalyzeDocument).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps a governed return action above exact evidence work", () => {
+  it("keeps a governed return action above exact evidence work", async () => {
     const onReturn = vi.fn();
     render(<WorkView
       organizationName="Meridian Trust Bank"
@@ -45,9 +45,9 @@ describe("contextual document analysis entry", () => {
       onOpenEvidence={vi.fn()}
     />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Back to RCSA cycle" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Back to RCSA cycle" }));
     expect(onReturn).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Evidence workspace")).toBeTruthy();
+    expect(await screen.findByText("Evidence workspace")).toBeTruthy();
   });
 
   it("offers document analysis for issues and changes but not evidence review", () => {
