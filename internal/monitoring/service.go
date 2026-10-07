@@ -224,6 +224,9 @@ func (s *Service) ListFormLibrary(ctx context.Context, filter FormLibraryFilter)
 	if err != nil {
 		return FormTemplatePage{}, err
 	}
+	if err := normalizeFormLibraryOriginFilter(&filter); err != nil {
+		return FormTemplatePage{}, err
+	}
 	filter.TenantID = actor.TenantID
 	filter.LegalEntityID = actor.LegalEntityID
 	return s.repo.ListFormLibrary(ctx, filter)
