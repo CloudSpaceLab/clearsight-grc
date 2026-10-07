@@ -245,6 +245,146 @@ func TestDomainMetricProjectionRetainsExactCrossDomainTruth(t *testing.T) {
 	}
 }
 
+func TestScopedDomainMetricsIncludeAuthorizedDescendantsAndRetainExactMembers(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not configured")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	tenantID := mustDomainID(t)
+	entityID := mustDomainID(t)
+	principalID := mustDomainID(t)
+	technologyID := mustDomainID(t)
+	infrastructureID := mustDomainID(t)
+	operationsID := mustDomainID(t)
+	infraRiskID := mustDomainID(t)
+	operationsRiskID := mustDomainID(t)
+	infraAppetiteID := mustDomainID(t)
+	operationsAppetiteID := mustDomainID(t)
+	infraLossID := mustDomainID(t)
+	operationsLossID := mustDomainID(t)
+	now := time.Now().UTC().Truncate(time.Second)
+
+	mustExec := func(query string, args ...any) {
+		t.Helper()
+		if _, execErr := pool.Exec(ctx, query, args...); execErr != nil {
+			t.Fatal(execErr)
+		}
+	}
+	mustExec(`INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,'Scoped Domain Metrics')`, tenantID, "scoped-domain-"+tenantID[len(tenantID)-8:])
+	mustExec(`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction,valid_from) VALUES($1::uuid,$2::uuid,$3,'Scoped Domain Nigeria','NG',$4)`,
+		entityID, tenantID, "SD-"+entityID[len(entityID)-8:], now.Add(-365*24*time.Hour))
+	mustExec(`INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Scoped risk owner','ACTIVE',$3)`,
+		principalID, tenantID, now.Add(-365*24*time.Hour))
+	mustExec(`
+		INSERT INTO organization_scopes(id,tenant_id,legal_entity_id,code,name,kind,department_path,origin,status,valid_from)
+		VALUES
+		  ($1::uuid,$4::uuid,$5::uuid,'TECH','Technology','BUSINESS_UNIT',ARRAY['TECH'],'MANAGED','ACTIVE',$7),
+		  ($2::uuid,$4::uuid,$5::uuid,'INFRA','Infrastructure','DEPARTMENT',ARRAY['TECH','INFRA'],'MANAGED','ACTIVE',$7),
+		  ($3::uuid,$4::uuid,$5::uuid,'OPS','Operations','BUSINESS_UNIT',ARRAY['OPS'],'MANAGED','ACTIVE',$7)`,
+		technologyID, infrastructureID, operationsID, tenantID, entityID, principalID, now.Add(-30*24*time.Hour))
+	mustExec(`UPDATE organization_scopes SET parent_scope_id=$1::uuid WHERE id=$2::uuid`, technologyID, infrastructureID)
+
+	insertRisk := func(riskID, scopeID, appetiteID, code string) {
+		t.Helper()
+		mustExec(`
+			INSERT INTO risks(
+				id,tenant_id,legal_entity_id,organization_scope_id,code,name,category,statement,impact,status,version,created_at,updated_at
+			) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$5,'Operational','Scoped exposure','Material impact','ACTIVE',1,$6,$6)`,
+			riskID, tenantID, entityID, scopeID, code, now.Add(-time.Hour))
+		mustExec(`
+			INSERT INTO risk_appetite_statements(
+				id,tenant_id,legal_entity_id,risk_id,risk_version,version,statement,rule,
+				owner_principal_id,authority_principal_id,status,effective_from,created_at
+			) VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,1,1,'Scoped appetite','{}'::jsonb,
+			         $5::uuid,$5::uuid,'ACTIVE',$6,$6)`,
+			appetiteID, tenantID, entityID, riskID, principalID, now.Add(-24*time.Hour))
+		mustExec(`
+			INSERT INTO risk_assessments(
+				tenant_id,legal_entity_id,risk_id,risk_version,assessment_kind,method_code,method_version,
+				dimensions,assumptions,evidence_references,assessed_by,appetite_statement_id,appetite_position,assessed_at,created_at
+			) VALUES($1::uuid,$2::uuid,$3::uuid,1,'CURRENT','SCOPED','1',
+			         '{}'::jsonb,'{}'::jsonb,'[]'::jsonb,$4::uuid,$5::uuid,'BREACHED',$6,$6)`,
+			tenantID, entityID, riskID, principalID, appetiteID, now.Add(-20*time.Minute))
+	}
+	insertRisk(infraRiskID, infrastructureID, infraAppetiteID, "INFRA-RISK")
+	insertRisk(operationsRiskID, operationsID, operationsAppetiteID, "OPS-RISK")
+
+	insertLoss := func(lossID, scopeID, code string) {
+		t.Helper()
+		mustExec(`
+			INSERT INTO operational_losses(
+				id,tenant_id,legal_entity_id,organization_scope_id,code,title,event_type,cause,description,gross_amount_minor,currency,
+				occurred_at,discovered_at,owner_principal_id,status,version,created_at,updated_at
+			) VALUES(
+				$1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$5,'EXECUTION_DELIVERY_PROCESS_MANAGEMENT',
+				'Scoped failure','Scoped loss',100000,'NGN',$6,$6,$7::uuid,'ACTIVE',1,$6,$6
+			)`,
+			lossID, tenantID, entityID, scopeID, code, now.Add(-2*time.Hour), principalID)
+	}
+	insertLoss(infraLossID, infrastructureID, "INFRA-LOSS")
+	insertLoss(operationsLossID, operationsID, "OPS-LOSS")
+
+	repository := NewDomainRepository(pool)
+	bundle, err := repository.CurrentDomainMetrics(
+		ctx, tenantID, entityID, technologyID, []string{technologyID, infrastructureID}, now,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bundle.ScopeKind != "ORGANIZATION_SCOPE" || bundle.ScopeID != technologyID || bundle.SourceID == "" ||
+		bundle.SourceRevision != DomainScopedSourceRevision {
+		t.Fatalf("bundle=%#v", bundle)
+	}
+	outside := domainMetricByID(t, bundle, "risks_outside_appetite")
+	if outside.Value != 1 || outside.Population != 1 || outside.Completeness != CompletenessUnknown {
+		t.Fatalf("outside appetite=%#v", outside)
+	}
+	losses := domainMetricByID(t, bundle, "losses_without_issue")
+	if losses.Value != 1 || losses.Population != 1 {
+		t.Fatalf("losses=%#v", losses)
+	}
+
+	members := NewMembershipRepository(pool)
+	counts, countErr := members.CountSnapshotMembersByOrganization(
+		ctx, tenantID, entityID, technologyID, bundle.SourceID,
+		"risks_outside_appetite", DomainDefinitionRevision,
+	)
+	if countErr != nil {
+		t.Fatal(countErr)
+	}
+	if counts.Count != 1 || len(counts.Items) != 1 ||
+		counts.Items[0].OrganizationScopeID != infrastructureID || counts.Items[0].Count != 1 {
+		t.Fatalf("organization counts=%#v", counts)
+	}
+
+	for _, tc := range []struct {
+		metricID   string
+		targetID   string
+		targetType string
+	}{
+		{metricID: "risks_outside_appetite", targetID: infraRiskID, targetType: "RISK"},
+		{metricID: "losses_without_issue", targetID: infraLossID, targetType: "LOSS"},
+	} {
+		page, memberErr := members.ListSnapshotMembers(
+			ctx, tenantID, entityID, technologyID, bundle.SourceID, tc.metricID,
+			DomainDefinitionRevision, principalID, "", 10,
+		)
+		if memberErr != nil {
+			t.Fatalf("%s members: %v", tc.metricID, memberErr)
+		}
+		if page.Count != 1 || len(page.Items) != 1 || page.Items[0].TargetID != tc.targetID || page.Items[0].TargetType != tc.targetType {
+			t.Fatalf("%s page=%#v", tc.metricID, page)
+		}
+	}
+}
+
 func domainMetricByID(t *testing.T, bundle DomainBundle, id string) Metric {
 	t.Helper()
 	for _, item := range bundle.Items {
