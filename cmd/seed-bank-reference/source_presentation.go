@@ -177,3 +177,23 @@ func sourceGroupDisplayTitle(group sourceRecordGroup) string {
 	}
 	return "Source records"
 }
+
+func sourceValidateV2Group(group sourceRecordGroup) error {
+	if group.PresentationVersion != 2 {
+		return nil
+	}
+	if group.Key == "" || group.ProgramCode == "" || len(group.Records) == 0 {
+		return fmt.Errorf("source V2 group is missing its stable identity or records")
+	}
+	seen := make(map[string]bool, len(group.Records))
+	for _, record := range group.Records {
+		if strings.TrimSpace(record.Key) == "" || seen[record.Key] {
+			return fmt.Errorf("source V2 group %s has a missing or duplicate record key", group.Key)
+		}
+		if strings.TrimSpace(record.SourceRange) == "" || len(record.Fields) == 0 {
+			return fmt.Errorf("source V2 record %s lacks source location or fields", record.Key)
+		}
+		seen[record.Key] = true
+	}
+	return nil
+}
