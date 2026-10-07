@@ -1,6 +1,6 @@
 # Issue Workspace Follow-through Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Complete the issue-to-form and issue-to-board-brief journeys so a bank user can find every linked form, inspect large request populations, act on a sent request, and understand an unavailable board brief without leaving the work ambiguous.
 
@@ -16,15 +16,15 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
 | Pull request | Review result | Required disposition |
 | --- | --- | --- |
-| #334, Forms exact-detail deep link | Clean merge simulation. It supplies the exact `#forms/{templateID}` handoff needed after an issue form is drafted. | Rebase on current `main`, re-run its focused checks, merge before Task 2. |
+| #334, Forms exact-detail deep link | Its exact-detail work was integrated through #367 (`a140a39f`); #334 is closed unmerged. | Superseded by #367; do not reopen. |
 | #342, source IT exception register to ERM Risks | Correctly bounded to explicit source records, but its CI failed because two Go tests are not gofmt-formatted. It conflicts in `RiskRecord.tsx` and `RisksWorkspace.test.tsx`. | Fix formatting, rebase and resolve the two Risk UI conflicts separately. It does not block Tasks 2–4. |
 | #347, exact decimal measurement and concern labels | The numeric integrity and label changes are worthwhile, but it conflicts with current monitoring and risk UI files: `internal/monitoring/model.go`, `scoring.go`, `MonitoringSetup.tsx`/test, and `RiskIndicatorsSection.tsx`. | Rebase and resolve as an independent risk/monitoring change. Do not combine its conflict resolution with issue-form work. |
-| #191, V1 response contract gate | Includes #190's response DTO/client changes plus the CI gate. Merge simulation is clean but its September base is stale. | Rebase, run the contract gate, then merge once. |
-| #190, canonical distribution response keys | Fully contained in #191. | Close as superseded; do not merge both. |
+| #191, V1 response contract gate | Merged with the canonical response DTO/client changes and CI gate. | Complete; retain #190 as superseded. |
+| #190, canonical distribution response keys | Fully contained in #191. | Closed as superseded; do not merge both. |
 
 ### Task 1: Integrate the exact Form Library deep link
 
-**Status:** Complete on this branch in `3779ecdad`. The rebased PR #334 history and its fixture compatibility repair are local; promotion to `main` remains a separate integration decision.
+**Status:** Complete on `main` through #367 (`a140a39f`). #334 is superseded and remains closed unmerged.
 
 **Files:**
 - Modify: `web/src/components/MatterInternalFormRequestsPanel.tsx`
@@ -104,6 +104,8 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
 ### Task 2: Make issue form activity complete, bounded and actionable
 
+**Status:** Complete on `main` through #388 (`bacb6946`).
+
 **Files:**
 - Modify: `web/src/components/forms/SubjectFormActivity.tsx`
 - Modify: `web/src/components/forms/SubjectFormActivity.test.tsx`
@@ -111,7 +113,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 - Modify: `web/src/components/forms/sent/SentFormsView.test.tsx`
 - Modify: `web/src/components/forms/formsLocation.ts` only if a shared hash-query helper avoids duplicated parsing without changing the Templates URL contract
 
-- [ ] **Step 1: Write failing activity tests for both cursors and sent-form navigation.**
+- [x] **Step 1: Write failing activity tests for both cursors and sent-form navigation.**
 
   Add a test where the first request and response pages both return `next_cursor`, then the second pages return new IDs. Assert that:
 
@@ -123,7 +125,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   exist, call the correct cursor-bearing API requests, retain the first-page rows, and remove the relevant button when the cursor is empty. The request link must be `#forms?section=sent-forms&distribution=distribution-open`.
 
-- [ ] **Step 2: Run the focused test and confirm the present limitation.**
+- [x] **Step 2: Run the focused test and confirm the present limitation.**
 
   Run:
 
@@ -133,7 +135,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   Expected before implementation: no load-more controls and no sent-form link exist.
 
-- [ ] **Step 3: Replace the passive cursor flag with independent cursor state and bounded append operations.**
+- [x] **Step 3: Replace the passive cursor flag with independent cursor state and bounded append operations.**
 
   In `SubjectFormActivity.tsx`:
 
@@ -156,13 +158,13 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
   </ActionLink>
   ```
 
-- [ ] **Step 4: Make Sent Forms honour the hash deep link and read its filters from the hash.**
+- [x] **Step 4: Make Sent Forms honour the hash deep link and read its filters from the hash.**
 
   In `SentFormsView.tsx`, replace `window.location.search` parsing with the query part of `window.location.hash`. Read an optional `distribution` value. When set, load that exact distribution through the existing `loadDistribution(id)` read even when it is not on the current list page; keep the list filter state unchanged. On close, remove only `distribution` from the hash query.
 
   The implementation must not infer access from the client: a denied or unavailable exact read remains an explicit detail error while the list continues to render.
 
-- [ ] **Step 5: Test the deep link, pagination and degradation paths.**
+- [x] **Step 5: Test the deep link, pagination and degradation paths.**
 
   Add tests proving:
 
@@ -172,7 +174,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   opens the exact distribution detail outside the first page; a forbidden exact read does not clear the sent-form list; request-page failure retains the original rows and offers retry; and response pagination preserves the `Review response` deep link.
 
-- [ ] **Step 6: Verify and commit the activity slice.**
+- [x] **Step 6: Verify and commit the activity slice.**
 
   Run:
 
@@ -185,6 +187,8 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
   ```
 
 ### Task 3: Retain a bounded history of forms authored for an issue
+
+**Status:** Complete in #394. Exact implementation head `17354c1fb6d2269d38d598aa66dcc17d089f1183` passed CI and managed UI/UX review.
 
 **Files:**
 - Modify: `internal/monitoring/model.go`
@@ -200,7 +204,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 - Test: `internal/monitoring/form_library_test.go`
 - Test: `internal/httpapi/forms_handlers_test.go`
 
-- [ ] **Step 1: Define a narrow origin filter and write service failures first.**
+- [x] **Step 1: Define a narrow origin filter and write service failures first.**
 
   Extend `FormLibraryFilter` with an all-or-none origin pair:
 
@@ -211,7 +215,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   Add tests that a `MATTER` origin filter returns only forms whose immutable origin is that exact issue within the verified tenant/legal entity, rejects a missing half-pair, and cannot retrieve a cross-entity issue form.
 
-- [ ] **Step 2: Run the monitoring tests to confirm the filter is absent.**
+- [x] **Step 2: Run the monitoring tests to confirm the filter is absent.**
 
   Run:
 
@@ -221,13 +225,13 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   Expected before implementation: the filter fields and origin-scoped behaviour do not exist.
 
-- [ ] **Step 3: Implement the filter in existing library reads, not a second issue-form endpoint.**
+- [x] **Step 3: Implement the filter in existing library reads, not a second issue-form endpoint.**
 
   Validate the pair in `ListFormLibrary`; pass it to both memory and PostgreSQL repositories. PostgreSQL must constrain `tenant_id`, `legal_entity_id`, `origin_type`, and `origin_id` before the existing keyset limit. Reuse the existing `form_template_matter_origin` columns; add an index only if `EXPLAIN` on the bounded production-shaped query does not use an origin-leading bounded path.
 
   The HTTP list route accepts `origin_type` and `origin_id` and overwrites tenant/entity from verified identity exactly as the existing library list does.
 
-- [ ] **Step 4: Render authored forms as their own compact group.**
+- [x] **Step 4: Render authored forms as their own compact group.**
 
   In `MatterInternalFormRequestsPanel.tsx`, load the first bounded page of library items with:
 
@@ -237,11 +241,11 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   Render `Linked forms` above request activity. Each row shows name, revision, lifecycle status, and `Open form` linking to `#forms/{id}`. Include a `Load more linked forms` action only when the server supplies a cursor. Do not duplicate form fields, approval actions, or lifecycle controls; the Forms detail remains the operational record.
 
-- [ ] **Step 5: Verify authority and source-boundary behaviour.**
+- [x] **Step 5: Verify authority and source-boundary behaviour.**
 
   Add API tests for verified scope and browser tests for loading, empty, unavailable, next-page, draft and active states. Confirm no form title from another legal entity appears before the list limit.
 
-- [ ] **Step 6: Verify and commit the durable history slice.**
+- [x] **Step 6: Verify and commit the durable history slice.**
 
   Run:
 
@@ -256,15 +260,17 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
 ### Task 4: Make board-brief availability recoverable
 
+**Status:** Complete in #394. Missing setup now exposes the report-governed recovery path without enabling generation.
+
 **Files:**
 - Modify: `web/src/components/MatterBoardBriefAction.tsx`
 - Modify: `web/src/components/MatterBoardBriefAction.test.tsx`
 
-- [ ] **Step 1: Write failing tests for both non-generatable states.**
+- [x] **Step 1: Write failing tests for both non-generatable states.**
 
   Cover an availability response without a definition but with `reason: "No active board brief setup is available for this issue."`, and a definition where `can_run` is false. Assert a labelled read-only state is visible in both cases, neither exposes `Generate board brief`, and the missing-setup state includes `Open Reports`.
 
-- [ ] **Step 2: Run the component test to confirm the missing-setup state is currently hidden.**
+- [x] **Step 2: Run the component test to confirm the missing-setup state is currently hidden.**
 
   Run:
 
@@ -274,7 +280,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   Expected before implementation: the no-definition case returns `null` even though the API supplied a recovery reason.
 
-- [ ] **Step 3: Render a concise recovery state without weakening report governance.**
+- [x] **Step 3: Render a concise recovery state without weakening report governance.**
 
   In `MatterBoardBriefAction.tsx`, handle the no-definition case before returning `null`:
 
@@ -288,7 +294,7 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
   Keep the existing no-authority and not-assigned states read-only. Do not add a client-side bypass, create a definition from the issue, or reveal hidden report definitions.
 
-- [ ] **Step 4: Verify and commit the recovery state.**
+- [x] **Step 4: Verify and commit the recovery state.**
 
   Run:
 
@@ -302,15 +308,17 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
 
 ### Task 5: Integrated acceptance and release decision
 
+**Status:** Complete. Exact implementation head `17354c1fb6d2269d38d598aa66dcc17d089f1183` passed CI and managed UI/UX review. Compose runtime is not applicable because #394 changes no Compose, runtime-image, seed, migration, or workflow files.
+
 **Files:**
 - Modify: `docs/superpowers/plans/2026-10-06-issue-workspace-follow-through.md` only to mark verified tasks complete after evidence is captured
 - Modify: `web/scripts/capture-matter-context-evidence.mjs` only if its existing journey cannot capture the new direct links and paged states
 
-- [ ] **Step 1: Capture the four operational states.**
+- [x] **Step 1: Capture the four operational states.**
 
   Record desktop and narrow evidence for: a newly drafted linked form and its direct Forms handoff; an issue with more than six sent forms/responses; an exact sent-form deep link outside the first page; and no active board-brief setup.
 
-- [ ] **Step 2: Run targeted behavioural checks.**
+- [x] **Step 2: Run targeted behavioural checks.**
 
   Run:
 
@@ -322,11 +330,11 @@ The earlier `2026-10-06-issue-workspace-remaining.md` delivery is complete. This
   git diff --check
   ```
 
-- [ ] **Step 3: Check the release order before deployment.**
+- [x] **Step 3: Check the release order before deployment.**
 
-  Confirm #334 is merged, #190 is closed as superseded, #191 is either merged or explicitly deferred, and #342/#347 have been independently rebased rather than accidentally pulled into this change. Do not deploy while any migration, Forms deep link, or report download check is failing.
+  Confirm #367 contains the superseded #334 exact-detail work, #190 is closed as superseded, #191 is merged, and #342/#347 remain independent rather than being pulled into this change. Do not deploy while any migration, Forms deep link, or report download check is failing.
 
-- [ ] **Step 4: Commit the verified plan status.**
+- [x] **Step 4: Commit the verified plan status.**
 
   Run:
 
