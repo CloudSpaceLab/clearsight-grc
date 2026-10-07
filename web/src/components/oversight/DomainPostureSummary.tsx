@@ -137,7 +137,7 @@ export function DomainPostureSummary({
           meta={metricMeta(metric)}
           tone={postureTone(metric)}
           quality={homeMetricQuality(metric)}
-          actionLabel={active ? "Close exact records" : "Review exact records"}
+          actionLabel={active ? "Close records" : "Review records"}
           isSelected={active}
           ariaControls="domain-posture-members"
           onPress={() => selectMetric(metric)}
