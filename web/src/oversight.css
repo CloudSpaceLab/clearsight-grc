@@ -20,8 +20,6 @@
 .oversight-risk-overview, .oversight-loss-overview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; margin: 18px 0; }
 .organization-risk-summary, .risk-movement, .organization-loss-summary, .loss-movement { min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: var(--cs-primitive-radius-14); background: var(--surface); box-shadow: var(--cs-shadow-raised); }
 .organization-risk-summary .section-header, .risk-movement .section-header, .organization-loss-summary .section-header, .loss-movement .section-header { margin-bottom: 12px; }
-.organization-risk-summary > .cs-empty-state, .organization-loss-summary > .cs-empty-state { border: 0; border-radius: 0; background: transparent; padding: 12px 0; gap: 6px; }
-.organization-risk-summary > .cs-empty-state .cs-empty-state__title, .organization-loss-summary > .cs-empty-state .cs-empty-state__title { font-size: var(--cs-primitive-font-size-18); }
 
 .organization-risk-summary h2, .risk-movement h2, .organization-loss-summary h2, .loss-movement h2 { margin: 4px 0; font-size: 1.15rem; }
 .organization-risk-summary p, .risk-movement p, .organization-loss-summary p, .loss-movement p { margin: 0; color: var(--muted); font-size: .76rem; }
