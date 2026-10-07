@@ -51,7 +51,7 @@ func TestDiscoverAcceptanceBindingUsesOnlyActiveScopedChannelBinding(t *testing.
 	}}}}
 	catalog := acceptanceCatalogStub{
 		connections: map[string][]sourceaccess.ConnectionRevision{
-			"source-a": {acceptanceConnection("connection-a", now.Add(-time.Hour))},
+			"source-a":       {acceptanceConnection("connection-a", now.Add(-time.Hour))},
 			"source-retired": {acceptanceConnection("connection-retired", now.Add(-time.Hour))},
 		},
 		views: map[string][]sourceaccess.ViewRevision{
@@ -112,8 +112,8 @@ func TestDiscoverAcceptanceBindingRequiresExactSelectionWhenMultipleExist(t *tes
 func TestDiscoverAcceptanceBindingRejectsMissingPausedOrFutureExactBinding(t *testing.T) {
 	now := time.Date(2026, 10, 7, 9, 0, 0, 0, time.UTC)
 	tests := []struct {
-		name      string
-		binding   *sourceaccess.BindingRevision
+		name    string
+		binding *sourceaccess.BindingRevision
 	}{
 		{name: "missing"},
 		{name: "paused", binding: bindingPtr(acceptanceBinding("binding-a", "view-a", itgovernance.PurposeChannelPerformance, sourceaccess.RevisionPaused, now.Add(-time.Hour)))},
@@ -128,8 +128,8 @@ func TestDiscoverAcceptanceBindingRejectsMissingPausedOrFutureExactBinding(t *te
 			}
 			catalog := acceptanceCatalogStub{
 				connections: map[string][]sourceaccess.ConnectionRevision{"source-a": {acceptanceConnection("connection-a", now.Add(-time.Hour))}},
-				views: map[string][]sourceaccess.ViewRevision{"connection-a": {acceptanceView("view-a", "connection-a", now.Add(-time.Hour))}},
-				bindings: map[string][]sourceaccess.BindingRevision{"view-a": bindings},
+				views:       map[string][]sourceaccess.ViewRevision{"connection-a": {acceptanceView("view-a", "connection-a", now.Add(-time.Hour))}},
+				bindings:    map[string][]sourceaccess.BindingRevision{"view-a": bindings},
 			}
 			if _, err := discoverAcceptanceBinding(context.Background(), "bank", "entity-a", "binding-a", now, lister, catalog); !errors.Is(err, errNoAcceptanceBinding) {
 				t.Fatalf("error = %v", err)
@@ -166,7 +166,7 @@ func TestDiscoverAcceptanceBindingFollowsBoundedSourcePagination(t *testing.T) {
 
 func acceptanceConnection(id string, effectiveFrom time.Time) sourceaccess.ConnectionRevision {
 	return sourceaccess.ConnectionRevision{
-		ConnectionID: id,
+		ConnectionID:      id,
 		RevisionLifecycle: acceptanceLifecycle(sourceaccess.RevisionActive, effectiveFrom),
 	}
 }
