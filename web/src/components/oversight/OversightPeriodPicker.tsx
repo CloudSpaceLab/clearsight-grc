@@ -12,7 +12,7 @@ type Props = {
   onApply: (period: ReportingPeriodQuery) => void;
 };
 
-const presets = [30, 90, 180] as const;
+const presets = [7, 30, 90] as const;
 
 export function OversightPeriodPicker({ period, freshness, generatedAt, isChanging = false, error, onApply }: Props) {
   const [open, setOpen] = useState(false);
