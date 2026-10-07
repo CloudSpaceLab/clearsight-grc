@@ -171,7 +171,7 @@ export function InsightsWorkspace({
   ];
 
   const scopeLabel = organizationScopeName || legalEntityName || "current scope";
-  if (view === "risk-loss" && riskLossPeriod) {
+  if (view === "risk-loss") {
     return <section className="insights-workspace">
       <header className="topbar">
         <div>
@@ -188,14 +188,16 @@ export function InsightsWorkspace({
         selectedKey="risk-loss"
         onSelectionChange={(next) => { if (next === "KRI" || next === "KCI") onKindChange(next); }}
       />
-      <RiskLossInsights
-        period={riskLossPeriod}
-        organizationScopeID={organizationScopeID}
-        scopeAuthorized={scopeAuthorized}
-        onOpenRisk={onOpenRisk}
-        onOpenLoss={onOpenLoss}
-        onOpenScope={onOpenOrganizationScope}
-      />
+      {riskLossPeriod
+        ? <RiskLossInsights
+          period={riskLossPeriod}
+          organizationScopeID={organizationScopeID}
+          scopeAuthorized={scopeAuthorized}
+          onOpenRisk={onOpenRisk}
+          onOpenLoss={onOpenLoss}
+          onOpenScope={onOpenOrganizationScope}
+        />
+        : <Notice tone="warning">This saved Risk/Loss period or scope is invalid. Open Home to select a current authorized reporting period.</Notice>}
     </section>;
   }
 
