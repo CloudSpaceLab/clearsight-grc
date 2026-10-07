@@ -55,17 +55,21 @@ function attention(): GroupOversightSnapshot {
     coverage: { authorized_children: 3, included_children: 3, missing_children: 0, stale_children: 0, complete: true },
     record_coverage: { population: 11, excluded: 0, unknown: 0 },
     counts,
-    children: children.map((child) => ({
+    children: children.map((child, index) => ({
       legal_entity_id: child.legal_entity_id,
       legal_entity_code: child.legal_entity_code,
       legal_entity_name: child.legal_entity_name,
       jurisdiction: child.jurisdiction,
-      state: "AVAILABLE",
+      state: "AVAILABLE" as const,
       child_snapshot_id: `snapshot-${child.legal_entity_code}`,
       child_generated_at: at,
       child_projection_version: "oversight-v5",
-      coverage: { population: 4, excluded: 0, unknown: 0 },
-      counts: { ...counts },
+      coverage: { population: [5, 4, 2][index], excluded: 0, unknown: 0 },
+      counts: [
+        { critical_high: 3, overdue: 1, due_soon: 1, routing_failures: 0, unassigned: 0, outcome_failures: 1 },
+        { critical_high: 2, overdue: 1, due_soon: 0, routing_failures: 1, unassigned: 0, outcome_failures: 2 },
+        { critical_high: 0, overdue: 0, due_soon: 0, routing_failures: 0, unassigned: 0, outcome_failures: 0 },
+      ][index]!,
     })),
   };
 }
