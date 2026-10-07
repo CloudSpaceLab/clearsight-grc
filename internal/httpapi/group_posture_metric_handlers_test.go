@@ -68,7 +68,7 @@ func (s *groupPostureAccessStub) ResolveLegalEntityAccess(
 	values := make([]access.LegalEntityAccess, 0, len(legalEntityIDs))
 	for _, id := range legalEntityIDs {
 		values = append(values, access.LegalEntityAccess{
-			LegalEntityID: id,
+			LegalEntityID:   id,
 			PermissionCodes: append([]string(nil), s.permissions[id]...),
 		})
 	}
@@ -82,7 +82,7 @@ func TestGroupPostureMetricsBatchesAuthorizationAndExcludesRestrictedOpCos(t *te
 	for index := 0; index < childCount; index++ {
 		id := "00000000-0000-4000-8001-" + fmtGroupEntitySuffix(index)
 		entities = append(entities, metricview.GroupPostureEntity{
-			LegalEntityID: id,
+			LegalEntityID:   id,
 			LegalEntityCode: "OPCO-" + strconv.Itoa(index),
 			LegalEntityName: "OpCo " + strconv.Itoa(index),
 		})
@@ -104,7 +104,7 @@ func TestGroupPostureMetricsBatchesAuthorizationAndExcludesRestrictedOpCos(t *te
 	}
 	resolver := &groupPostureAccessStub{permissions: permissions}
 	api := &API{deps: Dependencies{
-		Access: resolver,
+		Access:              resolver,
 		GroupPostureMetrics: reader,
 	}}
 	start := now.Add(-30 * 24 * time.Hour).Format("2006-01-02")
