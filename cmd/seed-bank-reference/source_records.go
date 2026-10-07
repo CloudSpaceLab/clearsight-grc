@@ -21,6 +21,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/oploss"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/config"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/reporting"
@@ -78,6 +79,8 @@ type sourceRecordReceipt struct {
 	Matters           int              `json:"matters"`
 	Risks             int              `json:"risks"`
 	RiskAssessments   int              `json:"risk_assessments"`
+	Losses             int              `json:"losses"`
+	LossesCreated      int              `json:"losses_created"`
 	Captures          int              `json:"captures"`
 	ReportDefinitions int              `json:"report_definitions"`
 	Items             []map[string]any `json:"items"`
@@ -206,6 +209,7 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 	cs := continuity.NewService(cr)
 	rr := risk.NewPostgresRepository(pool)
 	rs := risk.NewService(rr)
+	ls := oploss.NewService(oploss.NewPostgresRepository(pool))
 	er := evidence.NewPostgresRepository(pool)
 	mr := monitoring.NewPostgresRepository(pool)
 	ms := monitoring.NewService(mr, evidence.NewService(er, evidence.NewMemoryObjectStore()))
@@ -230,7 +234,14 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 	}
 	programs := map[string]string{}
 	reportPrograms := map[string]string{}
-	for _, filename := range []string{"source_records_it_vendor.json", "source_records_ops.json", "source_records_ndpa.json"} {
+	seenLosses := map[string]sourceLossValue{}
+	manifestFiles := []string{"source_records_it_vendor.json", "source_records_ops.json", "source_records_ndpa.json"}
+	if _, statErr := fs.Stat(sourceRecordFiles, "source_records_ops_loss.json"); statErr == nil {
+		manifestFiles = append(manifestFiles, "source_records_ops_loss.json")
+	} else if !errors.Is(statErr, fs.ErrNotExist) {
+		return receipt, statErr
+	}
+	for _, filename := range manifestFiles {
 		data, readErr := fs.ReadFile(sourceRecordFiles, filename)
 		if readErr != nil {
 			return receipt, readErr
@@ -258,6 +269,27 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 			receipt.Records += len(group.Records)
 			vendor := strings.HasPrefix(group.Key, "third-party-risk-register")
 			for _, record := range group.Records {
+				lossValue, lossCandidate, projectionErr := sourceLossProjection(group, record)
+				if projectionErr != nil {
+					return receipt, fmt.Errorf("source loss %s: %w", record.Key, projectionErr)
+				}
+				if lossCandidate {
+					if previous, seen := seenLosses[lossValue.Code]; seen {
+						if previous.Identity != lossValue.Identity || previous.SourceSHA != lossValue.SourceSHA {
+							return receipt, fmt.Errorf("conflicting monthly source loss %s", lossValue.Code)
+						}
+					} else {
+						created, lossErr := ensureSourceLoss(ctx, pool, ls, seed, lossValue)
+						if lossErr != nil {
+							return receipt, fmt.Errorf("source loss %s: %w", record.Key, lossErr)
+						}
+						seenLosses[lossValue.Code] = lossValue
+						receipt.Losses++
+						if created {
+							receipt.LossesCreated++
+						}
+					}
+				}
 				_, riskCandidate, assessmentCreated, riskErr := ensureSourceRisk(ctx, pool, rs, seed, group, record)
 				if riskErr != nil {
 					return receipt, fmt.Errorf("source risk %s: %w", record.Key, riskErr)
