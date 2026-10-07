@@ -80,14 +80,15 @@ func sourceLossProjection(group sourceRecordGroup, record sourceRecord) (sourceL
 	if err != nil || recognized.Before(occurred) {
 		return sourceLossValue{}, true, fmt.Errorf("source loss %s has invalid recognition date", record.Key)
 	}
-	identityParts := []string{
+	eventParts := []string{
 		strings.ToUpper(strings.TrimSpace(account)), strings.ToUpper(strings.TrimSpace(groupName)),
 		strings.ToUpper(strings.TrimSpace(particular)), strings.ToUpper(strings.TrimSpace(branch)),
-		strconv.FormatInt(amount, 10), currency,
-		occurred.Format("2006-01-02"), recognized.Format("2006-01-02"),
+		occurred.Format("2006-01-02"),
 	}
-	digest := sha256.Sum256([]byte(strings.Join(identityParts, "\x1f")))
-	identity := hex.EncodeToString(digest[:])
+	eventDigest := sha256.Sum256([]byte(strings.Join(eventParts, "\x1f")))
+	identityParts := append(append([]string{}, eventParts...), strconv.FormatInt(amount, 10), currency, recognized.Format("2006-01-02"))
+	identityDigest := sha256.Sum256([]byte(strings.Join(identityParts, "\x1f")))
+	identity := hex.EncodeToString(identityDigest[:])
 	kind := oploss.EventOther
 	if strings.EqualFold(strings.TrimSpace(groupName), "CASH SHORTAGES") {
 		kind = oploss.EventExecutionDeliveryProcess
@@ -116,7 +117,7 @@ func sourceLossProjection(group sourceRecordGroup, record sourceRecord) (sourceL
 		notes = append(notes, "Source recovery date (no amount posted): "+recoveryDate)
 	}
 	return sourceLossValue{
-		Code: "OPSL-" + strings.ToUpper(identity[:20]),
+		Code: "OPSL-" + strings.ToUpper(hex.EncodeToString(eventDigest[:10])),
 		Title: sourceShort(particular, 240),
 		EventType: kind, Cause: cause, Description: strings.Join(notes, "\n"),
 		AmountMinor: amount, Currency: currency, OccurredAt: occurred, DiscoveredAt: recognized,
