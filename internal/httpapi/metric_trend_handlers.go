@@ -19,6 +19,56 @@ func (a *API) domainMetricTrend(w http.ResponseWriter, r *http.Request) {
 	a.metricTrend(w, r)
 }
 
+func (a *API) domainMetricOrganizationTrend(w http.ResponseWriter, r *http.Request) {
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
+		return
+	}
+	if strings.TrimSpace(actor.TenantID) == "" || strings.TrimSpace(actor.LegalEntityID) == "" || actor.LegalEntityID == "*" {
+		httpx.WriteError(w, http.StatusForbidden, "metric_trend_scope_unavailable", "Choose an eligible legal entity before viewing metric history.")
+		return
+	}
+	organizationScopeID := strings.TrimSpace(r.URL.Query().Get("organization_scope_id"))
+	if organizationScopeID == "" {
+		httpx.WriteError(w, http.StatusBadRequest, "metric_trend_scope_invalid", "Choose an organization area.")
+		return
+	}
+	selection, scopeErr := a.resolveOrganizationScopeSelection(r.Context(), actor, organizationScopeID, false)
+	if scopeErr != nil {
+		writeOrganizationScopeRequestError(w, scopeErr, "This organization scope is not available for risk history.")
+		return
+	}
+	reader, ok := a.deps.MetricTrends.(metricview.OrganizationTrendReader)
+	if !ok {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "metric_trend_unavailable", "Organization risk history is unavailable. Try again.")
+		return
+	}
+	start, end, valid := metricTrendPeriod(w, r, time.Now().UTC())
+	if !valid {
+		return
+	}
+	series, err := reader.OrganizationTrend(
+		r.Context(),
+		actor.TenantID,
+		actor.LegalEntityID,
+		selection.ID,
+		strings.TrimSpace(r.PathValue("metric_id")),
+		start,
+		end,
+	)
+	switch {
+	case errors.Is(err, metricview.ErrTrendInvalid):
+		httpx.WriteError(w, http.StatusBadRequest, "metric_trend_filter_invalid", "Choose a valid risk metric and a period of up to 365 days.")
+	case errors.Is(err, metricview.ErrTrendNotFound):
+		httpx.WriteError(w, http.StatusNotFound, "metric_trend_not_found", "No retained organization risk history is available for this period.")
+	case err != nil:
+		httpx.WriteError(w, http.StatusServiceUnavailable, "metric_trend_unavailable", "Organization risk history is unavailable. Try again.")
+	default:
+		httpx.WriteJSON(w, http.StatusOK, series)
+	}
+}
+
 func (a *API) metricTrend(w http.ResponseWriter, r *http.Request) {
 	actor, err := identity.Require(r.Context())
 	if err != nil {

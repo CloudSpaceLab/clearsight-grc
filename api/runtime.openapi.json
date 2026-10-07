@@ -2325,6 +2325,60 @@
         }
       }
     },
+    "/api/v1/metrics/domain/{metric_id}/organization-trend": {
+      "get": {
+        "operationId": "domainMetricOrganizationTrend",
+        "x-clearsight-route-class": "AUTHENTICATED_READ",
+        "x-clearsight-permission": "OVERSIGHT_READ",
+        "parameters": [
+          {
+            "name": "metric_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "organization_scope_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Finalized daily outside-appetite Risk history for one authorized organization scope using captured historical lineage."
+          },
+          "404": {
+            "description": "No retained organization Risk history is available for the requested period."
+          },
+          "503": {
+            "description": "Organization Risk history is unavailable."
+          }
+        }
+      }
+    },
     "/api/v1/metrics/domain/{metric_id}/trend": {
       "get": {
         "operationId": "domainMetricTrend",
