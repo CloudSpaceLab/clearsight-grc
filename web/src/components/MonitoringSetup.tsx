@@ -12,6 +12,7 @@ import { apiErrorKind } from "../http";
 import { CollectionPolicyForm } from "./CollectionPolicyForm";
 import { CollectionRecord } from "./CollectionRecord";
 import { IndicatorValue } from "./indicators/IndicatorValue";
+import { concernScoreText } from "../concernScorePresentation";
 
 const FormBuilder = lazy(() => import("./FormBuilder").then((module) => ({ default: module.FormBuilder })));
 
@@ -36,7 +37,7 @@ function statusLabel(status: LifecycleStatus) {
 }
 
 function riskLabel(result: MonitoringResult) {
-  return result.evaluation.score == null ? "Not assessed" : `${Math.round(result.evaluation.score)} concern points`;
+  return concernScoreText(result.evaluation.score);
 }
 
 function bandLabel(result: MonitoringResult) {
@@ -235,7 +236,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     try {
       const result = await evaluateMonitoringSource(check);
       setLatestResults((current) => ({ ...current, [check.id]: result }));
-      const score = result.evaluation.score == null ? "concern not assessed" : `${Math.round(result.evaluation.score)} concern points`;
+      const score = riskLabel(result);
       setNotice(`${check.name}: ${score} · ${result.evaluation.band.toLowerCase().replaceAll("_", " ")}.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The source could not be evaluated.");
