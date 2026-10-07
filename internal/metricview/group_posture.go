@@ -29,12 +29,12 @@ type GroupPostureCounts struct {
 
 type GroupPostureChild struct {
 	GroupPostureEntity
-	RiskState          string               `json:"risk_state"`
-	Completeness       Completeness         `json:"completeness"`
-	SourceID           string               `json:"source_id,omitempty"`
-	SourceGeneratedAt  *time.Time           `json:"source_generated_at,omitempty"`
-	SourceRevision     string               `json:"source_revision,omitempty"`
-	DefinitionRevision string               `json:"definition_revision,omitempty"`
+	RiskState          string              `json:"risk_state"`
+	Completeness       Completeness        `json:"completeness"`
+	SourceID           string              `json:"source_id,omitempty"`
+	SourceGeneratedAt  *time.Time          `json:"source_generated_at,omitempty"`
+	SourceRevision     string              `json:"source_revision,omitempty"`
+	DefinitionRevision string              `json:"definition_revision,omitempty"`
 	Counts             GroupPostureCounts  `json:"counts"`
 	Unknown            int                 `json:"unknown"`
 	Excluded           int                 `json:"excluded"`
