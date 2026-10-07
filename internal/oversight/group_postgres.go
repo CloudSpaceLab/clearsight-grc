@@ -264,19 +264,30 @@ func (r *PostgresRepository) storeGroupProjection(ctx context.Context, value Gro
 		if err != nil {
 			return false, err
 		}
+		domainPosture, err := json.Marshal(child.DomainPosture)
+		if err != nil {
+			return false, err
+		}
+		domainHighWater, err := json.Marshal(child.DomainSourceHighWater)
+		if err != nil {
+			return false, err
+		}
 		_, err = tx.Exec(ctx, `
 			INSERT INTO group_oversight_child_facts(
 				run_id,tenant_id,legal_entity_id,legal_entity_code,legal_entity_name,jurisdiction,state,
 				child_snapshot_id,child_generated_at,child_projection_version,
-				coverage_population,coverage_excluded,coverage_unknown,counts,source_high_water
+				coverage_population,coverage_excluded,coverage_unknown,counts,source_high_water,
+				domain_state,domain_source_id,domain_generated_at,domain_definition_revision,domain_posture,domain_source_high_water
 			) VALUES(
 				$1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,
 				NULLIF($8,'')::uuid,$9,NULLIF($10,''),
-				$11,$12,$13,$14::jsonb,$15::jsonb
+				$11,$12,$13,$14::jsonb,$15::jsonb,
+				$16,NULLIF($17,'')::uuid,$18,NULLIF($19,''),$20::jsonb,$21::jsonb
 			)`,
 			runID, value.TenantID, child.LegalEntityID, child.LegalEntityCode, child.LegalEntityName, child.Jurisdiction, child.State,
 			child.ChildSnapshotID, child.ChildGeneratedAt, child.ChildProjectionVersion,
-			nullableCoveragePopulation(child), child.Coverage.Excluded, child.Coverage.Unknown, counts, highWater)
+			nullableCoveragePopulation(child), child.Coverage.Excluded, child.Coverage.Unknown, counts, highWater,
+			child.DomainState, child.DomainSourceID, child.DomainGeneratedAt, child.DomainDefinitionRevision, domainPosture, domainHighWater)
 		if err != nil {
 			return false, err
 		}
