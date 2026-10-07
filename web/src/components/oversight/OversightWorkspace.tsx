@@ -213,6 +213,7 @@ export function OversightWorkspace({
     if (selectedHomeTab !== "oversight") return;
     const controller = new AbortController();
     setDomainState("loading");
+    setDomainMetrics(null);
     void loadDomainPosture(organizationScopeID, controller.signal).then((value) => {
       if (controller.signal.aborted) return;
       setDomainMetrics(value);
@@ -234,6 +235,7 @@ export function OversightWorkspace({
     if (selectedHomeTab !== "oversight" || state !== "live" || !lossPeriod) return;
     const controller = new AbortController();
     setLossState("loading");
+    setLossMetrics(null);
     void loadLossMetrics(lossPeriod, organizationScopeID, controller.signal).then((value) => {
       if (controller.signal.aborted) return;
       setLossMetrics(value);
