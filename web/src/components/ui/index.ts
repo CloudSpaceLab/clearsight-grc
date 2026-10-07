@@ -19,6 +19,8 @@ export { FormField } from "./FormField";
 export type { FieldControlProps, FormFieldProps } from "./FormField";
 export { MetricCard } from "./MetricCard";
 export type { MetricCardProps, MetricCardQuality } from "./MetricCard";
+export { MetricTrend } from "./MetricTrend";
+export type { MetricTrendDatum, MetricTrendProps } from "./MetricTrend";
 export { RankedBarList } from "./RankedBarList";
 export type { RankedBarItem, RankedBarListProps } from "./RankedBarList";
 export { Notice } from "./Notice";

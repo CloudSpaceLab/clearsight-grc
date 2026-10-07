@@ -178,3 +178,80 @@ export function loadDomainMetricOrganizationBreakdown(
     signal ? { signal } : undefined,
   );
 }
+
+
+export type MetricTrendPoint = {
+  at: string;
+  value: number;
+  freshness: "CURRENT" | "STALE";
+  completeness: MetricCompleteness;
+  population: number;
+  excluded?: number;
+  unknown?: number;
+  source_revision: string;
+};
+
+export type MetricTrendSeries = {
+  metric_id: string;
+  definition_revision: string;
+  start: string;
+  end: string;
+  resolution: "HOUR" | "DAY";
+  points: MetricTrendPoint[];
+  current?: MetricTrendPoint;
+  baseline?: MetricTrendPoint;
+  delta?: number;
+  direction: "IMPROVED" | "WORSENED" | "UNCHANGED" | "UNKNOWN";
+  comparison_quality: "COMPLETE" | "LIMITED" | "MISSING";
+};
+
+export type OrganizationTrendPoint = {
+  date: string;
+  at: string;
+  value: number;
+  source_revision: string;
+  source_complete: boolean;
+};
+
+export type OrganizationTrendSeries = {
+  metric_id: string;
+  definition_revision: string;
+  organization_scope_id: string;
+  start: string;
+  end: string;
+  resolution: "DAY";
+  points: OrganizationTrendPoint[];
+};
+
+export function loadDomainMetricTrend(
+  metricID: string,
+  startDate: string,
+  endDate: string,
+  signal?: AbortSignal,
+): Promise<MetricTrendSeries> {
+  const query = new URLSearchParams({ start_date: startDate, end_date: endDate });
+  return requestJSON<MetricTrendSeries>(
+    apiBase,
+    `/api/v1/metrics/domain/${encodeURIComponent(metricID)}/trend?${query.toString()}`,
+    signal ? { signal } : undefined,
+  );
+}
+
+export function loadDomainMetricOrganizationTrend(
+  metricID: string,
+  organizationScopeID: string,
+  startDate: string,
+  endDate: string,
+  signal?: AbortSignal,
+): Promise<OrganizationTrendSeries> {
+  const query = new URLSearchParams({
+    organization_scope_id: organizationScopeID,
+    start_date: startDate,
+    end_date: endDate,
+  });
+  return requestJSON<OrganizationTrendSeries>(
+    apiBase,
+    `/api/v1/metrics/domain/${encodeURIComponent(metricID)}/organization-trend?${query.toString()}`,
+    signal ? { signal } : undefined,
+  );
+}
