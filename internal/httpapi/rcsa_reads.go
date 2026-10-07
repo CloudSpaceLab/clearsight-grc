@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
@@ -36,16 +37,32 @@ type rcsaCyclePageRead struct {
 	Complete   bool                   `json:"complete"`
 }
 
+type rcsaChallengeContextRead struct {
+	MatterID                     string `json:"matter_id,omitempty"`
+	MatterStatus                 string `json:"matter_status,omitempty"`
+	DecisionStatus               string `json:"decision_status,omitempty"`
+	DecisionOption               string `json:"decision_option,omitempty"`
+	OpenActionCount              int    `json:"open_action_count"`
+	ImplementedActionCount       int    `json:"implemented_action_count"`
+	BlockedActionCount           int    `json:"blocked_action_count"`
+	ActiveVerificationCount      int    `json:"active_verification_count"`
+	PassedVerificationCount      int    `json:"passed_verification_count"`
+	FailedVerificationCount      int    `json:"failed_verification_count"`
+	InconclusiveVerificationCount int   `json:"inconclusive_verification_count"`
+}
+
 type rcsaCycleDetailRead struct {
-	Cycle                     rcsa.Cycle             `json:"cycle"`
-	Risks                     []rcsa.RiskSnapshot    `json:"risks"`
-	Controls                  []rcsa.ControlSnapshot `json:"controls"`
-	FirstLineOwnerDisplayName string                 `json:"first_line_owner_display_name,omitempty"`
-	AssessmentPeriodStart     *time.Time             `json:"assessment_period_start,omitempty"`
-	AssessmentPeriodEnd       *time.Time             `json:"assessment_period_end,omitempty"`
-	FirstLineRequestID        string                 `json:"first_line_request_id,omitempty"`
-	Handoff                   rcsaHandoffRead        `json:"handoff"`
-	Complete                  bool                   `json:"complete"`
+	Cycle                     rcsa.Cycle               `json:"cycle"`
+	Risks                     []rcsa.RiskSnapshot      `json:"risks"`
+	Controls                  []rcsa.ControlSnapshot   `json:"controls"`
+	FirstLineOwnerDisplayName string                   `json:"first_line_owner_display_name,omitempty"`
+	AssessmentPeriodStart     *time.Time               `json:"assessment_period_start,omitempty"`
+	AssessmentPeriodEnd       *time.Time               `json:"assessment_period_end,omitempty"`
+	FirstLineRequestID        string                   `json:"first_line_request_id,omitempty"`
+	ChallengeContext          *rcsaChallengeContextRead `json:"challenge_context,omitempty"`
+	ChallengeContextComplete  bool                     `json:"challenge_context_complete"`
+	Handoff                   rcsaHandoffRead          `json:"handoff"`
+	Complete                  bool                     `json:"complete"`
 }
 
 func (a *API) listRCSACycles(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +135,8 @@ func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	labels := a.exactAssessmentLabels(r.Context(), actor, actor.LegalEntityID, []string{value.Cycle.FirstLineOwnerID})
-	requestID, periodStart, periodEnd, complete := a.rcsaFirstLineContext(r.Context(), value.Cycle)
+	requestID, periodStart, periodEnd, firstLineComplete := a.rcsaFirstLineContext(r.Context(), value.Cycle)
+	challengeContext, challengeComplete := a.rcsaChallengeContext(r.Context(), value.Cycle)
 	httpx.WriteJSON(w, http.StatusOK, rcsaCycleDetailRead{
 		Cycle:                     value.Cycle,
 		Risks:                     value.Risks,
@@ -127,8 +145,10 @@ func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 		AssessmentPeriodStart:     periodStart,
 		AssessmentPeriodEnd:       periodEnd,
 		FirstLineRequestID:        requestID,
+		ChallengeContext:          challengeContext,
+		ChallengeContextComplete:  challengeComplete,
 		Handoff:                   rcsaCycleHandoff(value.Cycle, requestID),
-		Complete:                  complete,
+		Complete:                  firstLineComplete && challengeComplete,
 	})
 }
 
@@ -248,6 +268,65 @@ func (a *API) rcsaFirstLineContext(ctx context.Context, cycle rcsa.Cycle) (strin
 		return "", nil, nil, false
 	}
 	return requestID, cloneRCSATime(request.CollectionPeriodStart), cloneRCSATime(request.CollectionPeriodEnd), true
+}
+
+func (a *API) rcsaChallengeContext(ctx context.Context, cycle rcsa.Cycle) (*rcsaChallengeContextRead, bool) {
+	if cycle.ChallengeMatterID == "" {
+		return nil, true
+	}
+	if a == nil || a.deps.Continuity == nil {
+		return nil, false
+	}
+	aggregate, err := a.deps.Continuity.GetMatter(ctx, cycle.TenantID, cycle.ChallengeMatterID)
+	if err != nil || aggregate.Matter.LegalEntityID != cycle.LegalEntityID || !canReadMatterAggregate(ctx, aggregate) {
+		return nil, false
+	}
+	context := &rcsaChallengeContextRead{
+		MatterID:     aggregate.Matter.ID,
+		MatterStatus: string(aggregate.Matter.Status),
+	}
+	if decision := continuity.CurrentDecisionForType(aggregate.Decisions, "RCSA_CHALLENGE"); decision != nil {
+		context.DecisionStatus = string(decision.Status)
+		context.DecisionOption = decision.SelectedOption
+	}
+	for _, action := range aggregate.Actions {
+		switch action.Status {
+		case continuity.ActionImplemented:
+			context.ImplementedActionCount++
+		case continuity.ActionBlocked:
+			context.BlockedActionCount++
+			context.OpenActionCount++
+		case continuity.ActionPlanned, continuity.ActionInProgress:
+			context.OpenActionCount++
+		}
+	}
+	latestResults := make(map[string]continuity.VerificationResult)
+	for _, result := range aggregate.VerificationResults {
+		current, exists := latestResults[result.ContractID]
+		if !exists || result.ObservedAt.After(current.ObservedAt) ||
+			(result.ObservedAt.Equal(current.ObservedAt) && result.CreatedAt.After(current.CreatedAt)) {
+			latestResults[result.ContractID] = result
+		}
+	}
+	for _, contract := range aggregate.VerificationContracts {
+		if contract.Status != continuity.VerificationActive {
+			continue
+		}
+		context.ActiveVerificationCount++
+		result, exists := latestResults[contract.ID]
+		if !exists {
+			continue
+		}
+		switch result.Result {
+		case continuity.VerificationPassed:
+			context.PassedVerificationCount++
+		case continuity.VerificationFailed:
+			context.FailedVerificationCount++
+		case continuity.VerificationInconclusive:
+			context.InconclusiveVerificationCount++
+		}
+	}
+	return context, true
 }
 
 func rcsaCycleHandoff(cycle rcsa.Cycle, firstLineRequestID string) rcsaHandoffRead {
