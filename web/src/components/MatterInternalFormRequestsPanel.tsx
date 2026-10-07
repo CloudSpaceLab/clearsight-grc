@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createLibraryFormDraft, loadFormTemplatePage } from "../formsApi";
-import type { FormLibraryItem, FormTemplate } from "../formsTypes";
+import type { FormLibraryItem } from "../formsTypes";
 import { FocusedSheet } from "./FocusedSheet";
 import { FormBuilder } from "./FormBuilder";
 import { DistributionComposer } from "./forms/DistributionComposer";
@@ -20,7 +20,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
   const [requestOpen, setRequestOpen] = useState(false);
   const [authorOpen, setAuthorOpen] = useState(false);
   const [notice, setNotice] = useState("");
-  const [createdDraft, setCreatedDraft] = useState<FormTemplate>();
+  const [createdDraft, setCreatedDraft] = useState<{ id: string }>();
   const [linkedFormsState, setLinkedFormsState] = useState<LinkedFormsState>("loading");
   const [linkedForms, setLinkedForms] = useState<FormLibraryItem[]>([]);
   const [linkedFormsCursor, setLinkedFormsCursor] = useState<string>();
