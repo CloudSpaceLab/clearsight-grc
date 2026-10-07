@@ -261,9 +261,10 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
   </article>;
 }
 
-function phaseStepStateLabel(state: "complete" | "current" | "pending" | "not_required") {
+function phaseStepStateLabel(state: "complete" | "current" | "pending" | "not_required" | "unknown") {
   if (state === "complete") return "Complete";
   if (state === "current") return "Current";
   if (state === "not_required") return "Not required";
+  if (state === "unknown") return "Outcome not classified";
   return "Pending decision";
 }
