@@ -5,7 +5,7 @@ import { getRisk, linkRiskControl, type LinkRiskControlResponse } from "../../ri
 import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment, RiskControlDetail } from "../../riskTypes";
 import { apiErrorKind } from "../../http";
 import { Button, DataTable, EmptyState, Notice, SelectField, StatusBadge, Surface, type DataColumn } from "../ui";
-import { appetiteLabel, appetiteTone, assessmentKindLabel, controlEvidenceSummary, controlImplementationStatusLabel, controlImplementationStatusTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskCurrentPositionAssessment, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
+import { appetiteLabel, appetiteTone, assessmentKindLabel, assessmentRatingLabel, assessmentRatingTone, controlEvidenceSummary, controlImplementationStatusLabel, controlImplementationStatusTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskCurrentPositionAssessment, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
 import { RiskIndicatorsSection } from "./RiskIndicatorsSection";
 import { NotificationDeliveryHistory } from "../NotificationDeliveryHistory";
 
@@ -166,6 +166,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
 
     <Surface>
       <dl className="risk-record__state" role="group" aria-label="Current risk state">
+        <div><dt>Current rating</dt><dd><StatusBadge tone={assessmentRatingTone(currentAssessment, risk.version)}>{assessmentRatingLabel(currentAssessment, risk.version)}</StatusBadge></dd></div>
         <div><dt>{currentAssessment ? `${assessmentKindLabel(currentAssessment.kind)} appetite` : "Appetite"}</dt><dd><StatusBadge tone={currentAppetiteTone(risk.version, currentAssessment, aggregate.active_appetite)}>{currentAppetiteLabel(risk.version, currentAssessment, aggregate.active_appetite)}</StatusBadge></dd></div>
         <div><dt>Status</dt><dd><StatusBadge tone={riskStatusTone(risk.status)}>{riskStatusLabel(risk.status)}</StatusBadge></dd></div>
         <div><dt>Owner</dt><dd>{aggregate.owner_display_name || (risk.owner_principal_id ? "Assigned · name unavailable" : "Not assigned")}</dd></div>
