@@ -255,3 +255,117 @@ export function loadDomainMetricOrganizationTrend(
     signal ? { signal } : undefined,
   );
 }
+
+
+export type MoneyValue = {
+  minor_units: string;
+  currency: string;
+};
+
+export type LossCurrencyFlow = {
+  currency: string;
+  gross: MoneyValue;
+  recovery: MoneyValue;
+  reversal: MoneyValue;
+  net: MoneyValue;
+  loss_event_count: number;
+  recovery_event_count: number;
+  reversal_event_count: number;
+};
+
+export type LossOrganizationFlow = {
+  key: string;
+  scope_id?: string;
+  label: string;
+  kind: "ORGANIZATION_SCOPE" | "DIRECT" | "UNATTRIBUTED" | "UNAVAILABLE";
+  loss_event_count: number;
+  contributing_loss_count: number;
+  mixed_currencies: boolean;
+  net_loss?: MoneyValue;
+  currencies: LossCurrencyFlow[];
+};
+
+export type LossFlowPoint = {
+  start: string;
+  end: string;
+  loss_event_count: number;
+  contributing_loss_count: number;
+  mixed_currencies: boolean;
+  net_loss?: MoneyValue;
+  currencies: LossCurrencyFlow[];
+};
+
+export type LossPeriodComparison = {
+  period_start: string;
+  period_end: string;
+  event_count: number;
+  contributing_loss_count: number;
+  mixed_currencies: boolean;
+  net_loss?: MoneyValue;
+  currencies: LossCurrencyFlow[];
+  event_delta: number;
+  net_delta?: MoneyValue;
+  direction: "IMPROVED" | "WORSENED" | "UNCHANGED" | "UNKNOWN";
+  comparison_quality: "COMPLETE" | "LIMITED" | "MISSING";
+};
+
+export type LossPeriodBundle = {
+  generated_at: string;
+  period_start: string;
+  period_end: string;
+  scope_id: string;
+  scope_kind: "LEGAL_ENTITY" | "ORGANIZATION_SCOPE";
+  source_id: string;
+  source_revision: string;
+  definition_revision: string;
+  event_count: number;
+  contributing_loss_count: number;
+  unattributed_event_count: number;
+  mixed_currencies: boolean;
+  net_loss?: MoneyValue;
+  currencies: LossCurrencyFlow[];
+  organization_breakdown: LossOrganizationFlow[];
+  flow_resolution: "DAY" | "WEEK";
+  flow_points: LossFlowPoint[];
+  comparison: LossPeriodComparison;
+};
+
+export function loadLossPeriodMetrics(
+  period: ReportingPeriodQuery,
+  organizationScopeID?: string,
+  signal?: AbortSignal,
+): Promise<LossPeriodBundle> {
+  const query = new URLSearchParams({
+    start_date: period.start_date,
+    end_date: period.end_date,
+  });
+  if (organizationScopeID) query.set("organization_scope_id", organizationScopeID);
+  return requestJSON<LossPeriodBundle>(
+    apiBase,
+    `/api/v1/metrics/losses/period?${query.toString()}`,
+    signal ? { signal } : undefined,
+  );
+}
+
+export function loadLossPeriodMetricMembers(
+  metricID: "operational_loss_events" | "operational_loss_net",
+  sourceID: string,
+  definitionRevision: string,
+  organizationScopeID?: string,
+  cursor?: string,
+  limit = 50,
+  signal?: AbortSignal,
+): Promise<HomeMetricMemberPage> {
+  const query = new URLSearchParams({
+    source_id: sourceID,
+    definition_revision: definitionRevision,
+    limit: String(limit),
+  });
+  if (organizationScopeID) query.set("organization_scope_id", organizationScopeID);
+  if (cursor) query.set("cursor", cursor);
+  return requestJSON<HomeMetricMemberPage>(
+    apiBase,
+    `/api/v1/metrics/losses/${encodeURIComponent(metricID)}/members?${query.toString()}`,
+    signal ? { signal } : undefined,
+  );
+}
