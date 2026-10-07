@@ -63,6 +63,10 @@ export function OrganizationRiskSummary({
   }, [bundle, loadBreakdown, metric, organizationScopeID]);
 
   const displayItems = useMemo(() => compactBuckets(value?.items ?? []), [value?.items]);
+  const coverageComplete = metric?.freshness === "CURRENT"
+    && metric.completeness === "COMPLETE"
+    && (metric.excluded ?? 0) === 0
+    && (metric.unknown ?? 0) === 0;
   const rankedItems = useMemo<RankedBarItem[]>(() => displayItems.map((item) => ({
     id: item.key,
     label: item.label,
@@ -83,9 +87,11 @@ export function OrganizationRiskSummary({
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading risk concentration…</p>}
     {state === "unavailable" && <Notice tone="warning">Risk concentration is unavailable for this scope.</Notice>}
     {state === "live" && value?.count === 0 && <EmptyState compact
-      population="No risks outside appetite"
-      title="No risks outside appetite"
-      description="No current risks exceed approved appetite."
+      population={coverageComplete ? "No risks outside appetite" : "No identified appetite breaches"}
+      title={coverageComplete ? "No risks outside appetite" : "No identified appetite breaches"}
+      description={coverageComplete
+        ? "No current risks exceed approved appetite."
+        : "Risk coverage is incomplete; some assessments may be missing."}
     />}
     {state === "live" && value && value.count > 0 && <RankedBarList
       ariaLabel="Outside-appetite risks by organization area"
