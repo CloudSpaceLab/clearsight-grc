@@ -1,22 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   loadDomainMetricMembers,
+  loadLossPeriodMetricMembers,
   type DomainMetricBundle,
   type HomeMetric,
   type HomeMetricMemberPage,
+  type LossPeriodBundle,
 } from "../../metricApi";
 import { homeMetricQuality } from "../../homeMetricPresentation";
+import { lossComparisonLabel, lossPeriodValue } from "./lossOverviewPresentation";
 import { MetricCard, Notice } from "../ui";
 import type { StatusTone } from "../ui";
 import { MetricMemberDrill } from "./MetricMemberDrill";
 
 type LoadState = "loading" | "live" | "unavailable";
+type SelectedMetric = {
+  id: string;
+  label: string;
+  sourceID: string;
+  definitionRevision: string;
+  expectedCount: number;
+  kind: "domain" | "loss";
+};
 
 type Props = {
   bundle: DomainMetricBundle | null;
   state: LoadState;
+  lossBundle?: LossPeriodBundle | null;
+  lossState?: LoadState;
   organizationScopeID?: string;
   loadMembers?: typeof loadDomainMetricMembers;
+  loadLossMembers?: typeof loadLossPeriodMetricMembers;
   onOpenRisk?: (id: string) => void;
   onOpenLoss?: (id: string) => void;
 };
@@ -25,21 +39,22 @@ const postureOrder = [
   "risks_outside_appetite",
   "indicator_breaches",
   "assurance_failures",
-  "losses_without_issue",
 ] as const;
 
 const postureDetails: Record<(typeof postureOrder)[number], string> = {
   risks_outside_appetite: "Active risks beyond approved appetite",
   indicator_breaches: "High or critical KRI/KCI breaches",
   assurance_failures: "Risks with failed current assurance",
-  losses_without_issue: "Active losses without a linked intervention",
 };
 
 export function DomainPostureSummary({
   bundle,
   state,
+  lossBundle = null,
+  lossState = "loading",
   organizationScopeID,
   loadMembers = loadDomainMetricMembers,
+  loadLossMembers = loadLossPeriodMetricMembers,
   onOpenRisk,
   onOpenLoss,
 }: Props) {
@@ -49,8 +64,37 @@ export function DomainPostureSummary({
   const [memberCursors, setMemberCursors] = useState<string[]>([]);
   const [retry, setRetry] = useState(0);
 
-  const metrics = useMemo(() => postureOrder.map((id) => bundle?.items.find((item) => item.id === id)), [bundle]);
-  const selected = selectedID ? bundle?.items.find((item) => item.id === selectedID) : undefined;
+  const metrics = useMemo(
+    () => postureOrder.map((id) => bundle?.items.find((item) => item.id === id)),
+    [bundle],
+  );
+  const selectedDomain = selectedID
+    ? bundle?.items.find((item) => item.id === selectedID)
+    : undefined;
+  const lossCard = useMemo(() => lossCardModel(lossBundle), [lossBundle]);
+  const selected = useMemo<SelectedMetric | undefined>(() => {
+    if (selectedDomain && bundle) {
+      return {
+        id: selectedDomain.id,
+        label: selectedDomain.label,
+        sourceID: bundle.source_id,
+        definitionRevision: selectedDomain.definition_revision,
+        expectedCount: selectedDomain.value,
+        kind: "domain",
+      };
+    }
+    if (lossCard && selectedID === lossCard.metricID && lossBundle) {
+      return {
+        id: lossCard.metricID,
+        label: "Net operational loss",
+        sourceID: lossBundle.source_id,
+        definitionRevision: lossBundle.definition_revision,
+        expectedCount: lossCard.expectedCount,
+        kind: "loss",
+      };
+    }
+    return undefined;
+  }, [bundle, lossBundle, lossCard, selectedDomain, selectedID]);
   const cursor = memberCursors[memberCursors.length - 1];
 
   useEffect(() => {
@@ -58,26 +102,38 @@ export function DomainPostureSummary({
     setMemberPage(null);
     setMemberCursors([]);
     setMemberState("idle");
-  }, [bundle?.source_id, organizationScopeID]);
+  }, [bundle?.source_id, lossBundle?.source_id, organizationScopeID]);
 
   useEffect(() => {
-    if (!bundle || !selected) return;
+    if (!selected) return;
     const controller = new AbortController();
     setMemberState("loading");
-    void loadMembers(
-      selected.id,
-      bundle.source_id,
-      selected.definition_revision,
-      organizationScopeID,
-      cursor,
-      50,
-      controller.signal,
-    ).then((page) => {
+    const request = selected.kind === "loss"
+      ? loadLossMembers(
+        selected.id as "operational_loss_events" | "operational_loss_net",
+        selected.sourceID,
+        selected.definitionRevision,
+        organizationScopeID,
+        cursor,
+        50,
+        controller.signal,
+      )
+      : loadMembers(
+        selected.id,
+        selected.sourceID,
+        selected.definitionRevision,
+        organizationScopeID,
+        cursor,
+        50,
+        controller.signal,
+      );
+
+    void request.then((page) => {
       if (controller.signal.aborted) return;
-      const valid = page.source_id === bundle.source_id
+      const valid = page.source_id === selected.sourceID
         && page.metric_id === selected.id
-        && page.definition_revision === selected.definition_revision
-        && page.count === selected.value;
+        && page.definition_revision === selected.definitionRevision
+        && page.count === selected.expectedCount;
       if (!valid) {
         setMemberPage(null);
         setMemberState("unavailable");
@@ -91,17 +147,24 @@ export function DomainPostureSummary({
       setMemberState("unavailable");
     });
     return () => controller.abort();
-  }, [bundle, cursor, loadMembers, organizationScopeID, retry, selected]);
+  }, [
+    cursor,
+    loadLossMembers,
+    loadMembers,
+    organizationScopeID,
+    retry,
+    selected,
+  ]);
 
-  function selectMetric(metric: HomeMetric) {
-    if (selectedID === metric.id) {
+  function toggleMetric(id: string) {
+    if (selectedID === id) {
       setSelectedID(undefined);
       setMemberPage(null);
       setMemberCursors([]);
       setMemberState("idle");
       return;
     }
-    setSelectedID(metric.id);
+    setSelectedID(id);
     setMemberPage(null);
     setMemberCursors([]);
   }
@@ -110,8 +173,8 @@ export function DomainPostureSummary({
     <div className="section-header">
       <div>
         <span className="eyebrow">Current posture</span>
-        <h2 id="domain-posture-heading">Material risk signals</h2>
-        <p>Current governed posture for this scope.</p>
+        <h2 id="domain-posture-heading">Enterprise posture</h2>
+        <p>Current risk posture and operational Loss flow for this scope.</p>
       </div>
     </div>
 
@@ -140,14 +203,40 @@ export function DomainPostureSummary({
           actionLabel={active ? "Close records" : "Review records"}
           isSelected={active}
           ariaControls="domain-posture-members"
-          onPress={() => selectMetric(metric)}
+          onPress={() => toggleMetric(metric.id)}
         />;
       })}
+
+      {!lossCard || !lossBundle
+        ? <MetricCard
+          label="Net operational loss"
+          value="—"
+          detail="Loss flow in the selected period"
+          quality="unknown"
+          qualityLabel={lossState === "loading" ? "Loading" : "Unavailable"}
+        />
+        : <MetricCard
+          label="Net operational loss"
+          value={lossCard.value}
+          delta={lossCard.delta}
+          detail={lossCard.detail}
+          meta={lossCard.meta}
+          tone="neutral"
+          quality="current"
+          qualityLabel="Period flow"
+          actionLabel={lossCard.expectedCount > 0
+            ? selectedID === lossCard.metricID ? "Close records" : "Review records"
+            : undefined}
+          isSelected={selectedID === lossCard.metricID}
+          ariaControls="domain-posture-members"
+          onPress={lossCard.expectedCount > 0 ? () => toggleMetric(lossCard.metricID) : undefined}
+        />}
     </div>
 
     {state === "unavailable" && <Notice tone="warning">Current risk posture is unavailable.</Notice>}
+    {lossState === "unavailable" && <Notice tone="warning">Loss flow is unavailable for this period.</Notice>}
 
-    {selected && bundle && <div id="domain-posture-members" className="domain-posture__members">
+    {selected && <div id="domain-posture-members" className="domain-posture__members">
       <MetricMemberDrill
         label={selected.label}
         state={memberState === "idle" ? "loading" : memberState}
@@ -166,11 +255,42 @@ export function DomainPostureSummary({
   </section>;
 }
 
+function lossCardModel(bundle: LossPeriodBundle | null) {
+  if (!bundle) return undefined;
+  if (bundle.mixed_currencies) {
+    return {
+      metricID: bundle.contributing_loss_count > 0 ? "operational_loss_net" as const : "operational_loss_events" as const,
+      expectedCount: bundle.contributing_loss_count > 0 ? bundle.contributing_loss_count : bundle.event_count,
+      value: lossPeriodValue(bundle),
+      delta: lossComparisonLabel(bundle),
+      detail: `Mixed currencies; ${bundle.event_count} new ${bundle.event_count === 1 ? "event" : "events"}, amounts kept separate`,
+      meta: `${bundle.currencies.length} currencies · ${bundle.contributing_loss_count} contributing Losses`,
+    };
+  }
+  if (bundle.net_loss) {
+    return {
+      metricID: "operational_loss_net" as const,
+      expectedCount: bundle.contributing_loss_count,
+      value: lossPeriodValue(bundle),
+      delta: lossComparisonLabel(bundle),
+      detail: "Net Loss flow in the selected period",
+      meta: `${bundle.event_count} new ${bundle.event_count === 1 ? "event" : "events"} · ${bundle.contributing_loss_count} contributing Losses`,
+    };
+  }
+  return {
+    metricID: "operational_loss_events" as const,
+    expectedCount: bundle.event_count,
+    value: lossPeriodValue(bundle),
+    delta: lossComparisonLabel(bundle),
+    detail: "No monetary Loss flow in this period",
+    meta: "No gross Loss or recovery activity",
+  };
+}
+
 function postureLabel(id: (typeof postureOrder)[number]) {
   if (id === "risks_outside_appetite") return "Outside appetite";
   if (id === "indicator_breaches") return "Indicator breaches";
-  if (id === "assurance_failures") return "Assurance failures";
-  return "Losses without issue";
+  return "Assurance failures";
 }
 
 function postureTone(metric: HomeMetric): StatusTone {
