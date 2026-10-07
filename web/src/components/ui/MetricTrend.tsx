@@ -29,17 +29,19 @@ export function MetricTrend({
   const maxTime = last.timestamp;
   const minValue = Math.min(...values.map((point) => point.value));
   const maxValue = Math.max(...values.map((point) => point.value));
-  const timeRange = Math.max(1, maxTime - minTime);
-  const valueRange = Math.max(1, maxValue - minValue);
+  const timeRange = maxTime - minTime;
+  const valueRange = maxValue - minValue;
   const width = 1000;
   const height = 180;
   const insetX = 20;
   const insetY = 18;
+  const plotWidth = width - insetX * 2;
+  const plotHeight = height - insetY * 2;
 
   const plotted = values.map((point) => ({
     ...point,
-    x: insetX + ((point.timestamp - minTime) / timeRange) * (width - insetX * 2),
-    y: insetY + (1 - ((point.value - minValue) / valueRange)) * (height - insetY * 2),
+    x: timeRange === 0 ? width / 2 : insetX + ((point.timestamp - minTime) / timeRange) * plotWidth,
+    y: valueRange === 0 ? height / 2 : insetY + (1 - ((point.value - minValue) / valueRange)) * plotHeight,
   }));
 
   const segments: typeof plotted[] = [];
