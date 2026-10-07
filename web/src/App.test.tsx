@@ -589,13 +589,16 @@ describe("runtime navigation", () => {
     expect((await screen.findAllByRole("button", { name: "Home" })).length).toBeGreaterThan(0);
   });
 
-  it("moves legacy Today entry into Home while retaining assigned work", async () => {
+  it("keeps legacy Today work under the explicit My work Home intent", async () => {
     vi.mocked(loadContext).mockResolvedValue({ ...runtime(false), capabilities: { ...runtime(false).capabilities, oversight_read: true } });
     vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention("request-assigned")], generated_at: "2026-08-07T15:00:00Z" });
 
     render(<App />);
 
     await waitFor(() => expect(window.location.hash).toBe("#oversight"));
+    expect(screen.queryByText("Confirm assigned evidence")).toBeNull();
+    fireEvent.click(await screen.findByRole("tab", { name: "My work" }));
+    expect(window.location.hash).toBe("#oversight?tab=my-work");
     expect(await screen.findByText("Confirm assigned evidence")).toBeTruthy();
     const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
     expect(within(primaryNavigation).queryByRole("button", { name: "Today" })).toBeNull();

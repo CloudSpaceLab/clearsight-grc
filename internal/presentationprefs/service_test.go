@@ -27,6 +27,29 @@ func TestRoleDefaultsRemainPresentationOnlyAndOverridable(t *testing.T) {
 	}
 }
 
+func TestRoleDefaultsSeparateOversightFromAssignedWork(t *testing.T) {
+	tests := []struct {
+		name      string
+		roles     []string
+		home      HomeFocus
+		portfolio PortfolioLens
+	}{
+		{name: "grc administrator", roles: []string{"GRC_ADMIN"}, home: HomeFocusPosture, portfolio: PortfolioLensRisks},
+		{name: "risk manager", roles: []string{"RISK_MANAGER"}, home: HomeFocusPosture, portfolio: PortfolioLensRisks},
+		{name: "risk owner", roles: []string{"RISK_OWNER"}, home: HomeFocusMyWork, portfolio: PortfolioLensRisks},
+		{name: "control owner", roles: []string{"CONTROL_OWNER"}, home: HomeFocusMyWork, portfolio: PortfolioLensPrograms},
+		{name: "program owner", roles: []string{"PROGRAM_OWNER"}, home: HomeFocusMyWork, portfolio: PortfolioLensPrograms},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			home, portfolio := roleDefaults(tt.roles)
+			if home != tt.home || portfolio != tt.portfolio {
+				t.Fatalf("roles=%v home=%q portfolio=%q", tt.roles, home, portfolio)
+			}
+		})
+	}
+}
+
 func TestPresentationPreferenceVersionAndEnumValidation(t *testing.T) {
 	service := NewService(NewMemoryRepository())
 	if _, err := service.Update(context.Background(), "tenant", "actor", nil, UpdateInput{

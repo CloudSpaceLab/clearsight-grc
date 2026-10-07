@@ -15,6 +15,10 @@
 .oversight-data-freshness p { margin: 10px 0; color: var(--muted); font-size: .74rem; }
 .oversight-data-freshness dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 0; }
 .oversight-data-freshness dl > div { display: grid; gap: 2px; padding: 8px; border-radius: var(--cs-primitive-radius-8); background: var(--surface-2); }
+.oversight-home-tabs { margin-top: 18px; }
+.oversight-home-panel { min-width: 0; }
+.oversight-attention-actions { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
 .oversight-data-freshness dt { color: var(--muted); font-size: .68rem; }
 .oversight-data-freshness dd { margin: 0; font-size: .74rem; font-weight: 650; }
 .oversight-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }

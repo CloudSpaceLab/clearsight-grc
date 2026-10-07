@@ -25,6 +25,16 @@ describe("workspace routes", () => {
     expect(parseRoute("#oversight?metric=unknown")).toEqual({ view: "oversight", target: {} });
   });
 
+  it("round-trips explicit Home tabs while keeping Oversight as the compact default route", () => {
+    expect(parseRoute("#oversight")).toEqual({ view: "oversight", target: {} });
+    expect(parseRoute("#oversight?tab=attention")).toEqual({ view: "oversight", target: { homeTab: "attention" } });
+    expect(parseRoute("#oversight?tab=my-work")).toEqual({ view: "oversight", target: { homeTab: "my-work" } });
+    expect(parseRoute("#oversight?tab=unknown")).toEqual({ view: "oversight", target: {} });
+    expect(routeHash("oversight", { homeTab: "oversight" }, "assigned")).toBe("#oversight");
+    expect(routeHash("oversight", { homeTab: "attention", oversightMetric: "overdue" }, "assigned")).toBe("#oversight?tab=attention&metric=overdue");
+    expect(routeHash("oversight", { homeTab: "my-work" }, "assigned")).toBe("#oversight?tab=my-work");
+  });
+
   it("uses assigned work as the Work landing while preserving exact domain routes", () => {
     expect(parseRoute("#work")).toEqual({ view: "work", workTab: "assigned", target: {} });
     expect(routeHash("work", {}, "assigned")).toBe("#work");

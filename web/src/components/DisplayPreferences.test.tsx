@@ -73,7 +73,7 @@ describe("DisplayPreferencesRoot", () => {
     const portfolio = screen.getByLabelText("Portfolio start");
     expect((home as HTMLSelectElement).value).toBe("AUTO");
     expect((portfolio as HTMLSelectElement).value).toBe("AUTO");
-    expect(screen.getByRole("option", { name: "Role default · Posture first" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Role default · Oversight first" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "Role default · Risks" })).toBeTruthy();
 
     fireEvent.change(home, { target: { value: "MY_WORK" } });

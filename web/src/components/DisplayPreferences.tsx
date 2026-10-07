@@ -175,7 +175,7 @@ export function DisplayPreferencesMenu() {
         <label htmlFor="display-home-focus">Home focus</label>
         <select id="display-home-focus" value={presentation.home_focus} disabled={presentationState === "saving"} onChange={(event) => setHomeFocus(event.target.value as HomeFocusPreference)}>
           <option value="AUTO">Role default · {homeFocusLabel(presentation.effective_home_focus)}</option>
-          <option value="POSTURE">Posture first</option>
+          <option value="POSTURE">Oversight first</option>
           <option value="MY_WORK">My work first</option>
         </select>
       </div>}
@@ -197,7 +197,7 @@ export function DisplayPreferencesMenu() {
 }
 
 function homeFocusLabel(value: Exclude<HomeFocusPreference, "AUTO">) {
-  return value === "POSTURE" ? "Posture first" : "My work first";
+  return value === "POSTURE" ? "Oversight first" : "My work first";
 }
 
 function portfolioLensLabel(value: Exclude<PortfolioLensPreference, "AUTO">) {
