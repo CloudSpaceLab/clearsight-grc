@@ -15,6 +15,7 @@ const scripts = [
   "scripts/capture-rcsa-evidence.mjs",
   "scripts/capture-matter-context-evidence.mjs",
   "scripts/capture-loss-s5-evidence.mjs",
+  "scripts/capture-home-t7-evidence.mjs",
   "scripts/capture-premium-first-run-evidence.mjs",
   "scripts/capture-forms-evidence.mjs",
   "scripts/review-ui-defects.mjs",
