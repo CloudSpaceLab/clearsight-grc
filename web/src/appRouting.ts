@@ -20,6 +20,7 @@ export type WorkspaceTarget = {
   insightsView?: InsightView;
   insightsPeriod?: ReportingPeriodQuery;
   insightsOrganizationScopeID?: string;
+  insightsLegalEntityID?: string;
   formTemplateID?: string;
   programSection?: ProgramSection;
   programItem?: ProgramItemTarget;
@@ -104,6 +105,9 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     if (query.get("view") === "risk-loss") {
       const period = readInsightsPeriod(query);
       if (period) {
+        const legalEntityID = query.get("legal_entity_id")?.trim();
+        if (!legalEntityID || !/^[A-Za-z0-9-]{1,128}$/.test(legalEntityID)) return { view, target: {} };
+        target.insightsLegalEntityID = legalEntityID;
         target.insightsView = "risk-loss";
         target.insightsPeriod = period;
         const scopeID = query.get("organization_scope_id")?.trim();
@@ -165,10 +169,11 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
     if (target.indicatorKind) params.set("kind", target.indicatorKind);
     if (target.indicatorID?.trim()) params.set("indicator", target.indicatorID.trim());
     if (target.insightsView === "risk-loss" && target.insightsPeriod && validInsightsPeriod(target.insightsPeriod)) {
-      params.set("view", "risk-loss");
-      params.set("start_date", target.insightsPeriod.start_date);
-      params.set("end_date", target.insightsPeriod.end_date);
-      if (target.insightsOrganizationScopeID) params.set("organization_scope_id", target.insightsOrganizationScopeID);
+      if (target.insightsLegalEntityID) params.set("view", "risk-loss");
+      if (target.insightsLegalEntityID) params.set("start_date", target.insightsPeriod.start_date);
+      if (target.insightsLegalEntityID) params.set("end_date", target.insightsPeriod.end_date);
+      if (target.insightsLegalEntityID) params.set("legal_entity_id", target.insightsLegalEntityID);
+      if (target.insightsLegalEntityID && target.insightsOrganizationScopeID) params.set("organization_scope_id", target.insightsOrganizationScopeID);
     }
     const query = params.toString();
     return query ? `#insights?${query}` : "#insights";
