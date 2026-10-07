@@ -92,7 +92,7 @@ func run() error {
 	adapters[sourceaccess.AdapterTabularArtifact] = documentService.SourceAccessAdapter()
 	catalogService := sourceaccess.NewCatalogService(catalogRepo, sourceaccess.EnvironmentSecretResolver{}, adapters)
 
-	candidate, err := discoverAcceptanceBinding(ctx, tenantID, canonicalEntity, bindingID, evidenceService, catalogRepo)
+	candidate, err := discoverAcceptanceBinding(ctx, tenantID, canonicalEntity, bindingID, time.Now().UTC(), evidenceService, catalogRepo)
 	if err != nil {
 		return err
 	}
