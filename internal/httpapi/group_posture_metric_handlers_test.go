@@ -94,12 +94,12 @@ func TestGroupPostureMetricsBatchesAuthorizationAndExcludesRestrictedOpCos(t *te
 	reader := &groupPostureReaderStub{
 		entities: entities,
 		bundle: metricview.GroupPostureBundle{
-			GeneratedAt: now,
-			PeriodStart: now.Add(-30 * 24 * time.Hour),
-			PeriodEnd: now,
+			GeneratedAt:        now,
+			PeriodStart:        now.Add(-30 * 24 * time.Hour),
+			PeriodEnd:          now,
 			DefinitionRevision: metricview.DomainDefinitionRevision,
-			RiskCoverage: metricview.GroupPostureCoverage{AuthorizedChildren: childCount - 1, IncludedChildren: childCount - 1, Complete: true},
-			LossCoverage: metricview.GroupPostureCoverage{AuthorizedChildren: childCount - 1, IncludedChildren: childCount - 1, Complete: true},
+			RiskCoverage:       metricview.GroupPostureCoverage{AuthorizedChildren: childCount - 1, IncludedChildren: childCount - 1, Complete: true},
+			LossCoverage:       metricview.GroupPostureCoverage{AuthorizedChildren: childCount - 1, IncludedChildren: childCount - 1, Complete: true},
 		},
 	}
 	resolver := &groupPostureAccessStub{permissions: permissions}
