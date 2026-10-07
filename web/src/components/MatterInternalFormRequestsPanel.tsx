@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { createLibraryFormDraft, loadFormTemplatePage } from "../formsApi";
-import type { FormLibraryItem } from "../formsTypes";
-import type { FormTemplate } from "../monitoringTypes";
+import type { FormLibraryItem, FormTemplate } from "../formsTypes";
 import { FocusedSheet } from "./FocusedSheet";
 import { FormBuilder } from "./FormBuilder";
 import { DistributionComposer } from "./forms/DistributionComposer";
