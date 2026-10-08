@@ -40,7 +40,9 @@ func TestLegacySourceMatterTitleCorrectionRespectsOriginalTitleAndTrigger(t *tes
 		{name: "not a source import", change: func(_ *sourceRecord, m *continuity.Matter) { m.TriggerType = "WORKFLOW_TRIGGER" }},
 		{name: "no source coordinate", change: func(s *sourceRecord, _ *continuity.Matter) { s.SourceRange = "" }},
 		{name: "missing fields", change: func(s *sourceRecord, _ *continuity.Matter) { s.Fields = nil }},
-		{name: "descriptive original", change: func(s *sourceRecord, m *continuity.Matter) { s.Title, m.Title = "Privileged access risk", "Privileged access risk" }},
+		{name: "descriptive original", change: func(s *sourceRecord, m *continuity.Matter) {
+			s.Title, m.Title = "Privileged access risk", "Privileged access risk"
+		}},
 		{name: "already repaired", change: func(_ *sourceRecord, m *continuity.Matter) { m.Title = want }},
 		{name: "closed", change: func(_ *sourceRecord, m *continuity.Matter) { m.Status = continuity.MatterClosed }},
 		{name: "cancelled", change: func(_ *sourceRecord, m *continuity.Matter) { m.Status = continuity.MatterCancelled }},
