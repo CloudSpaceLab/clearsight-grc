@@ -16,16 +16,16 @@ func TestSourceDisplayTitleUsesRealFieldsInsteadOfRowReferences(t *testing.T) {
 		want   string
 	}{
 		{
-			name:   "branch KRI",
-			group:  sourceRecordGroup{Title: "Branch KRI — historical"},
+			name:  "branch KRI",
+			group: sourceRecordGroup{Title: "Branch KRI — historical"},
 			record: sourceRecord{Title: "Row 8", SourceRange: "Branch KRI!A8:BA8", Fields: []sourceRecordField{
 				{Label: "Directorate", Value: "Example North"}, {Label: "Region", Value: "Example I"},
 				{Label: "Branch", Value: "Sample Market Branch"},
 			}}, want: "Sample Market Branch",
 		},
 		{
-			name:   "head office KRI",
-			group:  sourceRecordGroup{Title: "Head office KRI"},
+			name:  "head office KRI",
+			group: sourceRecordGroup{Title: "Head office KRI"},
 			record: sourceRecord{Title: "Record 14", Fields: []sourceRecordField{
 				{Label: "RISK OWNERS", Value: "Operations"},
 				{Label: "RISK METRICS", Value: "Requests handled inside tolerance"},
@@ -33,45 +33,45 @@ func TestSourceDisplayTitleUsesRealFieldsInsteadOfRowReferences(t *testing.T) {
 			}}, want: "Requests handled inside tolerance",
 		},
 		{
-			name:   "IT exception",
-			group:  sourceRecordGroup{Title: "IT exceptions"},
+			name:  "IT exception",
+			group: sourceRecordGroup{Title: "IT exceptions"},
 			record: sourceRecord{Title: "Sheet1 Row 2", Fields: []sourceRecordField{
 				{Label: "RISK ID", Value: "072"}, {Label: "RISK DESCRIPTION", Value: "Access review gaps"},
 			}}, want: "Access review gaps",
 		},
 		{
-			name:   "BIA process",
-			group:  sourceRecordGroup{Title: "Business impact analysis"},
+			name:  "BIA process",
+			group: sourceRecordGroup{Title: "Business impact analysis"},
 			record: sourceRecord{Title: "Line 41", Fields: []sourceRecordField{
 				{Label: "Business Process", Value: "Service restoration"},
 				{Label: "RTO", Value: "30 minutes"},
 			}}, want: "Service restoration",
 		},
 		{
-			name:   "generic row prefix with a real title",
-			group:  sourceRecordGroup{Title: "IT exceptions"},
+			name:  "generic row prefix with a real title",
+			group: sourceRecordGroup{Title: "IT exceptions"},
 			record: sourceRecord{Title: "Row 12: Review access provisioning", Fields: []sourceRecordField{
 				{Label: "RISK ID", Value: "075"},
 			}}, want: "Review access provisioning",
 		},
 		{
-			name:   "operational loss",
-			group:  sourceRecordGroup{Title: "Operational loss register", SourceFile: "LOSS DATA BASE.xlsx"},
+			name:  "operational loss",
+			group: sourceRecordGroup{Title: "Operational loss register", SourceFile: "LOSS DATA BASE.xlsx"},
 			record: sourceRecord{Title: "Row 17", Fields: []sourceRecordField{
 				{Label: "Branch", Value: "Sample Branch"},
 				{Label: "TRAN_PARTICULAR", Value: "Duplicate settlement posting"},
 			}}, want: "Duplicate settlement posting",
 		},
 		{
-			name:   "source-defined title preserved",
-			group:  sourceRecordGroup{Title: "Branch KRI"},
+			name:  "source-defined title preserved",
+			group: sourceRecordGroup{Title: "Branch KRI"},
 			record: sourceRecord{Title: "Quarterly branch liquidity review", Fields: []sourceRecordField{
 				{Label: "Branch", Value: "Sample Branch"},
 			}}, want: "Quarterly branch liquidity review",
 		},
 		{
-			name:   "unreadable source",
-			group:  sourceRecordGroup{Title: "Historical returns"},
+			name:  "unreadable source",
+			group: sourceRecordGroup{Title: "Historical returns"},
 			record: sourceRecord{Title: "Row 51", Fields: []sourceRecordField{
 				{Label: "Year", Value: "2025"}, {Label: "Amount", Value: "1000"},
 			}}, want: "Historical returns",
