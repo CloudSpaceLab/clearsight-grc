@@ -349,6 +349,9 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 						return receipt, fmt.Errorf("register schema drift %s: %s", group.Key, record.Key)
 					}
 					answers := registerAnswers(baseAnswers["source_context"], record)
+					if group.PresentationVersion == 2 {
+						answers["source_context"] = sourceV2RegisterContext(baseAnswers["source_context"], record)
+					}
 					idempotencyKey := sourceRecordResponseKey(group, record.Key)
 					bundle, captureErr := installSourceResponse(ctx, pool, distributions, access, seed, programID, form, idempotencyKey, form.Name+" · "+sourceRecordDisplayTitle(group, record), answers)
 					if captureErr != nil {
@@ -674,6 +677,15 @@ func installSourceResponse(ctx context.Context, pool *pgxpool.Pool, distribution
 	return bundle, nil
 }
 
+// Record-level provenance cannot live in the shared form schema: row 2 is
+// the schema example, not the source row for every response in the register.
+func sourceV2RegisterContext(base formcontract.AnswerValue, record sourceRecord) formcontract.AnswerValue {
+	if base.Text == nil || strings.TrimSpace(record.SourceRange) == "" {
+		return base
+	}
+	return formcontract.TextAnswer(*base.Text + "\nSource row: " + record.SourceRange)
+}
+
 // registerAnswers builds the per-record capture answers for a register group,
 // reusing the shared record-0 key space created by ensureSourceForm for the
 // first record and preserving every nonblank source value exactly.
@@ -842,7 +854,11 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 			if compact {
 				sectionID = "records"
 			} else {
-				input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: sourceRecordFormTitle(group, record), Help: sourceShort(record.SourceRange, 1000)})
+				title, help := sourceRecordFormTitle(group, record), sourceShort(record.SourceRange, 1000)
+					if group.PresentationVersion == 2 && group.ResponsePerRecord {
+						title, help = "Register fields", ""
+					}
+					input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: title, Help: help})
 			}
 			if compact {
 				fieldID := fmt.Sprintf("row_%d", r)
@@ -856,7 +872,12 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 				if label == "" {
 					label = "Source value"
 				}
-				input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(label, 200), Type: formcontract.TypeLongText, Description: sourceShort(field.SourceCell, 1000)})
+				description := field.SourceCell
+					if group.PresentationVersion == 2 {
+						label = sourceV2FieldLabel(group, record, f)
+						description = sourceV2FieldDescription(group, record, f)
+					}
+					input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(label, 200), Type: formcontract.TypeLongText, Description: sourceShort(description, 1000)})
 				// The response workspace omits unanswered whitespace-only cells.
 				// Preserve every nonblank source value exactly for immutable retries.
 				if strings.TrimSpace(field.Value) != "" {
@@ -906,7 +927,7 @@ func sourceRecordFormTitle(group sourceRecordGroup, record sourceRecord) string 
 
 func sourceRecordFormText(group sourceRecordGroup, record sourceRecord) string {
 	if group.PresentationVersion == 2 {
-		return sourceRecordTextV2(record)
+		return sourceRecordTextForGroupV2(group, record)
 	}
 	return sourceRecordText(record)
 }
