@@ -683,6 +683,12 @@ func registerAnswers(sourceContext formcontract.AnswerValue, record sourceRecord
 }
 
 func sourceCaptureParts(group sourceRecordGroup) [][]sourceRecord {
+	if group.ResponsePerRecord {
+		if len(group.Records) == 0 {
+			return nil
+		}
+		return [][]sourceRecord{group.Records}
+	}
 	var parts [][]sourceRecord
 	var current []sourceRecord
 	fields := 1
