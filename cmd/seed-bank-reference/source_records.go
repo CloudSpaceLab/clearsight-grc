@@ -535,7 +535,6 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 	return repairLegacySourceMatterTitle(ctx, cs, seed, group, record, matter)
 }
 
-
 type sourceReportPack struct {
 	ID          string
 	Code        string
