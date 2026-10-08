@@ -43,8 +43,9 @@ func sourceLookupField(record sourceRecord, label string) (string, bool) {
 		if !found {
 			found, value = true, candidate
 		} else if candidate != value {
-			// Never arbitrarily select one of two conflicting source columns.
-			return "", false
+			// Treat the ambiguous canonical header as present but unresolved.
+			// Do not fall through to an unrelated alias.
+			return "", true
 		}
 	}
 	return value, found
