@@ -491,6 +491,12 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 	if json.Unmarshal(matter.Matter.KnownFacts, &known) != nil || known["source_sha256"] != group.SourceSHA256 {
 		return matter, fmt.Errorf("source digest changed for %s; review a new import instead of overwriting", record.Key)
 	}
+	// Only legacy source-import titles that still equal their original row
+	// placeholder are eligible. User-edited titles and Work state are untouched.
+	matter, err = repairLegacySourceMatterTitle(ctx, cs, seed, group, record, matter)
+	if err != nil {
+		return matter, err
+	}
 	// Recover the single source record created by the interrupted first install
 	// with the inverted priority scale, without touching subsequent user edits.
 	if record.Key == "it-risk-register-row-8" && matter.Matter.Version == 2 && matter.Matter.Priority == 2 {
