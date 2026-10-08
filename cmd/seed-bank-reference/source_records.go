@@ -349,6 +349,9 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 						return receipt, fmt.Errorf("register schema drift %s: %s", group.Key, record.Key)
 					}
 					answers := registerAnswers(baseAnswers["source_context"], record)
+					if group.PresentationVersion == 2 {
+						answers["source_context"] = sourceV2RegisterContext(baseAnswers["source_context"], record)
+					}
 					idempotencyKey := sourceRecordResponseKey(group, record.Key)
 					bundle, captureErr := installSourceResponse(ctx, pool, distributions, access, seed, programID, form, idempotencyKey, form.Name+" · "+sourceRecordDisplayTitle(group, record), answers)
 					if captureErr != nil {
@@ -491,12 +494,6 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 	if json.Unmarshal(matter.Matter.KnownFacts, &known) != nil || known["source_sha256"] != group.SourceSHA256 {
 		return matter, fmt.Errorf("source digest changed for %s; review a new import instead of overwriting", record.Key)
 	}
-	// Only legacy source-import titles that still equal their original row
-	// placeholder are eligible. User-edited titles and Work state are untouched.
-	matter, err = repairLegacySourceMatterTitle(ctx, cs, seed, group, record, matter)
-	if err != nil {
-		return matter, err
-	}
 	// Recover the single source record created by the interrupted first install
 	// with the inverted priority scale, without touching subsequent user edits.
 	if record.Key == "it-risk-register-row-8" && matter.Matter.Version == 2 && matter.Matter.Priority == 2 {
@@ -530,7 +527,12 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 	if len(matter.Actions) == 0 && strings.TrimSpace(record.Action) != "" {
 		matter, err = cs.AddAction(ctx, continuity.AddActionInput{TenantID: seed.TenantID, MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version, Title: sourceShort(record.Action, 200), Description: record.Action + "\nSource owner: " + record.Owner + ". Source status: " + record.Status + ". Verify the outcome before closure.", OwnerPrincipalID: owner, DueAt: due, ActorID: seed.ActorID, OriginKey: key})
 	}
-	return matter, err
+	if err != nil {
+		return matter, err
+	}
+	// Run the presentation-only update last. Legacy owner, due-date and priority
+	// repairs rely on original Matter version sentinels and must not be skipped.
+	return repairLegacySourceMatterTitle(ctx, cs, seed, group, record, matter)
 }
 
 type sourceReportPack struct {
@@ -672,6 +674,15 @@ func installSourceResponse(ctx context.Context, pool *pgxpool.Pool, distribution
 		return bundle, fmt.Errorf("source response %s: %w", title, err)
 	}
 	return bundle, nil
+}
+
+// Record-level provenance cannot live in the shared form schema: row 2 is
+// the schema example, not the source row for every response in the register.
+func sourceV2RegisterContext(base formcontract.AnswerValue, record sourceRecord) formcontract.AnswerValue {
+	if base.Text == nil || strings.TrimSpace(record.SourceRange) == "" {
+		return base
+	}
+	return formcontract.TextAnswer(*base.Text + "\nSource row: " + record.SourceRange)
 }
 
 // registerAnswers builds the per-record capture answers for a register group,
@@ -842,7 +853,11 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 			if compact {
 				sectionID = "records"
 			} else {
-				input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: sourceRecordFormTitle(group, record), Help: sourceShort(record.SourceRange, 1000)})
+				title, help := sourceRecordFormTitle(group, record), sourceShort(record.SourceRange, 1000)
+				if group.PresentationVersion == 2 && group.ResponsePerRecord {
+					title, help = "Register fields", ""
+				}
+				input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: title, Help: help})
 			}
 			if compact {
 				fieldID := fmt.Sprintf("row_%d", r)
@@ -856,7 +871,12 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 				if label == "" {
 					label = "Source value"
 				}
-				input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(label, 200), Type: formcontract.TypeLongText, Description: sourceShort(field.SourceCell, 1000)})
+				description := field.SourceCell
+				if group.PresentationVersion == 2 {
+					label = sourceV2FieldLabel(group, record, f)
+					description = sourceV2FieldDescription(group, record, f)
+				}
+				input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(label, 200), Type: formcontract.TypeLongText, Description: sourceShort(description, 1000)})
 				// The response workspace omits unanswered whitespace-only cells.
 				// Preserve every nonblank source value exactly for immutable retries.
 				if strings.TrimSpace(field.Value) != "" {
@@ -906,7 +926,7 @@ func sourceRecordFormTitle(group sourceRecordGroup, record sourceRecord) string 
 
 func sourceRecordFormText(group sourceRecordGroup, record sourceRecord) string {
 	if group.PresentationVersion == 2 {
-		return sourceRecordTextV2(record)
+		return sourceRecordTextForGroupV2(group, record)
 	}
 	return sourceRecordText(record)
 }

@@ -61,7 +61,7 @@ func sourceRecordDisplayTitle(group sourceRecordGroup, record sourceRecord) stri
 	}
 	preferred := []string{
 		"RISK DESCRIPTION", "Risk Event Description", "RISK METRICS",
-		"Requirement / Checklist Item", "Process Name", "Business Process",
+		"Requirement / Checklist Item", "Business Process Name", "Process Name", "Business Process",
 		"Activity", "SERVICE", "Asset Name", "FINDINGS", "Branch",
 		"TRAN_PARTICULAR", "Control Area", "Risk Driver Descriptions Level 1",
 	}
@@ -117,32 +117,7 @@ func sourceDescriptiveValue(value string) bool {
 // Only presentation v2 creates this revised, structured answer. Legacy source
 // distributions keep their original immutable response/template contracts.
 func sourceRecordTextV2(record sourceRecord) string {
-	lines := make([]string, 0, len(record.Fields))
-	seen := make(map[string]int, len(record.Fields))
-	for _, field := range record.Fields {
-		key := sourceHeaderKey(field.Label)
-		seen[key]++
-	}
-	for _, field := range record.Fields {
-		label := strings.TrimSpace(field.Label)
-		if label == "" {
-			label = "Source value"
-		}
-		if seen[sourceHeaderKey(field.Label)] > 1 || sourceHeaderKey(field.Label) == "" {
-			if cell := strings.TrimSpace(field.SourceCell); cell != "" {
-				label += " (" + cell + ")"
-			}
-		}
-		value := strings.TrimSpace(field.Value)
-		if value == "" {
-			value = "Not recorded in source"
-		} else {
-			value = strings.ReplaceAll(strings.ReplaceAll(value, "\r\n", "\n"), "\r", "\n")
-			value = strings.ReplaceAll(value, "\n", "\n  ")
-		}
-		lines = append(lines, fmt.Sprintf("%s: %s", label, value))
-	}
-	return strings.Join(lines, "\n")
+	return sourceRecordTextForGroupV2(sourceRecordGroup{}, record)
 }
 
 func sourceNormalizePresentation(group sourceRecordGroup) sourceRecordGroup {
@@ -196,5 +171,5 @@ func sourceValidateV2Group(group sourceRecordGroup) error {
 		}
 		seen[record.Key] = true
 	}
-	return nil
+	return validateOpsRiskV2Group(group)
 }
