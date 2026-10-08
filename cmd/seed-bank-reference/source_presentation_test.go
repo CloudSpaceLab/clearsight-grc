@@ -104,8 +104,9 @@ func TestSourceHeaderLookupNormalizesWhitespaceWithoutInventingValues(t *testing
 	ambiguous := sourceRecord{Fields: []sourceRecordField{
 		{Label: "Risk  Description", Value: "One"},
 		{Label: "RISK\nDESCRIPTION", Value: "Two"},
+		{Label: "Risk Event Description", Value: "Alternative"},
 	}}
-	if got := sourceFieldValue(ambiguous, "Risk Description"); got != "" {
+	if got := sourceFieldValue(ambiguous, "Risk Description", "Risk Event Description"); got != "" {
 		t.Fatalf("ambiguous column choice is unsafe: %q", got)
 	}
 }
