@@ -45,15 +45,15 @@ func repairLegacySourceMatterTitle(
 		return matter, nil
 	}
 	return service.UpdateMatterDetails(ctx, continuity.UpdateMatterDetailsInput{
-		TenantID: seed.TenantID,
-		MatterID: matter.Matter.ID,
+		TenantID:        seed.TenantID,
+		MatterID:        matter.Matter.ID,
 		ExpectedVersion: matter.Matter.Version,
-		Title: title,
-		Summary: matter.Matter.Summary,
-		Priority: matter.Matter.Priority,
-		DueAt: matter.Matter.DueAt,
-		Scope: matter.Matter.Scope,
-		ActorID: seed.ActorID,
-		Rationale: "Replace the original row-number-only import title with the recorded source description; other Matter facts remain unchanged.",
+		Title:           title,
+		Summary:         matter.Matter.Summary,
+		Priority:        matter.Matter.Priority,
+		DueAt:           matter.Matter.DueAt,
+		Scope:           matter.Matter.Scope,
+		ActorID:         seed.ActorID,
+		Rationale:       "Replace the original row-number-only import title with the recorded source description; other Matter facts remain unchanged.",
 	})
 }
