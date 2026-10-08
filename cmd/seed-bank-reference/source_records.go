@@ -58,16 +58,17 @@ type sourceRecord struct {
 	CreateMatter bool                `json:"create_matter"`
 }
 type sourceRecordGroup struct {
-	Key               string         `json:"key"`
-	ProgramCode       string         `json:"program_code"`
-	Title             string         `json:"title"`
-	SourceFile        string         `json:"source_file"`
-	SourceSHA256      string         `json:"source_sha256"`
-	SourceSheet       string         `json:"source_sheet"`
-	Period            string         `json:"period"`
-	Limitations       []string       `json:"limitations"`
-	ResponsePerRecord bool           `json:"response_per_record"`
-	Records           []sourceRecord `json:"records"`
+	Key                 string         `json:"key"`
+	ProgramCode         string         `json:"program_code"`
+	Title               string         `json:"title"`
+	SourceFile          string         `json:"source_file"`
+	SourceSHA256        string         `json:"source_sha256"`
+	SourceSheet         string         `json:"source_sheet"`
+	Period              string         `json:"period"`
+	Limitations         []string       `json:"limitations"`
+	ResponsePerRecord   bool           `json:"response_per_record"`
+	PresentationVersion int            `json:"presentation_version,omitempty"`
+	Records             []sourceRecord `json:"records"`
 }
 type sourceRecordManifest struct {
 	Version int                 `json:"version"`
@@ -117,10 +118,8 @@ func sourceShort(value string, limit int) string {
 
 func sourceFieldValue(record sourceRecord, labels ...string) string {
 	for _, label := range labels {
-		for _, field := range record.Fields {
-			if strings.EqualFold(strings.TrimSpace(field.Label), strings.TrimSpace(label)) {
-				return strings.TrimSpace(field.Value)
-			}
+		if value, found := sourceLookupField(record, label); found {
+			return value
 		}
 	}
 	return ""
@@ -130,7 +129,7 @@ func sourceMatterProjection(group sourceRecordGroup, record sourceRecord) source
 	finding := sourceFieldValue(record, "FINDINGS", "RISK DESCRIPTION", "Risk Event Description", "Threat", "ROOT CAUSE ANALYSIS", "DELIVERABLE", "RISK AREAS", "TRAN_PARTICULAR")
 	implication := sourceFieldValue(record, "RISK/ IMPLICATIONS", "Vulnerability", "Rationale", "Risk Driver Descriptions Level 1")
 	if finding == "" {
-		finding = strings.TrimSpace(record.Title)
+		finding = sourceRecordDisplayTitle(group, record)
 	}
 	summary := finding
 	if implication != "" && !strings.EqualFold(implication, finding) {
@@ -254,6 +253,16 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 			return receipt, fmt.Errorf("invalid source manifest %s", filename)
 		}
 		for _, group := range manifest.Groups {
+			if group.PresentationVersion != 0 && group.PresentationVersion != 2 {
+				return receipt, fmt.Errorf("unsupported source presentation version for %s", group.Key)
+			}
+			if group.PresentationVersion == 2 && (isNDPAChecklistGroup(group) || strings.HasPrefix(group.Key, "third-party-risk-register")) {
+				return receipt, fmt.Errorf("source presentation v2 is unavailable for governed semantic forms: %s", group.Key)
+			}
+			if err = sourceValidateV2Group(group); err != nil {
+				return receipt, err
+			}
+			group = sourceNormalizePresentation(group)
 			if err = validateNDPAChecklistGroup(group); err != nil {
 				return receipt, err
 			}
@@ -340,8 +349,8 @@ func installSourceRecords(ctx context.Context, cfg config.Config, pool *pgxpool.
 						return receipt, fmt.Errorf("register schema drift %s: %s", group.Key, record.Key)
 					}
 					answers := registerAnswers(baseAnswers["source_context"], record)
-					idempotencyKey := fmt.Sprintf("%s:%s:%s", sourceRecordPackage, group.Key, record.Key)
-					bundle, captureErr := installSourceResponse(ctx, pool, distributions, access, seed, programID, form, idempotencyKey, form.Name+" · "+record.Title, answers)
+					idempotencyKey := sourceRecordResponseKey(group, record.Key)
+					bundle, captureErr := installSourceResponse(ctx, pool, distributions, access, seed, programID, form, idempotencyKey, form.Name+" · "+sourceRecordDisplayTitle(group, record), answers)
 					if captureErr != nil {
 						return receipt, fmt.Errorf("register capture %s: %w", record.Key, captureErr)
 					}
@@ -473,7 +482,7 @@ func ensureSourceMatter(ctx context.Context, pool *pgxpool.Pool, cs *continuity.
 		if strings.Contains(strings.ToLower(record.Rating), "critical") {
 			priority = 5
 		}
-		matter, err = cs.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: programID, Type: continuity.MatterType(record.Kind), Priority: priority, Title: sourceShort(record.Title, 250), Summary: projection.Summary, Scope: projection.Scope, KnownFacts: projection.KnownFacts, MissingFacts: projection.MissingFacts, Contradictions: sourceJSON([]string{}), TriggerType: "SOURCE_REGISTER_IMPORT", TriggerKey: key, OwnerPrincipalID: seed.OwnerPrincipalID, DueAt: due, ActorID: seed.ActorID})
+		matter, err = cs.CreateMatter(ctx, continuity.CreateMatterInput{TenantID: seed.TenantID, LegalEntityID: seed.LegalEntityID, ProgramID: programID, Type: continuity.MatterType(record.Kind), Priority: priority, Title: sourceRecordDisplayTitle(group, record), Summary: projection.Summary, Scope: projection.Scope, KnownFacts: projection.KnownFacts, MissingFacts: projection.MissingFacts, Contradictions: sourceJSON([]string{}), TriggerType: "SOURCE_REGISTER_IMPORT", TriggerKey: key, OwnerPrincipalID: seed.OwnerPrincipalID, DueAt: due, ActorID: seed.ActorID})
 	}
 	if err != nil {
 		return matter, err
@@ -674,6 +683,12 @@ func registerAnswers(sourceContext formcontract.AnswerValue, record sourceRecord
 }
 
 func sourceCaptureParts(group sourceRecordGroup) [][]sourceRecord {
+	if group.ResponsePerRecord {
+		if len(group.Records) == 0 {
+			return nil
+		}
+		return [][]sourceRecord{group.Records}
+	}
 	var parts [][]sourceRecord
 	var current []sourceRecord
 	fields := 1
@@ -769,6 +784,9 @@ func buildNDPAChecklistDraft(group sourceRecordGroup) (monitoring.CreateFormInpu
 func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankverticals.SeedConfig, programID string, group sourceRecordGroup, records []sourceRecord, index, total int) (monitoring.FormTemplate, map[string]formcontract.AnswerValue, error) {
 	code, _ := sourceFormIdentity(group, index)
 	name := group.Title
+	if group.PresentationVersion == 2 {
+		name = sourceGroupDisplayTitle(group)
+	}
 	if total > 1 {
 		name += fmt.Sprintf(" · %d/%d", index+1, total)
 	}
@@ -818,12 +836,12 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 			if compact {
 				sectionID = "records"
 			} else {
-				input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: sourceShort(record.Title, 200), Help: sourceShort(record.SourceRange, 1000)})
+				input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: sourceRecordFormTitle(group, record), Help: sourceShort(record.SourceRange, 1000)})
 			}
 			if compact {
 				fieldID := fmt.Sprintf("row_%d", r)
-				input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(record.Title, 200), Type: formcontract.TypeLongText, Description: sourceShort(record.SourceRange, 1000)})
-				answers[fieldID] = formcontract.TextAnswer(sourceRecordText(record))
+				input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceRecordFormTitle(group, record), Type: formcontract.TypeLongText, Description: sourceShort(record.SourceRange, 1000)})
+				answers[fieldID] = formcontract.TextAnswer(sourceRecordFormText(group, record))
 				continue
 			}
 			for f, field := range record.Fields {
@@ -873,16 +891,42 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 	return form, answers, err
 }
 
+func sourceRecordFormTitle(group sourceRecordGroup, record sourceRecord) string {
+	if group.PresentationVersion == 2 {
+		return sourceRecordDisplayTitle(group, record)
+	}
+	return sourceShort(record.Title, 200)
+}
+
+func sourceRecordFormText(group sourceRecordGroup, record sourceRecord) string {
+	if group.PresentationVersion == 2 {
+		return sourceRecordTextV2(record)
+	}
+	return sourceRecordText(record)
+}
+
+func sourceRecordResponseKey(group sourceRecordGroup, recordKey string) string {
+	if group.PresentationVersion == 2 {
+		return sourceRecordPackage + "-presentation-v2:" + group.Key + ":" + recordKey
+	}
+	return sourceRecordPackage + ":" + group.Key + ":" + recordKey
+}
+
 func sourceFormIdentity(group sourceRecordGroup, index int) (string, string) {
 	packageID := sourceRecordPackage
 	key := group.Key
+	if group.PresentationVersion == 2 {
+		packageID = sourceRecordPackage + "-presentation-v2"
+	}
 	if strings.HasPrefix(group.Key, "third-party-risk-register") {
 		packageID = "fidelity-source-records-v3"
 		key += ":semantic-v3"
 	}
 	digest := sha256.Sum256([]byte(key))
 	code := fmt.Sprintf("SOURCE-%X-%02d", digest[:8], index+1)
-	if packageID != sourceRecordPackage {
+	if group.PresentationVersion == 2 {
+		code = fmt.Sprintf("SOURCE-V2-%X-%02d", digest[:8], index+1)
+	} else if packageID != sourceRecordPackage {
 		code = fmt.Sprintf("SOURCE-TPR-V3-%X-%02d", digest[:6], index+1)
 	}
 	return code, fmt.Sprintf("%s:%s:%d", packageID, group.Key, index)
