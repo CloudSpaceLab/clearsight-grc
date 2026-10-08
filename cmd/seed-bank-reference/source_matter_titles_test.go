@@ -24,7 +24,7 @@ func TestLegacySourceMatterTitleCorrectionRespectsOriginalTitleAndTrigger(t *tes
 	matter := continuity.Matter{
 		Title: "Row 7", TriggerType: "SOURCE_REGISTER_IMPORT",
 		TriggerKey: sourceRecordPackage + ":" + record.Key,
-		Version: 3,
+		Version:    3,
 	}
 	want := "Privileged accounts remain active"
 	if title, ok := legacySourceMatterTitleCorrection(group, record, matter); !ok || title != want {
@@ -32,7 +32,7 @@ func TestLegacySourceMatterTitleCorrectionRespectsOriginalTitleAndTrigger(t *tes
 	}
 
 	for _, tc := range []struct {
-		name string
+		name   string
 		change func(*sourceRecord, *continuity.Matter)
 	}{
 		{name: "operator edited title", change: func(_ *sourceRecord, m *continuity.Matter) { m.Title = "Operator reviewed the gap" }},
