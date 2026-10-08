@@ -77,7 +77,7 @@ func TestLegacyTitleCorrectionUsesExistingSourcePrefixDescription(t *testing.T) 
 	record := sourceRecord{
 		Key: "ops-branch-kri-row-3", Title: "Row 3: Branch operations review",
 		SourceRange: "Branch KRI!A3:BA3",
-		Fields: []sourceRecordField{{Label: "Branch", Value: "Test Branch"}},
+		Fields:      []sourceRecordField{{Label: "Branch", Value: "Test Branch"}},
 	}
 	matter := continuity.Matter{Title: record.Title, TriggerType: "SOURCE_REGISTER_IMPORT", TriggerKey: sourceRecordPackage + ":" + record.Key}
 	if title, ok := legacySourceMatterTitleCorrection(group, record, matter); !ok || title != "Branch operations review" {
