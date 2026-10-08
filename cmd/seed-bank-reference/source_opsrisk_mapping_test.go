@@ -129,12 +129,12 @@ func TestBranchV2Requires31UniqueComplete59ColumnResponsesAnd128Blanks(t *testin
 		!strings.Contains(*last.Text, "!A32:BG32") || *first.Text == *last.Text {
 		t.Fatalf("per-response coordinates collapsed to first source row: %v %v", first.Text, last.Text)
 	}
-	record := group.Records[6]
+	originalValue := group.Records[6].Fields[3].Value
 	group.Records[6].Fields[3].Value = ""
 	if err := sourceValidateV2Group(group); err == nil {
 		t.Fatal("129 unanswered cells passed as the original 128")
 	}
-	group.Records[6] = record
+	group.Records[6].Fields[3].Value = originalValue
 	group.Records[10].Fields[20].SourceCell = "Q12"
 	if err := sourceValidateV2Group(group); err == nil {
 		t.Fatal("wrong source cell coordinate passed")
@@ -166,7 +166,6 @@ func TestBIAMasterV2RequiresEveryOriginalRowAndAllSixPairedRatings(t *testing.T)
 	if err := sourceValidateV2Group(group); err == nil {
 		t.Fatal("misidentified second rating column passed")
 	}
-	group = group
 	group.Records = group.Records[:601]
 	if err := sourceValidateV2Group(group); err == nil {
 		t.Fatal("partial BIA master was silently imported")
