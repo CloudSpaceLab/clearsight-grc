@@ -855,10 +855,10 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 				sectionID = "records"
 			} else {
 				title, help := sourceRecordFormTitle(group, record), sourceShort(record.SourceRange, 1000)
-					if group.PresentationVersion == 2 && group.ResponsePerRecord {
-						title, help = "Register fields", ""
-					}
-					input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: title, Help: help})
+				if group.PresentationVersion == 2 && group.ResponsePerRecord {
+					title, help = "Register fields", ""
+				}
+				input.Sections = append(input.Sections, formcontract.Section{ID: sectionID, Title: title, Help: help})
 			}
 			if compact {
 				fieldID := fmt.Sprintf("row_%d", r)
@@ -873,11 +873,11 @@ func ensureSourceForm(ctx context.Context, ms *monitoring.Service, seed bankvert
 					label = "Source value"
 				}
 				description := field.SourceCell
-					if group.PresentationVersion == 2 {
-						label = sourceV2FieldLabel(group, record, f)
-						description = sourceV2FieldDescription(group, record, f)
-					}
-					input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(label, 200), Type: formcontract.TypeLongText, Description: sourceShort(description, 1000)})
+				if group.PresentationVersion == 2 {
+					label = sourceV2FieldLabel(group, record, f)
+					description = sourceV2FieldDescription(group, record, f)
+				}
+				input.Fields = append(input.Fields, formcontract.Field{ID: fieldID, SectionID: sectionID, Label: sourceShort(label, 200), Type: formcontract.TypeLongText, Description: sourceShort(description, 1000)})
 				// The response workspace omits unanswered whitespace-only cells.
 				// Preserve every nonblank source value exactly for immutable retries.
 				if strings.TrimSpace(field.Value) != "" {
