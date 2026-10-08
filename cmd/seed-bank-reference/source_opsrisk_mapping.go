@@ -9,18 +9,7 @@ import (
 	"strings"
 )
 
-var sourceCellRef = regexp.MustCompile(`(?i)^\$?([A-Z]{1,3})\$?([1-9][0-9]*)//go:build postgres
-
-package main
-
-import (
-	"fmt"
-	"path"
-	"regexp"
-	"strings"
-)
-
-)
+var sourceCellRef = regexp.MustCompile(`(?i)^\$?([A-Z]{1,3})\$?([1-9][0-9]*)$`)
 
 var biaImpactHeadings = [...]string{
 	"Impact on bank customers",
