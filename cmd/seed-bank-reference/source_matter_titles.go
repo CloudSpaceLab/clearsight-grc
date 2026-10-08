@@ -17,6 +17,7 @@ func legacySourceMatterTitleCorrection(group sourceRecordGroup, record sourceRec
 	original := strings.TrimSpace(record.Title)
 	if original == "" ||
 		(!sourcePlaceholderTitle.MatchString(original) && len(sourceTitleRowPrefix.FindStringSubmatch(original)) != 2) ||
+		(matter.Status == continuity.MatterClosed || matter.Status == continuity.MatterCancelled) ||
 		matter.TriggerType != "SOURCE_REGISTER_IMPORT" ||
 		matter.TriggerKey != sourceRecordPackage+":"+record.Key ||
 		matter.Title != sourceShort(original, 250) ||
