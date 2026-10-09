@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { createLibraryFormDraft, loadFormTemplatePage } from "../formsApi";
 import type { FormLibraryItem, FormTemplate } from "../formsTypes";
@@ -9,7 +10,7 @@ vi.mock("../formsApi", () => ({
   loadFormTemplatePage: vi.fn(),
 }));
 vi.mock("./forms/DistributionComposer", () => ({ DistributionComposer: () => null }));
-vi.mock("./forms/SubjectFormActivity", () => ({ SubjectFormActivity: () => <div>Form activity</div> }));
+vi.mock("./forms/SubjectFormActivity", () => ({ SubjectFormActivity: ({ leading }: { leading?: ReactNode }) => <div>{leading}<span>Form activity</span></div> }));
 vi.mock("./FormBuilder", () => ({
   FormBuilder: ({ saveDraft, onSaved, onCancel }: {
     saveDraft: (input: Record<string, unknown>) => Promise<unknown>;
@@ -77,8 +78,10 @@ it("creates an ordinary form draft with the current issue as immutable origin an
     { origin_type: "MATTER", origin_id: "matter-a", limit: 6 },
     expect.any(AbortSignal),
   ));
-  expect(await screen.findByText("No linked forms recorded.")).toBeTruthy();
+  expect(await screen.findByText("No linked forms yet")).toBeTruthy();
 
+  expect(screen.getByRole("group", { name: "Form actions" })).toBeTruthy();
+  expect(screen.getByText("Send an approved form to an employee.")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Create linked form" }));
   expect(await screen.findByRole("heading", { name: "Create linked form" })).toBeTruthy();
   expect(screen.queryByText("matter-a")).toBeNull();

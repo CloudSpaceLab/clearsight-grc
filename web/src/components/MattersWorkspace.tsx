@@ -11,6 +11,7 @@ import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
 import { matterDeadlinePresentation, matterPriorityLabel, matterPriorityTone } from "../matterPresentation";
+import "../portfolio-workspaces.css";
 import { Notice, StatusBadge } from "./ui";
 
 type LoadState = "loading" | "live" | "unavailable";
@@ -257,7 +258,7 @@ function MatterListWorkspace({ refreshToken, openFirst = false, onOpenRequest }:
   const filtersActive = Boolean(search || status !== "OPEN" || matterType || priority || dueCondition || assignedToMe);
   const matterFilters = { q: search, status: status === "OPEN" ? undefined : status || "ALL", matter_type: matterType, priority, due: dueCondition, assigned_to_me: assignedToMe };
 
-  return <div id="matters-workspace">
+  return <div id="matters-workspace" className="portfolio-workspace portfolio-workspace--matters">
     <section className="workspace-brief">
       <div><span className="eyebrow">Issues and changes</span><h2>{items.length ? `${items.length} loaded item${items.length === 1 ? "" : "s"}` : "No open items in this view"}</h2></div>
       <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded work summary"><span><strong>{summary.decisions}</strong> decisions</span><span><strong>{summary.overdue}</strong> overdue</span><span><strong>{summary.checking}</strong> outcome checks</span></div>{!setupOpen && <button className="primary-button" type="button" onClick={() => { setCreationNotice(""); setSetupOpen(true); }}>New issue or change</button>}</div>

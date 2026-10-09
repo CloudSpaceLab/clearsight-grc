@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   loadCompletedResponses,
   loadDistributionPage,
   type CompletedResponseSummary,
   type Distribution,
 } from "../../formsDistributionApi";
-import { ActionLink, Button, Notice, StatusBadge } from "../ui";
+import { ActionLink, Button, EmptyState, Notice, StatusBadge } from "../ui";
 import { concernText, concernTone } from "./responseScorePresentation";
 
 type SubjectType = "MATTER" | "PROGRAM" | "VENDOR_RELATIONSHIP";
@@ -16,9 +16,12 @@ type Props = {
   subjectID: string;
   subjectLabel: string;
   limit?: number;
+  leading?: ReactNode;
+  variant?: "default" | "cards";
+  refreshKey?: number;
 };
 
-export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limit = 6 }: Props) {
+export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limit = 6, leading, variant = "default", refreshKey = 0 }: Props) {
   const [requestState, setRequestState] = useState<LoadState>("loading");
   const [responseState, setResponseState] = useState<LoadState>("loading");
   const [requests, setRequests] = useState<Distribution[]>([]);
@@ -49,7 +52,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
         if (active) setRequestState("unavailable");
       });
     return () => { active = false; };
-  }, [limit, requestReload, subjectID, subjectType]);
+  }, [limit, refreshKey, requestReload, subjectID, subjectType]);
 
   useEffect(() => {
     let active = true;
@@ -72,7 +75,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
       if (active) setResponseState("unavailable");
     });
     return () => { active = false; };
-  }, [limit, responseReload, subjectID, subjectType]);
+  }, [limit, refreshKey, responseReload, subjectID, subjectType]);
 
   async function loadMoreRequests() {
     if (!requestCursor || loadingMoreRequests) return;
@@ -131,14 +134,17 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
   ].filter(Boolean);
   const attentionIsPartial = Boolean(requestCursor || responseCursor);
 
-  return <section className="subject-form-activity" aria-label={`Form activity for ${subjectLabel}`}>
+  return <section className={`subject-form-activity${variant === "cards" ? " subject-form-activity--cards" : ""}`} aria-label={`Form activity for ${subjectLabel}`}>
     {attention.length > 0 && <Notice tone="warning">{attentionIsPartial ? "Shown records: " : ""}{attention.join(" · ")}.</Notice>}
+    {leading}
 
-    <div className="subject-form-activity__group">
-      <header><h3>Requests</h3>{requestState === "live" && <span>{requests.length} shown</span>}</header>
+    <div className={variant === "cards" ? "subject-form-activity__group subject-form-activity__card" : "subject-form-activity__group"}>
+      <header><h3>Requests</h3>{requestState === "live" && (variant !== "cards" || requests.length > 0) && <span>{requests.length} shown</span>}</header>
       {requestState === "loading" && <p role="status">Loading form requests…</p>}
       {requestState === "unavailable" && <Notice tone="warning">Form requests are unavailable. Other issue work remains available. <Button variant="secondary" size="compact" onPress={() => setRequestReload((value) => value + 1)}>Retry form requests</Button></Notice>}
-      {requestState === "live" && requests.length === 0 && <p>No form requests recorded.</p>}
+      {requestState === "live" && requests.length === 0 && (variant === "cards"
+        ? <EmptyState compact population="No requests sent" title="No requests sent" description="Send an approved form to an employee to collect evidence."/>
+        : <p>No form requests recorded.</p>)}
       {requests.length > 0 && <ul>{requests.map((request) => <li key={request.id}>
         <div><strong>{request.title}</strong><span>{distributionStatusLabel(request.status)} · Due {formatDate(request.deadline)}</span></div>
         <div className="subject-form-activity__actions">
@@ -150,11 +156,13 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
       {requestCursor && !requestPageError && <Button variant="secondary" size="compact" isLoading={loadingMoreRequests} onPress={() => void loadMoreRequests()}>Load more form requests</Button>}
     </div>
 
-    <div className="subject-form-activity__group">
-      <header><h3>Submitted responses</h3>{responseState === "live" && <span>{responses.length} shown</span>}</header>
+    <div className={variant === "cards" ? "subject-form-activity__group subject-form-activity__card" : "subject-form-activity__group"}>
+      <header><h3>Submitted responses</h3>{responseState === "live" && (variant !== "cards" || responses.length > 0) && <span>{responses.length} shown</span>}</header>
       {responseState === "loading" && <p role="status">Loading submitted responses…</p>}
       {responseState === "unavailable" && <Notice tone="warning">Submitted responses are unavailable. Other issue work remains available. <Button variant="secondary" size="compact" onPress={() => setResponseReload((value) => value + 1)}>Retry submitted responses</Button></Notice>}
-      {responseState === "live" && responses.length === 0 && <p>No submitted responses recorded.</p>}
+      {responseState === "live" && responses.length === 0 && (variant === "cards"
+        ? <EmptyState compact population="No responses yet" title="No responses yet" description="Submitted evidence will appear here for review."/>
+        : <p>No submitted responses recorded.</p>)}
       {responses.length > 0 && <ul>{responses.map((response) => <li key={response.id}>
         <div>
           <strong>{response.title}</strong>

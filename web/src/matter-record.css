@@ -1,3 +1,4 @@
+@import "./matter-forms.css";
 .matter-record-workspace {
   display: grid;
   gap: 18px;

@@ -8,6 +8,7 @@ import { EmptyState } from "./EmptyState";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
 import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
 import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
+import "../portfolio-workspaces.css";
 
 type LoadState = "loading" | "live" | "unavailable";
 type ProgramListSummary = Omit<ProgramSummary, "open_matter_count"> & { open_matter_count?: number };
@@ -186,7 +187,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   }, [state, items, targetID, openFirst, search, status, overallState, jurisdiction, assignedToMe]);
 
   if (state === "loading") return <section id="programs-workspace" className="workspace-loading" aria-live="polite" aria-busy="true">Loading programs…</section>;
-  if (state === "unavailable") return <div id="programs-workspace"><EmptyState label="Programs" title="Programs could not be loaded" description="Service unavailable." action="Try again" onAction={() => void load(true)}/></div>;
+  if (state === "unavailable") return <div id="programs-workspace" className="portfolio-workspace portfolio-workspace--programs"><EmptyState label="Programs" title="Programs could not be loaded" description="Service unavailable." action="Try again" onAction={() => void load(true)}/></div>;
 
   const briefTitle = summary.attention > 0
     ? `${summary.attention} loaded program${summary.attention === 1 ? " requires" : "s require"} follow-up`
@@ -225,8 +226,14 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
           <a className="program-card-main" href={workspaceHash(`#programs/${encodeURIComponent(program.id)}`, programFilters)}>
             <span className="program-icon"><ProgramIcon/></span>
             <span className="program-primary"><span className="program-kicker">{program.code} · {program.owning_function}</span><strong>{program.name}</strong>{program.jurisdiction && <small>{program.jurisdiction}</small>}</span>
-            <span className="program-counts"><span><b>{summaryItem.requirement_count}</b> requirements</span><span><b>{summaryItem.evidence_check_count}</b> evidence checks</span><span><b>{knownOpenIssues ? openIssues : "Unknown"}</b> open issues{knownOpenIssues && assessmentStale ? " (last calculation)" : ""}</span></span>
-            <span className={`program-state ${stateClass(displayState)}`}><strong>{displayLabel}</strong><small>Review follow-up →</small></span>
+            <span className="program-counts" aria-label="Program indicators">
+              <span><b>{summaryItem.requirement_count}</b><small>Requirements</small></span>
+              <span><b>{summaryItem.evidence_check_count}</b><small>Evidence checks</small></span>
+              <span className={knownOpenIssues && (openIssues ?? 0) > 0 ? "program-counts__attention" : undefined}>
+                <b>{knownOpenIssues ? openIssues : "Unknown"}</b><small>Open issues{knownOpenIssues && assessmentStale ? " · Last calculation" : ""}</small>
+              </span>
+            </span>
+            <span className={`program-state ${stateClass(displayState)}`}><strong>{displayLabel}</strong><small>Open program <span aria-hidden="true">→</span></small></span>
           </a>
         </article>;
       })}
