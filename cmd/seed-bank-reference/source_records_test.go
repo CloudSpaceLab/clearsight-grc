@@ -296,6 +296,17 @@ func TestSourceRiskDateAcceptsExcelSerialWithoutChangingTheCalendarDate(t *testi
 	}
 }
 
+func TestSourceRiskDateAcceptsPersistedISODateTimeWithoutTimezone(t *testing.T) {
+	value, err := sourceRiskDate("2025-10-29T00:00:00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := time.Date(2025, 10, 29, 0, 0, 0, 0, time.UTC)
+	if !value.Equal(expected) {
+		t.Fatalf("persisted source date=%s want %s", value, expected)
+	}
+}
+
 func TestSyntheticSourceCaptureFitsLimitsWithoutPrivateFiles(t *testing.T) {
 	group := sourceRecordGroup{Key: "synthetic-contract", ProgramCode: "TEST", Title: strings.Repeat("é", 150), SourceFile: "synthetic.xlsx", SourceSheet: "Synthetic", SourceSHA256: strings.Repeat("a", 64)}
 	for r := 0; r < 3; r++ {
