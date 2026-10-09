@@ -92,7 +92,7 @@ func sourceRiskDate(value string) (time.Time, error) {
 	if value == "" {
 		return time.Time{}, fmt.Errorf("assessment publication date is required when a source risk level is recorded")
 	}
-	for _, layout := range []string{"2006-01-02", "02/01/2006", "2/1/2006", "02-01-2006", "2-1-2006", "02 Jan 2006", "2 Jan 2006", "02-Jan-2006", "2-Jan-2006"} {
+	for _, layout := range []string{"2006-01-02", "2006-01-02T15:04:05.999999999", "02/01/2006", "2/1/2006", "02-01-2006", "2-1-2006", "02 Jan 2006", "2 Jan 2006", "02-Jan-2006", "2-Jan-2006"} {
 		if parsed, err := time.ParseInLocation(layout, value, time.UTC); err == nil {
 			return parsed, nil
 		}
