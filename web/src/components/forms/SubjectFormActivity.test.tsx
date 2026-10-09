@@ -183,14 +183,14 @@ it("shows linked content and clear empty states without misleading zero totals i
     subjectID="matter-a"
     subjectLabel="MAT-82BF"
     variant="cards"
-    leading={<div className="subject-form-activity__group matter-forms__activity-card">Linked form area</div>}
+    leading={<div className="subject-form-activity__group subject-form-activity__card">Linked form area</div>}
   />);
 
   expect(await screen.findByText("No requests sent")).toBeTruthy();
   expect(await screen.findByText("No responses yet")).toBeTruthy();
   expect(screen.getByText("Linked form area")).toBeTruthy();
   expect(screen.queryByText("0 shown")).toBeNull();
-  expect(document.querySelectorAll(".matter-forms__activity-card")).toHaveLength(3);
+  expect(document.querySelectorAll(".subject-form-activity__card")).toHaveLength(3);
 });
 
 it("refreshes request and response lists after a successful parent workflow", async () => {
