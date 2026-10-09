@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { listRisks, type RiskListParams } from "../../riskApi";
+import { riskAppetiteDistribution } from "../../riskAppetiteDistribution";
 import type { RiskAppetitePosition, RiskPage, RiskStatus, RiskSummary } from "../../riskTypes";
-import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StatusBadge, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StackedDistribution, StatusBadge, type DataColumn } from "../ui";
 import { assessmentKindLabel, assessmentRatingLabel, assessmentRatingTone, currentAppetiteLabel, currentAppetiteTone, formatRiskDate, riskStatusLabel, riskStatusTone } from "./riskPresentation";
 
 type Props = {
@@ -166,6 +167,14 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       title={hasFilters ? "No matching risks" : "No risks in this scope"}
       description={hasFilters ? "Change the filters or search." : `No current risk records were returned for ${scope}.`}
     />}
+    {state === "live" && page.items.length > 0 && <section className="risk-register__position" aria-label="Loaded risk appetite position">
+      <div className="risk-register__position-header">
+        <div><span className="eyebrow">Risk posture</span><h2>Appetite position</h2></div>
+        <span>{page.items.length} shown{page.next_cursor ? " · More available" : ""}</span>
+      </div>
+      <StackedDistribution ariaLabel="Risk appetite of loaded records" segments={riskAppetiteDistribution(page.items)}/>
+      <p>Current assessment and appetite revisions only. Unknown and outdated positions remain separate.</p>
+    </section>}
     {page.items.length > 0 && <DataTable
       ariaLabel="Risk register"
       rows={page.items}
