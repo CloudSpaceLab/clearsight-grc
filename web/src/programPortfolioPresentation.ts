@@ -34,7 +34,7 @@ export function summarizeProgramPortfolio(items: readonly ProgramListSummary[]) 
   for (const item of items) {
     counts[programPortfolioBucket(item)] += 1;
     const open = item.open_matter_count;
-    if (needsProgramAssessment(item) || !Number.isInteger(open) || open === undefined || open < 0) {
+    if (needsProgramAssessment(item) || item.program.status === "DRAFT" || typeof open !== "number" || !Number.isInteger(open) || open < 0) {
       excludedFromIssueComparison += 1;
       continue;
     }
