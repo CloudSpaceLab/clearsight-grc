@@ -25,6 +25,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
   const [linkedForms, setLinkedForms] = useState<FormLibraryItem[]>([]);
   const [linkedFormsCursor, setLinkedFormsCursor] = useState<string>();
   const [linkedFormsReload, setLinkedFormsReload] = useState(0);
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0);
   const [linkedFormsPageError, setLinkedFormsPageError] = useState("");
   const [loadingMoreLinkedForms, setLoadingMoreLinkedForms] = useState(false);
 
@@ -94,7 +95,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
       <p>Forms, requests and responses for this issue</p>
     </div>
 
-    <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference} variant="cards" leading={
+    <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference} variant="cards" refreshKey={activityRefreshKey} leading={
     <div className="subject-form-activity__group matter-forms__activity-card" aria-labelledby="linked-forms-title">
       <header>
         <h3 id="linked-forms-title">Linked forms</h3>
@@ -154,6 +155,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
         onCreated={() => {
           setRequestOpen(false);
           setNotice("Employee form request created.");
+          setActivityRefreshKey((value) => value + 1);
         }}
       />
     </FocusedSheet>}
