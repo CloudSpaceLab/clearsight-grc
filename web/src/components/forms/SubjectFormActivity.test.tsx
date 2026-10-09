@@ -192,3 +192,15 @@ it("shows linked content and clear empty states without misleading zero totals i
   expect(screen.queryByText("0 shown")).toBeNull();
   expect(document.querySelectorAll(".matter-forms__activity-card")).toHaveLength(3);
 });
+
+it("refreshes request and response lists after a successful parent workflow", async () => {
+  const props = { subjectType: "MATTER" as const, subjectID: "matter-a", subjectLabel: "MAT-82BF" };
+  const view = render(<SubjectFormActivity {...props} refreshKey={0}/>);
+
+  await waitFor(() => expect(loadDistributionPage).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(loadCompletedResponses).toHaveBeenCalledTimes(1));
+
+  view.rerender(<SubjectFormActivity {...props} refreshKey={1}/>);
+  await waitFor(() => expect(loadDistributionPage).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(loadCompletedResponses).toHaveBeenCalledTimes(2));
+});
