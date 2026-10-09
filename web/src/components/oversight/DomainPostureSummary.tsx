@@ -68,6 +68,8 @@ export function DomainPostureSummary({
     () => postureOrder.map((id) => bundle?.items.find((item) => item.id === id)),
     [bundle],
   );
+  const riskPopulation = metrics.reduce((total, metric) => total + (metric?.population ?? 0), 0);
+  const noCanonicalRisks = state === "live" && metrics.every((metric) => metric !== undefined) && riskPopulation === 0;
   const selectedDomain = selectedID
     ? bundle?.items.find((item) => item.id === selectedID)
     : undefined;
@@ -177,8 +179,10 @@ export function DomainPostureSummary({
       </div>
     </div>
 
+    {noCanonicalRisks && <Notice tone="warning">No active Risks are loaded for this legal entity.</Notice>}
+
     <div className="oversight-counts" aria-label="Current risk posture" aria-busy={state === "loading" || undefined}>
-      {postureOrder.map((id, index) => {
+      {!noCanonicalRisks && postureOrder.map((id, index) => {
         const metric = metrics[index];
         if (!metric) {
           return <MetricCard

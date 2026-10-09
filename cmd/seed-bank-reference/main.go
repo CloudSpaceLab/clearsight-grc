@@ -28,10 +28,12 @@ func main() {
 	var cloudspaceRelationshipID string
 	var sourceRecordsOnly bool
 	var sourceLossesOnly bool
+	var sourceRisksOnly bool
 	var sourceManifestDir string
 	flag.StringVar(&sourceManifestDir, "source-manifest-dir", "", "private directory containing the source-record manifests")
 	flag.BoolVar(&sourceRecordsOnly, "source-records-only", false, "install the supplied IT, vendor and operational risk captures and linked issues only")
 	flag.BoolVar(&sourceLossesOnly, "source-losses-only", false, "import canonical OpsRisk losses from private manifests without rerunning Forms or Matters")
+	flag.BoolVar(&sourceRisksOnly, "source-risks-only", false, "reconcile persisted IT exception source records into canonical Risks")
 	flag.BoolVar(&sourceEmployeesOnly, "source-employees-only", false, "install named Fidelity and Ops Risk demo employees with scoped performer assignments")
 	flag.StringVar(&cloudspaceRelationshipID, "cloudspace-relationship", "", "install only the Cloudspace sample response for this exact existing demo relationship UUID")
 	flag.BoolVar(&documentSamplesOnly, "document-samples-only", false, "install only fictional submitted document samples after the normal worker is ready")
@@ -44,9 +46,11 @@ func main() {
 	flag.StringVar(&seed.ReviewerPrincipalID, "reviewer", "", "independent reviewer principal UUID")
 	flag.StringVar(&seed.SignatoryPrincipalID, "signatory", "", "authorized signatory principal UUID")
 	flag.Parse()
-	if (sourceRecordsOnly && (sourceLossesOnly || sourceEmployeesOnly || documentSamplesOnly || cloudspaceRelationshipID != "")) || (sourceLossesOnly && (sourceEmployeesOnly || documentSamplesOnly || cloudspaceRelationshipID != "")) || (sourceEmployeesOnly && (documentSamplesOnly || cloudspaceRelationshipID != "")) || (documentSamplesOnly && cloudspaceRelationshipID != "") {
-		fatalIf(fmt.Errorf("choose one scoped sample operation"))
-	}
+	fatalIf(validateSeedMode(seedMode{
+		SourceRecordsOnly: sourceRecordsOnly, SourceLossesOnly: sourceLossesOnly, SourceRisksOnly: sourceRisksOnly,
+		SourceEmployeesOnly: sourceEmployeesOnly, DocumentSamplesOnly: documentSamplesOnly,
+		CloudspaceRelationshipID: cloudspaceRelationshipID,
+	}))
 
 	cfg, err := config.Load()
 	fatalIf(err)
@@ -71,6 +75,13 @@ func main() {
 		}
 		sourceRecordFiles = os.DirFS(sourceManifestDir)
 		receipt, installErr := installSourceLossesOnly(ctx, cfg, pool, seed)
+		fatalIf(installErr)
+		fatalIf(json.NewEncoder(os.Stdout).Encode(receipt))
+		return
+	}
+	if sourceRisksOnly {
+		fatalIf(validateSourceRiskSeedScope(seed.TenantID, seed.LegalEntityID))
+		receipt, installErr := reconcilePersistedSourceRisks(ctx, pool, seed)
 		fatalIf(installErr)
 		fatalIf(json.NewEncoder(os.Stdout).Encode(receipt))
 		return

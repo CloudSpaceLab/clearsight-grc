@@ -6,6 +6,7 @@ Manual seed operations are available through `clearsight-seed-bank-reference`:
 
 - `-source-employees-only`: 17 named people, positions and scoped performer bindings. Logins use `firstname@demo.com` and password `password`; Victor Abejegah uses `victor@demo.com`. Existing core demo users remain. No approval authority is granted.
 - `-cloudspace-relationship UUID`: source-backed submitted, unreviewed Cloudspace/OEM response for one exact existing relationship. Rejects other vendor/service identities, other demo scope and ambiguous active forms. It does not seed generic vendors or acceptance examples.
+- `-source-risks-only`: reconciles the two lineage-complete IT exception source Matters into canonical Risks and source-register assessments. It requires the Clear Bank demo tenant and legal entity, does not read private manifests, and does not modify Forms, Matters, Losses, Vendors or employees.
 
 Use the existing tenant/entity/actor/owner/contributor/reviewer/signatory flags. Production execution is rejected. Employee identity conflicts abort the whole roster transaction without overwriting edits. Repeating the Cloudspace operation validates the existing immutable submission rather than creating another response.
 
@@ -20,3 +21,7 @@ The pre-curation PostgreSQL custom backup is `/opt/clearsight-grc/backups/202609
 Archive restoration is one attributed update of `restored_by`, `restored_at` and `restoration_reason` on the exact receipt. It does not recreate records or erase the archive reason. Restoring the whole database is an operator recovery operation requiring an outage and reconciliation of post-backup changes.
 
 No legal compliance, accepted evidence or resolved risk is implied by sample submissions or archive exclusions.
+
+## Source-record readiness
+
+The OpsRisk RCSA, KRI and BIA samples remain attributed source captures until their governed mappings are approved. The next private Branch KRI install must use one V2 `ops-branch-kri` group with 31 independent responses; it must not treat the Head Office calculation and Board report tabs as additional KPI populations. RCSA requires an assessment period, frozen Risk/control population, first-line owner, independent challenger and outcome route. KRI requires an approved definition, owner, period, calculation, unit, limit and source-coverage contract. BIA requires an approved critical service, tolerance, dependency owner, target revision and review cadence.

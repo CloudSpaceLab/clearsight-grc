@@ -26,6 +26,23 @@ Source-only calendar deadlines use West Africa Time. Bank accountability for ini
 
 Normal reference deployments also reconcile those Risk profiles from the already-persisted source Matter facts, so an existing source install does not require the private workbook again. The reconciliation is bounded to the exact source-package trigger prefix and refuses changed source lineage or user-modified baseline records.
 
+### Reconcile persisted IT exception Risks only
+
+After the source Matters exist, an operator may reconcile the two eligible IT exception records without rereading any private manifest or changing Forms, Matters, Losses, Vendors or employees:
+
+```sh
+clearsight-seed-bank-reference -source-risks-only \
+  -tenant 00000000-0000-4000-8000-000000000001 \
+  -legal-entity 00000000-0000-4000-8000-000000000002 \
+  -actor <existing-demo-actor-uuid>
+```
+
+The command requires the non-production Clear Bank demo scope. Its first receipt reports two Risk candidates and two new `SOURCE-REGISTER` assessments. A repeat reports the same two candidates and zero new assessments. If source lineage is missing, changed, or conflicts with an edited Risk baseline, the command stops without overwriting the record.
+
+### Canonical mapping prerequisites
+
+RCSA action rows remain source-backed work until an assessment period, frozen Risk/control population, first-line owner, independent challenger and outcome route are recorded. KRI rows remain source captures until an approved definition, owner, reporting period, calculation, unit, limit and source-coverage contract are recorded. BIA rows remain source context until an approved critical service, impact tolerance, dependency owner, RTO/RPO target revision and review cadence are recorded. Historical source data must not create any of these governed records by inference.
+
 ## OpsRisk KRI and BIA source reconciliation
 
 The November 2025 Branch KRI source contains 31 branch rows (Excel rows 2–32) and 59 source columns (A–BG); **128 cells are blank**. For a V2 install, the private manifest must provide one `ops-branch-kri` group, `response_per_record: true`, 31 unique original record keys, all 59 ordered fields with their exact source-cell coordinates, and the original worksheet digest. Zeros are recorded answers; blank cells are **not** answers. A V2 response includes its own source row; shared form sections and field descriptions must not falsely refer to the first branch's row.

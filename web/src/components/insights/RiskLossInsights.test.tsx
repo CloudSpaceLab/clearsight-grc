@@ -21,12 +21,13 @@ beforeEach(() => {
   api.loadLossPeriodMetrics.mockReset().mockResolvedValue(loss);
 });
 
-it("loads authoritative Risk and Loss reads with the same selected scope and exact Loss interval", async () => {
+it("loads legal-entity Risk posture and selected-scope Loss flow for the exact interval", async () => {
   render(<RiskLossInsights period={period} organizationScopeID="scope-1" scopeAuthorized/>);
-  await waitFor(() => expect(api.loadDomainMetrics).toHaveBeenCalledWith("scope-1", expect.any(AbortSignal)));
+  await waitFor(() => expect(api.loadDomainMetrics).toHaveBeenCalledWith(undefined, expect.any(AbortSignal)));
   expect(api.loadLossPeriodMetrics).toHaveBeenCalledWith(period, "scope-1", expect.any(AbortSignal));
   expect(await screen.findByText(/risk-1 · loss-1/)).toBeTruthy();
   expect(screen.getByText(/Risk posture is current as of its governed source revision/)).toBeTruthy();
+  expect(screen.getByText(/Risk posture is for the legal entity/)).toBeTruthy();
 });
 
 it("does not query data when the bookmarked organization scope is not authorized", async () => {
