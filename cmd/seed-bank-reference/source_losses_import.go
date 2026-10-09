@@ -64,7 +64,6 @@ func installSourceLossesOnly(
 	return receipt, nil
 }
 
-
 // Read, reconcile and validate the entire private source package before
 // invoking any canonical Loss command. Monthly views are not new events.
 func sourceLossCandidateValues(files fs.FS) ([]sourceLossValue, error) {
