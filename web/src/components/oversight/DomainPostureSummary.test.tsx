@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest";
 import { DomainPostureSummary } from "./DomainPostureSummary";
 import type { DomainMetricBundle, LossPeriodBundle } from "../../metricApi";
 
-function bundle(): DomainMetricBundle {
+function bundle(population = 10): DomainMetricBundle {
   const metric = (id: string, label: string, value: number, workspace: string) => ({
     id,
     label,
@@ -12,7 +12,7 @@ function bundle(): DomainMetricBundle {
     condition: value > 0 ? "ATTENTION" as const : "CLEAR" as const,
     freshness: "CURRENT" as const,
     completeness: "COMPLETE" as const,
-    population: 10,
+    population,
     excluded: 0,
     unknown: 0,
     generated_at: "2026-10-06T18:00:00Z",
@@ -37,6 +37,13 @@ function bundle(): DomainMetricBundle {
     ],
   };
 }
+
+it("identifies an empty canonical Risk population instead of rendering clear posture cards", () => {
+  render(<DomainPostureSummary bundle={bundle(0)} state="live"/>);
+
+  expect(screen.getByText("No active Risks are loaded for this legal entity.")).toBeTruthy();
+  expect(screen.queryByText("Outside appetite")).toBeNull();
+});
 
 it("opens exact scoped Risk members from the canonical posture card", async () => {
   const loadMembers = vi.fn().mockResolvedValue({

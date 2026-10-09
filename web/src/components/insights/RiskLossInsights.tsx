@@ -38,7 +38,7 @@ export function RiskLossInsights({ period, organizationScopeID, scopeAuthorized,
     const controller = new AbortController();
     setDomainState("loading");
     setLossState("loading");
-    void loadDomainMetrics(organizationScopeID, controller.signal).then((value) => {
+    void loadDomainMetrics(undefined, controller.signal).then((value) => {
       if (controller.signal.aborted) return;
       setDomain(value);
       setDomainState("live");
@@ -72,6 +72,7 @@ export function RiskLossInsights({ period, organizationScopeID, scopeAuthorized,
     <p className="insights-risk-loss__basis">
       Loss period: <strong>{period.start_date} – {period.end_date}</strong>.
       Risk posture is current as of its governed source revision; it is not a period-flow total.
+      {organizationScopeID && <> Risk posture is for the legal entity. Loss flow is filtered to the selected organization area.</>}
     </p>
     <DomainPostureSummary
       bundle={domain}
