@@ -176,3 +176,19 @@ it("keeps available request context visible and retries an initial response read
   expect(await screen.findByText("Remediation evidence")).toBeTruthy();
   await waitFor(() => expect(loadCompletedResponses).toHaveBeenCalledTimes(2));
 });
+
+it("shows linked content and clear empty states without misleading zero totals in the card overview", async () => {
+  render(<SubjectFormActivity
+    subjectType="MATTER"
+    subjectID="matter-a"
+    subjectLabel="MAT-82BF"
+    variant="cards"
+    leading={<div className="subject-form-activity__group matter-forms__activity-card">Linked form area</div>}
+  />);
+
+  expect(await screen.findByText("No requests sent")).toBeTruthy();
+  expect(await screen.findByText("No responses yet")).toBeTruthy();
+  expect(screen.getByText("Linked form area")).toBeTruthy();
+  expect(screen.queryByText("0 shown")).toBeNull();
+  expect(document.querySelectorAll(".matter-forms__activity-card")).toHaveLength(3);
+});
