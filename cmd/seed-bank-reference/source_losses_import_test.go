@@ -11,14 +11,9 @@ import (
 
 func lossCandidateTestFS(t *testing.T, records []sourceRecord) fstest.MapFS {
 	t.Helper()
-	manifest := sourceRecordManifest{
-		Version: 1,
-		Groups: []sourceRecordGroup{func() sourceRecordGroup {
-			group := syntheticOpsLossGroup()
-			group.Records = records
-			return group
-		}()},
-	}
+	group := syntheticOpsLossGroup()
+	group.Records = records
+	manifest := sourceRecordManifest{Version: 1, Groups: []sourceRecordGroup{group}}
 	data, err := json.Marshal(manifest)
 	if err != nil {
 		t.Fatal(err)
