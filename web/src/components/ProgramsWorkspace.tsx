@@ -197,7 +197,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   const filtersActive = Boolean(search || status || overallState || jurisdiction || assignedToMe);
   const programFilters = { q: search, status, overall_state: overallState, jurisdiction, assigned_to_me: assignedToMe };
 
-  return <div id="programs-workspace">
+  return <div id="programs-workspace" className="portfolio-workspace portfolio-workspace--programs">
     <section className="workspace-brief">
         <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2></div>
       <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup, review or assessment needed</span></div><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
