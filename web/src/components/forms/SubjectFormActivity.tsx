@@ -18,9 +18,10 @@ type Props = {
   limit?: number;
   leading?: ReactNode;
   variant?: "default" | "cards";
+  refreshKey?: number;
 };
 
-export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limit = 6, leading, variant = "default" }: Props) {
+export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limit = 6, leading, variant = "default", refreshKey = 0 }: Props) {
   const [requestState, setRequestState] = useState<LoadState>("loading");
   const [responseState, setResponseState] = useState<LoadState>("loading");
   const [requests, setRequests] = useState<Distribution[]>([]);
@@ -51,7 +52,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
         if (active) setRequestState("unavailable");
       });
     return () => { active = false; };
-  }, [limit, requestReload, subjectID, subjectType]);
+  }, [limit, refreshKey, requestReload, subjectID, subjectType]);
 
   useEffect(() => {
     let active = true;
@@ -74,7 +75,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
       if (active) setResponseState("unavailable");
     });
     return () => { active = false; };
-  }, [limit, responseReload, subjectID, subjectType]);
+  }, [limit, refreshKey, responseReload, subjectID, subjectType]);
 
   async function loadMoreRequests() {
     if (!requestCursor || loadingMoreRequests) return;
