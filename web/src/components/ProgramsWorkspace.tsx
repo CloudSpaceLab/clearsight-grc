@@ -198,9 +198,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
           <div><span className="eyebrow">Portfolio overview</span><h3>Operating position</h3></div>
           <span className="program-portfolio-visual__scope">{items.length} loaded{nextCursor ? " · More available" : ""}</span>
         </header>
-        <div aria-label="Loaded Program status">
-          <StackedDistribution ariaLabel="Loaded Program status" segments={summary.segments}/>
-        </div>
+        <StackedDistribution ariaLabel="Loaded Program status" segments={summary.segments}/>
         <p>Recorded Program states. Missing and outdated assessments are shown separately.</p>
       </div>
       <div className="program-portfolio-visual__issues">
