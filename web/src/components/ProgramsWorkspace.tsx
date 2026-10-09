@@ -214,7 +214,9 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
               }))}
               onAction={(program) => { window.location.hash = workspaceHash("#programs/" + encodeURIComponent(program.id), programFilters); }}
             />
-          : <p className="program-portfolio-visual__no-issues">No open issues in the available current assessments.</p>}
+          : <p className="program-portfolio-visual__no-issues">{summary.excludedFromIssueComparison === items.length
+            ? "No current issue-count data available for these Programs."
+            : "No open issues in the available current assessments."}</p>}
         <p>{summary.excludedFromIssueComparison > 0
           ? summary.excludedFromIssueComparison + " loaded Programs excluded: assessment or issue count unavailable."
           : "Open issue counts, not risk severity."}</p>
