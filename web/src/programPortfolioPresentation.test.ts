@@ -11,7 +11,13 @@ function program(id: string, options: {
   status?: string;
 } = {}): ProgramListSummary {
   return {
-    program: { id, name: id, code: id, status: options.status ?? "ACTIVE", version: options.version ?? 3, owning_function: "Compliance" },
+    program: {
+      id, tenant_id: "tenant-a", legal_entity_id: "entity-a",
+      name: id, code: id, type: "REGULATORY", status: options.status ?? "ACTIVE",
+      version: options.version ?? 3, owning_function: "Compliance",
+      scope: {}, effective_from: "2026-01-01T00:00:00Z",
+      created_at: "2026-01-01T00:00:00Z", updated_at: "2026-10-09T00:00:00Z",
+    },
     state_label: options.state ?? "CURRENT",
     overall_state: options.state ?? "CURRENT",
     reasons: [], reasons_total: 0, reasons_omitted: 0,
