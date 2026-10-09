@@ -63,4 +63,41 @@ describe("Program projection truth", () => {
     const statusFacts = within(screen.getByLabelText("Loaded Program status"));
     expect(statusFacts.getByText((_, element) => element?.textContent?.trim() === "0 current")).toBeTruthy();
   });
+  it("groups Program counts into distinct scannable facts without treating unknowns as zero", async () => {
+    vi.mocked(loadProgramSummaries).mockResolvedValue({
+      generated_at: "2026-10-09T12:00:00Z",
+      items: [{
+        program: {
+          id: "program-privacy",
+          name: "Data protection",
+          code: "NDPA-2023",
+          status: "ACTIVE",
+          owning_function: "Data Protection Office",
+          jurisdiction: "Nigeria",
+          version: 5,
+        },
+        state_label: "Evidence incomplete",
+        overall_state: "EVIDENCE_INSUFFICIENT",
+        reasons: [],
+        requirement_count: 6,
+        evidence_check_count: 5,
+        open_matter_count: 8,
+        program_version: 5,
+        assessed_program_version: 5,
+        projection_stale: false,
+      } as unknown as ProgramSummary],
+    });
+
+    render(<ProgramsWorkspace/>);
+    const row = await screen.findByRole("link", { name: /Data protection/ });
+    const counts = within(row).getByLabelText("Program indicators");
+    expect(within(counts).getByText("6")).toBeTruthy();
+    expect(within(counts).getByText("5")).toBeTruthy();
+    expect(within(counts).getByText("8")).toBeTruthy();
+    expect(within(counts).getByText("Open issues")).toBeTruthy();
+    expect(within(counts).getByText("8").closest(".program-counts__attention")).toBeTruthy();
+    expect(within(row).getByText("Supporting information needs review")).toBeTruthy();
+    expect(within(row).getByText(/Open program/)).toBeTruthy();
+  });
+
 });
