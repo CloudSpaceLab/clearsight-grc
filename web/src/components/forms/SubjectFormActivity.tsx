@@ -138,7 +138,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
     {attention.length > 0 && <Notice tone="warning">{attentionIsPartial ? "Shown records: " : ""}{attention.join(" · ")}.</Notice>}
     {leading}
 
-    <div className={variant === "cards" ? "subject-form-activity__group matter-forms__activity-card" : "subject-form-activity__group"}>
+    <div className={variant === "cards" ? "subject-form-activity__group subject-form-activity__card" : "subject-form-activity__group"}>
       <header><h3>Requests</h3>{requestState === "live" && (variant !== "cards" || requests.length > 0) && <span>{requests.length} shown</span>}</header>
       {requestState === "loading" && <p role="status">Loading form requests…</p>}
       {requestState === "unavailable" && <Notice tone="warning">Form requests are unavailable. Other issue work remains available. <Button variant="secondary" size="compact" onPress={() => setRequestReload((value) => value + 1)}>Retry form requests</Button></Notice>}
@@ -156,7 +156,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
       {requestCursor && !requestPageError && <Button variant="secondary" size="compact" isLoading={loadingMoreRequests} onPress={() => void loadMoreRequests()}>Load more form requests</Button>}
     </div>
 
-    <div className={variant === "cards" ? "subject-form-activity__group matter-forms__activity-card" : "subject-form-activity__group"}>
+    <div className={variant === "cards" ? "subject-form-activity__group subject-form-activity__card" : "subject-form-activity__group"}>
       <header><h3>Submitted responses</h3>{responseState === "live" && (variant !== "cards" || responses.length > 0) && <span>{responses.length} shown</span>}</header>
       {responseState === "loading" && <p role="status">Loading submitted responses…</p>}
       {responseState === "unavailable" && <Notice tone="warning">Submitted responses are unavailable. Other issue work remains available. <Button variant="secondary" size="compact" onPress={() => setResponseReload((value) => value + 1)}>Retry submitted responses</Button></Notice>}
