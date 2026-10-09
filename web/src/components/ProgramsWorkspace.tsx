@@ -229,7 +229,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
             <span className="program-counts" aria-label="Program indicators">
               <span><b>{summaryItem.requirement_count}</b><small>Requirements</small></span>
               <span><b>{summaryItem.evidence_check_count}</b><small>Evidence checks</small></span>
-              <span className={knownOpenIssues && openIssues > 0 ? "program-counts__attention" : undefined}>
+              <span className={knownOpenIssues && (openIssues ?? 0) > 0 ? "program-counts__attention" : undefined}>
                 <b>{knownOpenIssues ? openIssues : "Unknown"}</b><small>Open issues{knownOpenIssues && assessmentStale ? " · Last calculation" : ""}</small>
               </span>
             </span>
