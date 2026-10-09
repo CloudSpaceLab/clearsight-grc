@@ -77,8 +77,10 @@ it("creates an ordinary form draft with the current issue as immutable origin an
     { origin_type: "MATTER", origin_id: "matter-a", limit: 6 },
     expect.any(AbortSignal),
   ));
-  expect(await screen.findByText("No linked forms recorded.")).toBeTruthy();
+  expect(await screen.findByText("No linked forms yet")).toBeTruthy();
 
+  expect(screen.getByRole("group", { name: "Form actions" })).toBeTruthy();
+  expect(screen.getByText("Send an approved form to an employee.")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Create linked form" }));
   expect(await screen.findByRole("heading", { name: "Create linked form" })).toBeTruthy();
   expect(screen.queryByText("matter-a")).toBeNull();
