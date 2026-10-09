@@ -94,3 +94,38 @@ func TestOpsLossOnlyInstallerRejectsWrongTenantBeforeWriting(t *testing.T) {
 		t.Fatal("must never import source Loss into another legal entity")
 	}
 }
+
+func TestOpsLossOnlyInstallerRejectsIncompleteSourceWithoutWrites(t *testing.T) {
+	pool, cfg, seed := sampleTestSetup(t)
+	records := make([]sourceRecord, 0, 7)
+	for index := 0; index < 7; index++ {
+		records = append(records, syntheticOpsLossRecord(index, "Jan"))
+	}
+	group := syntheticOpsLossGroup()
+	group.Records = records
+	data, err := json.Marshal(sourceRecordManifest{Version: 1, Groups: []sourceRecordGroup{group}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	prior := sourceRecordFiles
+	sourceRecordFiles = fstest.MapFS{"source_records_ops_loss.json": &fstest.MapFile{Data: data}}
+	t.Cleanup(func() { sourceRecordFiles = prior })
+
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	var before, after int
+	query := `SELECT count(*) FROM operational_losses
+		WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND code LIKE 'OPSL-%'`
+	if err := pool.QueryRow(ctx, query, seed.TenantID, seed.LegalEntityID).Scan(&before); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = installSourceLossesOnly(ctx, cfg, pool, seed); err == nil {
+		t.Fatal("truncated historical Loss source unexpectedly passed")
+	}
+	if err := pool.QueryRow(ctx, query, seed.TenantID, seed.LegalEntityID).Scan(&after); err != nil {
+		t.Fatal(err)
+	}
+	if after != before {
+		t.Fatalf("incomplete source created %d partial financial records", after-before)
+	}
+}
