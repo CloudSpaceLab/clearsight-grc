@@ -95,7 +95,6 @@ func TestOpsLossOnlyInstallerRejectsWrongTenantBeforeWriting(t *testing.T) {
 	}
 }
 
-
 func TestOpsLossOnlyInstallerRejectsIncompleteSourceWithoutWrites(t *testing.T) {
 	pool, cfg, seed := sampleTestSetup(t)
 	records := make([]sourceRecord, 0, 7)
