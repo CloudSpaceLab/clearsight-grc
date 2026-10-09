@@ -192,6 +192,36 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       <div className="workspace-brief-side"><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
     </section>
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} organizationScopes={organizationScopes} initialOrganizationScopeID={organizationScopeID} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
+    {items.length > 0 && <section className="program-portfolio-visual" aria-label="Loaded Program portfolio">
+      <div className="program-portfolio-visual__position">
+        <header className="program-portfolio-visual__heading">
+          <div><span className="eyebrow">Portfolio overview</span><h3>Operating position</h3></div>
+          <span className="program-portfolio-visual__scope">{items.length} loaded{nextCursor ? " · More available" : ""}</span>
+        </header>
+        <div aria-label="Loaded Program status">
+          <StackedDistribution ariaLabel="Loaded Program status" segments={summary.segments}/>
+        </div>
+        <p>Recorded Program states. Missing and outdated assessments are shown separately.</p>
+      </div>
+      <div className="program-portfolio-visual__issues">
+        <header className="program-portfolio-visual__heading">
+          <div><span className="eyebrow">Follow-up concentration</span><h3>Open issues by Program</h3></div>
+          <span className="program-portfolio-visual__scope">Top 4 loaded</span>
+        </header>
+        {summary.knownIssuePrograms.length > 0
+          ? <RankedBarList ariaLabel="Open issues by Program in loaded current assessments"
+              items={summary.knownIssuePrograms.map((program) => ({
+                id: program.id, label: program.label, value: program.count,
+                meta: program.owner, actionLabel: "Open " + program.label + ", " + program.count + " open issues",
+              }))}
+              onAction={(program) => { window.location.hash = workspaceHash("#programs/" + encodeURIComponent(program.id), programFilters); }}
+            />
+          : <p className="program-portfolio-visual__no-issues">No open issues in the available current assessments.</p>}
+        <p>{summary.excludedFromIssueComparison > 0
+          ? summary.excludedFromIssueComparison + " loaded Programs excluded: assessment or issue count unavailable."
+          : "Open issue counts, not risk severity."}</p>
+      </div>
+    </section>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label className="workspace-search-field"><span>Search programs</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Name, code, function or jurisdiction"/></label>
       <label><span>Status</span><select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option><option value="DRAFT">Setup in progress</option><option value="RETIRED">Ended</option></select></label>
