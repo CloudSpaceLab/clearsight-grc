@@ -36,8 +36,8 @@ describe("loaded Program portfolio presentation", () => {
     expect({ attention: view.attention, current: view.current, setup: view.setup, notApplicable: view.notApplicable })
       .toEqual({ attention: 1, current: 1, setup: 3, notApplicable: 1 });
     expect(view.segments.reduce((sum, segment) => sum + segment.count, 0)).toBe(6);
-    expect(view.knownIssuePrograms.map((item) => item.id)).toEqual(["overdue", "draft"]);
-    expect(view.excludedFromIssueComparison).toBe(2);
+    expect(view.knownIssuePrograms.map((item) => item.id)).toEqual(["overdue"]);
+    expect(view.excludedFromIssueComparison).toBe(3);
   });
 
   it("does not allow a missing or mismatched assessment to inherit a current status", () => {
