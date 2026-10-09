@@ -96,7 +96,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
     </div>
 
     <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference} variant="cards" refreshKey={activityRefreshKey} leading={
-    <div className="subject-form-activity__group matter-forms__activity-card" aria-labelledby="linked-forms-title">
+    <div className="subject-form-activity__group subject-form-activity__card" aria-labelledby="linked-forms-title">
       <header>
         <h3 id="linked-forms-title">Linked forms</h3>
         {linkedFormsState === "live" && linkedForms.length > 0 && <span>{linkedForms.length} shown</span>}
