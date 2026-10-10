@@ -123,8 +123,10 @@ it("renders a bounded Risk register with working-language appetite state", async
   expect(within(table).getByText("Residual")).toBeTruthy();
   expect(within(table).getByText("QUAL-5X5 · v1")).toBeTruthy();
   expect(screen.getByText("1 shown")).toBeTruthy();
-  expect(screen.getByRole("img", { name: /Risk appetite of loaded records: 1 outside appetite/i })).toBeTruthy();
-  expect(screen.getByText("1 loaded")).toBeTruthy();
+  expect(screen.getByRole("img", { name: /Risk appetite for displayed records: 1 outside appetite/i })).toBeTruthy();
+  expect(screen.getByText("1 shown")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Review 1 outside appetite" }));
+  await waitFor(() => expect(loadPage).toHaveBeenCalledWith(expect.objectContaining({ appetitePosition: "BREACHED", limit: 25 }), expect.any(AbortSignal)));
   expect(screen.queryByText(risk.owner_principal_id!)).toBeNull();
 });
 
@@ -139,7 +141,7 @@ it("binds the register read to the selected organization scope", async () => {
   />);
 
   await screen.findByText("Network resilience");
-  expect(screen.getByText("Current risk statements, assessed rating and appetite position for BANK / RISK.")).toBeTruthy();
+  expect(screen.getByText("Risk assessments and appetite limits for BANK / RISK.")).toBeTruthy();
   expect(loadPage).toHaveBeenCalledWith(expect.objectContaining({ organizationScopeID: "scope-risk", limit: 25 }), expect.any(AbortSignal));
 });
 
