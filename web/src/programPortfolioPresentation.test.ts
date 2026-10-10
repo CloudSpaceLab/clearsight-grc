@@ -44,6 +44,7 @@ describe("loaded Program portfolio presentation", () => {
     expect(view.segments.reduce((sum, segment) => sum + segment.count, 0)).toBe(6);
     expect(view.knownIssuePrograms.map((item) => item.id)).toEqual(["overdue"]);
     expect(view.excludedFromIssueComparison).toBe(3);
+    expect(view.followUp).toEqual([{ state: "OVERDUE", count: 1, label: "overdue" }]);
   });
 
   it("does not allow a missing or mismatched assessment to inherit a current status", () => {
