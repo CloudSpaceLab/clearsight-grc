@@ -152,7 +152,7 @@ export function LossRegister({
       title={hasFilters ? "No matching losses" : "No losses in this scope"}
       description={hasFilters ? "Change the filters or search." : "No operational losses were returned for this legal entity."}
     />}
-    {exposure && <section className="loss-exposure" aria-label="Loaded loss financial exposure">
+    {exposure && <section className="loss-exposure" aria-label="Financial impact for displayed losses">
       <div className="loss-exposure__heading">
         <div><span className="eyebrow">Losses</span><h2>Financial impact</h2></div>
         <span>{page.items.length} loss{page.items.length === 1 ? "" : "es"} in view{page.next_cursor ? " · More available" : ""}</span>
