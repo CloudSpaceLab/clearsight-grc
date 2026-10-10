@@ -173,7 +173,7 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
     {state === "live" && page.items.length > 0 && <section className="risk-register__position" aria-label="Loaded risk appetite position">
       <div className="risk-register__position-header">
         <div><span className="eyebrow">Risks</span><h2>Risk appetite</h2></div>
-        <span>{page.items.length} shown{page.next_cursor ? " · More available" : ""}</span>
+        <span>{page.items.length} risk{page.items.length === 1 ? "" : "s"} in view{page.next_cursor ? " · More available" : ""}</span>
       </div>
       <StackedDistribution ariaLabel="Risk appetite for displayed records" segments={appetiteSegments}/>
       {(outsideCount > 0 || nearCount > 0) && <div className="risk-register__position-actions">
