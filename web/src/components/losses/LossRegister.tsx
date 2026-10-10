@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { listLosses, type LossListParams } from "../../lossApi";
+import { summarizeLoadedLossExposure } from "../../lossExposurePresentation";
 import type { LossEventType, LossPage, LossRecoveryStatus, LossStatus, LossSummary } from "../../lossTypes";
-import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StatusBadge, TextField, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, FilterBar, Notice, RankedBarList, SearchField, SelectField, StatusBadge, TextField, type DataColumn } from "../ui";
 import { formatLossDate, formatLossMoney, lossEventLabel, lossEventOptions, lossStatusLabel, lossStatusTone, recoveryStatusLabel, recoveryStatusTone } from "./lossPresentation";
 
 type Props = {
@@ -73,6 +74,7 @@ export function LossRegister({
   }, [currency, currentCursor, eventType, loadPage, organizationScopeID, recoveryStatus, retry, search, status]);
 
   const hasFilters = Boolean(search.trim() || status || recoveryStatus || eventType || currency.trim());
+  const exposure = state === "live" && page.items.length > 0 ? summarizeLoadedLossExposure(page.items) : undefined;
   const resetPage = () => setCursors([]);
   const pagination = cursors.length > 0 || page.next_cursor ? {
     label: "Loss register pages",
@@ -150,6 +152,26 @@ export function LossRegister({
       title={hasFilters ? "No matching losses" : "No losses in this scope"}
       description={hasFilters ? "Change the filters or search." : "No operational losses were returned for this legal entity."}
     />}
+    {exposure && <section className="loss-exposure" aria-label="Loaded loss financial exposure">
+      <div className="loss-exposure__heading">
+        <div><span className="eyebrow">Financial impact</span><h2>Loss and recovery</h2></div>
+        <span>{page.items.length} loaded{page.next_cursor || currentCursor ? " · Paginated view" : ""}</span>
+      </div>
+      <p>Gross, outstanding and recovered amounts are shown within each currency. Only validated active records from this page are included.</p>
+      {exposure.groups.length > 0
+        ? <div className="loss-exposure__groups">
+            {exposure.groups.map((group) => <section className="loss-exposure__currency" key={group.currency} aria-label={group.currency + " loss exposure"}>
+              <div className="loss-exposure__currency-heading"><h3>{group.currency}</h3><small>{group.count} active record{group.count === 1 ? "" : "s"}</small></div>
+              <RankedBarList ariaLabel={group.currency + " financial exposure from loaded losses"} items={group.rows}/>
+            </section>)}
+          </div>
+        : <p>No validated active loss totals in the loaded records.</p>}
+      {(exposure.moreCurrencies > 0 || exposure.excluded > 0 || exposure.voided > 0) && <p className="loss-exposure__limits">
+        {exposure.moreCurrencies > 0 && exposure.moreCurrencies + " additional currencies; filter to inspect separately. "}
+        {exposure.excluded > 0 && exposure.excluded + " inconsistent or unsupported amounts excluded. "}
+        {exposure.voided > 0 && exposure.voided + " voided loss" + (exposure.voided === 1 ? "" : "es") + " excluded."}
+      </p>}
+    </section>}
     {page.items.length > 0 && <DataTable
       ariaLabel="Operational loss register"
       rows={page.items}
