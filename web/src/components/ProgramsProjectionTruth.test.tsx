@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { loadProgram, loadProgramSummaries } from "../api";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
@@ -102,6 +102,9 @@ describe("Program projection truth", () => {
     expect(within(screen.getByLabelText("Programs with the most open issues in the displayed records")).getByText("Data protection")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review 8 open issues for Data protection" }));
     expect(window.location.hash).toBe("#programs/program-privacy/issues-actions");
+    fireEvent.click(screen.getByRole("button", { name: /1 evidence incomplete/i }));
+    await waitFor(() => expect(loadProgramSummaries).toHaveBeenCalledWith(expect.objectContaining({ overallState: "EVIDENCE_INSUFFICIENT" })));
+    expect(window.location.hash).toContain("overall_state=EVIDENCE_INSUFFICIENT");
   });
 
 });
