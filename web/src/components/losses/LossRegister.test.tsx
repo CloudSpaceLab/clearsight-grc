@@ -43,7 +43,7 @@ describe("LossRegister", () => {
     expect(screen.getByText(/net$/i)).toBeTruthy();
     expect(screen.getByText(/Gross .* Recovered/i)).toBeTruthy();
     expect(screen.getByRole("cell", { name: "Recovery: Partly recovered" })).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Loaded loss financial exposure" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Financial impact for displayed losses" })).toBeTruthy();
     expect(screen.getByRole("list", { name: "NGN financial exposure from loaded losses" })).toBeTruthy();
     expect(screen.getByText("Net outstanding")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Show NGN losses" }));
