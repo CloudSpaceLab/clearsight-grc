@@ -152,7 +152,7 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
       </div>
 
       {!complete && state !== "error" && <Notice tone="warning">Some cycles are temporarily unavailable. Available cycles remain unchanged.</Notice>}
-      {state === "live" && items.length > 0 && <section className="rcsa-register__position" aria-label="Loaded RCSA cycle stages">
+      {state === "live" && items.length > 0 && <section className="rcsa-register__position" aria-label="Status of displayed RCSA cycles">
         <div className="rcsa-register__position-heading">
           <div><span className="eyebrow">RCSA</span><h3>Cycle status</h3></div>
           <small>{items.length} shown{nextCursor ? " · More available" : ""}</small>
