@@ -123,6 +123,8 @@ it("renders a bounded Risk register with working-language appetite state", async
   expect(within(table).getByText("Residual")).toBeTruthy();
   expect(within(table).getByText("QUAL-5X5 · v1")).toBeTruthy();
   expect(screen.getByText("1 shown")).toBeTruthy();
+  expect(screen.getByRole("img", { name: /Risk appetite of loaded records: 1 outside appetite/i })).toBeTruthy();
+  expect(screen.getByText("1 loaded")).toBeTruthy();
   expect(screen.queryByText(risk.owner_principal_id!)).toBeNull();
 });
 

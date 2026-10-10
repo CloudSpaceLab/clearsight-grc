@@ -60,8 +60,8 @@ describe("Program projection truth", () => {
     expect(screen.getByText("Out of date")).toBeTruthy();
     const rowLink = screen.getByRole("link", { name: /Privacy compliance/ });
     expect(rowLink.getAttribute("href")).toBe("#programs/program-stale");
-    const statusFacts = within(screen.getByLabelText("Loaded Program status"));
-    expect(statusFacts.getByText((_, element) => element?.textContent?.trim() === "0 current")).toBeTruthy();
+    expect(screen.getByRole("img", { name: /Loaded Program status:.*0 current/i })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Loaded Program portfolio" })).toBeTruthy();
   });
   it("groups Program counts into distinct scannable facts without treating unknowns as zero", async () => {
     vi.mocked(loadProgramSummaries).mockResolvedValue({
@@ -98,6 +98,8 @@ describe("Program projection truth", () => {
     expect(within(counts).getByText("8").closest(".program-counts__attention")).toBeTruthy();
     expect(within(row).getByText("Supporting information needs review")).toBeTruthy();
     expect(within(row).getByText(/Open program/)).toBeTruthy();
+    expect(screen.getByRole("img", { name: /1 follow-up, 0 current, 0 needs assessment/i })).toBeTruthy();
+    expect(within(screen.getByLabelText("Open issues by Program in loaded current assessments")).getByText("Data protection")).toBeTruthy();
   });
 
 });

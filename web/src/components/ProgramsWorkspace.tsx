@@ -2,16 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { ProgramItemTarget, ProgramSection } from "../appRouting";
 import { loadProgramSummaries, type ScopeNode } from "../api";
-import type { ProgramSummary } from "../summaryTypes";
+import { hasProgramAssessment, needsProgramAssessment, summarizeProgramPortfolio, type ProgramListSummary } from "../programPortfolioPresentation";
+import { RankedBarList, StackedDistribution } from "./ui";
 import type { ProgramAggregate, ProgramState } from "../types";
 import { EmptyState } from "./EmptyState";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
 import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
 import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
 import "../portfolio-workspaces.css";
+import "../program-portfolio-visual.css";
 
 type LoadState = "loading" | "live" | "unavailable";
-type ProgramListSummary = Omit<ProgramSummary, "open_matter_count"> & { open_matter_count?: number };
 type Props = { targetID?: string; targetSection?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; organizationScopeID?: string; organizationScopeName?: string; organizationScopes?: ScopeNode[]; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
 
 function ProgramIcon() {
@@ -25,14 +26,6 @@ function stateClass(value?: ProgramState) {
     case "AT_RISK": case "EVIDENCE_INSUFFICIENT": case "IMPLEMENTATION_PENDING": case "UNDER_REVIEW": return "status-warning";
     default: return "status-neutral";
   }
-}
-
-function hasAssessment(summary: ProgramListSummary) {
-  return Number.isInteger(summary.assessed_program_version) && summary.assessed_program_version > 0;
-}
-
-function needsAssessment(summary: ProgramListSummary) {
-  return !hasAssessment(summary) || summary.projection_stale || summary.assessed_program_version !== summary.program_version;
 }
 
 function summaryFromAggregate(detail: ProgramAggregate): ProgramListSummary {
@@ -138,11 +131,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
 
   useEffect(() => { void load(true); }, [load]);
 
-  const summary = useMemo(() => ({
-    current: items.filter((item) => !needsAssessment(item) && item.overall_state === "CURRENT").length,
-    attention: items.filter((item) => !needsAssessment(item) && ["AT_RISK", "GAP_IDENTIFIED", "EVIDENCE_INSUFFICIENT", "IMPLEMENTATION_PENDING", "OVERDUE"].includes(item.overall_state)).length,
-    setup: items.filter((item) => needsAssessment(item) || item.program.status === "DRAFT" || ["UNKNOWN", "UNDER_REVIEW"].includes(item.overall_state)).length,
-  }), [items]);
+  const summary = useMemo(() => summarizeProgramPortfolio(items), [items]);
 
   function submitSearch(event: FormEvent) {
     event.preventDefault();
@@ -197,12 +186,42 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   const filtersActive = Boolean(search || status || overallState || jurisdiction || assignedToMe);
   const programFilters = { q: search, status, overall_state: overallState, jurisdiction, assigned_to_me: assignedToMe };
 
-  return <div id="programs-workspace">
+  return <div id="programs-workspace" className="portfolio-workspace portfolio-workspace--programs">
     <section className="workspace-brief">
         <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2></div>
-      <div className="workspace-brief-side"><div className="workspace-brief-facts" aria-label="Loaded Program status"><span><strong>{summary.attention}</strong> follow-up</span><span><strong>{summary.current}</strong> current</span><span><strong>{summary.setup}</strong> setup, review or assessment needed</span></div><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
+      <div className="workspace-brief-side"><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
     </section>
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} organizationScopes={organizationScopes} initialOrganizationScopeID={organizationScopeID} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
+    {items.length > 0 && <section className="program-portfolio-visual" aria-label="Loaded Program portfolio">
+      <div className="program-portfolio-visual__position">
+        <header className="program-portfolio-visual__heading">
+          <div><span className="eyebrow">Portfolio overview</span><h3>Operating position</h3></div>
+          <span className="program-portfolio-visual__scope">{items.length} loaded{nextCursor ? " · More available" : ""}</span>
+        </header>
+        <StackedDistribution ariaLabel="Loaded Program status" segments={summary.segments}/>
+        <p>Recorded Program states. Missing and outdated assessments are shown separately.</p>
+      </div>
+      <div className="program-portfolio-visual__issues">
+        <header className="program-portfolio-visual__heading">
+          <div><span className="eyebrow">Follow-up concentration</span><h3>Open issues by Program</h3></div>
+          <span className="program-portfolio-visual__scope">Top 4 loaded</span>
+        </header>
+        {summary.knownIssuePrograms.length > 0
+          ? <RankedBarList ariaLabel="Open issues by Program in loaded current assessments"
+              items={summary.knownIssuePrograms.map((program) => ({
+                id: program.id, label: program.label, value: program.count,
+                meta: program.owner, actionLabel: "Open " + program.label + ", " + program.count + " open issues",
+              }))}
+              onAction={(program) => { window.location.hash = workspaceHash("#programs/" + encodeURIComponent(program.id), programFilters); }}
+            />
+          : <p className="program-portfolio-visual__no-issues">{summary.excludedFromIssueComparison === items.length
+            ? "No current issue-count data available for these Programs."
+            : "No open issues in the available current assessments."}</p>}
+        <p>{summary.excludedFromIssueComparison > 0
+          ? summary.excludedFromIssueComparison + " loaded Programs excluded: assessment or issue count unavailable."
+          : "Open issue counts, not risk severity."}</p>
+      </div>
+    </section>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
       <label className="workspace-search-field"><span>Search programs</span><input value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Name, code, function or jurisdiction"/></label>
       <label><span>Status</span><select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option><option value="DRAFT">Setup in progress</option><option value="RETIRED">Ended</option></select></label>
@@ -216,13 +235,13 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       {!items.length ? <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change filters." : "No Programs in this scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
-        const assessmentMissing = !hasAssessment(summaryItem);
-        const assessmentStale = needsAssessment(summaryItem);
+        const assessmentMissing = !hasProgramAssessment(summaryItem);
+        const assessmentStale = needsProgramAssessment(summaryItem);
         const displayState = assessmentStale ? "UNKNOWN" : summaryItem.overall_state;
         const displayLabel = assessmentMissing ? "Unknown" : assessmentStale ? "Out of date" : summaryItem.state_label === "Evidence incomplete" ? "Supporting information needs review" : summaryItem.state_label || "Unknown";
         const openIssues = summaryItem.open_matter_count;
         const knownOpenIssues = !assessmentMissing && typeof openIssues === "number" && Number.isInteger(openIssues) && openIssues >= 0;
-        return <article className={targetID === program.id ? "program-card targeted" : "program-card"} id={`program-${program.id}`} key={program.id}>
+        return <article className={targetID === program.id ? "program-card targeted" : "program-card"} data-operating-state={displayState} id={`program-${program.id}`} key={program.id}>
           <a className="program-card-main" href={workspaceHash(`#programs/${encodeURIComponent(program.id)}`, programFilters)}>
             <span className="program-icon"><ProgramIcon/></span>
             <span className="program-primary"><span className="program-kicker">{program.code} · {program.owning_function}</span><strong>{program.name}</strong>{program.jurisdiction && <small>{program.jurisdiction}</small>}</span>

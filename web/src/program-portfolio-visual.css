@@ -1,0 +1,115 @@
+/* Assessed operating position and open-issue concentration for the loaded Program page. */
+.portfolio-workspace--programs .program-portfolio-visual {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.portfolio-workspace--programs .program-portfolio-visual > div {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 20px;
+  padding: 22px;
+  border: 1px solid var(--cs-border-default);
+  border-radius: 16px;
+  background: var(--cs-bg-surface-1);
+}
+
+.program-portfolio-visual__heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.program-portfolio-visual__heading h3 {
+  margin: 6px 0 0;
+  color: var(--cs-text-strong);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.program-portfolio-visual__scope {
+  flex: none;
+  padding: 6px 9px;
+  border: 1px solid var(--cs-border-default);
+  border-radius: 7px;
+  background: var(--cs-bg-surface-2);
+  color: var(--cs-text-primary);
+  font-size: var(--cs-font-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.program-portfolio-visual__position > p,
+.program-portfolio-visual__issues > p {
+  margin: 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  line-height: 1.55;
+}
+
+.program-portfolio-visual__issues .cs-ranked-bars { gap: 4px; }
+.program-portfolio-visual__issues .cs-ranked-bars__row { padding: 3px 0; }
+.program-portfolio-visual__issues .cs-ranked-bars__track { height: 5px; }
+.program-portfolio-visual__issues .cs-ranked-bars__fill { background: var(--cs-status-warning); }
+.program-portfolio-visual__issues .cs-ranked-bars__label { font-size: var(--cs-font-size-control); }
+.program-portfolio-visual__issues .cs-ranked-bars__row small { font-size: 11px; }
+.program-portfolio-visual__issues .program-portfolio-visual__no-issues {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+}
+
+.portfolio-workspace--programs .program-card { position: relative; }
+.portfolio-workspace--programs .program-card::before {
+  position: absolute;
+  inset-block: 12px;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--cs-status-unknown);
+  content: "";
+  pointer-events: none;
+}
+.portfolio-workspace--programs .program-card[data-operating-state="CURRENT"]::before { background: var(--cs-status-success); }
+.portfolio-workspace--programs .program-card[data-operating-state="AT_RISK"]::before,
+.portfolio-workspace--programs .program-card[data-operating-state="EVIDENCE_INSUFFICIENT"]::before,
+.portfolio-workspace--programs .program-card[data-operating-state="IMPLEMENTATION_PENDING"]::before { background: var(--cs-status-warning); }
+.portfolio-workspace--programs .program-card[data-operating-state="GAP_IDENTIFIED"]::before,
+.portfolio-workspace--programs .program-card[data-operating-state="OVERDUE"]::before { background: var(--cs-status-error); }
+
+.portfolio-workspace--programs .program-counts {
+  gap: 0;
+  align-items: stretch;
+}
+.portfolio-workspace--programs .program-counts > span {
+  background: transparent;
+  border-radius: 0;
+  padding: 6px 12px;
+  gap: 7px;
+  border-inline-start: 1px solid var(--cs-border-default);
+}
+.portfolio-workspace--programs .program-counts > span:first-child { border-inline-start: 0; }
+.portfolio-workspace--programs .program-counts b { font-size: 20px; }
+.portfolio-workspace--programs .program-counts small { font-size: 11px; }
+.portfolio-workspace--programs .program-state { gap: 8px; }
+.portfolio-workspace--programs .program-state strong {
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+@container (max-width: 1040px) {
+  .portfolio-workspace--programs .program-portfolio-visual { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 620px) {
+  .portfolio-workspace--programs .program-portfolio-visual > div { padding: 16px; gap: 16px; }
+  .program-portfolio-visual__heading { flex-wrap: wrap; }
+  .portfolio-workspace--programs .program-counts b { font-size: 17px; }
+  .portfolio-workspace--programs .program-counts > span { padding-inline: 8px; }
+}
+@media (forced-colors: active) {
+  .portfolio-workspace--programs .program-card::before { background: CanvasText !important; }
+}

@@ -198,6 +198,8 @@ async function openProgramList(context, { fixture } = {}) {
   if (fixture) params.set("fixture", fixture);
   await page.goto(`${baseURL}/?${params.toString()}#programs`, { waitUntil: "networkidle" });
   await page.locator(".program-list").waitFor({ state: "visible" });
+  await page.locator(".portfolio-workspace--programs .program-portfolio-visual").waitFor({ state: "visible" });
+  await page.locator('[role="img"][aria-label^="Loaded Program status:"]').waitFor({ state: "visible" });
   await page.locator('.program-card-main[href*="#programs/program-ndpa"]').waitFor({ state: "visible" });
   if (await page.locator(".program-list .program-review-digest").count()) throw new Error("Program list replayed the detail review digest on the portfolio view");
   await page.evaluate(() => document.fonts?.ready);

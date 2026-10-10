@@ -22,6 +22,8 @@ export type { MetricCardProps, MetricCardQuality } from "./MetricCard";
 export { MetricTrend } from "./MetricTrend";
 export type { MetricTrendDatum, MetricTrendProps } from "./MetricTrend";
 export { RankedBarList } from "./RankedBarList";
+export { StackedDistribution } from "./StackedDistribution";
+export type { DistributionSegment, DistributionTone } from "./StackedDistribution";
 export type { RankedBarItem, RankedBarListProps } from "./RankedBarList";
 export { Notice } from "./Notice";
 export { PopoverDialog } from "./PopoverDialog";

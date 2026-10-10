@@ -32,6 +32,44 @@
     color: var(--cs-text-muted);
   }
 
+  .risk-register__position {
+    display: grid;
+    gap: 18px;
+    padding: 22px;
+    border: 1px solid var(--cs-border-default);
+    border-radius: var(--cs-surface-radius);
+    background: var(--cs-bg-surface-1);
+  }
+
+  .risk-register__position-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: start;
+    gap: 12px;
+  }
+
+  .risk-register__position-header h2 {
+    margin: 6px 0 0;
+    color: var(--cs-text-strong);
+    font-size: 17px;
+  }
+
+  .risk-register__position-header > span {
+    padding: 6px 9px;
+    border-radius: 7px;
+    border: 1px solid var(--cs-border-default);
+    color: var(--cs-text-primary);
+    font-size: var(--cs-font-size-caption);
+    background: var(--cs-bg-surface-2);
+  }
+
+  .risk-register__position > p {
+    margin: 0;
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+
   .risk-load-state {
     margin: 0;
     color: var(--cs-text-muted);
