@@ -41,8 +41,9 @@ export function summarizeProgramPortfolio(items: readonly ProgramListSummary[]) 
   let excludedFromIssueComparison = 0;
 
   for (const item of items) {
-    counts[programPortfolioBucket(item)] += 1;
-    if (programPortfolioBucket(item) === "attention") followUpCounts.set(item.overall_state, (followUpCounts.get(item.overall_state) ?? 0) + 1);
+    const bucket = programPortfolioBucket(item);
+    counts[bucket] += 1;
+    if (bucket === "attention") followUpCounts.set(item.overall_state, (followUpCounts.get(item.overall_state) ?? 0) + 1);
     const open = item.open_matter_count;
     if (needsProgramAssessment(item) || item.program.status === "DRAFT" || typeof open !== "number" || !Number.isInteger(open) || open < 0) {
       excludedFromIssueComparison += 1;
