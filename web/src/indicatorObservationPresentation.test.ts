@@ -30,6 +30,7 @@ it("plots comparable numeric native observations without substituting concern po
   expect(view.available).toBe(true);
   expect(view.points.map((point) => point.value)).toEqual([99.8, 98.7]);
   expect(view.points[0]?.displayValue).toBe("99.80%");
+  expect(view.range).toEqual({ min: "98.70%", max: "99.80%" });
   expect(view.omitted).toBe(0);
 });
 
