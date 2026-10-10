@@ -92,5 +92,5 @@ export function formatRCSAPeriod(start?: string, end?: string) {
 }
 
 export function rcsaOwnerLabel(cycle: RCSACycle, displayName?: string) {
-  return displayName?.trim() || cycle.first_line_owner_principal_id || "Not assigned";
+  return displayName?.trim() || (cycle.first_line_owner_principal_id ? "Owner name unavailable" : "Not assigned");
 }
