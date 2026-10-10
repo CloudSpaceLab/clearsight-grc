@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { loadMonitoringResults } from "../../monitoringApi";
+import { comparableIndicatorObservations } from "../../indicatorObservationPresentation";
 import type { MonitoringResult } from "../../monitoringTypes";
 import type { RiskIndicatorDetail } from "../../riskTypes";
-import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, MetricTrend, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
 import { IndicatorMovement } from "./IndicatorMovement";
 import { IndicatorValue, indicatorValueAccessibleText } from "./IndicatorValue";
 import { formatIndicatorCoverage, formatIndicatorDate, formatIndicatorPeriod, indicatorStateLabel, indicatorTone, monitoringBandLabel, nativeConditionLabel, nativeConditionTone } from "./indicatorPresentation";
@@ -43,6 +44,8 @@ export function IndicatorDetail({
     });
     return () => { active = false; };
   }, [indicator.check_id, indicator.check_version, loadResults, retry]);
+
+  const observations = state === "live" ? comparableIndicatorObservations(indicator, results) : undefined;
 
   const columns: readonly DataColumn<MonitoringResult>[] = [
     {
@@ -127,6 +130,18 @@ export function IndicatorDetail({
       {state === "loading" && results.length === 0 && <p role="status">Loading indicator history…</p>}
       {state === "error" && <Notice tone="error"><span>Indicator history could not be loaded.</span> <Button variant="secondary" size="compact" onPress={() => setRetry((value) => value + 1)}>Try again</Button></Notice>}
       {state === "live" && results.length === 0 && <EmptyState population={indicator.check_name} title="No observations for this revision" description="No monitoring result has been recorded for the current check revision."/>}
+      {observations?.available && <Surface>
+        <section className="indicator-detail__trend" aria-label="Native indicator observations">
+          <div className="section-header">
+            <div>
+              <h4>Observed values</h4>
+              <p>Up to 12 comparable native measurements from this check revision. Points are not joined across unobserved periods.</p>
+            </div>
+          </div>
+          <MetricTrend ariaLabel={indicator.check_name + " native measurement observations"} points={observations.points} gapThresholdMs={0}/>
+          {observations.omitted > 0 && <p>{observations.omitted} incompatible or unavailable observations excluded from this plot.</p>}
+        </section>
+      </Surface>}
       {results.length > 0 && <DataTable
         ariaLabel={`${indicator.check_name} observation history`}
         rows={results}
