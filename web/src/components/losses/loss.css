@@ -29,6 +29,64 @@
     color: var(--cs-text-muted);
   }
 
+  .loss-exposure {
+    display: grid;
+    gap: var(--cs-space-group);
+    padding: var(--cs-space-section);
+    border: 1px solid var(--cs-border-default);
+    border-radius: var(--cs-surface-radius);
+    background: var(--cs-bg-surface-1);
+  }
+  .loss-exposure__heading, .loss-exposure__currency-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--cs-space-inline);
+  }
+  .loss-exposure__heading h2 {
+    margin: 5px 0 0;
+    color: var(--cs-text-strong);
+    font-size: 18px;
+  }
+  .loss-exposure__heading > span, .loss-exposure__currency-heading small,
+  .loss-exposure > p {
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+  .loss-exposure > p { margin: 0; }
+  .loss-exposure__groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    align-items: start;
+    gap: var(--cs-space-group);
+  }
+  .loss-exposure__currency {
+    display: grid;
+    gap: var(--cs-space-group);
+    min-width: 0;
+    padding: var(--cs-space-group);
+    border: 1px solid var(--cs-border-default);
+    border-radius: 12px;
+    background: var(--cs-bg-surface-2);
+  }
+  .loss-exposure__currency-heading h3 {
+    margin: 0;
+    color: var(--cs-text-strong);
+    font-size: 15px;
+  }
+  .loss-exposure__currency .cs-ranked-bars__fill { background: var(--cs-status-info); }
+  .loss-exposure__currency li:nth-child(2) .cs-ranked-bars__fill { background: var(--cs-status-warning); }
+  .loss-exposure__currency li:nth-child(3) .cs-ranked-bars__fill { background: var(--cs-status-success); }
+  .loss-exposure__currency .cs-ranked-bars__track { height: 7px; }
+  .loss-exposure__currency .cs-ranked-bars__row { gap: 6px; }
+  .loss-exposure__currency .cs-ranked-bars__heading { align-items: baseline; }
+  .loss-exposure__currency .cs-ranked-bars__heading strong { overflow-wrap: anywhere; text-align: end; }
+  @media (max-width: 580px) {
+    .loss-exposure { padding: var(--cs-space-group); }
+    .loss-exposure__groups { grid-template-columns: minmax(0, 1fr); }
+  }
+
   .loss-load-state {
     margin: 0;
     color: var(--cs-text-muted);
