@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
-import { formatRCSADate, formatRCSAPeriod, rcsaPhasePath } from "./rcsaPresentation";
+import { formatRCSADate, formatRCSAPeriod, rcsaOwnerLabel, rcsaPhasePath } from "./rcsaPresentation";
+import type { RCSACycle } from "./rcsaTypes";
 
 it("formats RCSA periods deterministically in UTC", () => {
   expect(formatRCSADate("2026-09-30T23:59:59Z")).toBe("30 Sep 2026");
@@ -31,4 +32,10 @@ it("does not call a completed challenge outcome pending when the branch is uncla
   const complete = rcsaPhasePath("COMPLETE");
   expect(complete.find((step) => step.id === "RISK_ACCEPTANCE")?.state).toBe("unknown");
   expect(complete.find((step) => step.id === "REMEDIATION_VERIFICATION")?.state).toBe("unknown");
+});
+
+it("shows an unavailable owner name without exposing the principal ID", () => {
+  const cycle = { first_line_owner_principal_id: "10000000-0000-4000-8000-000000000001" } as RCSACycle;
+  expect(rcsaOwnerLabel(cycle)).toBe("Owner name unavailable");
+  expect(rcsaOwnerLabel(cycle, "Technology Risk Owner")).toBe("Technology Risk Owner");
 });

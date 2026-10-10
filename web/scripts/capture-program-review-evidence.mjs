@@ -199,7 +199,11 @@ async function openProgramList(context, { fixture } = {}) {
   await page.goto(`${baseURL}/?${params.toString()}#programs`, { waitUntil: "networkidle" });
   await page.locator(".program-list").waitFor({ state: "visible" });
   await page.locator(".portfolio-workspace--programs .program-portfolio-visual").waitFor({ state: "visible" });
-  await page.locator('[role="img"][aria-label^="Loaded Program status:"]').waitFor({ state: "visible" });
+  const distribution = page.getByRole("img", { name: /^Program status for displayed records:/ });
+  const singleStatus = page.locator(".program-portfolio-visual__uniform-status");
+  if (!await distribution.count() && !await singleStatus.count()) {
+    throw new Error("Program status is not visible in chart or compact form");
+  }
   await page.locator('.program-card-main[href*="#programs/program-ndpa"]').waitFor({ state: "visible" });
   if (await page.locator(".program-list .program-review-digest").count()) throw new Error("Program list replayed the detail review digest on the portfolio view");
   await page.evaluate(() => document.fonts?.ready);

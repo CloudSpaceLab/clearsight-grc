@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { loadProgram, loadProgramSummaries } from "../api";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
@@ -56,12 +56,12 @@ describe("Program projection truth", () => {
 
     render(<ProgramsWorkspace/>);
 
-    expect(await screen.findByRole("heading", { name: "1 loaded program needs setup, review or a current assessment" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "1 program needs assessment or review" })).toBeTruthy();
     expect(screen.getByText("Out of date")).toBeTruthy();
     const rowLink = screen.getByRole("link", { name: /Privacy compliance/ });
     expect(rowLink.getAttribute("href")).toBe("#programs/program-stale");
-    expect(screen.getByRole("img", { name: /Loaded Program status:.*0 current/i })).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Loaded Program portfolio" })).toBeTruthy();
+    expect(screen.getByText(/need assessment or review/)).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Program summary for displayed records" })).toBeTruthy();
   });
   it("groups Program counts into distinct scannable facts without treating unknowns as zero", async () => {
     vi.mocked(loadProgramSummaries).mockResolvedValue({
@@ -96,10 +96,15 @@ describe("Program projection truth", () => {
     expect(within(counts).getByText("8")).toBeTruthy();
     expect(within(counts).getByText("Open issues")).toBeTruthy();
     expect(within(counts).getByText("8").closest(".program-counts__attention")).toBeTruthy();
-    expect(within(row).getByText("Supporting information needs review")).toBeTruthy();
+    expect(within(row).getByText("Evidence incomplete")).toBeTruthy();
     expect(within(row).getByText(/Open program/)).toBeTruthy();
-    expect(screen.getByRole("img", { name: /1 follow-up, 0 current, 0 needs assessment/i })).toBeTruthy();
-    expect(within(screen.getByLabelText("Open issues by Program in loaded current assessments")).getByText("Data protection")).toBeTruthy();
+    expect(screen.getByText(/need follow-up/)).toBeTruthy();
+    expect(within(screen.getByLabelText("Programs with the most open issues in the displayed records")).getByText("Data protection")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Review 8 open issues for Data protection" }));
+    expect(window.location.hash).toBe("#programs/program-privacy/issues-actions");
+    fireEvent.click(screen.getByRole("button", { name: /1 evidence incomplete/i }));
+    await waitFor(() => expect(loadProgramSummaries).toHaveBeenCalledWith(expect.objectContaining({ overallState: "EVIDENCE_INSUFFICIENT" })));
+    expect(window.location.hash).toContain("overall_state=EVIDENCE_INSUFFICIENT");
   });
 
 });

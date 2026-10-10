@@ -5,6 +5,14 @@ export type ProgramListSummary = Omit<ProgramSummary, "open_matter_count"> & { o
 
 type Bucket = "attention" | "current" | "setup" | "notApplicable";
 
+const followUpLabels = new Map([
+  ["AT_RISK", "at risk"],
+  ["GAP_IDENTIFIED", "gaps found"],
+  ["EVIDENCE_INSUFFICIENT", "evidence incomplete"],
+  ["IMPLEMENTATION_PENDING", "changes in progress"],
+  ["OVERDUE", "overdue"],
+]);
+
 const attentionStates = new Set([
   "AT_RISK", "GAP_IDENTIFIED", "EVIDENCE_INSUFFICIENT", "IMPLEMENTATION_PENDING", "OVERDUE",
 ]);
@@ -29,10 +37,13 @@ export function programPortfolioBucket(item: ProgramListSummary): Bucket {
 export function summarizeProgramPortfolio(items: readonly ProgramListSummary[]) {
   const counts = { attention: 0, current: 0, setup: 0, notApplicable: 0 };
   const knownIssuePrograms: Array<{ id: string; label: string; count: number; owner: string }> = [];
+  const followUpCounts = new Map<string, number>();
   let excludedFromIssueComparison = 0;
 
   for (const item of items) {
-    counts[programPortfolioBucket(item)] += 1;
+    const bucket = programPortfolioBucket(item);
+    counts[bucket] += 1;
+    if (bucket === "attention") followUpCounts.set(item.overall_state, (followUpCounts.get(item.overall_state) ?? 0) + 1);
     const open = item.open_matter_count;
     if (needsProgramAssessment(item) || item.program.status === "DRAFT" || typeof open !== "number" || !Number.isInteger(open) || open < 0) {
       excludedFromIssueComparison += 1;
@@ -55,5 +66,8 @@ export function summarizeProgramPortfolio(items: readonly ProgramListSummary[]) 
     { id: "not-applicable", label: "Not applicable", tone: "neutral", count: counts.notApplicable },
   ];
 
-  return { ...counts, segments, knownIssuePrograms: knownIssuePrograms.slice(0, 4), excludedFromIssueComparison };
+  const followUp = [...followUpCounts.entries()]
+    .map(([state, count]) => ({ state, count, label: followUpLabels.get(state) ?? "needs review" }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  return { ...counts, segments, followUp, knownIssuePrograms: knownIssuePrograms.slice(0, 4), excludedFromIssueComparison };
 }

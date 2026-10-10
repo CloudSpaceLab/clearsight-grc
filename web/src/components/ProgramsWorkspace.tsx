@@ -179,12 +179,15 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   if (state === "unavailable") return <div id="programs-workspace" className="portfolio-workspace portfolio-workspace--programs"><EmptyState label="Programs" title="Programs could not be loaded" description="Service unavailable." action="Try again" onAction={() => void load(true)}/></div>;
 
   const briefTitle = summary.attention > 0
-    ? `${summary.attention} loaded program${summary.attention === 1 ? " requires" : "s require"} follow-up`
+    ? `${summary.attention} program${summary.attention === 1 ? " needs" : "s need"} follow-up`
     : summary.setup > 0
-      ? `${summary.setup} loaded program${summary.setup === 1 ? " needs" : "s need"} setup, review or a current assessment`
-      : items.length ? "No recorded gaps or overdue work in the loaded programs" : "No programs in this scope";
+      ? `${summary.setup} program${summary.setup === 1 ? " needs" : "s need"} assessment or review`
+      : summary.current === items.length && items.length > 0 ? `${items.length} program${items.length === 1 ? " is" : "s are"} up to date`
+        : items.length ? "Review program status" : "No programs in this scope";
   const filtersActive = Boolean(search || status || overallState || jurisdiction || assignedToMe);
   const programFilters = { q: search, status, overall_state: overallState, jurisdiction, assigned_to_me: assignedToMe };
+  const displayedStates = summary.segments.filter((segment) => segment.count > 0);
+  const singleState = displayedStates.length === 1 ? displayedStates[0] : undefined;
 
   return <div id="programs-workspace" className="portfolio-workspace portfolio-workspace--programs">
     <section className="workspace-brief">
@@ -192,34 +195,45 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       <div className="workspace-brief-side"><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
     </section>
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} organizationScopes={organizationScopes} initialOrganizationScopeID={organizationScopeID} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
-    {items.length > 0 && <section className="program-portfolio-visual" aria-label="Loaded Program portfolio">
+    {items.length > 0 && <section className={`program-portfolio-visual${singleState ? " program-portfolio-visual--uniform" : ""}`} aria-label="Program summary for displayed records">
       <div className="program-portfolio-visual__position">
         <header className="program-portfolio-visual__heading">
-          <div><span className="eyebrow">Portfolio overview</span><h3>Operating position</h3></div>
-          <span className="program-portfolio-visual__scope">{items.length} loaded{nextCursor ? " · More available" : ""}</span>
+          <div><span className="eyebrow">Programs</span><h3>Program status</h3></div>
+          <span className="program-portfolio-visual__scope">{items.length} shown{nextCursor ? " · More available" : ""}</span>
         </header>
-        <StackedDistribution ariaLabel="Loaded Program status" segments={summary.segments}/>
-        <p>Recorded Program states. Missing and outdated assessments are shown separately.</p>
+        {singleState
+          ? <p className="program-portfolio-visual__uniform-status"><strong>{singleState.count}</strong> {singleState.id === "attention" ? "need follow-up" : singleState.id === "current" ? "up to date" : singleState.id === "setup" ? "need assessment or review" : "not applicable"}</p>
+          : <StackedDistribution ariaLabel="Program status for displayed records" segments={summary.segments}/>}
+        {summary.followUp.length > 0 && <div className="program-portfolio-visual__conditions" aria-label="Reasons for follow-up">
+          {summary.followUp.map((item) => <button type="button" key={item.state}
+            disabled={overallState === item.state}
+            onClick={() => {
+              setOverallState(item.state);
+              setOverallStateDraft(item.state);
+              replaceWorkspaceHash(workspaceHash("#programs", { ...programFilters, overall_state: item.state }));
+            }}>{item.count} {item.label} <span aria-hidden="true">→</span></button>)}
+        </div>}
+        <p>{nextCursor ? "More programs available. " : ""}Counts reflect the programs shown.</p>
       </div>
       <div className="program-portfolio-visual__issues">
         <header className="program-portfolio-visual__heading">
-          <div><span className="eyebrow">Follow-up concentration</span><h3>Open issues by Program</h3></div>
-          <span className="program-portfolio-visual__scope">Top 4 loaded</span>
+          <div><span className="eyebrow">Issues and changes</span><h3>Most open issues</h3></div>
+          <span className="program-portfolio-visual__scope">{summary.knownIssuePrograms.length} shown</span>
         </header>
         {summary.knownIssuePrograms.length > 0
-          ? <RankedBarList ariaLabel="Open issues by Program in loaded current assessments"
+          ? <RankedBarList ariaLabel="Programs with the most open issues in the displayed records"
               items={summary.knownIssuePrograms.map((program) => ({
                 id: program.id, label: program.label, value: program.count,
-                meta: program.owner, actionLabel: "Open " + program.label + ", " + program.count + " open issues",
+                meta: program.owner, actionLabel: "Review " + program.count + " open issues for " + program.label,
               }))}
-              onAction={(program) => { window.location.hash = workspaceHash("#programs/" + encodeURIComponent(program.id), programFilters); }}
+              onAction={(program) => { window.location.hash = workspaceHash("#programs/" + encodeURIComponent(program.id) + "/issues-actions", programFilters); }}
             />
           : <p className="program-portfolio-visual__no-issues">{summary.excludedFromIssueComparison === items.length
-            ? "No current issue-count data available for these Programs."
-            : "No open issues in the available current assessments."}</p>}
+            ? "Open issue counts are unavailable for these programs."
+            : "No open issues reported for the assessed programs shown."}</p>}
         <p>{summary.excludedFromIssueComparison > 0
-          ? summary.excludedFromIssueComparison + " loaded Programs excluded: assessment or issue count unavailable."
-          : "Open issue counts, not risk severity."}</p>
+          ? summary.excludedFromIssueComparison + " program" + (summary.excludedFromIssueComparison === 1 ? "" : "s") + " not counted: assessment or issue count unavailable."
+          : "Select a program to review its issues."}</p>
       </div>
     </section>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
@@ -232,13 +246,13 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       {filtersActive && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
     {filtersActive && <div className="workspace-filter-chips" aria-label="Applied Program filters">{search && <span>Search: {search}</span>}{status && <span>{status === "DRAFT" ? "Setup in progress" : status[0] + status.slice(1).toLowerCase()}</span>}{overallState && <span>{humanizeProgramState(overallState)}</span>}{jurisdiction && <span>{jurisdiction}</span>}{assignedToMe && <span>Assigned to me</span>}</div>}
-      {!items.length ? <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change filters." : "No Programs in this scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list">
+      {!items.length ? <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change filters." : "No Programs in this scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list" aria-label="Programs">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
         const assessmentMissing = !hasProgramAssessment(summaryItem);
         const assessmentStale = needsProgramAssessment(summaryItem);
         const displayState = assessmentStale ? "UNKNOWN" : summaryItem.overall_state;
-        const displayLabel = assessmentMissing ? "Unknown" : assessmentStale ? "Out of date" : summaryItem.state_label === "Evidence incomplete" ? "Supporting information needs review" : summaryItem.state_label || "Unknown";
+        const displayLabel = assessmentMissing ? "Unknown" : assessmentStale ? "Out of date" : summaryItem.state_label === "Evidence incomplete" ? "Evidence incomplete" : summaryItem.state_label || "Unknown";
         const openIssues = summaryItem.open_matter_count;
         const knownOpenIssues = !assessmentMissing && typeof openIssues === "number" && Number.isInteger(openIssues) && openIssues >= 0;
         return <article className={targetID === program.id ? "program-card targeted" : "program-card"} data-operating-state={displayState} id={`program-${program.id}`} key={program.id}>

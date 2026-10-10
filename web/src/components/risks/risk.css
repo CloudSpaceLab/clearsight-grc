@@ -64,6 +64,12 @@
     background: var(--cs-bg-surface-2);
   }
 
+  .risk-register__position-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cs-space-inline);
+  }
+
   .risk-register__position > p {
     margin: 0;
     color: var(--cs-text-muted);

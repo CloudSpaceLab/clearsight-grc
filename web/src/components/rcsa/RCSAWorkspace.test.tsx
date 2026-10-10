@@ -75,7 +75,9 @@ it("renders a restrained cycle register and opens the exact challenge handoff", 
   expect(screen.getByText("Q3 Technology RCSA")).toBeTruthy();
   expect(screen.getByText("2 Risks")).toBeTruthy();
   expect(screen.getByText("3 controls")).toBeTruthy();
-  expect(screen.getByRole("img", { name: /RCSA stages in loaded cycles:.*1 awaiting challenge or resolution/i })).toBeTruthy();
+  expect(screen.getByRole("img", { name: /RCSA cycle status for displayed records:.*1 awaiting challenge or resolution/i })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Review 1 awaiting challenge" }));
+  await waitFor(() => expect(listRCSACycles).toHaveBeenCalledWith(expect.objectContaining({ status: "AWAITING_CHALLENGE" }), expect.any(AbortSignal)));
 
   fireEvent.click(screen.getByRole("button", { name: "Review cycle for Q3 Technology RCSA" }));
   expect(onTarget).toHaveBeenCalledWith("cycle-1");

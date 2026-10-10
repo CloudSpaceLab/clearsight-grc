@@ -124,23 +124,23 @@ export function IndicatorDetail({
       <div className="section-header">
         <div>
           <h3 id="indicator-history-heading">Recent observations</h3>
-          <p>Results from monitoring check revision {indicator.check_version}. Earlier check definitions are excluded.</p>
+          <p>Results for check version {indicator.check_version}.</p>
         </div>
       </div>
       {state === "loading" && results.length === 0 && <p role="status">Loading indicator history…</p>}
       {state === "error" && <Notice tone="error"><span>Indicator history could not be loaded.</span> <Button variant="secondary" size="compact" onPress={() => setRetry((value) => value + 1)}>Try again</Button></Notice>}
-      {state === "live" && results.length === 0 && <EmptyState population={indicator.check_name} title="No observations for this revision" description="No monitoring result has been recorded for the current check revision."/>}
+      {state === "live" && results.length === 0 && <EmptyState population={indicator.check_name} title="No readings yet" description="No readings for the current check version."/>}
       {observations?.available && <Surface>
         <section className="indicator-detail__trend" aria-label="Native indicator observations">
           <div className="section-header">
             <div>
-              <h4>Observed values</h4>
-              <p>Up to 12 comparable native measurements from this check revision. Points are not joined across unobserved periods.</p>
+              <h4>Value history</h4>
+              <p>Latest recorded values for this check version.</p>
             </div>
           </div>
           <MetricTrend ariaLabel={indicator.check_name + " native measurement observations"} points={observations.points} gapThresholdMs={0}/>
-          {observations.range && <p>Observed range: {observations.range.min} to {observations.range.max}. The vertical axis is scaled to these values, not to risk severity.</p>}
-          {observations.omitted > 0 && <p>{observations.omitted} incompatible or unavailable observations excluded from this plot.</p>}
+          {observations.range && <p>Range: {observations.range.min}–{observations.range.max}.</p>}
+          {observations.omitted > 0 && <p>{observations.omitted} readings not shown because their values or check settings differ.</p>}
         </section>
       </Surface>}
       {results.length > 0 && <DataTable

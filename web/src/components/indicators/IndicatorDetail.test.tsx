@@ -112,7 +112,7 @@ it("shows the native value, responsibility and exact revision history", async ()
 
   await waitFor(() => expect(loadResults).toHaveBeenCalledWith("check-1", 4));
   expect(await screen.findByRole("img", { name: "Mobile success rate native measurement observations" })).toBeTruthy();
-  expect(screen.getByText(/Observed range: 98.70% to 99.80%/)).toBeTruthy();
+  expect(screen.getByText(/Range: 98.70%–99.80%/)).toBeTruthy();
   const table = await screen.findByRole("table", { name: "Mobile success rate observation history" });
   expect(within(table).getByText("99.80%")).toBeTruthy();
   expect(within(table).getByText("Outside limit")).toBeTruthy();

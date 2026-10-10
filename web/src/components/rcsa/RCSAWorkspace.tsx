@@ -84,6 +84,10 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
     return () => controller.abort();
   }, [targetID]);
 
+  const cycleStages = useMemo(() => state === "live" ? rcsaCycleStageDistribution(items) : [], [items, state]);
+  const challengeCount = cycleStages.find((segment) => segment.id === "AWAITING_CHALLENGE")?.count ?? 0;
+  const firstLineCount = cycleStages.find((segment) => segment.id === "ASSESSMENT_OPEN")?.count ?? 0;
+
   const columns = useMemo<readonly DataColumn<RCSACycleSummary>[]>(() => [
     {
       id: "cycle",
@@ -133,7 +137,7 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
       <div className="rcsa-register__heading">
         <div>
           <h2>Cycles</h2>
-          <p>Each cycle keeps the Risk and Control population frozen at creation.</p>
+          <p>Review first-line assessments and independent challenges.</p>
         </div>
         <div className="rcsa-register__filter">
           <SelectField
@@ -148,13 +152,17 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
       </div>
 
       {!complete && state !== "error" && <Notice tone="warning">Some cycles are temporarily unavailable. Available cycles remain unchanged.</Notice>}
-      {state === "live" && items.length > 0 && <section className="rcsa-register__position" aria-label="Loaded RCSA cycle stages">
+      {state === "live" && items.length > 0 && <section className="rcsa-register__position" aria-label="Status of displayed RCSA cycles">
         <div className="rcsa-register__position-heading">
-          <div><span className="eyebrow">Assessment cycles</span><h3>Current stages</h3></div>
-          <small>{items.length} loaded{nextCursor || cursorStack.length > 0 ? " · Paginated view" : ""}</small>
+          <div><span className="eyebrow">RCSA</span><h3>Cycle status</h3></div>
+          <small>{items.length} shown{nextCursor ? " · More available" : ""}</small>
         </div>
-        <StackedDistribution ariaLabel="RCSA stages in loaded cycles" segments={rcsaCycleStageDistribution(items)}/>
-        <p>Cycle status, not Risk assessment completion. The frozen Risk and Control populations remain separate.</p>
+        <StackedDistribution ariaLabel="RCSA cycle status for displayed records" segments={cycleStages}/>
+        {(challengeCount > 0 || firstLineCount > 0) && <div className="rcsa-register__position-actions">
+          {challengeCount > 0 && status !== "AWAITING_CHALLENGE" && <Button variant="secondary" size="compact" onPress={() => { setStatus("AWAITING_CHALLENGE"); setCursorStack([]); }}>Review {challengeCount} awaiting challenge</Button>}
+          {firstLineCount > 0 && status !== "ASSESSMENT_OPEN" && <Button variant="quiet" size="compact" onPress={() => { setStatus("ASSESSMENT_OPEN"); setCursorStack([]); }}>Review {firstLineCount} first-line</Button>}
+        </div>}
+        <p>{nextCursor ? "More cycles available. " : ""}Counts reflect the cycles shown.</p>
       </section>}
 
       {state === "error" && <EmptyState population="RCSA cycles" title="RCSA cycles could not be loaded" description="The cycle register is unavailable." action={<Button variant="secondary" onPress={() => setRetry((value) => value + 1)}>Try again</Button>} role="alert"/>}
@@ -264,6 +272,7 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
       <summary>Record details</summary>
       <dl>
         <div><dt>Cycle version</dt><dd>{detail.cycle.version}</dd></div>
+        <div><dt>First-line owner reference</dt><dd><code>{detail.cycle.first_line_owner_principal_id}</code></dd></div>
         <div><dt>Population checksum</dt><dd><code>{detail.cycle.population_checksum}</code></dd></div>
         {detail.cycle.first_line_response_revision_id && <div><dt>First-line response revision</dt><dd><code>{detail.cycle.first_line_response_revision_id}</code></dd></div>}
       </dl>
