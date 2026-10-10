@@ -12,7 +12,7 @@ function signature(value: MonitoringNativeMeasurement) {
 
 export function comparableIndicatorObservations(indicator: RiskIndicatorDetail, results: readonly MonitoringResult[]) {
   const expected = indicator.native_measurement;
-  if (!expected) return { points: [] as MetricTrendDatum[], omitted: results.length, available: false };
+  if (!expected) return { points: [] as MetricTrendDatum[], omitted: results.length, available: false, range: undefined };
   const key = signature(expected);
   const sorted = [...results].sort((a, b) => Date.parse(b.evaluated_at) - Date.parse(a.evaluated_at));
   const points: MetricTrendDatum[] = [];
@@ -38,5 +38,10 @@ export function comparableIndicatorObservations(indicator: RiskIndicatorDetail, 
       value, displayValue: formatIndicatorMeasurement(text, expected),
     });
   }
-  return { points: points.reverse(), omitted, available: points.length >= 2 };
+  const low = points.reduce<MetricTrendDatum | undefined>((min, point) => !min || point.value < min.value ? point : min, undefined);
+  const high = points.reduce<MetricTrendDatum | undefined>((max, point) => !max || point.value > max.value ? point : max, undefined);
+  return {
+    points: points.reverse(), omitted, available: points.length >= 2,
+    range: low && high ? { min: low.displayValue ?? String(low.value), max: high.displayValue ?? String(high.value) } : undefined,
+  };
 }
