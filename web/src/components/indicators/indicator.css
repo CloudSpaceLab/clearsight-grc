@@ -49,6 +49,7 @@
 
   .indicator-detail__trend {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     min-width: 0;
     gap: var(--cs-space-inline);
   }
@@ -64,6 +65,7 @@
     fill: var(--cs-status-info);
   }
   .indicator-detail__trend .cs-metric-trend {
+    grid-template-columns: minmax(0, 1fr);
     min-width: 0;
     max-width: 100%;
   }
