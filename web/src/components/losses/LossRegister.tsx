@@ -150,7 +150,7 @@ export function LossRegister({
     {state === "live" && page.items.length === 0 && <EmptyState
       population={hasFilters ? `${scope} · current loss filters` : `${scope} · current loss register`}
       title={hasFilters ? "No matching losses" : "No losses in this scope"}
-      description={hasFilters ? "Change the filters or search." : "No operational losses were returned for this legal entity."}
+      description={hasFilters ? "Change the filters or search." : `No losses recorded for ${scope}.`}
     />}
     {exposure && <section className="loss-exposure" aria-label="Financial impact for displayed losses">
       <div className="loss-exposure__heading">
