@@ -1,15 +1,18 @@
 import { expect, it } from "vitest";
-import type { LossSummary } from "./lossTypes";
+import type { LossStatus, LossSummary } from "./lossTypes";
 import { summarizeLoadedLossExposure } from "./lossExposurePresentation";
 
-function loss(id: string, currency: string, gross: number, recovered: number, net: number, status = "ACTIVE"): LossSummary {
+function loss(id: string, currency: string, gross: number, recovered: number, net: number, status: LossStatus = "ACTIVE"): LossSummary {
   return {
-    loss: { id, status, currency, title: id },
+    loss: { id, tenant_id: "tenant-a", legal_entity_id: "entity-a", code: id, title: id,
+      event_type: "EXECUTION_DELIVERY_PROCESS_MANAGEMENT", cause: "Sample cause", description: "",
+      gross_amount_minor: gross, currency, occurred_at: "2026-10-06T10:00:00Z", discovered_at: "2026-10-06T11:00:00Z",
+      status, version: 1, created_at: "2026-10-06T11:00:00Z", updated_at: "2026-10-06T11:00:00Z" },
     totals: {
       gross_amount_minor: gross, recovered_amount_minor: recovered, net_loss_minor: net,
       currency, recovery_status: recovered > 0 ? "PARTIAL" : "NONE",
     },
-  } as LossSummary;
+  };
 }
 
 it("keeps each currency separate and balances gross against net and recovered amounts", () => {
