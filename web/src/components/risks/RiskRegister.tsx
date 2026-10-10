@@ -85,6 +85,9 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
   }
 
   const hasFilters = Boolean(search.trim() || status || appetite);
+  const appetiteSegments = state === "live" ? riskAppetiteDistribution(page.items) : [];
+  const outsideCount = appetiteSegments.find((segment) => segment.id === "breached")?.count ?? 0;
+  const nearCount = appetiteSegments.find((segment) => segment.id === "approaching")?.count ?? 0;
   const pagination = cursors.length > 0 || page.next_cursor ? {
     label: "Risk register pages",
     previousLabel: "Load previous page",
@@ -144,7 +147,7 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       <div>
         <span className="eyebrow">{organizationName || "Risk portfolio"}</span>
         <h1 id="risk-register-heading">Risks</h1>
-        <p>Current risk statements, assessed rating and appetite position for {scope}.</p>
+        <p>Risk assessments and appetite limits for {scope}.</p>
       </div>
     </header>
 
@@ -169,11 +172,15 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
     />}
     {state === "live" && page.items.length > 0 && <section className="risk-register__position" aria-label="Loaded risk appetite position">
       <div className="risk-register__position-header">
-        <div><span className="eyebrow">Risk posture</span><h2>Appetite position</h2></div>
-        <span>{page.items.length} loaded{page.next_cursor ? " · More available" : ""}</span>
+        <div><span className="eyebrow">Risks</span><h2>Risk appetite</h2></div>
+        <span>{page.items.length} shown{page.next_cursor ? " · More available" : ""}</span>
       </div>
-      <StackedDistribution ariaLabel="Risk appetite of loaded records" segments={riskAppetiteDistribution(page.items)}/>
-      <p>Current assessment and appetite revisions only. Unknown and outdated positions remain separate.</p>
+      <StackedDistribution ariaLabel="Risk appetite for displayed records" segments={appetiteSegments}/>
+      {(outsideCount > 0 || nearCount > 0) && <div className="risk-register__position-actions">
+        {outsideCount > 0 && appetite !== "BREACHED" && <Button variant="secondary" size="compact" onPress={() => changeAppetite("BREACHED")}>Review {outsideCount} outside appetite</Button>}
+        {nearCount > 0 && appetite !== "APPROACHING" && <Button variant="quiet" size="compact" onPress={() => changeAppetite("APPROACHING")}>Review {nearCount} near limit</Button>}
+      </div>}
+      <p>{page.next_cursor ? "More risks available. " : ""}Based on current assessments for the risks shown.</p>
     </section>}
     {page.items.length > 0 && <DataTable
       ariaLabel="Risk register"
