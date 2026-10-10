@@ -204,6 +204,15 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
         {singleState
           ? <p className="program-portfolio-visual__uniform-status"><strong>{singleState.count}</strong> {singleState.id === "attention" ? "need follow-up" : singleState.id === "current" ? "up to date" : singleState.id === "setup" ? "need assessment or review" : "not applicable"}</p>
           : <StackedDistribution ariaLabel="Program status for displayed records" segments={summary.segments}/>}
+        {summary.followUp.length > 0 && <div className="program-portfolio-visual__conditions" aria-label="Reasons for follow-up">
+          {summary.followUp.map((item) => <button type="button" key={item.state}
+            disabled={overallState === item.state}
+            onClick={() => {
+              setOverallState(item.state);
+              setOverallStateDraft(item.state);
+              replaceWorkspaceHash(workspaceHash("#programs", { ...programFilters, overall_state: item.state }));
+            }}>{item.count} {item.label} <span aria-hidden="true">→</span></button>)}
+        </div>}
         <p>{nextCursor ? "More programs available. " : ""}Counts reflect the programs shown.</p>
       </div>
       <div className="program-portfolio-visual__issues">
