@@ -126,7 +126,7 @@ export function LossRegister({
       <div>
         <span className="eyebrow">{organizationName || "Risk portfolio"}</span>
         <h1 id="loss-register-heading">Losses</h1>
-        <p>Operational losses and recoveries for {scope}.</p>
+        <p>Recorded losses and recoveries for {scope}.</p>
       </div>
       {onRecordLoss && <div className="topbar-actions"><Button onPress={onRecordLoss}>Record loss</Button></div>}
     </header>
@@ -154,22 +154,23 @@ export function LossRegister({
     />}
     {exposure && <section className="loss-exposure" aria-label="Loaded loss financial exposure">
       <div className="loss-exposure__heading">
-        <div><span className="eyebrow">Financial impact</span><h2>Loss and recovery</h2></div>
-        <span>{page.items.length} loaded{page.next_cursor || currentCursor ? " · Paginated view" : ""}</span>
+        <div><span className="eyebrow">Losses</span><h2>Financial impact</h2></div>
+        <span>{page.items.length} shown{page.next_cursor ? " · More available" : ""}</span>
       </div>
-      <p>Gross, outstanding and recovered amounts are shown within each currency. Only validated active records from this page are included.</p>
+      <p>Active losses shown, by currency. No currency conversion.</p>
       {exposure.groups.length > 0
         ? <div className="loss-exposure__groups">
             {exposure.groups.map((group) => <section className="loss-exposure__currency" key={group.currency} aria-label={group.currency + " loss exposure"}>
-              <div className="loss-exposure__currency-heading"><h3>{group.currency}</h3><small>{group.count} active record{group.count === 1 ? "" : "s"}</small></div>
+              <div className="loss-exposure__currency-heading"><h3>{group.currency}</h3><small>{group.count} loss{group.count === 1 ? "" : "es"}</small></div>
+              {currency !== group.currency && <Button variant="quiet" size="compact" onPress={() => { setCurrency(group.currency); resetPage(); }}>Show {group.currency} losses</Button>}
               <RankedBarList ariaLabel={group.currency + " financial exposure from loaded losses"} items={group.rows}/>
             </section>)}
           </div>
-        : <p>No validated active loss totals in the loaded records.</p>}
+        : <p>No valid loss amounts in the records shown.</p>}
       {(exposure.moreCurrencies > 0 || exposure.excluded > 0 || exposure.voided > 0) && <p className="loss-exposure__limits">
-        {exposure.moreCurrencies > 0 && exposure.moreCurrencies + " additional currencies; filter to inspect separately. "}
-        {exposure.excluded > 0 && exposure.excluded + " inconsistent or unsupported amounts excluded. "}
-        {exposure.voided > 0 && exposure.voided + " voided loss" + (exposure.voided === 1 ? "" : "es") + " excluded."}
+        {exposure.moreCurrencies > 0 && exposure.moreCurrencies + " other currencies. Filter by currency to review. "}
+        {exposure.excluded > 0 && exposure.excluded + " records omitted from totals; check their amounts below. "}
+        {exposure.voided > 0 && exposure.voided + " voided loss" + (exposure.voided === 1 ? "" : "es") + " not counted."}
       </p>}
     </section>}
     {page.items.length > 0 && <DataTable
