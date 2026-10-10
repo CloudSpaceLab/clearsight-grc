@@ -88,10 +88,12 @@ export function MetricTrend({
       <span>{first.label}</span>
       <span>{last.label}</span>
     </figcaption>
-    <table className="cs-sr-only">
-      <caption>{ariaLabel}</caption>
-      <thead><tr><th>Date</th><th>Value</th></tr></thead>
-      <tbody>{values.map((point) => <tr key={`row-${point.id}`}><td>{point.label}</td><td>{point.displayValue ?? point.value}</td></tr>)}</tbody>
-    </table>
+    <div className="cs-sr-only">
+      <table>
+        <caption>{ariaLabel}</caption>
+        <thead><tr><th scope="col">Date</th><th scope="col">Value</th></tr></thead>
+        <tbody>{values.map((point) => <tr key={`row-${point.id}`}><td>{point.label}</td><td>{point.displayValue ?? point.value}</td></tr>)}</tbody>
+      </table>
+    </div>
   </figure>;
 }
