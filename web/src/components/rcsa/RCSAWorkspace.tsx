@@ -272,6 +272,7 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
       <summary>Record details</summary>
       <dl>
         <div><dt>Cycle version</dt><dd>{detail.cycle.version}</dd></div>
+        <div><dt>First-line owner reference</dt><dd><code>{detail.cycle.first_line_owner_principal_id}</code></dd></div>
         <div><dt>Population checksum</dt><dd><code>{detail.cycle.population_checksum}</code></dd></div>
         {detail.cycle.first_line_response_revision_id && <div><dt>First-line response revision</dt><dd><code>{detail.cycle.first_line_response_revision_id}</code></dd></div>}
       </dl>
