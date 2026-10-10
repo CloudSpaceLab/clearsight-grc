@@ -46,6 +46,8 @@ describe("LossRegister", () => {
     expect(screen.getByRole("region", { name: "Loaded loss financial exposure" })).toBeTruthy();
     expect(screen.getByRole("list", { name: "NGN financial exposure from loaded losses" })).toBeTruthy();
     expect(screen.getByText("Net outstanding")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show NGN losses" }));
+    await waitFor(() => expect(loadPage).toHaveBeenCalledWith(expect.objectContaining({ currency: "NGN", limit: 25 }), expect.any(AbortSignal)));
 
     fireEvent.click(screen.getByRole("button", { name: /Open loss/i }));
     expect(onOpenLoss).toHaveBeenCalledWith("loss-1");
@@ -65,7 +67,7 @@ describe("LossRegister", () => {
       expect.objectContaining({ organizationScopeID: "scope-payments", limit: 25 }),
       expect.any(AbortSignal),
     ));
-    expect(screen.getByText("Operational losses and recoveries for BANK / PAYMENTS.")).toBeTruthy();
+    expect(screen.getByText("Recorded losses and recoveries for BANK / PAYMENTS.")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Recovery/i }));
     fireEvent.click(await screen.findByRole("option", { name: "Partly recovered" }));
