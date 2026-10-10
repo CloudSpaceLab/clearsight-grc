@@ -40,6 +40,34 @@
   font-variant-numeric: tabular-nums;
 }
 
+.program-portfolio-visual__conditions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: center;
+}
+.program-portfolio-visual__conditions button {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--cs-action-primary);
+  font: inherit;
+  font-size: var(--cs-font-size-caption);
+  font-weight: 650;
+  text-align: start;
+  cursor: pointer;
+}
+.program-portfolio-visual__conditions button:hover { text-decoration: underline; }
+.program-portfolio-visual__conditions button:focus-visible {
+  outline: 2px solid var(--cs-focus-ring);
+  outline-offset: 3px;
+}
+.program-portfolio-visual__conditions button:disabled {
+  color: var(--cs-text-muted);
+  cursor: default;
+  text-decoration: none;
+}
+
 .program-portfolio-visual__heading {
   display: flex;
   align-items: start;
