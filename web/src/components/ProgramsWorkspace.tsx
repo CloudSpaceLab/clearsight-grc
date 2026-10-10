@@ -201,7 +201,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
           <span className="program-portfolio-visual__scope">{items.length} shown{nextCursor ? " · More available" : ""}</span>
         </header>
         {singleState
-          ? <p className="program-portfolio-visual__uniform-status"><strong>{singleState.count}</strong> {singleState.label.toLowerCase()}</p>
+          ? <p className="program-portfolio-visual__uniform-status"><strong>{singleState.count}</strong> {singleState.id === "attention" ? "need follow-up" : singleState.id === "current" ? "up to date" : singleState.id === "setup" ? "need assessment or review" : "not applicable"}</p>
           : <StackedDistribution ariaLabel="Program status for displayed records" segments={summary.segments}/>}
         <p>{nextCursor ? "More programs available. " : ""}Counts reflect the programs shown.</p>
       </div>
