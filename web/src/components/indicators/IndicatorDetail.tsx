@@ -139,6 +139,7 @@ export function IndicatorDetail({
             </div>
           </div>
           <MetricTrend ariaLabel={indicator.check_name + " native measurement observations"} points={observations.points} gapThresholdMs={0}/>
+          {observations.range && <p>Observed range: {observations.range.min} to {observations.range.max}. The vertical axis is scaled to these values, not to risk severity.</p>}
           {observations.omitted > 0 && <p>{observations.omitted} incompatible or unavailable observations excluded from this plot.</p>}
         </section>
       </Surface>}
