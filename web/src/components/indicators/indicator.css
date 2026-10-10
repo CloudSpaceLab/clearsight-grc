@@ -47,6 +47,23 @@
     gap: var(--cs-space-inline);
   }
 
+  .indicator-detail__trend {
+    display: grid;
+    min-width: 0;
+    gap: var(--cs-space-inline);
+  }
+  .indicator-detail__trend :is(h4, p) { margin: 0; }
+  .indicator-detail__trend > p {
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+  .indicator-detail__trend .cs-metric-trend__plot {
+    height: 164px;
+  }
+  .indicator-detail__trend .cs-metric-trend__point {
+    fill: var(--cs-status-info);
+  }
+
   .indicator-detail__history {
     display: grid;
     gap: var(--cs-space-group);
