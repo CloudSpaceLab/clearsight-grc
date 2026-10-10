@@ -170,7 +170,7 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       title={hasFilters ? "No matching risks" : "No risks in this scope"}
       description={hasFilters ? "Change the filters or search." : `No current risk records were returned for ${scope}.`}
     />}
-    {state === "live" && page.items.length > 0 && <section className="risk-register__position" aria-label="Loaded risk appetite position">
+    {state === "live" && page.items.length > 0 && <section className="risk-register__position" aria-label="Risk appetite for displayed records">
       <div className="risk-register__position-header">
         <div><span className="eyebrow">Risks</span><h2>Risk appetite</h2></div>
         <span>{page.items.length} risk{page.items.length === 1 ? "" : "s"} in view{page.next_cursor ? " · More available" : ""}</span>
