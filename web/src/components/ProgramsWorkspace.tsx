@@ -182,7 +182,8 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     ? `${summary.attention} program${summary.attention === 1 ? " needs" : "s need"} follow-up`
     : summary.setup > 0
       ? `${summary.setup} program${summary.setup === 1 ? " needs" : "s need"} assessment or review`
-      : items.length ? "No reported gaps in the programs shown" : "No programs in this scope";
+      : summary.current === items.length && items.length > 0 ? `${items.length} program${items.length === 1 ? " is" : "s are"} up to date`
+        : items.length ? "Review program status" : "No programs in this scope";
   const filtersActive = Boolean(search || status || overallState || jurisdiction || assignedToMe);
   const programFilters = { q: search, status, overall_state: overallState, jurisdiction, assigned_to_me: assignedToMe };
   const displayedStates = summary.segments.filter((segment) => segment.count > 0);
