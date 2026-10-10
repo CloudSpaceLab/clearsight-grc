@@ -31,6 +31,34 @@
     margin: 0;
   }
 
+  .rcsa-register__position {
+    display: grid;
+    gap: var(--cs-space-group);
+    margin-block: var(--cs-space-group);
+    padding: var(--cs-space-group);
+    border: 1px solid var(--cs-border-default);
+    border-radius: 12px;
+    background: var(--cs-bg-surface-2);
+  }
+  .rcsa-register__position-heading {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--cs-space-inline);
+  }
+  .rcsa-register__position-heading h3 {
+    margin: 5px 0 0;
+    color: var(--cs-text-strong);
+    font-size: 16px;
+  }
+  .rcsa-register__position-heading small,
+  .rcsa-register__position > p {
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+  .rcsa-register__position > p { margin: 0; }
+
   .rcsa-register__filter {
     inline-size: min(14rem, 100%);
   }

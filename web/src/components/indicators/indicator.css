@@ -47,6 +47,44 @@
     gap: var(--cs-space-inline);
   }
 
+  .indicator-detail__trend {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    gap: var(--cs-space-inline);
+  }
+  .indicator-detail__trend :is(h4, p) { margin: 0; }
+  .indicator-detail__trend > p {
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+  .indicator-detail__trend .cs-metric-trend__plot {
+    height: 164px;
+  }
+  .indicator-detail__trend .cs-metric-trend__point {
+    fill: var(--cs-status-info);
+  }
+  .indicator-detail__trend .cs-metric-trend {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
+  }
+  .indicator-detail__trend .cs-metric-trend__plot {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .indicator-detail__trend .cs-metric-trend__range {
+    min-width: 0;
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .indicator-detail__trend .cs-metric-trend__range > span {
+    min-width: 0;
+    flex: 1 1 8rem;
+    overflow-wrap: anywhere;
+  }
+
   .indicator-detail__history {
     display: grid;
     gap: var(--cs-space-group);

@@ -48,4 +48,6 @@ it("uses exact display values in the accessible table without changing plot valu
   />);
   expect(container.querySelector("table")?.textContent).toContain("₦9,223,372,036,854,775.80");
   expect(container.querySelector("table")?.textContent).toContain("₦36,893,488,147,419,103.20");
+  expect(container.querySelector(".cs-sr-only > table")).not.toBeNull();
+  expect(container.querySelector("table.cs-sr-only")).toBeNull();
 });

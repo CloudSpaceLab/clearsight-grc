@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { getRCSACycle, listRCSACycles } from "../../rcsaApi";
+import { rcsaCycleStageDistribution } from "../../rcsaCycleDistribution";
 import type { RCSAControlSnapshot, RCSACycleDetail, RCSACycleSummary, RCSARiskSnapshot, RCSAStatus } from "../../rcsaTypes";
 import { formatRCSADate, formatRCSAPeriod, rcsaHandoffTone, rcsaOwnerLabel, rcsaPhasePath, rcsaPhaseTone, rcsaStatusLabel, rcsaStatusTone, rcsaTriggerLabel } from "../../rcsaPresentation";
-import { Button, DataTable, EmptyState, FocusedSheet, Notice, SelectField, StatusBadge, Surface, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, FocusedSheet, Notice, SelectField, StackedDistribution, StatusBadge, Surface, type DataColumn } from "../ui";
 import "./rcsa.css";
 
 type Props = {
@@ -147,6 +148,15 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
       </div>
 
       {!complete && state !== "error" && <Notice tone="warning">Some cycles are temporarily unavailable. Available cycles remain unchanged.</Notice>}
+      {state === "live" && items.length > 0 && <section className="rcsa-register__position" aria-label="Loaded RCSA cycle stages">
+        <div className="rcsa-register__position-heading">
+          <div><span className="eyebrow">Assessment cycles</span><h3>Current stages</h3></div>
+          <small>{items.length} loaded{nextCursor || cursorStack.length > 0 ? " · Paginated view" : ""}</small>
+        </div>
+        <StackedDistribution ariaLabel="RCSA stages in loaded cycles" segments={rcsaCycleStageDistribution(items)}/>
+        <p>Cycle status, not Risk assessment completion. The frozen Risk and Control populations remain separate.</p>
+      </section>}
+
       {state === "error" && <EmptyState population="RCSA cycles" title="RCSA cycles could not be loaded" description="The cycle register is unavailable." action={<Button variant="secondary" onPress={() => setRetry((value) => value + 1)}>Try again</Button>} role="alert"/>}
       {state === "live" && items.length === 0 && <EmptyState population="RCSA cycles" title="No cycles in this view" description={status === "ALL" ? "No RCSA cycles are available to you in this legal entity." : "No RCSA cycle matches this status."}/>}
       {(state === "loading" || items.length > 0) && <DataTable
