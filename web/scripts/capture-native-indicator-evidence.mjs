@@ -64,7 +64,25 @@ try {
       clientHeight: document.documentElement.clientHeight,
       scrollHeight: document.documentElement.scrollHeight,
     }));
-    if (metrics.scrollWidth > metrics.clientWidth + 1) throw new Error(`${capture.name} has horizontal overflow: ${metrics.scrollWidth}px in ${metrics.clientWidth}px`);
+    if (metrics.scrollWidth > metrics.clientWidth + 1) {
+      const overflowing = await page.evaluate(() => {
+        const rightEdge = document.documentElement.clientWidth;
+        return [...document.body.querySelectorAll("*")].map((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = window.getComputedStyle(element);
+          return {
+            tag: element.tagName.toLowerCase(),
+            cls: element.getAttribute("class")?.slice(0, 120),
+            parent: element.parentElement?.getAttribute("class")?.slice(0, 100),
+            left: Math.round(rect.left), right: Math.round(rect.right), width: Math.round(rect.width),
+            minWidth: style.minWidth, overflowX: style.overflowX,
+          };
+        }).filter((element) => element.right > rightEdge + 1 && element.left < element.right)
+          .sort((left, right) => right.right - left.right)
+          .slice(0, 18);
+      });
+      throw new Error(`${capture.name} has horizontal overflow: ${metrics.scrollWidth}px in ${metrics.clientWidth}px. Offenders: ${JSON.stringify(overflowing)}`);
+    }
 
     await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
     const violations = await page.evaluate(async () => {
