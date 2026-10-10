@@ -63,6 +63,25 @@
   .indicator-detail__trend .cs-metric-trend__point {
     fill: var(--cs-status-info);
   }
+  .indicator-detail__trend .cs-metric-trend {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .indicator-detail__trend .cs-metric-trend__plot {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .indicator-detail__trend .cs-metric-trend__range {
+    min-width: 0;
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .indicator-detail__trend .cs-metric-trend__range > span {
+    min-width: 0;
+    flex: 1 1 8rem;
+    overflow-wrap: anywhere;
+  }
 
   .indicator-detail__history {
     display: grid;
