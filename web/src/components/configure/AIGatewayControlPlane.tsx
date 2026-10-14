@@ -96,15 +96,15 @@ export function AIGatewayControlPlane({ onChanged }: { onChanged?: () => void })
       <div>
         <span className="eyebrow">Gateway · organization baseline</span>
         <h3 id="gateway-baseline-heading">AI security guardrails</h3>
-        <p>Set organization-wide gateway instructions and prompt-injection controls. These apply alongside each workload policy.</p>
+        <p>Set organization instructions and prompt-injection protection.</p>
       </div>
       <span className="ai-gateway-control-plane__state">{loading ? "Checking…" : active ? `${active.rollout_mode.toLowerCase()} · v${active.version}` : "Not active"}</span>
     </div>
 
     <div className="ai-gateway-control-plane__summary" aria-label="Guardrail enforcement model">
-      <div><span>1</span><strong>Organization baseline</strong><small>Tenant-wide and evaluated independently.</small></div>
+      <div><span>1</span><strong>Organization baseline</strong><small>Applies across the organization.</small></div>
       <div><span>2</span><strong>Workload policy</strong><small>May strengthen controls, never weaken the baseline.</small></div>
-      <div><span>3</span><strong>Decision receipt</strong><small>Records both exact policy revisions.</small></div>
+      <div><span>3</span><strong>Decision receipt</strong><small>Records the policy versions used.</small></div>
     </div>
 
     {latest && <section className="ai-gateway-control-plane__preview" aria-label="Latest organization baseline">
@@ -120,14 +120,14 @@ export function AIGatewayControlPlane({ onChanged }: { onChanged?: () => void })
       </div>}
     </section>}
 
-    {!canConfigure ? <div className="calm-empty"><span>↗</span><div><strong>Read-only access</strong><p>You can inspect AI governance state, but configuration permission is required to change the organization baseline.</p></div></div>
+    {!canConfigure ? <div className="calm-empty"><span>↗</span><div><strong>Read-only access</strong><p>View-only access. Ask an administrator to change the baseline.</p></div></div>
       : !hasOpenRevision && (!active || active.rollout_mode !== "SHADOW") ? <form className="ai-gateway-control-plane__form" onSubmit={createDraft}>
         <label><span>Baseline name</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={160} required/></label>
 
         <label className="ai-gateway-control-plane__instruction">
           <span>Administrator instruction</span>
           <textarea value={instruction} onChange={(event) => setInstruction(event.target.value)} maxLength={4096} rows={5} required/>
-          <small>Injected structurally ahead of workload-owned instructions only when the baseline is enforcing. Raw prompts and responses remain outside governance storage.</small>
+          <small>Applied when enforcement is active. Prompts and responses are not stored here.</small>
         </label>
 
         <div className="ai-gateway-control-plane__grid">
@@ -136,7 +136,7 @@ export function AIGatewayControlPlane({ onChanged }: { onChanged?: () => void })
         </div>
 
         <div className="ai-gateway-control-plane__preview">
-          <strong>What the Shadow revision will observe</strong>
+          <strong>Shadow preview</strong>
           <p>Known high-risk prompt-injection attempts would {highRiskAction === "DENY" ? "be blocked" : "require governed approval"}. {blockExfiltration ? "Instruction-exfiltration attempts would be blocked. " : ""}No provider-bound request is changed until an approved enforcement revision is activated.</p>
         </div>
 

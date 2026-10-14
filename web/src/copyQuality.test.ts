@@ -7,6 +7,15 @@ const interfaceSources = import.meta.glob(
 
 const productCommentary = [
   /\b(?:latest stored|reusable now)\b/i,
+  /evidence quality is assessed separately/i,
+  /a response is recorded first/i,
+  /exact retained records/i,
+  /append-only recoveries/i,
+  /governed (?:indicator population|Program monitoring|responsibility policies)/i,
+  /injected structurally ahead of/i,
+  /from projection \$?\{/i,
+  /the current snapshot contains no rows/i,
+  /this control is independent of/i,
   /\b(?:awaiting|require|needs|pending) bank review\b/i,
   /\bbank (?:assessment|judgement|rubric|reviewer|decision)\b/i,
   /\bwithout mixing\b/i,

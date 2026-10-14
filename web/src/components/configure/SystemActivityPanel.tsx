@@ -226,8 +226,8 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
 
   const title = mode === "activity" ? "Recent activity" : "Audit log";
   const description = mode === "activity"
-    ? "Recent system and business activity. Open a record to review it."
-    : "Reconstruct recorded activity by actor, object, event type and date range without exposing event payloads.";
+    ? "Recent system and business events."
+    : "Filter activity by actor, record, event and date.";
 
   return <section className="configure-card system-activity-panel" aria-labelledby={`${mode}-events-heading`}>
     <div className="configure-card-heading">
@@ -262,7 +262,7 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
       </form>}
     />
 
-    {state === "unavailable" && <Notice tone="error"><span>Activity could not be loaded. Recorded system state was not changed.</span> <Button variant="secondary" size="compact" onPress={() => void load()}>Retry</Button></Notice>}
+    {state === "unavailable" && <Notice tone="error"><span>Activity unavailable. Retry the search.</span> <Button variant="secondary" size="compact" onPress={() => void load()}>Retry</Button></Notice>}
     {state === "loading" && items.length === 0 && <Notice>Loading recorded activity…</Notice>}
     {state === "live" && items.length === 0 && <EmptyState population="Recorded activity matching the current filters" title="No matching activity" description="Try a wider time range or fewer filters."/>}
     {items.length > 0 && <DataTable
@@ -284,7 +284,7 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
       <div className="system-audit-export-dialog">
         <div><span className="eyebrow">Governed export</span><h2>Export the applied audit view</h2><p>Export audit events as of the selected time. Each export supports up to 10,000 events; narrow the filters if the limit is exceeded.</p></div>
         <SelectField label="Export format" value={exportFormat} placeholder="Choose a format" options={exportFormatOptions} allowsEmpty={false} onChange={(value) => { if (value) setExportFormat(value); }}/>
-        <Notice>Current draft filter edits are not included until you select <strong>Apply filters</strong>. Export files and their checksum manifest expire after seven days.</Notice>
+        <Notice>Apply filters before exporting changes. <strong>Apply filters</strong>. Export files and their checksum manifest expire after seven days.</Notice>
         {exportState === "error" && exportNotice && <Notice tone="error">{exportNotice.text}</Notice>}
         <div className="form-actions">
           <Button variant="secondary" isDisabled={exportState === "creating" || exportState === "downloading"} onPress={() => setExportOpen(false)}>Cancel</Button>
