@@ -54,7 +54,7 @@ export function AdvancedScoringEditor({ mode, profile, fields, templateRevision,
 
   return <div className="forms-advanced-scoring" aria-label="Advanced scoring rules">
     <div className="forms-advanced-scoring__summary">
-      <div><strong>Advanced scoring</strong><p>{mode === "RISK" ? "Higher scores mean greater concern." : "Lower scores mean greater concern."} Rules are evaluated from the stored form revision.</p></div>
+      <div><strong>Advanced scoring</strong><p>{mode === "RISK" ? "Higher scores mean greater concern." : "Lower scores mean greater concern."} </p></div>
       <TextField label="Score profile version" value={current.version} onChange={(version) => onChange({ ...current, version })} maxLength={128}/>
     </div>
 
@@ -76,7 +76,7 @@ export function AdvancedScoringEditor({ mode, profile, fields, templateRevision,
     </section>
 
     <section aria-labelledby="advanced-rules-title">
-      <div className="forms-policy-section-heading"><div><h4 id="advanced-rules-title">Cross-field rules</h4><p>Use a floor, cap, extra contribution or disqualification only when the combined answers require it.</p></div><Button size="compact" onPress={addRule} isDisabled={!scoredFields.length || (current.rules?.length ?? 0) >= 100}>Add advanced rule</Button></div>
+      <div className="forms-policy-section-heading"><div><h4 id="advanced-rules-title">Cross-field rules</h4></div><Button size="compact" onPress={addRule} isDisabled={!scoredFields.length || (current.rules?.length ?? 0) >= 100}>Add advanced rule</Button></div>
       {(current.rules ?? []).map((rule, index) => <article className="forms-score-rule" key={rule.id}>
         <div className="forms-score-rule__heading"><strong>{rule.label || `Rule ${index + 1}`}</strong><Button variant="quiet" size="compact" onPress={() => onChange({ ...current, rules: (current.rules ?? []).filter((_, itemIndex) => itemIndex !== index) })}>Remove</Button></div>
         <div className="forms-policy-control-grid">
@@ -94,7 +94,7 @@ export function AdvancedScoringEditor({ mode, profile, fields, templateRevision,
     </section>
 
     <section className="forms-score-preview" aria-labelledby="score-preview-title">
-      <div className="forms-policy-section-heading"><div><h4 id="score-preview-title">Preview stored revision</h4><p>{templateRevision ? `Test revision ${templateRevision.version} without changing a response or issue.` : "Save this form before previewing how responses will be scored."}</p></div></div>
+      <div className="forms-policy-section-heading"><div><h4 id="score-preview-title">Score preview</h4><p>{templateRevision ? `Form revision ${templateRevision.version} · Preview only` : "Save the form before testing scores."}</p></div></div>
       {templateRevision && <div className="forms-policy-control-grid">{scoredFields.map((field) => <PreviewAnswerField key={field.id} field={field} value={answers[field.id] ?? ""} onChange={(value) => setAnswers((currentAnswers) => ({ ...currentAnswers, [field.id]: value }))}/>)}</div>}
       {previewError && <Notice tone="error">{previewError} Check the stored scoring rules and preview answers, then try again.</Notice>}
       {preview && <div className="forms-score-preview__result"><StatusBadge tone={tone(preview.band)}>{title(preview.band)} concern</StatusBadge><strong>{formatScore(preview, mode)}</strong><span>{Math.round(preview.coverage * 100)}% answer coverage{preview.final ? " · final" : " · incomplete"}</span></div>}
