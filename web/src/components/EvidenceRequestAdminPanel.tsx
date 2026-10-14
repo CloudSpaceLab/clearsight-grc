@@ -150,14 +150,14 @@ export function EvidenceRequestAdminPanel({
     <header>
       <span className="eyebrow">Evidence request access</span>
       <h2 id="evidence-request-admin-title">{requestTitle}</h2>
-      <p>Review who can respond, then create or replace the invitation link and deliver it through the approved channel. Submitted evidence still requires the recorded review and verification steps.</p>
+      <p>Manage invitation access. Send links through an approved channel.</p>
     </header>
 
-    {loadState === "loading" && <p role="status">Loading invitation records. Changes remain unavailable until requester authority is confirmed.</p>}
+    {loadState === "loading" && <p role="status">Loading invitations and access permissions…</p>}
     {loadState === "degraded" && <p role="alert">{degradedReason || "Current requester authority could not be confirmed."} The loaded invitation records remain available, but changes are disabled until authority can be confirmed.</p>}
     {loadState === "unavailable" && invitations.length > 0 && <p role="alert">{degradedReason || "The latest invitation records could not be loaded."} Previously loaded records remain available, but changes are disabled.</p>}
     {loadState === "unavailable" && invitations.length === 0 && <p role="alert">The current invitation history could not be loaded. Refresh the evidence request to try again; invitation changes are unavailable.</p>}
-    {loadState === "ready" && !canManage && <p>You can review invitation records, but your current responsibility does not allow access changes for this evidence request.</p>}
+    {loadState === "ready" && !canManage && <p>View-only access. Contact the request owner to change invitations.</p>}
     {error && <p role="alert">{error}</p>}
     {copyNotice && <p role="status">{copyNotice}</p>}
 
