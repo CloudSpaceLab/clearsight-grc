@@ -14,6 +14,8 @@ type MemoryRepository struct {
 	forms            map[string]FormTemplate
 	starters         map[string]StarterTemplate
 	savedViews       map[string]SavedFormView
+	subjectLinks     map[string]FormSubjectLink
+	subjectLinkEvents []FormSubjectLinkEvent
 	checks           map[string]MonitoringCheck
 	results          map[string]MonitoringResult
 	collectionCycles map[string]CollectionCycle
@@ -22,7 +24,7 @@ type MemoryRepository struct {
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{forms: map[string]FormTemplate{}, starters: map[string]StarterTemplate{}, savedViews: map[string]SavedFormView{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}, collectionCycles: map[string]CollectionCycle{}}
+	return &MemoryRepository{forms: map[string]FormTemplate{}, starters: map[string]StarterTemplate{}, savedViews: map[string]SavedFormView{}, subjectLinks: map[string]FormSubjectLink{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}, collectionCycles: map[string]CollectionCycle{}}
 }
 
 func (r *MemoryRepository) SeedStarterTemplates(values ...StarterTemplate) {
