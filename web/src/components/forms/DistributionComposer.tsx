@@ -143,19 +143,21 @@ export function DistributionComposer({ onCreated, onCancel, subject, internalOnl
     <div className="forms-task-span"><SelectField label="Recipient verification" value={policy} placeholder="Choose verification" description={policies.find((item) => item.value === policy)?.detail} allowsEmpty={false} options={policies.map((item) => ({ id: item.value, label: item.label }))} onChange={(value) => { if (value) setPolicy(value); }}/></div>
   </>;
 
-  return <section className="forms-task-card forms-composer" aria-labelledby="distribution-composer-title">
-    <div className="forms-task-heading"><div><span>Form request</span><h2 id="distribution-composer-title">{scopedDelivery ? "Request form" : subject ? "Request a response" : "Create form distribution"}</h2><p>{scopedDelivery ? "Choose the form, confirm the deadline and add the vendor contact." : subject ? "Select an approved form, add an employee and set the deadline." : "Choose the approved form, who must respond, the deadline and how recipients verify access."}</p></div>{onCancel && !subject && <button type="button" onClick={onCancel}>Close</button>}</div>
+  return <section className="forms-task-card forms-composer" aria-labelledby={subject ? undefined : "distribution-composer-title"} aria-label={subject ? "Form request" : undefined}>
+    {!subject && <div className="forms-task-heading"><div><span>Form request</span><h2 id="distribution-composer-title">{scopedDelivery ? "Request form" : "Create form distribution"}</h2><p>{scopedDelivery ? "Choose the form, confirm the deadline and add the vendor contact." : "Choose the approved form, who must respond, the deadline and how recipients verify access."}</p></div>{onCancel && <button type="button" onClick={onCancel}>Close</button>}</div>}
     {error && <div className="forms-message error" role="alert">{error}</div>}
     <div className="forms-task-grid">
       <SelectField label="Form" value={templateKey || undefined} placeholder="Select form" description={selectedTemplate ? `Version ${selectedTemplate.version}` : undefined} options={templates.map((item) => ({ id: `${item.id}:${item.version}`, label: item.name }))} onChange={selectTemplate}/>
       {!scopedDelivery && <>
       {subject ? <div className="forms-readonly-scope forms-task-span"><span>Linked issue</span><strong>{subject.label}</strong></div> : <><TextField label="Subject type" value={subjectType} maxLength={80} onChange={setSubjectType}/>
       <TextField label="Subject identifier" value={subjectID} maxLength={160} onChange={setSubjectID}/></>}
-      <div className="forms-task-span"><TextField label="Title" value={title} maxLength={240} onChange={setTitle}/></div>
-      <div className="forms-task-span"><TextArea label="Purpose" value={purpose} maxLength={1600} rows={3} onChange={setPurpose}/></div></>}
+      {!subject && <><div className="forms-task-span"><TextField label="Title" value={title} maxLength={240} onChange={setTitle}/></div>
+      <div className="forms-task-span"><TextArea label="Purpose" value={purpose} maxLength={1600} rows={3} onChange={setPurpose}/></div></>}</>}
       <TextField label="Response deadline" type="datetime-local" value={deadline} onChange={setDeadline} description={`${timezone} timezone`}/>
-      {!scopedDelivery && deliverySettings}
+      {!scopedDelivery && !subject && deliverySettings}
     </div>
+
+    {subject && <details className="forms-composer__advanced"><summary>More options</summary><div className="forms-task-grid"><div className="forms-task-span"><TextField label="Request title" value={title} maxLength={240} onChange={setTitle}/></div><div className="forms-task-span"><TextArea label="Request purpose" value={purpose} maxLength={1600} rows={3} onChange={setPurpose}/></div>{deliverySettings}</div></details>}
 
     {scopedDelivery && <details className="forms-composer__advanced"><summary>More options</summary><div className="forms-task-grid"><div className="forms-task-span"><TextField label="Request title" value={title} maxLength={240} onChange={setTitle}/></div><div className="forms-task-span"><TextArea label="Message to vendor" value={purpose} maxLength={1600} rows={3} onChange={setPurpose}/></div>{deliverySettings}</div></details>}
 
