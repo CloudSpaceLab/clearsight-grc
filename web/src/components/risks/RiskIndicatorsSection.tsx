@@ -225,7 +225,7 @@ export function RiskIndicatorsSection({
     </div>
 
     {linkMode && <div className="risk-record__link-form">
-      <div><h3>Link existing indicator source</h3><p>Choose a Program and one active monitoring check. ClearSight uses its approved thresholds, freshness and coverage rules.</p></div>
+      <div><h3>Link existing indicator source</h3><p>Linked checks retain their approved thresholds, freshness and coverage rules.</p></div>
       <SearchField label="Search Programs" value={query} onChange={setQuery} placeholder="Search Programs" isLoading={programState === "loading"}/>
       {programState === "error" && <Notice tone="error">{error || "Programs could not be loaded."}</Notice>}
       {programState === "live" && programPage.next_cursor && <Notice tone="info">Showing the first 20 matching Programs. Refine the search to find another Program.</Notice>}

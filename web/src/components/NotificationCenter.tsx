@@ -87,7 +87,6 @@ export function NotificationCenter({
         <header className="cs-sheet-heading">
           <span className="eyebrow">Attention</span>
           <h2>Notifications</h2>
-          <p>Recent work changes delivered to your signed-in account.</p>
         </header>
 
         <NotificationPreferences/>
