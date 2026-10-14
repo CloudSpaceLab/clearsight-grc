@@ -17,6 +17,10 @@ vi.mock("./forms/DistributionComposer", () => ({
     <button type="button" onClick={onCreated}>Send approved form</button>
   </div>,
 }));
+vi.mock("./forms/MatterFormLinksPanel", () => ({
+  MatterFormLinksPanel: ({ pickerOpen }: { pickerOpen: boolean }) =>
+    pickerOpen ? <span>Approved form picker open</span> : null,
+}));
 vi.mock("./forms/SubjectFormActivity", () => ({ SubjectFormActivity: ({ leading }: { leading?: ReactNode }) => <div>{leading}<span>Form activity</span></div> }));
 
 const createdDraft: FormTemplate = {
@@ -71,14 +75,16 @@ it("uses an existing form for an employee request without creating a template", 
   expect(screen.getByRole("group", { name: "Form actions" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Create linked form" })).toBeNull();
 
-  fireEvent.click(screen.getByRole("button", { name: "Use existing form" }));
-  expect(await screen.findByRole("heading", { name: "Send existing form" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Link existing form" }));
+  expect(await screen.findByText("Approved form picker open")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Request response" }));
+  expect(await screen.findByRole("heading", { name: "Request response" })).toBeTruthy();
   expect(screen.getByText("MATTER:matter-a")).toBeTruthy();
   expect(screen.getByText("Employees only")).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Send approved form" }));
   expect(await screen.findByText("Form request created.")).toBeTruthy();
-  expect(screen.queryByRole("heading", { name: "Send existing form" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Request response" })).toBeNull();
 });
 
 it("shows bounded linked Forms with lifecycle and exact handoffs, then appends the next page", async () => {
@@ -122,7 +128,7 @@ it("keeps issue work available and retries a failed linked-forms read locally", 
 
   expect(await screen.findByText(/Linked forms are unavailable\. Other issue work remains available\./)).toBeTruthy();
   expect(screen.getByText("Form activity")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Use existing form" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Request response" })).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Retry linked forms" }));
   expect(await screen.findByText("Recovered linked form")).toBeTruthy();

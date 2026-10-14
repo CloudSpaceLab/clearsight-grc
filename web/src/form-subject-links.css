@@ -1,0 +1,61 @@
+/* Shared form association surfaces: no separate records or nested cards. */
+.form-link-picker {
+  display: grid;
+  gap: 16px;
+  padding: 18px 0;
+}
+.form-link-picker__search {
+  display: grid;
+  gap: 6px;
+  font-size: var(--cs-font-size-control);
+  font-weight: 600;
+}
+.form-link-picker__search input,
+.form-link-retirement textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cs-border-default);
+  border-radius: 10px;
+  color: var(--cs-text-primary);
+  background: var(--cs-bg-surface-1);
+}
+.form-link-picker__results {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  max-height: min(48vh, 420px);
+  overflow: auto;
+  border: 1px solid var(--cs-border-default);
+  border-radius: 12px;
+}
+.form-link-picker__results legend {
+  padding: 0 6px;
+  font-size: var(--cs-font-size-caption);
+  color: var(--cs-text-muted);
+}
+.form-link-picker__results label {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--cs-border-default);
+}
+.form-link-picker__results label:last-child { border-bottom: 0; }
+.form-link-picker__results label.selected { background: var(--cs-bg-surface-2); }
+.form-link-picker__results label:has(input:disabled) { opacity: 0.6; cursor: default; }
+.form-link-picker__results input { flex: none; }
+.form-link-picker__results label > span { display: grid; min-width: 0; gap: 3px; }
+.form-link-picker__results strong { overflow-wrap: anywhere; }
+.form-link-picker__results small { color: var(--cs-text-muted); }
+.form-link-picker__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.matter-forms .subject-form-activity__card li:has(.form-link-retirement) { flex-wrap: wrap; }
+.form-link-retirement { flex: 1 0 100%; display: grid; gap: 10px; }
+.form-link-retirement label { display: grid; gap: 6px; }
+.form-link-retirement > div { display: flex; justify-content: flex-end; gap: 8px; }
+@container (max-width: 520px) {
+  .form-link-picker__actions > *, .form-link-retirement > div > * { flex: 1; }
+}

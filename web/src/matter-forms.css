@@ -19,8 +19,8 @@
 
 .matter-forms__actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 520px;
+  grid-template-columns: repeat(2, minmax(0, 210px));
+  max-width: none;
   gap: 12px;
   margin: 18px 0 22px;
 }
@@ -125,7 +125,7 @@
 .matter-forms .subject-form-activity__card .subject-form-activity__actions { flex-wrap: wrap; }
 
 @container (max-width: 520px) {
-  .matter-forms__actions { max-width: none; }
+  .matter-forms__actions { grid-template-columns: minmax(0, 1fr); }
   .matter-forms .subject-form-activity__card { padding: 14px 16px; }
   .matter-forms .subject-form-activity__card li { align-items: stretch; flex-direction: column; gap: 8px; }
   .matter-forms .subject-form-activity__actions { align-items: flex-start; }

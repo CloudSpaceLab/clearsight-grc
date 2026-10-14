@@ -4,6 +4,8 @@ import { matterOperationalCoverage, programOperationalCoverage } from "./operati
 
 const operationCommands = {
   createMatter: "matter.create",
+  createMatterFormLink: "forms.subject.link",
+  retireMatterFormLink: "forms.subject.unlink",
   createMatterFormRemediation: "matter.form-remediation.create",
   sendMatterFormRemediation: "matter.form-remediation.send",
   applyMatterFormRemediation: "matter.form-remediation.apply",

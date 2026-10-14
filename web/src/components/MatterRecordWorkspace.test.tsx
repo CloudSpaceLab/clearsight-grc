@@ -268,7 +268,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     await openRecordTab("Evidence");
-    expect(await screen.findByRole("button", { name: "Use existing form" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Link existing form" })).toBeTruthy();
   });
 
   it("keeps Work and Activity available when linked form reads fail", async () => {

@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { loadFormTemplatePage } from "../formsApi";
 import type { FormLibraryItem } from "../formsTypes";
 import { FocusedSheet } from "./FocusedSheet";
 import { DistributionComposer } from "./forms/DistributionComposer";
 import { SubjectFormActivity } from "./forms/SubjectFormActivity";
+import { MatterFormLinksPanel } from "./forms/MatterFormLinksPanel";
 import { StatusPill } from "./forms/dashboard/TemplateLibraryTable";
-import { ActionCard, ActionLink, Button, Notice } from "./ui";
+import { ActionLink, Button, Notice } from "./ui";
 
 type Props = {
   matterID: string;
@@ -17,6 +18,10 @@ const linkedFormsPageSize = 6;
 
 export function MatterInternalFormRequestsPanel({ matterID, matterReference }: Props) {
   const [requestOpen, setRequestOpen] = useState(false);
+  const [requestTemplate, setRequestTemplate] = useState<{ id: string; version: number }>();
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [manuallyLinkedIDs, setManuallyLinkedIDs] = useState<ReadonlySet<string>>(new Set());
+  const updateLinkedIDs = useCallback((ids: ReadonlySet<string>) => setManuallyLinkedIDs(ids), []);
   const [notice, setNotice] = useState("");
   const [linkedFormsState, setLinkedFormsState] = useState<LinkedFormsState>("loading");
   const [linkedForms, setLinkedForms] = useState<FormLibraryItem[]>([]);
@@ -71,14 +76,12 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
     <div className="matter-forms__heading">
       <span className="eyebrow">Forms</span>
       <h2 id="matter-form-requests-title">Form requests</h2>
-      <p>Request an approved form for <strong>{matterReference}</strong> and review the responses.</p>
+      <p>Link approved forms, request responses and review submitted evidence for <strong>{matterReference}</strong>.</p>
     </div>
 
     <div className="matter-forms__actions" role="group" aria-label="Form actions">
-      <ActionCard title="Use existing form" description="Choose an approved form and send a response request."
-        icon={<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 12 18-9-7 18-3-8-8-1Z"/><path d="m11 13 10-10"/></svg>}
-        onPress={() => { setNotice(""); setRequestOpen(true); }}
-      />
+      <Button onPress={() => { setNotice(""); setLinkOpen(true); }}>Link existing form</Button>
+      <Button variant="secondary" onPress={() => { setNotice(""); setRequestTemplate(undefined); setRequestOpen(true); }}>Request response</Button>
     </div>
 
     {notice && <Notice tone="success">{notice}</Notice>}
@@ -87,8 +90,9 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
       <h3>Activity</h3>
     </div>
 
-    <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference} variant="cards" refreshKey={activityRefreshKey} leading={linkedFormsState === "live" && linkedForms.length === 0 ? null :
-    <div className="subject-form-activity__group subject-form-activity__card" aria-labelledby="linked-forms-title">
+    <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference} variant="cards" refreshKey={activityRefreshKey} leading={<>
+      <MatterFormLinksPanel matterID={matterID} pickerOpen={linkOpen} onClosePicker={() => setLinkOpen(false)} onLinkedIDsChange={updateLinkedIDs} onRequestResponse={(link) => { setNotice(""); setRequestTemplate({ id: link.form_template_id, version: link.form_template_version }); setRequestOpen(true); }}/>
+      {(linkedFormsState !== "live" || linkedForms.some((item) => !manuallyLinkedIDs.has(item.template.id))) && <div className="subject-form-activity__group subject-form-activity__card" aria-labelledby="linked-forms-title">
       <header>
         <h3 id="linked-forms-title">Forms created for this issue</h3>
         {linkedFormsState === "live" && linkedForms.length > 0 && <span>{linkedForms.length} shown</span>}
@@ -98,7 +102,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
         Linked forms are unavailable. Other issue work remains available. <Button variant="secondary" size="compact" onPress={() => setLinkedFormsReload((value) => value + 1)}>Retry linked forms</Button>
       </Notice>}
       
-      {linkedForms.length > 0 && <ul>{linkedForms.map((item) => <li key={item.template.id}>
+      {linkedForms.length > 0 && <ul>{linkedForms.filter((item) => !manuallyLinkedIDs.has(item.template.id)).map((item) => <li key={item.template.id}>
         <div>
           <strong>{item.template.name}</strong>
           <span>Revision {item.template.version}</span>
@@ -112,18 +116,19 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
         {linkedFormsPageError} <Button variant="secondary" size="compact" isLoading={loadingMoreLinkedForms} onPress={() => void loadMoreLinkedForms()}>Retry linked forms</Button>
       </Notice>}
       {linkedFormsCursor && !linkedFormsPageError && <Button variant="secondary" size="compact" isLoading={loadingMoreLinkedForms} onPress={() => void loadMoreLinkedForms()}>Load more linked forms</Button>}
-    </div>
-    }/>
+    </div>}
+    </>}/>
 
-    {requestOpen && <FocusedSheet label="Use existing form" closeLabel="Close form request" size="wide" onClose={() => setRequestOpen(false)}>
+    {requestOpen && <FocusedSheet label="Request response" closeLabel="Close form request" size="wide" onClose={() => setRequestOpen(false)}>
       <div className="cs-sheet-heading">
         <span className="eyebrow">Form request</span>
-        <h2>Send existing form</h2>
+        <h2>Request response</h2>
         <p>Choose the form, recipient and response deadline for {matterReference}.</p>
       </div>
       <DistributionComposer
         subject={{ type: "MATTER", id: matterID, label: matterReference }}
         internalOnly
+        initialTemplate={requestTemplate}
         onCancel={() => setRequestOpen(false)}
         onCreated={() => {
           setRequestOpen(false);

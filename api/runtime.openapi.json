@@ -4192,6 +4192,22 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/matters/{id}/form-links": {
+      "get": {
+        "operationId": "listMatterFormLinks",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      },
+      "post": {
+        "operationId": "createMatterFormLink",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/matters/{id}/form-links/{link_id}/retirement": {
+      "post": {
+        "operationId": "retireMatterFormLink",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
     "/api/v1/matters/{id}/form-remediations": {
       "get": {
         "operationId": "listMatterFormRemediations",
