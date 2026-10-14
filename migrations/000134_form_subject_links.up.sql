@@ -2,9 +2,6 @@ BEGIN;
 
 -- A governed form can support several records without changing its immutable origin.
 -- MATTER is the first supported subject; additional types require their own scoped FK.
-CREATE UNIQUE INDEX monitoring_form_templates_entity_revision_uq
-  ON monitoring_form_templates(tenant_id, legal_entity_id, id, version);
-
 CREATE TABLE form_subject_links (
     id uuid PRIMARY KEY DEFAULT uuidv7(),
     tenant_id uuid NOT NULL,
