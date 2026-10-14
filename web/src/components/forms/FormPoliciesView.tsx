@@ -79,7 +79,7 @@ export function FormPoliciesView() {
 
   async function create(input: CreateFormResponsePolicyInput) {
     setBusy("create"); setError("");
-    try { const value = await createFormResponsePolicy(input); setCreating(false); setNotice("Policy draft created. Simulate its stored response population before requesting approval."); await refresh(); setSelectedID(value.id); }
+    try { const value = await createFormResponsePolicy(input); setCreating(false); setNotice("Policy draft created. Run a simulation before requesting approval."); await refresh(); setSelectedID(value.id); }
     catch (cause) { setError(message(cause, "The policy draft could not be created.")); }
     finally { setBusy(""); }
   }
@@ -105,7 +105,7 @@ export function FormPoliciesView() {
   }
 
   return <section className="forms-policies" aria-labelledby="form-policies-title">
-    <header className="forms-policies__heading"><div><p>Governed automation</p><h2 id="form-policies-title">Response policies</h2><span>Create an issue from a completed response that meets an approved concern threshold. Simulation and independent approval are required before activation.</span></div>{state === "live" && <Button variant="primary" onPress={() => openEditor()}>Create policy</Button>}</header>
+    <header className="forms-policies__heading"><div><p>Governed automation</p><h2 id="form-policies-title">Response policies</h2><span>Create issues for responses that meet approved concern thresholds. Simulation and independent approval required.</span></div>{state === "live" && <Button variant="primary" onPress={() => openEditor()}>Create policy</Button>}</header>
     {error && state === "live" && <Notice tone="error">{error} Policies already shown remain available.</Notice>}
     {notice && <Notice>{notice}</Notice>}
     {state === "loading" && <Surface><p role="status">Loading response policies for this legal entity…</p></Surface>}

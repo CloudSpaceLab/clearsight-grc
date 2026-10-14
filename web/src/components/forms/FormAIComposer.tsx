@@ -32,7 +32,7 @@ export function FormAIComposer({ baseTemplate, sourceDocument, onProposal, onCan
       onProposal(proposal);
     } catch (cause) {
       setError(apiErrorKind(cause) === "unavailable"
-        ? "Governed AI authoring is unavailable. The manual form builder remains available and no draft was changed."
+        ? "AI field suggestions unavailable. Use the form builder; no changes were saved."
         : cause instanceof Error ? cause.message : "A reviewable field proposal could not be generated.");
     } finally {
       setBusy(false);
@@ -40,7 +40,7 @@ export function FormAIComposer({ baseTemplate, sourceDocument, onProposal, onCan
   }
 
   return <section className="form-ai-composer" aria-labelledby="form-ai-composer-title">
-    <header><div><span className="eyebrow">Optional drafting support</span><h3 id="form-ai-composer-title">{baseTemplate ? `Propose changes to ${baseTemplate.name}` : "Draft form fields with governed AI"}</h3><p>AI can propose fields, but it cannot publish a template or infer compliance weights. You choose every change before a draft is created.</p></div>{onCancel && <button type="button" className="text-button" onClick={onCancel}>Close</button>}</header>
+    <header><div><span className="eyebrow">Optional drafting support</span><h3 id="form-ai-composer-title">{baseTemplate ? `Propose changes to ${baseTemplate.name}` : "Generate form fields"}</h3><p>Review proposed fields and scoring before saving a draft.</p></div>{onCancel && <button type="button" className="text-button" onClick={onCancel}>Close</button>}</header>
     {error && <p className="error-text" role="alert">{error}</p>}
     <label className="form-ai-objective"><span>What should this form collect or change?</span><textarea rows={3} value={objective} onChange={(event) => setObjective(event.target.value)} placeholder="e.g. Collect current vendor ownership, operating certificate and expiry details."/></label>
     {elements.length > 0 && <details className="form-ai-sources"><summary>Choose source passages <span>{selectedRefs.size ? `${selectedRefs.size} selected` : "optional"}</span></summary><div>{elements.map((element) => <label key={element.ref}><input type="checkbox" checked={selectedRefs.has(element.ref!)} onChange={() => setSelectedRefs((current) => { const next = new Set(current); if (next.has(element.ref!)) next.delete(element.ref!); else next.add(element.ref!); return next; })}/><span><strong>{element.control?.label || element.text}</strong><small>{sourceLocation(element.anchor)}</small></span></label>)}</div></details>}
