@@ -10,17 +10,17 @@ import (
 )
 
 type MemoryRepository struct {
-	mu               sync.RWMutex
-	forms            map[string]FormTemplate
-	starters         map[string]StarterTemplate
-	savedViews       map[string]SavedFormView
-	subjectLinks     map[string]FormSubjectLink
+	mu                sync.RWMutex
+	forms             map[string]FormTemplate
+	starters          map[string]StarterTemplate
+	savedViews        map[string]SavedFormView
+	subjectLinks      map[string]FormSubjectLink
 	subjectLinkEvents []FormSubjectLinkEvent
-	checks           map[string]MonitoringCheck
-	results          map[string]MonitoringResult
-	collectionCycles map[string]CollectionCycle
-	events           []MonitoringEvent
-	outbox           []MonitoringEvent
+	checks            map[string]MonitoringCheck
+	results           map[string]MonitoringResult
+	collectionCycles  map[string]CollectionCycle
+	events            []MonitoringEvent
+	outbox            []MonitoringEvent
 }
 
 func NewMemoryRepository() *MemoryRepository {
