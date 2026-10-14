@@ -134,7 +134,7 @@ func (a *API) createAIGovernanceGrant(w http.ResponseWriter, r *http.Request) {
 func writeAIGovernanceResult[T any](w http.ResponseWriter, v T, err error, status int) {
 	switch {
 	case errors.Is(err, aigovernance.ErrNotFound):
-		httpx.WriteError(w, http.StatusNotFound, "not_found", "AI governance object not found.")
+		httpx.WriteError(w, http.StatusNotFound, "not_found", "AI governance record not found.")
 	case errors.Is(err, aigovernance.ErrConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "AI governance state changed. Reload before updating.")
 	case errors.Is(err, aigovernance.ErrMakerChecker):
@@ -142,7 +142,7 @@ func writeAIGovernanceResult[T any](w http.ResponseWriter, v T, err error, statu
 	case errors.Is(err, aigovernance.ErrInvalidTransition):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "invalid_transition", "The requested AI governance transition is not allowed.")
 	case errors.Is(err, aigovernance.ErrGrantInvalid):
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "grant_invalid", "The execution grant is not backed by the exact approved Matter decision/action.")
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "grant_invalid", "No matching approved decision was found for this AI action.")
 	case err != nil:
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "ai_governance_invalid", err.Error())
 	default:
