@@ -26,7 +26,7 @@ it("loads issue-linked forms, opens the exact Forms record and keeps the picker 
   const view = render(<MatterFormLinksPanel matterID="matter-a" pickerOpen={false} onClosePicker={vi.fn()} onLinkedIDsChange={onLinkedIDsChange}/>);
   expect(await screen.findByText("Risk evidence")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Open form" }).getAttribute("href")).toBe("#forms/form-a");
-  expect(onLinkedIDsChange).toHaveBeenCalledWith(new Set(["form-a"]));
+  await waitFor(() => expect(onLinkedIDsChange).toHaveBeenCalledWith(new Set(["form-a"])));
   expect(screen.queryByText("Form picker open")).toBeNull();
   view.rerender(<MatterFormLinksPanel matterID="matter-a" pickerOpen onClosePicker={vi.fn()} onLinkedIDsChange={onLinkedIDsChange}/>);
   expect(screen.getByText("Form picker open")).toBeTruthy();
