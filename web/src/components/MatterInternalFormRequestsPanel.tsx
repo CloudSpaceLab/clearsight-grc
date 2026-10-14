@@ -18,6 +18,7 @@ const linkedFormsPageSize = 6;
 
 export function MatterInternalFormRequestsPanel({ matterID, matterReference }: Props) {
   const [requestOpen, setRequestOpen] = useState(false);
+  const [requestTemplate, setRequestTemplate] = useState<{ id: string; version: number }>();
   const [linkOpen, setLinkOpen] = useState(false);
   const [manuallyLinkedIDs, setManuallyLinkedIDs] = useState<ReadonlySet<string>>(new Set());
   const updateLinkedIDs = useCallback((ids: ReadonlySet<string>) => setManuallyLinkedIDs(ids), []);
@@ -80,7 +81,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
 
     <div className="matter-forms__actions" role="group" aria-label="Form actions">
       <Button onPress={() => { setNotice(""); setLinkOpen(true); }}>Link existing form</Button>
-      <Button variant="secondary" onPress={() => { setNotice(""); setRequestOpen(true); }}>Request response</Button>
+      <Button variant="secondary" onPress={() => { setNotice(""); setRequestTemplate(undefined); setRequestOpen(true); }}>Request response</Button>
     </div>
 
     {notice && <Notice tone="success">{notice}</Notice>}
@@ -90,7 +91,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
     </div>
 
     <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference} variant="cards" refreshKey={activityRefreshKey} leading={<>
-      <MatterFormLinksPanel matterID={matterID} pickerOpen={linkOpen} onClosePicker={() => setLinkOpen(false)} onLinkedIDsChange={updateLinkedIDs}/>
+      <MatterFormLinksPanel matterID={matterID} pickerOpen={linkOpen} onClosePicker={() => setLinkOpen(false)} onLinkedIDsChange={updateLinkedIDs} onRequestResponse={(link) => { setNotice(""); setRequestTemplate({ id: link.form_template_id, version: link.form_template_version }); setRequestOpen(true); }}/>
       {(linkedFormsState !== "live" || linkedForms.some((item) => !manuallyLinkedIDs.has(item.template.id))) && <div className="subject-form-activity__group subject-form-activity__card" aria-labelledby="linked-forms-title">
       <header>
         <h3 id="linked-forms-title">Forms created for this issue</h3>
@@ -127,6 +128,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
       <DistributionComposer
         subject={{ type: "MATTER", id: matterID, label: matterReference }}
         internalOnly
+        initialTemplate={requestTemplate}
         onCancel={() => setRequestOpen(false)}
         onCreated={() => {
           setRequestOpen(false);
