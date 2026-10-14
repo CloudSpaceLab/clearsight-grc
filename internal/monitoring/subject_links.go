@@ -15,7 +15,7 @@ const FormSubjectMatter = "MATTER"
 
 var (
 	ErrFormSubjectLinksUnavailable = errors.New("form subject links unavailable")
-	formLinkUUID = regexp.MustCompile(`^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$`)
+	formLinkUUID                   = regexp.MustCompile(`^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$`)
 )
 
 // FormSubjectLink refers to an exact governed form revision. It is independent
