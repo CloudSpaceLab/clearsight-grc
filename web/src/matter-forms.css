@@ -19,20 +19,19 @@
 
 .matter-forms__actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 520px;
   gap: 12px;
-  margin: 20px 0 24px;
+  margin: 18px 0 22px;
 }
 
-.matter-forms__actions > .cs-action-card { width: 100%; min-width: 0; min-height: 88px; }
+.matter-forms__actions > .cs-action-card { width: 100%; min-width: 0; min-height: 76px; }
 .matter-forms__actions .cs-action-card__icon svg { width: 20px; height: 20px; }
 
 .matter-forms__activity-heading {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 6px 16px;
   padding-top: 18px;
   border-top: 1px solid var(--cs-border-default);
 }
@@ -44,38 +43,37 @@
   font-weight: 700;
 }
 
-.matter-forms__activity-heading p {
-  margin: 0;
-  color: var(--cs-text-muted);
-  font-size: var(--cs-font-size-caption);
-}
-
 .matter-forms .subject-form-activity--cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: stretch;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   margin-top: 12px;
+  border: 1px solid var(--cs-border-default);
+  border-radius: 14px;
+  background: var(--cs-bg-surface-1);
+  overflow: hidden;
 }
 
-.matter-forms .subject-form-activity--cards > .cs-notice { grid-column: 1 / -1; }
+.matter-forms .subject-form-activity--cards > .cs-notice {
+  margin: 12px 16px;
+}
 
 .matter-forms .subject-form-activity__card {
   min-width: 0;
-  align-content: start;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--cs-border-default);
-  border-radius: 12px;
-  background: var(--cs-bg-surface-2);
+  padding: 16px 20px;
+  gap: 10px;
+  border: 0;
+  border-bottom: 1px solid var(--cs-border-default);
+  border-radius: 0;
+  background: transparent;
 }
 
+.matter-forms .subject-form-activity__card:last-child { border-bottom: 0; }
+
 .matter-forms .subject-form-activity__card > header {
-  align-items: center;
   min-width: 0;
-  gap: 8px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--cs-border-default);
+  align-items: baseline;
+  gap: 12px;
 }
 
 .matter-forms .subject-form-activity__card > header h3 {
@@ -91,14 +89,16 @@
 }
 
 .matter-forms .subject-form-activity__card .cs-empty-state--compact {
-  padding: 14px 0 8px;
-  gap: 7px;
+  padding: 2px 0 4px;
+  gap: 4px;
+  text-align: left;
+  align-items: flex-start;
 }
 
 .matter-forms .subject-form-activity__card .cs-empty-state__title {
-  color: var(--cs-text-primary);
+  color: var(--cs-text-muted);
   font-size: var(--cs-font-size-control);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .matter-forms .subject-form-activity__card .cs-empty-state__description {
@@ -106,22 +106,27 @@
   line-height: var(--cs-leading-body);
 }
 
+.matter-forms .subject-form-activity__card ul { gap: 0; }
+
 .matter-forms .subject-form-activity__card li {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-  background: var(--cs-bg-surface-1);
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--cs-border-subtle, var(--cs-border-default));
+  border-radius: 0;
+  background: transparent;
 }
 
 .matter-forms .subject-form-activity__card li strong { overflow-wrap: anywhere; }
 .matter-forms .subject-form-activity__card .subject-form-activity__actions { flex-wrap: wrap; }
 
-@container (max-width: 820px) {
-  .matter-forms .subject-form-activity--cards { grid-template-columns: minmax(0, 1fr); }
-}
-
 @container (max-width: 520px) {
-  .matter-forms__actions { grid-template-columns: minmax(0, 1fr); }
-  .matter-forms__activity-heading { display: block; }
-  .matter-forms__activity-heading p { margin-top: 4px; }
+  .matter-forms__actions { max-width: none; }
+  .matter-forms .subject-form-activity__card { padding: 14px 16px; }
+  .matter-forms .subject-form-activity__card li { align-items: stretch; flex-direction: column; gap: 8px; }
+  .matter-forms .subject-form-activity__actions { align-items: flex-start; }
 }
