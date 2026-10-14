@@ -3,6 +3,7 @@ import { loadMatterFormLinks, unlinkExistingForm, type FormSubjectLink } from ".
 import { ActionLink, Button, Notice } from "../ui";
 import { StatusPill } from "./dashboard/TemplateLibraryTable";
 import { FormLinkPicker } from "./FormLinkPicker";
+import "../../form-subject-links.css";
 
 type Props = {
   matterID: string;
