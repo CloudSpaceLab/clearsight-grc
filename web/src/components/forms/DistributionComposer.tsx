@@ -63,7 +63,7 @@ export function DistributionComposer({ onCreated, onCancel, subject, internalOnl
       }
     }).catch((cause) => active && setError(cause instanceof Error ? cause.message : "Active form revisions could not be loaded."));
     return () => { active = false; };
-  }, [subject]);
+  }, [subject?.id]);
 
   useEffect(() => {
     if (internalQuery.trim().length < 2) {
