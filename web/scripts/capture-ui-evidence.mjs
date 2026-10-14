@@ -216,8 +216,8 @@ async function capturePage(capture) {
       await page.getByRole("button", { name: "Generate board brief", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.state === "issue-workspace-evidence" || capture.state === "issue-workspace-evidence-mobile") {
-      await page.getByRole("button", { name: "Create linked form", exact: true }).waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Request employee form", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Use existing form", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Use existing form", exact: true }).waitFor({ state: "visible" });
       await page.getByText("1 response pending · 1 submitted response needs review.", { exact: true }).waitFor({ state: "visible" });
     }
     if (capture.state === "issue-workspace-activity-mobile") {
