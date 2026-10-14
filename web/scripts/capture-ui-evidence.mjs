@@ -55,8 +55,8 @@ const captures = [
   { name: "144-report-generate-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReportGenerate: true, expectText: "No ready vendors setup", state: "report-generate" },
   { name: "145-issue-workspace-overview-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Generate board brief", state: "issue-workspace-overview" },
   { name: "146-issue-workspace-work-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, matterTab: "Work", expectText: "Complete the annual return evidence checklist", scrollIntoViewText: "Complete the annual return evidence checklist", state: "issue-workspace-work" },
-  { name: "147-issue-workspace-evidence-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, matterTab: "Evidence and requests", expectText: "Annual return evidence owner confirmation", scrollIntoViewText: "Forms and requests", state: "issue-workspace-evidence" },
-  { name: "148-issue-workspace-evidence-dark-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, matterTab: "Evidence and requests", expectText: "Annual return evidence review", scrollIntoViewText: "Forms and requests", state: "issue-workspace-evidence-mobile" },
+  { name: "147-issue-workspace-evidence-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, matterTab: "Evidence and requests", expectText: "Annual return evidence owner confirmation", scrollIntoViewText: "Form requests", state: "issue-workspace-evidence" },
+  { name: "148-issue-workspace-evidence-dark-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, matterTab: "Evidence and requests", expectText: "Annual return evidence review", scrollIntoViewText: "Form requests", state: "issue-workspace-evidence-mobile" },
   { name: "149-issue-workspace-activity-light-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, matterTab: "Activity", expectText: "Updates and history", scrollIntoViewText: "Updates and history", state: "issue-workspace-activity-mobile" },
 ];
 
@@ -216,8 +216,7 @@ async function capturePage(capture) {
       await page.getByRole("button", { name: "Generate board brief", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.state === "issue-workspace-evidence" || capture.state === "issue-workspace-evidence-mobile") {
-      await page.getByRole("button", { name: "Create linked form", exact: true }).waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Request employee form", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Use existing form", exact: true }).waitFor({ state: "visible" });
       await page.getByText("1 response pending · 1 submitted response needs review.", { exact: true }).waitFor({ state: "visible" });
     }
     if (capture.state === "issue-workspace-activity-mobile") {

@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { createLibraryFormDraft, loadFormTemplatePage } from "../formsApi";
+import { loadFormTemplatePage } from "../formsApi";
 import type { FormLibraryItem } from "../formsTypes";
 import { FocusedSheet } from "./FocusedSheet";
-import { FormBuilder } from "./FormBuilder";
 import { DistributionComposer } from "./forms/DistributionComposer";
 import { SubjectFormActivity } from "./forms/SubjectFormActivity";
 import { StatusPill } from "./forms/dashboard/TemplateLibraryTable";
-import { ActionCard, ActionLink, Button, EmptyState, Notice } from "./ui";
+import { ActionCard, ActionLink, Button, Notice } from "./ui";
 
 type Props = {
   matterID: string;
@@ -18,9 +17,7 @@ const linkedFormsPageSize = 6;
 
 export function MatterInternalFormRequestsPanel({ matterID, matterReference }: Props) {
   const [requestOpen, setRequestOpen] = useState(false);
-  const [authorOpen, setAuthorOpen] = useState(false);
   const [notice, setNotice] = useState("");
-  const [createdDraft, setCreatedDraft] = useState<{ id: string }>();
   const [linkedFormsState, setLinkedFormsState] = useState<LinkedFormsState>("loading");
   const [linkedForms, setLinkedForms] = useState<FormLibraryItem[]>([]);
   const [linkedFormsCursor, setLinkedFormsCursor] = useState<string>();
@@ -73,39 +70,34 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
   return <section className="matter-record-panel matter-forms" aria-labelledby="matter-form-requests-title">
     <div className="matter-forms__heading">
       <span className="eyebrow">Forms</span>
-      <h2 id="matter-form-requests-title">Forms and requests</h2>
-      <p>Collect information for <strong>{matterReference}</strong> and review submitted evidence.</p>
+      <h2 id="matter-form-requests-title">Form requests</h2>
+      <p>Request an approved form for <strong>{matterReference}</strong> and review the responses.</p>
     </div>
 
     <div className="matter-forms__actions" role="group" aria-label="Form actions">
-      <ActionCard title="Request employee form" description="Send an approved form to an employee."
+      <ActionCard title="Use existing form" description="Choose an approved form and send a response request."
         icon={<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 12 18-9-7 18-3-8-8-1Z"/><path d="m11 13 10-10"/></svg>}
-        onPress={() => { setNotice(""); setCreatedDraft(undefined); setRequestOpen(true); }}
-      />
-      <ActionCard title="Create linked form" description="Build an issue-specific form. Approval is required before sending."
-        icon={<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 3v6m-3-3h6"/></svg>}
-        onPress={() => { setNotice(""); setCreatedDraft(undefined); setAuthorOpen(true); }}
+        onPress={() => { setNotice(""); setRequestOpen(true); }}
       />
     </div>
 
-    {notice && <Notice tone="success">{notice}{createdDraft && <> <ActionLink href={`#forms/${encodeURIComponent(createdDraft.id)}`}>Open form draft</ActionLink></>}</Notice>}
+    {notice && <Notice tone="success">{notice}</Notice>}
 
     <div className="matter-forms__activity-heading">
       <h3>Activity</h3>
-      <p>Forms, requests and responses for this issue</p>
     </div>
 
-    <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference} variant="cards" refreshKey={activityRefreshKey} leading={
+    <SubjectFormActivity subjectType="MATTER" subjectID={matterID} subjectLabel={matterReference} variant="cards" refreshKey={activityRefreshKey} leading={linkedFormsState === "live" && linkedForms.length === 0 ? null :
     <div className="subject-form-activity__group subject-form-activity__card" aria-labelledby="linked-forms-title">
       <header>
-        <h3 id="linked-forms-title">Linked forms</h3>
+        <h3 id="linked-forms-title">Forms created for this issue</h3>
         {linkedFormsState === "live" && linkedForms.length > 0 && <span>{linkedForms.length} shown</span>}
       </header>
       {linkedFormsState === "loading" && <p role="status">Loading linked forms…</p>}
       {linkedFormsState === "unavailable" && <Notice tone="warning">
         Linked forms are unavailable. Other issue work remains available. <Button variant="secondary" size="compact" onPress={() => setLinkedFormsReload((value) => value + 1)}>Retry linked forms</Button>
       </Notice>}
-      {linkedFormsState === "live" && linkedForms.length === 0 && <EmptyState compact population="No linked forms yet" title="No linked forms yet" description="Build an issue-specific form to collect information."/>}
+      
       {linkedForms.length > 0 && <ul>{linkedForms.map((item) => <li key={item.template.id}>
         <div>
           <strong>{item.template.name}</strong>
@@ -123,30 +115,11 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
     </div>
     }/>
 
-    {authorOpen && <FocusedSheet label="Create linked form" closeLabel="Close form builder" size="wide" onClose={() => setAuthorOpen(false)}>
+    {requestOpen && <FocusedSheet label="Use existing form" closeLabel="Close form request" size="wide" onClose={() => setRequestOpen(false)}>
       <div className="cs-sheet-heading">
-        <span className="eyebrow">Issue form</span>
-        <h2>Create linked form</h2>
-        <p>Create a form for {matterReference}. Approval is required before sending.</p>
-      </div>
-      <FormBuilder
-        saveDraft={(input) => createLibraryFormDraft({ ...input, origin: { type: "MATTER", id: matterID } })}
-        onSaved={(form) => {
-          setAuthorOpen(false);
-          setCreatedDraft(form);
-          setNotice("Form draft created.");
-          setLinkedFormsReload((value) => value + 1);
-        }}
-        onCancel={() => setAuthorOpen(false)}
-        allowIncompleteComplianceDraft
-      />
-    </FocusedSheet>}
-
-    {requestOpen && <FocusedSheet label="Request employee form" closeLabel="Close employee form request" size="wide" onClose={() => setRequestOpen(false)}>
-      <div className="cs-sheet-heading">
-        <span className="eyebrow">Employee form request</span>
-        <h2>Request employee form</h2>
-        <p>Choose the approved form, employee and deadline for {matterReference}.</p>
+        <span className="eyebrow">Form request</span>
+        <h2>Send existing form</h2>
+        <p>Choose the form, recipient and response deadline for {matterReference}.</p>
       </div>
       <DistributionComposer
         subject={{ type: "MATTER", id: matterID, label: matterReference }}
@@ -154,7 +127,7 @@ export function MatterInternalFormRequestsPanel({ matterID, matterReference }: P
         onCancel={() => setRequestOpen(false)}
         onCreated={() => {
           setRequestOpen(false);
-          setNotice("Employee form request created.");
+          setNotice("Form request created.");
           setActivityRefreshKey((value) => value + 1);
         }}
       />

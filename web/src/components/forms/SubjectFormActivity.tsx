@@ -146,7 +146,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
         ? <EmptyState compact population="No requests sent" title="No requests sent" description="Send an approved form to an employee to collect evidence."/>
         : <p>No form requests recorded.</p>)}
       {requests.length > 0 && <ul>{requests.map((request) => <li key={request.id}>
-        <div><strong>{request.title}</strong><span>{distributionStatusLabel(request.status)} · Due {formatDate(request.deadline)}</span></div>
+        <div><strong>{request.title}</strong><span>{requestDeadlineLabel(request.deadline)}</span></div>
         <div className="subject-form-activity__actions">
           <StatusBadge tone={distributionTone(request.status)}>{distributionStatusLabel(request.status)}</StatusBadge>
           <ActionLink href={`#forms?section=sent-forms&distribution=${encodeURIComponent(request.id)}`}>Open sent form</ActionLink>
@@ -166,7 +166,7 @@ export function SubjectFormActivity({ subjectType, subjectID, subjectLabel, limi
       {responses.length > 0 && <ul>{responses.map((response) => <li key={response.id}>
         <div>
           <strong>{response.title}</strong>
-          <span>{responseStateLabel(response)} · Submitted {formatDate(response.completed_at)}</span>
+          <span>{submissionLabel(response.completed_at)}{responseStateLabel(response) === "Final" ? "" : ` · ${responseStateLabel(response)}`}</span>
         </div>
         <div className="subject-form-activity__actions">
           <StatusBadge tone={concernTone(response.score)}>{concernText(response.score)}</StatusBadge>
@@ -210,8 +210,19 @@ function responseStateLabel(response: CompletedResponseSummary) {
   return "Final";
 }
 
-function formatDate(value: string) {
+function formatDate(value: string): string | null {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown date";
-  return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(date);
+  return Number.isNaN(date.getTime())
+    ? null
+    : new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" }).format(date);
+}
+
+function requestDeadlineLabel(value: string) {
+  const date = formatDate(value);
+  return date ? `Due ${date}` : "Deadline not set";
+}
+
+function submissionLabel(value: string) {
+  const date = formatDate(value);
+  return date ? `Submitted ${date}` : "Submission date unavailable";
 }
