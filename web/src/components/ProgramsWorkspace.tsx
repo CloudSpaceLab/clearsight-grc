@@ -213,7 +213,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
               replaceWorkspaceHash(workspaceHash("#programs", { ...programFilters, overall_state: item.state }));
             }}>{item.count} {item.label} <span aria-hidden="true">→</span></button>)}
         </div>}
-        <p>{nextCursor ? "More programs available. " : ""}Counts reflect the programs shown.</p>
+        <p>Displayed programs only{nextCursor ? " · More available" : ""}</p>
       </div>
       <div className="program-portfolio-visual__issues">
         <header className="program-portfolio-visual__heading">

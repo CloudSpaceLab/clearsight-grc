@@ -30,7 +30,7 @@ export function RecordSnapshotControl({ recordLabel, loadSnapshot }: Props) {
   }
 
   return <details className="record-snapshot-control"><summary>View an earlier {recordLabel} record</summary>
-    <p>This retrieves the stored record as it stood at the selected date and time. It is not a list of changes.</p>
+    <p>View the record at the selected time, not its change history.</p>
     <label><span>Date and time</span><input type="datetime-local" value={at} onChange={(event) => setAt(event.target.value)}/></label>
     <button className="secondary-button" type="button" disabled={!at || state === "loading"} onClick={() => void viewSnapshot()}>{state === "loading" ? "Loading record…" : "View earlier record"}</button>
     {state === "unavailable" && <p role="alert">The earlier {recordLabel} record could not be loaded for that date and time. Choose another time or retry.</p>}

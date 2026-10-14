@@ -90,15 +90,15 @@ export function ProgramVendorFollowUp({ programID }: { programID: string }) {
     {error && <div role="alert"><p>{error}</p><Button onPress={() => setGeneration(value => value + 1)}>Retry vendor follow-up</Button></div>}
     {summary && <>
       {summary.relationships === 0 ? <p>No active vendor relationships are linked to this Program. Link a relationship from the vendor register.</p>
-        : summary.forms === 0 ? <p>No expired documents or recorded response gaps were identified in submitted forms across {summary.relationships} linked {summary.relationships === 1 ? "relationship" : "relationships"}. Missing expiry dates are not counted as current.</p>
+        : summary.forms === 0 ? <p>No expired documents or response gaps found across {summary.relationships} linked {summary.relationships === 1 ? "relationship" : "relationships"}. Documents without expiry dates are excluded.</p>
         : <><p><strong>{summary.forms} {summary.forms === 1 ? "form" : "forms"} across {summary.vendors.length} {summary.vendors.length === 1 ? "vendor need" : "vendors need"} follow-up.</strong> {[
           summary.documents && `${summary.documents} expired ${summary.documents === 1 ? "document" : "documents"}`,
           summary.responseFields && `${summary.responseFields} response ${summary.responseFields === 1 ? "field" : "fields"} to update`,
-          summary.bankFindings && `${summary.bankFindings} bank-assessed ${summary.bankFindings === 1 ? "finding" : "findings"}`,
+          summary.bankFindings && `${summary.bankFindings} assessed ${summary.bankFindings === 1 ? "finding" : "findings"}`,
           summary.currencyUnknown && `${summary.currencyUnknown} outdated ${summary.currencyUnknown === 1 ? "response" : "responses"} requiring review`,
         ].filter(Boolean).join(" · ")}</p>
         <details><summary>Review affected vendors</summary><ul>{summary.vendors.map(vendor => <li key={vendor.id}><strong>{vendor.name}</strong><span>{vendor.forms} {vendor.forms === 1 ? "form" : "forms"}</span>{vendor.relationships.map(id => <a key={id} href={`#vendors/register/${encodeURIComponent(id)}`}>Review vendor</a>)}</li>)}</ul></details></>}
-      <small>{summary.checkedAt && <>Form checks observed <time dateTime={summary.checkedAt}>{new Date(summary.checkedAt).toLocaleString()}</time> · </>}{summary.relationships} linked {summary.relationships === 1 ? "relationship" : "relationships"}</small>
+      <small>{summary.checkedAt && <>Forms checked <time dateTime={summary.checkedAt}>{new Date(summary.checkedAt).toLocaleString()}</time> · </>}{summary.relationships} linked {summary.relationships === 1 ? "relationship" : "relationships"}</small>
     </>}
   </section>;
 }
