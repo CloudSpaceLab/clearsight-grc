@@ -230,13 +230,13 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
 
   return <section className="vendor-relationship-links" aria-labelledby={headingID} aria-hidden={linking ? "true" : undefined} data-testid={`vendor-links-${targetType}-${targetID}`}>
     <div className="section-heading-row">
-      <div><h2 id={headingID}>Related vendors</h2><p>Vendor relationships connected to this {targetName} and the recorded purpose for each link.</p></div>
+      <div><h2 id={headingID}>Related vendors</h2><p>Vendor relationships and their role in this {targetName}.</p></div>
       {loadState === "ready" && <button ref={openButton} type="button" className="primary-button" onClick={() => { if (!linking) { setNotice(null); setLinking(true); } }}>Link vendor</button>}
     </div>
     {notice && <p role="status">{notice}</p>}
     {loadState === "loading" && <p aria-live="polite" aria-busy="true">Loading vendor relationships linked to this {targetName}…</p>}
     {loadState === "failed" && <div role="alert"><p>Related vendors could not be loaded for this {targetName}. No link has been changed.</p><button type="button" className="primary-button" onClick={() => void loadLinks()}>Try again</button></div>}
-    {loadState === "ready" && links.length === 0 && <p>No vendor relationships are linked to this {targetName}.</p>}
+    {loadState === "ready" && links.length === 0 && <p className="vendor-link-empty">No related vendors. Use Link vendor to add an existing relationship.</p>}
     {loadState === "ready" && links.length > 0 && <ul className="vendor-link-list">{links.map((value) => { const { link, relationship } = value; return <li key={link.id} className={link.state === "ENDED" ? "ended" : undefined}>
       <div className="vendor-link-identity">{relationship ? <><strong>{relationship.vendor.legal_name}</strong><span>{relationship.relationship.service_name}</span></> : <><strong>Vendor details unavailable</strong><span>The linked relationship could not be loaded in the current scope.</span></>}</div>
       <div className="vendor-link-purpose"><span>{link.purpose_label}</span>{link.state === "ENDED" ? <small>Link ended</small> : <button type="button" className="text-button" aria-label={`End link for ${relationship?.vendor.legal_name ?? "vendor relationship"}`} onClick={() => { setEndingLinkID(link.id); setEndReason(""); setEndError(""); setNotice(null); }}>End link</button>}</div>
