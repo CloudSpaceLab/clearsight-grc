@@ -447,6 +447,8 @@ func writeFormsError(w http.ResponseWriter, err error) {
 		writeCommandAuthorizationError(w, err)
 	case errors.Is(err, commandauth.ErrGuardUnavailable):
 		httpx.WriteError(w, http.StatusServiceUnavailable, "form_authority_unavailable", "The current approval route could not be checked. No form was changed.")
+	case errors.Is(err, monitoring.ErrFormSubjectLinksUnavailable):
+		httpx.WriteError(w, http.StatusServiceUnavailable, "form_links_unavailable", "Form links are temporarily unavailable.")
 	case errors.Is(err, monitoring.ErrFormOriginValidationUnavailable):
 		httpx.WriteError(w, http.StatusServiceUnavailable, "form_origin_unavailable", "The originating issue could not be checked. No form was changed.")
 	case errors.Is(err, monitoring.ErrNotFound):
