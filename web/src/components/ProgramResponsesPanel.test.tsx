@@ -94,8 +94,8 @@ describe("Program submitted data panel", () => {
     render(<ProgramResponsesPanel programID="program-1"/>);
 
     expect(await screen.findByText("No data collected yet")).toBeTruthy();
-    expect(screen.getByText("Completed responses for this Program")).toBeTruthy();
-    expect(screen.getByText("No completed responses are recorded for this Program. Start a form collection.")).toBeTruthy();
+    expect(screen.getByText("Submitted responses for this Program")).toBeTruthy();
+    expect(screen.getByText("No submitted responses. Start a form collection.")).toBeTruthy();
     expect(screen.queryByRole("row")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open Data collection" }));
     expect(window.location.hash).toBe("#programs/program-1/monitoring");
