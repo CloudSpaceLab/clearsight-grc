@@ -28,11 +28,11 @@ export type LockedDistributionSubject = {
   label: string;
 };
 
-type Props = { onCreated?: (value: DistributionDetail) => void; onCancel?: () => void; subject?: LockedDistributionSubject; internalOnly?: boolean; scopedDelivery?: {
+type Props = { onCreated?: (value: DistributionDetail) => void; onCancel?: () => void; subject?: LockedDistributionSubject; internalOnly?: boolean; initialTemplate?: { id: string; version: number }; scopedDelivery?: {
   label: string; recipients: ReactNode; ready: boolean; submitLabel: string; onSubmit: (settings: DistributionSettings) => Promise<void>;
 } };
 
-export function DistributionComposer({ onCreated, onCancel, subject, internalOnly = false, scopedDelivery }: Props) {
+export function DistributionComposer({ onCreated, onCancel, subject, internalOnly = false, initialTemplate, scopedDelivery }: Props) {
   const [templates, setTemplates] = useState<ReusableFormTemplateRef[]>([]);
   const [templateKey, setTemplateKey] = useState("");
   const [subjectType, setSubjectType] = useState("CONTROL");
@@ -56,14 +56,17 @@ export function DistributionComposer({ onCreated, onCancel, subject, internalOnl
     void loadReusableFormTemplateRefs().then((values) => {
       if (!active) return;
       setTemplates(values);
-      if (values[0] && !subject) {
-        setTemplateKey(`${values[0].id}:${values[0].version}`);
-        setTitle(values[0].name);
-        setPurpose(`Provide the information and evidence requested in ${values[0].name}.`);
+      const preferred = initialTemplate
+        ? values.find((value) => value.id === initialTemplate.id && value.version === initialTemplate.version)
+        : !subject ? values[0] : undefined;
+      if (preferred) {
+        setTemplateKey(`${preferred.id}:${preferred.version}`);
+        setTitle(preferred.name);
+        setPurpose(`Provide the information and evidence requested in ${preferred.name}.`);
       }
     }).catch((cause) => active && setError(cause instanceof Error ? cause.message : "Active form revisions could not be loaded."));
     return () => { active = false; };
-  }, [subject?.id]);
+  }, [subject?.id, initialTemplate?.id, initialTemplate?.version]);
 
   useEffect(() => {
     if (internalQuery.trim().length < 2) {
