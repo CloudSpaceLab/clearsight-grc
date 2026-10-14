@@ -353,7 +353,7 @@ describe("Matter record workspace", () => {
     await openRecordTab("Actions");
     expect(screen.getAllByText("Privacy Program Owner").length).toBeGreaterThan(0);
     expect(screen.getByText("Annual Return Lead")).toBeTruthy();
-    expect(screen.getByText("Some assignee names could not be loaded.")).toBeTruthy();
+    expect(screen.getByText("Some assignee names unavailable.")).toBeTruthy();
     expect(screen.queryByText(/terminal-owner-id|terminal-action-owner-id/)).toBeNull();
     expect(screen.queryByRole("button", { name: /Edit issue details|Change issue owner|Edit Update the annual return evidence checklist|Change owner for Update the annual return evidence checklist|Update status for Update the annual return evidence checklist/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change issue status" })).toBeNull();

@@ -10,7 +10,7 @@ describe("collection policy form", () => {
     expect((screen.getByLabelText("Response expires after") as HTMLInputElement).value).toBe("12");
     expect((screen.getByLabelText("Renewal starts") as HTMLInputElement).value).toBe("30");
     expect((screen.getByLabelText("Reminders during renewal") as HTMLInputElement).value).toBe("3");
-    expect(screen.getByText("Responses will be renewed 30 days before they reach 12 months old. The initial request is followed by up to 3 reminders.")).toBeTruthy();
+    expect(screen.queryByText(/Responses will be renewed/)).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Add collection to Program" }));
     await waitFor(() => expect(onSave).toHaveBeenCalledWith({ validity_months: 12, renewal_window_days: 30, reminder_count: 3 }));
