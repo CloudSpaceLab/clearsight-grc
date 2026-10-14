@@ -24,7 +24,7 @@ CREATE TABLE form_subject_links (
     FOREIGN KEY (ended_by, tenant_id) REFERENCES principals(id, tenant_id),
     CONSTRAINT form_subject_links_end_ck CHECK (
       (ended_at IS NULL AND ended_by IS NULL AND end_reason IS NULL)
-      OR (ended_at IS NOT NULL AND ended_by IS NOT NULL
+      OR (ended_at IS NOT NULL AND ended_by IS NOT NULL AND end_reason IS NOT NULL
           AND length(btrim(end_reason)) BETWEEN 1 AND 1000)
     )
 );
