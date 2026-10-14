@@ -284,7 +284,7 @@ export function SystemActivityPanel({ mode }: { mode: Mode }) {
       <div className="system-audit-export-dialog">
         <div><span className="eyebrow">Governed export</span><h2>Export the applied audit view</h2><p>Export audit events as of the selected time. Each export supports up to 10,000 events; narrow the filters if the limit is exceeded.</p></div>
         <SelectField label="Export format" value={exportFormat} placeholder="Choose a format" options={exportFormatOptions} allowsEmpty={false} onChange={(value) => { if (value) setExportFormat(value); }}/>
-        <Notice>Apply filters before exporting changes. <strong>Apply filters</strong>. Export files and their checksum manifest expire after seven days.</Notice>
+        <Notice>Apply filters before exporting. Export files and their checksum manifest expire after seven days.</Notice>
         {exportState === "error" && exportNotice && <Notice tone="error">{exportNotice.text}</Notice>}
         <div className="form-actions">
           <Button variant="secondary" isDisabled={exportState === "creating" || exportState === "downloading"} onPress={() => setExportOpen(false)}>Cancel</Button>

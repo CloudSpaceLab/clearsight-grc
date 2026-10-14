@@ -58,7 +58,7 @@ export function VendorFormRequest({ targets, onClose, onUpdated }: { targets: Ve
             {phase === "receipt" && !result && <span>No receipt returned. Retry this target to check its request.</span>}
           </li>;
         })}</ul>
-        <Notice tone="info">Creating a request does not mean the email was delivered, the vendor responded or the evidence was accepted.</Notice>
+        <Notice tone="info">Request created. Delivery, response and evidence acceptance are not yet confirmed.</Notice>
         <div className="vendor-form-request__actions">{!attempted && <Button onPress={() => setPhase("setup")}>Edit request</Button>}{pending.length > 0 ? <Button variant="primary" isLoading={busy} onPress={() => void dispatch()}>{phase === "receipt" ? "Retry failed requests" : attempted ? "Retry requests" : "Send request"}</Button> : <Button variant="primary" onPress={onClose}>Return to vendor forms</Button>}</div>
       </>}
     </div>

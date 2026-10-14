@@ -33,23 +33,23 @@ export function AIGovernancePanel({ policies, policyState, workloads, workloadSt
 
     <div className="ai-governance-grid">
       <article className="ai-governance-card">
-        <div className="ai-governance-card-title"><div><h3>Policy revisions</h3><p>Shadow precedes enforcement; maker and checker remain distinct.</p></div></div>
+        <div className="ai-governance-card-title"><div><h3>Policy revisions</h3><p>Shadow testing · Independent approval required.</p></div></div>
         <PolicyList policies={policies} state={policyState}/>
       </article>
       <article className="ai-governance-card">
-        <div className="ai-governance-card-title"><div><h3>Workloads</h3><p>Server-verified identity, approved models and bounded request budgets.</p></div></div>
+        <div className="ai-governance-card-title"><div><h3>Workloads</h3><p>Approved models and request limits.</p></div></div>
         <WorkloadList workloads={workloads} state={workloadState}/>
       </article>
     </div>
 
-    <p className="ai-governance-note">Routine allowed traffic does not create Today work. A governed action that requires approval must be backed by an approved Matter decision, and its execution grant is bound to the exact action and can be used once.</p>
+    <p className="ai-governance-note">AI actions requiring approval need an approved issue decision. Each execution grant is single-use.</p>
   </section>;
 }
 
 function PolicyList({ policies, state }: { policies: AIGovernancePolicy[]; state: LoadState }) {
   if (state === "loading") return <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading AI policies…</div>;
   if (state === "unavailable") return <EmptyState kind="unavailable" label="AI policies" title="AI policies are unavailable" description="Try again before changing or relying on an AI enforcement rollout."/>;
-  if (!policies.length) return <EmptyState label="AI policies" title="No AI policies in this scope" description="No governed model policy has been registered for the current organization."/>;
+  if (!policies.length) return <EmptyState label="AI policies" title="No AI policies in this scope" description="No AI policies registered for this organization."/>;
   return <div className="ai-governance-list">{policies.map((policy) => <div className="ai-governance-row" key={policy.id}>
     <div><strong>{policy.name}</strong><span>{policy.code} · v{policy.version}</span></div>
     <div className="ai-governance-badges"><StatusBadge tone={rolloutTone(policy.rollout_mode)}>{humanize(policy.rollout_mode)}</StatusBadge><StatusBadge tone={stateTone(policy.status)}>{humanize(policy.status)}</StatusBadge></div>
@@ -59,7 +59,7 @@ function PolicyList({ policies, state }: { policies: AIGovernancePolicy[]; state
 function WorkloadList({ workloads, state }: { workloads: AIGovernanceWorkload[]; state: LoadState }) {
   if (state === "loading") return <div className="workspace-loading compact" aria-live="polite" aria-busy="true">Loading AI workloads…</div>;
   if (state === "unavailable") return <EmptyState kind="unavailable" label="AI workloads" title="AI workloads are unavailable" description="Try again before relying on the registered model allow-list or request budgets."/>;
-  if (!workloads.length) return <EmptyState label="AI workloads" title="No AI workloads in this scope" description="No workload or agent is registered for governed model access."/>;
+  if (!workloads.length) return <EmptyState label="AI workloads" title="No AI workloads in this scope" description="No AI workloads registered for this organization."/>;
   return <div className="ai-governance-list">{workloads.map((workload) => <div className="ai-governance-row ai-workload-row" key={workload.id}>
     <div><strong>{workload.name}</strong><span>{workload.environment || "Environment not set"} · {workload.purpose}</span><small>{workload.allowed_models.join(", ")} · {workload.requests_per_minute}/min · {workload.max_concurrent} concurrent</small></div>
     <div className="ai-governance-badges"><StatusBadge tone={stateTone(workload.state)}>{humanize(workload.state)}</StatusBadge><span>v{workload.version}</span></div>

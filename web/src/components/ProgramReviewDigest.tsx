@@ -88,8 +88,8 @@ export function ProgramReviewDigest({ aggregate, initialDigest, canAcknowledge =
     <h3 id={`program-review-${program.id}`}>{heading}</h3>
     {noBaseline
       ? canAcknowledgeCurrent
-        ? <p>Review the current exceptions, then mark this status reviewed. Future visits will highlight changes made after this review.</p>
-        : <p>The current reviewer must review the current exceptions and record the first review baseline. Future visits will highlight changes made after that review.</p>
+        ? <p>Review exceptions and mark the status reviewed.</p>
+        : <p>Review exceptions and record the first review.</p>
       : acceptedLabel && <p>Last reviewed {acceptedLabel}. {changed ? "Changes made after that review are highlighted here." : "The Program has not changed since that review."}</p>}
 
     {changed && digest.changes.length > 0 && <div className="status-reasons">
@@ -98,7 +98,7 @@ export function ProgramReviewDigest({ aggregate, initialDigest, canAcknowledge =
       {digest.changes_omitted > 0 && <p>{digest.changes_omitted} additional change{digest.changes_omitted === 1 ? " is" : "s are"} available in Program history.</p>}
     </div>}
 
-    {changed && digest.history_truncated && <p className="inline-notice">This summary does not include older Program changes. Open Program history to review them.</p>}
+    {changed && digest.history_truncated && <p className="inline-notice">Earlier changes are available in Program history.</p>}
 
     {(noBaseline || changed) && digest.current_exceptions.length > 0 && <div className="status-reasons">
       <h4>{noBaseline ? "Current exceptions" : "Exceptions still current"}</h4>
