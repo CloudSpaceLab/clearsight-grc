@@ -1,33 +1,23 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
-import { createLibraryFormDraft, loadFormTemplatePage } from "../formsApi";
+import { loadFormTemplatePage } from "../formsApi";
 import type { FormLibraryItem, FormTemplate } from "../formsTypes";
 import { MatterInternalFormRequestsPanel } from "./MatterInternalFormRequestsPanel";
 
-vi.mock("../formsApi", () => ({
-  createLibraryFormDraft: vi.fn(),
-  loadFormTemplatePage: vi.fn(),
-}));
-vi.mock("./forms/DistributionComposer", () => ({ DistributionComposer: () => null }));
-vi.mock("./forms/SubjectFormActivity", () => ({ SubjectFormActivity: ({ leading }: { leading?: ReactNode }) => <div>{leading}<span>Form activity</span></div> }));
-vi.mock("./FormBuilder", () => ({
-  FormBuilder: ({ saveDraft, onSaved, onCancel }: {
-    saveDraft: (input: Record<string, unknown>) => Promise<unknown>;
-    onSaved: (form: unknown) => void;
-    onCancel: () => void;
+vi.mock("../formsApi", () => ({ loadFormTemplatePage: vi.fn() }));
+vi.mock("./forms/DistributionComposer", () => ({
+  DistributionComposer: ({ subject, internalOnly, onCreated }: {
+    subject: { type: string; id: string; label: string };
+    internalOnly: boolean;
+    onCreated: () => void;
   }) => <div>
-    <button type="button" onClick={() => void saveDraft({
-      code: "ISSUE-CHECK",
-      name: "Issue evidence check",
-      purpose: "Collect current issue evidence.",
-      presentation: { default_mode: "AUTOMATIC", allow_mode_switch: false },
-      sections: [{ id: "evidence", title: "Evidence" }],
-      fields: [{ id: "state", section_id: "evidence", label: "Current state", type: "short_text", required: true }],
-    }).then(onSaved)}>Save linked form</button>
-    <button type="button" onClick={onCancel}>Cancel builder</button>
+    <span>{`${subject.type}:${subject.id}`}</span>
+    <span>{internalOnly ? "Employees only" : "External recipients allowed"}</span>
+    <button type="button" onClick={onCreated}>Send approved form</button>
   </div>,
 }));
+vi.mock("./forms/SubjectFormActivity", () => ({ SubjectFormActivity: ({ leading }: { leading?: ReactNode }) => <div>{leading}<span>Form activity</span></div> }));
 
 const createdDraft: FormTemplate = {
   id: "form-a",
@@ -67,36 +57,28 @@ function linkedItem(id: string, name: string, status: FormTemplate["status"], ve
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(createLibraryFormDraft).mockResolvedValue(createdDraft);
   vi.mocked(loadFormTemplatePage).mockResolvedValue({ items: [] });
 });
 
-it("creates an ordinary form draft with the current issue as immutable origin and refreshes linked forms", async () => {
+it("uses an existing form for an employee request without creating a template", async () => {
   render(<MatterInternalFormRequestsPanel matterID="matter-a" matterReference="MAT-82BF"/>);
 
   await waitFor(() => expect(loadFormTemplatePage).toHaveBeenCalledWith(
     { origin_type: "MATTER", origin_id: "matter-a", limit: 6 },
     expect.any(AbortSignal),
   ));
-  expect(await screen.findByText("No linked forms yet")).toBeTruthy();
-
+  expect(screen.queryByText("No linked forms yet")).toBeNull();
   expect(screen.getByRole("group", { name: "Form actions" })).toBeTruthy();
-  expect(screen.getByText("Send an approved form to an employee.")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Create linked form" }));
-  expect(await screen.findByRole("heading", { name: "Create linked form" })).toBeTruthy();
-  expect(screen.queryByText("matter-a")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Create linked form" })).toBeNull();
 
-  fireEvent.click(screen.getByRole("button", { name: "Save linked form" }));
+  fireEvent.click(screen.getByRole("button", { name: "Use existing form" }));
+  expect(await screen.findByRole("heading", { name: "Send existing form" })).toBeTruthy();
+  expect(screen.getByText("MATTER:matter-a")).toBeTruthy();
+  expect(screen.getByText("Employees only")).toBeTruthy();
 
-  await waitFor(() => expect(createLibraryFormDraft).toHaveBeenCalledTimes(1));
-  expect(vi.mocked(createLibraryFormDraft).mock.calls[0]?.[0]).toMatchObject({
-    code: "ISSUE-CHECK",
-    origin: { type: "MATTER", id: "matter-a" },
-  });
-  expect(await screen.findByText("Form draft created.")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Open form draft" }).getAttribute("href")).toBe("#forms/form-a");
-  await waitFor(() => expect(loadFormTemplatePage).toHaveBeenCalledTimes(2));
-  expect(screen.queryByRole("button", { name: "Save linked form" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Send approved form" }));
+  expect(await screen.findByText("Form request created.")).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Send existing form" })).toBeNull();
 });
 
 it("shows bounded linked Forms with lifecycle and exact handoffs, then appends the next page", async () => {
@@ -140,7 +122,7 @@ it("keeps issue work available and retries a failed linked-forms read locally", 
 
   expect(await screen.findByText(/Linked forms are unavailable\. Other issue work remains available\./)).toBeTruthy();
   expect(screen.getByText("Form activity")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Create linked form" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Use existing form" })).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Retry linked forms" }));
   expect(await screen.findByText("Recovered linked form")).toBeTruthy();
