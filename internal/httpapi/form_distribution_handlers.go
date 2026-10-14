@@ -234,7 +234,7 @@ func (a *API) supersedeFormDistribution(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	httpx.WriteError(w, http.StatusConflict, "supersede_preview_required", "Preview compatible answers against the replacement form revision before confirming supersession.")
+	httpx.WriteError(w, http.StatusConflict, "supersede_preview_required", "Review which answers can carry forward before replacing the sent form.")
 }
 func (a *API) startFormAccess(w http.ResponseWriter, r *http.Request) {
 	access, ok := a.formDistributionAccessService(w)

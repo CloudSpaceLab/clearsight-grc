@@ -125,7 +125,7 @@ func (a *API) rejectFormProposal(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) formProposalService(w http.ResponseWriter) (*monitoring.FormProposalService, bool) {
 	if a.deps.FormProposals == nil {
-		httpx.WriteError(w, http.StatusServiceUnavailable, "form_proposals_unavailable", "Form proposal generation is not configured.")
+		httpx.WriteError(w, http.StatusServiceUnavailable, "form_proposals_unavailable", "Form suggestions unavailable.")
 		return nil, false
 	}
 	return a.deps.FormProposals, true
@@ -140,9 +140,9 @@ func writeFormProposalError(w http.ResponseWriter, err error) {
 	case errors.Is(err, commandauth.ErrGuardUnavailable):
 		httpx.WriteError(w, http.StatusServiceUnavailable, "form_authority_unavailable", "The current form authority could not be checked. No draft was changed.")
 	case errors.Is(err, monitoring.ErrFormAIUnavailable):
-		httpx.WriteError(w, http.StatusServiceUnavailable, "form_ai_unavailable", "Governed AI form authoring is not available. Manual and deterministic authoring remain available.")
+		httpx.WriteError(w, http.StatusServiceUnavailable, "form_ai_unavailable", "AI form suggestions unavailable. Use the form builder.")
 	case errors.Is(err, monitoring.ErrNotFound), errors.Is(err, documentimport.ErrNotFound):
-		httpx.WriteError(w, http.StatusNotFound, "form_proposal_not_found", "The form proposal or its exact source document was not found in this legal entity.")
+		httpx.WriteError(w, http.StatusNotFound, "form_proposal_not_found", "The form proposal or source document is unavailable in this legal entity.")
 	case errors.Is(err, monitoring.ErrFormProposalSourceChanged):
 		httpx.WriteError(w, http.StatusConflict, "form_proposal_source_changed", "The source document changed. Reload the import and create a new proposal.")
 	case errors.Is(err, monitoring.ErrFormProposalState):
