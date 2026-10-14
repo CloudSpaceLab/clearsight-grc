@@ -337,7 +337,7 @@ describe("DocumentImportWorkspace", () => {
     render(<DocumentImportWorkspace/>);
     expect(await screen.findByRole("heading", { name: "No documents imported" })).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "What should reviewers look for?" })).toBeTruthy();
-    expect(screen.getByText(/Scanned PDFs may require OCR/)).toBeTruthy();
+    expect(screen.getByText("Import TXT, Markdown, CSV, DOCX, XLSX or PDF. Scanned PDFs may require OCR.")).toBeTruthy();
   });
 
   it("does not show import claims when the service is unavailable", async () => {
