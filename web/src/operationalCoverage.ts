@@ -7,6 +7,8 @@ type OperationalCoverageEntry = {
 
 export const matterOperationalCoverage = {
   "matter.create": { surface: "MattersWorkspace", states: ["list", "empty", "create"], testedBy: ["MatterSetupWorkspace.test.tsx"] },
+  "forms.subject.link": { surface: "MatterFormLinksPanel", states: ["approved_forms", "already_linked", "linked_without_send", "retry"], testedBy: ["FormLinkPicker.test.tsx", "MatterFormLinksPanel.test.tsx"] },
+  "forms.subject.unlink": { surface: "MatterFormLinksPanel", states: ["linked", "reason_required", "ended", "history_preserved"], testedBy: ["MatterFormLinksPanel.test.tsx"] },
   "matter.form-remediation.create": { surface: "MatterFormRemediationPanel", states: ["unbound", "approved_form_selected", "mapped"], testedBy: ["MatterFormRemediationPanel.test.tsx"] },
   "matter.form-remediation.send": { surface: "MatterFormRemediationPanel", states: ["ready_to_send", "sent", "existing_request"], testedBy: ["MatterFormRemediationPanel.test.tsx"] },
   "matter.form-remediation.apply": { surface: "MatterFormRemediationPanel", states: ["response_ready", "poor_score", "applied_for_outcome_check"], testedBy: ["MatterFormRemediationPanel.test.tsx"] },
