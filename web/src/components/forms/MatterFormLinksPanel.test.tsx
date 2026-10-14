@@ -32,6 +32,15 @@ it("loads issue-linked forms, opens the exact Forms record and keeps the picker 
   expect(screen.getByText("Form picker open")).toBeTruthy();
 });
 
+it("opens a request for the exact linked revision without sending on link", async () => {
+  const onRequestResponse = vi.fn();
+  render(<MatterFormLinksPanel matterID="matter-a" pickerOpen={false} onClosePicker={vi.fn()} onLinkedIDsChange={vi.fn()} onRequestResponse={onRequestResponse}/>);
+  expect(await screen.findByText("Risk evidence")).toBeTruthy();
+  expect(onRequestResponse).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Request response" }));
+  expect(onRequestResponse).toHaveBeenCalledWith(link);
+});
+
 it("keeps the form intact and confirms unlinking with a reason", async () => {
   render(<MatterFormLinksPanel matterID="matter-a" pickerOpen={false} onClosePicker={vi.fn()} onLinkedIDsChange={vi.fn()}/>);
   expect(await screen.findByText("Risk evidence")).toBeTruthy();
