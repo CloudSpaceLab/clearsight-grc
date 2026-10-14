@@ -129,7 +129,7 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
       <div>
         <span className="eyebrow">{organizationName}</span>
         <h1>RCSA cycles</h1>
-        <p>First-line assessment and independent challenge for {legalEntityName || "the current legal entity"}.</p>
+        <p>{legalEntityName || "Current legal entity"}</p>
       </div>
     </header>
 
@@ -137,7 +137,7 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
       <div className="rcsa-register__heading">
         <div>
           <h2>Cycles</h2>
-          <p>Review first-line assessments and independent challenges.</p>
+          
         </div>
         <div className="rcsa-register__filter">
           <SelectField
@@ -151,7 +151,7 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
         </div>
       </div>
 
-      {!complete && state !== "error" && <Notice tone="warning">Some cycles are temporarily unavailable. Available cycles remain unchanged.</Notice>}
+      {!complete && state !== "error" && <Notice tone="warning">Some cycles unavailable. Retry to confirm the full register.</Notice>}
       {state === "live" && items.length > 0 && <section className="rcsa-register__position" aria-label="Status of displayed RCSA cycles">
         <div className="rcsa-register__position-heading">
           <div><span className="eyebrow">RCSA</span><h3>Cycle status</h3></div>
@@ -162,7 +162,7 @@ export function RCSAWorkspace({ organizationName, legalEntityName, targetID, onT
           {challengeCount > 0 && status !== "AWAITING_CHALLENGE" && <Button variant="secondary" size="compact" onPress={() => { setStatus("AWAITING_CHALLENGE"); setCursorStack([]); }}>Review {challengeCount} awaiting challenge</Button>}
           {firstLineCount > 0 && status !== "ASSESSMENT_OPEN" && <Button variant="quiet" size="compact" onPress={() => { setStatus("ASSESSMENT_OPEN"); setCursorStack([]); }}>Review {firstLineCount} first-line</Button>}
         </div>}
-        <p>{nextCursor ? "More cycles available. " : ""}Counts reflect the cycles shown.</p>
+        <p>Counts apply to displayed cycles only.</p>
       </section>}
 
       {state === "error" && <EmptyState population="RCSA cycles" title="RCSA cycles could not be loaded" description="The cycle register is unavailable." action={<Button variant="secondary" onPress={() => setRetry((value) => value + 1)}>Try again</Button>} role="alert"/>}
@@ -220,7 +220,7 @@ function RCSACycleDetailView({ detail, onOpenEvidence, onOpenMatter }: { detail:
       <StatusBadge tone={rcsaStatusTone(detail.cycle.status)}>{rcsaStatusLabel(detail.cycle.status)}</StatusBadge>
     </header>
 
-    {!detail.complete && <Notice tone="warning">Some cycle context is unavailable. The frozen cycle record remains unchanged.</Notice>}
+    {!detail.complete && <Notice tone="warning">Some cycle details unavailable.</Notice>}
 
     <section className="rcsa-detail__facts" aria-label="Cycle facts">
       <div><span>Assessment period</span><strong>{formatRCSAPeriod(detail.assessment_period_start, detail.assessment_period_end)}</strong></div>
