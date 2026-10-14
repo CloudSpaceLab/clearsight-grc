@@ -32,7 +32,7 @@ export function ProvisioningSourceComposer({ open, busy, onClose, onCreate }: So
     <section className="access-composer" aria-labelledby="identity-source-composer-title">
       <span className="eyebrow">Directory provisioning</span>
       <h3 id="identity-source-composer-title">Add provisioning source</h3>
-      <p>Connect a SCIM source without changing approval authority. The provisioning token is shown only once after creation.</p>
+      <p>Connect a SCIM directory. Approval rights stay unchanged; the token is shown once.</p>
       <form onSubmit={(event) => void submit(event)}>
         <label>Code<input value={code} onChange={(event) => setCode(event.target.value)} required placeholder="ENTRA"/></label>
         <label>OIDC issuer <span>(optional correlation)</span><input value={issuer} onChange={(event) => setIssuer(event.target.value)} placeholder="https://id.example.com"/></label>
@@ -73,7 +73,7 @@ export function GroupRoleBindingComposer({ open, busy, groups, roles, onClose, o
     <section className="access-composer" aria-labelledby="identity-binding-composer-title">
       <span className="eyebrow">Workspace access</span>
       <h3 id="identity-binding-composer-title">Add group → role mapping</h3>
-      <p>Map one connected directory group to a workspace role. Material decision authority remains governed separately.</p>
+      <p>Map a directory group to a workspace role. Approval rights are managed under Authority & routing.</p>
       <form onSubmit={(event) => void submit(event)}>
         <label>Directory group<select required value={groupID} onChange={(event) => setGroupID(event.target.value)}><option value="">Choose group</option>{groups.map((group) => <option value={group.id} key={group.id}>{group.display_name} · {group.source_code}</option>)}</select></label>
         <label>Role<select required value={roleID} onChange={(event) => setRoleID(event.target.value)}><option value="">Choose role</option>{roles.map((role) => <option value={role.id} key={role.id}>{role.code} · {role.capabilities.join(", ") || "no workspace permissions"}</option>)}</select></label>

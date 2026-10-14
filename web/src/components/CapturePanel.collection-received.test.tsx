@@ -116,7 +116,7 @@ describe("already received vendor documents in respondent capture", () => {
     render(<CapturePanel request={request} external onSubmit={onSubmit} workspacePersistence={{ key: "partial-document", initialAnswers: draft, initialPresentationMode: "CLASSIC", saveState: "saved_server", onChange: vi.fn(), onFlush: vi.fn().mockResolvedValue(true), onRetry: vi.fn() }}/>);
     expect(screen.getByText("Document received")).toBeTruthy();
     expect((screen.getByRole("textbox", { name: "Document type" }) as HTMLInputElement).value).toBe("Operating certificate");
-    expect(screen.getByText("Document draft retained. Complete it to send another document, or remove it to use the received document.")).toBeTruthy();
+    expect(screen.getByText("Finish the replacement document or remove the draft to use the received file.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Remove document draft" }));
     expect(document.querySelector('input[type="file"]')).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));

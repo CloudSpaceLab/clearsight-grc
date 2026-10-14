@@ -98,7 +98,7 @@ export function NotificationPreferences({
 
     <CheckboxField
       label="Quiet hours"
-      description="Optional digest delivery waits until quiet hours end. Critical email is not delayed."
+      description="Digests pause during quiet hours; critical emails continue."
       isSelected={draft.quiet_hours_enabled}
       isDisabled={state === "saving"}
       onChange={(selected) => patch({ quiet_hours_enabled: selected })}

@@ -293,7 +293,7 @@ export function ReportingPage({
       <div className="report-setup-create__preview">
         <span>Output</span>
         <strong>{reportSetupAreaLabel(area)} · {area === "BOARD_BRIEF" ? "Issue brief" : reportSetupFocusLabel(focus)}</strong>
-        <small>{area === "BOARD_BRIEF" ? "Governed PDF · one issue" : "Summary · chart · supporting detail"}</small>
+        <small>{area === "BOARD_BRIEF" ? "PDF · one issue" : "Summary · chart · supporting detail"}</small>
       </div>
 
       <div className="report-setup-create__footer">

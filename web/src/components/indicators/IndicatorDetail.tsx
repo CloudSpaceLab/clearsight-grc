@@ -181,7 +181,7 @@ export function IndicatorDetail({
 
 function ObservationExceptions({ result }: { result: MonitoringResult }) {
   const exceptions = (result.evaluation.rule_results ?? []).filter((rule) => rule.outcome !== "PASS");
-  if (!exceptions.length) return <p className="indicator-detail__observation-clear">No failed or indeterminate checks were recorded for this observation.</p>;
+  if (!exceptions.length) return <p className="indicator-detail__observation-clear">No failed or inconclusive checks recorded.</p>;
   return <div className="indicator-detail__exceptions">
     <h5>Exceptions</h5>
     <ul>{exceptions.map((rule) => <li key={`${rule.rule_id ?? "rule"}:${rule.field_id}`}>

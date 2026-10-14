@@ -84,7 +84,7 @@ export function MatterWorkCommand({ aggregate, task, onUpdated, onCompleted }: P
           rationale: rationale.trim(),
         });
       } else {
-        throw new Error("This work packet does not map to an executable command.");
+        throw new Error("No action available for this work item.");
       }
       onUpdated(updated);
       onCompleted(task.id);
@@ -106,7 +106,7 @@ export function MatterWorkCommand({ aggregate, task, onUpdated, onCompleted }: P
   return <section className="handoff-summary" aria-labelledby={`work-command-${task.id}`}>
     <span className="eyebrow">Assigned action</span>
     <h3 id={`work-command-${task.id}`}>{task.context?.primary_action || task.title}</h3>
-    <p>{task.context?.why_now || "This action is assigned to you by the current workflow and authority policy."}</p>
+    <p>{task.context?.why_now || "Assigned to you."}</p>
     <form className="governed-command-form" onSubmit={submit}>
       {command === "matter.transition" && <p className="governed-command-target"><strong>Next state</strong><span>{matterStatusLabel(target)}</span></p>}
       {(actionCommand || command === "matter.response.transition" || command === "matter.decision.record") && <label><span>{actionCommand ? "Next state" : "Outcome"}</span><select value={target} onChange={(event) => setTarget(event.target.value)} required>{targets.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>}

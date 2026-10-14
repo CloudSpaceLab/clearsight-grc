@@ -177,7 +177,7 @@ export function InsightsWorkspace({
         <div>
           <span className="eyebrow">{organizationName}</span>
           <h1>Insights</h1>
-          <p>Governed Risk posture and selected-period Loss analysis for {scopeLabel}.</p>
+          <p>Risk position and selected-period losses for {scopeLabel}.</p>
         </div>
         {onOpenReports && <Button variant="secondary" onPress={onOpenReports}>Reports</Button>}
       </header>
@@ -217,14 +217,14 @@ export function InsightsWorkspace({
       <div className="section-header insights-indicator__heading">
         <div>
           <h2>{kind === "KRI" ? "Risk indicators" : "Control indicators"}</h2>
-          <p>Native values, approved limits and movement from the current governed indicator population.</p>
+          <p>Indicator values, approved limits and trends.</p>
         </div>
       </div>
 
       {!page.complete && state !== "error" && <Notice tone="warning">Some indicator detail is unavailable in this scope. Available values remain unchanged.</Notice>}
       {page.truncated && <Notice tone="info">More indicators are available on the next page.</Notice>}
       {state === "error" && <EmptyState population="Indicators" title="Indicators could not be loaded" description="The current indicator population is unavailable." action={<Button variant="secondary" onPress={() => setRetry((value) => value + 1)}>Try again</Button>} role="alert"/>}
-      {state === "live" && page.items.length === 0 && <EmptyState population={kind === "KRI" ? "Risk indicators" : "Control indicators"} title="No indicators in this scope" description="No current governed indicators are linked to Risks in the selected organization scope."/>}
+      {state === "live" && page.items.length === 0 && <EmptyState population={kind === "KRI" ? "Risk indicators" : "Control indicators"} title="No indicators in this scope" description="No Risk indicators linked in this scope."/>}
       {(page.items.length > 0 || state === "loading") && <DataTable
         ariaLabel={kind === "KRI" ? "Risk indicators" : "Control indicators"}
         rows={page.items}

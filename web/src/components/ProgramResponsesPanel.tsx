@@ -116,13 +116,13 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
   const visible = useResponseColumns(sortableResponseColumns(columns, query.sort ?? "COMPLETED_DESC", (sort) => updateQuery({ sort })));
 
   return <article className="program-record-panel program-wide-panel program-responses-panel" aria-labelledby="program-responses-heading">
-    <div className="program-panel-heading"><div><span className="eyebrow">Responses</span><h2 id="program-responses-heading">Submitted data</h2><p>Assessment scores do not establish document validity.</p></div></div>
+    <div className="program-panel-heading"><div><span className="eyebrow">Responses</span><h2 id="program-responses-heading">Submitted data</h2><p>Scores do not confirm document validity.</p></div></div>
 
     <ResponseBrowser query={query} onChange={updateQuery} count={listState === "live" ? items.length : undefined} hasMore={!!nextCursor} loading={listState === "loading" && !responseDateError(query)} columns={visible.picker}>
 
     {listState === "loading" && items.length === 0 && <p role="status">Loading submitted responses for this Program…</p>}
-    {listState === "unavailable" && items.length === 0 && <RecordEmptyState kind="unavailable" label="Completed responses for this Program" title="Submitted data could not be loaded" description="Retry before reviewing evidence." action="Retry submitted data" onAction={() => void loadList()}/>}
-    {listState === "live" && items.length === 0 && (hasResponseFilters(query) ? <EmptyState population="Program responses matching the current filters" title="No responses match these filters" description="Change or clear the response filters."/> : <RecordEmptyState label="Completed responses for this Program" title="No data collected yet" description="No completed responses are recorded for this Program. Start a form collection." action="Open Data collection" onAction={() => { window.location.hash = `#programs/${encodeURIComponent(programID)}/monitoring`; }}/>) }
+    {listState === "unavailable" && items.length === 0 && <RecordEmptyState kind="unavailable" label="Submitted responses for this Program" title="Submitted data could not be loaded" description="Retry before reviewing evidence." action="Retry submitted data" onAction={() => void loadList()}/>}
+    {listState === "live" && items.length === 0 && (hasResponseFilters(query) ? <EmptyState population="Program responses matching the current filters" title="No responses match these filters" description="Change or clear the response filters."/> : <RecordEmptyState label="Submitted responses for this Program" title="No data collected yet" description="No submitted responses. Start a form collection." action="Open Data collection" onAction={() => { window.location.hash = `#programs/${encodeURIComponent(programID)}/monitoring`; }}/>) }
     {error && items.length > 0 && <Notice tone="error">{error}</Notice>}
     {(listState === "live" || items.length > 0) && items.length > 0 && <DataTable
       ariaLabel="Submitted responses for this Program"

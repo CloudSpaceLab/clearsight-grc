@@ -870,7 +870,7 @@ describe("Program record workspace", () => {
 	fireEvent.click(screen.getByRole("tab", { name: "Evidence & results" }));
 
 	expect(await screen.findByText("No data collected yet")).toBeTruthy();
-	expect(screen.getByText("Completed responses for this Program")).toBeTruthy();
+	expect(screen.getByText("Submitted responses for this Program")).toBeTruthy();
 	expect(screen.getByRole("button", { name: "Open Data collection" })).toBeTruthy();
 	expect(screen.queryByRole("row")).toBeNull();
   });

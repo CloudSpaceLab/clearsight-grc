@@ -438,7 +438,7 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
 
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
   expect(screen.queryByLabelText("From")).toBeNull();
-  expect(screen.getByText("Current posture stays current. History measures use this window.")).toBeTruthy();
+  expect(screen.getByText("Reporting period applies to historical measures only.")).toBeTruthy();
 
   const nextPeriod = { start_date: "2026-08-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW" as const, max_days: 365, historical_end_supported: false as const };
   const currentSnapshot = await vi.mocked(api.loadOversight).mock.results[0]!.value;

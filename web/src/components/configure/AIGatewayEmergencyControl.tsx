@@ -48,8 +48,8 @@ export function AIGatewayEmergencyControl({
         expectedVersion: control.record_version,
       });
       setMessage(nextFrozen
-        ? "Emergency freeze recorded. Gateway propagation is verified separately below."
-        : "Outbound AI restoration recorded. Gateway propagation is verified separately below.");
+        ? "Freeze requested. Check gateway status below."
+        : "Restoration requested. Check gateway status below.");
       await onChanged();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Emergency gateway control could not be updated.");
@@ -63,7 +63,7 @@ export function AIGatewayEmergencyControl({
       <div>
         <span className="eyebrow">Incident control</span>
         <h4 id="ai-gateway-emergency-heading">Emergency outbound AI</h4>
-        <p>Stop new provider-bound requests without deleting provider or model configuration. This control is independent of routing revision lifecycle.</p>
+        <p>Block new outbound AI requests. Provider settings are preserved.</p>
       </div>
       <div className="ai-gateway-emergency__state" aria-label={`Desired outbound AI state: ${desired}`}>
         <span>Desired state</span>
@@ -89,7 +89,7 @@ export function AIGatewayEmergencyControl({
       <div>
         <strong>{action === "freeze" ? "Confirm emergency freeze" : "Confirm restoration"}</strong>
         <p>{action === "freeze"
-          ? "After the gateway observes this control, new provider-bound requests fail closed. Provider configuration remains intact."
+          ? "New outbound requests will be blocked after the gateway applies the freeze."
           : "Restore provider-bound requests only after the incident condition has been resolved and the active routing configuration is safe."}</p>
       </div>
       <label><span>Reason</span><textarea rows={3} maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)} placeholder={action === "freeze" ? "Describe the incident or containment reason" : "Describe why outbound AI is safe to restore"}/></label>
@@ -106,13 +106,13 @@ export function AIGatewayEmergencyControl({
 }
 
 function propagationState(control: GatewayEmergencyControl, runtime: GatewayRuntimeStatus | null, loading: boolean) {
-  if (loading) return { label: "Checking…", note: "Reading the gateway's independently reported emergency-control state." };
-  if (!runtime?.configured) return { label: "Not connected", note: "The server-to-server gateway operations bridge is not configured, so propagation cannot be verified here." };
-  if (!runtime.available) return { label: "Unavailable", note: "The operations bridge is configured, but the gateway's current emergency-control state could not be read." };
-  if (!runtime.emergency_supported) return { label: "Unsupported", note: "This gateway process does not report emergency-control enforcement. Do not treat the desired state as applied." };
+  if (loading) return { label: "Checking…", note: "Checking gateway enforcement." };
+  if (!runtime?.configured) return { label: "Not connected", note: "Gateway connection not configured. Enforcement cannot be confirmed." };
+  if (!runtime.available) return { label: "Unavailable", note: "Gateway status unavailable. Retry the check." };
+  if (!runtime.emergency_supported) return { label: "Unsupported", note: "Gateway enforcement not confirmed." };
   if (runtime.emergency_revision !== control.record_version || runtime.outbound_frozen !== control.frozen) {
-    return { label: "Propagating", note: `ClearSight expects control v${control.record_version}; the gateway reports v${runtime.emergency_revision}. Until these agree, applied state is not confirmed.` };
+    return { label: "Propagating", note: `Gateway reports v${runtime.emergency_revision}; expected v${control.record_version}. Enforcement not confirmed.` };
   }
-  if (control.frozen) return { label: "Frozen · applied", note: "The gateway reports this exact freeze revision. New provider-bound requests are blocked; already in-flight provider calls are not canceled." };
-  return { label: "Enabled · applied", note: "The gateway reports this exact control revision and provider-bound requests may proceed subject to normal governance and routing." };
+  if (control.frozen) return { label: "Frozen · applied", note: "Freeze applied. New outbound requests blocked; in-flight calls continue." };
+  return { label: "Enabled · applied", note: "Restoration applied. Outbound requests follow active policy and routing." };
 }

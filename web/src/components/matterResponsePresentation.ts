@@ -11,15 +11,15 @@ export type MatterResponsePresentation = {
 export function matterResponsePresentation(operation?: MatterOperation): MatterResponsePresentation {
   switch (operation?.responsibility) {
     case "REVIEWER":
-      return { action: "Review response", sheet: "Review response", submit: "Record review", rationaleLabel: "Review basis", consequence: "Records the review state and basis. It does not approve, sign or transmit the response." };
+      return { action: "Review response", sheet: "Review response", submit: "Record review", rationaleLabel: "Review basis", consequence: "Review only. Does not approve, sign or send the response." };
     case "SIGNATORY":
-      return { action: "Review and sign response", sheet: "Review and sign response", submit: "Record sign-off", rationaleLabel: "Sign-off basis", consequence: "Records institutional sign-off for the selected response version. It does not record transmission." };
+      return { action: "Review and sign response", sheet: "Review and sign response", submit: "Record sign-off", rationaleLabel: "Sign-off basis", consequence: "Signs this response version. Transmission is not recorded." };
     case "TRANSMITTER":
-      return { action: "Record transmission", sheet: "Record response transmission", submit: "Record transmission", rationaleLabel: "Transmission evidence or reference", consequence: "Records that this response version was transmitted. It does not claim the recipient acknowledged it." };
+      return { action: "Record transmission", sheet: "Record response transmission", submit: "Record transmission", rationaleLabel: "Transmission evidence or reference", consequence: "Records transmission. Recipient acknowledgement is not confirmed." };
     case "ACKNOWLEDGEMENT_RECORDER":
-      return { action: "Record acknowledgement", sheet: "Record response acknowledgement", submit: "Record acknowledgement", rationaleLabel: "Acknowledgement evidence or reference", consequence: "Records the recipient acknowledgement separately from sign-off and transmission." };
+      return { action: "Record acknowledgement", sheet: "Record response acknowledgement", submit: "Record acknowledgement", rationaleLabel: "Acknowledgement evidence or reference", consequence: "Records recipient acknowledgement. Sign-off and transmission remain unchanged." };
     default:
-      return { action: operation?.label || "Update response", sheet: operation?.label || "Update response", submit: "Confirm response state", rationaleLabel: "Reason for response state change", consequence: "This records the selected response state. Assigned work and outcome checks are unchanged." };
+      return { action: operation?.label || "Update response", sheet: operation?.label || "Update response", submit: "Confirm response state", rationaleLabel: "Reason for response state change", consequence: "Response status only. Assigned work and outcome checks are unchanged." };
   }
 }
 
@@ -30,7 +30,7 @@ export function matterStatusPresentation(operation?: MatterOperation): MatterRes
       sheet: "Authorize issue status",
       submit: "Record authorization",
       rationaleLabel: "Authorization basis",
-      consequence: "Records the authorized issue state and basis. It does not complete assigned work or confirm an outcome that has not been independently checked.",
+      consequence: "Authorizes issue status. Does not complete assigned work or verify outcomes.",
     };
   }
   return {
@@ -38,6 +38,6 @@ export function matterStatusPresentation(operation?: MatterOperation): MatterRes
     sheet: "Change issue status",
     submit: "Confirm issue status",
     rationaleLabel: "Reason for status change",
-    consequence: "This records the selected issue state. Assigned work and outcome checks are unchanged.",
+    consequence: "Issue status only. Assigned work and outcome checks are unchanged.",
   };
 }

@@ -180,7 +180,7 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
         {outsideCount > 0 && appetite !== "BREACHED" && <Button variant="secondary" size="compact" onPress={() => changeAppetite("BREACHED")}>Review {outsideCount} outside appetite</Button>}
         {nearCount > 0 && appetite !== "APPROACHING" && <Button variant="quiet" size="compact" onPress={() => changeAppetite("APPROACHING")}>Review {nearCount} near limit</Button>}
       </div>}
-      <p>{page.next_cursor ? "More risks available. " : ""}Based on current assessments for the risks shown.</p>
+      <p>Current assessments · Risks shown only</p>
     </section>}
     {page.items.length > 0 && <DataTable
       ariaLabel="Risk register"

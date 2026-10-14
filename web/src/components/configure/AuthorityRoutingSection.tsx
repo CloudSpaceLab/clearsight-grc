@@ -28,7 +28,7 @@ export function AuthorityRoutingSection() {
   const degraded = integrityState === "unavailable" || taskState === "unavailable";
   return <section className="configure-domain" aria-labelledby="authority-routing-heading">
     <header className="configure-domain-header">
-      <div><span className="eyebrow">Configuration · authority</span><h2 id="authority-routing-heading">Authority & routing</h2><p>Review routing integrity, governed responsibility policies, delegations and the work affected by current ownership.</p></div>
+      <div><span className="eyebrow">Configuration · authority</span><h2 id="authority-routing-heading">Authority & routing</h2><p>Review approval routes, responsibilities, delegations and affected work.</p></div>
       {degraded && <button className="secondary-button" type="button" onClick={() => void load()}>Retry checks</button>}
     </header>
 
@@ -41,15 +41,15 @@ export function AuthorityRoutingSection() {
       <article className="configure-context-panel">
         <div className="configure-subheader"><div><h3>Integrity findings</h3><p>Missing owners, expired delegation or unresolved routes.</p></div></div>
         {integrityState === "loading" ? <div className="workspace-loading compact" aria-live="polite">Checking routing integrity…</div>
-          : integrityState === "unavailable" ? <EmptyState kind="unavailable" label="Routing checks" title="Routing checks are unavailable" description="The governance inventory below remains independently available where its own data can be confirmed."/>
+          : integrityState === "unavailable" ? <EmptyState kind="unavailable" label="Routing checks" title="Routing checks are unavailable" description="Routing checks unavailable. Other configuration may still be accessible."/>
             : findings.length ? <div className="configure-compact-list">{findings.map((finding) => <div className={`finding-row severity-${finding.severity.toLowerCase()}`} key={`${finding.type}-${finding.summary}`}><strong>{finding.summary}</strong><span>{finding.required_action}</span></div>)}</div>
               : <div className="calm-empty"><span>✓</span><div><strong>No blocking routing gaps</strong><p>No missing owners, expired delegations or unresolved approval routes were found.</p></div></div>}
       </article>
 
       <article className="configure-context-panel">
-        <div className="configure-subheader"><div><h3>Affected workflow ownership</h3><p>Review assignments affected by these approval routes.</p></div></div>
+        <div className="configure-subheader"><div><h3>Affected workflow ownership</h3><p>Assignments under the selected routes.</p></div></div>
         {taskState === "loading" ? <div className="workspace-loading compact" aria-live="polite">Loading workflow ownership…</div>
-          : taskState === "unavailable" ? <EmptyState kind="unavailable" label="Workflow ownership" title="Workflow ownership is unavailable" description="Routing configuration can still be inspected, but affected work could not be confirmed."/>
+          : taskState === "unavailable" ? <EmptyState kind="unavailable" label="Workflow ownership" title="Workflow ownership is unavailable" description="Affected work unavailable. Review routing settings or retry."/>
             : tasks.length ? <div className="configure-compact-list">{tasks.slice(0, 6).map((task) => <div className="task-row" key={task.id}><div><strong>{task.title}</strong><span>{task.responsibility} · {task.step_key}</span></div><mark>{humanize(task.status)}</mark></div>)}</div>
               : <div className="calm-empty"><span>✓</span><div><strong>No unassigned workflow tasks</strong><p>Every open task returned in this scope has an assignee.</p></div></div>}
       </article>

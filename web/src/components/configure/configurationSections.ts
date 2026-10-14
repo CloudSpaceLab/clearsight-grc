@@ -10,9 +10,9 @@ export const configurationAreas: ConfigurationArea[] = [
   { id: "access", label: "Organization & access", description: "Departments, positions, reporting lines, directory sources, groups and workspace access." },
   { id: "authority", label: "Authority & routing", description: "Responsibilities, approval routes, delegations and escalation." },
   { id: "data", label: "Data & integrations", description: "Document imports, connected sources, mappings and reconciliation." },
-  { id: "automation", label: "Automation", description: "Governed automation policies and execution guardrails." },
-  { id: "ai", label: "AI governance", description: "AI workloads, policy rollout and governed AI controls." },
-  { id: "operations", label: "System operations", description: "Background processing and calculated Program status health." },
+  { id: "automation", label: "Automation", description: "Automation policies and action limits." },
+  { id: "ai", label: "AI governance", description: "AI workloads, security controls and policy rollout." },
+  { id: "operations", label: "System operations", description: "Background jobs and Program status checks." },
 ];
 
 export function configurationSectionFromHash(hash: string): ConfigurationSection {

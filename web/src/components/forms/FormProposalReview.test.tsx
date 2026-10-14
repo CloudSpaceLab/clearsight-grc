@@ -122,10 +122,10 @@ describe("FormProposalReview", () => {
     expect(screen.getByRole("textbox", { name: "Registered name" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Preview Classic" })).toBeNull();
     expect(screen.getByRole("button", { name: "Show all questions" })).toBeTruthy();
-    expect(screen.getByText(/Scoring weights were not inferred/i)).toBeTruthy();
+    expect(screen.getByText(/Set scoring weights after reviewer confirmation/i)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review response" }));
     expect(screen.getByRole("heading", { name: "Response review preview" })).toBeTruthy();
-    expect(screen.getByText(/No response will be submitted/i)).toBeTruthy();
+    expect(screen.getByText(/Preview only · No response submitted/i)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Return to questions" }));
     expect(screen.getByRole("textbox", { name: "Registered name" })).toBeTruthy();
   });

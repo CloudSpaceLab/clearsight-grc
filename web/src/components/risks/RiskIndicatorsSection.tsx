@@ -219,7 +219,7 @@ export function RiskIndicatorsSection({
     <div className="section-header">
       <div>
         <h2 id="risk-indicators-heading">Indicators</h2>
-        <p>KRI/KCI state from existing governed Program monitoring. Missing, stale or incomplete results stay unknown.</p>
+        <p>KRI/KCI results from Program monitoring. Missing or outdated results are shown as unknown.</p>
       </div>
       {canLink && !linkMode && <Button variant="secondary" size="compact" onPress={() => setLinkMode(true)}>Link indicator</Button>}
     </div>
@@ -274,7 +274,7 @@ export function RiskIndicatorsSection({
       columns={columns}
       onRowAction={(item) => setSelectedIndicator(item)}
       rowActionLabel="Open indicator"
-    /> : <EmptyState population={risk.name} title="No linked indicators" description="No governed Program monitoring check is linked to this risk."/>}
+    /> : <EmptyState population={risk.name} title="No linked indicators" description="No monitoring checks linked to this risk."/>}
     {selectedIndicator && <FocusedSheet label={`${selectedIndicator.link.kind} · ${selectedIndicator.check_name}`} size="wide" onClose={() => setSelectedIndicator(undefined)}>
       <IndicatorDetail indicator={selectedIndicator} onOpenProgram={onOpenProgram} onOpenMatter={onOpenMatter} loadResults={loadIndicatorResults}/>
     </FocusedSheet>}

@@ -223,7 +223,7 @@ export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople
       <div>
         <span className="eyebrow">Configure · governance</span>
         <h2 id="governance-admin-title">Governance policies and delegations</h2>
-        <p>Review the current legal-entity routes and time-bound authority cover before taking the next governed action.</p>
+        <p>Review approval routes and active delegations.</p>
       </div>
       {canConfigure && <div className="governance-admin-actions" aria-label="Governance creation actions">
         <button type="button" disabled={!delegationDraftEnabled || busy !== ""} onClick={() => { setError(""); setComposer("delegation"); }}>New delegation</button>
@@ -233,7 +233,7 @@ export function GovernanceAdminWorkspace({ policies, delegations, eligiblePeople
     {loadState === "loading" && <p role="status">Loading the current legal-entity governance inventory. Changes remain unavailable until the current approval route is confirmed.</p>}
     {loadState === "degraded" && <p role="alert">{degradedReason || "Current approval authority could not be confirmed."} Existing records remain available, but changes are disabled until authority can be confirmed.</p>}
     {loadState === "unavailable" && (policies.length > 0 || delegations.length > 0) && <p role="alert">{degradedReason || "The latest governance inventory could not be loaded."} Previously loaded records remain available, but changes are disabled.</p>}
-    {loadState === "unavailable" && policies.length === 0 && delegations.length === 0 && <p role="alert">The current legal-entity governance population could not be loaded. Refresh this page to try again; no changes are available.</p>}
+    {loadState === "unavailable" && policies.length === 0 && delegations.length === 0 && <p role="alert">Governance data unavailable. Refresh before making changes.</p>}
     {loadState === "ready" && !canConfigure && <p>You can review this governance inventory, but your current access does not allow policy or delegation changes.</p>}
     {loadState === "ready" && canConfigure && !delegationCreationAvailable && <p role="status">New delegations are unavailable until the organization directory can confirm who holds the selected responsibility in this legal entity. Existing delegation actions remain available.</p>}
     {loadState === "ready" && canConfigure && createPolicyDraft && policyRoles.length === 0 && <p role="status">New routing policies are unavailable until current role labels can be confirmed. Existing policy actions remain available.</p>}

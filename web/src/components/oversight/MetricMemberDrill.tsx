@@ -59,7 +59,7 @@ export function MetricMemberDrill({
     return <EmptyState
       population={`Exact retained members for ${label.toLowerCase()}`}
       title="No records were counted in this snapshot"
-      description="The retained metric membership is empty for this card revision."
+      description="No records counted in this metric revision."
     />;
   }
 
@@ -95,7 +95,7 @@ export function MetricMemberDrill({
     {page.items.some((item) => !item.accessible) &&
       <Notice tone="info">Some records are still part of this historical count but their current access has changed.</Notice>}
     {page.items.some((item) => item.accessible && !hasOpenAction(item.target_type, { onOpenMatter, onOpenProgram, onOpenRisk, onOpenLoss })) &&
-      <Notice tone="warning">Some record drills are not available from this surface.</Notice>}
+      <Notice tone="warning">Some records cannot be opened here.</Notice>}
   </>;
 }
 
