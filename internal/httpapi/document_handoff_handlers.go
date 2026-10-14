@@ -262,7 +262,7 @@ func writeDocumentHandoffError(w http.ResponseWriter, err error) {
 	case errors.Is(err, documentimport.ErrVersionConflict), errors.Is(err, continuity.ErrVersionConflict):
 		httpx.WriteError(w, http.StatusConflict, "version_conflict", "This proposal changed. Reload it before continuing.")
 	case errors.Is(err, errDocumentHandoffRoutingUnresolved):
-		httpx.WriteError(w, http.StatusConflict, "routing_unresolved", "This handoff does not have one independent directly assigned actor. Resolve routing before continuing.")
+		httpx.WriteError(w, http.StatusConflict, "routing_unresolved", "Assign one eligible independent reviewer before continuing.")
 	case errors.Is(err, errDocumentHandoffNotAssigned):
 		httpx.WriteError(w, http.StatusForbidden, "handoff_not_assigned", "This handoff is assigned to another authorized person.")
 	case errors.Is(err, documentimport.ErrHandoffSegregation):
@@ -270,6 +270,6 @@ func writeDocumentHandoffError(w http.ResponseWriter, err error) {
 	case errors.Is(err, documentimport.ErrInvalidHandoff):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "handoff_invalid", "This proposal is not in a valid state for that action.")
 	default:
-		httpx.WriteError(w, http.StatusInternalServerError, "handoff_failed", "The governed proposal handoff could not be updated.")
+		httpx.WriteError(w, http.StatusInternalServerError, "handoff_failed", "The proposal review could not be updated. Reload and try again.")
 	}
 }

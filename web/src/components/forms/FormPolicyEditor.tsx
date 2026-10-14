@@ -94,7 +94,7 @@ export function FormPolicyEditor({ onCancel, onCreate, forms, formsLoading = fal
 
   return <form className="forms-policy-editor" noValidate onSubmit={submit}>
 
-    <header><p>New response policy</p><h2>Create a response policy</h2><span>Define which completed responses create an issue. Activation requires a current simulation and independent approval.</span></header>
+    <header><h2>Create a response policy</h2><span>Create issues for submitted responses that meet approved thresholds. Simulation and independent approval required.</span></header>
 
     {error && <Notice tone="error">{error}</Notice>}
 
@@ -108,7 +108,7 @@ export function FormPolicyEditor({ onCancel, onCreate, forms, formsLoading = fal
 
     </div></section>
 
-    <section aria-labelledby="policy-population-title"><h3 id="policy-population-title">Responses covered</h3><p>Choose the approved form revision and the records whose responses this policy covers.</p><div className="forms-policy-control-grid">
+    <section aria-labelledby="policy-population-title"><h3 id="policy-population-title">Responses covered</h3><div className="forms-policy-control-grid">
 
       {formsLoading ? <div className="forms-policy-control-grid__full"><Notice>Loading approved scoring forms…</Notice></div>
 
@@ -146,7 +146,7 @@ export function FormPolicyEditor({ onCancel, onCreate, forms, formsLoading = fal
 
       }}/>
 
-      <div className="forms-policy-control-grid__full">{value.create_automation_policy ? <p>The limits and outcome check below will be saved with this policy. Simulation and independent approval apply to both before activation.</p> : <p>{automationChoices.find((choice) => choice.id === value.automation_policy_id)?.purpose} Used by {automationChoices.find((choice) => choice.id === value.automation_policy_id)?.use_count ?? "an unknown number of"} response policy revisions.</p>}
+      <div className="forms-policy-control-grid__full">{value.create_automation_policy ? null : <p>{automationChoices.find((choice) => choice.id === value.automation_policy_id)?.purpose} Used by {automationChoices.find((choice) => choice.id === value.automation_policy_id)?.use_count ?? "an unknown number of"} response policy revisions.</p>}
 
       {automationLoading && <p role="status">Checking automation policies for this form revision…</p>}
 

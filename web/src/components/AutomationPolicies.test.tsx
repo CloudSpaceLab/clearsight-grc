@@ -21,7 +21,7 @@ describe("AutomationPolicies", () => {
     render(<AutomationPolicies policies={[policy]} state="live"/>);
 
     expect(screen.getByText("Low-impact evidence refresh")).toBeTruthy();
-    expect(screen.getByText(/Review execution history for completed actions and outcome checks/)).toBeTruthy();
+    expect(screen.getByText("Active")).toBeTruthy();
     fireEvent.click(screen.getByText("View limits"));
     expect(screen.getByText("25")).toBeTruthy();
     expect(screen.getByText("Source Recheck")).toBeTruthy();

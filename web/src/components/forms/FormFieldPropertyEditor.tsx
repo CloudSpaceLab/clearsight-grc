@@ -88,7 +88,6 @@ function ConditionSettings({ field, earlierFields, onChange }: { field: Authorin
       onChange={(value) => onChange({ condition: { ...condition, operator: value as CaptureVisibilityCondition["operator"], values: value === "ANSWERED" ? undefined : condition.values?.length ? condition.values : [""] } })}
     />}
     {condition && condition.operator !== "ANSWERED" && <label className="full"><span>{condition.operator === "IN" || condition.operator === "NOT_IN" ? "Condition values" : "Condition value"}</span><input aria-label={condition.operator === "IN" || condition.operator === "NOT_IN" ? "Condition values" : "Condition value"} value={(condition.values ?? []).join(", ")} onChange={(event) => onChange({ condition: { ...condition, values: event.target.value.split(",").map((value) => value.trim()) } })}/></label>}
-    {!condition && <p className="field-note">This question is always shown. Add logic only when the response should depend on an earlier answer.</p>}
   </div>;
 }
 

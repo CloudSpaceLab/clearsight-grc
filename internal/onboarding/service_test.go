@@ -136,6 +136,12 @@ func TestDemoGuidesAvoidScriptedTourCopy(t *testing.T) {
 		"is inferred",
 		"held by the bank",
 		"known bank records",
+		"home shows",
+		"programs show",
+		"work shows",
+		"imports retain",
+		"today lists",
+		"your submission receives a receipt",
 	}
 	for _, guide := range DemoGuides() {
 		visible := guide.Title + " " + guide.Description

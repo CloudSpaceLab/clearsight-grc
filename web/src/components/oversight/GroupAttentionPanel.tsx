@@ -82,7 +82,7 @@ export function GroupAttentionView({
         </>
         : state === "loading"
           ? <p className="group-oversight-status" role="status">Loading Group attention…</p>
-          : <EmptyState population="Authorized Group legal entities" title="No OpCo attention available" description="No authorized legal entity returned an Attention snapshot."/>}
+          : <EmptyState population="Authorized Group legal entities" title="No OpCo attention available" description="No attention data returned for companies in your scope."/>}
     </section>
   </>;
 }
