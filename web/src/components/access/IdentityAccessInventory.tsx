@@ -36,7 +36,7 @@ export function IdentityAccessInventory({ signIn, sources, bindings, people, gro
 
     <article className="config-card">
       <div className="section-header identity-card-header">
-        <div><h3>Group → role mappings</h3><p>Map directory groups to workspace roles. Approval authority is configured separately.</p></div>
+        <div><h3>Group → role mappings</h3><p>Map directory groups to workspace roles.</p></div>
         {canConfigure && <button className="secondary-button" type="button" disabled={busy} onClick={onAddMapping}>Add mapping</button>}
       </div>
       <div className="identity-list">{bindings.length ? bindings.map((binding) => <div className="identity-row" key={binding.id}>
@@ -46,7 +46,7 @@ export function IdentityAccessInventory({ signIn, sources, bindings, people, gro
     </article>
 
     <article className="config-card">
-      <div className="section-header"><div><h3>People & groups</h3><p>People and groups available from connected directories.</p></div></div>
+      <div className="section-header"><div><h3>People & groups</h3><p>Directory people and groups.</p></div></div>
       <div className="identity-directory-columns">
         <div><h4>People</h4>{people.slice(0, 8).map((person) => <div className="identity-mini-row" key={person.id}><strong>{person.display_name}</strong><span>{person.source_code ? `${person.source_code} · ${person.source_state}` : "Local principal"}</span></div>)}{!people.length && <p className="muted-copy">No people found.</p>}</div>
         <div><h4>Groups</h4>{groups.slice(0, 8).map((group) => <div className="identity-mini-row" key={group.id}><strong>{group.display_name}</strong><span>{group.member_count} members · {group.source_code} · {group.source_state}</span></div>)}{!groups.length && <p className="muted-copy">No directory groups found.</p>}</div>

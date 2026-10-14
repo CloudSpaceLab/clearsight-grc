@@ -15,7 +15,7 @@ export function WorkspaceConflictPanel({
 
   return <section className="inline-error" aria-labelledby="workspace-conflict-title">
     <strong id="workspace-conflict-title">Resolve changed answers</strong>
-    <p>ClearSight received another update to the same response. Choose the answer to keep for each changed field.</p>
+    <p>Response changed. Choose which answers to keep.</p>
     {conflicts.map((conflict) => {
       const label = labels.get(conflict.fieldID) ?? "Changed answer";
       return <div className="capture-field" key={conflict.fieldID}>

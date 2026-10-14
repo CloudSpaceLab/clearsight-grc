@@ -163,7 +163,7 @@ export function OrganizationInventory({
         <strong>{dataBoundary.residency_region || "Residency region not set"}</strong>
         <span>{dataBoundary.detail_transfer_mode === "ALLOWLIST"
           ? `Detail destinations: ${dataBoundary.allowed_destination_regions.join(", ") || "None"}`
-          : "Cross-entity record detail is blocked. Group totals remain aggregate-only."}</span>
+          : "Group totals only · Cross-entity records restricted."}</span>
       </div>
 
       {pendingBoundary && <div className="identity-guard-summary open">
@@ -241,7 +241,7 @@ export function OrganizationInventory({
         </div>
       </div>
 
-      {scopesTruncated && <div className="inline-notice" role="status">Only the first 500 organization scopes are shown. Narrow the hierarchy before editing or reviewing a larger structure.</div>}
+      {scopesTruncated && <div className="inline-notice" role="status">First 500 organization areas shown. Refine filters to see others.</div>}
       {mode === "positions" && onProposePosition && onApprovePosition && onRejectPosition
         ? <OrganizationPositionManager
           positions={visible}
