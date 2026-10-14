@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
-	"github.com/CloudSpaceLab/clearsight-grc/internal/commandauth"
 )
 
 const FormSubjectMatter = "MATTER"
@@ -22,19 +21,19 @@ var (
 // FormSubjectLink refers to an exact governed form revision. It is independent
 // of the template's immutable origin and of any distribution or response.
 type FormSubjectLink struct {
-	ID                  string     `json:"id"`
-	SubjectType         string     `json:"subject_type"`
-	SubjectID           string     `json:"subject_id"`
-	FormTemplateID      string     `json:"form_template_id"`
-	FormTemplateVersion int64      `json:"form_template_version"`
-	FormName            string     `json:"form_name"`
+	ID                  string          `json:"id"`
+	SubjectType         string          `json:"subject_type"`
+	SubjectID           string          `json:"subject_id"`
+	FormTemplateID      string          `json:"form_template_id"`
+	FormTemplateVersion int64           `json:"form_template_version"`
+	FormName            string          `json:"form_name"`
 	FormStatus          LifecycleStatus `json:"form_status"`
-	LinkedBy            string     `json:"linked_by"`
-	LinkedAt            time.Time  `json:"linked_at"`
-	EndedAt             *time.Time `json:"ended_at,omitempty"`
-	Version             int64      `json:"version"`
-	TenantID            string     `json:"-"`
-	LegalEntityID       string     `json:"-"`
+	LinkedBy            string          `json:"linked_by"`
+	LinkedAt            time.Time       `json:"linked_at"`
+	EndedAt             *time.Time      `json:"ended_at,omitempty"`
+	Version             int64           `json:"version"`
+	TenantID            string          `json:"-"`
+	LegalEntityID       string          `json:"-"`
 }
 
 type FormSubjectLinkPage struct {
@@ -146,6 +145,3 @@ func (s *Service) UnlinkForm(ctx context.Context, subjectType, subjectID, linkID
 	}
 	return repo.EndFormSubjectLink(ctx, actor.TenantID, actor.LegalEntityID, subjectType, subjectID, linkID, expectedVersion, actor.PrincipalID, s.now().UTC(), strings.TrimSpace(reason))
 }
-
-// Ensure the shared service only operates with the existing, verified authority guard.
-var _ = commandauth.ErrGuardUnavailable
