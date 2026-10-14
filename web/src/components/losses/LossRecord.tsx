@@ -228,7 +228,7 @@ export function LossRecord({
       <div className="section-header">
         <div>
           <h2 id="loss-recoveries-heading">Recoveries</h2>
-          <p>Append-only recoveries and reversals. Net loss is derived from this ledger.</p>
+          <p>Recorded recoveries and reversals determine net loss.</p>
         </div>
         {loss.status === "ACTIVE" && <Button variant="secondary" size="compact" onPress={() => setRecoveryOpen(true)}>Record recovery</Button>}
       </div>

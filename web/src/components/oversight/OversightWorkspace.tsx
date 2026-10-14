@@ -336,7 +336,7 @@ export function OversightWorkspace({
       <details className="oversight-data-freshness">
         <summary>Data freshness</summary>
         <div>
-          <p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p>
+          <p>Updated {formatDateTime(snapshot.generated_at)}.</p>
           <p>{historyQualityLabel(snapshot)}</p>
           <dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl>
         </div>
@@ -396,7 +396,7 @@ export function OversightWorkspace({
                 <div>
                   <span className="eyebrow">Attention</span>
                   <h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Priority interventions" : metricFilterLabel(selectedMetricFilter)}</h2>
-                  <p>{selectedMetricFilter === "all" ? "Highest-priority current issues. Open Work for the complete queue." : exactDrillActive ? "Exact retained records counted in this metric snapshot." : "Current intervention records matching the selected measure."}</p>
+                  <p>{selectedMetricFilter === "all" ? "Priority issues · View all in Work." : exactDrillActive ? "Records counted in this metric." : "Issues matching this measure."}</p>
                 </div>
                 <div className="oversight-attention-actions">
                   <div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div>
@@ -424,7 +424,7 @@ export function OversightWorkspace({
                     <div className={`oversight-priority p${item.priority}`}><span>P{item.priority}</span></div>
                     <div><div className="oversight-intervention-title"><strong>{item.title}</strong><span>{humanize(item.category)}</span></div><p>{item.reason}</p><small>{item.owner_name || "No owner recorded"}{item.due_at ? ` · Due ${formatDate(item.due_at)}` : " · No due date recorded"} · {humanize(item.state)}</small></div>
                     <div className="oversight-action"><Button size="compact" onPress={() => onOpenMatter(item.target_id)} aria-label={`Review ${item.title}`}>{item.next_action}</Button></div>
-                  </article>)}</div> : state === "live" && <EmptyState population={organizationScopeID ? `${snapshot.coverage.population} attributed issues in ${organizationScopeName || "this scope"}` : `${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Review the freshness and coverage above before treating this result as complete."/>}
+                  </article>)}</div> : state === "live" && <EmptyState population={organizationScopeID ? `${snapshot.coverage.population} attributed issues in ${organizationScopeName || "this scope"}` : `${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Check data freshness and coverage."/>}
                 </>}
             </section>}
           </>}
@@ -491,14 +491,14 @@ function Aging({ snapshot }: { snapshot: OversightSnapshot }) {
 }
 
 function ResolutionOutlook({ snapshot }: { snapshot: OversightSnapshot }) {
-  return <div className="oversight-two-column"><article className="oversight-panel oversight-estimates"><div className="section-header"><div><h2>Historical resolution ranges</h2><p>Ranges use completed issues of the same type; they are not promised completion dates.</p></div></div>{snapshot.estimates.length ? snapshot.estimates.map((item) => <div key={item.category}><div><strong>{humanize(item.category)}</strong><span>{item.confidence.toLowerCase()} confidence · {item.sample_size} completed</span></div><p><b>{formatDuration(item.lower_hours)}–{formatDuration(item.upper_hours)}</b><span>Median {formatDuration(item.median_hours)}</span></p><small>{item.estimated_by}</small></div>) : <EmptyState population="Comparable completed issues in this legal entity" title="Not enough completed work for a resolution range" description="At least five comparable completed issues are required before a range is shown."/>}</article><Aging snapshot={snapshot}/></div>;
+  return <div className="oversight-two-column"><article className="oversight-panel oversight-estimates"><div className="section-header"><div><h2>Historical resolution ranges</h2><p>Based on completed issues of the same type; not a deadline.</p></div></div>{snapshot.estimates.length ? snapshot.estimates.map((item) => <div key={item.category}><div><strong>{humanize(item.category)}</strong><span>{item.confidence.toLowerCase()} confidence · {item.sample_size} completed</span></div><p><b>{formatDuration(item.lower_hours)}–{formatDuration(item.upper_hours)}</b><span>Median {formatDuration(item.median_hours)}</span></p><small>{item.estimated_by}</small></div>) : <EmptyState population="Comparable completed issues in this legal entity" title="Not enough completed work for a resolution range" description="Requires at least five comparable completed issues."/>}</article><Aging snapshot={snapshot}/></div>;
 }
 
 function OperatingPerformance({ snapshot }: { snapshot: OversightSnapshot }) {
-  return <article className="oversight-panel"><div className="section-header"><div><h2>Workload and completion context</h2><p>Current workload is shown with completion and handling history from the selected period; this is not an employee ranking.</p></div></div>{snapshot.performance.length ? <DataTable ariaLabel="Owner workload and completion context" rows={snapshot.performance} rowKey={(item) => item.owner_id} rowName={(item) => item.owner_name} columns={performanceColumns}/> : <EmptyState population="Issues with an accountable owner and recorded lifecycle dates" title="No owner-level measures are available" description="Completion and workload measures appear after issues have an accountable owner and recorded lifecycle dates."/>}</article>;
+  return <article className="oversight-panel"><div className="section-header"><div><h2>Workload and completion context</h2><p>Current workload and completion history for the selected period. Not a performance ranking.</p></div></div>{snapshot.performance.length ? <DataTable ariaLabel="Owner workload and completion context" rows={snapshot.performance} rowKey={(item) => item.owner_id} rowName={(item) => item.owner_name} columns={performanceColumns}/> : <EmptyState population="Issues with an accountable owner and recorded lifecycle dates" title="No owner-level measures are available" description="Requires assigned owners and recorded lifecycle dates."/>}</article>;
 }
 
-function EmptyMeasure() { return <EmptyState population="Open issues in this legal entity" title="No open issues in this measure" description="The current snapshot contains no rows for this breakdown."/>; }
+function EmptyMeasure() { return <EmptyState population="Open issues in this legal entity" title="No open issues in this measure" description="No records in this breakdown."/>; }
 
 function historyQualityLabel(snapshot: OversightSnapshot) {
   const quality = snapshot.history_quality;

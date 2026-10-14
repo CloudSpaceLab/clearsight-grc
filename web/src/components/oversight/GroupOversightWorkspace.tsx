@@ -193,7 +193,7 @@ export function GroupOversightWorkspace({
       <div>
         <span className="eyebrow">{organizationName}</span>
         <h1 id="group-oversight-heading">Group Home</h1>
-        <p>Authorized OpCo aggregates only. Open an OpCo before viewing record detail.</p>
+        <p>OpCo totals · Select an OpCo to view records.</p>
       </div>
       {selectedHomeTab === "oversight" && posture && <OversightPeriodPicker
         period={period}

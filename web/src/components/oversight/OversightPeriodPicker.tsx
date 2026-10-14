@@ -56,7 +56,7 @@ export function OversightPeriodPicker({ period, freshness, generatedAt, isChangi
       <div className="oversight-period-picker">
         <div className="oversight-period-picker__intro">
           <strong>Reporting period</strong>
-          <p>Current posture stays current. History measures use this window.</p>
+          <p>Reporting period applies to historical measures only.</p>
         </div>
 
         <div className="oversight-period-presets" aria-label="Reporting period presets">

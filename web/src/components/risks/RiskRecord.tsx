@@ -197,11 +197,11 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
 
     <section className="risk-record__history" aria-labelledby="risk-controls-heading">
       <div className="section-header">
-        <div><h2 id="risk-controls-heading">Controls</h2><p>Existing Program controls linked to this risk. Evidence remains governed in the Program.</p></div>
+        <div><h2 id="risk-controls-heading">Controls</h2><p>Linked controls · Open a Program to review evidence.</p></div>
         {canLinkControl && !linkMode && <Button variant="secondary" size="compact" onPress={() => void beginLinkControl()}>Link control</Button>}
       </div>
       {linkMode && <div className="risk-record__link-form">
-        <div><h3>Link existing control</h3><p>Choose a reusable control already catalogued in this legal entity.</p></div>
+        <div><h3>Link existing control</h3></div>
         {candidateState === "loading" && <p role="status">Loading reusable controls…</p>}
         {candidateState === "error" && <Notice tone="error">{linkError || "Reusable controls could not be loaded."}</Notice>}
         {candidateState === "live" && !candidatePage.complete && <Notice tone="warning">Some reusable controls are unavailable in the current scope.</Notice>}
@@ -256,11 +256,11 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
         rowKey={(item) => item.id}
         rowName={(item) => `${assessmentKindLabel(item.kind)}, ${item.method_code}, ${appetiteLabel(item.appetite_position)}`}
         columns={assessmentColumns}
-      /> : <EmptyState population={risk.name} title="No assessments" description="No governed assessment has been recorded for this risk."/>}
+      /> : <EmptyState population={risk.name} title="No assessments" description="No assessments recorded for this risk."/>}
     </section>
 
     <section className="risk-record__history" aria-labelledby="risk-appetite-heading">
-      <div className="section-header"><div><h2 id="risk-appetite-heading">Appetite history</h2><p>Versioned appetite statements retained for this risk.</p></div></div>
+      <div className="section-header"><div><h2 id="risk-appetite-heading">Appetite history</h2></div></div>
       {aggregate.appetite.length ? <DataTable
         ariaLabel="Risk appetite history"
         rows={aggregate.appetite}
