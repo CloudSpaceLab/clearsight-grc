@@ -37,7 +37,7 @@ export function FormLinkPicker({ matterID, linkedFormIDs, onLinked, onClose }: P
       setForms([]);
       setCursor(undefined);
       setError("");
-      void loadFormTemplatePage({ search: query.trim() || undefined, status: "ACTIVE", limit: pageSize }, controller.signal)
+      void loadFormTemplatePage({ search: query.trim() || undefined, limit: pageSize }, controller.signal)
         .then((page) => {
           if (controller.signal.aborted) return;
           setForms(page.items);
@@ -58,7 +58,7 @@ export function FormLinkPicker({ matterID, linkedFormIDs, onLinked, onClose }: P
     setMoreBusy(true);
     setError("");
     try {
-      const page = await loadFormTemplatePage({ search: query.trim() || undefined, status: "ACTIVE", limit: pageSize, cursor });
+      const page = await loadFormTemplatePage({ search: query.trim() || undefined, limit: pageSize, cursor });
       setForms((current) => appendUnique(current, page.items));
       setCursor(page.next_cursor);
     } catch {
