@@ -54,7 +54,7 @@ describe("OrganizationInventory data boundary", () => {
     />);
 
     expect(screen.getByText("Aggregate only", { selector: ".cs-status-badge" })).toBeTruthy();
-    expect(screen.getByText("Cross-entity record detail is blocked. Group totals remain aggregate-only.")).toBeTruthy();
+    expect(screen.getByText("Group totals only · Cross-entity records restricted.")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Residency region"), { target: { value: "NG" } });
     fireEvent.click(screen.getByRole("button", { name: "Propose change" }));

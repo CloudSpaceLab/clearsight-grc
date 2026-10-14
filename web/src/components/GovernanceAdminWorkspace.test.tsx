@@ -271,7 +271,7 @@ it("states when the current legal-entity population is unavailable and no prior 
     delegationAction={vi.fn()}
   />);
 
-  expect(screen.getByRole("alert").textContent).toBe("The current legal-entity governance population could not be loaded. Refresh this page to try again; no changes are available.");
+  expect(screen.getByRole("alert").textContent).toBe("Governance data unavailable. Refresh before making changes.");
   expect(screen.queryByText(/No routing policies were returned/)).toBeNull();
   expect(screen.queryByText(/No delegations were returned/)).toBeNull();
   expect((screen.getByRole("button", { name: "New delegation" }) as HTMLButtonElement).disabled).toBe(true);

@@ -89,7 +89,7 @@ export function ProgramReviewDigest({ aggregate, initialDigest, canAcknowledge =
     {noBaseline
       ? canAcknowledgeCurrent
         ? <p>Review exceptions and mark the status reviewed.</p>
-        : <p>Review exceptions and record the first review.</p>
+        : <p>Awaiting initial review by the assigned reviewer.</p>
       : acceptedLabel && <p>Last reviewed {acceptedLabel}. {changed ? "Changes made after that review are highlighted here." : "The Program has not changed since that review."}</p>}
 
     {changed && digest.changes.length > 0 && <div className="status-reasons">

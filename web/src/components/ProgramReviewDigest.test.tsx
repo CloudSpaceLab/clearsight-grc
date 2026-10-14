@@ -71,7 +71,7 @@ describe("Program review digest", () => {
   it("states when the change summary does not include older history", async () => {
     vi.mocked(loadProgramReviewDigest).mockResolvedValue({ ...changed, history_truncated: true });
     render(<ProgramReviewDigest aggregate={aggregate}/>);
-    expect(await screen.findByText(/This summary does not include older Program changes/)).toBeTruthy();
+    expect(await screen.findByText(/Earlier changes are available in Program history/)).toBeTruthy();
   });
 
   it("keeps a loaded review digest read-only without a live acknowledgement operation", async () => {
@@ -95,7 +95,7 @@ describe("Program review digest", () => {
     vi.mocked(loadProgramReviewDigest).mockResolvedValue({ ...changed, state: "NO_BASELINE" });
     render(<ProgramReviewDigest aggregate={aggregate} canAcknowledge={false}/>);
 
-    expect(await screen.findByText(/The current reviewer must review the current exceptions and record the first review baseline/)).toBeTruthy();
+    expect(await screen.findByText(/Awaiting initial review by the assigned reviewer/)).toBeTruthy();
     expect(screen.queryByText(/then mark this status reviewed/i)).toBeNull();
     expect(screen.queryByRole("button", { name: "Mark current state reviewed" })).toBeNull();
   });
