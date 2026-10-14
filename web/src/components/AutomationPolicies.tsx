@@ -25,7 +25,6 @@ export function AutomationPolicies({ policies, state }: Props) {
     {!policies.length
       ? <EmptyState label="Automation policy" title="No automation policies in this scope" description="No automated actions are approved for the current scope."/>
       : <div className="automation-policy-list">{policies.map((policy) => <PolicyRow key={policy.id} policy={policy}/>)}</div>}
-
   </section>;
 }
 

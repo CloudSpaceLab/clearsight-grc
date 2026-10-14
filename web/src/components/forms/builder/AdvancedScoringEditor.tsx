@@ -54,7 +54,7 @@ export function AdvancedScoringEditor({ mode, profile, fields, templateRevision,
 
   return <div className="forms-advanced-scoring" aria-label="Advanced scoring rules">
     <div className="forms-advanced-scoring__summary">
-      <div><strong>Advanced scoring</strong><p>{mode === "RISK" ? "Higher scores mean greater concern." : "Lower scores mean greater concern."} </p></div>
+      <div><strong>Advanced scoring</strong><p>{mode === "RISK" ? "Higher scores mean greater concern." : "Lower scores mean greater concern."}</p></div>
       <TextField label="Score profile version" value={current.version} onChange={(version) => onChange({ ...current, version })} maxLength={128}/>
     </div>
 

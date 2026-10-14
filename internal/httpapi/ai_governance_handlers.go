@@ -142,7 +142,7 @@ func writeAIGovernanceResult[T any](w http.ResponseWriter, v T, err error, statu
 	case errors.Is(err, aigovernance.ErrInvalidTransition):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "invalid_transition", "The requested AI governance transition is not allowed.")
 	case errors.Is(err, aigovernance.ErrGrantInvalid):
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "grant_invalid", "No matching approved decision was found for this AI action.")
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "grant_invalid", "AI action approval could not be verified. Check its approved decision and execution grant.")
 	case err != nil:
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "ai_governance_invalid", err.Error())
 	default:
