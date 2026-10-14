@@ -10,6 +10,7 @@ type Props = {
   pickerOpen: boolean;
   onClosePicker: () => void;
   onLinkedIDsChange: (ids: ReadonlySet<string>) => void;
+  onRequestResponse?: (link: FormSubjectLink) => void;
 };
 
 function appendUnique(current: FormSubjectLink[], next: FormSubjectLink[]) {
@@ -17,7 +18,7 @@ function appendUnique(current: FormSubjectLink[], next: FormSubjectLink[]) {
   return [...current, ...next.filter((link) => !ids.has(link.id))];
 }
 
-export function MatterFormLinksPanel({ matterID, pickerOpen, onClosePicker, onLinkedIDsChange }: Props) {
+export function MatterFormLinksPanel({ matterID, pickerOpen, onClosePicker, onLinkedIDsChange, onRequestResponse }: Props) {
   const [links, setLinks] = useState<FormSubjectLink[]>([]);
   const [cursor, setCursor] = useState<string>();
   const [loading, setLoading] = useState(true);
@@ -102,6 +103,7 @@ export function MatterFormLinksPanel({ matterID, pickerOpen, onClosePicker, onLi
         <div className="subject-form-activity__actions">
           <StatusPill status={link.form_status}/>
           <ActionLink href={`#forms/${encodeURIComponent(link.form_template_id)}`}>Open form</ActionLink>
+          {onRequestResponse && link.form_status === "ACTIVE" && <Button variant="secondary" size="compact" onPress={() => onRequestResponse(link)}>Request response</Button>}
           <Button variant="secondary" size="compact" onPress={() => { setEndingID(link.id); setReason(""); setError(""); }}>Unlink</Button>
         </div>
         {endingID === link.id && <div className="form-link-retirement">
