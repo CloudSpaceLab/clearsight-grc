@@ -123,6 +123,18 @@ it("pages Matter requests and responses independently and opens their exact Form
   expect(screen.queryByText(/2 requests total|2 responses total/i)).toBeNull();
 });
 
+it("shows the lifecycle once and never invents a missing request deadline", async () => {
+  vi.mocked(loadDistributionPage).mockResolvedValue({
+    items: [{ ...openRequest, status: "DRAFT", deadline: "" }],
+  });
+  render(<SubjectFormActivity subjectType="MATTER" subjectID="matter-a" subjectLabel="MAT-82BF" variant="cards"/>);
+
+  expect(await screen.findByText("Deadline not set")).toBeTruthy();
+  expect(screen.getAllByText("Draft")).toHaveLength(1);
+  expect(screen.queryByText(/Unknown date/)).toBeNull();
+  expect(screen.getByRole("link", { name: "Open sent form" })).toBeTruthy();
+});
+
 it("retains request rows and offers local retry when an additional page fails", async () => {
   vi.mocked(loadDistributionPage)
     .mockResolvedValueOnce({ items: [openRequest], next_cursor: "request-cursor-2" })
