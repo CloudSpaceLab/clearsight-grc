@@ -13,5 +13,6 @@ $$;
 DROP TABLE framework_catalog_clauses;
 DROP TABLE framework_catalog_editions;
 DROP FUNCTION reject_framework_catalog_content_mutation();
+DROP FUNCTION enforce_framework_catalog_clause_license();
 
 COMMIT;
