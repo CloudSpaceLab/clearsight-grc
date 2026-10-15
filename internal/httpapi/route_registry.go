@@ -132,6 +132,7 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/ai-governance/execution-grants", "ai.governance.grant.create", a.createAIGovernanceGrant, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 5, ActorField: "actor_id"}),
 
 		read("/api/v1/program-summaries", a.listProgramSummaries),
+		read("/api/v1/framework-catalog/editions", a.listFrameworkEditions),
 		read("/api/v1/programs", a.listPrograms),
 		read("/api/v1/programs/setup-candidates", a.listProgramSetupCandidates),
 		material("/api/v1/programs", "program.create", a.createProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, BindLegalEntity: true}),
@@ -144,6 +145,9 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/programs/{id}/calculation-policy/propose", "program.compliance-policy.propose", a.proposeProgramCompliancePolicy, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 3, ActorField: noActorField}),
 		material("/api/v1/programs/{id}/calculation-policy/approve", "program.compliance-policy.approve", a.decideProgramCompliancePolicy(true), commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}),
 		material("/api/v1/programs/{id}/calculation-policy/reject", "program.compliance-policy.reject", a.decideProgramCompliancePolicy(false), commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}),
+		material("/api/v1/programs/{id}/standards/propose", "program.framework.propose", a.proposeProgramFrameworkAdoption, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 3, ActorField: noActorField}),
+		material("/api/v1/programs/{id}/standards/{adoption_id}/approve", "program.framework.approve", a.decideProgramFrameworkAdoption(true), commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}),
+		material("/api/v1/programs/{id}/standards/{adoption_id}/reject", "program.framework.reject", a.decideProgramFrameworkAdoption(false), commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, ActorField: noActorField}),
 		material("/api/v1/programs/{id}/assignment", "program.assign", a.assignProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 3}),
 		material("/api/v1/programs/{id}/approval-authority", "program.approval-authority.assign", a.assignProgramApprovalAuthority, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, DecisionType: "program.transition"}),
 		material("/api/v1/programs/{id}/transition", "program.transition", a.transitionProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 3}),

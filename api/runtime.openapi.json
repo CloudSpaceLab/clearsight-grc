@@ -3288,6 +3288,12 @@
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
+    "/api/v1/framework-catalog/editions": {
+      "get": {
+        "operationId": "listFrameworkEditions",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/programs/setup-candidates": {
       "get": {
         "operationId": "listProgramSetupCandidates",
@@ -3345,6 +3351,24 @@
     "/api/v1/programs/{id}/calculation-policy/reject": {
       "post": {
         "operationId": "rejectProgramCompliancePolicy",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/standards/propose": {
+      "post": {
+        "operationId": "proposeProgramFrameworkAdoption",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/standards/{adoption_id}/approve": {
+      "post": {
+        "operationId": "approveProgramFrameworkAdoption",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/standards/{adoption_id}/reject": {
+      "post": {
+        "operationId": "rejectProgramFrameworkAdoption",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },

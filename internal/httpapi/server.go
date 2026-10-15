@@ -22,6 +22,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/frameworkcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/invalidation"
@@ -49,6 +50,10 @@ import (
 
 type AIGatewayOperationsReader interface {
 	TransportStatus(context.Context, string, string) (aigateway.TransportApplyStatus, error)
+}
+
+type FrameworkEditionReader interface {
+	ListEditions(context.Context, string, string, int) ([]frameworkcatalog.Edition, error)
 }
 
 type Dependencies struct {
@@ -104,6 +109,7 @@ type Dependencies struct {
 	RCSA                    *rcsa.Service
 	OperationalLoss         *oploss.Service
 	ControlCatalog          *controlcatalog.Service
+	FrameworkCatalog        FrameworkEditionReader
 	Today                   *today.Service
 	Oversight               *oversight.Service
 	GroupOversight          *oversight.GroupService
