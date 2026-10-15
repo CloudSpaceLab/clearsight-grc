@@ -478,6 +478,53 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		_, err = tx.Exec(ctx, `UPDATE programs SET name=$3,owning_function=$4,owner_principal_id=NULLIF($5,'')::uuid,authority_principal_id=NULLIF($6,'')::uuid,jurisdiction=$7,scope=$8,effective_from=$9,effective_until=$10,updated_at=$11 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.ID, v.Name, v.OwningFunction, v.OwnerPrincipalID, v.AuthorityPrincipalID, v.Jurisdiction, rawJSON(v.Scope, `{}`), v.EffectiveFrom, v.EffectiveUntil, v.UpdatedAt)
 		return err
+	case EventProgramFrameworkAdoptionProposed:
+		var v FrameworkAdoption
+		if err := json.Unmarshal(event.Payload, &v); err != nil {
+			return err
+		}
+		result, err := tx.Exec(ctx, `
+			INSERT INTO program_framework_adoptions(
+				id,tenant_id,legal_entity_id,program_id,edition_id,publisher_code,framework_code,edition_code,
+				status,proposed_by,rationale,proposed_at,version)
+			SELECT $1::uuid,t.id,p.legal_entity_id,p.id,$4::uuid,$5,$6,$7,
+				$8,$9::uuid,$10,$11,$12
+			FROM programs p JOIN tenants t ON t.id=p.tenant_id
+			WHERE p.id=$2::uuid AND (t.id::text=$3 OR t.slug=$3)
+			  AND p.legal_entity_id=$13::uuid`,
+			v.ID, v.ProgramID, v.TenantID, v.EditionID,
+			v.PublisherCode, v.FrameworkCode, v.EditionCode, v.Status,
+			v.ProposedBy, v.Rationale, v.ProposedAt, v.Version, v.LegalEntityID)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return ErrNotFound
+		}
+		return nil
+	case EventProgramFrameworkAdoptionApproved, EventProgramFrameworkAdoptionRejected:
+		var v frameworkAdoptionDecision
+		if err := json.Unmarshal(event.Payload, &v); err != nil {
+			return err
+		}
+		a := v.Adoption
+		result, err := tx.Exec(ctx, `
+			UPDATE program_framework_adoptions a
+			SET status=$6,reviewed_by=$7::uuid,reviewed_at=$8,effective_from=$9,version=$10
+			FROM tenants t
+			WHERE a.id=$1::uuid AND a.program_id=$2::uuid
+			  AND a.tenant_id=t.id AND (t.id::text=$3 OR t.slug=$3)
+			  AND a.legal_entity_id=$4::uuid AND a.edition_id=$5::uuid
+			  AND a.status='PENDING' AND a.version=$11`,
+			a.ID, a.ProgramID, a.TenantID, a.LegalEntityID, a.EditionID,
+			a.Status, a.ReviewedBy, a.ReviewedAt, a.EffectiveFrom, a.Version, a.Version-1)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return ErrVersionConflict
+		}
+		return nil
 	case EventProgramCalculationPolicyProposed, EventProgramCalculationPolicyApproved, EventProgramCalculationPolicyRejected:
 		var v programCompliancePolicyChangedEvent
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
