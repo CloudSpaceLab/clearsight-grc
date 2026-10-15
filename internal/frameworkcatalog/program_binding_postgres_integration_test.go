@@ -48,9 +48,9 @@ func TestPostgresProgramFrameworkAdoptionScopeAndReviewGuards(t *testing.T) {
 
 	exec("INSERT INTO tenants(id,slug,name) VALUES($1::uuid,$2,$3)", tenant, "framework-"+strings.ToLower(suffix), "Framework fixture")
 	exec(`INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES
-		($1::uuid,$3::uuid,$5,'Entity A','NG'),
-		($2::uuid,$3::uuid,$6,'Entity B','NG')`,
-		entityA, entityB, tenant, "unused", "FWA-"+suffix, "FWB-"+suffix)
+		($1::uuid,$3::uuid,$4,'Entity A','NG'),
+		($2::uuid,$3::uuid,$5,'Entity B','NG')`,
+		entityA, entityB, tenant, "FWA-"+suffix, "FWB-"+suffix)
 	exec(`INSERT INTO principals(id,tenant_id,kind,display_name) VALUES
 		($1::uuid,$3::uuid,'PERSON','Framework proposer'),
 		($2::uuid,$3::uuid,'PERSON','Independent reviewer')`,
@@ -63,10 +63,10 @@ func TestPostgresProgramFrameworkAdoptionScopeAndReviewGuards(t *testing.T) {
 		programA, programB, tenant, entityA, "FRAME-A-"+suffix, entityB, "FRAME-B-"+suffix, start)
 	exec(`INSERT INTO program_requirements(
 		id,tenant_id,program_id,code,title,statement,modality,status,effective_from,created_at,version) VALUES
-		($1::uuid,$4::uuid,$5::uuid,'A','Access','Review access','MUST','APPROVED',$8,$8,1),
-		($2::uuid,$4::uuid,$6::uuid,'B','Other','Review other','MUST','APPROVED',$8,$8,1),
-		($3::uuid,$4::uuid,$5::uuid,'C','Draft','Await approval','MUST','DRAFT',$8,$8,1)`,
-		requirementA, requirementB, draftRequirement, tenant, programA, programB, "unused", start)
+		($1::uuid,$4::uuid,$5::uuid,'A','Access','Review access','MUST','APPROVED',$7,$7,1),
+		($2::uuid,$4::uuid,$6::uuid,'B','Other','Review other','MUST','APPROVED',$7,$7,1),
+		($3::uuid,$4::uuid,$5::uuid,'C','Draft','Await approval','MUST','DRAFT',$7,$7,1)`,
+		requirementA, requirementB, draftRequirement, tenant, programA, programB, start)
 
 	editionInput := validTestPublication()
 	editionInput.FrameworkCode = "ADOPT-" + suffix
