@@ -35,6 +35,9 @@ export const matterOperationalCoverage = {
 export const programOperationalCoverage = {
   "program.create": { surface: "ProgramSetupWorkspace", states: ["list", "empty", "create"], testedBy: ["ProgramsWorkspace.test.tsx"] },
   "program.details.update": { surface: "ProgramDetailsPanel", states: ["current", "edit", "conflict", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.compliance-policy.propose": { surface: "ProgramDetailsPanel", states: ["not_configured", "approved", "draft", "invalid_weights", "submitted"], testedBy: ["ProgramDetailsPanel.test.tsx"] },
+  "program.compliance-policy.approve": { surface: "ProgramDetailsPanel", states: ["pending_review", "approved", "error"], testedBy: ["ProgramDetailsPanel.test.tsx"] },
+  "program.compliance-policy.reject": { surface: "ProgramDetailsPanel", states: ["pending_review", "rejected", "error"], testedBy: ["ProgramDetailsPanel.test.tsx"] },
   "program.assign": { surface: "ProgramDetailsPanel", states: ["assigned", "eligible_candidate_selection", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
   "program.approval-authority.assign": { surface: "ProgramDetailsPanel", states: ["assigned", "eligible_candidate_selection", "conflict_separated", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
   "program.transition": { surface: "ProgramStatusPanel", states: ["draft", "active", "paused", "ended", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx", "OperatingMutations.test.tsx"] },
