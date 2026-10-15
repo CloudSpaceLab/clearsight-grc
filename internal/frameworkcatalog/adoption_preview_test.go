@@ -2,6 +2,7 @@ package frameworkcatalog
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -108,6 +109,32 @@ func TestPreviewClauseReuseDoesNotCrossProgramOrTenant(t *testing.T) {
 	}
 	if got[0].Status != ClauseReuseUnmapped || got[1].Status != ClauseReuseUnmapped {
 		t.Fatalf("out of scope requirement suggested: %+v", got)
+	}
+}
+
+func TestPreviewClauseReuseCapsAmbiguousSuggestions(t *testing.T) {
+	program, at := sampleAdoptionProgram()
+	program.Requirements = nil
+	program.Applicability = nil
+	for i := 0; i < MaxSuggestedRequirements+5; i++ {
+		program.Requirements = append(program.Requirements, continuity.Requirement{
+			ID: fmt.Sprintf("req-%02d", i), ProgramID: program.Program.ID,
+			TenantID: program.Program.TenantID, Code: fmt.Sprintf("CODE-%02d", i),
+			Title: "Existing obligation", SourceAnchor: "Section 1",
+			Status: continuity.RequirementApproved, EffectiveFrom: at.Add(-time.Hour),
+		})
+	}
+	got, err := PreviewClauseReuse(program, sampleAdoptionEdition(), []Clause{{Code: "A", SourceAnchor: "Section 1"}}, at)
+	if err != nil {
+		t.Fatal(err)
+	}
+	row := got[0]
+	if row.Status != ClauseReuseAmbiguous || row.TotalCandidates != MaxSuggestedRequirements+5 ||
+		!row.CandidatesTruncated || len(row.Candidates) != MaxSuggestedRequirements {
+		t.Fatalf("large candidate population not bounded: %+v", row)
+	}
+	if row.Candidates[0].RequirementID != "req-00" || row.Candidates[len(row.Candidates)-1].RequirementID != "req-09" {
+		t.Fatalf("candidate order is nondeterministic: %+v", row.Candidates)
 	}
 }
 
