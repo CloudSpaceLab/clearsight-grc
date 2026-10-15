@@ -478,6 +478,8 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		_, err = tx.Exec(ctx, `UPDATE programs SET name=$3,owning_function=$4,owner_principal_id=NULLIF($5,'')::uuid,authority_principal_id=NULLIF($6,'')::uuid,jurisdiction=$7,scope=$8,effective_from=$9,effective_until=$10,updated_at=$11 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.ID, v.Name, v.OwningFunction, v.OwnerPrincipalID, v.AuthorityPrincipalID, v.Jurisdiction, rawJSON(v.Scope, `{}`), v.EffectiveFrom, v.EffectiveUntil, v.UpdatedAt)
 		return err
+	case EventFrameworkMappingProposed, EventFrameworkMappingApproved, EventFrameworkMappingRejected:
+		return applyFrameworkMappingProjection(ctx, tx, event)
 	case EventProgramFrameworkAdoptionProposed:
 		var v FrameworkAdoption
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
