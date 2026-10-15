@@ -100,7 +100,7 @@ CREATE TABLE framework_clause_requirement_links (
 
 -- The database is a second boundary after governed Program authorization:
 -- an unapproved framework adoption or inactive Requirement cannot be mapped.
-CREATE FUNCTION guard_framework_clause_requirement_link() RETURNS trigger LANGUAGE plpgsql AS $
+CREATE FUNCTION guard_framework_clause_requirement_link() RETURNS trigger LANGUAGE plpgsql AS $framework_guard$
 BEGIN
     IF NOT EXISTS (
         SELECT 1
@@ -125,7 +125,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$;
+$framework_guard$;
 CREATE TRIGGER framework_clause_requirement_link_guard
     BEFORE INSERT ON framework_clause_requirement_links
     FOR EACH ROW EXECUTE FUNCTION guard_framework_clause_requirement_link();
