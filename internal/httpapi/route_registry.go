@@ -132,6 +132,7 @@ func (a *API) routes() []routeSpec {
 		material("/api/v1/ai-governance/execution-grants", "ai.governance.grant.create", a.createAIGovernanceGrant, commandPolicy{ObjectType: "MATTER", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 5, ActorField: "actor_id"}),
 
 		read("/api/v1/program-summaries", a.listProgramSummaries),
+		read("/api/v1/framework-catalog/editions", a.listFrameworkEditions),
 		read("/api/v1/programs", a.listPrograms),
 		read("/api/v1/programs/setup-candidates", a.listProgramSetupCandidates),
 		material("/api/v1/programs", "program.create", a.createProgram, commandPolicy{ObjectType: "PROGRAM", Responsibility: authority.ResponsibilityOwner, Materiality: 2, BindLegalEntity: true}),
