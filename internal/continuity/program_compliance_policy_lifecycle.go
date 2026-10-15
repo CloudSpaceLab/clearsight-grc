@@ -13,13 +13,13 @@ import (
 // effective revision are projected; immutable prior revisions remain in the
 // existing Program event stream.
 type ProgramCompliancePolicyRevision struct {
-	Number      int64                              `json:"number"`
-	Definition  ProgramComplianceCalculationPolicy `json:"definition"`
-	Checksum    string                             `json:"checksum"`
-	MakerID     string                             `json:"maker_id"`
-	ProposedAt  time.Time                          `json:"proposed_at"`
-	ApproverID  string                             `json:"approver_id,omitempty"`
-	ApprovedAt  *time.Time                         `json:"approved_at,omitempty"`
+	Number     int64                              `json:"number"`
+	Definition ProgramComplianceCalculationPolicy `json:"definition"`
+	Checksum   string                             `json:"checksum"`
+	MakerID    string                             `json:"maker_id"`
+	ProposedAt time.Time                          `json:"proposed_at"`
+	ApproverID string                             `json:"approver_id,omitempty"`
+	ApprovedAt *time.Time                         `json:"approved_at,omitempty"`
 }
 
 type ProgramCompliancePolicyPosition struct {
