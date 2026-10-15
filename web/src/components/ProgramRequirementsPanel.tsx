@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { addProgramRequirement, determineProgramApplicability, supersedeProgramRequirement } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
@@ -20,6 +20,7 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
   const activeStandards = (aggregate.framework_adoptions ?? []).filter((value) => value.status === "ACTIVE");
   const standardReview = useFrameworkClauseCandidates(program.id, program.version);
   const [showStandards, setShowStandards] = useState(false);
+  useEffect(() => { setShowStandards(false); }, [program.id, program.version]);
   const [mode, setMode] = useState<Mode>(null);
   const [selected, setSelected] = useState<Requirement | null>(null);
   const [busy, setBusy] = useState(false);
