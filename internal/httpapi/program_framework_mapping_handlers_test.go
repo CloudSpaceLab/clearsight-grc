@@ -168,6 +168,9 @@ func TestProgramFrameworkMappingCommandsAndRecoverableReview(t *testing.T) {
 	if w:=post(handler("owner-1","bank-ng"),base+"/"+mappingID+"/approve",decision);w.Code==http.StatusOK{
 		t.Fatal("mapping proposer self-approved")
 	}
+	if w := post(reader,"/api/v1/programs/"+program.Program.ID+"/standards/not-adopted/mappings/"+mappingID+"/approve",decision); w.Code == http.StatusOK {
+		t.Fatal("mapping decision accepted the wrong standard adoption")
+	}
 	approved:=post(reader,base+"/"+mappingID+"/approve",decision)
 	if approved.Code!=http.StatusOK {t.Fatalf("review failed %d: %s",approved.Code,approved.Body.String())}
 	value=struct{ Mapping continuity.FrameworkClauseMapping `json:"mapping"`; Program continuity.ProgramAggregate `json:"program"` }{}
