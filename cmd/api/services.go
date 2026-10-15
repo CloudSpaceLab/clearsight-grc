@@ -106,36 +106,38 @@ type serviceSet struct {
 	RCSA                           *rcsa.Service
 	OperationalLoss                *oploss.Service
 	ControlCatalog                 *controlcatalog.Service
-	FrameworkCatalog              interface { ListEditions(context.Context, string, string, int) ([]frameworkcatalog.Edition, error) }
-	MatterFormRemediationRepo      continuity.MatterFormRemediationRepository
-	Today                          *today.Service
-	Oversight                      *oversight.Service
-	GroupOversight                 *oversight.GroupService
-	MetricMembership               metricview.MembershipReader
-	MetricTrends                   metricview.TrendReader
-	MetricMatrices                 metricview.MatrixReader
-	DomainMetrics                  metricview.DomainReader
-	GroupPostureMetrics            metricview.GroupPostureReader
-	LossPeriodMetrics              metricview.LossPeriodReader
-	PresentationPreferences        *presentationprefs.Service
-	NotificationPreferences        *notificationprefs.Service
-	Workflow                       *workflow.Service
-	EscalationSimulation           workflow.EscalationSimulator
-	Onboarding                     *onboarding.Service
-	Autonomy                       *autonomy.Service
-	AIGovernance                   *aigovernance.Service
-	BankVerticals                  *bankverticals.Service
-	BackgroundJobs                 *operations.Service
-	Activity                       *activity.Service
-	People                         *people.Service
-	AuditExports                   *activity.ExportService
-	Access                         access.Resolver
-	RuntimeContext                 runtimecontext.Resolver
-	Invalidations                  invalidation.Stream
-	AccessAdmin                    access.Administrator
-	SessionStore                   scs.Store
-	SCIM                           *scimapi.Service
-	Close                          func()
+	FrameworkCatalog               interface {
+		ListEditions(context.Context, string, string, int) ([]frameworkcatalog.Edition, error)
+	}
+	MatterFormRemediationRepo continuity.MatterFormRemediationRepository
+	Today                     *today.Service
+	Oversight                 *oversight.Service
+	GroupOversight            *oversight.GroupService
+	MetricMembership          metricview.MembershipReader
+	MetricTrends              metricview.TrendReader
+	MetricMatrices            metricview.MatrixReader
+	DomainMetrics             metricview.DomainReader
+	GroupPostureMetrics       metricview.GroupPostureReader
+	LossPeriodMetrics         metricview.LossPeriodReader
+	PresentationPreferences   *presentationprefs.Service
+	NotificationPreferences   *notificationprefs.Service
+	Workflow                  *workflow.Service
+	EscalationSimulation      workflow.EscalationSimulator
+	Onboarding                *onboarding.Service
+	Autonomy                  *autonomy.Service
+	AIGovernance              *aigovernance.Service
+	BankVerticals             *bankverticals.Service
+	BackgroundJobs            *operations.Service
+	Activity                  *activity.Service
+	People                    *people.Service
+	AuditExports              *activity.ExportService
+	Access                    access.Resolver
+	RuntimeContext            runtimecontext.Resolver
+	Invalidations             invalidation.Stream
+	AccessAdmin               access.Administrator
+	SessionStore              scs.Store
+	SCIM                      *scimapi.Service
+	Close                     func()
 }
 
 type organizationScopeGetter interface {
