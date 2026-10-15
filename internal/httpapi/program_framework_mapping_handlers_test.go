@@ -43,7 +43,9 @@ func (r *frameworkMappingTestRepository) latest(ctx context.Context, tenant, pro
 			}
 			records[value.ID] = value
 		case continuity.EventFrameworkMappingApproved, continuity.EventFrameworkMappingRejected:
-			var decision struct{ Mapping continuity.FrameworkClauseMapping `json:"mapping"` }
+			var decision struct {
+				Mapping continuity.FrameworkClauseMapping `json:"mapping"`
+			}
 			if err := json.Unmarshal(event.Payload, &decision); err != nil {
 				return nil, err
 			}
@@ -93,91 +95,110 @@ func TestProgramFrameworkMappingCommandsAndRecoverableReview(t *testing.T) {
 	ctx := continuity.WithTrustedSystemScope(context.Background())
 	repo := &frameworkMappingTestRepository{MemoryRepository: continuity.NewMemoryRepository()}
 	service := continuity.NewService(repo)
-	now := time.Date(2026,10,15,9,0,0,0,time.UTC)
+	now := time.Date(2026, 10, 15, 9, 0, 0, 0, time.UTC)
 	program, err := service.CreateProgram(ctx, continuity.CreateProgramInput{
-		TenantID:"bank",LegalEntityID:"bank-ng",Code:"MAP-HTTP",
-		Name:"Standard mapping review",Type:"REGULATORY",OwningFunction:"Risk",
-		OwnerPrincipalID:"owner-1",AuthorityPrincipalID:"checker-1",EffectiveFrom:now,
+		TenantID: "bank", LegalEntityID: "bank-ng", Code: "MAP-HTTP",
+		Name: "Standard mapping review", Type: "REGULATORY", OwningFunction: "Risk",
+		OwnerPrincipalID: "owner-1", AuthorityPrincipalID: "checker-1", EffectiveFrom: now,
 	})
-	if err != nil { t.Fatal(err) }
-	program, err = service.AddRequirement(ctx,continuity.AddRequirementInput{
-		TenantID:"bank",ProgramID:program.Program.ID,ExpectedVersion:program.Program.Version,
-		Code:"ACCESS",Title:"Access review",Statement:"Review access",SourceAnchor:"A.1",
-		Modality:"MUST",Status:continuity.RequirementApproved,EffectiveFrom:now,ActorID:"owner-1",
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.AddRequirement(ctx, continuity.AddRequirementInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
+		Code: "ACCESS", Title: "Access review", Statement: "Review access", SourceAnchor: "A.1",
+		Modality: "MUST", Status: continuity.RequirementApproved, EffectiveFrom: now, ActorID: "owner-1",
 	})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	service.ConfigureFrameworkEditionLookup(frameworkAPIEditionFixture{})
-	program, err = service.ProposeFrameworkAdoption(ctx,continuity.ProposeFrameworkAdoptionInput{
-		TenantID:"bank",ProgramID:program.Program.ID,EditionID:"edition-1",
-		ExpectedVersion:program.Program.Version,ActorID:"owner-1",Rationale:"Applicable standard",
+	program, err = service.ProposeFrameworkAdoption(ctx, continuity.ProposeFrameworkAdoptionInput{
+		TenantID: "bank", ProgramID: program.Program.ID, EditionID: "edition-1",
+		ExpectedVersion: program.Program.Version, ActorID: "owner-1", Rationale: "Applicable standard",
 	})
-	if err != nil { t.Fatal(err) }
-	program, err = service.ApproveFrameworkAdoption(ctx,continuity.DecideFrameworkAdoptionInput{
-		TenantID:"bank",ProgramID:program.Program.ID,AdoptionID:program.FrameworkAdoptions[0].ID,
-		ExpectedVersion:program.Program.Version,ActorID:"checker-1",Rationale:"Reviewed edition",
+	if err != nil {
+		t.Fatal(err)
+	}
+	program, err = service.ApproveFrameworkAdoption(ctx, continuity.DecideFrameworkAdoptionInput{
+		TenantID: "bank", ProgramID: program.Program.ID, AdoptionID: program.FrameworkAdoptions[0].ID,
+		ExpectedVersion: program.Program.Version, ActorID: "checker-1", Rationale: "Reviewed edition",
 	})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	adoptionID := program.FrameworkAdoptions[0].ID
 	reqID := program.Requirements[0].ID
-	resolver := &assignmentAuthorityStub{resolutions:map[authority.Responsibility]authority.Resolution{
-		authority.ResponsibilityOwner:{Principal:authority.Principal{ID:"owner-1",DisplayName:"Owner"}},
-		authority.ResponsibilityAuthorizer:{Principal:authority.Principal{ID:"checker-1",DisplayName:"Checker"}},
+	resolver := &assignmentAuthorityStub{resolutions: map[authority.Responsibility]authority.Resolution{
+		authority.ResponsibilityOwner:      {Principal: authority.Principal{ID: "owner-1", DisplayName: "Owner"}},
+		authority.ResponsibilityAuthorizer: {Principal: authority.Principal{ID: "checker-1", DisplayName: "Checker"}},
 	}}
-	handler := func(user,entity string) http.Handler {
+	handler := func(user, entity string) http.Handler {
 		return New(Dependencies{
-			Logger:slog.New(slog.NewTextHandler(io.Discard,nil)),
-			Identity:identity.NewDevelopmentAuthenticator("bank",user,entity),
-			Continuity:service,Authority:resolver,
+			Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+			Identity:   identity.NewDevelopmentAuthenticator("bank", user, entity),
+			Continuity: service, Authority: resolver,
 		})
 	}
-	post := func(h http.Handler,url,body string)*httptest.ResponseRecorder{
+	post := func(h http.Handler, url, body string) *httptest.ResponseRecorder {
 		t.Helper()
-		w:=httptest.NewRecorder()
-		h.ServeHTTP(w,httptest.NewRequest(http.MethodPost,url,bytes.NewBufferString(body)))
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest(http.MethodPost, url, bytes.NewBufferString(body)))
 		return w
 	}
-	base := "/api/v1/programs/"+program.Program.ID+"/standards/"+adoptionID+"/mappings"
-	proposal := `{"expected_version":`+strconv.FormatInt(program.Program.Version,10)+
-		`,"clause_id":"clause-1","requirement_id":"`+reqID+
+	base := "/api/v1/programs/" + program.Program.ID + "/standards/" + adoptionID + "/mappings"
+	proposal := `{"expected_version":` + strconv.FormatInt(program.Program.Version, 10) +
+		`,"clause_id":"clause-1","requirement_id":"` + reqID +
 		`","mapping_kind":"PARTIAL","rationale":"Only some controls apply."}`
-	if w := post(handler("other","bank-ng"),base+"/propose",proposal);w.Code==http.StatusOK{
+	if w := post(handler("other", "bank-ng"), base+"/propose", proposal); w.Code == http.StatusOK {
 		t.Fatal("unauthorized proposer was accepted")
 	}
-	if w := post(handler("owner-1","other-entity"),base+"/propose",proposal);w.Code==http.StatusOK{
+	if w := post(handler("owner-1", "other-entity"), base+"/propose", proposal); w.Code == http.StatusOK {
 		t.Fatal("foreign legal entity proposed a mapping")
 	}
-	out := post(handler("owner-1","bank-ng"),base+"/propose",proposal)
-	if out.Code!=http.StatusOK { t.Fatalf("proposal status %d: %s",out.Code,out.Body.String()) }
-	var value struct{
-		Mapping continuity.FrameworkClauseMapping `json:"mapping"`
-		Program continuity.ProgramAggregate `json:"program"`
+	out := post(handler("owner-1", "bank-ng"), base+"/propose", proposal)
+	if out.Code != http.StatusOK {
+		t.Fatalf("proposal status %d: %s", out.Code, out.Body.String())
 	}
-	if err:=json.Unmarshal(out.Body.Bytes(),&value);err!=nil {t.Fatal(err)}
-	if value.Mapping.Status!=continuity.FrameworkMappingPending ||
-		len(value.Program.Requirements)!=1 || value.Program.Program.CalculationPolicy!=nil {
-		t.Fatalf("mapping invented compliance data: %+v",value)
+	var value struct {
+		Mapping continuity.FrameworkClauseMapping `json:"mapping"`
+		Program continuity.ProgramAggregate       `json:"program"`
+	}
+	if err := json.Unmarshal(out.Body.Bytes(), &value); err != nil {
+		t.Fatal(err)
+	}
+	if value.Mapping.Status != continuity.FrameworkMappingPending ||
+		len(value.Program.Requirements) != 1 || value.Program.Program.CalculationPolicy != nil {
+		t.Fatalf("mapping invented compliance data: %+v", value)
 	}
 	mappingID := value.Mapping.ID
-	reader:=handler("checker-1","bank-ng")
-	list:=httptest.NewRecorder()
-	reader.ServeHTTP(list,httptest.NewRequest(http.MethodGet,base+"?limit=100",nil))
-	if list.Code!=http.StatusOK || !bytes.Contains(list.Body.Bytes(),[]byte(mappingID)) {
-		t.Fatalf("pending review did not survive a fresh read: %d %s",list.Code,list.Body.String())
+	reader := handler("checker-1", "bank-ng")
+	list := httptest.NewRecorder()
+	reader.ServeHTTP(list, httptest.NewRequest(http.MethodGet, base+"?limit=100", nil))
+	if list.Code != http.StatusOK || !bytes.Contains(list.Body.Bytes(), []byte(mappingID)) {
+		t.Fatalf("pending review did not survive a fresh read: %d %s", list.Code, list.Body.String())
 	}
-	decision := `{"expected_version":`+strconv.FormatInt(value.Program.Program.Version,10)+`,"rationale":"Reviewed shared control evidence"}`
-	if w:=post(handler("owner-1","bank-ng"),base+"/"+mappingID+"/approve",decision);w.Code==http.StatusOK{
+	decision := `{"expected_version":` + strconv.FormatInt(value.Program.Program.Version, 10) + `,"rationale":"Reviewed shared control evidence"}`
+	if w := post(handler("owner-1", "bank-ng"), base+"/"+mappingID+"/approve", decision); w.Code == http.StatusOK {
 		t.Fatal("mapping proposer self-approved")
 	}
-	if w := post(reader,"/api/v1/programs/"+program.Program.ID+"/standards/not-adopted/mappings/"+mappingID+"/approve",decision); w.Code == http.StatusOK {
+	if w := post(reader, "/api/v1/programs/"+program.Program.ID+"/standards/not-adopted/mappings/"+mappingID+"/approve", decision); w.Code == http.StatusOK {
 		t.Fatal("mapping decision accepted the wrong standard adoption")
 	}
-	approved:=post(reader,base+"/"+mappingID+"/approve",decision)
-	if approved.Code!=http.StatusOK {t.Fatalf("review failed %d: %s",approved.Code,approved.Body.String())}
-	value=struct{ Mapping continuity.FrameworkClauseMapping `json:"mapping"`; Program continuity.ProgramAggregate `json:"program"` }{}
-	if err:=json.Unmarshal(approved.Body.Bytes(),&value);err!=nil{t.Fatal(err)}
-	if value.Mapping.Status!=continuity.FrameworkMappingApproved ||
-		value.Mapping.MappingKind!=continuity.FrameworkMappingPartial ||
-		len(value.Program.Requirements)!=1 || value.Program.Program.CalculationPolicy!=nil {
-		t.Fatalf("mapping approval altered scoring units: %+v",value)
+	approved := post(reader, base+"/"+mappingID+"/approve", decision)
+	if approved.Code != http.StatusOK {
+		t.Fatalf("review failed %d: %s", approved.Code, approved.Body.String())
+	}
+	value = struct {
+		Mapping continuity.FrameworkClauseMapping `json:"mapping"`
+		Program continuity.ProgramAggregate       `json:"program"`
+	}{}
+	if err := json.Unmarshal(approved.Body.Bytes(), &value); err != nil {
+		t.Fatal(err)
+	}
+	if value.Mapping.Status != continuity.FrameworkMappingApproved ||
+		value.Mapping.MappingKind != continuity.FrameworkMappingPartial ||
+		len(value.Program.Requirements) != 1 || value.Program.Program.CalculationPolicy != nil {
+		t.Fatalf("mapping approval altered scoring units: %+v", value)
 	}
 }
