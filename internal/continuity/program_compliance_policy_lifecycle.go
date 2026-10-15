@@ -150,6 +150,7 @@ func cloneProgramCompliancePolicyPosition(source *ProgramCompliancePolicyPositio
 		}
 		result := *revision
 		result.Definition.Categories = append([]ProgramComplianceCategoryWeight(nil), revision.Definition.Categories...)
+		result.Definition.ExpectedVendorAssessments = append([]ProgramComplianceExpectedVendorAssessment(nil), revision.Definition.ExpectedVendorAssessments...)
 		if revision.ApprovedAt != nil {
 			at := *revision.ApprovedAt
 			result.ApprovedAt = &at
