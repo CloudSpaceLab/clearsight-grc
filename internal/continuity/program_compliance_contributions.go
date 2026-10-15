@@ -2,6 +2,7 @@ package continuity
 
 import (
 	"reflect"
+	"fmt"
 )
 
 // ProgramRequirementScoreContributions reconstructs a retained requirements-
@@ -25,6 +26,11 @@ func ProgramRequirementScoreContributions(
 		return nil, ErrProgramComplianceCalculationInvalid
 	}
 	policy := position.Active.Definition
+	if position.Active.Number < 1 || position.Active.MakerID == "" ||
+		position.Active.ApproverID == "" || position.Active.MakerID == position.Active.ApproverID ||
+		policy.Revision != fmt.Sprintf("program-v%d", position.Active.Number) {
+		return nil, ErrProgramComplianceCalculationInvalid
+	}
 	if len(policy.Categories) != 1 || policy.Categories[0].Code != "REQUIREMENTS" ||
 		len(policy.ExpectedVendorAssessments) != 0 ||
 		policy.Revision != snapshot.Calculation.PolicyRevision {
