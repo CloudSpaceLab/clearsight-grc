@@ -32,10 +32,22 @@ type ProgramComplianceCategoryWeight struct {
 	WeightBps int64  `json:"weight_bps"`
 }
 
+// One expected obligation remains in the denominator until an authorized
+// applicability decision removes it; request creation is not the population.
+type ProgramComplianceExpectedVendorAssessment struct {
+	Key                 string `json:"key"`
+	RelationshipID      string `json:"relationship_id"`
+	FormTemplateID      string `json:"form_template_id"`
+	FormTemplateVersion int64  `json:"form_template_version"`
+	ReviewKind          string `json:"review_kind"`
+	Weight              int64  `json:"weight"`
+}
+
 type ProgramComplianceCalculationPolicy struct {
-	Revision           string                            `json:"revision"`
-	MinimumCoverageBps int64                             `json:"minimum_coverage_bps"`
-	Categories         []ProgramComplianceCategoryWeight `json:"categories"`
+	Revision                  string                                      `json:"revision"`
+	MinimumCoverageBps        int64                                       `json:"minimum_coverage_bps"`
+	Categories                []ProgramComplianceCategoryWeight           `json:"categories"`
+	ExpectedVendorAssessments []ProgramComplianceExpectedVendorAssessment `json:"expected_vendor_assessments,omitempty"`
 }
 
 type ProgramComplianceInput struct {
@@ -110,6 +122,40 @@ func validatedProgramComplianceCategories(policy ProgramComplianceCalculationPol
 	}
 	if total != programComplianceBasisPoints {
 		return nil, ErrProgramComplianceCalculationInvalid
+	}
+	if len(policy.ExpectedVendorAssessments) > 10000 {
+		return nil, ErrProgramComplianceCalculationInvalid
+	}
+	if len(policy.ExpectedVendorAssessments) > 0 {
+		if _, exists := categories["VENDORS"]; !exists {
+			return nil, ErrProgramComplianceCalculationInvalid
+		}
+	}
+	type vendorIdentity struct {
+		relationship, form string
+		version            int64
+		kind               string
+	}
+	seenKeys := make(map[string]bool, len(policy.ExpectedVendorAssessments))
+	seenIdentities := make(map[vendorIdentity]bool, len(policy.ExpectedVendorAssessments))
+	for _, expectation := range policy.ExpectedVendorAssessments {
+		identity := vendorIdentity{
+			relationship: expectation.RelationshipID,
+			form:         expectation.FormTemplateID,
+			version:      expectation.FormTemplateVersion,
+			kind:         expectation.ReviewKind,
+		}
+		if strings.TrimSpace(expectation.Key) != expectation.Key || expectation.Key == "" ||
+			len(expectation.Key) > 192 ||
+			strings.TrimSpace(expectation.RelationshipID) != expectation.RelationshipID || expectation.RelationshipID == "" ||
+			strings.TrimSpace(expectation.FormTemplateID) != expectation.FormTemplateID || expectation.FormTemplateID == "" ||
+			expectation.FormTemplateVersion < 1 ||
+			(expectation.ReviewKind != "ONBOARDING" && expectation.ReviewKind != "PERIODIC" && expectation.ReviewKind != "TRIGGERED") ||
+			expectation.Weight < 1 || expectation.Weight > programComplianceBasisPoints ||
+			seenKeys[expectation.Key] || seenIdentities[identity] {
+			return nil, ErrProgramComplianceCalculationInvalid
+		}
+		seenKeys[expectation.Key], seenIdentities[identity] = true, true
 	}
 	return categories, nil
 }
