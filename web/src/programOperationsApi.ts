@@ -140,7 +140,7 @@ export type FrameworkEditionOption = {
 
 export async function loadFrameworkEditions(jurisdiction = "GLOBAL"): Promise<FrameworkEditionOption[]> {
   const query = new URLSearchParams({ jurisdiction, limit: "100" });
-  const result = await requestJSON<{ items: FrameworkEditionOption[] }>(apiBase, await tenantPath(`/api/v1/framework-catalog/editions?${query.toString()}`));
+  const result = await requestJSON<{ items: FrameworkEditionOption[] }>(apiBase, `${await tenantPath("/api/v1/framework-catalog/editions")}&${query.toString()}`);
   return result.items ?? [];
 }
 
