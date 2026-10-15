@@ -127,6 +127,14 @@ func TestProgramVendorAssessmentInputsFailClosedOnPendingAmbiguousOrUnreviewed(t
 		t.Fatalf("cross-entity assessment supplied compliance: %+v, %v", inputs, err)
 	}
 	assessment.LegalEntityID = "entity"
+	duplicate := append([]ProgramVendorAssessmentExpectation(nil), expected...)
+	another := expected[0]
+	another.Key = "vendor:oct:duplicate"
+	duplicate = append(duplicate, another)
+	if _, err := ProgramVendorAssessmentInputs("bank", "entity", duplicate, []Assessment{assessment},
+		[]evidence.VendorFormRow{row}, now.Add(-24*time.Hour), now.Add(24*time.Hour), now, "VENDORS"); err == nil {
+		t.Fatal("one expected assessment could be counted twice under different keys")
+	}
 	_, err = calculate(assessment, []evidence.VendorFormRow{row, row})
 	if err == nil {
 		t.Fatal("ambiguous current form result silently deduplicated")
