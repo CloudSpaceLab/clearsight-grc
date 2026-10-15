@@ -75,6 +75,13 @@ func TestVerifySourceChecksumBounds(t *testing.T) {
 	}
 }
 
+func TestManifestRejectsExcessiveJSONNesting(t *testing.T) {
+	deep := strings.Repeat("[", 66) + "0" + strings.Repeat("]", 66)
+	if _, _, err := ReadPublicationManifest(strings.NewReader(deep)); !errors.Is(err, ErrInvalidPublication) {
+		t.Fatalf("unbounded JSON depth accepted: %v", err)
+	}
+}
+
 func TestManifestReaderFailureIsHandled(t *testing.T) {
 	if _, _, err := ReadPublicationManifest(failingReader{}); !errors.Is(err, ErrInvalidPublication) {
 		t.Fatalf("read failure not handled: %v", err)
