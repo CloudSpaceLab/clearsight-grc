@@ -245,7 +245,8 @@ function exactMetricBundle() {
 it("keeps oversight analysis separate from attention and assigned work", async () => {
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
 
-  await screen.findByRole("heading", { name: "Home" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
+  expect(screen.getByText(/^Risk, compliance and action (?:in the last|·)/)).toBeTruthy();
   expect(screen.getByRole("tab", { name: "Oversight" }).getAttribute("aria-selected")).toBe("true");
   expect(screen.getByRole("table", { name: "Risk pressure by issue type" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Outside appetite: 9/ })).toBeTruthy();
@@ -275,7 +276,7 @@ it("keeps oversight analysis separate from attention and assigned work", async (
 it("keeps canonical metrics visible when detailed analysis is unavailable", async () => {
   api.loadOversight.mockRejectedValueOnce(new Error("unavailable"));
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()} homeTab="attention"/>);
-  await screen.findByRole("heading", { name: "Home" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
   expect(screen.getByText("7")).toBeTruthy();
   expect(screen.getByText("Priority intervention detail is unavailable. Headline metrics may still be current.")).toBeTruthy();
 });
@@ -283,7 +284,7 @@ it("keeps canonical metrics visible when detailed analysis is unavailable", asyn
 it("does not substitute Oversight counts when canonical metrics are unavailable", async () => {
   metricApi.loadHomeMetrics.mockRejectedValueOnce(new Error("unavailable"));
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()} homeTab="attention"/>);
-  await screen.findByRole("heading", { name: "Home" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
   expect(screen.getByRole("article", { name: /Critical and high: —.*Unavailable/ })).toBeTruthy();
   expect(screen.getByRole("article", { name: /Overdue: —.*Unavailable/ })).toBeTruthy();
 });
@@ -311,7 +312,7 @@ it("keeps Attention and My work isolated while preserving their actions", async 
     homeTab="attention"
   />);
 
-  await screen.findByRole("heading", { name: "Home" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
   expect(screen.getByRole("heading", { name: "Priority interventions" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
   expect(metricApi.loadDomainMetrics).not.toHaveBeenCalled();
@@ -434,7 +435,7 @@ it("passes the applied Home reporting period into Insights rather than opening c
 
 it("applies one exact server-backed period to both Home reads and keeps the end date current", async () => {
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Home" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
 
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
   expect(screen.queryByLabelText("From")).toBeNull();
@@ -478,7 +479,7 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
 
 it("submits a custom start date but never offers an editable historical end date", async () => {
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Home" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
 
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
   fireEvent.click(screen.getByRole("button", { name: "Custom start date" }));
@@ -563,7 +564,7 @@ it("shows My work as a separate bounded Home intent", async () => {
     homeTab="my-work"
   />);
 
-  await screen.findByRole("heading", { name: "Home" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
   expect(screen.getByRole("heading", { name: "Your assigned work" })).toBeTruthy();
   expect(screen.queryByText("Critical and high")).toBeNull();
   expect(screen.queryByRole("table", { name: "Risk pressure by issue type" })).toBeNull();
@@ -603,7 +604,7 @@ it("ignores a previous organization-scope response that arrives after a newer sc
 
 it("reloads Home projections when the actor invalidation revision changes", async () => {
   const { rerender } = render(<OversightWorkspace refreshToken="rev-1" organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Home" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledTimes(1));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledTimes(1);
   await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledTimes(1));
