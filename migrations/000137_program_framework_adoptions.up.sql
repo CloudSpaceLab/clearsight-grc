@@ -47,6 +47,10 @@ CREATE TABLE program_framework_adoptions (
         reviewed_at IS NOT NULL AND effective_from IS NOT NULL AND
         effective_until IS NOT NULL AND effective_from < effective_until)
     ),
+    CONSTRAINT program_framework_adoption_dates_ck CHECK (
+      reviewed_at IS NULL OR (reviewed_at >= proposed_at AND
+        (effective_from IS NULL OR effective_from >= reviewed_at))
+    ),
     CONSTRAINT program_framework_adoption_independent_review_ck
       CHECK (reviewed_by IS NULL OR reviewed_by <> proposed_by)
 );
@@ -73,11 +77,14 @@ CREATE TABLE framework_clause_requirement_links (
     requirement_id uuid NOT NULL,
     mapping_kind text NOT NULL CHECK (mapping_kind IN ('EXACT','PARTIAL','SUPPORTING')),
     rationale text NOT NULL CHECK (char_length(btrim(rationale)) BETWEEN 1 AND 2000),
+    mapped_by uuid NOT NULL,
     reviewed_by uuid NOT NULL,
     reviewed_at timestamptz NOT NULL,
     effective_from timestamptz NOT NULL,
     retired_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    CHECK (effective_from >= reviewed_at),
+    CHECK (mapped_by <> reviewed_by),
     CHECK (retired_at IS NULL OR effective_from < retired_at),
     FOREIGN KEY (adoption_id,tenant_id,legal_entity_id,program_id,edition_id)
       REFERENCES program_framework_adoptions(id,tenant_id,legal_entity_id,program_id,edition_id),
@@ -85,6 +92,8 @@ CREATE TABLE framework_clause_requirement_links (
       REFERENCES framework_catalog_clauses(id,edition_id),
     FOREIGN KEY (requirement_id,tenant_id,program_id)
       REFERENCES program_requirements(id,tenant_id,program_id),
+    FOREIGN KEY (mapped_by,tenant_id)
+      REFERENCES principals(id,tenant_id),
     FOREIGN KEY (reviewed_by,tenant_id)
       REFERENCES principals(id,tenant_id)
 );
@@ -108,6 +117,7 @@ BEGIN
           AND a.status='ACTIVE'
           AND a.effective_from<=NEW.effective_from
           AND a.reviewed_at<=NEW.reviewed_at
+          AND NEW.mapped_by<>a.reviewed_by
           AND r.status='APPROVED'
           AND r.effective_from<=NEW.effective_from
           AND (r.effective_until IS NULL OR NEW.effective_from<r.effective_until)
