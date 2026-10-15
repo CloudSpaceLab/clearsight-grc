@@ -83,6 +83,7 @@ func ProgramVendorAssessmentInputs(
 		}
 	}
 	seen := make(map[string]bool, len(expected))
+	seenIdentities := make(map[programVendorAssessmentKey]bool, len(expected))
 	output := make([]continuity.ProgramComplianceInput, 0, len(expected))
 	for _, item := range expected {
 		if item.Key == "" || len(item.Key) > 192 || seen[item.Key] ||
@@ -93,7 +94,17 @@ func ProgramVendorAssessmentInputs(
 				item.ReviewKind != AssessmentReviewTriggered) {
 			return nil, continuity.ErrProgramComplianceCalculationInvalid
 		}
+		identity := programVendorAssessmentKey{
+			relationshipID: item.RelationshipID,
+			formID:         item.FormTemplateID,
+			formVersion:    item.FormTemplateVersion,
+			reviewKind:     item.ReviewKind,
+		}
+		if seenIdentities[identity] {
+			return nil, continuity.ErrProgramComplianceCalculationInvalid
+		}
 		seen[item.Key] = true
+		seenIdentities[identity] = true
 		input := continuity.ProgramComplianceInput{
 			Key:      "VENDOR_ASSESSMENT:" + item.Key,
 			Category: category,
@@ -101,12 +112,7 @@ func ProgramVendorAssessmentInputs(
 			State:    continuity.ProgramComplianceUnknown,
 			Reason:   "ASSESSMENT_NOT_RECEIVED",
 		}
-		selected := latestByKey[programVendorAssessmentKey{
-			relationshipID: item.RelationshipID,
-			formID:         item.FormTemplateID,
-			formVersion:    item.FormTemplateVersion,
-			reviewKind:     item.ReviewKind,
-		}]
+		selected := latestByKey[identity]
 		if selected == nil {
 			output = append(output, input)
 			continue
