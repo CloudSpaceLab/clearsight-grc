@@ -83,4 +83,3 @@ func TestPostgresFrameworkCatalogImmutablePublicationAndReads(t *testing.T) {
 		t.Fatal("published framework edition could be removed")
 	}
 }
-
