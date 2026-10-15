@@ -24,7 +24,60 @@ const (
 	maxClausesPerEdition      = 20000
 )
 
-var publicationCodePattern = regexp.MustCompile(`^[A-Z][A-Z0-9._-]{0,127}$`)
+var publicationCodePattern = regexp.MustCompile(`^[A-Z][A-Z0-9._-]{0,127}package frameworkcatalog
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/url"
+	"regexp"
+	"sort"
+	"strings"
+	"time"
+)
+
+var (
+	ErrInvalidPublication = errors.New("framework catalog publication is invalid")
+	ErrEditionConflict    = errors.New("framework catalog edition already exists with different content")
+)
+
+const (
+	LicenseCitationsOnly      = "CITATIONS_ONLY"
+	LicenseSummariesPermitted = "SUMMARIES_PERMITTED"
+	maxClausesPerEdition      = 20000
+)
+
+)
+var editionCodePattern = regexp.MustCompile(`^[A-Z0-9][A-Z0-9._-]{0,63}package frameworkcatalog
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/url"
+	"regexp"
+	"sort"
+	"strings"
+	"time"
+)
+
+var (
+	ErrInvalidPublication = errors.New("framework catalog publication is invalid")
+	ErrEditionConflict    = errors.New("framework catalog edition already exists with different content")
+)
+
+const (
+	LicenseCitationsOnly      = "CITATIONS_ONLY"
+	LicenseSummariesPermitted = "SUMMARIES_PERMITTED"
+	maxClausesPerEdition      = 20000
+)
+
+)
 var publicationSHA256Pattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
 // Clause is an immutable source reference, not a Program Requirement or a
@@ -81,11 +134,14 @@ func ValidatePublication(value Publication) (string, error) {
 		max         int
 	}{
 		{"publisher", value.PublisherCode, 64}, {"framework", value.FrameworkCode, 64},
-		{"edition", value.EditionCode, 64}, {"jurisdiction", value.Jurisdiction, 64},
+		{"jurisdiction", value.Jurisdiction, 64},
 	} {
 		if len(c.value) > c.max || !publicationCodePattern.MatchString(c.value) {
 			return "", fmt.Errorf("%w: invalid %s code", ErrInvalidPublication, c.name)
 		}
+	}
+	if !editionCodePattern.MatchString(value.EditionCode) {
+		return "", fmt.Errorf("%w: invalid edition code", ErrInvalidPublication)
 	}
 	if !trimmedLength(value.Title, 1, 240) ||
 		!trimmedLength(value.SourceURL, 9, 2048) ||
