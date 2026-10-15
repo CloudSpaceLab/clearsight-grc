@@ -54,6 +54,7 @@ type FrameworkClauseMapping struct {
 	AdoptionID    string                 `json:"adoption_id"`
 	EditionID     string                 `json:"edition_id"`
 	ClauseID      string                 `json:"clause_id"`
+	ClauseCode    string                 `json:"clause_code,omitempty"`
 	RequirementID string                 `json:"requirement_id"`
 	MappingKind   FrameworkMappingKind   `json:"mapping_kind"`
 	Rationale     string                 `json:"rationale"`
