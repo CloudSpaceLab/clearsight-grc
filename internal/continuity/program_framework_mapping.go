@@ -80,6 +80,7 @@ type ProposeFrameworkMappingInput struct {
 }
 
 type DecideFrameworkMappingInput struct {
+	AdoptionID      string `json:"adoption_id,omitempty"`
 	TenantID        string `json:"tenant_id"`
 	ProgramID       string `json:"program_id"`
 	MappingID       string `json:"mapping_id"`
@@ -177,7 +178,8 @@ func (s *Service) decideFrameworkMapping(ctx context.Context, input DecideFramew
 		return FrameworkClauseMapping{}, ProgramAggregate{}, err
 	}
 	if current.Status != FrameworkMappingPending || current.Version != 1 ||
-		current.MappedBy == checker || current.LegalEntityID != program.Program.LegalEntityID {
+		current.MappedBy == checker || current.LegalEntityID != program.Program.LegalEntityID ||
+		(input.AdoptionID != "" && current.AdoptionID != input.AdoptionID) {
 		return FrameworkClauseMapping{}, ProgramAggregate{}, ErrInvalidState
 	}
 	now := s.now().UTC()
