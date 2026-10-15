@@ -32,6 +32,7 @@ type ClauseReuseCandidate struct {
 }
 
 type ClauseReuseProposal struct {
+	ClauseID            string                 `json:"clause_id"`
 	ClauseCode          string                 `json:"clause_code"`
 	SourceAnchor        string                 `json:"source_anchor"`
 	Status              ClauseReuseStatus      `json:"status"`
