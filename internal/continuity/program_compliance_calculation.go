@@ -95,8 +95,8 @@ func CalculateProgramCompliance(
 
 	result := ProgramComplianceCalculation{
 		PolicyRevision: policy.Revision,
-		State: ProgramComplianceNotAssessed,
-		Categories: make([]ProgramComplianceCategoryResult, len(policy.Categories)),
+		State:          ProgramComplianceNotAssessed,
+		Categories:     make([]ProgramComplianceCategoryResult, len(policy.Categories)),
 	}
 	categories := make(map[string]int, len(policy.Categories))
 	accumulators := make([]programComplianceAccumulator, len(policy.Categories))
