@@ -181,24 +181,25 @@ const (
 )
 
 type Program struct {
-	ID                   string          `json:"id"`
-	TenantID             string          `json:"tenant_id"`
-	LegalEntityID        string          `json:"legal_entity_id,omitempty"`
-	OrganizationScopeID  string          `json:"organization_scope_id,omitempty"`
-	Code                 string          `json:"code"`
-	Name                 string          `json:"name"`
-	Type                 string          `json:"type"`
-	Status               ProgramStatus   `json:"status"`
-	OwningFunction       string          `json:"owning_function"`
-	OwnerPrincipalID     string          `json:"owner_principal_id,omitempty"`
-	AuthorityPrincipalID string          `json:"authority_principal_id,omitempty"`
-	Jurisdiction         string          `json:"jurisdiction,omitempty"`
-	Scope                json.RawMessage `json:"scope"`
-	EffectiveFrom        time.Time       `json:"effective_from"`
-	EffectiveUntil       *time.Time      `json:"effective_until,omitempty"`
-	CreatedAt            time.Time       `json:"created_at"`
-	UpdatedAt            time.Time       `json:"updated_at"`
-	Version              int64           `json:"version"`
+	ID                   string                           `json:"id"`
+	TenantID             string                           `json:"tenant_id"`
+	LegalEntityID        string                           `json:"legal_entity_id,omitempty"`
+	OrganizationScopeID  string                           `json:"organization_scope_id,omitempty"`
+	Code                 string                           `json:"code"`
+	Name                 string                           `json:"name"`
+	Type                 string                           `json:"type"`
+	Status               ProgramStatus                    `json:"status"`
+	OwningFunction       string                           `json:"owning_function"`
+	OwnerPrincipalID     string                           `json:"owner_principal_id,omitempty"`
+	AuthorityPrincipalID string                           `json:"authority_principal_id,omitempty"`
+	Jurisdiction         string                           `json:"jurisdiction,omitempty"`
+	Scope                json.RawMessage                  `json:"scope"`
+	CalculationPolicy    *ProgramCompliancePolicyPosition `json:"calculation_policy,omitempty"`
+	EffectiveFrom        time.Time                        `json:"effective_from"`
+	EffectiveUntil       *time.Time                       `json:"effective_until,omitempty"`
+	CreatedAt            time.Time                        `json:"created_at"`
+	UpdatedAt            time.Time                        `json:"updated_at"`
+	Version              int64                            `json:"version"`
 }
 
 type Requirement struct {

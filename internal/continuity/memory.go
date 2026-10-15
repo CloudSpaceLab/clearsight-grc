@@ -479,6 +479,12 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.Program = value.Program
+	case EventProgramCalculationPolicyProposed, EventProgramCalculationPolicyApproved, EventProgramCalculationPolicyRejected:
+		var value programCompliancePolicyChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Program.CalculationPolicy = &value.Position
 	case EventProgramOwnerChanged:
 		var value programOwnerChangedEvent
 		if err := json.Unmarshal(event.Payload, &value); err != nil {
