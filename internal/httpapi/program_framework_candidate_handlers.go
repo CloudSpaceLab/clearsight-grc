@@ -89,7 +89,12 @@ func (a *API) listProgramFrameworkCandidates(w http.ResponseWriter, r *http.Requ
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "framework_mapping_unavailable", "Requirement matches could not be evaluated.")
 		return
 	}
+	nextAfterCode := ""
+	if len(clauses) == limit {
+		nextAfterCode = clauses[len(clauses)-1].Code
+	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
+		"next_after_code": nextAfterCode,
 		"program_id":      visible.Program.ID,
 		"program_version": visible.Program.Version,
 		"adoption_id":     adoptionID,
