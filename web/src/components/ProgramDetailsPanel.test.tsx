@@ -44,6 +44,27 @@ describe("Program calculation rules", () => {
     expect(onUpdated).toHaveBeenCalled();
   });
 
+  it("adds optional evidence or issue factors without allowing incomplete weights", async () => {
+    vi.mocked(proposeProgramCalculationPolicy).mockResolvedValue({ ...aggregate, program: { ...program, version: 4 } });
+    render(<ProgramDetailsPanel aggregate={aggregate} operations={[proposal]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Set rules" }));
+    fireEvent.change(screen.getByLabelText("Add scoring factor"), { target: { value: "ISSUES" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add factor" }));
+    expect(screen.getByLabelText("Unresolved issues (%)")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Submit for approval" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.change(screen.getByLabelText("Requirements and controls (%)"), { target: { value: "60" } });
+    fireEvent.change(screen.getByLabelText("Unresolved issues (%)"), { target: { value: "10" } });
+    fireEvent.change(screen.getByLabelText("Reason for change"), { target: { value: "Issue weighting" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit for approval" }));
+    await waitFor(() => expect(proposeProgramCalculationPolicy).toHaveBeenCalledWith("program-1", 3, expect.objectContaining({
+      categories: [
+        { code: "REQUIREMENTS", weight_bps: 6000 },
+        { code: "VENDORS", weight_bps: 3000 },
+        { code: "ISSUES", weight_bps: 1000 },
+      ],
+    }), "Issue weighting"));
+  });
+
   it("does not expose approval to the maker", () => {
     const pending = { number: 1, checksum: "abc", maker_id: "owner", proposed_at: "2026-10-15T08:00:00Z",
       definition: { revision: "program-v1", minimum_coverage_bps: 10000, categories: [{ code: "REQUIREMENTS", weight_bps: 10000 }] } };

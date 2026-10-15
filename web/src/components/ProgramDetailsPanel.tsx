@@ -69,6 +69,7 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
     () => activePolicy?.definition.categories.map((category) => ({ ...category })) ?? defaultCalculationCategories.map((category) => ({ ...category })),
   );
   const [minimumCoverage, setMinimumCoverage] = useState(activePolicy?.definition.minimum_coverage_bps ?? 10000);
+  const [calculationFactor, setCalculationFactor] = useState("");
   const [calculationRationale, setCalculationRationale] = useState("");
   const [decisionRationale, setDecisionRationale] = useState("");
   const weightTotal = calculationWeightTotal(calculationCategories);
@@ -112,6 +113,18 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
   function updateCalculationWeight(code: string, weight: number) {
     setCalculationCategories((current) => current.map((category) =>
       category.code === code ? { ...category, weight_bps: Number.isFinite(weight) ? Math.round(weight * 100) : 0 } : category));
+  }
+
+  const availableCalculationFactors = Object.entries(calculationCategoryLabels).filter(([code]) => !calculationCategories.some((category) => category.code === code));
+
+  function addCalculationFactor() {
+    if (!availableCalculationFactors.some(([code]) => code === calculationFactor)) return;
+    setCalculationCategories((current) => [...current, { code: calculationFactor, weight_bps: 0 }]);
+    setCalculationFactor("");
+  }
+
+  function removeCalculationFactor(code: string) {
+    setCalculationCategories((current) => current.length > 1 ? current.filter((category) => category.code !== code) : current);
   }
 
   async function submitCalculation(event: FormEvent) {
@@ -209,7 +222,14 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
         </div>
       </form>}
       {mode === "calculation" && <form className="program-operation-form" onSubmit={(event) => void submitCalculation(event)}>
-        {calculationCategories.map((category) => <label key={category.code}><span>{calculationCategoryLabels[category.code] ?? category.code} (%)</span><input type="number" min="1" max="100" step="1" required value={category.weight_bps / 100} onChange={(event) => updateCalculationWeight(category.code, Number(event.target.value))}/></label>)}
+        {calculationCategories.map((category) => <div key={category.code} className="program-form-factor">
+          <label><span>{calculationCategoryLabels[category.code] ?? category.code} (%)</span><input type="number" min="1" max="100" step="1" required value={category.weight_bps / 100} onChange={(event) => updateCalculationWeight(category.code, Number(event.target.value))}/></label>
+          {calculationCategories.length > 1 && <button className="text-button" type="button" aria-label={`Remove ${calculationCategoryLabels[category.code] ?? category.code}`} onClick={() => removeCalculationFactor(category.code)}>Remove</button>}
+        </div>)}
+        {availableCalculationFactors.length > 0 && <div className="program-form-actions wide">
+          <label><span>Add scoring factor</span><select value={calculationFactor} onChange={(event) => setCalculationFactor(event.target.value)}><option value="">Choose factor</option>{availableCalculationFactors.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+          <button type="button" className="secondary-button" disabled={!calculationFactor} onClick={addCalculationFactor}>Add factor</button>
+        </div>}
         <label><span>Minimum assessment coverage (%)</span><input type="number" min="1" max="100" step="1" required value={minimumCoverage / 100} onChange={(event) => setMinimumCoverage(Math.round(Number(event.target.value) * 100))}/></label>
         <p className="program-operation-reason wide">Total weight: {weightTotal / 100}%</p>
         <label className="wide"><span>Reason for change</span><textarea required value={calculationRationale} onChange={(event) => setCalculationRationale(event.target.value)}/></label>
