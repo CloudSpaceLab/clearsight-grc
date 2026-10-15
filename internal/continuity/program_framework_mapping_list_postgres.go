@@ -2,10 +2,7 @@
 
 package continuity
 
-import (
-	"context"
-
-)
+import "context"
 
 // ListFrameworkMappings reads only current pending/approved links and never
 // includes another Program, tenant or legal entity in a reviewer's queue.
