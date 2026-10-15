@@ -21,7 +21,7 @@ func TestProgramVendorAssessmentInputsKeepUnrequestedVendorInDenominator(t *test
 		{Key: "vendor-b:security:oct", RelationshipID: "vendor-b", FormTemplateID: "security", FormTemplateVersion: 2, ReviewKind: thirdparty.AssessmentReviewPeriodic, Weight: 1},
 	}
 	assessments := []thirdparty.Assessment{{
-		ID: "assessment-a", RelationshipID: "vendor-a", FormTemplateID: "security",
+		ID: "assessment-a", TenantID: "bank", LegalEntityID: "entity", RelationshipID: "vendor-a", FormTemplateID: "security",
 		FormTemplateVersion: 2, ReviewKind: thirdparty.AssessmentReviewPeriodic,
 		Status: thirdparty.AssessmentCompleted, Conclusion: thirdparty.AssessmentSatisfactory,
 		ReviewDueAt: now, StartedAt: now.Add(-2 * time.Hour), UpdatedAt: completed, CompletedAt: &completed,
@@ -35,7 +35,7 @@ func TestProgramVendorAssessmentInputsKeepUnrequestedVendorInDenominator(t *test
 			Final: true, State: evidence.ResponseScoreFinal,
 		},
 	}}
-	inputs, err := ProgramVendorAssessmentInputs(expected, assessments, forms, periodStart, periodEnd, now, "VENDORS")
+	inputs, err := ProgramVendorAssessmentInputs("bank", "entity", expected, assessments, forms, periodStart, periodEnd, now, "VENDORS")
 	if err != nil || len(inputs) != 2 {
 		t.Fatalf("expected both vendor obligations: %v, %+v", err, inputs)
 	}
@@ -55,7 +55,7 @@ func TestProgramVendorAssessmentInputsKeepUnrequestedVendorInDenominator(t *test
 
 	// A response for the wrong form revision must not satisfy the expected obligation.
 	forms[0].FormTemplateVersion = 1
-	inputs, err = ProgramVendorAssessmentInputs(expected, assessments, forms, periodStart, periodEnd, now, "VENDORS")
+	inputs, err = ProgramVendorAssessmentInputs("bank", "entity", expected, assessments, forms, periodStart, periodEnd, now, "VENDORS")
 	if err != nil || inputs[0].State != ProgramComplianceUnknown {
 		t.Fatalf("old form revision reused: %+v, %v", inputs, err)
 	}
@@ -71,7 +71,7 @@ func TestProgramVendorAssessmentInputsFailClosedOnPendingAmbiguousOrUnreviewed(t
 		ReviewKind: thirdparty.AssessmentReviewPeriodic, Weight: 1,
 	}}
 	assessment := thirdparty.Assessment{
-		ID: "one", RelationshipID: "vendor", FormTemplateID: "form",
+		ID: "one", TenantID: "bank", LegalEntityID: "entity", RelationshipID: "vendor", FormTemplateID: "form",
 		FormTemplateVersion: 1, ReviewKind: thirdparty.AssessmentReviewPeriodic,
 		Status: thirdparty.AssessmentCompleted, Conclusion: thirdparty.AssessmentSatisfactory,
 		ReviewDueAt: now, StartedAt: past, UpdatedAt: past, CompletedAt: &past,
@@ -86,7 +86,7 @@ func TestProgramVendorAssessmentInputsFailClosedOnPendingAmbiguousOrUnreviewed(t
 		},
 	}
 	calculate := func(a thirdparty.Assessment, rows []evidence.VendorFormRow) ([]ProgramComplianceInput, error) {
-		return ProgramVendorAssessmentInputs(expected, []thirdparty.Assessment{a}, rows,
+		return ProgramVendorAssessmentInputs("bank", "entity", expected, []thirdparty.Assessment{a}, rows,
 			now.Add(-24*time.Hour), now.Add(24*time.Hour), now, "VENDORS")
 	}
 	inputs, err := calculate(assessment, []evidence.VendorFormRow{row})
@@ -121,6 +121,12 @@ func TestProgramVendorAssessmentInputsFailClosedOnPendingAmbiguousOrUnreviewed(t
 		t.Fatalf("conditional conclusion given invented score: %+v, %v", inputs, err)
 	}
 	assessment.Conclusion = thirdparty.AssessmentSatisfactory
+	assessment.LegalEntityID = "sibling-entity"
+	inputs, err = calculate(assessment, []evidence.VendorFormRow{row})
+	if err != nil || inputs[0].State != ProgramComplianceUnknown {
+		t.Fatalf("cross-entity assessment supplied compliance: %+v, %v", inputs, err)
+	}
+	assessment.LegalEntityID = "entity"
 	_, err = calculate(assessment, []evidence.VendorFormRow{row, row})
 	if err == nil {
 		t.Fatal("ambiguous current form result silently deduplicated")
