@@ -2,7 +2,6 @@ package frameworkcatalog
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 	"time"
 
@@ -46,7 +45,7 @@ func TestPreviewClauseReuseTwoClausesOneCurrentRequirement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 4 || got[0].Status != ClauseReuseCandidate || got[1].Status != ClauseReuseCandidate ||
+	if len(got) != 4 || got[0].Status != ClauseReuseReviewRequired || got[1].Status != ClauseReuseReviewRequired ||
 		got[0].MatchBasis != "EXACT_SOURCE_ANCHOR" || got[2].MatchBasis != "EXACT_CODE" ||
 		got[3].Status != ClauseReuseUnmapped {
 		t.Fatalf("incorrect matching statuses: %+v", got)
@@ -57,7 +56,7 @@ func TestPreviewClauseReuseTwoClausesOneCurrentRequirement(t *testing.T) {
 		got[2].Candidates[0].Applicability != continuity.ApplicabilityNotApplicable {
 		t.Fatalf("lost canonical identity/applicability: %+v", got)
 	}
-	if !reflect.DeepEqual(program.Requirements[0].Code, "ACCESS") {
+	if program.Requirements[0].Code != "ACCESS" {
 		t.Fatal("preview changed existing Program state")
 	}
 }
