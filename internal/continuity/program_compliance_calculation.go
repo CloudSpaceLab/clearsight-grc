@@ -141,9 +141,9 @@ func validatedProgramComplianceCategories(policy ProgramComplianceCalculationPol
 	for _, expectation := range policy.ExpectedVendorAssessments {
 		identity := vendorIdentity{
 			relationship: expectation.RelationshipID,
-			form: expectation.FormTemplateID,
-			version: expectation.FormTemplateVersion,
-			kind: expectation.ReviewKind,
+			form:         expectation.FormTemplateID,
+			version:      expectation.FormTemplateVersion,
+			kind:         expectation.ReviewKind,
 		}
 		if strings.TrimSpace(expectation.Key) != expectation.Key || expectation.Key == "" ||
 			len(expectation.Key) > 192 ||
