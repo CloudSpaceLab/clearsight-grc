@@ -16,9 +16,18 @@ func ProgramRequirementScoreContributions(
 ) ([]ProgramComplianceInput, error) {
 	if aggregate.Program.ID == "" || aggregate.Program.ID != snapshot.ProgramID ||
 		aggregate.Program.TenantID == "" || aggregate.Program.TenantID != snapshot.TenantID ||
-		aggregate.Program.Version != snapshot.ProgramVersion ||
 		snapshot.GeneratedAt.IsZero() || snapshot.Calculation == nil {
 		return nil, ErrProgramComplianceCalculationInvalid
+	}
+	if aggregate.Program.Version != snapshot.ProgramVersion {
+		// Memory fallback persists PROGRAM_STATE as one Program event, whereas
+		// PostgreSQL uses a separate projection stream. Only that exact retained
+		// state can explain a one-version projection-only advance.
+		if aggregate.Program.Version != snapshot.ProgramVersion+1 ||
+			snapshot.ID == "" || aggregate.CurrentState == nil ||
+			aggregate.CurrentState.ID != snapshot.ID {
+			return nil, ErrProgramComplianceCalculationInvalid
+		}
 	}
 	position := aggregate.Program.CalculationPolicy
 	if position == nil || position.Active == nil || position.Active.ApprovedAt == nil ||
