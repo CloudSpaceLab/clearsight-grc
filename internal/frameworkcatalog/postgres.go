@@ -68,7 +68,7 @@ func (r *PostgresRepository) Publish(ctx context.Context, publication Publicatio
 
 	if len(publication.Clauses) > 0 {
 		_, err = tx.CopyFrom(ctx, pgx.Identifier{"framework_catalog_clauses"},
-			[]string{"edition_id","code","parent_code","title","source_anchor","summary","ordinal"},
+			[]string{"edition_id", "code", "parent_code", "title", "source_anchor", "summary", "ordinal"},
 			pgx.CopyFromSlice(len(publication.Clauses), func(i int) ([]any, error) {
 				clause := publication.Clauses[i]
 				var parent any
@@ -175,8 +175,8 @@ func (r *PostgresRepository) ListClauses(ctx context.Context, editionID, afterCo
 	result := make([]Clause, 0, limit)
 	for rows.Next() {
 		var value Clause
-		if err := rows.Scan(&value.Code,&value.ParentCode,&value.Title,
-			&value.SourceAnchor,&value.Summary,&value.Ordinal); err != nil {
+		if err := rows.Scan(&value.Code, &value.ParentCode, &value.Title,
+			&value.SourceAnchor, &value.Summary, &value.Ordinal); err != nil {
 			return nil, err
 		}
 		result = append(result, value)
@@ -188,10 +188,10 @@ type editionScanner interface{ Scan(...any) error }
 
 func scanEdition(row editionScanner) (Edition, error) {
 	var value Edition
-	err := row.Scan(&value.ID,&value.PublisherCode,&value.FrameworkCode,
-		&value.EditionCode,&value.Title,&value.Jurisdiction,&value.SourceURL,
-		&value.SourceSHA256,&value.SourcePublishedOn,&value.EffectiveOn,
-		&value.LicenseBasis,&value.LicenseReference,&value.ReleaseSHA256,
+	err := row.Scan(&value.ID, &value.PublisherCode, &value.FrameworkCode,
+		&value.EditionCode, &value.Title, &value.Jurisdiction, &value.SourceURL,
+		&value.SourceSHA256, &value.SourcePublishedOn, &value.EffectiveOn,
+		&value.LicenseBasis, &value.LicenseReference, &value.ReleaseSHA256,
 		&value.ApprovalReference)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Edition{}, fmt.Errorf("framework edition not found: %w", err)
