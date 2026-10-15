@@ -29,10 +29,10 @@ func TestProgramVendorAssessmentInputsKeepUnrequestedVendorInDenominator(t *test
 	}}
 	forms := []evidence.VendorFormRow{{
 		RequestID: "request-a", RelationshipID: "vendor-a", FormTemplateID: "security", FormTemplateVersion: 2,
-		Current: true, ResponseState: "SUBMITTED", ResponseCurrency: "CURRENT", Outdated: &fresh,
+		Current: true, ResponseState: "SUBMITTED", ResponseCurrency: "CURRENT", Outdated: &fresh, SubmittedAt: &past, SubmittedAt: &completed,
 		AssessmentState: "ASSESSED", AssessedScore: &evidence.ResponseScoreResult{
 			Mode: formcontract.ScoringCompliance, RawScore: &raw, Coverage: 1,
-			Final: true, State: evidence.ResponseScoreFinal,
+			Final: true, State: evidence.ResponseScoreFinal, CalculatedAt: past, CalculatedAt: completed,
 		},
 	}}
 	inputs, err := ProgramVendorAssessmentInputs("bank", "entity", expected, assessments, forms, periodStart, periodEnd, now, "VENDORS")
