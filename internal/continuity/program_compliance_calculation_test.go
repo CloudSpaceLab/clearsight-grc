@@ -126,9 +126,9 @@ func TestProgramComplianceRejectsInvalidDefinitionsAndInputs(t *testing.T) {
 		Key: "a", Category: "A", Weight: 1, State: ProgramComplianceAssessed, ScoreBps: compliancePoints(9500),
 	}
 	for _, tc := range []struct {
-		name string
+		name   string
 		policy ProgramComplianceCalculationPolicy
-		items []ProgramComplianceInput
+		items  []ProgramComplianceInput
 	}{
 		{"unapproved weight total", ProgramComplianceCalculationPolicy{Revision: "v1", MinimumCoverageBps: 10000, Categories: []ProgramComplianceCategoryWeight{{Code: "A", WeightBps: 9000}}}, []ProgramComplianceInput{good}},
 		{"missing policy revision", ProgramComplianceCalculationPolicy{MinimumCoverageBps: 10000, Categories: base.Categories}, []ProgramComplianceInput{good}},
