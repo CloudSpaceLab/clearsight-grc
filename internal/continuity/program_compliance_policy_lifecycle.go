@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 // The Program owns calculation configuration. Only the current proposal and
@@ -57,7 +59,8 @@ func (s *Service) ProposeProgramCompliancePolicy(ctx context.Context, input Prop
 	}
 	maker := strings.TrimSpace(input.ActorID)
 	rationale := strings.TrimSpace(input.Rationale)
-	if maker == "" || rationale == "" || len(rationale) > 2000 {
+	if !programComplianceActorMatches(ctx, input.TenantID, maker) ||
+		rationale == "" || len(rationale) > 2000 {
 		return ProgramAggregate{}, ErrProgramComplianceCalculationInvalid
 	}
 	position := cloneProgramCompliancePolicyPosition(aggregate.Program.CalculationPolicy)
@@ -104,7 +107,8 @@ func (s *Service) decideProgramCompliancePolicy(ctx context.Context, input Decid
 	checker := strings.TrimSpace(input.ActorID)
 	rationale := strings.TrimSpace(input.Rationale)
 	position := cloneProgramCompliancePolicyPosition(aggregate.Program.CalculationPolicy)
-	if checker == "" || rationale == "" || len(rationale) > 2000 ||
+	if !programComplianceActorMatches(ctx, input.TenantID, checker) ||
+		rationale == "" || len(rationale) > 2000 ||
 		position.Pending == nil || checker == position.Pending.MakerID {
 		return ProgramAggregate{}, ErrInvalidState
 	}
@@ -155,4 +159,17 @@ func cloneProgramCompliancePolicyPosition(source *ProgramCompliancePolicyPositio
 	value.Active = copyRevision(source.Active)
 	value.Pending = copyRevision(source.Pending)
 	return value
+}
+
+// Do not trust actor_id supplied by a request body. HTTP commands additionally
+// require the current Program owner/authorizer route before invoking the service.
+func programComplianceActorMatches(ctx context.Context, tenant, principalID string) bool {
+	if principalID == "" {
+		return false
+	}
+	if hasTrustedSystemScope(ctx) {
+		return true
+	}
+	actor, ok := identity.FromContext(ctx)
+	return ok && actor.TenantID == strings.TrimSpace(tenant) && actor.PrincipalID == principalID
 }
