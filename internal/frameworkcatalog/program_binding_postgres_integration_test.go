@@ -121,15 +121,25 @@ func TestPostgresProgramFrameworkAdoptionScopeAndReviewGuards(t *testing.T) {
 	insertMapping := func(requirement, clauseID, adoptionID string) error {
 		_, err := pool.Exec(ctx, `INSERT INTO framework_clause_requirement_links(
 			tenant_id,legal_entity_id,program_id,adoption_id,edition_id,clause_id,
-			requirement_id,mapping_kind,rationale,reviewed_by,reviewed_at,effective_from)
+			requirement_id,mapping_kind,rationale,mapped_by,reviewed_by,reviewed_at,effective_from)
 			VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,
-			       $7::uuid,'EXACT','Reviewed against source',$8::uuid,$9,$9)`,
+			       $7::uuid,'EXACT','Reviewed against source',$8::uuid,$9::uuid,$10,$10)`,
 			tenant, entityA, programA, adoptionID, edition.ID, clauseID,
-			requirement, checker, now)
+			requirement, maker, checker, now)
 		return err
 	}
 	if err := insertMapping(requirementA, clause, adoption); err != nil {
 		t.Fatal(err)
+	}
+	// Editing the mapping to claim self-review remains prohibited at the
+	// persistence boundary, independently of future HTTP authority checks.
+	if _, err := pool.Exec(ctx, `INSERT INTO framework_clause_requirement_links(
+		tenant_id,legal_entity_id,program_id,adoption_id,edition_id,clause_id,
+		requirement_id,mapping_kind,rationale,mapped_by,reviewed_by,reviewed_at,effective_from)
+		VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,
+		       $7::uuid,'EXACT','Self-approved mapping',$8::uuid,$8::uuid,$9,$9)`,
+		tenant, entityA, programA, adoption, edition.ID, clause, draftRequirement, maker, now); err == nil {
+		t.Fatal("mapping maker self-approval accepted")
 	}
 	if err := insertMapping(requirementA, clause, adoption); err == nil {
 		t.Fatal("duplicate active clause mapping accepted")
