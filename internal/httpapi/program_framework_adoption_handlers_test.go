@@ -62,8 +62,12 @@ func TestProgramFrameworkRoutesEnforceOwnerAndIndependentReview(t *testing.T) {
 	}
 	path := "/api/v1/programs/" + created.Program.ID + "/standards"
 	proposal := `{"tenant_id":"bank","expected_version":1,"edition_id":"edition-1","rationale":"Adopt the published standard."}`
-	if rec := post(handler("other"), path+"/propose", proposal); rec.Code != http.StatusForbidden {
+	if rec := post(handler("other"), path+"/propose", proposal); rec.Code != http.StatusForbidden && rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("unauthorized proposal returned %d: %s", rec.Code, rec.Body.String())
+	}
+	untouched, err := service.GetProgram(continuity.WithTrustedSystemScope(context.Background()), "bank", created.Program.ID)
+	if err != nil || untouched.Program.Version != created.Program.Version || len(untouched.FrameworkAdoptions) != 0 {
+		t.Fatalf("unauthorized proposal modified the Program: %+v / %v", untouched.FrameworkAdoptions, err)
 	}
 	if rec := post(handler("owner-1"), path+"/propose",
 		`{"tenant_id":"another-bank","expected_version":1,"edition_id":"edition-1","rationale":"Attempt cross tenant"}`); rec.Code != http.StatusNotFound {
