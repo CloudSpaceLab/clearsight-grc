@@ -16,7 +16,8 @@ import (
 type ProgramVendorAssessmentExpectation struct {
 	Key            string
 	RelationshipID string
-	FormTemplateID string
+	FormTemplateID      string
+	FormTemplateVersion int64
 	ReviewKind     thirdparty.AssessmentReviewKind
 	Weight         int64
 }
@@ -41,7 +42,7 @@ func ProgramVendorAssessmentInputs(
 	output := make([]ProgramComplianceInput, 0, len(expected))
 	for _, item := range expected {
 		if item.Key == "" || len(item.Key) > 192 || seen[item.Key] ||
-			item.RelationshipID == "" || item.FormTemplateID == "" ||
+			item.RelationshipID == "" || item.FormTemplateID == "" || item.FormTemplateVersion <= 0 ||
 			item.Weight < 1 || item.Weight > programComplianceBasisPoints ||
 			(item.ReviewKind != thirdparty.AssessmentReviewOnboarding &&
 				item.ReviewKind != thirdparty.AssessmentReviewPeriodic &&
@@ -61,6 +62,7 @@ func ProgramVendorAssessmentInputs(
 			candidate := &assessments[index]
 			if candidate.RelationshipID != item.RelationshipID ||
 				candidate.FormTemplateID != item.FormTemplateID ||
+				candidate.FormTemplateVersion != item.FormTemplateVersion ||
 				candidate.ReviewKind != item.ReviewKind ||
 				candidate.ReviewDueAt.Before(periodStart) || !candidate.ReviewDueAt.Before(periodEnd) ||
 				candidate.StartedAt.After(asOf) || candidate.UpdatedAt.After(asOf) {
@@ -88,6 +90,7 @@ func ProgramVendorAssessmentInputs(
 			row := &forms[index]
 			if row.RelationshipID != item.RelationshipID ||
 				row.FormTemplateID != item.FormTemplateID ||
+				row.FormTemplateVersion != item.FormTemplateVersion ||
 				row.RequestID != selected.CurrentRequestID || !row.Current {
 				continue
 			}
