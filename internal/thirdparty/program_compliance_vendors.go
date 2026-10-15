@@ -180,11 +180,14 @@ func ProgramVendorAssessmentInputs(
 	return output, nil
 }
 
-// ProgramVendorAssessmentInputsForPolicy uses the already approved Program
-// denominator; a capture request never creates an obligation implicitly.
+// ProgramVendorAssessmentInputsForPolicy uses the approved expected population
+// only after the canonical Program/vendor links are proven complete and scoped.
+// Neither an assessment nor a capture request creates an obligation implicitly.
 func ProgramVendorAssessmentInputsForPolicy(
-	tenantID, legalEntityID string,
+	tenantID, legalEntityID, programID string,
 	policy continuity.ProgramComplianceCalculationPolicy,
+	links []RelationshipLink,
+	linksComplete bool,
 	assessments []Assessment,
 	forms []evidence.VendorFormRow,
 	periodStart, periodEnd, asOf time.Time,
@@ -199,6 +202,11 @@ func ProgramVendorAssessmentInputsForPolicy(
 			FormTemplateID: item.FormTemplateID, FormTemplateVersion: item.FormTemplateVersion,
 			ReviewKind: AssessmentReviewKind(item.ReviewKind), Weight: item.Weight,
 		})
+	}
+	if err := ValidateProgramVendorExpectationLinks(
+		tenantID, legalEntityID, programID, expected, links, linksComplete, asOf,
+	); err != nil {
+		return nil, err
 	}
 	return ProgramVendorAssessmentInputs(tenantID, legalEntityID, expected, assessments,
 		forms, periodStart, periodEnd, asOf, "VENDORS")
