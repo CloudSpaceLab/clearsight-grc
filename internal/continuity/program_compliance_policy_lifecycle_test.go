@@ -6,6 +6,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
 
 func createProgramForCalculationPolicy(t *testing.T, service *Service, ctx context.Context, now time.Time) ProgramAggregate {
@@ -172,5 +174,32 @@ func TestProgramCompliancePolicyInvalidOrStaleProposalsLeaveNoEvent(t *testing.T
 	after, _ := repo.ProgramEvents(ctx, "bank", program.Program.ID, nil)
 	if len(before) != len(after) {
 		t.Fatalf("failed proposal wrote event: %d->%d", len(before), len(after))
+	}
+}
+
+func TestProgramCompliancePolicyCannotSpoofAuthenticatedMaker(t *testing.T) {
+	trusted := WithTrustedSystemScope(context.Background())
+	repo := NewMemoryRepository()
+	service := NewService(repo)
+	now := time.Date(2026, 10, 15, 9, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+	program := createProgramForCalculationPolicy(t, service, trusted, now)
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "program-owner"}
+	ctx := identity.WithActor(context.Background(), actor)
+	before, err := repo.ProgramEvents(trusted, "bank", program.Program.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.ProposeProgramCompliancePolicy(ctx, ProposeProgramCompliancePolicyInput{
+		TenantID: "bank", ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version,
+		ActorID: "independent-checker", Rationale: "Try to impersonate the checker",
+		Definition: calculationPolicyFixture(),
+	})
+	if err == nil {
+		t.Fatal("identity spoofing was accepted")
+	}
+	after, err := repo.ProgramEvents(trusted, "bank", program.Program.ID, nil)
+	if err != nil || len(after) != len(before) {
+		t.Fatalf("spoofing wrote events: %d -> %d: %v", len(before), len(after), err)
 	}
 }
