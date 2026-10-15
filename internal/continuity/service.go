@@ -14,9 +14,10 @@ import (
 )
 
 type Service struct {
-	repo            Repository
-	now             func() time.Time
-	sourceValidator EvidenceSourceValidator
+	frameworkEditionLookup FrameworkEditionLookup
+	repo                   Repository
+	now                    func() time.Time
+	sourceValidator        EvidenceSourceValidator
 }
 
 func NewService(repo Repository) *Service {

@@ -12,6 +12,9 @@ const (
 	EventProgramCalculationPolicyProposed   = "PROGRAM_CALCULATION_POLICY_PROPOSED"
 	EventProgramCalculationPolicyApproved   = "PROGRAM_CALCULATION_POLICY_APPROVED"
 	EventProgramCalculationPolicyRejected   = "PROGRAM_CALCULATION_POLICY_REJECTED"
+	EventProgramFrameworkAdoptionProposed   = "PROGRAM_FRAMEWORK_ADOPTION_PROPOSED"
+	EventProgramFrameworkAdoptionApproved   = "PROGRAM_FRAMEWORK_ADOPTION_APPROVED"
+	EventProgramFrameworkAdoptionRejected   = "PROGRAM_FRAMEWORK_ADOPTION_REJECTED"
 	EventProgramOwnerChanged                = "PROGRAM_OWNER_CHANGED"
 	EventProgramApprovalAuthorityChanged    = "PROGRAM_APPROVAL_AUTHORITY_CHANGED"
 	EventRequirementAdded                   = "REQUIREMENT_ADDED"
@@ -97,6 +100,18 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.Program.CalculationPolicy = &value.Position
+		case EventProgramFrameworkAdoptionProposed:
+			var value FrameworkAdoption
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value)
+		case EventProgramFrameworkAdoptionApproved, EventProgramFrameworkAdoptionRejected:
+			var value frameworkAdoptionDecision
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value.Adoption)
 		case EventProgramOwnerChanged:
 			var value programOwnerChangedEvent
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

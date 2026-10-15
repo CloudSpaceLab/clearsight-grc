@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -214,4 +215,21 @@ func validUUIDText(value string) bool {
 		}
 	}
 	return true
+}
+
+// GetFrameworkEdition resolves an immutable published edition for canonical
+// Program adoption commands. It never reads customer applicability or scores.
+func (r *PostgresRepository) GetFrameworkEdition(ctx context.Context, editionID string) (continuity.FrameworkEditionReference, error) {
+	if r == nil || r.pool == nil || !validUUIDText(editionID) {
+		return continuity.FrameworkEditionReference{}, ErrInvalidPublication
+	}
+	var value continuity.FrameworkEditionReference
+	err := r.pool.QueryRow(ctx, `
+		SELECT id::text,publisher_code,framework_code,edition_code,release_sha256
+		FROM framework_catalog_editions WHERE id=$1::uuid`, editionID,
+	).Scan(&value.ID, &value.PublisherCode, &value.FrameworkCode, &value.EditionCode, &value.ReleaseSHA256)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return continuity.FrameworkEditionReference{}, fmt.Errorf("framework edition not found: %w", err)
+	}
+	return value, err
 }
