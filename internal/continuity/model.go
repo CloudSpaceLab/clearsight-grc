@@ -355,6 +355,7 @@ type ProgramAggregate struct {
 	StateLabel              string                   `json:"state_label"`
 	Program                 Program                  `json:"program"`
 	Requirements            []Requirement            `json:"requirements"`
+	FrameworkAdoptions      []FrameworkAdoption      `json:"framework_adoptions,omitempty"`
 	Applicability           []Applicability          `json:"applicability"`
 	ControlObjectives       []ControlObjective       `json:"control_objectives"`
 	ControlImplementations  []ControlImplementation  `json:"control_implementations"`
