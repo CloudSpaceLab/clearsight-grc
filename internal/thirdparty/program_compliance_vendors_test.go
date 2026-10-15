@@ -151,14 +151,33 @@ func TestProgramVendorPolicyInputsIncludeUnrequestedExpectations(t *testing.T) {
 				FormTemplateID: "security", FormTemplateVersion: 2, ReviewKind: "PERIODIC", Weight: 1},
 		},
 	}
+	links := []RelationshipLink{{
+		TenantID: "bank", LegalEntityID: "entity", RelationshipID: "vendor-1",
+		TargetType: LinkTargetProgram, TargetID: "program", State: RelationshipLinkActive,
+		CreatedAt: now.Add(-time.Hour),
+	}}
 	inputs, err := ProgramVendorAssessmentInputsForPolicy(
-		"bank", "entity", policy, nil, nil,
+		"bank", "entity", "program", policy, links, true, nil, nil,
 		now.Add(-24*time.Hour), now.Add(24*time.Hour), now,
 	)
 	if err != nil || len(inputs) != 1 || inputs[0].State != continuity.ProgramComplianceUnknown ||
 		inputs[0].Key != "VENDOR_ASSESSMENT:missing:security" {
 		t.Fatalf("unsent required assessment disappeared: %+v / %v", inputs, err)
 	}
+	if _, err := ProgramVendorAssessmentInputsForPolicy(
+		"bank", "entity", "program", policy, links, false, nil, nil,
+		now.Add(-24*time.Hour), now.Add(24*time.Hour), now,
+	); err == nil {
+		t.Fatal("incomplete Program relationship population accepted")
+	}
+	links[0].TargetID = "another-program"
+	if _, err := ProgramVendorAssessmentInputsForPolicy(
+		"bank", "entity", "program", policy, links, true, nil, nil,
+		now.Add(-24*time.Hour), now.Add(24*time.Hour), now,
+	); err == nil {
+		t.Fatal("another Program's vendor link authorized the assessment")
+	}
+	links[0].TargetID = "program"
 	result, err := continuity.CalculateProgramCompliance(policy, inputs)
 	if err != nil || result.CoverageBps != 0 || result.ScoreBps != nil || result.UnknownCount != 1 {
 		t.Fatalf("unrequested obligation inflated compliance: %+v / %v", result, err)
