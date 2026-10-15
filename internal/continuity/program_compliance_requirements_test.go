@@ -9,7 +9,7 @@ func TestProgramRequirementComplianceInputs(t *testing.T) {
 	now := time.Date(2026, 10, 15, 9, 0, 0, 0, time.UTC)
 	previous := now.Add(-time.Hour)
 	aggregate := ProgramAggregate{
-		Program: Program{ID: "program", TenantID: "bank", Status: ProgramActive},
+		Program:      Program{ID: "program", TenantID: "bank", Status: ProgramActive},
 		Requirements: []Requirement{
 			{ID: "r-implemented", ProgramID: "program", Status: RequirementApproved, EffectiveFrom: previous},
 			{ID: "r-missing", ProgramID: "program", Status: RequirementApproved, EffectiveFrom: previous},
@@ -99,13 +99,13 @@ func TestProgramRequirementComplianceInputsTracksFreshnessAndApplicability(t *te
 	start := now.Add(-24 * time.Hour)
 	expired := now.Add(-time.Minute)
 	aggregate := ProgramAggregate{
-		Program: Program{ID: "program", Status: ProgramActive},
-		Requirements: []Requirement{{ID: "r", ProgramID: "program", Status: RequirementApproved, EffectiveFrom: start}},
-		Applicability: []Applicability{{RequirementID: "r", Status: ApplicabilityPartial, EffectiveFrom: start}},
-		ControlImplementations: []ControlImplementation{{ID: "c", Status: ImplementationImplemented, EffectiveFrom: start}},
+		Program:                 Program{ID: "program", Status: ProgramActive},
+		Requirements:            []Requirement{{ID: "r", ProgramID: "program", Status: RequirementApproved, EffectiveFrom: start}},
+		Applicability:           []Applicability{{RequirementID: "r", Status: ApplicabilityPartial, EffectiveFrom: start}},
+		ControlImplementations:  []ControlImplementation{{ID: "c", Status: ImplementationImplemented, EffectiveFrom: start}},
 		RequirementControlLinks: []RequirementControlLink{{RequirementID: "r", ImplementationID: "c", CreatedAt: start}},
-		EvidenceContracts: []EvidenceContract{{ID: "e", RequirementID: "r", Status: EvidenceContractActive, FreshnessMinutes: 60, MinimumCoverage: 1}},
-		EvidenceAssessments: []EvidenceAssessment{{ContractID: "e", Conclusion: EvidenceSupported, Coverage: 1, AssessedAt: now.Add(-time.Minute)}},
+		EvidenceContracts:       []EvidenceContract{{ID: "e", RequirementID: "r", Status: EvidenceContractActive, FreshnessMinutes: 60, MinimumCoverage: 1}},
+		EvidenceAssessments:     []EvidenceAssessment{{ContractID: "e", Conclusion: EvidenceSupported, Coverage: 1, AssessedAt: now.Add(-time.Minute)}},
 	}
 	testState := func(expected ProgramComplianceInputState) {
 		t.Helper()
