@@ -122,6 +122,7 @@ func (r *PostgresRepository) listCurrentMatters(ctx context.Context, tenant, sta
 
 const currentProgramJSON = `jsonb_build_object(
   'program', (to_jsonb(p)-'tenant_id'-'program_type') || jsonb_build_object('tenant_id',t.id::text,'type',p.program_type),
+  'framework_adoptions', COALESCE((SELECT jsonb_agg((to_jsonb(v)-'tenant_id') || jsonb_build_object('tenant_id',t.id::text) ORDER BY v.proposed_at,v.id) FROM program_framework_adoptions v WHERE v.tenant_id=p.tenant_id AND v.legal_entity_id=p.legal_entity_id AND v.program_id=p.id),'[]'::jsonb),
   'requirements', COALESCE((SELECT jsonb_agg((to_jsonb(v)-'tenant_id'-'object_name') || jsonb_build_object('tenant_id',t.id::text,'object',v.object_name) ORDER BY v.created_at,v.id) FROM program_requirements v WHERE v.tenant_id=p.tenant_id AND v.program_id=p.id),'[]'::jsonb),
   'applicability', COALESCE((SELECT jsonb_agg((to_jsonb(v)-'tenant_id') || jsonb_build_object('tenant_id',t.id::text) ORDER BY v.created_at,v.id) FROM program_applicability v WHERE v.tenant_id=p.tenant_id AND v.program_id=p.id),'[]'::jsonb),
   'control_objectives', COALESCE((SELECT jsonb_agg((to_jsonb(v)-'tenant_id') || jsonb_build_object('tenant_id',t.id::text) ORDER BY v.created_at,v.id) FROM control_objectives v WHERE v.tenant_id=p.tenant_id AND v.program_id=p.id),'[]'::jsonb),
