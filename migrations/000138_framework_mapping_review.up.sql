@@ -64,8 +64,12 @@ BEGIN
     RAISE EXCEPTION 'framework mapping must be proposed before approval';
   END IF;
 
+  -- Rejection must remain possible after the source, adoption or
+  -- Requirement becomes inactive. Rejecting cannot create effective coverage.
+  IF NEW.status='REJECTED' THEN
+    RETURN NEW;
+  END IF;
   at_time := CASE WHEN NEW.status='APPROVED' THEN NEW.effective_from
-                  WHEN NEW.status='REJECTED' THEN NEW.reviewed_at
                   ELSE NEW.proposed_at END;
   IF NOT EXISTS (
     SELECT 1
