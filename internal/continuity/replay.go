@@ -101,18 +101,18 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 			}
 			aggregate.Program.CalculationPolicy = &value.Position
 		case EventProgramFrameworkAdoptionProposed:
-		var value FrameworkAdoption
-		if err := json.Unmarshal(event.Payload, &value); err != nil {
-			return ProgramAggregate{}, err
-		}
-		aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value)
-	case EventProgramFrameworkAdoptionApproved, EventProgramFrameworkAdoptionRejected:
-		var value frameworkAdoptionDecision
-		if err := json.Unmarshal(event.Payload, &value); err != nil {
-			return ProgramAggregate{}, err
-		}
-		aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value.Adoption)
-	case EventProgramOwnerChanged:
+			var value FrameworkAdoption
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value)
+		case EventProgramFrameworkAdoptionApproved, EventProgramFrameworkAdoptionRejected:
+			var value frameworkAdoptionDecision
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value.Adoption)
+		case EventProgramOwnerChanged:
 			var value programOwnerChangedEvent
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return ProgramAggregate{}, err
