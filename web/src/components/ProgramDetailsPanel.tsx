@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { assignProgram, assignProgramApprovalAuthority, decideProgramCalculationPolicy, proposeProgramCalculationPolicy, updateProgramDetails } from "../programOperationsApi";
-import type { ProgramOperation } from "../programOperationsApi";
+import { assignProgram, assignProgramApprovalAuthority, decideProgramCalculationPolicy, decideProgramFrameworkAdoption, loadFrameworkEditions, proposeProgramCalculationPolicy, proposeProgramFrameworkAdoption, updateProgramDetails } from "../programOperationsApi";
+import type { FrameworkEditionOption, ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate, ProgramCalculationCategory, RecordResponsibleParty } from "../types";
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
   suppressOwnerAction?: boolean;
 };
 
-type Mode = "details" | "owner" | "approval" | "calculation" | null;
+type Mode = "details" | "owner" | "approval" | "calculation" | "standard" | null;
 
 function dateValue(value?: string) { return value?.slice(0, 10) ?? ""; }
 function isoDate(value: string) { return value ? new Date(`${value}T00:00:00Z`).toISOString() : undefined; }
@@ -72,6 +72,18 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
   const [calculationFactor, setCalculationFactor] = useState("");
   const [calculationRationale, setCalculationRationale] = useState("");
   const [decisionRationale, setDecisionRationale] = useState("");
+  const frameworkAdoptions = aggregate.framework_adoptions ?? [];
+  const pendingStandards = frameworkAdoptions.filter((value) => value.status === "PENDING");
+  const standardProposalOperation = operations.find((operation) => operation.command === "program.framework.propose");
+  const standardApprovalOperation = operations.find((operation) => operation.command === "program.framework.approve");
+  const standardRejectionOperation = operations.find((operation) => operation.command === "program.framework.reject");
+  const [standardJurisdiction, setStandardJurisdiction] = useState("GLOBAL");
+  const [standardEditions, setStandardEditions] = useState<FrameworkEditionOption[]>([]);
+  const [standardLoadState, setStandardLoadState] = useState<"loading" | "loaded" | "failed">("loading");
+  const [standardEditionID, setStandardEditionID] = useState("");
+  const [standardRationale, setStandardRationale] = useState("");
+  const [standardReviewRationale, setStandardReviewRationale] = useState("");
+  const [standardError, setStandardError] = useState("");
   const weightTotal = calculationWeightTotal(calculationCategories);
   const handledOwnerIntent = useRef(0);
 
@@ -84,6 +96,49 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
 	setError("");
 	setMode("owner");
   }, [assignOperation, ownerIntent, program.authority_principal_id, program.owner_principal_id]);
+
+  useEffect(() => {
+    if (mode !== "standard" || !standardProposalOperation?.can_act) return;
+    let active = true;
+    setStandardLoadState("loading");
+    setStandardEditions([]);
+    setStandardEditionID("");
+    void loadFrameworkEditions(standardJurisdiction).then((items) => {
+      if (!active) return;
+      setStandardEditions(items);
+      setStandardLoadState("loaded");
+    }).catch(() => {
+      if (active) setStandardLoadState("failed");
+    });
+    return () => { active = false; };
+  }, [mode, standardJurisdiction, standardProposalOperation?.can_act]);
+
+  async function submitStandard(event: FormEvent) {
+    event.preventDefault();
+    if (!standardProposalOperation?.can_act || !standardEditionID || !standardRationale.trim()) return;
+    setBusy(true); setStandardError("");
+    try {
+      const updated = await proposeProgramFrameworkAdoption(program.id, program.version, standardEditionID, standardRationale.trim());
+      onUpdated(updated);
+      setMode(null);
+      setStandardRationale("");
+    } catch (value) {
+      setStandardError(value instanceof Error ? value.message : "Standard could not be submitted.");
+    } finally { setBusy(false); }
+  }
+
+  async function decideStandard(adoptionID: string, action: "approve" | "reject") {
+    const allowed = action === "approve" ? standardApprovalOperation?.can_act : standardRejectionOperation?.can_act;
+    if (!allowed || !standardReviewRationale.trim()) return;
+    setBusy(true); setStandardError("");
+    try {
+      const updated = await decideProgramFrameworkAdoption(program.id, adoptionID, program.version, action, standardReviewRationale.trim());
+      onUpdated(updated);
+      setStandardReviewRationale("");
+    } catch (value) {
+      setStandardError(value instanceof Error ? value.message : "Standard review could not be saved.");
+    } finally { setBusy(false); }
+  }
 
   function beginDetails() {
     setName(program.name); setOwningFunction(program.owning_function); setJurisdiction(program.jurisdiction ?? "");
@@ -139,6 +194,9 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
         revision: "draft",
         minimum_coverage_bps: minimumCoverage,
         categories: calculationCategories,
+        ...(activePolicy?.definition.expected_vendor_assessments?.length
+          ? { expected_vendor_assessments: activePolicy.definition.expected_vendor_assessments.map((item) => ({ ...item })) }
+          : {}),
       }, calculationRationale.trim());
       onUpdated(updated);
       setMode(null);
@@ -202,6 +260,46 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
   return <article className="program-record-panel" id="program-details-panel">
     <div className="program-panel-heading"><div><span className="eyebrow">Program details</span><h2>Scope and ownership</h2></div><div className="program-panel-actions">{detailsOperation?.can_act && mode !== "details" && <button className="secondary-button" type="button" onClick={beginDetails}>Edit Program details</button>}{assignOperation?.can_act && !suppressOwnerAction && mode !== "owner" && <button className="secondary-button" type="button" onClick={beginOwner}>Change Program owner</button>}{approvalOperation?.can_act && mode !== "approval" && <button className="secondary-button" type="button" onClick={beginApprovalAuthority}>Change approval authority</button>}</div></div>
     <dl className="program-record-facts"><div><dt>Code</dt><dd>{program.code}</dd></div><div><dt>Owning function</dt><dd>{program.owning_function}</dd></div><div><dt>Jurisdiction</dt><dd>{program.jurisdiction || "Not recorded"}</dd></div><div><dt>Owner</dt><dd>{owner?.display_name ?? storedOwner ?? (program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</dd></div><div><dt>Approval authority</dt><dd>{approvalAuthority?.display_name ?? storedApprovalAuthority ?? (program.authority_principal_id ? "Recorded approval authority unavailable" : "Approval authority not assigned")}</dd></div><div><dt>Effective from</dt><dd>{dateValue(program.effective_from) || "Not recorded"}</dd></div><div><dt>Effective until</dt><dd>{dateValue(program.effective_until) || "No end date"}</dd></div><div><dt>Business lines</dt><dd>{scopeLines(program.scope) || "Not recorded"}</dd></div></dl>
+    <section aria-label="Standards" className="program-record-subsection">
+      <div className="program-panel-heading">
+        <div><h3>Standards</h3><p className="program-operation-reason">{frameworkAdoptions.length ? `${frameworkAdoptions.filter((item) => item.status === "ACTIVE").length} active · ${pendingStandards.length} awaiting approval` : "No standards linked"}</p></div>
+        {standardProposalOperation?.can_act && mode !== "standard" && <button className="secondary-button" type="button" onClick={() => {
+          setStandardJurisdiction("GLOBAL"); setStandardRationale(""); setStandardError(""); setMode("standard");
+        }}>Add standard</button>}
+      </div>
+      {frameworkAdoptions.length > 0 && <dl className="program-record-facts">
+        {frameworkAdoptions.map((adoption) => <div key={adoption.id}><dt>{adoption.publisher_code} · {adoption.framework_code} {adoption.edition_code}</dt><dd>{adoption.status === "PENDING" ? "Awaiting approval" : adoption.status === "ACTIVE" ? "Active" : "Not active"}</dd></div>)}
+      </dl>}
+      {mode === "standard" && <form className="program-operation-form" onSubmit={(event) => void submitStandard(event)}>
+        <label><span>Jurisdiction</span><select value={standardJurisdiction} onChange={(event) => setStandardJurisdiction(event.target.value)}>
+          <option value="GLOBAL">Global</option>
+          {program.jurisdiction && program.jurisdiction.toUpperCase() !== "GLOBAL" && <option value={program.jurisdiction.toUpperCase()}>{program.jurisdiction.toUpperCase()}</option>}
+        </select></label>
+        {standardLoadState === "loading" && <p role="status">Loading standards…</p>}
+        {standardLoadState === "failed" && <p role="alert">Standards could not be loaded. Retry from Add standard.</p>}
+        {standardLoadState === "loaded" && standardEditions.length === 0 && <p role="status">No published standards available for this jurisdiction.</p>}
+        {standardEditions.length > 0 && <label className="wide"><span>Published standard</span><select required value={standardEditionID} onChange={(event) => setStandardEditionID(event.target.value)}>
+          <option value="">Choose standard</option>
+          {standardEditions.map((edition) => <option key={edition.id} value={edition.id}>{edition.title} · {edition.edition_code}</option>)}
+        </select></label>}
+        {standardEditionID && <p className="program-operation-reason wide">Source: <a href={standardEditions.find((edition) => edition.id === standardEditionID)?.source_url} target="_blank" rel="noopener noreferrer">Published reference</a></p>}
+        <label className="wide"><span>Reason for adoption</span><textarea required value={standardRationale} onChange={(event) => setStandardRationale(event.target.value)}/></label>
+        {standardError && <p role="alert" className="program-form-error wide">{standardError} <button className="text-button" type="button" onClick={onReload}>Reload Program</button></p>}
+        <div className="program-form-actions wide">
+          <button className="primary-button" type="submit" disabled={busy || !standardEditionID || !standardRationale.trim()}>{busy ? "Submitting…" : "Submit for approval"}</button>
+          <button className="text-button" type="button" onClick={() => { setMode(null); setStandardError(""); }}>Cancel</button>
+        </div>
+      </form>}
+      {pendingStandards.length > 0 && (standardApprovalOperation?.can_act || standardRejectionOperation?.can_act) && <div className="program-operation-form">
+        <label className="wide"><span>Review reason</span><textarea value={standardReviewRationale} onChange={(event) => setStandardReviewRationale(event.target.value)}/></label>
+        {pendingStandards.map((adoption) => <div key={adoption.id} className="program-form-actions wide">
+          <span>{adoption.framework_code} {adoption.edition_code}</span>
+          {standardApprovalOperation?.can_act && <button type="button" className="primary-button" disabled={busy || !standardReviewRationale.trim()} onClick={() => void decideStandard(adoption.id, "approve")}>Approve standard</button>}
+          {standardRejectionOperation?.can_act && <button type="button" className="secondary-button" disabled={busy || !standardReviewRationale.trim()} onClick={() => void decideStandard(adoption.id, "reject")}>Reject standard</button>}
+        </div>)}
+        {standardError && <p role="alert" className="program-form-error wide">{standardError}</p>}
+      </div>}
+    </section>
     <section aria-label="Calculation rules" className="program-record-subsection">
       <div className="program-panel-heading">
         <div><h3>Calculation rules</h3><p className="program-operation-reason">{pendingPolicy ? "Awaiting approval" : activePolicy ? `Approved · Revision ${activePolicy.number}` : "Not configured"}</p></div>
@@ -224,7 +322,7 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
       {mode === "calculation" && <form className="program-operation-form" onSubmit={(event) => void submitCalculation(event)}>
         {calculationCategories.map((category) => <div key={category.code} className="program-form-factor">
           <label><span>{calculationCategoryLabels[category.code] ?? category.code} (%)</span><input type="number" min="1" max="100" step="1" required value={category.weight_bps / 100} onChange={(event) => updateCalculationWeight(category.code, Number(event.target.value))}/></label>
-          {calculationCategories.length > 1 && <button className="text-button" type="button" aria-label={`Remove ${calculationCategoryLabels[category.code] ?? category.code}`} onClick={() => removeCalculationFactor(category.code)}>Remove</button>}
+          {calculationCategories.length > 1 && !(category.code === "VENDORS" && activePolicy?.definition.expected_vendor_assessments?.length) && <button className="text-button" type="button" aria-label={`Remove ${calculationCategoryLabels[category.code] ?? category.code}`} onClick={() => removeCalculationFactor(category.code)}>Remove</button>}
         </div>)}
         {availableCalculationFactors.length > 0 && <div className="program-form-actions wide">
           <label><span>Add scoring factor</span><select value={calculationFactor} onChange={(event) => setCalculationFactor(event.target.value)}><option value="">Choose factor</option>{availableCalculationFactors.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>

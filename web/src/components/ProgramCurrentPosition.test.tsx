@@ -59,7 +59,11 @@ describe("Program calculation truth", () => {
       current_state: { ...current, calculation: {
         policy_revision: "program-v1", state: "FINAL" as const, score_bps: 0,
         coverage_bps: 10000, eligible_count: 1, assessed_count: 1,
-        unknown_count: 0, excluded_count: 0, categories: [],
+        unknown_count: 0, excluded_count: 0, categories: [{
+          code: "REQUIREMENTS", weight_bps: 10000,
+          eligible_count: 1, assessed_count: 1, unknown_count: 0, excluded_count: 0,
+          coverage_bps: 10000, score_bps: 0,
+        }],
       } },
     } as ProgramAggregate;
     const { rerender } = render(<ProgramCurrentPosition aggregate={verified} operations={operations} digest={digest}/>);
@@ -71,6 +75,13 @@ describe("Program calculation truth", () => {
     expect(screen.getByText("Requirement compliance").parentElement?.textContent).toBe("Requirement compliance Not assessed · 50% coverage");
 
     rerender(<ProgramCurrentPosition aggregate={{ ...verified, program: { ...verified.program, version: 4 } }} operations={operations} digest={digest}/>);
+    expect(screen.queryByText("Requirement compliance")).toBeNull();
+
+    rerender(<ProgramCurrentPosition aggregate={{ ...verified, current_state: {
+      ...verified.current_state!, calculation: { ...verified.current_state!.calculation!,
+        categories: [{ ...verified.current_state!.calculation!.categories[0], coverage_bps: 9000 }],
+      },
+    } }} operations={operations} digest={digest}/>);
     expect(screen.queryByText("Requirement compliance")).toBeNull();
   });
 

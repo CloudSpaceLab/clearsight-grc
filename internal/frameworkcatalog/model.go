@@ -31,6 +31,7 @@ var publicationSHA256Pattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // Clause is an immutable source reference, not a Program Requirement or a
 // scorable compliance unit. Summary must be licensed for redistribution.
 type Clause struct {
+	ID           string `json:"-"` // Database identity; excluded from signed publication manifests.
 	Code         string `json:"code"`
 	ParentCode   string `json:"parent_code,omitempty"`
 	Title        string `json:"title"`

@@ -485,6 +485,9 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.Program.CalculationPolicy = &value.Position
+	case EventFrameworkMappingProposed, EventFrameworkMappingApproved, EventFrameworkMappingRejected:
+		// Mapping identities live in their scoped relation; this Program event
+		// advances version/history without duplicating operating requirements.
 	case EventProgramFrameworkAdoptionProposed:
 		var value FrameworkAdoption
 		if err := json.Unmarshal(event.Payload, &value); err != nil {

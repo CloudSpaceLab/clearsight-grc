@@ -49,20 +49,26 @@ function actionTarget(command: string) {
 function requirementComplianceSummary(aggregate: ProgramAggregate, stale: boolean): string | null {
   const policy = aggregate.program.calculation_policy?.active;
   const result = aggregate.current_state?.calculation;
+  const approvedCategory = policy?.definition.categories[0];
+  const measuredCategory = result?.categories?.[0];
   if (stale || !policy?.approved_at || !result ||
       policy.definition.categories.length !== 1 ||
-      policy.definition.categories[0]?.code !== "REQUIREMENTS" ||
+      approvedCategory?.code !== "REQUIREMENTS" || approvedCategory.weight_bps !== 10000 ||
+      result.categories?.length !== 1 ||
+      measuredCategory?.code !== "REQUIREMENTS" || measuredCategory.weight_bps !== 10000 ||
+      measuredCategory.coverage_bps !== result.coverage_bps ||
       result.policy_revision !== policy.definition.revision ||
+      result.unpopulated_categories?.length ||
       !Number.isInteger(result.coverage_bps) ||
       result.coverage_bps < 0 || result.coverage_bps > 10000) return null;
 
   const formatted = (basisPoints: number) => `${(basisPoints / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
   const coverage = formatted(result.coverage_bps);
-  if (result.state !== "FINAL" || !Number.isInteger(result.score_bps) ||
-      result.score_bps! < 0 || result.score_bps! > 10000) {
-    return `Not assessed · ${coverage} coverage`;
-  }
-  return `${formatted(result.score_bps!)} · ${coverage} coverage`;
+  if (result.state !== "FINAL") return `Not assessed · ${coverage} coverage`;
+  if (!Number.isInteger(result.score_bps) || result.score_bps === undefined ||
+      result.score_bps < 0 || result.score_bps > 10000 ||
+      measuredCategory.score_bps !== result.score_bps) return null;
+  return `${formatted(result.score_bps)} · ${coverage} coverage`;
 }
 
 export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOwnerChange, onNavigate }: Props) {

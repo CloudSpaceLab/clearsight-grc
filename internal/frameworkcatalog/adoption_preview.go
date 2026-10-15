@@ -32,6 +32,7 @@ type ClauseReuseCandidate struct {
 }
 
 type ClauseReuseProposal struct {
+	ClauseID            string                 `json:"clause_id"`
 	ClauseCode          string                 `json:"clause_code"`
 	SourceAnchor        string                 `json:"source_anchor"`
 	Status              ClauseReuseStatus      `json:"status"`
@@ -112,7 +113,7 @@ func PreviewClauseReuse(
 		}
 		seenClauses[clause.Code] = struct{}{}
 		proposal := ClauseReuseProposal{
-			ClauseCode: clause.Code, SourceAnchor: clause.SourceAnchor,
+			ClauseID: clause.ID, ClauseCode: clause.Code, SourceAnchor: clause.SourceAnchor,
 			Status: ClauseReuseUnmapped, Candidates: []ClauseReuseCandidate{},
 		}
 		// Anchor matches are more specific than matching short clause codes.

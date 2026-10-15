@@ -19,6 +19,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/frameworkcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/invalidation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
@@ -119,6 +120,8 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	continuityRepo := continuity.NewReliablePostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepo)
 	continuityService.ConfigureEvidenceSourceValidator(evidenceService)
+	frameworkRepo := frameworkcatalog.NewPostgresRepository(pool)
+	continuityService.ConfigureFrameworkEditionLookup(frameworkRepo)
 	monitoringService.ConfigureFormOriginValidator(formOriginMatterValidator{matters: continuityService})
 	ropaRepository := ropa.NewPostgresRepository(pool)
 	ropaLister := ropa.NewPostgresLister(pool)
@@ -191,7 +194,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 		Evidence: evidenceService, FormDistributions: distributionService, FormDistributionAccess: distributionAccess,
 		FormCommunications: communicationService, FormCommunicationBrands: communicationBrands, FormCommunicationTestDelivery: communicationDelivery,
 		FormPolicies: formPolicies,
-		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, OperationalLoss: operationalLossService, ControlCatalog: controlCatalogService, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService, GroupOversight: groupOversightService, MetricMembership: metricMembership, MetricTrends: metricTrends, MetricMatrices: metricMatrices, DomainMetrics: domainMetrics, GroupPostureMetrics: groupPostureMetrics, LossPeriodMetrics: lossPeriodMetrics, PresentationPreferences: presentationPreferences, NotificationPreferences: notificationPreferences,
+		ObjectStore:  store, Monitoring: monitoringService, FormProposals: proposalService, ThirdParty: thirdPartyService, ThirdPartyBrandRepo: thirdPartyRepo, ThirdPartyRelationshipLinks: thirdPartyRelationshipLinks, ThirdPartyRelationshipLinkRepo: thirdPartyRepo, ThirdPartyWorkRepo: thirdPartyRepo, MonitoringRepo: monitoringRepo, ThirdPartyAssessmentRepo: thirdPartyRepo, ThirdPartyActivationRepo: thirdPartyRepo, ThirdPartyAssessmentSetup: assessmentSetup, SourceCatalog: sourceCatalog, DocumentImports: documentService, Coverage: coverageService, Continuity: continuityService, Ropa: ropaService, RopaEventsReader: ropaRepository, Reporting: reportingService, Risk: riskService, RCSA: rcsaService, OperationalLoss: operationalLossService, ControlCatalog: controlCatalogService, FrameworkCatalog: frameworkRepo, MatterFormRemediationRepo: continuityRepo, Today: todayService, Oversight: oversightService, GroupOversight: groupOversightService, MetricMembership: metricMembership, MetricTrends: metricTrends, MetricMatrices: metricMatrices, DomainMetrics: domainMetrics, GroupPostureMetrics: groupPostureMetrics, LossPeriodMetrics: lossPeriodMetrics, PresentationPreferences: presentationPreferences, NotificationPreferences: notificationPreferences,
 		Workflow: workflowService, EscalationSimulation: escalationSimulation, Onboarding: onboarding.NewService(onboarding.NewPostgresRepository(pool)),
 		Autonomy: auto, AIGovernance: aiGovernanceService, BankVerticals: verticals, BackgroundJobs: backgroundJobs, Activity: activityService, AuditExports: auditExports, People: people.NewService(people.NewPostgresRepository(pool)),
 		Access: accessResolver, AccessAdmin: accessAdmin, SessionStore: sessionStore, SCIM: scimService, Close: closeServices,
