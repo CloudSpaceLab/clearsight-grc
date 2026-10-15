@@ -96,6 +96,12 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 	} {
 		add(spec)
 	}
+	if aggregate.Program.CalculationPolicy == nil || aggregate.Program.CalculationPolicy.Pending == nil {
+		add(programOperationSpec{Command: "program.compliance-policy.propose", Label: "Edit calculation rules", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID})
+	} else {
+		add(programOperationSpec{Command: "program.compliance-policy.approve", Label: "Approve calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
+		add(programOperationSpec{Command: "program.compliance-policy.reject", Label: "Reject calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
+	}
 	if a.deps.Monitoring != nil {
 		forms, err := a.deps.Monitoring.ListForms(ctx, monitoring.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, aggregate.Program.ID, 500)
 		if err == nil {
