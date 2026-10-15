@@ -88,11 +88,15 @@ func TestVisibleProgramStateVersionIgnoresCanonicalProjectionChurn(t *testing.T)
 func TestActorProgramCalculationHidesUnscopedCompositeAndHashesSupportedScore(t *testing.T) {
 	score := int64(7500)
 	one := ProgramStateSnapshot{
-		ProgramVersion: 4, Overall: StateCurrent, Dimensions: allCurrentDimensions(),
+		ProgramVersion: 4,
+		Overall:        StateCurrent,
+		Dimensions:     allCurrentDimensions(),
 		Calculation: &ProgramComplianceCalculation{
-			PolicyRevision: "program-v1", State: ProgramComplianceFinal,
-			ScoreBps: &score, CoverageBps: 10000,
-			Categories: []ProgramComplianceCategoryResult{{Code: "REQUIREMENTS", WeightBps: 10000}},
+			PolicyRevision: "program-v1",
+			State:          ProgramComplianceFinal,
+			ScoreBps:       &score,
+			CoverageBps:    10000,
+			Categories:     []ProgramComplianceCategoryResult{{Code: "REQUIREMENTS", WeightBps: 10000}},
 		},
 	}
 	first := programStateForVisibleMatters(one, 0)
