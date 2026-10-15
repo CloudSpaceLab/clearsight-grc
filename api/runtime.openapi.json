@@ -3348,6 +3348,24 @@
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
+    "/api/v1/programs/{id}/standards/propose": {
+      "post": {
+        "operationId": "proposeProgramFrameworkAdoption",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/standards/{adoption_id}/approve": {
+      "post": {
+        "operationId": "approveProgramFrameworkAdoption",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/standards/{adoption_id}/reject": {
+      "post": {
+        "operationId": "rejectProgramFrameworkAdoption",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
     "/api/v1/programs/{id}/assignment": {
       "post": {
         "operationId": "assignProgram",
