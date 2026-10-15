@@ -19,9 +19,9 @@ const (
 type ClauseReuseStatus string
 
 const (
-	ClauseReuseUnmapped   ClauseReuseStatus = "UNMAPPED"
+	ClauseReuseUnmapped       ClauseReuseStatus = "UNMAPPED"
 	ClauseReuseReviewRequired ClauseReuseStatus = "REVIEW_CANDIDATE"
-	ClauseReuseAmbiguous  ClauseReuseStatus = "AMBIGUOUS"
+	ClauseReuseAmbiguous      ClauseReuseStatus = "AMBIGUOUS"
 )
 
 type ClauseReuseCandidate struct {
