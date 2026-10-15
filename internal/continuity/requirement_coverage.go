@@ -49,6 +49,9 @@ func CurrentRequirementCoverage(aggregate ProgramAggregate, at time.Time) map[st
 	}
 	implementedByRequirement := make(map[string]map[string]struct{})
 	for _, link := range aggregate.RequirementControlLinks {
+		if !requirementControlLinkEffectiveAt(link, at) {
+			continue
+		}
 		if _, ok := approved[link.RequirementID]; !ok {
 			continue
 		}
