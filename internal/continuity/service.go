@@ -14,6 +14,7 @@ import (
 )
 
 type Service struct {
+	frameworkEditionLookup FrameworkEditionLookup
 	repo            Repository
 	now             func() time.Time
 	sourceValidator EvidenceSourceValidator
