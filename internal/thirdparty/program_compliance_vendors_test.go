@@ -47,20 +47,6 @@ func TestProgramVendorAssessmentInputsKeepUnrequestedVendorInDenominator(t *test
 		Revision: "approved", MinimumCoverageBps: 10000,
 		Categories: []continuity.ProgramComplianceCategoryWeight{{Code: "VENDORS", WeightBps: 10000}},
 	}
-	if _, err := ProgramVendorAssessmentInputsForPolicy(
-		"bank", "entity", "program", policy, links, false, nil, nil,
-		now.Add(-24*time.Hour), now.Add(24*time.Hour), now,
-	); err == nil {
-		t.Fatal("incomplete Program relationship population accepted")
-	}
-	links[0].TargetID = "another-program"
-	if _, err := ProgramVendorAssessmentInputsForPolicy(
-		"bank", "entity", "program", policy, links, true, nil, nil,
-		now.Add(-24*time.Hour), now.Add(24*time.Hour), now,
-	); err == nil {
-		t.Fatal("another Program's vendor link authorized the assessment")
-	}
-	links[0].TargetID = "program"
 	result, err := continuity.CalculateProgramCompliance(policy, inputs)
 	if err != nil || result.State != continuity.ProgramComplianceProvisional ||
 		result.ScoreBps != nil || result.CoverageBps != 5000 {
@@ -178,6 +164,20 @@ func TestProgramVendorPolicyInputsIncludeUnrequestedExpectations(t *testing.T) {
 		inputs[0].Key != "VENDOR_ASSESSMENT:missing:security" {
 		t.Fatalf("unsent required assessment disappeared: %+v / %v", inputs, err)
 	}
+	if _, err := ProgramVendorAssessmentInputsForPolicy(
+		"bank", "entity", "program", policy, links, false, nil, nil,
+		now.Add(-24*time.Hour), now.Add(24*time.Hour), now,
+	); err == nil {
+		t.Fatal("incomplete Program relationship population accepted")
+	}
+	links[0].TargetID = "another-program"
+	if _, err := ProgramVendorAssessmentInputsForPolicy(
+		"bank", "entity", "program", policy, links, true, nil, nil,
+		now.Add(-24*time.Hour), now.Add(24*time.Hour), now,
+	); err == nil {
+		t.Fatal("another Program's vendor link authorized the assessment")
+	}
+	links[0].TargetID = "program"
 	result, err := continuity.CalculateProgramCompliance(policy, inputs)
 	if err != nil || result.CoverageBps != 0 || result.ScoreBps != nil || result.UnknownCount != 1 {
 		t.Fatalf("unrequested obligation inflated compliance: %+v / %v", result, err)
