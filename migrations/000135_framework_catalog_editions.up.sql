@@ -40,7 +40,7 @@ CREATE TABLE framework_catalog_clauses (
 );
 
 CREATE INDEX framework_catalog_editions_discovery_idx
-    ON framework_catalog_editions (jurisdiction, framework_code, edition_code, id);
+    ON framework_catalog_editions (jurisdiction, id);
 CREATE INDEX framework_catalog_clauses_order_idx
     ON framework_catalog_clauses (edition_id, ordinal, code);
 
