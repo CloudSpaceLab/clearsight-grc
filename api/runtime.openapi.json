@@ -3372,6 +3372,30 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/programs/{id}/standards/{adoption_id}/mappings": {
+      "get": {
+        "operationId": "listProgramFrameworkMappings",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/standards/{adoption_id}/mappings/propose": {
+      "post": {
+        "operationId": "proposeProgramFrameworkMapping",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/standards/{adoption_id}/mappings/{mapping_id}/approve": {
+      "post": {
+        "operationId": "approveProgramFrameworkMapping",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/standards/{adoption_id}/mappings/{mapping_id}/reject": {
+      "post": {
+        "operationId": "rejectProgramFrameworkMapping",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
     "/api/v1/programs/{id}/standards/{adoption_id}/reject": {
       "post": {
         "operationId": "rejectProgramFrameworkAdoption",

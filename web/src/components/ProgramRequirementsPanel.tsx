@@ -4,6 +4,8 @@ import { addProgramRequirement, determineProgramApplicability, supersedeProgramR
 import type { ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate, Requirement } from "../types";
 import { useFrameworkClauseCandidates } from "../hooks/useFrameworkClauseCandidates";
+import { decideProgramFrameworkMapping, proposeProgramFrameworkMapping } from "../programFrameworkCandidatesApi";
+import type { FrameworkMappingKind } from "../programFrameworkCandidatesApi";
 import { TextField } from "./ui";
 
 type Props = { aggregate: ProgramAggregate; operations: ProgramOperation[]; onUpdated: (value: ProgramAggregate) => void; onReload: () => void };
@@ -20,7 +22,21 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
   const activeStandards = (aggregate.framework_adoptions ?? []).filter((value) => value.status === "ACTIVE");
   const standardReview = useFrameworkClauseCandidates(program.id, program.version);
   const [showStandards, setShowStandards] = useState(false);
-  useEffect(() => { setShowStandards(false); }, [program.id, program.version]);
+  const mappingProposalOperation = operations.find((operation) => operation.command === "program.framework.mapping.propose");
+  const mappingApproveOperation = operations.find((operation) => operation.command === "program.framework.mapping.approve");
+  const mappingRejectOperation = operations.find((operation) => operation.command === "program.framework.mapping.reject");
+  const [selectedMapping, setSelectedMapping] = useState<{ clauseID: string; requirementID: string } | null>(null);
+  const [mappingKind, setMappingKind] = useState<FrameworkMappingKind>("EXACT");
+  const [mappingRationale, setMappingRationale] = useState("");
+  const [mappingReviewRationale, setMappingReviewRationale] = useState("");
+  const [mappingBusy, setMappingBusy] = useState(false);
+  const [mappingError, setMappingError] = useState("");
+
+  useEffect(() => {
+    setShowStandards(false);
+    setSelectedMapping(null);
+    setMappingError("");
+  }, [program.id, program.version]);
   const [mode, setMode] = useState<Mode>(null);
   const [selected, setSelected] = useState<Requirement | null>(null);
   const [busy, setBusy] = useState(false);
@@ -31,6 +47,41 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
   const [effectiveFrom, setEffectiveFrom] = useState(today()); const [rationale, setRationale] = useState("");
   const [requirementID, setRequirementID] = useState(aggregate.requirements.find((value) => value.status === "APPROVED")?.id ?? "");
   const [applicability, setApplicability] = useState("APPLICABLE"); const [scopeDescription, setScopeDescription] = useState("");
+
+  async function submitMapping(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedMapping || !mappingProposalOperation?.can_act || !standardReview.adoptionID ||
+        !mappingRationale.trim() || standardReview.mappingStatus !== "loaded") return;
+    setMappingBusy(true); setMappingError("");
+    try {
+      const result = await proposeProgramFrameworkMapping(
+        program.id, standardReview.adoptionID, program.version,
+        selectedMapping.clauseID, selectedMapping.requirementID,
+        mappingKind, mappingRationale.trim(),
+      );
+      onUpdated(result.program);
+      setSelectedMapping(null);
+      setMappingRationale("");
+    } catch (value) {
+      setMappingError(value instanceof Error ? value.message : "Requirement link could not be submitted.");
+    } finally { setMappingBusy(false); }
+  }
+
+  async function reviewMapping(mappingID: string, action: "approve" | "reject") {
+    const allowed = action === "approve" ? mappingApproveOperation?.can_act : mappingRejectOperation?.can_act;
+    if (!allowed || !mappingReviewRationale.trim() || !standardReview.adoptionID) return;
+    setMappingBusy(true); setMappingError("");
+    try {
+      const result = await decideProgramFrameworkMapping(
+        program.id, standardReview.adoptionID, mappingID,
+        program.version, action, mappingReviewRationale.trim(),
+      );
+      onUpdated(result.program);
+      setMappingReviewRationale("");
+    } catch (value) {
+      setMappingError(value instanceof Error ? value.message : "Requirement link review could not be saved.");
+    } finally { setMappingBusy(false); }
+  }
 
   function beginAdd() { setMode("add"); setSelected(null); setCode(""); setTitle(""); setStatement(""); setSourceAnchor(""); setModality(""); setActor(""); setAction(""); setObject(""); setEffectiveFrom(today()); setRationale(""); setError(""); }
   function beginReplace(requirement: Requirement) { setMode("replace"); setSelected(requirement); setCode(requirement.code); setTitle(requirement.title); setStatement(requirement.statement); setSourceAnchor(requirement.source_anchor ?? ""); setModality(requirement.modality ?? ""); setActor(requirement.actor ?? ""); setAction(requirement.action ?? ""); setObject(requirement.object ?? ""); setEffectiveFrom(today()); setRationale(""); setError(""); }
@@ -77,14 +128,49 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
         {standardReview.status === "loading" && <p role="status">Loading clauses…</p>}
         {standardReview.status === "error" && <p role="alert">Clause matches could not be loaded. <button className="text-button" type="button" onClick={() => void standardReview.load(standardReview.adoptionID)}>Retry</button></p>}
         {standardReview.status === "loaded" && standardReview.page?.candidates.length === 0 && <p role="status">No clauses are published for this edition.</p>}
+        {standardReview.mappingStatus === "unavailable" && <p role="alert">Requirement link decisions are unavailable. <button type="button" className="text-button" onClick={() => void standardReview.load(standardReview.adoptionID)}>Retry</button></p>}
+        {standardReview.mappingPage?.items.some((item) => item.status === "PENDING") && <div className="program-operation-form" aria-label="Pending standard links">
+          <h4>Links awaiting review</h4>
+          {standardReview.mappingPage.items.filter((item) => item.status === "PENDING").map((item) =>
+            <div className="program-form-actions wide" key={item.id}>
+              <span>{item.clause_code} · {aggregate.requirements.find((requirement) => requirement.id === item.requirement_id)?.title ?? item.requirement_id} · {label(item.mapping_kind)}</span>
+              {(mappingApproveOperation?.can_act || mappingRejectOperation?.can_act) && <>
+                {mappingApproveOperation?.can_act && <button className="primary-button" type="button" disabled={mappingBusy || !mappingReviewRationale.trim()} onClick={() => void reviewMapping(item.id, "approve")}>Approve link</button>}
+                {mappingRejectOperation?.can_act && <button className="secondary-button" type="button" disabled={mappingBusy || !mappingReviewRationale.trim()} onClick={() => void reviewMapping(item.id, "reject")}>Reject link</button>}
+              </>}
+            </div>
+          )}
+          {(mappingApproveOperation?.can_act || mappingRejectOperation?.can_act) && <label className="wide"><span>Review reason</span><textarea value={mappingReviewRationale} onChange={(event) => setMappingReviewRationale(event.target.value)}/></label>}
+        </div>}
+        {standardReview.mappingPage?.next_after_id && <button type="button" className="secondary-button" disabled={standardReview.mappingStatus === "loading"} onClick={() => void standardReview.loadMoreMappings()}>More linked requirements</button>}
+        {mappingError && <p role="alert" className="program-form-error">{mappingError} <button type="button" className="text-button" onClick={onReload}>Reload Program</button></p>}
         {standardReview.page && <div className="program-requirement-list">
           {standardReview.page.candidates.map((clause) => <section className="program-requirement-card" key={clause.clause_code} aria-label={`Clause ${clause.clause_code}`}>
             <div><strong>{clause.clause_code}</strong><p>Source: {clause.source_anchor}</p>
               <small>{clause.status === "UNMAPPED" ? "No matching requirement" : clause.status === "AMBIGUOUS" ? "Multiple possible matches" : "Review suggested match"}</small>
             </div>
             {clause.candidates.length > 0 && <ul>{clause.candidates.map((candidate) =>
-              <li key={candidate.requirement_id}>{candidate.requirement_code} · {candidate.title}{candidate.applicability ? ` · ${label(candidate.applicability)}` : ""}</li>
+              <li key={candidate.requirement_id}>{candidate.requirement_code} · {candidate.title}{candidate.applicability ? ` · ${label(candidate.applicability)}` : ""}
+                {standardReview.mappingPage?.items.some((mapping) => mapping.clause_id === clause.clause_id && mapping.requirement_id === candidate.requirement_id && mapping.status === "APPROVED") && <small>Linked</small>}
+                {standardReview.mappingPage?.items.some((mapping) => mapping.clause_id === clause.clause_id && mapping.requirement_id === candidate.requirement_id && mapping.status === "PENDING") && <small>Awaiting review</small>}
+                {mappingProposalOperation?.can_act && clause.clause_id && standardReview.mappingStatus === "loaded" &&
+                  !standardReview.mappingPage?.items.some((mapping) => mapping.clause_id === clause.clause_id && mapping.requirement_id === candidate.requirement_id) &&
+                  <button className="text-button" type="button" onClick={() => {
+                    setSelectedMapping({ clauseID: clause.clause_id, requirementID: candidate.requirement_id });
+                    setMappingKind("EXACT"); setMappingRationale(""); setMappingError("");
+                  }}>Propose link</button>}
+              </li>
             )}</ul>}
+            {selectedMapping?.clauseID === clause.clause_id && <form className="program-operation-form" onSubmit={(event) => void submitMapping(event)}>
+              <label><span>Mapping</span><select value={mappingKind} onChange={(event) => setMappingKind(event.target.value as FrameworkMappingKind)}>
+                <option value="EXACT">Exact</option><option value="PARTIAL">Partial</option><option value="SUPPORTING">Supporting</option>
+              </select></label>
+              <label className="wide"><span>Link rationale</span><textarea required value={mappingRationale} onChange={(event) => setMappingRationale(event.target.value)}/></label>
+              <div className="program-form-actions wide">
+                <button className="primary-button" type="submit" disabled={mappingBusy || !mappingRationale.trim()}>{mappingBusy ? "Submitting…" : "Submit link for approval"}</button>
+                <button className="text-button" type="button" onClick={() => setSelectedMapping(null)}>Cancel</button>
+              </div>
+            </form>}
             {clause.candidates_truncated && <p className="program-operation-reason">{clause.total_candidates} candidates · showing first {clause.candidates.length}</p>}
           </section>)}
         </div>}

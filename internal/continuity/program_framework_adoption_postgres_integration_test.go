@@ -126,4 +126,68 @@ func TestPostgresFrameworkAdoptionEventAndCurrentProjection(t *testing.T) {
 	if len(approved.Requirements) > 0 || approved.Program.CalculationPolicy != nil {
 		t.Fatal("edition approval manufactured obligations or a score")
 	}
+
+	// A reviewed framework mapping is persisted in the same Program event
+	// transaction, but it must never create a second scored obligation.
+	clauseID := uuid()
+	exec(`INSERT INTO framework_catalog_clauses(
+		id,edition_id,code,title,source_anchor,ordinal)
+		VALUES($1::uuid,$2::uuid,'A.1','Access review','Section A.1',1)`, clauseID, editionID)
+	service.ConfigureFrameworkEditionLookup(mappingTestCatalog{
+		fixtureEditionLookup: fixtureEditionLookup{value: FrameworkEditionReference{
+			ID: editionID, PublisherCode: "EXAMPLE", FrameworkCode: code,
+			EditionCode: "2026", ReleaseSHA256: release,
+		}},
+		clauseID: clauseID,
+	})
+	service.now = func() time.Time { return now.Add(3 * time.Minute) }
+	withRequirement, err := service.AddRequirement(ctx, AddRequirementInput{
+		TenantID: slug, ProgramID: program.Program.ID, ExpectedVersion: approved.Program.Version,
+		Code: "ACCESS", Title: "Access reviews", Statement: "Review privileged access",
+		SourceAnchor: "Section A.1", Modality: "MUST", Status: RequirementApproved,
+		Actor: "Security", Action: "Review", Object: "Privileges",
+		EffectiveFrom: now, ActorID: owner,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(withRequirement.Requirements) != 1 {
+		t.Fatalf("expected one canonical approved Requirement, got %d", len(withRequirement.Requirements))
+	}
+	service.now = func() time.Time { return now.Add(4 * time.Minute) }
+	mapping, awaiting, err := service.ProposeFrameworkMapping(ctx, ProposeFrameworkMappingInput{
+		TenantID: slug, ProgramID: program.Program.ID,
+		AdoptionID: adoptionID, ClauseID: clauseID, RequirementID: withRequirement.Requirements[0].ID,
+		MappingKind: FrameworkMappingPartial, ExpectedVersion: withRequirement.Program.Version,
+		ActorID: owner, Rationale: "Evidence covers the in-scope population only.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var recordedStatus string
+	if err := pool.QueryRow(ctx, `SELECT status FROM framework_clause_requirement_links WHERE id=$1::uuid`,
+		mapping.ID).Scan(&recordedStatus); err != nil || recordedStatus != "PENDING" {
+		t.Fatalf("proposal not in current relation: %s %v", recordedStatus, err)
+	}
+	service.now = func() time.Time { return now.Add(5 * time.Minute) }
+	confirmed, current, err := service.ApproveFrameworkMapping(ctx, DecideFrameworkMappingInput{
+		TenantID: slug, ProgramID: program.Program.ID, AdoptionID: adoptionID, MappingID: mapping.ID,
+		ExpectedVersion: awaiting.Program.Version, ActorID: checker,
+		Rationale: "Reviewer accepted partial source attribution.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if confirmed.Status != FrameworkMappingApproved || len(current.Requirements) != 1 ||
+		current.Program.CalculationPolicy != nil {
+		t.Fatalf("mapping changed scored Program input: %+v", current.Program)
+	}
+	if err := pool.QueryRow(ctx, `SELECT status FROM framework_clause_requirement_links WHERE id=$1::uuid`,
+		mapping.ID).Scan(&recordedStatus); err != nil || recordedStatus != "APPROVED" {
+		t.Fatalf("reviewed mapping not materialized: %s %v", recordedStatus, err)
+	}
+	historical, err := service.FrameworkMappingAt(ctx, slug, program.Program.ID, mapping.ID, now.Add(4*time.Minute))
+	if err != nil || historical.Status != FrameworkMappingPending {
+		t.Fatalf("review changed historical mapping: %+v %v", historical, err)
+	}
 }
