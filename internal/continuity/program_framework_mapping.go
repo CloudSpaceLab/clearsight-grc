@@ -24,6 +24,12 @@ type FrameworkMappingReader interface {
 	GetFrameworkMapping(context.Context, string, string, string) (FrameworkClauseMapping, error)
 }
 
+// FrameworkMappingListReader supplies one bounded, scoped review queue without
+// loading clause mappings into the continuously refreshed Program aggregate.
+type FrameworkMappingListReader interface {
+	ListFrameworkMappings(context.Context, string, string, string, string, int) ([]FrameworkClauseMapping, error)
+}
+
 type FrameworkMappingStatus string
 
 const (
@@ -266,4 +272,17 @@ func frameworkMappingFromEvent(event Event) (FrameworkClauseMapping, error) {
 		return FrameworkClauseMapping{}, err
 	}
 	return value.Mapping, nil
+}
+
+func (s *Service) ListFrameworkMappings(
+	ctx context.Context, tenantID, programID, adoptionID, afterID string, limit int,
+) ([]FrameworkClauseMapping, error) {
+	reader, ok := s.repo.(FrameworkMappingListReader)
+	if !ok {
+		return nil, ErrFrameworkEditionUnavailable
+	}
+	if limit < 1 || limit > 100 || tenantID == "" || programID == "" || adoptionID == "" {
+		return nil, ErrInvalidState
+	}
+	return reader.ListFrameworkMappings(ctx, tenantID, programID, adoptionID, afterID, limit)
 }
