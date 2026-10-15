@@ -117,7 +117,6 @@ BEGIN
           AND a.status='ACTIVE'
           AND a.effective_from<=NEW.effective_from
           AND a.reviewed_at<=NEW.reviewed_at
-          AND NEW.mapped_by<>a.reviewed_by
           AND r.status='APPROVED'
           AND r.effective_from<=NEW.effective_from
           AND (r.effective_until IS NULL OR NEW.effective_from<r.effective_until)
