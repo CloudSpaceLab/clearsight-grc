@@ -37,7 +37,7 @@ const programOperationCommands = {
   proposeProgramFrameworkAdoption: "program.framework.propose",
   proposeProgramFrameworkMapping: "program.framework.mapping.propose",
   approveProgramFrameworkMapping: "program.framework.mapping.approve",
-  rejectFrameworkMapping: "program.framework.mapping.reject",
+  rejectProgramFrameworkMapping: "program.framework.mapping.reject",
   approveProgramFrameworkAdoption: "program.framework.approve",
   rejectProgramFrameworkAdoption: "program.framework.reject",
   approveProgramCompliancePolicy: "program.compliance-policy.approve",
