@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/frameworkcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 )
@@ -22,6 +23,26 @@ func (reader testFrameworkEditionReader) ListEditions(_ context.Context, jurisdi
 		return nil, frameworkcatalog.ErrInvalidPublication
 	}
 	return reader.items, nil
+}
+
+func (reader testFrameworkEditionReader) GetFrameworkEdition(_ context.Context, id string) (continuity.FrameworkEditionReference, error) {
+	for _, entry := range reader.items {
+		if entry.ID == id {
+			return continuity.FrameworkEditionReference{
+				ID: entry.ID, PublisherCode: entry.PublisherCode,
+				FrameworkCode: entry.FrameworkCode, EditionCode: entry.EditionCode,
+				ReleaseSHA256: entry.ReleaseSHA256,
+			}, nil
+		}
+	}
+	return continuity.FrameworkEditionReference{}, continuity.ErrNotFound
+}
+
+func (reader testFrameworkEditionReader) ListClauses(_ context.Context, editionID, after string, limit int) ([]frameworkcatalog.Clause, error) {
+	if editionID != "edition-1" || after != "" || limit != 100 {
+		return nil, frameworkcatalog.ErrInvalidPublication
+	}
+	return []frameworkcatalog.Clause{{Code: "A", SourceAnchor: "Section 1", Title: "Access"}}, nil
 }
 
 func TestFrameworkEditionCatalogueReadRequiresExactLegalEntity(t *testing.T) {
