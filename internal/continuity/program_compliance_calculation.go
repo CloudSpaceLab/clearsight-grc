@@ -133,8 +133,8 @@ func validatedProgramComplianceCategories(policy ProgramComplianceCalculationPol
 	}
 	type vendorIdentity struct {
 		relationship, form string
-		version int64
-		kind string
+		version            int64
+		kind               string
 	}
 	seenKeys := make(map[string]bool, len(policy.ExpectedVendorAssessments))
 	seenIdentities := make(map[vendorIdentity]bool, len(policy.ExpectedVendorAssessments))
