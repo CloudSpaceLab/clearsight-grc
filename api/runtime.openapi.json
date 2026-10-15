@@ -3366,6 +3366,12 @@
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
+    "/api/v1/programs/{id}/standards/{adoption_id}/candidates": {
+      "get": {
+        "operationId": "listProgramFrameworkCandidates",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/programs/{id}/standards/{adoption_id}/reject": {
       "post": {
         "operationId": "rejectProgramFrameworkAdoption",
