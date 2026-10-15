@@ -9,19 +9,26 @@ import (
 func approvedRequirementsPolicyForProjection(t *testing.T, now time.Time) *ProgramCompliancePolicyPosition {
 	t.Helper()
 	policy := ProgramComplianceCalculationPolicy{
-		Revision: "program-v1",
+		Revision:           "program-v1",
 		MinimumCoverageBps: 10000,
-		Categories: []ProgramComplianceCategoryWeight{{Code: "REQUIREMENTS", WeightBps: 10000}},
+		Categories:         []ProgramComplianceCategoryWeight{{Code: "REQUIREMENTS", WeightBps: 10000}},
 	}
 	checksum, err := programCompliancePolicyChecksum(policy)
 	if err != nil {
 		t.Fatal(err)
 	}
 	approved := now.Add(-time.Minute)
-	return &ProgramCompliancePolicyPosition{LastRevision: 1, Active: &ProgramCompliancePolicyRevision{
-		Number: 1, Definition: policy, Checksum: checksum, MakerID: "owner",
-		ApproverID: "checker", ApprovedAt: &approved,
-	}}
+	return &ProgramCompliancePolicyPosition{
+		LastRevision: 1,
+		Active: &ProgramCompliancePolicyRevision{
+			Number:     1,
+			Definition: policy,
+			Checksum:   checksum,
+			MakerID:    "owner",
+			ApproverID: "checker",
+			ApprovedAt: &approved,
+		},
+	}
 }
 
 func requirementsProjectionFixture(t *testing.T, now time.Time) ProgramAggregate {
@@ -29,32 +36,50 @@ func requirementsProjectionFixture(t *testing.T, now time.Time) ProgramAggregate
 	start := now.Add(-2 * time.Hour)
 	return ProgramAggregate{
 		Program: Program{
-			ID: "program", TenantID: "bank", LegalEntityID: "entity",
-			Status: ProgramActive, Version: 4, EffectiveFrom: start,
+			ID:                "program",
+			TenantID:          "bank",
+			LegalEntityID:     "entity",
+			Status:            ProgramActive,
+			Version:           4,
+			EffectiveFrom:     start,
 			CalculationPolicy: approvedRequirementsPolicyForProjection(t, now),
 		},
 		Requirements: []Requirement{{
-			ID: "requirement", ProgramID: "program", Status: RequirementApproved,
+			ID:            "requirement",
+			ProgramID:     "program",
+			Status:        RequirementApproved,
 			EffectiveFrom: start,
 		}},
 		Applicability: []Applicability{{
-			RequirementID: "requirement", Status: ApplicabilityApplicable,
-			EffectiveFrom: start, CreatedAt: start,
+			RequirementID: "requirement",
+			Status:        ApplicabilityApplicable,
+			EffectiveFrom: start,
+			CreatedAt:     start,
 		}},
 		ControlImplementations: []ControlImplementation{{
-			ID: "control", Status: ImplementationImplemented, EffectiveFrom: start,
+			ID:            "control",
+			Status:        ImplementationImplemented,
+			EffectiveFrom: start,
 		}},
 		RequirementControlLinks: []RequirementControlLink{{
-			ID: "link", RequirementID: "requirement", ImplementationID: "control",
-			CreatedAt: start,
+			ID:               "link",
+			RequirementID:    "requirement",
+			ImplementationID: "control",
+			CreatedAt:        start,
 		}},
 		EvidenceContracts: []EvidenceContract{{
-			ID: "contract", RequirementID: "requirement", Status: EvidenceContractActive,
-			FreshnessMinutes: 120, MinimumCoverage: 1,
+			ID:               "contract",
+			RequirementID:    "requirement",
+			Status:           EvidenceContractActive,
+			FreshnessMinutes: 120,
+			MinimumCoverage:  1,
 		}},
 		EvidenceAssessments: []EvidenceAssessment{{
-			ID: "assessment", ContractID: "contract", Conclusion: EvidenceSupported,
-			Coverage: 1, AssessedAt: now.Add(-time.Minute),
+			ID:         "assessment",
+			ContractID: "contract",
+			Conclusion: EvidenceSupported,
+			Coverage:   1,
+			AssessedAt: now.Add(-time.Minute),
 		}},
 	}
 }
