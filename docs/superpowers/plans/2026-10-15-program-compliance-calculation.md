@@ -117,7 +117,7 @@ Visible copy: 'Compliance', 'Coverage', 'Calculation rules', 'Missing evidence',
 2. Trace Program ↔ vendor-relationship ↔ expected request/assessment ↔ current finalized bank score, and Matter ↔ Program/requirement/form origin. Prove bounded scoped server lookup and exact expected denominator for one real fixture.
 3. Inspect `metricview` source snapshot/retained-membership support for weighted/typed member target and permission filtering; determine minimal extension. Check current shared native ratio work in #344/#346 and open PRs before implementing.
 4. Measure Program count, requirement/linked-vendor/finding cardinality, per-event affected-Program fanout, source/approval freshness and preferred retention; document target query plan.
-**Gate:** signed-off truth table, shared-source keys, audit-ready score semantics, no parallel owner and non-empty benchmark fixtures.
+**Gate:** signed-off truth table, shared-source keys, audit-ready score semantics, no parallel owner, non-empty benchmark fixtures and Archer parity fixture/journey contract (section 7).
 
 ### T1 — versioned rule and preview
 1. Typed contract, validation (weights sum/zero, duplicate IDs, precedence, denominator, critical override, effective time, invalid result basis).
@@ -129,7 +129,7 @@ Visible copy: 'Compliance', 'Coverage', 'Calculation rules', 'Missing evidence',
 1. Pure evaluator and one backend reader for requirement coverage, vendor assessment population, evidence and linked Matters.
 2. Deduplication, missingness, origin precedence, version identity and category calculation. Snapshot integration + targeted invalidation in current Program projection worker.
 3. PostgreSQL integration proof on amendments, unsubmitted/overdue responses, reviewer changes, stale sources, critical/partial and verified issue closure.
-**Gate:** manual independently calculated fixture = stored weighted numerator/denominator/coverage/status at same revision; no false green and no cross-entity leakage.
+**Gate:** manual independently calculated fixture = stored weighted numerator/denominator/coverage/status at same revision; graded effectiveness comes from real assessed results, cross-framework shared controls are not double collected, no false green and no cross-entity leakage.
 
 ### T3 — drill parity and privacy
 1. Retain exact contribution IDs/weights/revisions in existing metric membership architecture where feasible; otherwise justify minimal typed relation. Cursor pagination and bounded SQL.
@@ -141,20 +141,81 @@ Visible copy: 'Compliance', 'Coverage', 'Calculation rules', 'Missing evidence',
 1. Compact Program overview and one breakdown sheet or expandable section; link directly to existing Program requirements, vendor responses, evidence and issue records.
 2. Shared form/select/metric components; properly identified calculating/stale/missing/restricted/error/N/A states; no empty placeholder percentage.
 3. Rendered desktop 1440/1280, tablet 768, mobile 390/320, light/dark/keyboard and copy regression.
-**Gate:** one-click explanation from each weighted contribution, one dominant next action, no extra dashboard.
+**Gate:** one-click explanation from each weighted contribution, one dominant next action, action-to-score update without form recreation, role-specific Archer-benchmarked tasks, no extra dashboard.
 
 ### T5 — shared metric, Portfolio, Insights, Reports
 1. Integrate only with the canonical percentage/ratio extension on the #344/#346 path; exact definition/source revisions and quality.
 2. Server-side Program-list/Portfolio metric read; compatible numerator/denominator Group rollups where authorized, never arithmetic average of percentages.
 3. Existing Insights and governed reports read the *same* snapshot. Definition changes break trend comparison unless valid re-baselining is approved.
-**Gate:** Program/Portfolio/Insights/Reports parity for same scope/as-of/revisions; export provenance and download authority verified.
+**Gate:** Program/Portfolio/Insights/Reports parity for same scope/as-of/revisions; CRO movement and framework/group drill validated; export provenance and download authority verified.
 
 ### T6 — operational proof and release
 - Normal and edge-case PostgreSQL tests, partial/unavailable/cross-entity, worker replay/lease/race/recovery; benchmark baseline and p95 query/scoring time at expected production cardinality without unbounded scans; indexed keyset drill and bounded fanout.
 - Live/hosted integration with a representative Program, at least two linked vendors (one missing, one assessed), a scored response causing an open Matter, a critical control gap, an expired evidence source, a repaired finding and policy revision. Manually verify weighted math and source links.
 - Opt-in rollout: no calculation policy = no percentage; preserve current Program state everywhere. Rollback must preserve facts, revisions and event history. No automatic historic re-scoring; backfill only from verified reconstructable history.
 
-## 7. Change budget and non-regression rules
+
+## 7. Archer outcome/UX benchmark — mandatory release gate
+
+This subsection is a **competitive outcome target**, not a claim that ClearSight currently equals Archer. Reference Archer's *2026 Compliance Management* ([solution and workflows](https://help.archerirm.cloud/archersolutions/en-us/Content/ArcherSolutions/compliance_management.htm), [January 2026 changes](https://help.archerirm.cloud/archersolutions/en-us/Content/ArcherSolutions/compliance_management_release_notes.htm)), [third-party workflows](https://help.archerirm.cloud/archersolutions/en-us/Content/ArcherSolutions/third_party_risk_management.htm), and [calculated fields](https://help.archerirm.cloud/platform_2026_04/en-us/content/platform/fields/fld_calc_basics.htm). Compare the exact supported flows, not marketing claims or legacy dashboard screenshots. Archer already includes obligations/sub-obligations, control self-assessments/tests, graded effectiveness, compliance engagements with bulk test/evidence request generation, vendor inherent/residual risk, editable calculated fields, and role-oriented dashboards. It is **not enough** to match a headline calculated percentage.
+
+### Required scope/outcome parity
+
+| Archer 2026 user outcome | Minimum ClearSight equivalent, reusing existing modules | Gate |
+|---|---|---|
+| Compliance by regulation, control set, obligation/sub-obligation | Program score by approved obligation/framework/group with exact denominator; preserve source anchors, applicability and atomic requirement coverage. Reuse Program requirements, existing control catalog and exact mapping. Do not create new 'sub-obligation' hierarchy until a real multi-part obligation fixture proves the present requirement granularity inadequate. | A real multi-clause standard shows each assessable obligation, owner, grade, exception and exact linked control; framework totals do not count one shared test twice. |
+| Graded control effectiveness vs binary compliance | Distinguish **requirement coverage** (mapped/current supported or not), **control test effectiveness** (verified 0–100 or typed approved grade where actually assessed), **response score** and **Program composite**. Existing `CurrentRequirementCoverage.Complete` boolean is insufficient as a graded-effectiveness source. Reuse bank-reviewed form assessments and monitoring/test results; add a minimal typed approved-grade bridge only if no existing validated source supplies it. Never invent an effectiveness rating from a 'control implemented' flag. | A partial/ineffective/current-effective control produces distinct supported scores, coverage and drill; untested is unknown, not 'effective'. |
+| One control/test supports several obligations/frameworks | Reuse `internal/controlcatalog` definition→implementation links and Program requirement-control mappings. Use exact result/evidence revision once, then attribute its result to each *declared* eligible obligation for the relevant framework. No new control/evidence registry or cloned tests. | Same control supports two standards with one actual assessment; two explicitly scoped compliance perspectives, one evidence origin, no duplicate workload. |
+| Launch a set of tests and evidence requests | From an existing Program's requirement/monitoring section, **select existing approved forms/checks**, schedule/dispatch through current monitoring, distribution, evidence request and authority systems; missing assessments are already known from governed denominator. No new engagement engine. | Owner can select a reusable collection plan or existing forms, send/assign and see due/review states without recreating a form or navigating a separate workflow shell. |
+| Third-party due diligence feeds an actionable risk/compliance view | Reuse vendor relationship, expected due diligence assessment, bank-reviewed score, current approved conclusion, evidence age and already linked Matter. Keep inherent/residual *vendor risk* separate from compliance index: consume it as a typed contributor only by explicit approved mapping. | One missing and one adverse third-party assessment affect coverage/score correctly, link to exact vendor work; same poor answer's Matter is not an extra penalty. |
+| Management oversight, change and improvement | Compact Program header, compliance/coverage, critical issues, movement against a comparable period; drill by standard/department/vendor, grouped contribution and owner; existing Portfolio/Insights and governed reports share snapshot. | A CRO can identify the worst affected Programs/groups and the largest current score impacts without opening every Program or relying on browser page totals. |
+| Flexible calculation configuration | Category weights, obligation/control/test grade mappings, severity/expiry/missing rules, critical gates, safe predefined bounded functions and calibrated score bands. No general formula DSL or 150-function replica. Surface unsupported custom expression needs as a documented product gap, not silently claim Archer-wide calculated-field parity. | Owner can configure and preview common weighted scoring, correct wrong weights, obtain approval and audit same results; custom cross-application formulas beyond vetted vocabulary remain out of scope. |
+
+### Important product distinction: do not collapse three percentages
+
+Expose precise, consistently named metrics rather than one misleading number:
+
+1. **Program compliance score** — the approved weighted management index across eligible contributions, final only at required coverage.
+2. **Assessment coverage** — share of expected weighted obligations with current adequate assessment; missing and unverified items reduce coverage.
+3. **Requirements met** — the separately calculated fraction/weighted mass of currently proved applicable requirements, only where valid evidence and mapping support it; not the same as a control-effectiveness grade.
+
+A displayed **control effectiveness** value is an additional separately sourced measure, not automatically derived from requirements met. Do not force an overall compliance percentage onto a Program with no authoritative eligible population. Apply approved critical overrides but retain raw score, status, reason and source.
+
+### UX contract: outcome before navigation
+
+**Program first viewport** (reuses existing `ProgramCurrentPosition`, `ProgramDetailSections` and established metric/status UI; avoid repeated hero widgets): Program name/scope/period; existing status; when configured, prominent **Compliance score**, **Coverage**, **Critical gaps** (and comparable change only if valid), timestamp; one dominant role-appropriate action. No additional top-level dashboard or persistent tab just for scoring. No pie-chart wall. The third metric may be an inline count rather than a headline card if it makes the header taller.
+
+**One-level breakdown** (reuse existing `FocusedSheet` / `DataTable`, existing responsive patterns): rank categories by **weighted points lost**, then show individual obligation/vendor/control/issue; each row displays contribution weight, earned, unknown/overdue state, owner, last assessed and direct authorized action. Explanations must reveal exactly why score changed; not merely a score heatmap. No separate custom panel family. The exact drill must filter the same retained population and preserve period/scope/return route.
+
+**Configuration**: owner selects **Use recommended rules** or **Adjust rules**. Presets are deterministic versioned policy defaults (choose a compact library of approved named policy presets, or existing governance definitions if suitable); using a preset creates a Program-scoped approved/pending revision with its origin, not a mutable cross-Program pointer. Weight editor uses existing form controls, 100% validation and default priorities; preview shows before/after score, coverage, affected items, critical overrides and 'cannot compare' when sources/denominators differ. Submit for approval is distinct from activation. Template changes cannot silently change active Program policies. Do not add a separate policy-template system or bulk policy editor before a proven reuse need.
+
+**Role tasks**, using existing Work, Program and vendor collection panels:
+- **CRO/CCO**: Portfolio/Insights → spot Program or organization falling vs prior valid period → inspect top point losses → open the accountable issue/control. No more than one analytics view plus one drill to work.
+- **Program owner**: Program → view score/coverage/critical concern → select missing contributor → use **Link existing form**, **Request evidence**, **Run check** or **Review issue** → track review/verification → same calculation refreshes. Never create a new form by default, and never imply an evidence submission closes the issue.
+- **Assessor**: answer/review the existing request, confirm effectiveness/evidence, see how the approved result contributes; keep unverified submissions visibly pending.
+- **Vendor/third party**: secure existing invitation/request, submit required information, see only assigned request status; **no visibility** into the institution's weighted policy, internal exceptions or other vendors.
+- **Administrator**: choose a policy preset, adjust weights and expiry rules, preview changes against retained current scope, submit for independent approval, review activation/history.
+
+**Change explanation**: movement is not a decorative sparkline. Show period + definition compatibility, point change, top drivers ('2 evidence items expired: −4.0 points'), and clearly separate input population change, policy revision, new assessed result, confirmed failure and source outage. Prefer an existing event history/metric trend read. If not reconstructable, show 'Previous period unavailable' rather than guessing.
+
+### User-validated acceptance (not code-only checkboxes)
+
+An **Archer-comparable experience cannot be claimed** on rendered fixtures alone. Run the same scripted tasks in ClearSight against a representative (preferably licensed) Archer environment, or use Archer's documented flow when direct access is not available. Record steps/clicks, elapsed time, completion/errors, auditability and where the comparator could not be directly tested. Never fabricate a superiority benchmark.
+
+Minimum release targets (product goals, not current measured performance):
+- New Program owner activates an existing recommended scoring scheme after authorized approval **without writing formulas or configuring a new workflow**; expected required setup < 3 minutes of hands-on effort before reviewer wait time.
+- Program owner locates the biggest approved score deficit and opens the correct existing fix/evidence action in **≤3 meaningful interactions** from the Program Overview (excluding opening authentication).
+- At least **90% task completion without assistance** by representative CRO/CCO, Program owner, assessor and third-party personas over the scripted journeys; collect task completion times and participant feedback, not just happy-path button clicks.
+- No second entry of a known required form, control, evidence or vendor obligation to make score change. A bank reviewer can trace any numeric contribution to the accepted source and policy revision in one drill and audit detail.
+- Consistent total/coverage/drill and on-screen/CSV/XLSX report for equal scope/revision/period, including restricted record access and revocation. Numeric material movement after event-to-projection refresh measured and reported with observed latency; no fabricated real-time promise.
+- Empty, stale, partial, unknown, critical, fully compliant, conflicting, permissions-restricted and response-amended states verified at desktop and mobile; novice users correctly distinguish **compliance score**, **assessment coverage** and **approved compliance conclusion** without a lengthy help article.
+- No increase in first-viewport density to more than one compact operating summary plus the existing navigation/action; no added primary navigation destination, separate scorecard dashboard or redundant form/work queues.
+
+### Release sequencing change
+
+Treat the competitor parity cases as inputs to **T0 source/UX acceptance fixtures**; treat the graded effectiveness and cross-framework test-once scenario as **T2 truth gates**; the no-form-recreation, action-to-score, role-specific and movement explanations as **T4 gates**; the CRO comparable rollups as **T5 gates**; and the timed side-by-side/user validation as **T6 gates**. In a first release, do not promise broader Archer platform calculated-field parity, a new full compliance-engagement product or undocumented vendor residual-risk calculations. Those are explicit exclusions, not achieved features.
+
+## 8. Change budget and non-regression rules
 
 Target changes concentrate in `internal/continuity` (typed policy/evaluation/projected snapshot), small scoped queries in `internal/evidence` and linkage repository, `internal/metricview` (when common percent support exists), and current Program surfaces. Reuse existing authority, events, outbox, queue, UI building blocks and reporting. Avoid standalone UI components; prefer reusing existing panel/sheet and test fixtures.
 
