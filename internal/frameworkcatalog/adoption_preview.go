@@ -92,6 +92,14 @@ func PreviewClauseReuse(
 		}
 	}
 
+	for _, index := range []map[string][]ClauseReuseCandidate{byAnchor, byCode} {
+		for key := range index {
+			sort.Slice(index[key], func(i, j int) bool {
+				return index[key][i].RequirementID < index[key][j].RequirementID
+			})
+		}
+	}
+
 	result := make([]ClauseReuseProposal, 0, len(clauses))
 	seenClauses := make(map[string]struct{}, len(clauses))
 	for _, clause := range clauses {
@@ -124,14 +132,12 @@ func PreviewClauseReuse(
 			if len(matches) > 1 {
 				proposal.Status = ClauseReuseAmbiguous
 			}
-			proposal.Candidates = append(proposal.Candidates, matches...)
-			sort.Slice(proposal.Candidates, func(i, j int) bool {
-				return proposal.Candidates[i].RequirementID < proposal.Candidates[j].RequirementID
-			})
-			if len(proposal.Candidates) > MaxSuggestedRequirements {
-				proposal.Candidates = proposal.Candidates[:MaxSuggestedRequirements]
+			limit := len(matches)
+			if limit > MaxSuggestedRequirements {
+				limit = MaxSuggestedRequirements
 				proposal.CandidatesTruncated = true
 			}
+			proposal.Candidates = append(proposal.Candidates, matches[:limit]...)
 		}
 		result = append(result, proposal)
 	}
