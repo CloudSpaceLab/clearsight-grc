@@ -88,7 +88,15 @@ export type EvidenceReviewSubmission = { id: string; request_id: string; submitt
 
 export type ProgramState = "CURRENT" | "AT_RISK" | "GAP_IDENTIFIED" | "EVIDENCE_INSUFFICIENT" | "IMPLEMENTATION_PENDING" | "OVERDUE" | "UNDER_REVIEW" | "NOT_APPLICABLE" | "UNKNOWN";
 export type ProgramCalculationCategory = { code: string; weight_bps: number };
-export type ProgramCalculationDefinition = { revision: string; minimum_coverage_bps: number; categories: ProgramCalculationCategory[] };
+export type ProgramExpectedVendorAssessment = {
+  key: string; relationship_id: string; form_template_id: string;
+  form_template_version: number; review_kind: "ONBOARDING" | "PERIODIC" | "TRIGGERED"; weight: number;
+};
+export type ProgramCalculationDefinition = {
+  revision: string; minimum_coverage_bps: number;
+  categories: ProgramCalculationCategory[];
+  expected_vendor_assessments?: ProgramExpectedVendorAssessment[];
+};
 export type ProgramCalculationRevision = { number: number; definition: ProgramCalculationDefinition; checksum: string; maker_id: string; proposed_at: string; approver_id?: string; approved_at?: string };
 export type ProgramCalculationPolicy = { last_revision: number; active?: ProgramCalculationRevision; pending?: ProgramCalculationRevision };
 export type Program = { id: string; tenant_id: string; legal_entity_id?: string; organization_scope_id?: string; code: string; name: string; type: string; status: string; owning_function: string; owner_principal_id?: string; authority_principal_id?: string; jurisdiction?: string; scope: Record<string, unknown>; calculation_policy?: ProgramCalculationPolicy; effective_from: string; effective_until?: string; created_at: string; updated_at: string; version: number; };
