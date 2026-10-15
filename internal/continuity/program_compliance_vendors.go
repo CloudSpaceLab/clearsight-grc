@@ -14,12 +14,12 @@ import (
 // A Program's expected assessment population must be approved independently
 // of captured requests. Absence of an assessment remains part of the denominator.
 type ProgramVendorAssessmentExpectation struct {
-	Key            string
-	RelationshipID string
+	Key                 string
+	RelationshipID      string
 	FormTemplateID      string
 	FormTemplateVersion int64
-	ReviewKind     thirdparty.AssessmentReviewKind
-	Weight         int64
+	ReviewKind          thirdparty.AssessmentReviewKind
+	Weight              int64
 }
 
 // ProgramVendorAssessmentInputs is a pure, scoped adapter over existing
