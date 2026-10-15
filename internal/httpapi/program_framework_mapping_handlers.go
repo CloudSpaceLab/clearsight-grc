@@ -74,7 +74,7 @@ func (a *API) decideProgramFrameworkMapping(approve bool) http.HandlerFunc {
 		}
 		input := continuity.DecideFrameworkMappingInput{
 			TenantID: actor.TenantID, ProgramID: r.PathValue("id"),
-			MappingID: r.PathValue("mapping_id"), ExpectedVersion: body.ExpectedVersion,
+			MappingID: r.PathValue("mapping_id"), AdoptionID: r.PathValue("adoption_id"), ExpectedVersion: body.ExpectedVersion,
 			ActorID: actor.PrincipalID, Rationale: body.Rationale,
 		}
 		var mapping continuity.FrameworkClauseMapping
