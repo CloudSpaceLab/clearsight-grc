@@ -29,7 +29,7 @@ func TestProgramVendorExpectationPolicyPopulationAndRevisionCopies(t *testing.T)
 		t.Fatal("editing proposed expected assessments mutated active policy source")
 	}
 	for _, tc := range []struct {
-		name string
+		name   string
 		change func(*ProgramComplianceCalculationPolicy)
 	}{
 		{"duplicate key", func(p *ProgramComplianceCalculationPolicy) { p.ExpectedVendorAssessments[1].Key = p.ExpectedVendorAssessments[0].Key }},
