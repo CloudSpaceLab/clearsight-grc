@@ -64,11 +64,11 @@ type ProgramComplianceCalculation struct {
 	ScoreBps       *int64                            `json:"score_bps,omitempty"`
 	// AssessedScoreBps is diagnostic only. Never present it as a compliance
 	// percentage while coverage is below the approved minimum.
-	AssessedScoreBps *int64                            `json:"assessed_score_bps,omitempty"`
-	CoverageBps      int64                             `json:"coverage_bps"`
-	EligibleCount    int                               `json:"eligible_count"`
-	AssessedCount    int                               `json:"assessed_count"`
-	UnknownCount     int                               `json:"unknown_count"`
+	AssessedScoreBps      *int64                            `json:"assessed_score_bps,omitempty"`
+	CoverageBps           int64                             `json:"coverage_bps"`
+	EligibleCount         int                               `json:"eligible_count"`
+	AssessedCount         int                               `json:"assessed_count"`
+	UnknownCount          int                               `json:"unknown_count"`
 	ExcludedCount         int                               `json:"excluded_count"`
 	UnpopulatedCategories []string                          `json:"unpopulated_categories,omitempty"`
 	Categories            []ProgramComplianceCategoryResult `json:"categories"`
