@@ -4,7 +4,7 @@ import "testing"
 
 func TestProgramCompliancePolicyValidationMatchesRuntime(t *testing.T) {
 	valid := ProgramComplianceCalculationPolicy{
-		Revision: "committee-approved-v1",
+		Revision:           "committee-approved-v1",
 		MinimumCoverageBps: 8500,
 		Categories: []ProgramComplianceCategoryWeight{
 			{Code: "REQUIREMENTS", WeightBps: 6000},
@@ -15,7 +15,7 @@ func TestProgramCompliancePolicyValidationMatchesRuntime(t *testing.T) {
 		t.Fatalf("valid policy rejected before activation: %v", err)
 	}
 	for _, tc := range []struct {
-		name string
+		name   string
 		change func(*ProgramComplianceCalculationPolicy)
 	}{
 		{"missing revision", func(p *ProgramComplianceCalculationPolicy) { p.Revision = "" }},
