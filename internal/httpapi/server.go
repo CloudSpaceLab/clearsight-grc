@@ -22,6 +22,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/federation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/frameworkcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/invalidation"
