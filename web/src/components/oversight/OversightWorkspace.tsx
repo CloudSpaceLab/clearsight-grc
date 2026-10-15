@@ -3,7 +3,7 @@ import { loadDomainMetrics, loadHomeMetricMembers, loadHomeMetrics, loadLossPeri
 import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
 import type { HomeTab } from "../../appRouting";
-import type { ReportingPeriod, ReportingPeriodQuery } from "../../reportingPeriod";
+import { reportingPeriodLabel, type ReportingPeriod, type ReportingPeriodQuery } from "../../reportingPeriod";
 import { Button, DataTable, EmptyState, MetricCard, Notice, Tabs } from "../ui";
 import type { AttentionItem } from "../../types";
 import { OversightPeriodPicker } from "./OversightPeriodPicker";
@@ -307,8 +307,8 @@ export function OversightWorkspace({
     <header className="oversight-header">
       <div>
         <span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span>
-        <h1>Home</h1>
-        <p>{homeTabDescription(selectedHomeTab, organizationScopeName)}</p>
+        <h1>Enterprise Control Tower</h1>
+        <p>{selectedHomeTab === "oversight" ? periodSource ? controlTowerSummary(periodSource.reporting_period) : "Risk, compliance and action" : homeTabDescription(selectedHomeTab, organizationScopeName)}</p>
       </div>
       {selectedHomeTab !== "my-work" && periodSource && <div className="oversight-header__actions">
         {selectedHomeTab === "oversight" && onOpenInsights && <Button
@@ -503,6 +503,13 @@ function EmptyMeasure() { return <EmptyState population="Open issues in this leg
 function historyQualityLabel(snapshot: OversightSnapshot) {
   const quality = snapshot.history_quality;
   return `${quality.complete_lifecycle} of ${quality.completed_population} completed issues have complete lifecycle events · ${quality.excluded_from_durations} excluded because an opened or closed event is missing · employee handling time follows each recorded owner assignment; reassignment, return, blocked and reopen counts remain visible separately`;
+}
+
+function controlTowerSummary(period: ReportingPeriod) {
+  const label = reportingPeriodLabel(period);
+  return label.startsWith("Last ")
+    ? `Risk, compliance and action in the ${label.toLowerCase()}`
+    : `Risk, compliance and action · ${label}`;
 }
 
 function homeTabDescription(tab: HomeTab, organizationScopeName?: string) {
