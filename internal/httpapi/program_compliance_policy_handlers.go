@@ -17,10 +17,10 @@ func (a *API) proposeProgramCompliancePolicy(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	var request struct {
-		TenantID        string                             `json:"tenant_id,omitempty"`
-		ExpectedVersion int64                              `json:"expected_version"`
+		TenantID        string                                        `json:"tenant_id,omitempty"`
+		ExpectedVersion int64                                         `json:"expected_version"`
 		Definition      continuity.ProgramComplianceCalculationPolicy `json:"definition"`
-		Rationale       string                             `json:"rationale"`
+		Rationale       string                                        `json:"rationale"`
 	}
 	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Check the calculation rules and try again.")
