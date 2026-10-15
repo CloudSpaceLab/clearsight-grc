@@ -2,7 +2,7 @@ import { loadContext } from "./api";
 import { continuityCommand } from "./continuityCommands";
 import { requestJSON } from "./http";
 import { normalizeProgramAggregate } from "./programAggregate";
-import type { AuthorityPrincipal, ProgramAggregate, RecordResponsibleParty } from "./types";
+import type { AuthorityPrincipal, ProgramAggregate, ProgramCalculationDefinition, RecordResponsibleParty } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -124,6 +124,18 @@ async function programCommand(path: string, body: Record<string, unknown>): Prom
 
 export async function loadProgramOperations(programID: string): Promise<ProgramOperations> {
   return requestJSON<ProgramOperations>(apiBase, await tenantPath(`/api/v1/programs/${encodeURIComponent(programID)}/operations`));
+}
+
+export function proposeProgramCalculationPolicy(programID: string, expectedVersion: number, definition: ProgramCalculationDefinition, rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/calculation-policy/propose`, {
+    expected_version: expectedVersion, definition, rationale,
+  });
+}
+
+export function decideProgramCalculationPolicy(programID: string, expectedVersion: number, action: "approve" | "reject", rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/calculation-policy/${action}`, {
+    expected_version: expectedVersion, rationale,
+  });
 }
 
 export function updateProgramDetails(programID: string, expectedVersion: number, input: ProgramDetailsInput): Promise<ProgramAggregate> {
