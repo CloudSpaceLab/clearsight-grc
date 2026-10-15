@@ -136,9 +136,9 @@ func TestFrameworkAdoptionRejectedAndInvalidInputsLeaveNoEvents(t *testing.T) {
 	count, _ := repo.ProgramEvents(ctx, "bank", program.Program.ID, nil)
 	if _, err := service.RejectFrameworkAdoption(ctx, DecideFrameworkAdoptionInput{
 		TenantID: "bank", ProgramID: program.Program.ID,
-		AdoptionID: proposed.FrameworkAdoptions[0].ID,
+		AdoptionID:      proposed.FrameworkAdoptions[0].ID,
 		ExpectedVersion: proposed.Program.Version - 1,
-		ActorID: "independent-checker", Rationale: "Old version.",
+		ActorID:         "independent-checker", Rationale: "Old version.",
 	}); !errors.Is(err, ErrVersionConflict) {
 		t.Fatalf("stale decision accepted: %v", err)
 	}
@@ -149,9 +149,9 @@ func TestFrameworkAdoptionRejectedAndInvalidInputsLeaveNoEvents(t *testing.T) {
 	service.now = func() time.Time { return now.Add(time.Second) }
 	rejected, err := service.RejectFrameworkAdoption(ctx, DecideFrameworkAdoptionInput{
 		TenantID: "bank", ProgramID: program.Program.ID,
-		AdoptionID: proposed.FrameworkAdoptions[0].ID,
+		AdoptionID:      proposed.FrameworkAdoptions[0].ID,
 		ExpectedVersion: proposed.Program.Version,
-		ActorID: "independent-checker", Rationale: "Edition not applicable.",
+		ActorID:         "independent-checker", Rationale: "Edition not applicable.",
 	})
 	if err != nil || rejected.FrameworkAdoptions[0].Status != FrameworkAdoptionRejected ||
 		rejected.FrameworkAdoptions[0].EffectiveFrom != nil {
