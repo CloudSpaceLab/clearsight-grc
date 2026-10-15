@@ -62,6 +62,19 @@ func TestProgramRequirementScoreContributionsMatchRetainedSnapshot(t *testing.T)
 		t.Fatalf("retained score did not reconcile to its source: %+v, %v", inputs, err)
 	}
 
+	memory := aggregate
+	memory.Program.Version++
+	memorySnapshot := snapshot
+	memorySnapshot.ID = "retained-snapshot"
+	memory.CurrentState = &memorySnapshot
+	if _, err := ProgramRequirementScoreContributions(memory, memorySnapshot); err != nil {
+		t.Fatalf("valid memory fallback projection-only version was rejected: %v", err)
+	}
+	memory.CurrentState = nil
+	if _, err := ProgramRequirementScoreContributions(memory, memorySnapshot); err == nil {
+		t.Fatal("unverified one-version advance was incorrectly trusted")
+	}
+
 	changed := snapshot
 	score := *snapshot.Calculation
 	inflated := int64(10000)
