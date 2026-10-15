@@ -106,6 +106,7 @@ type serviceSet struct {
 	RCSA                           *rcsa.Service
 	OperationalLoss                *oploss.Service
 	ControlCatalog                 *controlcatalog.Service
+	FrameworkCatalog              interface { ListEditions(context.Context, string, string, int) ([]frameworkcatalog.Edition, error) }
 	MatterFormRemediationRepo      continuity.MatterFormRemediationRepository
 	Today                          *today.Service
 	Oversight                      *oversight.Service
