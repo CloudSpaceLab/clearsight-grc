@@ -10,13 +10,13 @@ func TestProgramCalculationSnapshotRoundTripAndEquivalence(t *testing.T) {
 	snapshot := ProgramStateSnapshot{
 		ProgramID: "program", ProgramVersion: 7, ProjectionVersion: 3,
 		Calculation: &ProgramComplianceCalculation{
-			PolicyRevision: "program-v2",
-			State: ProgramComplianceFinal,
-			ScoreBps: &score,
+			PolicyRevision:   "program-v2",
+			State:            ProgramComplianceFinal,
+			ScoreBps:         &score,
 			AssessedScoreBps: &score,
-			CoverageBps: 10000,
-			EligibleCount: 2,
-			AssessedCount: 2,
+			CoverageBps:      10000,
+			EligibleCount:    2,
+			AssessedCount:    2,
 			Categories: []ProgramComplianceCategoryResult{{
 				Code: "REQUIREMENTS", WeightBps: 10000, EligibleCount: 2,
 				AssessedCount: 2, CoverageBps: 10000, ScoreBps: &score,
