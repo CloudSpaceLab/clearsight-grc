@@ -80,6 +80,19 @@ Important first-run and empty states require a designed experience. Premium illu
 
 Significant screen, workflow or component changes require a compact decision brief, required state fixtures and rendered evidence. Redesigns preserve a before-state baseline. Responsive work defines replacement behavior rather than merely shrinking desktop composition. Inspect the render, fix the highest-impact failure and re-check it before claiming visual completion. New tokens, variants, density modes, motion patterns or illustration styles update `DESIGN.md` and the relevant state fixtures in the same change.
 
+## Control Tower and seed quality gate (#462)
+
+- Compose existing Home/Oversight, Attention, My work, Programs, Forms, catalog, Metrics and Reports; do not create another dashboard, queue, compliance score, questionnaire engine or isolated filter state.
+- A screenshot is visual guidance, never a source of counts, framework availability, compliance percentage, authority or recorded user actions. Show only verified values with matching tenant/entity/group, as-of/period, denominator, revision, freshness and coverage. Missing data is unknown, not zero or compliant.
+- The enterprise scope selector and date-range selector MUST issue supported authorized queries, preserve filter state on drill, and state when a current-posture measure is unaffected by historical range. No decorative date or health controls.
+- Visible copy names the object, actual condition and next action. Use "All groups", not "All custom groups"; avoid slogans, explanatory repetition, AI narration and marketing promises. Optional first-run actions disappear or collapse when completed.
+- Use existing shared component contracts and design tokens. On desktop, lead with at most four stable posture measures and a bounded comparison; responsive layouts prioritize the same decisions. No new feature-owned button/card/status implementations.
+- Copilot may offer at most three context-specific authorized suggestions with real actions and source/freshness disclosure. Never synthesize a regulatory conclusion or repeat headline counts as an AI insight. An unavailable Copilot must not obstruct ordinary work.
+- Animation is feedback for actual selection, loading, change or drill only; no perpetual motion, animated KPI counters or misleading chart transitions. Respect reduced motion, keyboard, focus and 44px touch targets. Keep decorative illustration away from readable content.
+- Seed types stay separate: approved dated and rights-checked **reference catalog**; bank-private source imports; explicitly isolated non-production journeys; test-only fixtures. Never install demos into production or backfill empty spreadsheet cells as answers. Do not publish unreviewed standards as full frameworks.
+- Catalog/form packs require stable identity, provenance, authoritative source, edition, jurisdiction, license/completeness, digest, idempotent install and rollback; reuse existing publisher/form/Program contracts. Never claim a catalog record proves tenant applicability, adoption or compliance.
+- Each tranche MUST preserve baseline and after renders (1440/768/390, light/dark as affected), test accessible interactions, permissions, source-to-record counts, reruns, freshness, partial/unknown states and the existing copy-quality gate before merge. Keep PRs small and disjoint from ongoing #433/#437 work.
+
 ## Invitations and protected data
 
 Invitation access is opaque, request-scoped, purpose-bound, short-lived, audience-bound and revocable. Tokens never appear in logs, analytics or previews. Protected reporting uses a separate identity-isolated mechanism.
