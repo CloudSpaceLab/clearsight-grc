@@ -139,10 +139,10 @@ func programStateForVisibleMatters(state ProgramStateSnapshot, visibleOpenMatter
 
 func visibleProgramStateVersion(state ProgramStateSnapshot) int64 {
 	payload, _ := json.Marshal(struct {
-		ProgramVersion  int64                `json:"program_version"`
-		Overall         ProgramState         `json:"overall"`
-		Dimensions      ComplianceDimensions `json:"dimensions"`
-		Reasons         []StateReason        `json:"reasons"`
+		ProgramVersion  int64                         `json:"program_version"`
+		Overall         ProgramState                  `json:"overall"`
+		Dimensions      ComplianceDimensions         `json:"dimensions"`
+		Reasons         []StateReason                `json:"reasons"`
 		OpenMatterCount int                           `json:"open_matter_count"`
 		Calculation     *ProgramComplianceCalculation `json:"calculation,omitempty"`
 	}{
