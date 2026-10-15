@@ -192,8 +192,9 @@ type Program struct {
 	OwningFunction       string          `json:"owning_function"`
 	OwnerPrincipalID     string          `json:"owner_principal_id,omitempty"`
 	AuthorityPrincipalID string          `json:"authority_principal_id,omitempty"`
-	Jurisdiction         string          `json:"jurisdiction,omitempty"`
-	Scope                json.RawMessage `json:"scope"`
+	Jurisdiction         string                           `json:"jurisdiction,omitempty"`
+	Scope                json.RawMessage                  `json:"scope"`
+	CalculationPolicy    *ProgramCompliancePolicyPosition `json:"calculation_policy,omitempty"`
 	EffectiveFrom        time.Time       `json:"effective_from"`
 	EffectiveUntil       *time.Time      `json:"effective_until,omitempty"`
 	CreatedAt            time.Time       `json:"created_at"`
