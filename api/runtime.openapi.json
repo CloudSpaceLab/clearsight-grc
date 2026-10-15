@@ -3288,6 +3288,12 @@
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
+    "/api/v1/framework-catalog/editions": {
+      "get": {
+        "operationId": "listFrameworkEditions",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/programs/setup-candidates": {
       "get": {
         "operationId": "listProgramSetupCandidates",
