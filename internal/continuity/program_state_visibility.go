@@ -116,6 +116,17 @@ func programStateForVisibleMatters(state ProgramStateSnapshot, visibleOpenMatter
 	state.Reasons = reasons
 	state.Overall = chooseOverallState(state.Dimensions)
 
+	// The only currently authorized score is requirements-only. A future
+	// composite may depend on Matters, vendors or evidence the reader cannot
+	// see; never pass that privileged numerator through unchanged.
+	if state.Calculation != nil {
+		categories := state.Calculation.Categories
+		if len(categories) != 1 || categories[0].Code != "REQUIREMENTS" ||
+			categories[0].WeightBps != programComplianceBasisPoints {
+			state.Calculation = nil
+		}
+	}
+
 	// Snapshot identity and trigger metadata are internal projection provenance
 	// and can change because of a Matter this actor cannot see. The actor-facing
 	// version is instead a stable fingerprint of visible Program state.
@@ -132,13 +143,15 @@ func visibleProgramStateVersion(state ProgramStateSnapshot) int64 {
 		Overall         ProgramState         `json:"overall"`
 		Dimensions      ComplianceDimensions `json:"dimensions"`
 		Reasons         []StateReason        `json:"reasons"`
-		OpenMatterCount int                  `json:"open_matter_count"`
+		OpenMatterCount int                           `json:"open_matter_count"`
+		Calculation     *ProgramComplianceCalculation `json:"calculation,omitempty"`
 	}{
 		ProgramVersion:  state.ProgramVersion,
 		Overall:         state.Overall,
 		Dimensions:      state.Dimensions,
 		Reasons:         state.Reasons,
 		OpenMatterCount: state.OpenMatterCount,
+		Calculation:     state.Calculation,
 	})
 	sum := sha256.Sum256(payload)
 	// Keep this within JavaScript Number.MAX_SAFE_INTEGER so the browser can
