@@ -33,7 +33,7 @@ describe("Program calculation rules", () => {
     const requirements = screen.getByLabelText("Requirements and controls (%)");
     const vendors = screen.getByLabelText("Vendor assessments (%)");
     fireEvent.change(requirements, { target: { value: "60" } });
-    expect(screen.getByRole("button", { name: "Submit for approval" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Submit for approval" }).hasAttribute("disabled")).toBe(true);
     fireEvent.change(vendors, { target: { value: "40" } });
     fireEvent.change(screen.getByLabelText("Reason for change"), { target: { value: "Annual review" } });
     fireEvent.click(screen.getByRole("button", { name: "Submit for approval" }));
@@ -49,9 +49,9 @@ describe("Program calculation rules", () => {
       definition: { revision: "program-v1", minimum_coverage_bps: 10000, categories: [{ code: "REQUIREMENTS", weight_bps: 10000 }] } };
     render(<ProgramDetailsPanel aggregate={{ ...aggregate, program: { ...program, calculation_policy: { last_revision: 1, pending } } }}
       operations={[{ ...approval, can_act: false }, { ...rejection, can_act: false }]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
-    expect(screen.getByText("Awaiting approval")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Approve rules" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
+    expect(screen.getByText("Awaiting approval")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Approve rules" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Reject" })).toBeNull();
   });
 
   it("accepts an independent decision and preserves errors", async () => {
