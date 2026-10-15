@@ -76,14 +76,13 @@ func (s *Service) ProposeProgramCompliancePolicy(ctx context.Context, input Prop
 	if err := ValidateProgramComplianceCalculationPolicy(definition); err != nil {
 		return ProgramAggregate{}, err
 	}
-	encoded, err := json.Marshal(definition)
+	checksum, err := programCompliancePolicyChecksum(definition)
 	if err != nil {
 		return ProgramAggregate{}, err
 	}
-	checksum := sha256.Sum256(encoded)
 	position.LastRevision = number
 	position.Pending = &ProgramCompliancePolicyRevision{
-		Number: number, Definition: definition, Checksum: fmt.Sprintf("%x", checksum),
+		Number: number, Definition: definition, Checksum: checksum,
 		MakerID: maker, ProposedAt: s.now().UTC(),
 	}
 	return s.applyProgramValueAndResult(ctx, aggregate, input.TenantID, input.ProgramID,
@@ -117,12 +116,11 @@ func (s *Service) decideProgramCompliancePolicy(ctx context.Context, input Decid
 		if err := ValidateProgramComplianceCalculationPolicy(position.Pending.Definition); err != nil {
 			return ProgramAggregate{}, err
 		}
-		encoded, err := json.Marshal(position.Pending.Definition)
+		checksum, err := programCompliancePolicyChecksum(position.Pending.Definition)
 		if err != nil {
 			return ProgramAggregate{}, err
 		}
-		checksum := sha256.Sum256(encoded)
-		if position.Pending.Checksum != fmt.Sprintf("%x", checksum) {
+		if position.Pending.Checksum != checksum {
 			return ProgramAggregate{}, ErrProgramComplianceCalculationInvalid
 		}
 		now := s.now().UTC()
@@ -173,4 +171,15 @@ func programComplianceActorMatches(ctx context.Context, tenant, principalID stri
 	}
 	actor, ok := identity.FromContext(ctx)
 	return ok && actor.TenantID == strings.TrimSpace(tenant) && actor.PrincipalID == principalID
+}
+
+// Retain the same canonical policy fingerprint for approval and projection.
+// Calculation never trusts a policy revision from an unchecked source.
+func programCompliancePolicyChecksum(policy ProgramComplianceCalculationPolicy) (string, error) {
+	encoded, err := json.Marshal(policy)
+	if err != nil {
+		return "", err
+	}
+	checksum := sha256.Sum256(encoded)
+	return fmt.Sprintf("%x", checksum), nil
 }
