@@ -18,6 +18,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/frameworkcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/invalidation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
