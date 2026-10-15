@@ -3,6 +3,8 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"regexp"
+	"strconv"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
@@ -106,5 +108,82 @@ func (a *API) writeFrameworkMappingResult(
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"mapping": mapping,
 		"program": visible,
+	})
+}
+
+var frameworkMappingCursor = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
+func (a *API) listProgramFrameworkMappings(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.continuityService(w)
+	if !ok {
+		return
+	}
+	actor, err := identity.Require(r.Context())
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "sign_in_required", "Sign in to review standard mappings.")
+		return
+	}
+	if actor.LegalEntityID == "" || actor.LegalEntityID == "*" {
+		httpx.WriteError(w, http.StatusForbidden, "legal_entity_required", "Select a legal entity.")
+		return
+	}
+	limit := 100
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		limit, err = strconv.Atoi(raw)
+		if err != nil || limit < 1 || limit > 100 {
+			httpx.WriteError(w, http.StatusBadRequest, "invalid_limit", "Choose a page size from 1 to 100.")
+			return
+		}
+	}
+	afterID := r.URL.Query().Get("after_id")
+	if afterID != "" && !frameworkMappingCursor.MatchString(afterID) {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_cursor", "Check the mapping cursor.")
+		return
+	}
+	program, err := service.GetProgram(r.Context(), actor.TenantID, r.PathValue("id"))
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	if program.Program.LegalEntityID != actor.LegalEntityID {
+		writeContinuityError(w, continuity.ErrNotFound)
+		return
+	}
+	visible, err := a.programForActor(r.Context(), program, nil)
+	if err != nil {
+		writeContinuityError(w, continuity.ErrNotFound)
+		return
+	}
+	adoptionID := r.PathValue("adoption_id")
+	active := false
+	for _, adoption := range visible.FrameworkAdoptions {
+		if adoption.ID == adoptionID && adoption.Status == continuity.FrameworkAdoptionActive {
+			active = true
+			break
+		}
+	}
+	if !active {
+		writeContinuityError(w, continuity.ErrNotFound)
+		return
+	}
+	items, err := service.ListFrameworkMappings(r.Context(), actor.TenantID,
+		visible.Program.ID, adoptionID, afterID, limit)
+	if errors.Is(err, continuity.ErrFrameworkEditionUnavailable) {
+		httpx.WriteError(w, http.StatusServiceUnavailable, "framework_mapping_unavailable", "Mapping history is unavailable.")
+		return
+	}
+	if err != nil {
+		writeContinuityError(w, err)
+		return
+	}
+	next := ""
+	if len(items) == limit {
+		next = items[len(items)-1].ID
+	}
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
+		"items": items,
+		"next_after_id": next,
+		"program_version": visible.Program.Version,
+		"adoption_id": adoptionID,
 	})
 }
