@@ -128,6 +128,7 @@ func ProgramVendorAssessmentInputs(
 			matched = nil
 		}
 		if matched == nil || matched.ResponseState != "SUBMITTED" ||
+			matched.SubmittedAt == nil || matched.SubmittedAt.After(asOf) ||
 			matched.ResponseCurrency != "CURRENT" ||
 			matched.Outdated == nil || *matched.Outdated {
 			input.Reason = "CURRENT_EVIDENCE_UNAVAILABLE"
@@ -154,6 +155,7 @@ func ProgramVendorAssessmentInputs(
 			score.State != evidence.ResponseScoreFinal || !score.Final ||
 			score.Mode != formcontract.ScoringCompliance || score.RawScore == nil ||
 			score.Coverage < 1 || score.Coverage > 1 ||
+			score.CalculatedAt.IsZero() || score.CalculatedAt.After(asOf) ||
 			math.IsNaN(*score.RawScore) || math.IsInf(*score.RawScore, 0) ||
 			*score.RawScore < 0 || *score.RawScore > 100 {
 			input.Reason = "BANK_SCORE_NOT_FINAL"
