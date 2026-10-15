@@ -22,6 +22,13 @@ type ProgramVendorAssessmentExpectation struct {
 	Weight              int64
 }
 
+type programVendorAssessmentKey struct {
+	relationshipID string
+	formID         string
+	formVersion    int64
+	reviewKind     thirdparty.AssessmentReviewKind
+}
+
 // ProgramVendorAssessmentInputs is a pure, scoped adapter over existing
 // third-party assessments and current vendor form reads. The caller must obtain
 // all expected obligations from the approved Program policy, with exact
@@ -37,6 +44,38 @@ func ProgramVendorAssessmentInputs(
 		periodStart.IsZero() || !periodStart.Before(periodEnd) || asOf.IsZero() ||
 		len(expected) > 10000 {
 		return nil, ErrProgramComplianceCalculationInvalid
+	}
+	// Index supplied authoritative, scope-filtered rows once; large Programs
+	// must not scan the full assessment or response population per obligation.
+	latestByKey := make(map[programVendorAssessmentKey]*thirdparty.Assessment, len(assessments))
+	for index := range assessments {
+		candidate := &assessments[index]
+		if candidate.ReviewDueAt.Before(periodStart) || !candidate.ReviewDueAt.Before(periodEnd) ||
+			candidate.StartedAt.After(asOf) || candidate.UpdatedAt.After(asOf) {
+			continue
+		}
+		key := programVendorAssessmentKey{
+			relationshipID: candidate.RelationshipID,
+			formID:         candidate.FormTemplateID,
+			formVersion:    candidate.FormTemplateVersion,
+			reviewKind:     candidate.ReviewKind,
+		}
+		selected := latestByKey[key]
+		if selected == nil || candidate.StartedAt.After(selected.StartedAt) ||
+			(candidate.StartedAt.Equal(selected.StartedAt) && candidate.ID > selected.ID) {
+			latestByKey[key] = candidate
+		}
+	}
+	currentFormsByRequest := make(map[string]*evidence.VendorFormRow, len(forms))
+	ambiguousRequests := make(map[string]bool)
+	for index := range forms {
+		row := &forms[index]
+		if row.Current {
+			if _, duplicate := currentFormsByRequest[row.RequestID]; duplicate {
+				ambiguousRequests[row.RequestID] = true
+			}
+			currentFormsByRequest[row.RequestID] = row
+		}
 	}
 	seen := make(map[string]bool, len(expected))
 	output := make([]ProgramComplianceInput, 0, len(expected))
@@ -57,22 +96,12 @@ func ProgramVendorAssessmentInputs(
 			State:    ProgramComplianceUnknown,
 			Reason:   "ASSESSMENT_NOT_RECEIVED",
 		}
-		var selected *thirdparty.Assessment
-		for index := range assessments {
-			candidate := &assessments[index]
-			if candidate.RelationshipID != item.RelationshipID ||
-				candidate.FormTemplateID != item.FormTemplateID ||
-				candidate.FormTemplateVersion != item.FormTemplateVersion ||
-				candidate.ReviewKind != item.ReviewKind ||
-				candidate.ReviewDueAt.Before(periodStart) || !candidate.ReviewDueAt.Before(periodEnd) ||
-				candidate.StartedAt.After(asOf) || candidate.UpdatedAt.After(asOf) {
-				continue
-			}
-			if selected == nil || candidate.StartedAt.After(selected.StartedAt) ||
-				(candidate.StartedAt.Equal(selected.StartedAt) && candidate.ID > selected.ID) {
-				selected = candidate
-			}
-		}
+		selected := latestByKey[programVendorAssessmentKey{
+			relationshipID: item.RelationshipID,
+			formID:         item.FormTemplateID,
+			formVersion:    item.FormTemplateVersion,
+			reviewKind:     item.ReviewKind,
+		}]
 		if selected == nil {
 			output = append(output, input)
 			continue
@@ -85,19 +114,15 @@ func ProgramVendorAssessmentInputs(
 			output = append(output, input)
 			continue
 		}
-		var matched *evidence.VendorFormRow
-		for index := range forms {
-			row := &forms[index]
-			if row.RelationshipID != item.RelationshipID ||
-				row.FormTemplateID != item.FormTemplateID ||
-				row.FormTemplateVersion != item.FormTemplateVersion ||
-				row.RequestID != selected.CurrentRequestID || !row.Current {
-				continue
-			}
-			if matched != nil {
-				return nil, ErrProgramComplianceCalculationInvalid // Ambiguous authoritative current result.
-			}
-			matched = row
+		if ambiguousRequests[selected.CurrentRequestID] {
+			return nil, ErrProgramComplianceCalculationInvalid
+		}
+		matched := currentFormsByRequest[selected.CurrentRequestID]
+		if matched != nil &&
+			(matched.RelationshipID != item.RelationshipID ||
+				matched.FormTemplateID != item.FormTemplateID ||
+				matched.FormTemplateVersion != item.FormTemplateVersion) {
+			matched = nil
 		}
 		if matched == nil || matched.ResponseState != "SUBMITTED" ||
 			matched.ResponseCurrency != "CURRENT" ||
