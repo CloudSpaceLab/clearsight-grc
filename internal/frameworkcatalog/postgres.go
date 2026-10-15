@@ -165,7 +165,7 @@ func (r *PostgresRepository) ListClauses(ctx context.Context, editionID, afterCo
 		limit = 500
 	}
 	rows, err := r.pool.Query(ctx, `
-		SELECT code,COALESCE(parent_code,''),title,source_anchor,summary,ordinal
+		SELECT id::text,code,COALESCE(parent_code,''),title,source_anchor,summary,ordinal
 		FROM framework_catalog_clauses
 		WHERE edition_id=$1::uuid AND code>$2 ORDER BY code LIMIT $3`,
 		editionID, afterCode, limit)
