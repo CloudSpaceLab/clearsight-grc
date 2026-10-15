@@ -5,7 +5,6 @@ package continuity
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
 )
 
 // ListFrameworkMappings reads only current pending/approved links and never
