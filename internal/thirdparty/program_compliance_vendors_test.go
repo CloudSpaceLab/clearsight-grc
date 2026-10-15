@@ -140,3 +140,27 @@ func TestProgramVendorAssessmentInputsFailClosedOnPendingAmbiguousOrUnreviewed(t
 		t.Fatal("ambiguous current form result silently deduplicated")
 	}
 }
+
+func TestProgramVendorPolicyInputsIncludeUnrequestedExpectations(t *testing.T) {
+	now := time.Date(2026, 10, 15, 9, 0, 0, 0, time.UTC)
+	policy := continuity.ProgramComplianceCalculationPolicy{
+		Revision: "program-v1", MinimumCoverageBps: 10000,
+		Categories: []continuity.ProgramComplianceCategoryWeight{{Code: "VENDORS", WeightBps: 10000}},
+		ExpectedVendorAssessments: []continuity.ProgramComplianceExpectedVendorAssessment{
+			{Key: "missing:security", RelationshipID: "vendor-1",
+				FormTemplateID: "security", FormTemplateVersion: 2, ReviewKind: "PERIODIC", Weight: 1},
+		},
+	}
+	inputs, err := ProgramVendorAssessmentInputsForPolicy(
+		"bank", "entity", policy, nil, nil,
+		now.Add(-24*time.Hour), now.Add(24*time.Hour), now,
+	)
+	if err != nil || len(inputs) != 1 || inputs[0].State != continuity.ProgramComplianceUnknown ||
+		inputs[0].Key != "VENDOR_ASSESSMENT:missing:security" {
+		t.Fatalf("unsent required assessment disappeared: %+v / %v", inputs, err)
+	}
+	result, err := continuity.CalculateProgramCompliance(policy, inputs)
+	if err != nil || result.CoverageBps != 0 || result.ScoreBps != nil || result.UnknownCount != 1 {
+		t.Fatalf("unrequested obligation inflated compliance: %+v / %v", result, err)
+	}
+}
