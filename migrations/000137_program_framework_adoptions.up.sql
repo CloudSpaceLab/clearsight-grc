@@ -89,6 +89,38 @@ CREATE TABLE framework_clause_requirement_links (
       REFERENCES principals(id,tenant_id)
 );
 
+-- The database is a second boundary after governed Program authorization:
+-- an unapproved framework adoption or inactive Requirement cannot be mapped.
+CREATE FUNCTION guard_framework_clause_requirement_link() RETURNS trigger LANGUAGE plpgsql AS $
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM program_framework_adoptions a
+        JOIN program_requirements r
+          ON r.id=NEW.requirement_id
+         AND r.tenant_id=a.tenant_id
+         AND r.program_id=a.program_id
+        WHERE a.id=NEW.adoption_id
+          AND a.tenant_id=NEW.tenant_id
+          AND a.legal_entity_id=NEW.legal_entity_id
+          AND a.program_id=NEW.program_id
+          AND a.edition_id=NEW.edition_id
+          AND a.status='ACTIVE'
+          AND a.effective_from<=NEW.effective_from
+          AND a.reviewed_at<=NEW.reviewed_at
+          AND r.status='APPROVED'
+          AND r.effective_from<=NEW.effective_from
+          AND (r.effective_until IS NULL OR NEW.effective_from<r.effective_until)
+    ) THEN
+        RAISE EXCEPTION 'framework clause mapping requires an active approved Program adoption and Requirement';
+    END IF;
+    RETURN NEW;
+END;
+$;
+CREATE TRIGGER framework_clause_requirement_link_guard
+    BEFORE INSERT ON framework_clause_requirement_links
+    FOR EACH ROW EXECUTE FUNCTION guard_framework_clause_requirement_link();
+
 CREATE UNIQUE INDEX framework_clause_requirement_links_current_uq
     ON framework_clause_requirement_links(tenant_id,legal_entity_id,adoption_id,clause_id,requirement_id)
     WHERE retired_at IS NULL;
