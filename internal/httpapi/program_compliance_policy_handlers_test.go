@@ -85,6 +85,9 @@ func TestProgramCompliancePolicyCommandsEnforceOwnerAndIndependentChecker(t *tes
 	if approved.Code != http.StatusOK {
 		t.Fatalf("independent checker returned %d: %s", approved.Code, approved.Body.String())
 	}
+	// Unmarshal into a fresh value: absent omitempty fields must not retain
+	// the pending proposal from the previous response.
+	aggregate = continuity.ProgramAggregate{}
 	if err := json.Unmarshal(approved.Body.Bytes(), &aggregate); err != nil {
 		t.Fatal(err)
 	}
