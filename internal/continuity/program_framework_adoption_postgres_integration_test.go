@@ -62,7 +62,7 @@ func TestPostgresFrameworkAdoptionEventAndCurrentProjection(t *testing.T) {
 	service := NewService(NewCurrentPostgresRepository(pool))
 	service.now = func() time.Time { return now }
 	program, err := service.CreateProgram(ctx, CreateProgramInput{
-		TenantID: slug, LegalEntityID: entity, Code: "FWE-PROGRAM-"+suffix,
+		TenantID: slug, LegalEntityID: entity, Code: "FWE-PROGRAM-" + suffix,
 		Name: "Security Program", Type: "REGULATORY", OwningFunction: "Risk",
 		OwnerPrincipalID: owner, AuthorityPrincipalID: checker,
 		EffectiveFrom: now, ActorID: owner,
@@ -88,13 +88,13 @@ func TestPostgresFrameworkAdoptionEventAndCurrentProjection(t *testing.T) {
 	}
 	adoptionID := proposed.FrameworkAdoptions[0].ID
 	var status string
-	if err := pool.QueryRow(ctx,`SELECT status FROM program_framework_adoptions
+	if err := pool.QueryRow(ctx, `SELECT status FROM program_framework_adoptions
 		WHERE id=$1::uuid AND tenant_id=$2::uuid AND legal_entity_id=$3::uuid`,
 		adoptionID, tenant, entity).Scan(&status); err != nil || status != "PENDING" {
 		t.Fatalf("uncommitted or incorrectly scoped adoption: %q %v", status, err)
 	}
 
-	service.now = func() time.Time { return now.Add(2*time.Minute) }
+	service.now = func() time.Time { return now.Add(2 * time.Minute) }
 	approved, err := service.ApproveFrameworkAdoption(ctx, DecideFrameworkAdoptionInput{
 		TenantID: slug, ProgramID: program.Program.ID, AdoptionID: adoptionID,
 		ExpectedVersion: proposed.Program.Version, ActorID: checker,
@@ -108,8 +108,8 @@ func TestPostgresFrameworkAdoptionEventAndCurrentProjection(t *testing.T) {
 		t.Fatalf("current Program and SQL projection diverged: %+v", approved.FrameworkAdoptions)
 	}
 	var activeVersion int64
-	if err := pool.QueryRow(ctx,`SELECT status,version FROM program_framework_adoptions
-		WHERE id=$1::uuid`, adoptionID).Scan(&status,&activeVersion); err != nil ||
+	if err := pool.QueryRow(ctx, `SELECT status,version FROM program_framework_adoptions
+		WHERE id=$1::uuid`, adoptionID).Scan(&status, &activeVersion); err != nil ||
 		status != "ACTIVE" || activeVersion != 2 {
 		t.Fatalf("not committed with Program event: %s v%d %v", status, activeVersion, err)
 	}
