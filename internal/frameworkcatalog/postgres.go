@@ -110,7 +110,7 @@ func (r *PostgresRepository) GetEdition(ctx context.Context, publisher, code, re
 	if r == nil || r.pool == nil ||
 		!publicationCodePattern.MatchString(publisher) ||
 		!publicationCodePattern.MatchString(code) ||
-		!publicationCodePattern.MatchString(revision) {
+		!editionCodePattern.MatchString(revision) {
 		return Edition{}, ErrInvalidPublication
 	}
 	return getEditionByKey(ctx, r.pool, publisher, code, revision)
