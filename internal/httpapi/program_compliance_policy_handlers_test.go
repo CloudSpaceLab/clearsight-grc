@@ -21,10 +21,16 @@ func TestProgramCompliancePolicyCommandsEnforceOwnerAndIndependentChecker(t *tes
 	repo := continuity.NewMemoryRepository()
 	service := continuity.NewService(repo)
 	created, err := service.CreateProgram(continuity.WithTrustedSystemScope(context.Background()), continuity.CreateProgramInput{
-		TenantID: "bank", LegalEntityID: "bank-ng", Code: "ASSURANCE", Name: "Enterprise assurance",
-		Type: "ASSURANCE", OwningFunction: "Risk", OwnerPrincipalID: "owner-1",
-		AuthorityPrincipalID: "checker-1", Scope: json.RawMessage(`{}`),
-		EffectiveFrom: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
+		TenantID:             "bank",
+		LegalEntityID:        "bank-ng",
+		Code:                 "ASSURANCE",
+		Name:                 "Enterprise assurance",
+		Type:                 "ASSURANCE",
+		OwningFunction:       "Risk",
+		OwnerPrincipalID:     "owner-1",
+		AuthorityPrincipalID: "checker-1",
+		Scope:                json.RawMessage(`{}`),
+		EffectiveFrom:        time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -39,9 +45,10 @@ func TestProgramCompliancePolicyCommandsEnforceOwnerAndIndependentChecker(t *tes
 	}}
 	handlerFor := func(id string) http.Handler {
 		return New(Dependencies{
-			Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
-			Identity: identity.NewDevelopmentAuthenticator("bank", id, "bank-ng"),
-			Continuity: service, Authority: resolver,
+			Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+			Identity:   identity.NewDevelopmentAuthenticator("bank", id, "bank-ng"),
+			Continuity: service,
+			Authority:  resolver,
 		})
 	}
 	post := func(handler http.Handler, path, body string) *httptest.ResponseRecorder {
