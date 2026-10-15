@@ -69,7 +69,7 @@ func TestProgramCompliancePolicyCommandsEnforceOwnerAndIndependentChecker(t *tes
 		aggregate.Program.CalculationPolicy.Pending.Definition.Revision != "program-v1" {
 		t.Fatalf("proposal trusted a client revision or did not retain governed facts: %+v", aggregate.Program.CalculationPolicy)
 	}
-	decision := `{"tenant_id":"bank","expected_version":` + itoaVersion(aggregate.Program.Version) + `,"rationale":"Independent review"}`
+	decision := `{"tenant_id":"bank","expected_version":` + strconv.FormatInt(aggregate.Program.Version, 10) + `,"rationale":"Independent review"}`
 	if rec := post(owner, path+"/approve", decision); rec.Code == http.StatusOK {
 		t.Fatalf("maker self-approved policy: %s", rec.Body.String())
 	}
@@ -88,6 +88,3 @@ func TestProgramCompliancePolicyCommandsEnforceOwnerAndIndependentChecker(t *tes
 	}
 }
 
-func itoaVersion(value int64) string {
-	return strconv.FormatInt(value, 10)
-}
