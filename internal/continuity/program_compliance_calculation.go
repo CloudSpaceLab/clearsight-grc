@@ -28,23 +28,23 @@ const (
 )
 
 type ProgramComplianceCategoryWeight struct {
-	Code       string `json:"code"`
-	WeightBps  int64  `json:"weight_bps"`
+	Code      string `json:"code"`
+	WeightBps int64  `json:"weight_bps"`
 }
 
 type ProgramComplianceCalculationPolicy struct {
-	Revision            string                            `json:"revision"`
-	MinimumCoverageBps  int64                             `json:"minimum_coverage_bps"`
-	Categories          []ProgramComplianceCategoryWeight `json:"categories"`
+	Revision           string                            `json:"revision"`
+	MinimumCoverageBps int64                             `json:"minimum_coverage_bps"`
+	Categories         []ProgramComplianceCategoryWeight `json:"categories"`
 }
 
 type ProgramComplianceInput struct {
-	Key       string                      `json:"key"`
-	Category  string                      `json:"category"`
-	Weight    int64                       `json:"weight"`
-	State     ProgramComplianceInputState `json:"state"`
-	ScoreBps  *int64                      `json:"score_bps,omitempty"`
-	Reason    string                      `json:"reason,omitempty"`
+	Key      string                      `json:"key"`
+	Category string                      `json:"category"`
+	Weight   int64                       `json:"weight"`
+	State    ProgramComplianceInputState `json:"state"`
+	ScoreBps *int64                      `json:"score_bps,omitempty"`
+	Reason   string                      `json:"reason,omitempty"`
 }
 
 type ProgramComplianceCategoryResult struct {
@@ -59,18 +59,18 @@ type ProgramComplianceCategoryResult struct {
 }
 
 type ProgramComplianceCalculation struct {
-	PolicyRevision       string                             `json:"policy_revision"`
-	State                ProgramComplianceCalculationState  `json:"state"`
-	ScoreBps             *int64                             `json:"score_bps,omitempty"`
+	PolicyRevision string                            `json:"policy_revision"`
+	State          ProgramComplianceCalculationState `json:"state"`
+	ScoreBps       *int64                            `json:"score_bps,omitempty"`
 	// AssessedScoreBps is diagnostic only. Never present it as a compliance
 	// percentage while coverage is below the approved minimum.
-	AssessedScoreBps     *int64                             `json:"assessed_score_bps,omitempty"`
-	CoverageBps          int64                              `json:"coverage_bps"`
-	EligibleCount        int                                `json:"eligible_count"`
-	AssessedCount        int                                `json:"assessed_count"`
-	UnknownCount         int                                `json:"unknown_count"`
-	ExcludedCount        int                                `json:"excluded_count"`
-	Categories           []ProgramComplianceCategoryResult  `json:"categories"`
+	AssessedScoreBps *int64                            `json:"assessed_score_bps,omitempty"`
+	CoverageBps      int64                             `json:"coverage_bps"`
+	EligibleCount    int                               `json:"eligible_count"`
+	AssessedCount    int                               `json:"assessed_count"`
+	UnknownCount     int                               `json:"unknown_count"`
+	ExcludedCount    int                               `json:"excluded_count"`
+	Categories       []ProgramComplianceCategoryResult `json:"categories"`
 }
 
 type programComplianceAccumulator struct {
