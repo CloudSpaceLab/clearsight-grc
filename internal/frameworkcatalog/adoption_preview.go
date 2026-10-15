@@ -20,7 +20,7 @@ type ClauseReuseStatus string
 
 const (
 	ClauseReuseUnmapped   ClauseReuseStatus = "UNMAPPED"
-	ClauseReuseCandidate  ClauseReuseStatus = "REVIEW_CANDIDATE"
+	ClauseReuseReviewRequired ClauseReuseStatus = "REVIEW_CANDIDATE"
 	ClauseReuseAmbiguous  ClauseReuseStatus = "AMBIGUOUS"
 )
 
@@ -120,7 +120,7 @@ func PreviewClauseReuse(
 		}
 		proposal.TotalCandidates = len(matches)
 		if len(matches) != 0 {
-			proposal.Status = ClauseReuseCandidate
+			proposal.Status = ClauseReuseReviewRequired
 			if len(matches) > 1 {
 				proposal.Status = ClauseReuseAmbiguous
 			}
