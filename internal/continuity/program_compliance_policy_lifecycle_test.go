@@ -24,7 +24,7 @@ func createProgramForCalculationPolicy(t *testing.T, service *Service, ctx conte
 
 func calculationPolicyFixture() ProgramComplianceCalculationPolicy {
 	return ProgramComplianceCalculationPolicy{
-		Revision: "caller-controlled-not-authoritative",
+		Revision:           "caller-controlled-not-authoritative",
 		MinimumCoverageBps: 9000,
 		Categories: []ProgramComplianceCategoryWeight{
 			{Code: "REQUIREMENTS", WeightBps: 6000},
@@ -150,10 +150,10 @@ func TestProgramCompliancePolicyInvalidOrStaleProposalsLeaveNoEvent(t *testing.T
 	invalid := calculationPolicyFixture()
 	invalid.Categories[0].WeightBps = 5500
 	for _, tc := range []struct {
-		name string
+		name    string
 		version int64
-		actor string
-		policy ProgramComplianceCalculationPolicy
+		actor   string
+		policy  ProgramComplianceCalculationPolicy
 	}{
 		{name: "invalid weights", version: program.Program.Version, actor: "owner", policy: invalid},
 		{name: "no actor", version: program.Program.Version, actor: "", policy: calculationPolicyFixture()},
