@@ -1354,7 +1354,7 @@ func (s *Service) refreshLinkedPrograms(ctx context.Context, tenant, matterID, t
 }
 
 func stateEquivalent(left, right ProgramStateSnapshot) bool {
-	return left.Overall == right.Overall && reflect.DeepEqual(left.Dimensions, right.Dimensions) && reflect.DeepEqual(left.Reasons, right.Reasons) && left.OpenMatterCount == right.OpenMatterCount
+	return left.Overall == right.Overall && reflect.DeepEqual(left.Dimensions, right.Dimensions) && reflect.DeepEqual(left.Reasons, right.Reasons) && reflect.DeepEqual(left.Calculation, right.Calculation) && left.OpenMatterCount == right.OpenMatterCount
 }
 
 func newEvent(tenant, aggregateType, aggregateID string, version int64, eventType string, value any, actorType ActorType, actorID string, occurredAt time.Time) (Event, error) {

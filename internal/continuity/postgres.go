@@ -683,7 +683,15 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		dimensions, _ := json.Marshal(v.Dimensions)
 		reasons, _ := json.Marshal(v.Reasons)
-		_, err := tx.Exec(ctx, `INSERT INTO program_state_snapshots(id,tenant_id,program_id,overall_state,dimensions,reasons,open_matter_count,trigger_type,trigger_id,generated_at,program_version,projection_version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,(SELECT COALESCE(max(projection_version),0)+1 FROM program_state_snapshots WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND program_id=$3::uuid))`, v.ID, v.TenantID, v.ProgramID, v.Overall, dimensions, reasons, v.OpenMatterCount, v.TriggerType, v.TriggerID, v.GeneratedAt, v.ProgramVersion)
+		var calculation []byte
+		if v.Calculation != nil {
+			encoded, encodeErr := json.Marshal(v.Calculation)
+			if encodeErr != nil {
+				return encodeErr
+			}
+			calculation = encoded
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO program_state_snapshots(id,tenant_id,program_id,overall_state,dimensions,reasons,open_matter_count,trigger_type,trigger_id,generated_at,program_version,projection_version,calculation) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,(SELECT COALESCE(max(projection_version),0)+1 FROM program_state_snapshots WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) AND program_id=$3::uuid),$12)`, v.ID, v.TenantID, v.ProgramID, v.Overall, dimensions, reasons, v.OpenMatterCount, v.TriggerType, v.TriggerID, v.GeneratedAt, v.ProgramVersion, calculation)
 		return err
 	case EventProgramTriggerRecorded:
 		return nil
