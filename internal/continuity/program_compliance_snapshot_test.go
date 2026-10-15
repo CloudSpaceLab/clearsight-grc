@@ -49,14 +49,11 @@ func TestProgramCalculationSnapshotRoundTripAndEquivalence(t *testing.T) {
 	if string(raw) == "" || json.Valid(raw) == false {
 		t.Fatal("unconfigured Program must remain serializable")
 	}
-	if _, present := func() (json.RawMessage, bool) {
-		var value map[string]json.RawMessage
-		if err := json.Unmarshal(raw, &value); err != nil {
-			t.Fatal(err)
-		}
-		data, ok := value["calculation"]
-		return data, ok
-	}(); present {
+	var omitted map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &omitted); err != nil {
+		t.Fatal(err)
+	}
+	if _, present := omitted["calculation"]; present {
 		t.Fatal("unconfigured Program emitted a fabricated score")
 	}
 }
