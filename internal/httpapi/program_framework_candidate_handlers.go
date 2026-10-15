@@ -90,10 +90,10 @@ func (a *API) listProgramFrameworkCandidates(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"program_id": visible.Program.ID,
+		"program_id":      visible.Program.ID,
 		"program_version": visible.Program.Version,
-		"adoption_id": adoptionID,
-		"edition_id": editionID,
-		"candidates": candidates,
+		"adoption_id":     adoptionID,
+		"edition_id":      editionID,
+		"candidates":      candidates,
 	})
 }
