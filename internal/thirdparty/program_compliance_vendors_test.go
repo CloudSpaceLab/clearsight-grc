@@ -29,10 +29,10 @@ func TestProgramVendorAssessmentInputsKeepUnrequestedVendorInDenominator(t *test
 	}}
 	forms := []evidence.VendorFormRow{{
 		RequestID: "request-a", RelationshipID: "vendor-a", FormTemplateID: "security", FormTemplateVersion: 2,
-		Current: true, ResponseState: "SUBMITTED", ResponseCurrency: "CURRENT", Outdated: &fresh, SubmittedAt: &past, SubmittedAt: &completed,
+		Current: true, ResponseState: "SUBMITTED", ResponseCurrency: "CURRENT", Outdated: &fresh, SubmittedAt: &completed,
 		AssessmentState: "ASSESSED", AssessedScore: &evidence.ResponseScoreResult{
 			Mode: formcontract.ScoringCompliance, RawScore: &raw, Coverage: 1,
-			Final: true, State: evidence.ResponseScoreFinal, CalculatedAt: past, CalculatedAt: completed,
+			Final: true, State: evidence.ResponseScoreFinal, CalculatedAt: completed,
 		},
 	}}
 	inputs, err := ProgramVendorAssessmentInputs("bank", "entity", expected, assessments, forms, periodStart, periodEnd, now, "VENDORS")
@@ -79,7 +79,7 @@ func TestProgramVendorAssessmentInputsFailClosedOnPendingAmbiguousOrUnreviewed(t
 	}
 	row := evidence.VendorFormRow{
 		RequestID: "request", RelationshipID: "vendor", FormTemplateID: "form", FormTemplateVersion: 1,
-		Current: true, ResponseState: "SUBMITTED", ResponseCurrency: "CURRENT", Outdated: &fresh,
+		Current: true, ResponseState: "SUBMITTED", ResponseCurrency: "CURRENT", Outdated: &fresh, SubmittedAt: &past,
 		AssessmentState: "AWAITING_REVIEW", Score: &evidence.ResponseScoreResult{
 			Mode: formcontract.ScoringCompliance, RawScore: &score, Coverage: 1,
 			Final: true, State: evidence.ResponseScoreFinal,
