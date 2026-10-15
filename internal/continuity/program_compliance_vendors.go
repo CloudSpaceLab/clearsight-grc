@@ -34,13 +34,15 @@ type programVendorAssessmentKey struct {
 // all expected obligations from the approved Program policy, with exact
 // tenant/entity/Program access checks performed by the source repositories.
 func ProgramVendorAssessmentInputs(
+	tenantID, legalEntityID string,
 	expected []ProgramVendorAssessmentExpectation,
 	assessments []thirdparty.Assessment,
 	forms []evidence.VendorFormRow,
 	periodStart, periodEnd, asOf time.Time,
 	category string,
 ) ([]ProgramComplianceInput, error) {
-	if strings.TrimSpace(category) == "" || category != strings.TrimSpace(category) ||
+	if strings.TrimSpace(tenantID) == "" || strings.TrimSpace(legalEntityID) == "" ||
+		strings.TrimSpace(category) == "" || category != strings.TrimSpace(category) ||
 		periodStart.IsZero() || !periodStart.Before(periodEnd) || asOf.IsZero() ||
 		len(expected) > 10000 {
 		return nil, ErrProgramComplianceCalculationInvalid
@@ -50,7 +52,8 @@ func ProgramVendorAssessmentInputs(
 	latestByKey := make(map[programVendorAssessmentKey]*thirdparty.Assessment, len(assessments))
 	for index := range assessments {
 		candidate := &assessments[index]
-		if candidate.ReviewDueAt.Before(periodStart) || !candidate.ReviewDueAt.Before(periodEnd) ||
+		if candidate.TenantID != tenantID || candidate.LegalEntityID != legalEntityID ||
+			candidate.ReviewDueAt.Before(periodStart) || !candidate.ReviewDueAt.Before(periodEnd) ||
 			candidate.StartedAt.After(asOf) || candidate.UpdatedAt.After(asOf) {
 			continue
 		}
