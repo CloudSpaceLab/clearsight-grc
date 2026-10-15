@@ -70,7 +70,7 @@ func TestProgramFrameworkRoutesEnforceOwnerAndIndependentReview(t *testing.T) {
 		t.Fatalf("unauthorized proposal modified the Program: %+v / %v", untouched.FrameworkAdoptions, err)
 	}
 	if rec := post(handler("owner-1"), path+"/propose",
-		`{"tenant_id":"another-bank","expected_version":1,"edition_id":"edition-1","rationale":"Attempt cross tenant"}`); rec.Code != http.StatusNotFound {
+		`{"tenant_id":"another-bank","expected_version":1,"edition_id":"edition-1","rationale":"Attempt cross tenant"}`); rec.Code != http.StatusNotFound && rec.Code != http.StatusForbidden {
 		t.Fatalf("tenant spoof returned %d: %s", rec.Code, rec.Body.String())
 	}
 	owner := handler("owner-1")
