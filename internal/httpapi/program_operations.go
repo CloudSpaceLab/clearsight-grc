@@ -102,6 +102,18 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		add(programOperationSpec{Command: "program.compliance-policy.approve", Label: "Approve calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
 		add(programOperationSpec{Command: "program.compliance-policy.reject", Label: "Reject calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
 	}
+	hasActiveFramework := false
+	for _, adoption := range aggregate.FrameworkAdoptions {
+		if adoption.Status == continuity.FrameworkAdoptionActive {
+			hasActiveFramework = true
+			break
+		}
+	}
+	if hasActiveFramework {
+		add(programOperationSpec{Command: "program.framework.mapping.propose", Label: "Propose requirement link", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID})
+		add(programOperationSpec{Command: "program.framework.mapping.approve", Label: "Approve requirement link", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
+		add(programOperationSpec{Command: "program.framework.mapping.reject", Label: "Reject requirement link", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
+	}
 	hasPendingFramework := false
 	for _, edition := range aggregate.FrameworkAdoptions {
 		if edition.Status == continuity.FrameworkAdoptionPending {
