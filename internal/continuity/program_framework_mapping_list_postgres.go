@@ -44,28 +44,27 @@ func (r *PostgresRepository) ListFrameworkMappings(
 		        AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
 		      ORDER BY le.valid_from DESC,le.id LIMIT 1))))
 		ORDER BY l.id LIMIT $8`,
-		tenant,programID,adoptionID,afterID,enforce,actorTenant,actorEntity,limit)
+		tenant, programID, adoptionID, afterID, enforce, actorTenant, actorEntity, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := make([]FrameworkClauseMapping,0,limit)
+	items := make([]FrameworkClauseMapping, 0, limit)
 	for rows.Next() {
 		var m FrameworkClauseMapping
 		if err := rows.Scan(
-			&m.ID,&m.TenantID,&m.LegalEntityID,&m.ProgramID,
-			&m.AdoptionID,&m.EditionID,&m.ClauseID,&m.ClauseCode,
-			&m.RequirementID,&m.MappingKind,&m.Rationale,
-			&m.MappedBy,&m.ReviewedBy,&m.ProposedAt,&m.ReviewedAt,
-			&m.EffectiveFrom,&m.Status,&m.Version,
-		);err != nil {
-			return nil,err
+			&m.ID, &m.TenantID, &m.LegalEntityID, &m.ProgramID,
+			&m.AdoptionID, &m.EditionID, &m.ClauseID, &m.ClauseCode,
+			&m.RequirementID, &m.MappingKind, &m.Rationale,
+			&m.MappedBy, &m.ReviewedBy, &m.ProposedAt, &m.ReviewedAt,
+			&m.EffectiveFrom, &m.Status, &m.Version,
+		); err != nil {
+			return nil, err
 		}
-		items=append(items,m)
+		items = append(items, m)
 	}
-	if err:=rows.Err();err!=nil {
-		return nil,err
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
-	return items,nil
+	return items, nil
 }
-
