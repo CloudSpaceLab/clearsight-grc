@@ -32,7 +32,9 @@ func TestProgramVendorExpectationPolicyPopulationAndRevisionCopies(t *testing.T)
 		name   string
 		change func(*ProgramComplianceCalculationPolicy)
 	}{
-		{"duplicate key", func(p *ProgramComplianceCalculationPolicy) { p.ExpectedVendorAssessments[1].Key = p.ExpectedVendorAssessments[0].Key }},
+		{"duplicate key", func(p *ProgramComplianceCalculationPolicy) {
+			p.ExpectedVendorAssessments[1].Key = p.ExpectedVendorAssessments[0].Key
+		}},
 		{"duplicate identity", func(p *ProgramComplianceCalculationPolicy) {
 			p.ExpectedVendorAssessments[1].RelationshipID = "vendor-a"
 			p.ExpectedVendorAssessments[1].Key = "different-key"
