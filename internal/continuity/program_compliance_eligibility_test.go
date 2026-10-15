@@ -86,7 +86,7 @@ func TestPartiallyApplicableRequirementDoesNotCountAsProved(t *testing.T) {
 	now := time.Date(2026, 10, 15, 8, 0, 0, 0, time.UTC)
 	created := now.Add(-time.Hour)
 	aggregate := ProgramAggregate{
-		Program: Program{ID: "p", TenantID: "bank", Status: ProgramActive, EffectiveFrom: created, Version: 1},
+		Program:      Program{ID: "p", TenantID: "bank", Status: ProgramActive, EffectiveFrom: created, Version: 1},
 		Requirements: []Requirement{{ID: "r", Status: RequirementApproved, EffectiveFrom: created}},
 		Applicability: []Applicability{{
 			RequirementID: "r", Status: ApplicabilityPartial, EffectiveFrom: created, CreatedAt: created,
