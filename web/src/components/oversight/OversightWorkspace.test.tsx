@@ -468,6 +468,7 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
     expect.any(AbortSignal),
   ));
   expect(screen.getByRole("button", { name: /Reporting period/ }).textContent).toContain("Last 30 days");
+  expect(screen.getByText("Risk, compliance and action in the last 30 days")).toBeTruthy();
   expect(screen.queryByText("7")).toBeNull();
 
   fireEvent.click(screen.getByRole("tab", { name: "Attention" }));
