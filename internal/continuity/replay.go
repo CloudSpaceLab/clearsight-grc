@@ -15,6 +15,9 @@ const (
 	EventProgramFrameworkAdoptionProposed   = "PROGRAM_FRAMEWORK_ADOPTION_PROPOSED"
 	EventProgramFrameworkAdoptionApproved   = "PROGRAM_FRAMEWORK_ADOPTION_APPROVED"
 	EventProgramFrameworkAdoptionRejected   = "PROGRAM_FRAMEWORK_ADOPTION_REJECTED"
+	EventFrameworkMappingProposed           = "FRAMEWORK_CLAUSE_MAPPING_PROPOSED"
+	EventFrameworkMappingApproved           = "FRAMEWORK_CLAUSE_MAPPING_APPROVED"
+	EventFrameworkMappingRejected           = "FRAMEWORK_CLAUSE_MAPPING_REJECTED"
 	EventProgramOwnerChanged                = "PROGRAM_OWNER_CHANGED"
 	EventProgramApprovalAuthorityChanged    = "PROGRAM_APPROVAL_AUTHORITY_CHANGED"
 	EventRequirementAdded                   = "REQUIREMENT_ADDED"
@@ -100,6 +103,9 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.Program.CalculationPolicy = &value.Position
+		case EventFrameworkMappingProposed, EventFrameworkMappingApproved, EventFrameworkMappingRejected:
+			// Mapping identities live in their scoped relation; this Program event
+			// advances version/history without duplicating operating requirements.
 		case EventProgramFrameworkAdoptionProposed:
 			var value FrameworkAdoption
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
