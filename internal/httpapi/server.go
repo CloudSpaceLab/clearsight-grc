@@ -109,6 +109,7 @@ type Dependencies struct {
 	RCSA                    *rcsa.Service
 	OperationalLoss         *oploss.Service
 	ControlCatalog          *controlcatalog.Service
+	FrameworkCatalog       FrameworkEditionReader
 	Today                   *today.Service
 	Oversight               *oversight.Service
 	GroupOversight          *oversight.GroupService
