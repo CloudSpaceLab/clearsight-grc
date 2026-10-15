@@ -89,7 +89,7 @@ func VerifySourceChecksum(reader io.Reader, expected string) (int64, error) {
 // decoder accepts duplicate object members and otherwise retains the last one.
 func rejectDuplicateJSONKeys(raw []byte) error {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
-	if err := consumeUniqueJSONValue(decoder); err != nil {
+	if err := consumeUniqueJSONValue(decoder, 0); err != nil {
 		return fmt.Errorf("%w: %v", ErrInvalidPublication, err)
 	}
 	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
@@ -98,7 +98,10 @@ func rejectDuplicateJSONKeys(raw []byte) error {
 	return nil
 }
 
-func consumeUniqueJSONValue(decoder *json.Decoder) error {
+func consumeUniqueJSONValue(decoder *json.Decoder, depth int) error {
+	if depth > 64 {
+		return fmt.Errorf("manifest nesting exceeds safe depth")
+	}
 	token, err := decoder.Token()
 	if err != nil {
 		return err
@@ -123,7 +126,7 @@ func consumeUniqueJSONValue(decoder *json.Decoder) error {
 				return fmt.Errorf("duplicate JSON property %q", name)
 			}
 			seen[name] = struct{}{}
-			if err := consumeUniqueJSONValue(decoder); err != nil {
+			if err := consumeUniqueJSONValue(decoder, depth+1); err != nil {
 				return err
 			}
 		}
@@ -131,7 +134,7 @@ func consumeUniqueJSONValue(decoder *json.Decoder) error {
 		return err
 	case '[':
 		for decoder.More() {
-			if err := consumeUniqueJSONValue(decoder); err != nil {
+			if err := consumeUniqueJSONValue(decoder, depth+1); err != nil {
 				return err
 			}
 		}
