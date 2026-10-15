@@ -54,6 +54,8 @@ type AIGatewayOperationsReader interface {
 
 type FrameworkEditionReader interface {
 	ListEditions(context.Context, string, string, int) ([]frameworkcatalog.Edition, error)
+	ListClauses(context.Context, string, string, int) ([]frameworkcatalog.Clause, error)
+	GetFrameworkEdition(context.Context, string) (continuity.FrameworkEditionReference, error)
 }
 
 type Dependencies struct {
