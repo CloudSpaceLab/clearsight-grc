@@ -3330,6 +3330,24 @@
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
+    "/api/v1/programs/{id}/calculation-policy/propose": {
+      "post": {
+        "operationId": "proposeProgramCompliancePolicy",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/calculation-policy/approve": {
+      "post": {
+        "operationId": "approveProgramCompliancePolicy",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/calculation-policy/reject": {
+      "post": {
+        "operationId": "rejectProgramCompliancePolicy",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
     "/api/v1/programs/{id}/assignment": {
       "post": {
         "operationId": "assignProgram",
