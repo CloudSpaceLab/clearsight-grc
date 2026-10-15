@@ -194,6 +194,9 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
         revision: "draft",
         minimum_coverage_bps: minimumCoverage,
         categories: calculationCategories,
+        ...(activePolicy?.definition.expected_vendor_assessments?.length
+          ? { expected_vendor_assessments: activePolicy.definition.expected_vendor_assessments.map((item) => ({ ...item })) }
+          : {}),
       }, calculationRationale.trim());
       onUpdated(updated);
       setMode(null);
@@ -319,7 +322,7 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
       {mode === "calculation" && <form className="program-operation-form" onSubmit={(event) => void submitCalculation(event)}>
         {calculationCategories.map((category) => <div key={category.code} className="program-form-factor">
           <label><span>{calculationCategoryLabels[category.code] ?? category.code} (%)</span><input type="number" min="1" max="100" step="1" required value={category.weight_bps / 100} onChange={(event) => updateCalculationWeight(category.code, Number(event.target.value))}/></label>
-          {calculationCategories.length > 1 && <button className="text-button" type="button" aria-label={`Remove ${calculationCategoryLabels[category.code] ?? category.code}`} onClick={() => removeCalculationFactor(category.code)}>Remove</button>}
+          {calculationCategories.length > 1 && !(category.code === "VENDORS" && activePolicy?.definition.expected_vendor_assessments?.length) && <button className="text-button" type="button" aria-label={`Remove ${calculationCategoryLabels[category.code] ?? category.code}`} onClick={() => removeCalculationFactor(category.code)}>Remove</button>}
         </div>)}
         {availableCalculationFactors.length > 0 && <div className="program-form-actions wide">
           <label><span>Add scoring factor</span><select value={calculationFactor} onChange={(event) => setCalculationFactor(event.target.value)}><option value="">Choose factor</option>{availableCalculationFactors.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
