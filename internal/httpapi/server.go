@@ -52,6 +52,10 @@ type AIGatewayOperationsReader interface {
 	TransportStatus(context.Context, string, string) (aigateway.TransportApplyStatus, error)
 }
 
+type FrameworkEditionReader interface {
+	ListEditions(context.Context, string, string, int) ([]frameworkcatalog.Edition, error)
+}
+
 type Dependencies struct {
 	Logger                           *slog.Logger
 	AllowedOrigin                    string
