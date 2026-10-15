@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { addProgramRequirement, determineProgramApplicability, supersedeProgramRequirement } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate, Requirement } from "../types";
+import { useFrameworkClauseCandidates } from "../hooks/useFrameworkClauseCandidates";
 import { TextField } from "./ui";
 
 type Props = { aggregate: ProgramAggregate; operations: ProgramOperation[]; onUpdated: (value: ProgramAggregate) => void; onReload: () => void };
@@ -16,6 +17,10 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
   const program = aggregate.program;
   const addOperation = operations.find((operation) => operation.command === "program.requirement.add");
   const applicabilityOperation = operations.find((operation) => operation.command === "program.applicability.decide");
+  const activeStandards = (aggregate.framework_adoptions ?? []).filter((value) => value.status === "ACTIVE");
+  const standardReview = useFrameworkClauseCandidates(program.id, program.version);
+  const [showStandards, setShowStandards] = useState(false);
+  useEffect(() => { setShowStandards(false); }, [program.id, program.version]);
   const [mode, setMode] = useState<Mode>(null);
   const [selected, setSelected] = useState<Requirement | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,6 +62,37 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
 
   return <article className="program-record-panel program-requirements-panel" id="program-requirements-panel">
     <div className="program-panel-heading"><div><span className="eyebrow">Requirements</span><h2>Obligations and applicability</h2></div><div className="program-panel-actions">{addOperation?.can_act && mode !== "add" && <button className="secondary-button" type="button" onClick={beginAdd}>Add requirement</button>}{applicabilityOperation?.can_act && aggregate.requirements.some((value) => value.status === "APPROVED") && mode !== "applicability" && <button className="secondary-button" type="button" onClick={beginApplicability}>Record applicability</button>}</div></div>
+    {activeStandards.length > 0 && <section className="program-record-subsection" aria-label="Standard clause review">
+      <div className="program-panel-heading">
+        <div><h3>Standard clauses</h3><p className="program-operation-reason">Suggested requirement matches require review.</p></div>
+        <button className="secondary-button" type="button" onClick={() => {
+          setShowStandards((previous) => !previous);
+          if (!showStandards && activeStandards[0]) void standardReview.load(activeStandards[0].id);
+        }}>{showStandards ? "Hide clauses" : "Review clauses"}</button>
+      </div>
+      {showStandards && <>
+        <label><span>Standard</span><select aria-label="Review standard" value={standardReview.adoptionID} onChange={(event) => void standardReview.load(event.target.value)}>
+          {activeStandards.map((standard) => <option key={standard.id} value={standard.id}>{standard.publisher_code} · {standard.framework_code} {standard.edition_code}</option>)}
+        </select></label>
+        {standardReview.status === "loading" && <p role="status">Loading clauses…</p>}
+        {standardReview.status === "error" && <p role="alert">Clause matches could not be loaded. <button className="text-button" type="button" onClick={() => void standardReview.load(standardReview.adoptionID)}>Retry</button></p>}
+        {standardReview.status === "loaded" && standardReview.page?.candidates.length === 0 && <p role="status">No clauses are published for this edition.</p>}
+        {standardReview.page && <div className="program-requirement-list">
+          {standardReview.page.candidates.map((clause) => <section className="program-requirement-card" key={clause.clause_code} aria-label={`Clause ${clause.clause_code}`}>
+            <div><strong>{clause.clause_code}</strong><p>Source: {clause.source_anchor}</p>
+              <small>{clause.status === "UNMAPPED" ? "No matching requirement" : clause.status === "AMBIGUOUS" ? "Multiple possible matches" : "Review suggested match"}</small>
+            </div>
+            {clause.candidates.length > 0 && <ul>{clause.candidates.map((candidate) =>
+              <li key={candidate.requirement_id}>{candidate.requirement_code} · {candidate.title}{candidate.applicability ? ` · ${label(candidate.applicability)}` : ""}</li>
+            )}</ul>}
+            {clause.candidates_truncated && <p className="program-operation-reason">{clause.total_candidates} candidates · showing first {clause.candidates.length}</p>}
+          </section>)}
+        </div>}
+        {standardReview.page?.next_after_code && <button className="secondary-button" type="button" onClick={() =>
+          void standardReview.load(standardReview.adoptionID, standardReview.page!.next_after_code)
+        }>Next clauses</button>}
+      </>}
+    </section>}
     <div className="program-requirement-list">{aggregate.requirements.length ? aggregate.requirements.map((requirement) => {
       const supersedeOperation = operations.find((operation) => operation.command === "program.requirement.supersede" && operation.subresource_id === requirement.id);
       const currentApplicability = [...aggregate.applicability].reverse().find((value) => value.requirement_id === requirement.id);
