@@ -103,12 +103,12 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		add(programOperationSpec{Command: "program.compliance-policy.reject", Label: "Reject calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
 	}
 	hasPendingFramework := false
-	hasActiveFramework := false
 	for _, edition := range aggregate.FrameworkAdoptions {
-		if edition.Status == continuity.FrameworkAdoptionPending { hasPendingFramework = true }
-		if edition.Status == continuity.FrameworkAdoptionActive { hasActiveFramework = true }
+		if edition.Status == continuity.FrameworkAdoptionPending {
+			hasPendingFramework = true
+		}
 	}
-	if !hasPendingFramework && !hasActiveFramework {
+	if !hasPendingFramework {
 		add(programOperationSpec{Command: "program.framework.propose", Label: "Add standard", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID})
 	}
 	if hasPendingFramework {
