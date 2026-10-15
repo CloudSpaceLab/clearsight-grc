@@ -113,7 +113,7 @@ func PreviewClauseReuse(
 		}
 		seenClauses[clause.Code] = struct{}{}
 		proposal := ClauseReuseProposal{
-			ClauseCode: clause.Code, SourceAnchor: clause.SourceAnchor,
+			ClauseID: clause.ID, ClauseCode: clause.Code, SourceAnchor: clause.SourceAnchor,
 			Status: ClauseReuseUnmapped, Candidates: []ClauseReuseCandidate{},
 		}
 		// Anchor matches are more specific than matching short clause codes.
