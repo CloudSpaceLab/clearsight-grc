@@ -95,6 +95,11 @@ func TestProgramRequirementScoreContributionsMatchRetainedSnapshot(t *testing.T)
 func TestProgramRequirementScoreContributionsRejectForeignOrRevisedPopulation(t *testing.T) {
 	now := time.Date(2026, 10, 15, 12, 0, 0, 0, time.UTC)
 	aggregate, snapshot := requirementScoreDrillFixture(t, now)
+	missing := snapshot
+	missing.Calculation = nil
+	if _, err := ProgramRequirementScoreContributions(aggregate, missing); err == nil {
+		t.Fatal("unscored Program yielded fabricated requirement contributions")
+	}
 	foreign := snapshot
 	foreign.TenantID = "another-tenant"
 	if _, err := ProgramRequirementScoreContributions(aggregate, foreign); err == nil {
