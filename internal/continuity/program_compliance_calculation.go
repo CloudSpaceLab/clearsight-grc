@@ -64,13 +64,14 @@ type ProgramComplianceCalculation struct {
 	ScoreBps       *int64                            `json:"score_bps,omitempty"`
 	// AssessedScoreBps is diagnostic only. Never present it as a compliance
 	// percentage while coverage is below the approved minimum.
-	AssessedScoreBps *int64                            `json:"assessed_score_bps,omitempty"`
-	CoverageBps      int64                             `json:"coverage_bps"`
-	EligibleCount    int                               `json:"eligible_count"`
-	AssessedCount    int                               `json:"assessed_count"`
-	UnknownCount     int                               `json:"unknown_count"`
-	ExcludedCount    int                               `json:"excluded_count"`
-	Categories       []ProgramComplianceCategoryResult `json:"categories"`
+	AssessedScoreBps      *int64                            `json:"assessed_score_bps,omitempty"`
+	CoverageBps           int64                             `json:"coverage_bps"`
+	EligibleCount         int                               `json:"eligible_count"`
+	AssessedCount         int                               `json:"assessed_count"`
+	UnknownCount          int                               `json:"unknown_count"`
+	ExcludedCount         int                               `json:"excluded_count"`
+	UnpopulatedCategories []string                          `json:"unpopulated_categories,omitempty"`
+	Categories            []ProgramComplianceCategoryResult `json:"categories"`
 }
 
 type programComplianceAccumulator struct {
@@ -168,11 +169,20 @@ func CalculateProgramCompliance(
 	// per-category normalization preserves the declared weights even when
 	// only a subset of the category's expected population is assessed.
 	var assessedMass, earnedMass int64
+	activePolicyMass := programComplianceBasisPoints
 	for index, weight := range policy.Categories {
 		category := &result.Categories[index]
 		aggregate := accumulators[index]
 		if aggregate.totalWeight == 0 {
-			continue // A missing category cannot silently acquire 100% coverage.
+			if category.ExcludedCount > 0 {
+				// The source explicitly declared every item not applicable.
+				// Only these categories may leave the policy denominator.
+				activePolicyMass -= weight.WeightBps
+			} else {
+				// No input is not proof that the category does not apply.
+				result.UnpopulatedCategories = append(result.UnpopulatedCategories, category.Code)
+			}
+			continue
 		}
 		category.CoverageBps = roundComplianceRatio(
 			aggregate.assessedWeight*programComplianceBasisPoints, aggregate.totalWeight)
@@ -185,13 +195,16 @@ func CalculateProgramCompliance(
 			category.ScoreBps = &value
 		}
 	}
-	result.CoverageBps = roundComplianceRatio(assessedMass, programComplianceBasisPoints)
+	if activePolicyMass == 0 {
+		return result, nil // Every category is explicitly not applicable.
+	}
+	result.CoverageBps = roundComplianceRatio(assessedMass, activePolicyMass)
 	if assessedMass == 0 {
 		return result, nil
 	}
 	score := roundComplianceRatio(earnedMass*programComplianceBasisPoints, assessedMass)
 	result.AssessedScoreBps = &score
-	if result.CoverageBps < policy.MinimumCoverageBps || result.EligibleCount == 0 {
+	if result.CoverageBps < policy.MinimumCoverageBps || result.EligibleCount == 0 || len(result.UnpopulatedCategories) > 0 {
 		result.State = ProgramComplianceProvisional
 		return result, nil
 	}
