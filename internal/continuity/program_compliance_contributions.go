@@ -1,8 +1,8 @@
 package continuity
 
 import (
-	"reflect"
 	"fmt"
+	"reflect"
 )
 
 // ProgramRequirementScoreContributions reconstructs a retained requirements-
