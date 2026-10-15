@@ -9,7 +9,7 @@ func TestProgramRequirementComplianceInputs(t *testing.T) {
 	now := time.Date(2026, 10, 15, 9, 0, 0, 0, time.UTC)
 	previous := now.Add(-time.Hour)
 	aggregate := ProgramAggregate{
-		Program:      Program{ID: "program", TenantID: "bank", Status: ProgramActive},
+		Program: Program{ID: "program", TenantID: "bank", Status: ProgramActive},
 		Requirements: []Requirement{
 			{ID: "r-implemented", ProgramID: "program", Status: RequirementApproved, EffectiveFrom: previous},
 			{ID: "r-missing", ProgramID: "program", Status: RequirementApproved, EffectiveFrom: previous},
