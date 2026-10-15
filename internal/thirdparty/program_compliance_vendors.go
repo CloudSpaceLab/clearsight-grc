@@ -179,3 +179,27 @@ func ProgramVendorAssessmentInputs(
 	sort.Slice(output, func(i, j int) bool { return output[i].Key < output[j].Key })
 	return output, nil
 }
+
+// ProgramVendorAssessmentInputsForPolicy uses the already approved Program
+// denominator; a capture request never creates an obligation implicitly.
+func ProgramVendorAssessmentInputsForPolicy(
+	tenantID, legalEntityID string,
+	policy continuity.ProgramComplianceCalculationPolicy,
+	assessments []Assessment,
+	forms []evidence.VendorFormRow,
+	periodStart, periodEnd, asOf time.Time,
+) ([]continuity.ProgramComplianceInput, error) {
+	if err := continuity.ValidateProgramComplianceCalculationPolicy(policy); err != nil {
+		return nil, err
+	}
+	expected := make([]ProgramVendorAssessmentExpectation, 0, len(policy.ExpectedVendorAssessments))
+	for _, item := range policy.ExpectedVendorAssessments {
+		expected = append(expected, ProgramVendorAssessmentExpectation{
+			Key: item.Key, RelationshipID: item.RelationshipID,
+			FormTemplateID: item.FormTemplateID, FormTemplateVersion: item.FormTemplateVersion,
+			ReviewKind: AssessmentReviewKind(item.ReviewKind), Weight: item.Weight,
+		})
+	}
+	return ProgramVendorAssessmentInputs(tenantID, legalEntityID, expected, assessments,
+		forms, periodStart, periodEnd, asOf, "VENDORS")
+}
