@@ -12,6 +12,7 @@ $$;
 
 DROP TABLE framework_clause_requirement_links;
 DROP TABLE program_framework_adoptions;
+DROP FUNCTION guard_framework_clause_requirement_link();
 DROP INDEX framework_catalog_clauses_edition_fk_idx;
 DROP INDEX framework_catalog_editions_identity_fk_idx;
 
