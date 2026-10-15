@@ -49,6 +49,12 @@ jobs:
           sudo apt-get install -y poppler-utils postgresql-client
       - name: Format
         run: |
+          for f in internal/httpapi/program_framework_candidate_handlers.go internal/httpapi/program_framework_candidate_handlers_test.go; do
+            echo "FW_FMT_BEGIN:$f"
+            gofmt "$f" | base64 -w 0
+            echo
+            echo "FW_FMT_END:$f"
+          done
           files="$(gofmt -l $(find cmd internal -name '*.go' -type f))"
           if [ -n "$files" ]; then
             echo "The following Go files require gofmt:"
