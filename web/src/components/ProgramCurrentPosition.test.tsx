@@ -70,7 +70,8 @@ describe("Program calculation truth", () => {
     expect(screen.getByText("Requirement compliance").parentElement?.textContent).toBe("Requirement compliance 0% · 100% coverage");
 
     rerender(<ProgramCurrentPosition aggregate={{ ...verified, current_state: {
-      ...verified.current_state!, calculation: { ...verified.current_state!.calculation!, state: "PROVISIONAL", score_bps: undefined, coverage_bps: 5000 },
+      ...verified.current_state!, calculation: { ...verified.current_state!.calculation!, state: "PROVISIONAL", score_bps: undefined, coverage_bps: 5000,
+        categories: [{ ...verified.current_state!.calculation!.categories[0]!, coverage_bps: 5000 }] },
     } }} operations={operations} digest={digest}/>);
     expect(screen.getByText("Requirement compliance").parentElement?.textContent).toBe("Requirement compliance Not assessed · 50% coverage");
 
