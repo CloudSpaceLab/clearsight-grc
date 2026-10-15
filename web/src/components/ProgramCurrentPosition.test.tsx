@@ -79,7 +79,7 @@ describe("Program calculation truth", () => {
 
     rerender(<ProgramCurrentPosition aggregate={{ ...verified, current_state: {
       ...verified.current_state!, calculation: { ...verified.current_state!.calculation!,
-        categories: [{ ...verified.current_state!.calculation!.categories[0], coverage_bps: 9000 }],
+        categories: [{ ...verified.current_state!.calculation!.categories[0]!, coverage_bps: 9000 }],
       },
     } }} operations={operations} digest={digest}/>);
     expect(screen.queryByText("Requirement compliance")).toBeNull();
