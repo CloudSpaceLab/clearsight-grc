@@ -1,12 +1,15 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { decideProgramCalculationPolicy, proposeProgramCalculationPolicy } from "../programOperationsApi";
+import { decideProgramCalculationPolicy, decideProgramFrameworkAdoption, loadFrameworkEditions, proposeProgramCalculationPolicy, proposeProgramFrameworkAdoption } from "../programOperationsApi";
 import type { ProgramAggregate } from "../types";
 import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
 
 vi.mock("../programOperationsApi", () => ({
   proposeProgramCalculationPolicy: vi.fn(),
   decideProgramCalculationPolicy: vi.fn(),
+  loadFrameworkEditions: vi.fn(),
+  proposeProgramFrameworkAdoption: vi.fn(),
+  decideProgramFrameworkAdoption: vi.fn(),
 }));
 
 const program = {
