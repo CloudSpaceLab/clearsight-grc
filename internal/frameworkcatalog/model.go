@@ -30,53 +30,56 @@ var publicationSHA256Pattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // Clause is an immutable source reference, not a Program Requirement or a
 // scorable compliance unit. Summary must be licensed for redistribution.
 type Clause struct {
-	Code          string  `json:"code"`
-	ParentCode    string  `json:"parent_code,omitempty"`
-	Title         string  `json:"title"`
-	SourceAnchor  string  `json:"source_anchor"`
-	Summary       string  `json:"summary,omitempty"`
-	Ordinal       int     `json:"ordinal"`
+	Code         string `json:"code"`
+	ParentCode   string `json:"parent_code,omitempty"`
+	Title        string `json:"title"`
+	SourceAnchor string `json:"source_anchor"`
+	Summary      string `json:"summary,omitempty"`
+	Ordinal      int    `json:"ordinal"`
 }
 
 // Publication is trusted curator input; it does not grant a tenant authority
 // or create any Program, control, evidence or calculation state.
 type Publication struct {
-	PublisherCode      string    `json:"publisher_code"`
-	FrameworkCode      string    `json:"framework_code"`
-	EditionCode        string    `json:"edition_code"`
-	Title              string    `json:"title"`
-	Jurisdiction       string    `json:"jurisdiction"`
-	SourceURL          string    `json:"source_url"`
-	SourceSHA256       string    `json:"source_sha256"`
-	SourcePublishedOn  string    `json:"source_published_on"`
-	EffectiveOn        string    `json:"effective_on,omitempty"`
-	LicenseBasis       string    `json:"license_basis"`
-	LicenseReference   string    `json:"license_reference,omitempty"`
-	Clauses            []Clause  `json:"clauses"`
+	PublisherCode     string   `json:"publisher_code"`
+	FrameworkCode     string   `json:"framework_code"`
+	EditionCode       string   `json:"edition_code"`
+	Title             string   `json:"title"`
+	Jurisdiction      string   `json:"jurisdiction"`
+	SourceURL         string   `json:"source_url"`
+	SourceSHA256      string   `json:"source_sha256"`
+	SourcePublishedOn string   `json:"source_published_on"`
+	EffectiveOn       string   `json:"effective_on,omitempty"`
+	LicenseBasis      string   `json:"license_basis"`
+	LicenseReference  string   `json:"license_reference,omitempty"`
+	Clauses           []Clause `json:"clauses"`
 }
 
 type Edition struct {
-	ID                 string  `json:"id"`
-	PublisherCode      string  `json:"publisher_code"`
-	FrameworkCode      string  `json:"framework_code"`
-	EditionCode        string  `json:"edition_code"`
-	Title              string  `json:"title"`
-	Jurisdiction       string  `json:"jurisdiction"`
-	SourceURL          string  `json:"source_url"`
-	SourceSHA256       string  `json:"source_sha256"`
-	SourcePublishedOn  string  `json:"source_published_on"`
-	EffectiveOn        string  `json:"effective_on,omitempty"`
-	LicenseBasis       string  `json:"license_basis"`
-	LicenseReference   string  `json:"license_reference,omitempty"`
-	ReleaseSHA256      string  `json:"release_sha256"`
-	ApprovalReference  string  `json:"approval_reference"`
+	ID                string `json:"id"`
+	PublisherCode     string `json:"publisher_code"`
+	FrameworkCode     string `json:"framework_code"`
+	EditionCode       string `json:"edition_code"`
+	Title             string `json:"title"`
+	Jurisdiction      string `json:"jurisdiction"`
+	SourceURL         string `json:"source_url"`
+	SourceSHA256      string `json:"source_sha256"`
+	SourcePublishedOn string `json:"source_published_on"`
+	EffectiveOn       string `json:"effective_on,omitempty"`
+	LicenseBasis      string `json:"license_basis"`
+	LicenseReference  string `json:"license_reference,omitempty"`
+	ReleaseSHA256     string `json:"release_sha256"`
+	ApprovalReference string `json:"approval_reference"`
 }
 
 // ValidatePublication checks publisher identity, license boundaries and
 // clause-tree completeness, then hashes normalized deterministic content.
 // The same edition identifier cannot be republished with different facts.
 func ValidatePublication(value Publication) (string, error) {
-	for _, c := range []struct{ name, value string; max int }{
+	for _, c := range []struct {
+		name, value string
+		max         int
+	}{
 		{"publisher", value.PublisherCode, 64}, {"framework", value.FrameworkCode, 64},
 		{"edition", value.EditionCode, 64}, {"jurisdiction", value.Jurisdiction, 64},
 	} {
