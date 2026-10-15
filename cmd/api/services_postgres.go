@@ -19,6 +19,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/frameworkcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/invalidation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
@@ -119,6 +120,7 @@ func buildServices(ctx context.Context, cfg config.Config, logger *slog.Logger) 
 	continuityRepo := continuity.NewReliablePostgresRepository(pool)
 	continuityService := continuity.NewService(continuityRepo)
 	continuityService.ConfigureEvidenceSourceValidator(evidenceService)
+	continuityService.ConfigureFrameworkEditionLookup(frameworkcatalog.NewPostgresRepository(pool))
 	monitoringService.ConfigureFormOriginValidator(formOriginMatterValidator{matters: continuityService})
 	ropaRepository := ropa.NewPostgresRepository(pool)
 	ropaLister := ropa.NewPostgresLister(pool)
