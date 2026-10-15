@@ -6,10 +6,8 @@ import (
     "context"
     "errors"
     "os"
-    "strings"
     "testing"
 
-    platformid "github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
     "github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,12 +19,10 @@ func TestPostgresFrameworkCatalogImmutablePublicationAndReads(t *testing.T) {
     if err != nil { t.Fatal(err) }
     defer pool.Close()
 
-    nonce, err := platformid.NewUUIDv7()
-    if err != nil { t.Fatal(err) }
-    suffix := nonce[len(nonce)-8:]
     publication := validTestPublication()
-    publication.FrameworkCode = "TEST-" + stringsUpperHex(suffix)
-    publication.Title = "Test publication " + suffix
+    publication.FrameworkCode = "INTEGRATION-TEST"
+    publication.Jurisdiction = "TEST-INTERNAL"
+    publication.Title = "Framework catalog integration test publication"
 
     repository := NewPostgresRepository(pool)
     edition, err := repository.Publish(ctx, publication, "test-reviewed-reference")
@@ -51,13 +47,11 @@ func TestPostgresFrameworkCatalogImmutablePublicationAndReads(t *testing.T) {
 
     listings, err := repository.ListEditions(ctx, publication.Jurisdiction, "", 100)
     if err != nil { t.Fatal(err) }
-    found := false
-    for _, item := range listings { if item.ID == edition.ID { found = true; break } }
-    // Other integration fixtures may have >100 editions: direct exact read is
-    // the correctness check, while ListEditions remains deliberately bounded.
+    if len(listings) != 1 || listings[0].ID != edition.ID {
+        t.Fatalf("unexpected internal test jurisdiction list: %+v", listings)
+    }
     fetched, err := repository.GetEdition(ctx, publication.PublisherCode, publication.FrameworkCode, publication.EditionCode)
     if err != nil || fetched.ID != edition.ID { t.Fatalf("exact read failed: %+v %v", fetched, err) }
-    _ = found
 
     altered := publication
     altered.Title = "Unapproved retroactive replacement"
@@ -76,7 +70,3 @@ func TestPostgresFrameworkCatalogImmutablePublicationAndReads(t *testing.T) {
     }
 }
 
-func stringsUpperHex(value string) string {
-    // The UUID suffix is hexadecimal; make it safe for catalog natural codes.
-    return strings.ToUpper(value)
-}
