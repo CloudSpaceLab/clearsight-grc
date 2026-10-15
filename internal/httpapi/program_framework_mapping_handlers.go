@@ -181,9 +181,9 @@ func (a *API) listProgramFrameworkMappings(w http.ResponseWriter, r *http.Reques
 		next = items[len(items)-1].ID
 	}
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
-		"items": items,
-		"next_after_id": next,
+		"items":           items,
+		"next_after_id":   next,
 		"program_version": visible.Program.Version,
-		"adoption_id": adoptionID,
+		"adoption_id":     adoptionID,
 	})
 }
