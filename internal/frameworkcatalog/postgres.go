@@ -176,7 +176,7 @@ func (r *PostgresRepository) ListClauses(ctx context.Context, editionID, afterCo
 	result := make([]Clause, 0, limit)
 	for rows.Next() {
 		var value Clause
-		if err := rows.Scan(&value.Code, &value.ParentCode, &value.Title,
+		if err := rows.Scan(&value.ID, &value.Code, &value.ParentCode, &value.Title,
 			&value.SourceAnchor, &value.Summary, &value.Ordinal); err != nil {
 			return nil, err
 		}
