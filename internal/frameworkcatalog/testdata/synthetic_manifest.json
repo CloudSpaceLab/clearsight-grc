@@ -1,0 +1,26 @@
+{
+  "publisher_code": "EXAMPLE",
+  "framework_code": "SYNTHETIC",
+  "edition_code": "2026",
+  "title": "Synthetic framework publication fixture",
+  "jurisdiction": "GLOBAL",
+  "source_url": "https://example.org/references/synthetic-2026",
+  "source_sha256": "03b8522b5f96aae0d63748beef09fa930062343d0b1b4d353ccf357f820ddb5e",
+  "source_published_on": "2026-10-01",
+  "license_basis": "CITATIONS_ONLY",
+  "clauses": [
+    {
+      "code": "A",
+      "title": "Access management",
+      "source_anchor": "Clause A",
+      "ordinal": 1
+    },
+    {
+      "code": "B",
+      "parent_code": "A",
+      "title": "Privileged reviews",
+      "source_anchor": "Clause B",
+      "ordinal": 2
+    }
+  ]
+}
