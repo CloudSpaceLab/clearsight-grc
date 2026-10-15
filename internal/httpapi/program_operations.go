@@ -84,9 +84,6 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 	approvalAuthorityID := aggregate.Program.AuthorityPrincipalID
 	for _, spec := range []programOperationSpec{
 		{Command: "program.details.update", Label: "Edit Program details", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
-		{Command: "program.compliance-policy.propose", Label: "Edit calculation rules", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID},
-		{Command: "program.compliance-policy.approve", Label: "Approve calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID},
-		{Command: "program.compliance-policy.reject", Label: "Reject calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID},
 		{Command: "program.assign", Label: "Change Program owner", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID, ReassignmentPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.approval-authority.assign", DecisionType: "program.transition", Label: "Change approval authority", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID, IncludeCandidates: true},
 		{Command: "program.requirement.add", Label: "Add a requirement", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
@@ -98,6 +95,13 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		{Command: "program.review.accept", Label: "Confirm the Program review", Responsibility: authority.ResponsibilityReviewer, Materiality: 3},
 	} {
 		add(spec)
+	}
+	// Keep one valid policy action set visible for the current Program state.
+	if aggregate.Program.CalculationPolicy == nil || aggregate.Program.CalculationPolicy.Pending == nil {
+		add(programOperationSpec{Command: "program.compliance-policy.propose", Label: "Edit calculation rules", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID})
+	} else {
+		add(programOperationSpec{Command: "program.compliance-policy.approve", Label: "Approve calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
+		add(programOperationSpec{Command: "program.compliance-policy.reject", Label: "Reject calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
 	}
 	if a.deps.Monitoring != nil {
 		forms, err := a.deps.Monitoring.ListForms(ctx, monitoring.Actor{TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID}, aggregate.Program.ID, 500)
