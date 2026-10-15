@@ -1,6 +1,7 @@
 package continuity
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -165,4 +166,28 @@ func clonePolicyForProjection(t *testing.T, position *ProgramCompliancePolicyPos
 	}
 	value.Active.Checksum = checksum
 	return &value
+}
+
+func TestProgramRefreshRetainsRequirementsCalculationWithoutAnotherProjection(t *testing.T) {
+	now := time.Date(2026, 10, 15, 12, 0, 0, 0, time.UTC)
+	aggregate := requirementsProjectionFixture(t, now)
+	repo := NewMemoryRepository()
+	repo.programs["bank"] = map[string]ProgramAggregate{"program": aggregate}
+	repo.programEvents["bank"] = map[string][]Event{"program": {}}
+	service := NewService(repo)
+	service.now = func() time.Time { return now }
+	ctx := WithTrustedSystemScope(context.Background())
+	if err := service.refreshProgramCurrent(ctx, "bank", "program", "POLICY_APPROVED", ""); err != nil {
+		t.Fatal(err)
+	}
+	saved, err := service.GetProgram(ctx, "bank", "program")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved.CurrentState == nil || saved.CurrentState.Calculation == nil ||
+		saved.CurrentState.Calculation.ScoreBps == nil ||
+		*saved.CurrentState.Calculation.ScoreBps != 10000 ||
+		saved.CurrentState.Calculation.PolicyRevision != "program-v1" {
+		t.Fatalf("approved score did not use existing Program projection: %+v", saved.CurrentState)
+	}
 }
