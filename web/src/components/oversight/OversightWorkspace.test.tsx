@@ -545,7 +545,8 @@ it("reloads both Home reads for an organization scope and excludes unattributed 
   ));
   expect(await screen.findByText(/4 issues/)).toBeTruthy();
   expect(screen.getByText(/unassigned area excluded/)).toBeTruthy();
-  expect(screen.getByText("Current risk posture and operating context in BANK / RISK.")).toBeTruthy();
+  expect(screen.getByText("Clear Bank · Clear Bank Nigeria · BANK / RISK")).toBeTruthy();
+  expect(screen.getByText(/Risk, compliance and action ·|Risk, compliance and action in the last /)).toBeTruthy();
 });
 
 
