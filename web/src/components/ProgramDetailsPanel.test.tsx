@@ -68,6 +68,39 @@ describe("Program calculation rules", () => {
     }), "Issue weighting"));
   });
 
+  it("preserves approved expected vendors when only calculation weights change", async () => {
+    const obligation = {
+      key: "vendor-1:security", relationship_id: "vendor-1", form_template_id: "security",
+      form_template_version: 2, review_kind: "PERIODIC" as const, weight: 1,
+    };
+    const definition = {
+      revision: "program-v1", minimum_coverage_bps: 10000,
+      categories: [{ code: "REQUIREMENTS", weight_bps: 7000 }, { code: "VENDORS", weight_bps: 3000 }],
+      expected_vendor_assessments: [obligation],
+    };
+    const active = {
+      number: 1, definition, checksum: "checksum",
+      maker_id: "owner", approver_id: "reviewer", proposed_at: "2026-10-01T08:00:00Z",
+      approved_at: "2026-10-02T08:00:00Z",
+    };
+    const state = { ...aggregate, program: {
+      ...program, calculation_policy: { last_revision: 1, active },
+    } };
+    vi.mocked(proposeProgramCalculationPolicy).mockResolvedValue(state);
+    render(<ProgramDetailsPanel aggregate={state} operations={[proposal]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Edit rules" }));
+    expect(screen.queryByRole("button", { name: "Remove Vendor assessments" })).toBeNull();
+    fireEvent.change(screen.getByLabelText("Requirements and controls (%)"), { target: { value: "60" } });
+    fireEvent.change(screen.getByLabelText("Vendor assessments (%)"), { target: { value: "40" } });
+    fireEvent.change(screen.getByLabelText("Reason for change"), { target: { value: "Rebalance weights" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit for approval" }));
+    await waitFor(() => expect(proposeProgramCalculationPolicy).toHaveBeenCalledWith(
+      "program-1", 3,
+      expect.objectContaining({ expected_vendor_assessments: [obligation] }),
+      "Rebalance weights",
+    ));
+  });
+
   it("does not expose approval to the maker", () => {
     const pending = { number: 1, checksum: "abc", maker_id: "owner", proposed_at: "2026-10-15T08:00:00Z",
       definition: { revision: "program-v1", minimum_coverage_bps: 10000, categories: [{ code: "REQUIREMENTS", weight_bps: 10000 }] } };
