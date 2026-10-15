@@ -9,6 +9,9 @@ const (
 	EventProgramCreated                     = "PROGRAM_CREATED"
 	EventProgramStatusChanged               = "PROGRAM_STATUS_CHANGED"
 	EventProgramDetailsUpdated              = "PROGRAM_DETAILS_UPDATED"
+	EventProgramCalculationPolicyProposed    = "PROGRAM_CALCULATION_POLICY_PROPOSED"
+	EventProgramCalculationPolicyApproved    = "PROGRAM_CALCULATION_POLICY_APPROVED"
+	EventProgramCalculationPolicyRejected    = "PROGRAM_CALCULATION_POLICY_REJECTED"
 	EventProgramOwnerChanged                = "PROGRAM_OWNER_CHANGED"
 	EventProgramApprovalAuthorityChanged    = "PROGRAM_APPROVAL_AUTHORITY_CHANGED"
 	EventRequirementAdded                   = "REQUIREMENT_ADDED"
@@ -88,6 +91,12 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.Program = value.Program
+		case EventProgramCalculationPolicyProposed, EventProgramCalculationPolicyApproved, EventProgramCalculationPolicyRejected:
+			var value programCompliancePolicyChangedEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Program.CalculationPolicy = &value.Position
 		case EventProgramOwnerChanged:
 			var value programOwnerChangedEvent
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
