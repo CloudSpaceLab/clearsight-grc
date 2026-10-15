@@ -80,6 +80,40 @@ type programComplianceAccumulator struct {
 	earnedPoints   int64
 }
 
+// ValidateProgramComplianceCalculationPolicy is the approval-time check for
+// the same deterministic rules consumed by the calculation. It performs no
+// source lookup or material Program state change.
+func ValidateProgramComplianceCalculationPolicy(policy ProgramComplianceCalculationPolicy) error {
+	_, err := validatedProgramComplianceCategories(policy)
+	return err
+}
+
+func validatedProgramComplianceCategories(policy ProgramComplianceCalculationPolicy) (map[string]int, error) {
+	if strings.TrimSpace(policy.Revision) == "" || len(policy.Revision) > 128 ||
+		policy.MinimumCoverageBps < 1 || policy.MinimumCoverageBps > programComplianceBasisPoints ||
+		len(policy.Categories) == 0 || len(policy.Categories) > 8 {
+		return nil, ErrProgramComplianceCalculationInvalid
+	}
+	categories := make(map[string]int, len(policy.Categories))
+	var total int64
+	for index, category := range policy.Categories {
+		code := strings.TrimSpace(category.Code)
+		if code == "" || len(code) > 64 || code != category.Code ||
+			category.WeightBps < 1 || category.WeightBps > programComplianceBasisPoints {
+			return nil, ErrProgramComplianceCalculationInvalid
+		}
+		if _, duplicate := categories[code]; duplicate {
+			return nil, ErrProgramComplianceCalculationInvalid
+		}
+		categories[code] = index
+		total += category.WeightBps
+	}
+	if total != programComplianceBasisPoints {
+		return nil, ErrProgramComplianceCalculationInvalid
+	}
+	return categories, nil
+}
+
 // CalculateProgramCompliance aggregates fixed-point input scores supplied by
 // authoritative Program, evidence and assessment readers. Caller validation
 // must establish applicability, due dates, source currency and permissions.
@@ -88,35 +122,21 @@ func CalculateProgramCompliance(
 	policy ProgramComplianceCalculationPolicy,
 	inputs []ProgramComplianceInput,
 ) (ProgramComplianceCalculation, error) {
-	if strings.TrimSpace(policy.Revision) == "" || len(policy.Revision) > 128 ||
-		policy.MinimumCoverageBps < 1 || policy.MinimumCoverageBps > programComplianceBasisPoints ||
-		len(policy.Categories) == 0 || len(policy.Categories) > 8 || len(inputs) > 10000 {
+	if len(inputs) > 10000 {
 		return ProgramComplianceCalculation{}, ErrProgramComplianceCalculationInvalid
 	}
-
+	categories, err := validatedProgramComplianceCategories(policy)
+	if err != nil {
+		return ProgramComplianceCalculation{}, err
+	}
 	result := ProgramComplianceCalculation{
 		PolicyRevision: policy.Revision,
 		State:          ProgramComplianceNotAssessed,
 		Categories:     make([]ProgramComplianceCategoryResult, len(policy.Categories)),
 	}
-	categories := make(map[string]int, len(policy.Categories))
 	accumulators := make([]programComplianceAccumulator, len(policy.Categories))
-	var policyWeight int64
 	for index, category := range policy.Categories {
-		code := strings.TrimSpace(category.Code)
-		if code == "" || len(code) > 64 || code != category.Code ||
-			category.WeightBps < 1 || category.WeightBps > programComplianceBasisPoints {
-			return ProgramComplianceCalculation{}, ErrProgramComplianceCalculationInvalid
-		}
-		if _, duplicate := categories[code]; duplicate {
-			return ProgramComplianceCalculation{}, ErrProgramComplianceCalculationInvalid
-		}
-		categories[code] = index
-		policyWeight += category.WeightBps
-		result.Categories[index] = ProgramComplianceCategoryResult{Code: code, WeightBps: category.WeightBps}
-	}
-	if policyWeight != programComplianceBasisPoints {
-		return ProgramComplianceCalculation{}, ErrProgramComplianceCalculationInvalid
+		result.Categories[index] = ProgramComplianceCategoryResult{Code: category.Code, WeightBps: category.WeightBps}
 	}
 
 	seen := make(map[string]struct{}, len(inputs))
