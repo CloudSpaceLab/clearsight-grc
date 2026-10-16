@@ -64,7 +64,7 @@ func PreviewEditionClauseDelta(from, to Publication) (EditionClauseDelta, error)
 		ClauseChanges: make([]ClauseChange, 0),
 	}
 	for _, field := range []struct {
-		name string
+		name    string
 		changed bool
 	}{
 		{"title", from.Title != to.Title},
