@@ -252,12 +252,18 @@ it("keeps oversight analysis separate from attention and assigned work", async (
   expect(screen.getByRole("button", { name: /Outside appetite: 9/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Indicator breaches: 4/ })).toBeTruthy();
   expect(await screen.findByText("Net operational loss")).toBeTruthy();
-  expect(await screen.findByRole("list", { name: "Net operational Loss by organization area" })).toBeTruthy();
-  expect(screen.getByRole("img", { name: "Net operational loss trend" })).toBeTruthy();
+  expect(screen.getByRole("tab", { name: "Risk analysis" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.queryByRole("heading", { name: "Loss trend" })).toBeNull();
   expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
   const riskConcentration = screen.getByRole("list", { name: "Outside-appetite risks by organization area" });
   expect(riskConcentration.textContent).toContain("Technology");
   expect(riskConcentration.textContent).toContain("Unattributed");
+  fireEvent.click(screen.getByRole("tab", { name: "Loss analysis" }));
+  expect(await screen.findByRole("list", { name: "Net operational Loss by organization area" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: "Net operational loss trend" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Risk trend" })).toBeNull();
+  fireEvent.click(screen.getByRole("tab", { name: "Risk analysis" }));
+  expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
   expect(screen.queryByText("Critical and high")).toBeNull();
   expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
 
@@ -271,6 +277,23 @@ it("keeps oversight analysis separate from attention and assigned work", async (
   expect(screen.getByText("87.5%")).toBeTruthy();
   expect(screen.getByText("8 completed · 8 measured")).toBeTruthy();
   expect(screen.getByRole("columnheader", { name: "Workflow history" })).toBeTruthy();
+});
+
+it("keeps the four source-backed metric positions visible while switching bounded analysis", async () => {
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  expect(await screen.findByRole("tab", { name: "Risk analysis" })).toBeTruthy();
+  const metricNames = ["Outside appetite", "Indicator breaches", "Assurance failures", "Net operational loss"];
+  for (const label of metricNames) expect(screen.getByRole("article", { name: new RegExp(`^${label}:`) })).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("tab", { name: "Loss analysis" }));
+  expect(await screen.findByRole("heading", { name: "Loss concentration" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Loss trend" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Risk trend" })).toBeNull();
+  for (const label of metricNames) expect(screen.getByRole("article", { name: new RegExp(`^${label}:`) })).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("tab", { name: "Risk analysis" }));
+  expect(await screen.findByRole("heading", { name: "Risk trend" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Loss trend" })).toBeNull();
 });
 
 it("keeps canonical metrics visible when detailed analysis is unavailable", async () => {
