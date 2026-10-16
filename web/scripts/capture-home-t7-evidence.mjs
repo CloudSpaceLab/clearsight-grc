@@ -76,7 +76,7 @@ for (const item of scenarios) {
     await page.evaluate(() => document.fonts?.ready);
 
     if (item.mode === "entity") {
-      await page.getByRole("heading", { name: "Home", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Enterprise Control Tower", exact: true }).waitFor({ state: "visible" });
       const tabs = primaryTabs(page).locator(":scope > .cs-tabs__list [role=tab]");
       assert(await tabs.count() === 3, "Legal-entity Home exposes three intent tabs");
       assert(await primaryTabSelected(page, "Oversight"), "Oversight is initial entity tab");
