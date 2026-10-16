@@ -56,13 +56,40 @@ describe("Program projection truth", () => {
 
     render(<ProgramsWorkspace/>);
 
-    expect(await screen.findByRole("heading", { name: "1 program needs assessment or review" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Programs", level: 1 })).toBeTruthy();
+    expect(screen.getByText("1 program needs assessment or review · Loaded page")).toBeTruthy();
     expect(screen.getByText("Out of date")).toBeTruthy();
     const rowLink = screen.getByRole("link", { name: /Privacy compliance/ });
     expect(rowLink.getAttribute("href")).toBe("#programs/program-stale");
     expect(screen.getByText(/need assessment or review/)).toBeTruthy();
     expect(screen.getByRole("region", { name: "Program summary for displayed records" })).toBeTruthy();
   });
+  it("does not advertise the loaded page as the full enterprise Program total", async () => {
+    vi.mocked(loadProgramSummaries).mockResolvedValue({
+      generated_at: "2026-10-16T09:00:00Z",
+      next_cursor: "page-2",
+      items: [{
+        program: {
+          id: "program-loaded", name: "Control testing", code: "CT-01",
+          status: "ACTIVE", owning_function: "Risk", version: 3,
+        },
+        state_label: "Up to date",
+        overall_state: "CURRENT",
+        reasons: [],
+        requirement_count: 2, evidence_check_count: 2,
+        open_matter_count: 0,
+        program_version: 3, assessed_program_version: 3,
+        projection_stale: false,
+      } as unknown as ProgramSummary],
+    });
+
+    render(<ProgramsWorkspace/>);
+    expect(await screen.findByRole("heading", { name: "Programs", level: 1 })).toBeTruthy();
+    expect(screen.getByText("1 program is up to date · Loaded page · More available")).toBeTruthy();
+    expect(screen.getByText("1 on this page · More pages")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Load more programs" })).toBeTruthy();
+  });
+
   it("groups Program counts into distinct scannable facts without treating unknowns as zero", async () => {
     vi.mocked(loadProgramSummaries).mockResolvedValue({
       generated_at: "2026-10-09T12:00:00Z",
