@@ -103,6 +103,17 @@ Migration is explicit rather than inferred from visual similarity. A file is mig
 
 Operational success and failure receipts use `Notice` rather than feature-owned coloured text. The message remains the primary state cue; semantic tone is limited to the notice border/surface treatment while readable copy uses the theme's primary text token. Compact stored states use `StatusBadge` with a non-colour marker and an explicit semantic tone, including an explicit unknown tone in each theme. Every badge foreground must meet WCAG AA against its resolved tinted surface in both themes. Feature workspaces arrange these components but do not define private feedback or status palettes.
 
+## Control Tower 2030 contract — #462
+
+The final approved light dashboard reference is a **presentation direction**, not a fixture, score policy or alternative application. Continue the existing role-aware Home: Oversight shows condition and movement, Attention shows shared interventions, My work shows actor-specific work. Do not duplicate navigation or load all three panels simultaneously. Record visual decisions and state proofs in [the Control Tower design brief](docs/design/2026-10-15-control-tower-ui-and-reference-data.md).
+
+- Header: `Enterprise Control Tower` and the **actual resolved** reporting period; no slogans, fake health chips or ungrounded numbers. Date/scope changes use existing verified, scoped API reads, preserve current posture vs period-flow semantics, and show stale/unknown clearly.
+- Density: top-level controls stay compact, up to four stable posture cards; one primary comparison with bounded contextual detail. Move rich matrices, multi-series analytics and long queues to Insights/Attention; preserve explicit links.
+- Form and onboarding actions are role-authorized, optional, skippable and hidden/collapsed after completion; use existing guides, not a permanent “get started” billboard.
+- AI assistance is optional and only shows evidence-linked current suggestions with real destinations (maximum three). Keep its visual orb clear of text/actions, motion purposeful and reduced-motion safe.
+- Responsive and interaction: 1440/1280/768/390px, keyboard, focus, minimum 44px touch, light/dark; compose shared tokens/components and document any variant in the gallery. Do not simulate framework progress or score a draft questionnaire in the browser.
+- Reference content is distinct from non-production demonstration data. Framework tiles reflect edition, license and publication completeness from #437; compliance percentages require the explicit approved #433 scoring snapshot and coverage.
+
 ## Structural patterns
 
 ### Native Indicators — 5 October 2026
