@@ -47,6 +47,8 @@ def verify(first: dict, repeated: dict) -> dict:
     require(len(responses) == 3, "first run must submit all three assessed test responses")
     response_ids = [response.get("id") for response in responses]
     require(all(response_ids) and len(set(response_ids)) == 3, "response revisions must be distinct")
+    response_scopes = {(response.get("tenant_id"), response.get("legal_entity_id")) for response in responses}
+    require(len(response_scopes) == 1 and all(next(iter(response_scopes))), "response revisions cross tenant/legal-entity scope")
     for response in responses:
         require(
             response.get("subject_type") == "PROGRAM"
