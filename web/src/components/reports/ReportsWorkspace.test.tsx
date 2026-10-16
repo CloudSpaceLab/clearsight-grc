@@ -127,6 +127,8 @@ describe("ReportsWorkspace", () => {
     const summary = screen.getByRole("region", { name: "Report library summary" });
     expect(within(summary).getByText("Available").nextElementSibling?.textContent).toBe("1");
     expect(within(summary).getByText("Failed").nextElementSibling?.textContent).toBe("1");
+    expect(within(summary).getByText("Loaded report status")).toBeTruthy();
+    expect(within(summary).getByText("2 loaded")).toBeTruthy();
     expect(loadRunPage).toHaveBeenCalledWith({ limit: 50 }, expect.any(AbortSignal));
     expect(loadDefinitions).toHaveBeenCalledWith(true, expect.any(AbortSignal));
   });
@@ -194,6 +196,7 @@ describe("ReportsWorkspace", () => {
 
     renderWorkspace();
     const table = await screen.findByRole("table", { name: "Generated reports" });
+    expect(screen.getByText("2 loaded · More available")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Load older reports" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Load older reports" }));
@@ -201,6 +204,7 @@ describe("ReportsWorkspace", () => {
 
     const vendorRows = within(table).getAllByRole("row", { name: /Vendor portfolio/ });
     expect(vendorRows).toHaveLength(2);
+    expect(screen.getByText("3 loaded")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Load older reports" })).toBeNull();
   });
 
