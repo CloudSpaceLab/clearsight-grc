@@ -60,6 +60,19 @@ it("keeps assessed risk cards actionable when another measure has no population"
   expect(screen.getByRole("button", { name: /Assurance failures: 0/ })).toBeTruthy();
 });
 
+it("closes an existing Risk drill when its eligible population becomes empty", async () => {
+  const loadMembers = vi.fn().mockReturnValue(new Promise(() => undefined));
+  const view = render(<DomainPostureSummary bundle={bundle()} state="live" loadMembers={loadMembers}/>);
+
+  fireEvent.click(screen.getByRole("button", { name: /Outside appetite: 1/ }));
+  await waitFor(() => expect(loadMembers).toHaveBeenCalledTimes(1));
+  expect(document.getElementById("domain-posture-members")).not.toBeNull();
+
+  view.rerender(<DomainPostureSummary bundle={bundle(0)} state="live" loadMembers={loadMembers}/>);
+  expect(document.getElementById("domain-posture-members")).toBeNull();
+  expect(screen.getByRole("article", { name: /Outside appetite: —.*No assessed population/ })).toBeTruthy();
+});
+
 it("opens exact scoped Risk members from the canonical posture card", async () => {
   const loadMembers = vi.fn().mockResolvedValue({
     source_id: "8f720000-0000-4000-8000-000000000001",
