@@ -63,11 +63,25 @@ export function RiskMovement({
 
     void request.then((result) => {
       if (controller.signal.aborted) return;
+      const trend = result.value;
+      const identityMatches = trend.metric_id === current.id
+        && trend.definition_revision === current.definition_revision
+        && trend.start.slice(0, 10) === startDate
+        && trend.end.slice(0, 10) === endDate
+        && (result.kind === "organization"
+          ? trend.organization_scope_id === organizationScopeID && trend.resolution === "DAY"
+          : trend.resolution === "DAY" || trend.resolution === "HOUR");
+      if (!identityMatches) {
+        setLegalTrend(null);
+        setOrganizationTrend(null);
+        setState("unavailable");
+        return;
+      }
       if (result.kind === "organization") {
-        setOrganizationTrend(result.value);
+        setOrganizationTrend(trend);
         setLegalTrend(null);
       } else {
-        setLegalTrend(result.value);
+        setLegalTrend(trend);
         setOrganizationTrend(null);
       }
       setState("live");
@@ -89,15 +103,21 @@ export function RiskMovement({
     const baselineKey = formatDate(baselineDate);
     const todayKey = formatDate(today);
 
-    const history = organizationTrend
-      ? organizationTrend.points.map((point) => ({
+    const scopedTrend = organizationScopeID && organizationTrend?.organization_scope_id === organizationScopeID
+      && organizationTrend.metric_id === current.id
+      && organizationTrend.definition_revision === current.definition_revision
+      ? organizationTrend : null;
+    const entityTrend = !organizationScopeID && legalTrend?.metric_id === current.id
+      && legalTrend.definition_revision === current.definition_revision ? legalTrend : null;
+    const history = scopedTrend
+      ? scopedTrend.points.map((point) => ({
           id: `history-${point.date}`,
           at: point.at,
           date: point.date,
           value: point.value,
           complete: point.source_complete,
         }))
-      : (legalTrend?.points ?? []).map((point) => ({
+      : (entityTrend?.points ?? []).map((point) => ({
           id: `history-${point.at}`,
           at: point.at,
           date: point.at.slice(0, 10),
