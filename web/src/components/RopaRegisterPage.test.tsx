@@ -89,9 +89,10 @@ it("renders the stored register counts and exception signals", () => {
   expect(within(strip).getByText("42")).toBeTruthy();
   expect(within(strip).getByText("20")).toBeTruthy();
   expect(within(strip).getByText("6")).toBeTruthy();
-  expect(within(strip).getByText("4 missing lawful basis")).toBeTruthy();
-  expect(within(strip).getByText("3 missing owner")).toBeTruthy();
-  expect(within(strip).getByText("5 missing data subjects")).toBeTruthy();
+  for (const [label, count] of [["Missing lawful basis", 4], ["Missing owner", 3], ["Missing data subjects", 5]] as const) {
+    const card = within(strip).getByRole("article", { name: new RegExp(`${label}: ${count}.*Coverage incomplete`) });
+    expect(card.getAttribute("data-quality")).toBe("partial");
+  }
   expect(within(strip).getByText("42 checked · 2 excluded · 1 unknown")).toBeTruthy();
 });
 
@@ -103,9 +104,25 @@ it("keeps undefined coverage values as unknown rather than zero", () => {
   expect(strip.textContent).not.toContain("unknown records: 0");
 });
 
+it("does not show an empty ROPA population as healthy compliance", () => {
+  render(<RopaDashboardStrip summary={{
+    ...summary,
+    coverage: { population: 0, excluded: 0, unknown: 0 },
+    counts: { ...summary.counts, total: 0, open: 0, review_overdue: 0, missing_lawful_basis: 0, missing_owner: 0, no_data_subjects: 0 },
+  }}/>);
+
+  const cards = screen.getAllByRole("article");
+  expect(cards).toHaveLength(6);
+  expect(screen.getByRole("article", { name: /Processing activities: 0.*No assessed population/ })).toBeTruthy();
+  expect(screen.getByRole("article", { name: /Missing lawful basis: —.*No assessed population/ })).toBeTruthy();
+  expect(cards.every((card) => card.getAttribute("data-quality") === "unknown")).toBe(true);
+  expect(screen.queryByText("0 missing lawful basis")).toBeNull();
+});
+
 it("labels a stale summary with its generation time and omits that warning for a current summary", () => {
   const { unmount } = render(<RopaDashboardStrip summary={{ ...summary, freshness: "STALE" }}/>);
-  expect(screen.getByText("Stale")).toBeTruthy();
+  expect(screen.getAllByText("Stale").length).toBeGreaterThan(0);
+  expect(screen.getByRole("article", { name: /Processing activities: 42.*Stale/ })).toBeTruthy();
   expect(screen.getByText("24 Sept 2026, 08:00")).toBeTruthy();
   unmount();
 
