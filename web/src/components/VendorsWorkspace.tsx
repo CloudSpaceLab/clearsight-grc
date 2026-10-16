@@ -658,7 +658,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
   function requestForms(values: VendorRelationshipAggregate[]) { setRequestTargets(values.map((value) => ({ relationshipID: value.relationship.id, vendorName: value.vendor.legal_name, serviceName: value.relationship.service_name }))); }
   function openFormWork(record: VendorRelationshipAggregate, filter?: VendorFormsFilter) { choose(record); setVendorSection("FORMS"); setFormsFocus({ relationshipID: record.relationship.id, filter }); }
   return <div className={workspaceClass} tabIndex={-1}>
-    <header className="topbar vendors-topbar">
+    <header className="topbar vendors-topbar cs-register-header">
       <div>{!selected && <span className="eyebrow">{organizationName} · {legalEntityName}</span>}<h1>Vendors</h1></div>
       {mode === "browse" && <Button id="vendor-add-action" type="button" variant={selected ? "secondary" : "primary"} onPress={() => { onPage?.("register"); startCreate(); }} isDisabled={state !== "live"}>Add vendor</Button>}
     </header>
