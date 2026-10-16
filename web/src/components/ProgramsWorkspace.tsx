@@ -194,7 +194,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       <div>
         <span className="eyebrow">Portfolio</span>
         <h2 id="program-portfolio-title">Program portfolio</h2>
-        <p>{briefTitle}{items.length > 0 ? ` · Loaded page${nextCursor ? " · More available" : ""}` : ""}</p>
+        <p>{briefTitle}{items.length > 0 ? ` · Loaded programs${nextCursor ? " · More available" : ""}` : ""}</p>
       </div>
       <div className="workspace-brief-side"><Button variant="primary" onPress={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</Button></div>
     </header>
@@ -203,7 +203,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       <div className="program-portfolio-visual__position">
         <header className="program-portfolio-visual__heading">
           <div><span className="eyebrow">Loaded results</span><h2>Program status</h2></div>
-          <span className="program-portfolio-visual__scope">{items.length} on this page{nextCursor ? " · More pages" : ""}</span>
+          <span className="program-portfolio-visual__scope">{items.length} loaded{nextCursor ? " · More available" : ""}</span>
         </header>
         {singleState
           ? <p className="program-portfolio-visual__uniform-status"><strong>{singleState.count}</strong> {singleState.id === "attention" ? "need follow-up" : singleState.id === "current" ? "up to date" : singleState.id === "setup" ? "need assessment or review" : "not applicable"}</p>
@@ -221,7 +221,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       <div className="program-portfolio-visual__issues">
         <header className="program-portfolio-visual__heading">
           <div><span className="eyebrow">Issues and changes</span><h2>Most open issues</h2></div>
-          <span className="program-portfolio-visual__scope">Top {summary.knownIssuePrograms.length} on this page</span>
+          <span className="program-portfolio-visual__scope">Top {summary.knownIssuePrograms.length} loaded</span>
         </header>
         {summary.knownIssuePrograms.length > 0
           ? <RankedBarList ariaLabel="Programs with the most open issues in the displayed records"
