@@ -125,9 +125,26 @@ it("renders a bounded Risk register with working-language appetite state", async
   expect(screen.getByText("1 shown")).toBeTruthy();
   expect(screen.getByRole("img", { name: /Risk appetite for displayed records: 1 outside appetite/i })).toBeTruthy();
   expect(screen.getByText("1 shown")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Review 1 outside appetite" }));
+  fireEvent.click(screen.getByRole("button", { name: "Filter outside appetite" }));
   await waitFor(() => expect(loadPage).toHaveBeenCalledWith(expect.objectContaining({ appetitePosition: "BREACHED", limit: 25 }), expect.any(AbortSignal)));
   expect(screen.queryByText(risk.owner_principal_id!)).toBeNull();
+});
+
+it("uses one shared surface and labels page-local appetite values accurately", async () => {
+  const loadPage = vi.fn().mockResolvedValue({ ...page, next_cursor: "next-risk-page" });
+  render(<RiskRegister onOpenRisk={vi.fn()} loadPage={loadPage}/>);
+
+  const summary = await screen.findByRole("region", { name: "Risk appetite for displayed records" });
+  expect(summary.className).toContain("cs-register-summary");
+  expect(screen.getByRole("heading", { name: "Risks" }).closest("header")?.className).toContain("cs-register-header");
+  expect(within(summary).getByText("1 on this page · More pages")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Review 1 outside appetite/ })).toBeNull();
+
+  fireEvent.click(within(summary).getByRole("button", { name: "Filter outside appetite" }));
+  await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(
+    expect.objectContaining({ appetitePosition: "BREACHED", cursor: undefined, limit: 25 }),
+    expect.any(AbortSignal),
+  ));
 });
 
 it("binds the register read to the selected organization scope", async () => {
