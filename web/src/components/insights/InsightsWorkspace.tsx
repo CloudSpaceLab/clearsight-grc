@@ -173,7 +173,7 @@ export function InsightsWorkspace({
   const scopeLabel = organizationScopeName || legalEntityName || "current scope";
   if (view === "risk-loss") {
     return <section className="insights-workspace">
-      <header className="topbar">
+      <header className="topbar cs-workspace-header">
         <div>
           <span className="eyebrow">{organizationName}</span>
           <h1>Insights</h1>
@@ -202,7 +202,7 @@ export function InsightsWorkspace({
   }
 
   return <section className="insights-workspace">
-    <header className="topbar">
+    <header className="topbar cs-workspace-header">
       <div>
         <span className="eyebrow">{organizationName}</span>
         <h1>Insights</h1>

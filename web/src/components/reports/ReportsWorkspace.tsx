@@ -336,7 +336,7 @@ export function ReportsWorkspace({
   ];
 
   return <section className="reports-workspace" aria-labelledby="reports-heading">
-    <header className="reports-workspace__header">
+    <header className="reports-workspace__header cs-workspace-header">
       <div>
         <span className="eyebrow">{organizationName || "ClearSight"} · {legalEntityName || "Current legal entity"}</span>
         <h1 id="reports-heading">Reports</h1>

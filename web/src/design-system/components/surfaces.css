@@ -61,7 +61,7 @@
 }
 
 /* Shared register composition for canonical Risk, Loss and future portfolio lists. */
-.cs-register-header {
+:is(.cs-register-header, .cs-workspace-header) {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -72,9 +72,9 @@
   border-radius: var(--cs-surface-radius);
   background: linear-gradient(115deg, var(--cs-bg-surface-1), color-mix(in srgb, var(--cs-accent-cyan) 5%, var(--cs-bg-surface-1)));
 }
-.cs-register-header > div { min-inline-size: 0; }
-.cs-register-header h1 { margin-block: var(--cs-primitive-space-2) 0; }
-.cs-register-header p {
+:is(.cs-register-header, .cs-workspace-header) > div { min-inline-size: 0; }
+:is(.cs-register-header, .cs-workspace-header) h1 { margin-block: var(--cs-primitive-space-2) 0; }
+:is(.cs-register-header, .cs-workspace-header) p {
   max-inline-size: var(--cs-reading-measure);
   margin: var(--cs-primitive-space-2) 0 0;
   color: var(--cs-text-muted);
@@ -111,6 +111,6 @@
   font-variant-numeric: tabular-nums;
 }
 @media (max-width: 760px) {
-  .cs-register-header { flex-wrap: wrap; padding: var(--cs-space-group); }
+  :is(.cs-register-header, .cs-workspace-header) { flex-wrap: wrap; padding: var(--cs-space-group); }
   .cs-register-summary { padding: var(--cs-space-group); }
 }
