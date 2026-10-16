@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import type { ProgramItemTarget, ProgramSection } from "../appRouting";
 import { loadProgramSummaries, type ScopeNode } from "../api";
 import { hasProgramAssessment, needsProgramAssessment, summarizeProgramPortfolio, type ProgramListSummary } from "../programPortfolioPresentation";
-import { RankedBarList, StackedDistribution } from "./ui";
+import { Button, RankedBarList, StackedDistribution } from "./ui";
 import type { ProgramAggregate, ProgramState } from "../types";
 import { EmptyState } from "./EmptyState";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
@@ -196,7 +196,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
         <h1 id="program-portfolio-title">Programs</h1>
         <p>{briefTitle}{items.length > 0 ? ` · Loaded page${nextCursor ? " · More available" : ""}` : ""}</p>
       </div>
-      <div className="workspace-brief-side"><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
+      <div className="workspace-brief-side"><Button variant="primary" onPress={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</Button></div>
     </header>
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} organizationScopes={organizationScopes} initialOrganizationScopeID={organizationScopeID} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
     {items.length > 0 && <section className={`program-portfolio-visual${singleState ? " program-portfolio-visual--uniform" : ""}`} aria-label="Program summary for displayed records">
@@ -274,6 +274,6 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
         </article>;
       })}
     </section> : null}
-    {nextCursor && <div className="load-more"><button className="secondary-button" disabled={loadingMore} onClick={() => void load(false, nextCursor)}>{loadingMore ? "Loading…" : "Load more programs"}</button></div>}
+    {nextCursor && <div className="load-more"><Button variant="secondary" isDisabled={loadingMore} onPress={() => void load(false, nextCursor)}>{loadingMore ? "Loading…" : "Load more programs"}</Button></div>}
   </div>;
 }
