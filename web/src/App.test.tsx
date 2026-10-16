@@ -684,11 +684,11 @@ describe("runtime navigation", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Review first assigned item" }));
     expect((await screen.findByRole("alert")).textContent).toContain("No eligible item is available");
-    expect(window.location.hash).toBe("#today");
+    expect(window.location.hash).toBe("#oversight");
 
     fireEvent.click(screen.getByRole("button", { name: "Check approval route" }));
     expect((await screen.findByRole("alert")).textContent).toContain("No eligible item is available");
-    expect(window.location.hash).toBe("#today");
+    expect(window.location.hash).toBe("#oversight");
   });
 
   it("does not open a guide response without a revalidated actor-eligible request", async () => {
@@ -698,7 +698,7 @@ describe("runtime navigation", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Open assigned response" }));
     expect((await screen.findByRole("alert")).textContent).toContain("No eligible item is available");
     expect(screen.queryByRole("heading", { name: "Confirm assigned evidence" })).toBeNull();
-    expect(window.location.hash).toBe("#today");
+    expect(window.location.hash).toBe("#oversight");
   });
 
   it("keeps a guide response step open when eligibility is revoked on revalidation", async () => {
@@ -716,7 +716,7 @@ describe("runtime navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open assigned response" }));
 
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation"));
-    expect((await screen.findByRole("alert")).textContent).toContain("This guide step could not be opened.");
+    expect(await screen.findByText("This guide step could not be opened. Try again.")).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "You cannot open this request" })).toBeTruthy();
   });
 
@@ -727,7 +727,7 @@ describe("runtime navigation", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Open guided configuration" }));
     expect((await screen.findByRole("alert")).textContent).toContain("No eligible item is available");
-    expect(window.location.hash).toBe("#today");
+    expect(window.location.hash).toBe("#oversight");
   });
 
   it("opens the first eligible attention target through the existing route", async () => {
@@ -743,7 +743,7 @@ describe("runtime navigation", () => {
     });
     render(<App />);
 
-    await screen.findByText("Review Program");
+    await screen.findAllByText("Review Program");
     fireEvent.click(screen.getByRole("button", { name: "Review first assigned item" }));
     await screen.findByRole("heading", { name: "Programs" });
     expect(window.location.hash).toBe("#programs/program-valid/overview");
