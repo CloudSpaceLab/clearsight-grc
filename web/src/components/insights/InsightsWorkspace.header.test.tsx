@@ -29,6 +29,20 @@ it("uses the shared Insights header for current authorized indicators", async ()
   expect(await screen.findByText("No indicators in this scope")).toBeTruthy();
 });
 
+it("uses Control indicator empty-state copy for a KCI lens", async () => {
+  render(<InsightsWorkspace
+    {...actions}
+    kind="KCI"
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+  />);
+
+  expect(await screen.findByText("No control indicators linked in this scope.")).toBeTruthy();
+  expect(screen.queryByText("No risk indicators linked in this scope.")).toBeNull();
+  expect(screen.getByRole("heading", { name: "Insights", level: 1 }).closest("header")?.className)
+    .toContain("cs-register-header");
+});
+
 it("keeps the same shared header in a selected-period Risk and Loss view", () => {
   render(<InsightsWorkspace
     {...actions}
