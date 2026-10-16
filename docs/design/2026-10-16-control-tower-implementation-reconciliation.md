@@ -19,9 +19,10 @@ This file is a **checkpoint**, not a product-release certificate. Refresh branch
 | #485 | Issues/changes list header and bounded work summary | Current issue record authority and full outcome flow remain separate |
 | #488 | Correct KRI/KCI empty-state wording; header/test reconciliation | Existing indicator endpoints and history are unchanged |
 | #489 | Issue record title and fact summary use shared header surface | Actions, responsibilities and outcomes remain on existing machinery |
+| #487, #490 | Compact shared Select keyboard focus and Sent forms request-order/cursor guards | Regressions passed CI and UI review; no new form distribution or policy engine |
 | #482, #483 | Closed without merge: superseded by #484 and #488 | Do not replay duplicate header CSS |
 
-As of this checkpoint: **16 merged PRs** (#471–#486 excluding #482/#483, plus #488/#489); **2 active #462 drafts**, #487 and #490. Their heads and merge gates must be checked live. The non-#462 #469/#470 work remains independently owned by #437.
+As of this checkpoint: **18 merged PRs** (#471–#490 excluding #482/#483, with #487–#490 now merged); **2 active #462 drafts**: #491 (this audit) and #492 (one-at-a-time Risk/Loss comparison). The non-#462 #469/#470 work remains independently owned by #437.
 
 ## T0–T6 acceptance status
 
@@ -44,13 +45,13 @@ The parent issue's checkboxes are **not automatically complete** because a relat
 - **Frameworks:** provenance/licensing/adoption and clause/edition upgrades are #437; #469 and #470 are separate draft dependencies. Do not claim active catalogs or compliance grades merely from metadata.
 - **Risks, Losses and ROPA:** shared UI presentation has moved forward; a visually consistent register is not a substitute for the full loss-to-recovery or privacy-review workflow release receipt.
 - **Vendors:** existing relationship, activation, DPO, assessment and form flows are retained; no new end-to-end scenario has been demonstrated by the header change.
-- **Forms:** current form builder/distribution/review surfaces remain; #487 owns shared compact Select keyboard dismissal, and #490 owns stale Sent-forms request/cursor response protection. Both still require exact-head gates at checkpoint.
+- **Forms:** current builder/distribution/review surfaces remain; #487 (shared compact Select Tab dismissal) and #490 (stale Sent-form filter/pagination response guards) passed exact-head CI and UI/UX review and are merged. Full assessment-to-report actor UAT is still outstanding.
 - **Work:** list and record header now use shared surfaces; real authority, outcome verification, closure, replay and partner/vendor linkage must be validated in an end-to-end scenario.
 - **Reports:** existing saved setups, generated-run list and downloads remain; #480 corrects loaded-page labeling but does not certify all authorized report downloads.
 
 ## Next independent implementation gates
 
-1. **Close #487/#490 correctly.** Confirm latest exact head passes backend+web CI and the full deterministic screenshot/keyboard review. If the 200%-zoom Forms Tab selector still fails, fix the shared React Aria keyboard focus semantics; do not weaken the evidence check.
+1. **Retain the merged #487/#490 Forms keyboard/request-order gates.** Preserve 200%-zoom compact Select natural Tab progression and exact current-filter list identity; include both in final cross-page acceptance.
 2. **T2 visual hierarchy.** Recompose only `OversightWorkspace` with the current `Tabs`, `MetricCard`, `RankedBarList` and trend components: four fixed metrics then one bounded Risk or Loss comparison and ranked organization context. Keep source, drill and selected period. No new metric service.
 3. **T1 real setup acceptance.** One bank/telco admin installs or selects published content (only if entitled), creates a Program, links a current governed Form, assigns real work, receives and reviews one response, and records a bounded authorized decision. Verify actual API receipts rather than step-navigation counts.
 4. **T4 integrate #433/#437.** Confirm versioned calculation and content-rights contracts and exact actor-safe contributions before exposing any percentage/framework grade or catalog count. No duplicate migrations.
