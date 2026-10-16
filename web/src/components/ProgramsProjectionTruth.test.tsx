@@ -57,7 +57,7 @@ describe("Program projection truth", () => {
     render(<ProgramsWorkspace/>);
 
     expect(await screen.findByRole("heading", { name: "Program portfolio", level: 2 })).toBeTruthy();
-    expect(screen.getByText("1 program needs assessment or review · Loaded page")).toBeTruthy();
+    expect(screen.getByText("1 program needs assessment or review · Loaded programs")).toBeTruthy();
     expect(screen.getByText("Out of date")).toBeTruthy();
     const rowLink = screen.getByRole("link", { name: /Privacy compliance/ });
     expect(rowLink.getAttribute("href")).toBe("#programs/program-stale");
@@ -85,8 +85,8 @@ describe("Program projection truth", () => {
 
     render(<ProgramsWorkspace/>);
     expect(await screen.findByRole("heading", { name: "Program portfolio", level: 2 })).toBeTruthy();
-    expect(screen.getByText("1 program is up to date · Loaded page · More available")).toBeTruthy();
-    expect(screen.getByText("1 on this page · More pages")).toBeTruthy();
+    expect(screen.getByText("1 program is up to date · Loaded programs · More available")).toBeTruthy();
+    expect(screen.getByText("1 loaded · More available")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Load more programs" })).toBeTruthy();
   });
 
