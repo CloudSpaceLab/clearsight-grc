@@ -263,7 +263,7 @@ function MatterListWorkspace({ refreshToken, openFirst = false, onOpenRequest }:
       <div>
         <span className="eyebrow">Work</span>
         <h2 id="matter-register-heading">Issues and changes</h2>
-        <p>{items.length} on this page{nextCursor ? " · More pages" : ""}</p>
+        <p>{items.length} loaded{nextCursor ? " · More available" : ""}</p>
       </div>
       <div className="workspace-brief-side">
         <div className="workspace-brief-facts" aria-label="Loaded work summary">
