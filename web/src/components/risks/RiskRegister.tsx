@@ -143,7 +143,7 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
   ];
 
   return <section className="risk-register-page" aria-labelledby="risk-register-heading">
-    <header className="topbar risk-page-header">
+    <header className="topbar risk-page-header cs-register-header">
       <div>
         <span className="eyebrow">{organizationName || "Risk portfolio"}</span>
         <h1 id="risk-register-heading">Risks</h1>
@@ -170,17 +170,16 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       title={hasFilters ? "No matching risks" : "No risks in this scope"}
       description={hasFilters ? "Change the filters or search." : `No current risk records were returned for ${scope}.`}
     />}
-    {state === "live" && page.items.length > 0 && <section className="risk-register__position" aria-label="Risk appetite for displayed records">
-      <div className="risk-register__position-header">
-        <div><span className="eyebrow">Risks</span><h2>Risk appetite</h2></div>
-        <span>{page.items.length} risk{page.items.length === 1 ? "" : "s"} in view{page.next_cursor ? " · More available" : ""}</span>
+    {state === "live" && page.items.length > 0 && <section className="risk-register__position cs-register-summary" aria-label="Risk appetite for displayed records">
+      <div className="risk-register__position-header cs-register-summary__heading">
+        <h2>Risk appetite</h2>
+        <span className="cs-register-summary__count">{page.items.length} on this page{page.next_cursor ? " · More pages" : ""}</span>
       </div>
       <StackedDistribution ariaLabel="Risk appetite for displayed records" segments={appetiteSegments}/>
       {(outsideCount > 0 || nearCount > 0) && <div className="risk-register__position-actions">
-        {outsideCount > 0 && appetite !== "BREACHED" && <Button variant="secondary" size="compact" onPress={() => changeAppetite("BREACHED")}>Review {outsideCount} outside appetite</Button>}
-        {nearCount > 0 && appetite !== "APPROACHING" && <Button variant="quiet" size="compact" onPress={() => changeAppetite("APPROACHING")}>Review {nearCount} near limit</Button>}
+        {outsideCount > 0 && appetite !== "BREACHED" && <Button variant="secondary" size="compact" onPress={() => changeAppetite("BREACHED")}>Filter outside appetite</Button>}
+        {nearCount > 0 && appetite !== "APPROACHING" && <Button variant="quiet" size="compact" onPress={() => changeAppetite("APPROACHING")}>Filter near limit</Button>}
       </div>}
-      <p>Current assessments · Risks shown only</p>
     </section>}
     {page.items.length > 0 && <DataTable
       ariaLabel="Risk register"

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { LossPage } from "../../lossTypes";
 import { LossRegister } from "./LossRegister";
@@ -51,6 +51,16 @@ describe("LossRegister", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Open loss/i }));
     expect(onOpenLoss).toHaveBeenCalledWith("loss-1");
+  });
+
+  it("reuses register styling and distinguishes current page from the total Loss register", async () => {
+    render(<LossRegister onOpenLoss={vi.fn()} loadPage={vi.fn().mockResolvedValue({ ...page, next_cursor: "next-loss-page" })}/>);
+
+    const summary = await screen.findByRole("region", { name: "Financial impact for displayed losses" });
+    expect(summary.className).toContain("cs-register-summary");
+    expect(screen.getByRole("heading", { name: "Losses" }).closest("header")?.className).toContain("cs-register-header");
+    expect(within(summary).getByText("1 on this page · More pages")).toBeTruthy();
+    expect(within(summary).getByRole("list", { name: "NGN financial exposure from loaded losses" })).toBeTruthy();
   });
 
   it("binds the list to organization scope and exposes supported loss filters", async () => {

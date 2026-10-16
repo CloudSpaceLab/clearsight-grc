@@ -168,7 +168,7 @@ export function LossRecord({
       || "Organization area unavailable";
 
   return <section className="loss-record-page" aria-labelledby="loss-record-heading">
-    <header className="topbar loss-page-header">
+    <header className="topbar loss-page-header cs-register-header">
       <div>
         <span className="eyebrow">{loss.code} · {lossEventLabel(loss.event_type)}</span>
         <h1 id="loss-record-heading">{loss.title}</h1>
