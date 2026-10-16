@@ -96,9 +96,10 @@ export function SentFormsView() {
   }
 
   function updateQuery(patch: Partial<DistributionQuery>) {
+    const next = { ...query, ...patch, cursor: undefined };
+    if ((Object.keys(next) as Array<keyof DistributionQuery>).every((key) => next[key] === query[key])) return;
     // Invalidate responses before the query effect runs, so prior results never repopulate a new filter.
     listReadRevision.current++;
-    const next = { ...query, ...patch, cursor: undefined };
     setQuery(next);
     writeQuery(next);
   }
