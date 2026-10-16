@@ -59,48 +59,8 @@
 
 .ropa-dashboard-strip__metrics {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.ropa-dashboard-strip__metric {
-  min-width: 0;
-  display: grid;
-  gap: 7px;
-  align-content: start;
-  padding: 13px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-2);
-}
-
-.ropa-dashboard-strip__metric > span:first-child {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-}
-
-.ropa-dashboard-strip__metric > strong {
-  font-size: 25px;
-  line-height: 1;
-}
-
-.ropa-dashboard-strip__metric--exception {
-  border-top: 2px solid var(--amber);
-}
-
-/* The badge is an inline-flex row, so its text is a flex item that refuses to
-   shrink below its content width and spills over the neighbouring card. Allow
-   the flex line to break so the full label stays readable, while keeping the
-   inline-flex layout that carries the non-colour status marker. */
-.ropa-dashboard-strip__metric > .cs-status-badge {
-  min-width: 0;
-  max-width: 100%;
-  flex-wrap: wrap;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cs-space-group);
 }
 
 .ropa-dashboard-strip__coverage {
@@ -312,9 +272,6 @@
 }
 
 @media (max-width: 1120px) {
-  .ropa-dashboard-strip__metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
   .ropa-fact-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
