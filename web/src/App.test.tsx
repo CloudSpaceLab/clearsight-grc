@@ -701,6 +701,25 @@ describe("runtime navigation", () => {
     expect(window.location.hash).toBe("#today");
   });
 
+  it("keeps a guide response step open when eligibility is revoked on revalidation", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    const assigned = evidenceRequest();
+    const returned = evidenceRequest({
+      recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "role-cro", state: "REASSIGNMENT_REQUIRED", revision: 2 },
+      version: 2,
+    });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-10-16T09:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockResolvedValueOnce(assigned).mockResolvedValueOnce(returned);
+    render(<App />);
+
+    await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    fireEvent.click(screen.getByRole("button", { name: "Open assigned response" }));
+
+    await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation"));
+    expect((await screen.findByRole("alert")).textContent).toContain("This guide step could not be opened.");
+    expect(await screen.findByRole("heading", { name: "You cannot open this request" })).toBeTruthy();
+  });
+
   it("does not navigate a first-run guide into a disabled Configure workspace", async () => {
     const context = runtime(false);
     vi.mocked(loadContext).mockResolvedValue({ ...context, capabilities: { ...context.capabilities, config_read: false } });
