@@ -11,6 +11,7 @@ const (
 )
 
 type seedMode struct {
+	DemoJourneysOnly         bool
 	SourceRecordsOnly        bool
 	SourceLossesOnly         bool
 	SourceRisksOnly          bool
@@ -22,6 +23,7 @@ type seedMode struct {
 func validateSeedMode(mode seedMode) error {
 	selected := 0
 	for _, enabled := range []bool{
+		mode.DemoJourneysOnly,
 		mode.SourceRecordsOnly,
 		mode.SourceLossesOnly,
 		mode.SourceRisksOnly,
@@ -33,8 +35,11 @@ func validateSeedMode(mode seedMode) error {
 			selected++
 		}
 	}
+	if selected == 0 {
+		return fmt.Errorf("choose an explicit reference-data operation; use -demo-journeys-only for the non-production sample journeys")
+	}
 	if selected > 1 {
-		return fmt.Errorf("choose one scoped sample operation")
+		return fmt.Errorf("choose one scoped reference-data operation")
 	}
 	return nil
 }
