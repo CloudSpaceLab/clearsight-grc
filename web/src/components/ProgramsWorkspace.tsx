@@ -249,7 +249,10 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       {filtersActive && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
     {filtersActive && <div className="workspace-filter-chips" aria-label="Applied Program filters">{search && <span>Search: {search}</span>}{status && <span>{status === "DRAFT" ? "Setup in progress" : status[0] + status.slice(1).toLowerCase()}</span>}{overallState && <span>{humanizeProgramState(overallState)}</span>}{jurisdiction && <span>{jurisdiction}</span>}{assignedToMe && <span>Assigned to me</span>}</div>}
-      {!items.length ? <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change filters." : "No Programs in this scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list" aria-label="Programs">
+      {!items.length ? <section aria-label="Program register">
+        <h2 className="cs-sr-only">Program register</h2>
+        <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change filters." : "No Programs in this scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/>
+      </section> : items.length ? <section className="program-list" aria-label="Programs">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
         const assessmentMissing = !hasProgramAssessment(summaryItem);
