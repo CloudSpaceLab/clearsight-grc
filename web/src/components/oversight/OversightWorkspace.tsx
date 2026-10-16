@@ -247,6 +247,11 @@ export function OversightWorkspace({
     setLossMetrics(null);
     void loadLossMetrics(lossPeriod, organizationScopeID, controller.signal).then((value) => {
       if (controller.signal.aborted) return;
+      if (!lossResultMatchesContext(value, lossPeriod, organizationScopeID)) {
+        setLossMetrics(null);
+        setLossState("unavailable");
+        return;
+      }
       setLossMetrics(value);
       setLossState("live");
     }).catch((error: unknown) => {
@@ -263,6 +268,12 @@ export function OversightWorkspace({
     selectedHomeTab,
     state,
   ]);
+
+  // A changed period or organization selection must never display the prior
+  // source snapshot while the next bounded Loss read is pending.
+  const visibleLossMetrics = lossMetrics && lossPeriod &&
+    lossResultMatchesContext(lossMetrics, lossPeriod, organizationScopeID) ? lossMetrics : null;
+  const visibleLossState = lossMetrics && !visibleLossMetrics ? "loading" : lossState;
 
   async function changePeriod(period: ReportingPeriodQuery) {
     if (periodState === "changing") return;
@@ -359,8 +370,8 @@ export function OversightWorkspace({
             <DomainPostureSummary
               bundle={domainMetrics}
               state={domainState}
-              lossBundle={lossMetrics}
-              lossState={lossState}
+              lossBundle={visibleLossMetrics}
+              lossState={visibleLossState}
               organizationScopeID={organizationScopeID}
               onOpenRisk={onOpenRisk}
               onOpenLoss={onOpenLoss}
@@ -378,13 +389,13 @@ export function OversightWorkspace({
             </div>
             <div className="oversight-loss-overview">
               <OrganizationLossSummary
-                bundle={lossMetrics}
-                state={lossState}
+                bundle={visibleLossMetrics}
+                state={visibleLossState}
                 onOpenScope={onOrganizationScopeChange}
               />
               <LossMovement
-                bundle={lossMetrics}
-                state={lossState}
+                bundle={visibleLossMetrics}
+                state={visibleLossState}
               />
             </div>
             {state === "live" && snapshot && <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
@@ -451,6 +462,14 @@ function sameOrganizationScope(snapshot: OversightSnapshot, metrics: HomeMetricB
 
 function sameReportingPeriod(left: ReportingPeriod, right: ReportingPeriod) {
   return left.start_date === right.start_date && left.end_date === right.end_date && left.mode === right.mode;
+}
+
+function lossResultMatchesContext(value: LossPeriodBundle, period: ReportingPeriodQuery, organizationScopeID?: string) {
+  return value.period_start.slice(0, 10) === period.start_date
+    && value.period_end.slice(0, 10) === period.end_date
+    && (organizationScopeID
+      ? value.scope_kind === "ORGANIZATION_SCOPE" && value.scope_id === organizationScopeID
+      : value.scope_kind === "LEGAL_ENTITY");
 }
 
 function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: HomeMetricBundle | null; state: "loading" | "live" | "unavailable"; selected: OversightMetricFilter; onSelect: (filter: OversightMetricFilter) => void }) {
