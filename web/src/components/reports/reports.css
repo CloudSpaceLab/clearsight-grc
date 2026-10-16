@@ -4,20 +4,6 @@
   min-width: 0;
 }
 
-.reports-workspace__header {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: var(--cs-space-section);
-  padding-block: var(--cs-primitive-space-2) var(--cs-primitive-space-1);
-}
-
-.reports-workspace__header h1 {
-  margin: var(--cs-primitive-space-2) 0 var(--cs-primitive-space-2);
-  letter-spacing: -0.035em;
-}
-
-.reports-workspace__header p,
 .reports-generate__heading p,
 .report-run-details > div:first-child p {
   margin: 0;
