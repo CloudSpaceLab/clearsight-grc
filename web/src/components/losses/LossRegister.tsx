@@ -122,7 +122,7 @@ export function LossRegister({
   ];
 
   return <section className="loss-register-page" aria-labelledby="loss-register-heading">
-    <header className="topbar loss-page-header">
+    <header className="topbar loss-page-header cs-register-header">
       <div>
         <span className="eyebrow">{organizationName || "Risk portfolio"}</span>
         <h1 id="loss-register-heading">Losses</h1>
@@ -152,10 +152,10 @@ export function LossRegister({
       title={hasFilters ? "No matching losses" : "No losses in this scope"}
       description={hasFilters ? "Change the filters or search." : `No losses recorded for ${scope}.`}
     />}
-    {exposure && <section className="loss-exposure" aria-label="Financial impact for displayed losses">
-      <div className="loss-exposure__heading">
-        <div><span className="eyebrow">Losses</span><h2>Financial impact</h2></div>
-        <span>{page.items.length} loss{page.items.length === 1 ? "" : "es"} in view{page.next_cursor ? " · More available" : ""}</span>
+    {exposure && <section className="loss-exposure cs-register-summary" aria-label="Financial impact for displayed losses">
+      <div className="loss-exposure__heading cs-register-summary__heading">
+        <h2>Financial impact</h2>
+        <span className="cs-register-summary__count">{page.items.length} on this page{page.next_cursor ? " · More pages" : ""}</span>
       </div>
       <p>Active losses by currency · No conversion</p>
       {exposure.groups.length > 0
