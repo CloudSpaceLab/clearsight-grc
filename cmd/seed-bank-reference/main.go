@@ -174,7 +174,9 @@ func main() {
 	if oversightSnapshot.SourceHighWater["matters"].IsZero() || oversightSnapshot.SourceHighWater["continuity_events"].IsZero() {
 		fatalIf(fmt.Errorf("oversight snapshot is missing authoritative Matter or event high-water marks"))
 	}
-	journeys, err := installer.List(ctx, seed.TenantID)
+	// The release receipt must use the same explicit demo legal-entity scope
+	// as installation; an unscoped read can return definition-only journeys.
+	journeys, err := installer.List(continuity.WithTrustedSystemEntityScope(ctx, seed.TenantID, seed.LegalEntityID), seed.TenantID)
 	fatalIf(err)
 
 	fatalIf(installer.EnsureResponsePolicyAcceptanceForm(ctx, seed, programID))
