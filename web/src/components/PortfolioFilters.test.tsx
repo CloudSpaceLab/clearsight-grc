@@ -43,7 +43,7 @@ describe("portfolio filters", () => {
 
     const heading = await screen.findByRole("heading", { name: "Issues and changes", level: 2 });
     expect(heading.closest("header")?.className).toContain("cs-register-header");
-    expect(screen.getByText("0 on this page")).toBeTruthy();
+    expect(screen.getByText("0 loaded")).toBeTruthy();
     expect(screen.getByRole("button", { name: "New issue or change" })).toBeTruthy();
     expect(screen.getByLabelText("Loaded work summary")).toBeTruthy();
   });
