@@ -92,6 +92,7 @@ jobs:
           bash deploy/scripts/seed-demo-foundation.sh
           bash deploy/scripts/seed-demo-foundation.sh
           go run -tags postgres ./cmd/seed-bank-reference \
+            -demo-journeys-only \
             -tenant 00000000-0000-4000-8000-000000000001 \
             -legal-entity 00000000-0000-4000-8000-000000000002 \
             -actor 00000000-0000-4000-8000-000000000101 \
@@ -101,6 +102,7 @@ jobs:
             -signatory 00000000-0000-4000-8000-000000000102 >/tmp/reference-acceptance.json
           # A second run must reconcile the same persisted acceptance state rather than duplicate it.
           go run -tags postgres ./cmd/seed-bank-reference \
+            -demo-journeys-only \
             -tenant 00000000-0000-4000-8000-000000000001 \
             -legal-entity 00000000-0000-4000-8000-000000000002 \
             -actor 00000000-0000-4000-8000-000000000101 \
