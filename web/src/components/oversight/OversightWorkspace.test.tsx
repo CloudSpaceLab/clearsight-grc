@@ -446,6 +446,59 @@ it("keeps v2 current-state metric drills on the existing bounded intervention pa
   expect(screen.getByText(/ranked issue shown for overdue interventions/i)).toBeTruthy();
 });
 
+it("rejects a Loss response from a different reporting period", async () => {
+  metricApi.loadLossPeriodMetrics.mockResolvedValue({
+    ...lossPeriodBundle(),
+    period_start: "2026-08-03T00:00:00Z",
+  });
+
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  expect(await screen.findByText("Loss flow is unavailable for this period.")).toBeTruthy();
+  expect(screen.getByRole("article", { name: /Net operational loss: —.*Unavailable/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Net operational loss:/ })).toBeNull();
+});
+
+it("rejects a legal-entity Loss response for an organization-area selection", async () => {
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    organizationScopeID="scope-risk"
+    onOpenMatter={vi.fn()}
+  />);
+
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledWith(
+    { start_date: "2026-06-03", end_date: "2026-09-01" },
+    "scope-risk",
+    expect.any(AbortSignal),
+  ));
+  expect(await screen.findByText("Loss flow is unavailable for this period.")).toBeTruthy();
+  expect(screen.getByRole("article", { name: /Net operational loss: —.*Unavailable/ })).toBeTruthy();
+});
+
+it("does not show previous-period Loss amounts while the next period is loading", async () => {
+  const previous = lossPeriodBundle();
+  const neverSettles = new Promise<typeof previous>(() => undefined);
+  metricApi.loadLossPeriodMetrics.mockResolvedValueOnce(previous).mockReturnValue(neverSettles);
+
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  expect(await screen.findByRole("button", { name: /Net operational loss:/ })).toBeTruthy();
+
+  const currentSnapshot = await api.loadOversight();
+  const currentMetrics = await metricApi.loadHomeMetrics();
+  const nextPeriod = {
+    ...currentSnapshot.reporting_period,
+    start_date: "2026-08-03",
+  };
+  api.loadOversight.mockResolvedValueOnce({ ...currentSnapshot, reporting_period: nextPeriod });
+  metricApi.loadHomeMetrics.mockResolvedValueOnce({ ...currentMetrics, reporting_period: nextPeriod });
+
+  fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
+  fireEvent.click(screen.getByRole("button", { name: "30 days" }));
+  expect(await screen.findByText("Risk, compliance and action in the last 30 days")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Net operational loss:/ })).toBeNull();
+  expect(screen.getByRole("article", { name: /Net operational loss: —.*Loading/ })).toBeTruthy();
+});
+
 it("passes the applied Home reporting period into Insights rather than opening current-only indicators", async () => {
   const onOpenInsights = vi.fn();
   render(<OversightWorkspace
