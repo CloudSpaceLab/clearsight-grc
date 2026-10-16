@@ -154,7 +154,7 @@ export function MatterRecordWorkspace({ matterID, onBack, backLabel = "Back to i
     {aggregateState === "loading" && !aggregate && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading issue record…</div>}
     {aggregateState === "unavailable" && !aggregate && <EmptyState kind="unavailable" label="Issue or change" title="Issue record could not be loaded" description="The current issue information is unavailable. Retry the issue record before relying on its status or assigned work." action="Retry issue record" onAction={() => void loadAggregate()}/>}
     {aggregate && <>
-      <header className="matter-record-header">
+      <header className="matter-record-header cs-workspace-header">
         <div>
           <span className="matter-kicker">{aggregate.type_label} · {aggregate.matter.reference} · {aggregate.status_label} · Version {aggregate.matter.version}</span>
           <h1>{aggregate.matter.title}</h1>
