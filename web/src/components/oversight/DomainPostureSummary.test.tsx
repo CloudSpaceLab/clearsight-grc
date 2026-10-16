@@ -38,11 +38,39 @@ function bundle(population = 10): DomainMetricBundle {
   };
 }
 
-it("identifies an empty canonical Risk population instead of rendering clear posture cards", () => {
-  render(<DomainPostureSummary bundle={bundle(0)} state="live"/>);
+it("retains four measures without treating an empty risk population as clear", () => {
+  render(<DomainPostureSummary bundle={bundle(0)} state="live" lossState="unavailable"/>);
 
-  expect(screen.getByText("No active Risks are loaded for this legal entity.")).toBeTruthy();
-  expect(screen.queryByText("Outside appetite")).toBeNull();
+  for (const name of ["Outside appetite", "Indicator breaches", "Assurance failures"]) {
+    const card = screen.getByRole("article", { name: new RegExp(`${name}: —.*No assessed population`) });
+    expect(card.getAttribute("data-quality")).toBe("unknown");
+    expect(screen.queryByRole("button", { name: new RegExp(name) })).toBeNull();
+  }
+  expect(screen.getAllByText("No assessed population")).toHaveLength(3);
+  expect(screen.getByRole("article", { name: /Net operational loss: —.*Unavailable/ })).toBeTruthy();
+});
+
+it("keeps assessed risk cards actionable when another measure has no population", () => {
+  const current = bundle();
+  current.items[1]!.population = 0;
+  render(<DomainPostureSummary bundle={current} state="live"/>);
+
+  expect(screen.getByRole("article", { name: /Indicator breaches: —.*No assessed population/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Outside appetite: 1/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Assurance failures: 0/ })).toBeTruthy();
+});
+
+it("closes an existing Risk drill when its eligible population becomes empty", async () => {
+  const loadMembers = vi.fn().mockReturnValue(new Promise(() => undefined));
+  const view = render(<DomainPostureSummary bundle={bundle()} state="live" loadMembers={loadMembers}/>);
+
+  fireEvent.click(screen.getByRole("button", { name: /Outside appetite: 1/ }));
+  await waitFor(() => expect(loadMembers).toHaveBeenCalledTimes(1));
+  expect(document.getElementById("domain-posture-members")).not.toBeNull();
+
+  view.rerender(<DomainPostureSummary bundle={bundle(0)} state="live" loadMembers={loadMembers}/>);
+  expect(document.getElementById("domain-posture-members")).toBeNull();
+  expect(screen.getByRole("article", { name: /Outside appetite: —.*No assessed population/ })).toBeTruthy();
 });
 
 it("opens exact scoped Risk members from the canonical posture card", async () => {

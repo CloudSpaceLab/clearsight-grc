@@ -68,14 +68,12 @@ export function DomainPostureSummary({
     () => postureOrder.map((id) => bundle?.items.find((item) => item.id === id)),
     [bundle],
   );
-  const riskPopulation = metrics.reduce((total, metric) => total + (metric?.population ?? 0), 0);
-  const noCanonicalRisks = state === "live" && metrics.every((metric) => metric !== undefined) && riskPopulation === 0;
   const selectedDomain = selectedID
     ? bundle?.items.find((item) => item.id === selectedID)
     : undefined;
   const lossCard = useMemo(() => lossCardModel(lossBundle), [lossBundle]);
   const selected = useMemo<SelectedMetric | undefined>(() => {
-    if (selectedDomain && bundle) {
+    if (selectedDomain && bundle && selectedDomain.population > 0) {
       return {
         id: selectedDomain.id,
         label: selectedDomain.label,
@@ -179,10 +177,8 @@ export function DomainPostureSummary({
       </div>
     </div>
 
-    {noCanonicalRisks && <Notice tone="warning">No active Risks are loaded for this legal entity.</Notice>}
-
     <div className="oversight-counts" aria-label="Current risk posture" aria-busy={state === "loading" || undefined}>
-      {!noCanonicalRisks && postureOrder.map((id, index) => {
+      {postureOrder.map((id, index) => {
         const metric = metrics[index];
         if (!metric) {
           return <MetricCard
@@ -194,19 +190,22 @@ export function DomainPostureSummary({
             qualityLabel={state === "loading" ? "Loading" : "Unavailable"}
           />;
         }
-        const active = selectedID === metric.id;
+        // No eligible records is not proof that appetite, assurance or indicators are clear.
+        const noPopulation = metric.population === 0;
+        const active = !noPopulation && selectedID === metric.id;
         return <MetricCard
           key={metric.id}
           label={metric.label}
-          value={metric.value}
+          value={noPopulation ? "—" : metric.value}
           detail={postureDetails[id]}
           meta={metricMeta(metric)}
           tone={postureTone(metric)}
-          quality={homeMetricQuality(metric)}
-          actionLabel={active ? "Close records" : "Review records"}
+          quality={noPopulation ? "unknown" : homeMetricQuality(metric)}
+          qualityLabel={noPopulation ? "No assessed population" : undefined}
+          actionLabel={noPopulation ? undefined : active ? "Close records" : "Review records"}
           isSelected={active}
-          ariaControls="domain-posture-members"
-          onPress={() => toggleMetric(metric.id)}
+          ariaControls={noPopulation ? undefined : "domain-posture-members"}
+          onPress={noPopulation ? undefined : () => toggleMetric(metric.id)}
         />;
       })}
 
