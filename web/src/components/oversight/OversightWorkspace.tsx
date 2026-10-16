@@ -81,6 +81,7 @@ export function OversightWorkspace({
   const [lossMetrics, setLossMetrics] = useState<LossPeriodBundle | null>(null);
   const [lossState, setLossState] = useState<"loading" | "live" | "unavailable">("loading");
   const [view, setView] = useState<DetailView>("pressure");
+  const [postureLens, setPostureLens] = useState<"risk" | "loss">("risk");
   const [localMetricFilter, setLocalMetricFilter] = useState<OversightMetricFilter>(metricFilter);
   const homeReadRevision = useRef(0);
   const [periodState, setPeriodState] = useState<"idle" | "changing">("idle");
@@ -376,28 +377,33 @@ export function OversightWorkspace({
               onOpenRisk={onOpenRisk}
               onOpenLoss={onOpenLoss}
             />
-            <div className="oversight-risk-overview">
-              <OrganizationRiskSummary
-                bundle={domainMetrics}
-                organizationScopeID={organizationScopeID}
-                onOpenScope={onOrganizationScopeChange}
-              />
-              <RiskMovement
-                bundle={domainMetrics}
-                organizationScopeID={organizationScopeID}
-              />
-            </div>
-            <div className="oversight-loss-overview">
-              <OrganizationLossSummary
-                bundle={visibleLossMetrics}
-                state={visibleLossState}
-                onOpenScope={onOrganizationScopeChange}
-              />
-              <LossMovement
-                bundle={visibleLossMetrics}
-                state={visibleLossState}
-              />
-            </div>
+            <section className="oversight-posture-analysis" aria-label="Risk and loss analysis">
+              <Tabs ariaLabel="Posture comparison" compactLabel="Posture comparison" items={postureComparisonViews} selectedKey={postureLens} onSelectionChange={setPostureLens}>
+                {(selected) => selected === "risk"
+                  ? <div className="oversight-risk-overview">
+                    <OrganizationRiskSummary
+                      bundle={domainMetrics}
+                      organizationScopeID={organizationScopeID}
+                      onOpenScope={onOrganizationScopeChange}
+                    />
+                    <RiskMovement
+                      bundle={domainMetrics}
+                      organizationScopeID={organizationScopeID}
+                    />
+                  </div>
+                  : <div className="oversight-loss-overview">
+                    <OrganizationLossSummary
+                      bundle={visibleLossMetrics}
+                      state={visibleLossState}
+                      onOpenScope={onOrganizationScopeChange}
+                    />
+                    <LossMovement
+                      bundle={visibleLossMetrics}
+                      state={visibleLossState}
+                    />
+                  </div>}
+              </Tabs>
+            </section>
             {state === "live" && snapshot && <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
               {selected === "pressure" && <RiskPressure snapshot={snapshot}/>}
               {selected === "outlook" && <ResolutionOutlook snapshot={snapshot}/>}
@@ -549,6 +555,11 @@ const homeIntentTabs = [
   { id: "oversight", label: "Oversight" },
   { id: "attention", label: "Attention" },
   { id: "my-work", label: "My work" },
+] as const;
+
+const postureComparisonViews = [
+  { id: "risk", label: "Risk analysis" },
+  { id: "loss", label: "Loss analysis" },
 ] as const;
 
 const detailViews = [
