@@ -224,7 +224,7 @@ export function InsightsWorkspace({
       {!page.complete && state !== "error" && <Notice tone="warning">Some indicator detail is unavailable in this scope. Available values remain unchanged.</Notice>}
       {page.truncated && <Notice tone="info">More indicators are available on the next page.</Notice>}
       {state === "error" && <EmptyState population="Indicators" title="Indicators could not be loaded" description="The current indicator population is unavailable." action={<Button variant="secondary" onPress={() => setRetry((value) => value + 1)}>Try again</Button>} role="alert"/>}
-      {state === "live" && page.items.length === 0 && <EmptyState population={kind === "KRI" ? "Risk indicators" : "Control indicators"} title="No indicators in this scope" description="No Risk indicators linked in this scope."/>}
+      {state === "live" && page.items.length === 0 && <EmptyState population={kind === "KRI" ? "Risk indicators" : "Control indicators"} title="No indicators in this scope" description={kind === "KRI" ? "No risk indicators linked in this scope." : "No control indicators linked in this scope."}/>}
       {(page.items.length > 0 || state === "loading") && <DataTable
         ariaLabel={kind === "KRI" ? "Risk indicators" : "Control indicators"}
         rows={page.items}
