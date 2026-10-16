@@ -101,7 +101,7 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
   const scope = legalEntityName || "this legal entity";
 
   return <section className="ropa-activity-page" aria-labelledby="ropa-activity-heading">
-    <header className="topbar ropa-page-header">
+    <header className="topbar ropa-page-header cs-register-header">
       <div>
         <span className="eyebrow">{organizationName || "Processing activity register"} · {scope}</span>
         <h1 id="ropa-activity-heading">{activity.name || "Processing activity name not recorded"}</h1>

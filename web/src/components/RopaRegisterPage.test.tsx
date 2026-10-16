@@ -118,6 +118,7 @@ it("renders one register row per activity with working-language status", async (
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities}/>);
 
   expect(await screen.findByText("Customer onboarding")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Processing activity register", level: 1 }).closest("header")?.className).toContain("cs-register-header");
   expect(screen.getByText("Card payment notices")).toBeTruthy();
   expect(screen.getByText("Archived payroll import")).toBeTruthy();
   expect(screen.getAllByRole("row")).toHaveLength(4);

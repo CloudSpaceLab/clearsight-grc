@@ -147,7 +147,7 @@ export function RopaRegisterPage({ organizationName, legalEntityName, onOpenActi
   ];
 
   return <section className="ropa-register-page" aria-labelledby="ropa-register-heading">
-    <header className="topbar ropa-page-header">
+    <header className="topbar ropa-page-header cs-register-header">
       <div>
         <span className="eyebrow">{organizationName || "Processing activity register"}</span>
         <h1 id="ropa-register-heading">Processing activity register</h1>
