@@ -156,7 +156,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
   }
 
   return <section className="risk-record-page" aria-labelledby="risk-record-heading">
-    <header className="topbar risk-page-header">
+    <header className="topbar risk-page-header cs-register-header">
       <div>
         <span className="eyebrow">{risk.code}{risk.category ? ` · ${risk.category}` : ""}</span>
         <h1 id="risk-record-heading">{risk.name}</h1>
