@@ -88,12 +88,12 @@ func TestPreviewEditionClauseDeltaIncludesHierarchyAndLicensedSummaryChanges(t *
 
 func TestPreviewEditionClauseDeltaRejectsInvalidOrUnrelatedReleases(t *testing.T) {
 	tests := map[string]func(*Publication, *Publication){
-		"same edition": func(_, to *Publication) { to.EditionCode = "2026" },
-		"different standard": func(_, to *Publication) { to.FrameworkCode = "PRIVACY" },
-		"different issuer": func(_, to *Publication) { to.PublisherCode = "OTHER" },
-		"unlicensed source summary": func(_, to *Publication) { to.Clauses[0].Summary = "Restricted prose" },
+		"same edition":               func(_, to *Publication) { to.EditionCode = "2026" },
+		"different standard":         func(_, to *Publication) { to.FrameworkCode = "PRIVACY" },
+		"different issuer":           func(_, to *Publication) { to.PublisherCode = "OTHER" },
+		"unlicensed source summary":  func(_, to *Publication) { to.Clauses[0].Summary = "Restricted prose" },
 		"invalid original hierarchy": func(from, _ *Publication) { from.Clauses[0].ParentCode = "MISSING" },
-		"duplicate target clauses": func(_, to *Publication) { to.Clauses = append(to.Clauses, to.Clauses[0]) },
+		"duplicate target clauses":   func(_, to *Publication) { to.Clauses = append(to.Clauses, to.Clauses[0]) },
 	}
 	for name, modify := range tests {
 		t.Run(name, func(t *testing.T) {
