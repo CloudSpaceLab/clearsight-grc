@@ -193,7 +193,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     <header className="program-portfolio-head cs-register-header" aria-labelledby="program-portfolio-title">
       <div>
         <span className="eyebrow">Portfolio</span>
-        <h1 id="program-portfolio-title">Programs</h1>
+        <h2 id="program-portfolio-title">Program portfolio</h2>
         <p>{briefTitle}{items.length > 0 ? ` · Loaded page${nextCursor ? " · More available" : ""}` : ""}</p>
       </div>
       <div className="workspace-brief-side"><Button variant="primary" onPress={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</Button></div>
