@@ -190,16 +190,20 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   const singleState = displayedStates.length === 1 ? displayedStates[0] : undefined;
 
   return <div id="programs-workspace" className="portfolio-workspace portfolio-workspace--programs">
-    <section className="workspace-brief">
-        <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2></div>
+    <header className="workspace-brief program-portfolio-head" aria-labelledby="program-portfolio-title">
+      <div>
+        <span className="eyebrow">Portfolio</span>
+        <h1 id="program-portfolio-title">Programs</h1>
+        <p>{briefTitle}{items.length > 0 ? ` · Loaded page${nextCursor ? " · More available" : ""}` : ""}</p>
+      </div>
       <div className="workspace-brief-side"><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
-    </section>
+    </header>
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} organizationScopes={organizationScopes} initialOrganizationScopeID={organizationScopeID} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
     {items.length > 0 && <section className={`program-portfolio-visual${singleState ? " program-portfolio-visual--uniform" : ""}`} aria-label="Program summary for displayed records">
       <div className="program-portfolio-visual__position">
         <header className="program-portfolio-visual__heading">
-          <div><span className="eyebrow">Programs</span><h3>Program status</h3></div>
-          <span className="program-portfolio-visual__scope">{items.length} shown{nextCursor ? " · More available" : ""}</span>
+          <div><span className="eyebrow">Loaded results</span><h3>Program status</h3></div>
+          <span className="program-portfolio-visual__scope">{items.length} on this page{nextCursor ? " · More pages" : ""}</span>
         </header>
         {singleState
           ? <p className="program-portfolio-visual__uniform-status"><strong>{singleState.count}</strong> {singleState.id === "attention" ? "need follow-up" : singleState.id === "current" ? "up to date" : singleState.id === "setup" ? "need assessment or review" : "not applicable"}</p>
@@ -213,12 +217,11 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
               replaceWorkspaceHash(workspaceHash("#programs", { ...programFilters, overall_state: item.state }));
             }}>{item.count} {item.label} <span aria-hidden="true">→</span></button>)}
         </div>}
-        <p>Displayed programs only{nextCursor ? " · More available" : ""}</p>
       </div>
       <div className="program-portfolio-visual__issues">
         <header className="program-portfolio-visual__heading">
           <div><span className="eyebrow">Issues and changes</span><h3>Most open issues</h3></div>
-          <span className="program-portfolio-visual__scope">{summary.knownIssuePrograms.length} shown</span>
+          <span className="program-portfolio-visual__scope">Top {summary.knownIssuePrograms.length} on this page</span>
         </header>
         {summary.knownIssuePrograms.length > 0
           ? <RankedBarList ariaLabel="Programs with the most open issues in the displayed records"
