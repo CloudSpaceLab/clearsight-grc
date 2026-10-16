@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../http";
+import type { Distribution } from "../../../formsDistributionApi";
 import { SentFormsView } from "../SentFormsView";
 
 const api = vi.hoisted(() => ({ loadDistributionPage: vi.fn(), loadDistribution: vi.fn(), transitionDistribution: vi.fn() }));
@@ -78,8 +79,8 @@ describe("SentFormsView", () => {
   });
 
   it("discards an older filter response after a newer sent-form list completes", async () => {
-    let resolveOriginal!: (page: { items: typeof distribution[] }) => void;
-    const original = new Promise<{ items: typeof distribution[] }>((resolve) => { resolveOriginal = resolve; });
+    let resolveOriginal!: (page: { items: Distribution[] }) => void;
+    const original = new Promise<{ items: Distribution[] }>((resolve) => { resolveOriginal = resolve; });
     api.loadDistributionPage.mockImplementation((query: { status?: string }) =>
       query.status === "LOCKED" ? Promise.resolve({ items: [outsideDistribution] }) : original,
     );
@@ -97,8 +98,8 @@ describe("SentFormsView", () => {
   });
 
   it("does not append an old cursor page after changing sent-form filters", async () => {
-    let resolveOldPage!: (page: { items: typeof distribution[] }) => void;
-    const older = new Promise<{ items: typeof distribution[] }>((resolve) => { resolveOldPage = resolve; });
+    let resolveOldPage!: (page: { items: Distribution[] }) => void;
+    const older = new Promise<{ items: Distribution[] }>((resolve) => { resolveOldPage = resolve; });
     api.loadDistributionPage.mockImplementation((query: { cursor?: string; status?: string }) => {
       if (query.cursor) return older;
       if (query.status === "LOCKED") return Promise.resolve({ items: [outsideDistribution] });
