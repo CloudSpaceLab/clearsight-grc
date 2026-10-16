@@ -516,9 +516,27 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   }
 
   async function executeGuideStep(step: GuideStep) {
-    if (step.intent === "open-routing") { navigate("oversight"); const authorityItem = items.find((item) => item.authority && item.action_target_type && item.action_target_id); if (authorityItem) await inspectRouting(authorityItem); return; }
-    if (step.intent === "open-capture") { navigate("oversight"); await openPrimaryEvidence(); return; }
-    if (step.intent === "open-first-attention" && items[0]) { openAttention(items[0]); return; }
+    if (step.intent === "open-routing") {
+      const authorityItem = items.find((item) => item.authority && item.action_target_type && item.action_target_id);
+      if (!authorityItem) throw new Error("guide_step_unavailable");
+      navigate("oversight");
+      await inspectRouting(authorityItem);
+      return;
+    }
+    if (step.intent === "open-capture") {
+      if (!primaryEvidenceRequest) throw new Error("guide_step_unavailable");
+      navigate("oversight");
+      await openPrimaryEvidence();
+      return;
+    }
+    if (step.intent === "open-first-attention") {
+      const first = items.find((item) =>
+        Boolean(item.action_target_id) &&
+        (item.action_target_type === "PROGRAM" || item.action_target_type === "MATTER" || item.action_target_type === "EVIDENCE_REQUEST"));
+      if (!first) throw new Error("guide_step_unavailable");
+      openAttention(first);
+      return;
+    }
     if (step.intent === "open-first-program") { navigate("programs", { openFirstProgram: true }); return; }
     if (step.intent === "open-first-matter") { navigate("work", { openFirstMatter: true }, "matters"); return; }
     const vendorIntent = step.intent;
@@ -535,9 +553,17 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     }
     if (step.intent === "switch-evidence" || step.intent === "open-first-evidence") {
       const requests = evidenceRequestState === "idle" ? await loadEvidenceWorkspace() : evidenceRequests;
-      navigate("work", { evidenceID: step.intent === "open-first-evidence" ? requests[0]?.id : undefined, openFirstEvidence: step.intent === "open-first-evidence" }, "evidence"); return;
+      if (step.intent === "open-first-evidence" && !requests[0]?.id) throw new Error("guide_step_unavailable");
+      navigate("work", { evidenceID: step.intent === "open-first-evidence" ? requests[0]?.id : undefined, openFirstEvidence: step.intent === "open-first-evidence" }, "evidence");
+      return;
     }
-    if (step.view) navigate(step.view);
+    if (step.view === "configure" && !configureEnabled ||
+        step.view === "imports" && !importsEnabled ||
+        step.view === "explore" && !referenceJourneysEnabled) {
+      throw new Error("guide_step_unavailable");
+    }
+    if (!step.view) throw new Error("guide_step_unavailable");
+    navigate(step.view);
   }
 
   const primaryEvidenceEntity = primaryEvidenceLoad.state === "live" && primaryEvidenceLoad.targetID === primaryEvidenceTargetID && primaryEvidenceTargetID ? evidenceByID[primaryEvidenceTargetID] : undefined;
