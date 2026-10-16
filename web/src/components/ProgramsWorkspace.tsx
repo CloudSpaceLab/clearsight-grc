@@ -190,7 +190,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   const singleState = displayedStates.length === 1 ? displayedStates[0] : undefined;
 
   return <div id="programs-workspace" className="portfolio-workspace portfolio-workspace--programs">
-    <header className="workspace-brief program-portfolio-head" aria-labelledby="program-portfolio-title">
+    <header className="program-portfolio-head cs-register-header" aria-labelledby="program-portfolio-title">
       <div>
         <span className="eyebrow">Portfolio</span>
         <h1 id="program-portfolio-title">Programs</h1>
@@ -202,7 +202,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     {items.length > 0 && <section className={`program-portfolio-visual${singleState ? " program-portfolio-visual--uniform" : ""}`} aria-label="Program summary for displayed records">
       <div className="program-portfolio-visual__position">
         <header className="program-portfolio-visual__heading">
-          <div><span className="eyebrow">Loaded results</span><h3>Program status</h3></div>
+          <div><span className="eyebrow">Loaded results</span><h2>Program status</h2></div>
           <span className="program-portfolio-visual__scope">{items.length} on this page{nextCursor ? " · More pages" : ""}</span>
         </header>
         {singleState
@@ -220,7 +220,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       </div>
       <div className="program-portfolio-visual__issues">
         <header className="program-portfolio-visual__heading">
-          <div><span className="eyebrow">Issues and changes</span><h3>Most open issues</h3></div>
+          <div><span className="eyebrow">Issues and changes</span><h2>Most open issues</h2></div>
           <span className="program-portfolio-visual__scope">Top {summary.knownIssuePrograms.length} on this page</span>
         </header>
         {summary.knownIssuePrograms.length > 0
