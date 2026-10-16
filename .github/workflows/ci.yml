@@ -110,20 +110,9 @@ jobs:
             -contributor 00000000-0000-4000-8000-000000000108 \
             -reviewer 00000000-0000-4000-8000-000000000106 \
             -signatory 00000000-0000-4000-8000-000000000102 >/tmp/reference-acceptance-rerun.json
-          python3 - <<'PY'
-          import json
-          for path in ("/tmp/reference-acceptance.json", "/tmp/reference-acceptance-rerun.json"):
-              with open(path, encoding="utf-8") as handle:
-                  payload = json.load(handle)
-              acceptance = payload["form_policy_acceptance"]
-              assert acceptance["exactly_once_matter"] is True, payload
-              assert acceptance["matter_id"], payload
-              assert acceptance["poor_execution_state"] in ("APPLIED", "REUSED"), payload
-              assert acceptance["same_episode_reused_matter"] is True, payload
-              assert acceptance["same_episode_response_id"], payload
-              assert acceptance["same_episode_response_id"] != acceptance["poor_response_id"], payload
-              assert acceptance["same_episode_execution_state"] == "REUSED", payload
-          PY
+          python3 -m unittest discover -s deploy/tests -p test_reference_acceptance.py
+          python3 deploy/scripts/verify_reference_acceptance.py \
+            /tmp/reference-acceptance.json /tmp/reference-acceptance-rerun.json
           psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policies WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND legal_entity_id='00000000-0000-4000-8000-000000000002' AND code='CLEARSIGHT-DEMO-AUTHORITY'" | grep -qx 1
           psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM routing_policy_versions WHERE policy_id='00000000-0000-4000-8000-000000000201' AND legal_entity_id='00000000-0000-4000-8000-000000000002' AND version=1" | grep -qx 1
           psql -X "$DATABASE_URL" -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM effective_authority_routes WHERE source_policy_id='00000000-0000-4000-8000-000000000201'" | grep -qx 11
