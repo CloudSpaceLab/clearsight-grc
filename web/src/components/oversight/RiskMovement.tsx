@@ -63,6 +63,19 @@ export function RiskMovement({
 
     void request.then((result) => {
       if (controller.signal.aborted) return;
+      const identityMatches = result.value.metric_id === current.id
+        && result.value.definition_revision === current.definition_revision
+        && result.value.start.slice(0, 10) === startDate
+        && result.value.end.slice(0, 10) === endDate
+        && (result.kind === "organization"
+          ? result.value.organization_scope_id === organizationScopeID && result.value.resolution === "DAY"
+          : result.value.resolution === "DAY" || result.value.resolution === "HOUR");
+      if (!identityMatches) {
+        setLegalTrend(null);
+        setOrganizationTrend(null);
+        setState("unavailable");
+        return;
+      }
       if (result.kind === "organization") {
         setOrganizationTrend(result.value);
         setLegalTrend(null);
@@ -89,15 +102,21 @@ export function RiskMovement({
     const baselineKey = formatDate(baselineDate);
     const todayKey = formatDate(today);
 
-    const history = organizationTrend
-      ? organizationTrend.points.map((point) => ({
+    const scopedTrend = organizationScopeID && organizationTrend?.organization_scope_id === organizationScopeID
+      && organizationTrend.metric_id === current.id
+      && organizationTrend.definition_revision === current.definition_revision
+      ? organizationTrend : null;
+    const entityTrend = !organizationScopeID && legalTrend?.metric_id === current.id
+      && legalTrend.definition_revision === current.definition_revision ? legalTrend : null;
+    const history = scopedTrend
+      ? scopedTrend.points.map((point) => ({
           id: `history-${point.date}`,
           at: point.at,
           date: point.date,
           value: point.value,
           complete: point.source_complete,
         }))
-      : (legalTrend?.points ?? []).map((point) => ({
+      : (entityTrend?.points ?? []).map((point) => ({
           id: `history-${point.at}`,
           at: point.at,
           date: point.at.slice(0, 10),
