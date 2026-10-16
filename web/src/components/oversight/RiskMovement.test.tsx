@@ -68,6 +68,32 @@ it("compares current scoped Risk posture to the exact historical day", async () 
   expect(loadLegalEntityTrend).not.toHaveBeenCalled();
 });
 
+it.each([
+  { caseName: "another metric", override: { metric_id: "indicator_breaches" } },
+  { caseName: "another definition", override: { definition_revision: "enterprise-domain-v0" } },
+  { caseName: "another organization", override: { organization_scope_id: "operations" } },
+  { caseName: "another reporting period", override: { start: "2026-09-08T00:00:00Z" } },
+])("rejects a historical series for $caseName", async ({ override }) => {
+  const loadOrganizationTrend = vi.fn().mockResolvedValue({
+    metric_id: "risks_outside_appetite",
+    definition_revision: "enterprise-domain-v1",
+    organization_scope_id: "technology",
+    start: "2026-09-07T00:00:00Z",
+    end: "2026-10-07T12:00:00Z",
+    resolution: "DAY",
+    points: [{ date: "2026-09-07", at: "2026-09-07T23:55:00Z", value: 9, source_revision: "enterprise-domain-v1", source_complete: true }],
+    ...override,
+  });
+
+  render(<RiskMovement bundle={bundle()} organizationScopeID="technology"
+    loadOrganizationTrend={loadOrganizationTrend} now={new Date("2026-10-07T12:00:00Z")}/>);
+
+  expect(await screen.findByText("No comparable history yet.")).toBeTruthy();
+  expect(screen.getByText("14 now")).toBeTruthy();
+  expect(screen.getByText("No comparable history")).toBeTruthy();
+  expect(screen.queryByRole("img", { name: /Outside-appetite risk trend/ })).toBeNull();
+});
+
 it("does not claim direction without an exact complete baseline", async () => {
   const loadOrganizationTrend = vi.fn().mockResolvedValue({
     metric_id: "risks_outside_appetite",
