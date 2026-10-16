@@ -41,7 +41,7 @@ export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
       const tourMode = new URLSearchParams(window.location.search).get("tour");
       setGuide(resolved);
       setState(saved);
-      setIntroduced(false);
+      setIntroduced(surface === "TODAY");
       setOpen(tourMode === "on" || (tourMode !== "off" && !saved.completed && !saved.dismissed));
     } catch {
       if (requestID !== loadID.current) return;
@@ -139,7 +139,7 @@ export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
       const next = await saveGuideState(guideCode, { current_step: 0, completed: false, dismissed: false, version: state.version });
       if (epoch !== loadID.current) return;
       setState(next);
-      setIntroduced(false);
+      setIntroduced(surface === "TODAY");
       setOpen(true);
     } catch {
       if (epoch === loadID.current) setGuideError("The guide could not be restarted. Your workspace remains available; try again.");
@@ -158,11 +158,11 @@ export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
   const completed = state.completed;
   return <>
     {guideError && <p className="inline-error" role="alert">{guideError}</p>}
-    {!open && <button className="guide-launcher" type="button" onClick={completed ? () => void restart() : resume} aria-label={`${completed ? "Restart" : "Resume"} ${guide.role} guide`} disabled={busy}>
+    {!open && (surface !== "TODAY" || !completed) && <button className="guide-launcher" type="button" onClick={completed ? () => void restart() : resume} aria-label={`${completed ? "Restart" : "Resume"} ${guide.role} guide`} disabled={busy}>
       <span aria-hidden="true">?</span><strong>{completed ? "Restart guide" : "Resume guide"}</strong>
     </button>}
-    {open && !introduced && <CinematicGuidePanel
-      variant={guide.surface === "VENDORS" ? "vendors" : "today"}
+    {open && surface === "VENDORS" && !introduced && <CinematicGuidePanel
+      variant="vendors"
       role={guide.role}
       title={guide.title}
       description={guide.description}
@@ -170,7 +170,7 @@ export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
       onStart={() => setIntroduced(true)}
       onSkip={dismiss}
     />}
-    {open && introduced && <IntroGuide guide={guide} state={state} busy={busy} onAdvance={advance} onBack={back} onDismiss={dismiss}/>}
+    {open && (surface === "TODAY" || introduced) && <IntroGuide compact={surface === "TODAY"} guide={guide} state={state} busy={busy} onAdvance={advance} onBack={back} onDismiss={dismiss}/>}
   </>;
 }
 
