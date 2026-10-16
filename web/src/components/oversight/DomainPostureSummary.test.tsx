@@ -38,11 +38,26 @@ function bundle(population = 10): DomainMetricBundle {
   };
 }
 
-it("identifies an empty canonical Risk population instead of rendering clear posture cards", () => {
+it("retains four measures without treating an empty risk population as clear", () => {
   render(<DomainPostureSummary bundle={bundle(0)} state="live"/>);
 
-  expect(screen.getByText("No active Risks are loaded for this legal entity.")).toBeTruthy();
-  expect(screen.queryByText("Outside appetite")).toBeNull();
+  for (const name of ["Outside appetite", "Indicator breaches", "Assurance failures"]) {
+    const card = screen.getByRole("article", { name: new RegExp(`${name}: —.*No assessed population`) });
+    expect(card.getAttribute("data-quality")).toBe("unknown");
+    expect(screen.queryByRole("button", { name: new RegExp(name) })).toBeNull();
+  }
+  expect(screen.getAllByText("No assessed population")).toHaveLength(3);
+  expect(screen.getByRole("article", { name: /Net operational loss: —.*Unavailable/ })).toBeTruthy();
+});
+
+it("keeps assessed risk cards actionable when another measure has no population", () => {
+  const current = bundle();
+  current.items[1]!.population = 0;
+  render(<DomainPostureSummary bundle={current} state="live"/>);
+
+  expect(screen.getByRole("article", { name: /Indicator breaches: —.*No assessed population/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Outside appetite: 1/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Assurance failures: 0/ })).toBeTruthy();
 });
 
 it("opens exact scoped Risk members from the canonical posture card", async () => {
