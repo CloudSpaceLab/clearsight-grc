@@ -63,14 +63,13 @@ export function RiskMovement({
 
     void request.then((result) => {
       if (controller.signal.aborted) return;
-      const trend = result.value;
-      const identityMatches = trend.metric_id === current.id
-        && trend.definition_revision === current.definition_revision
-        && trend.start.slice(0, 10) === startDate
-        && trend.end.slice(0, 10) === endDate
+      const identityMatches = result.value.metric_id === current.id
+        && result.value.definition_revision === current.definition_revision
+        && result.value.start.slice(0, 10) === startDate
+        && result.value.end.slice(0, 10) === endDate
         && (result.kind === "organization"
-          ? trend.organization_scope_id === organizationScopeID && trend.resolution === "DAY"
-          : trend.resolution === "DAY" || trend.resolution === "HOUR");
+          ? result.value.organization_scope_id === organizationScopeID && result.value.resolution === "DAY"
+          : result.value.resolution === "DAY" || result.value.resolution === "HOUR");
       if (!identityMatches) {
         setLegalTrend(null);
         setOrganizationTrend(null);
@@ -78,10 +77,10 @@ export function RiskMovement({
         return;
       }
       if (result.kind === "organization") {
-        setOrganizationTrend(trend);
+        setOrganizationTrend(result.value);
         setLegalTrend(null);
       } else {
-        setLegalTrend(trend);
+        setLegalTrend(result.value);
         setOrganizationTrend(null);
       }
       setState("live");
