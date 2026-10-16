@@ -23,6 +23,7 @@ import (
 
 func main() {
 	var seed bankverticals.SeedConfig
+	var demoJourneysOnly bool
 	var documentSamplesOnly bool
 	var sourceEmployeesOnly bool
 	var cloudspaceRelationshipID string
@@ -31,6 +32,7 @@ func main() {
 	var sourceRisksOnly bool
 	var sourceManifestDir string
 	flag.StringVar(&sourceManifestDir, "source-manifest-dir", "", "private directory containing the source-record manifests")
+	flag.BoolVar(&demoJourneysOnly, "demo-journeys-only", false, "explicitly install the complete non-production reference journeys (multiple sample workflows)")
 	flag.BoolVar(&sourceRecordsOnly, "source-records-only", false, "install the supplied IT, vendor and operational risk captures and linked issues only")
 	flag.BoolVar(&sourceLossesOnly, "source-losses-only", false, "import canonical OpsRisk losses from private manifests without rerunning Forms or Matters")
 	flag.BoolVar(&sourceRisksOnly, "source-risks-only", false, "reconcile persisted IT exception source records into canonical Risks")
@@ -47,6 +49,7 @@ func main() {
 	flag.StringVar(&seed.SignatoryPrincipalID, "signatory", "", "authorized signatory principal UUID")
 	flag.Parse()
 	fatalIf(validateSeedMode(seedMode{
+		DemoJourneysOnly: demoJourneysOnly,
 		SourceRecordsOnly: sourceRecordsOnly, SourceLossesOnly: sourceLossesOnly, SourceRisksOnly: sourceRisksOnly,
 		SourceEmployeesOnly: sourceEmployeesOnly, DocumentSamplesOnly: documentSamplesOnly,
 		CloudspaceRelationshipID: cloudspaceRelationshipID,
