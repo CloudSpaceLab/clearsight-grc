@@ -20,11 +20,11 @@
   width: min(48%, 520px);
   background: linear-gradient(125deg, color-mix(in srgb, var(--cyan) 8%, transparent), color-mix(in srgb, var(--cyan) 18%, transparent));
   clip-path: ellipse(100% 120% at 100% 0);
-  border-radius: inherit;
+  border-radius: var(--cs-primitive-radius-14);
   pointer-events: none;
-  z-index: 0;
+  z-index: var(--cs-primitive-z-base);
 }
-.oversight-header > * { position: relative; z-index: 1; min-width: 0; }
+.oversight-header > * { position: relative; z-index: var(--cs-primitive-z-sticky); min-width: 0; }
 .oversight-header > :first-child { flex: 1 1 440px; }
 .oversight-header__actions { display: flex; flex: 0 1 360px; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; gap: var(--cs-primitive-space-2); min-width: 0; }
 .oversight-header__actions > .oversight-period-control { min-width: 0; }
