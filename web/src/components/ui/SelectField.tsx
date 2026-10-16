@@ -46,6 +46,7 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
   const allowClose = useRef(false);
   const triggerButton = useRef<HTMLButtonElement>(null);
   const restoreReleaseTimer = useRef<number | undefined>(undefined);
+  const tabCloseTimer = useRef<number | undefined>(undefined);
   const selectRef = useCallback((node: HTMLDivElement | null) => {
     if (!node) return;
     // Keep a modal as the option list's accessibility and dismissal boundary.
@@ -58,7 +59,10 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
     const nextContainer = dialog ?? document.getElementById("cs-overlay-root") ?? undefined;
     setPortalContainer((current) => current === nextContainer ? current : nextContainer);
   }, []);
-  useEffect(() => () => window.clearTimeout(restoreReleaseTimer.current), []);
+  useEffect(() => () => {
+    window.clearTimeout(restoreReleaseTimer.current);
+    window.clearTimeout(tabCloseTimer.current);
+  }, []);
   useLayoutEffect(() => {
     if (!isOpen) return;
     function restoreOpeningPosition(event: Event) {
@@ -94,9 +98,14 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
         finishClose();
         triggerButton.current?.focus();
       } else if (event.key === "Tab") {
-        // The non-modal popover may remain open after focus moves outside it.
-        // Close explicitly without preventing the browser's natural Tab order.
-        finishClose();
+        // Keep the focused option mounted until native Tab selects the next
+        // element. Closing synchronously makes focus restart at page navigation.
+        allowClose.current = true;
+        window.clearTimeout(tabCloseTimer.current);
+        tabCloseTimer.current = window.setTimeout(() => {
+          tabCloseTimer.current = undefined;
+          finishClose();
+        }, 0);
       }
     }
     window.addEventListener("keydown", handleWindowKeyDown, true);
@@ -104,6 +113,8 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
   }, [isOpen]);
 
   function finishClose() {
+    window.clearTimeout(tabCloseTimer.current);
+    tabCloseTimer.current = undefined;
     allowClose.current = false;
     unchangedOpeningScroll.current = undefined;
     restoringScroll.current = false;
@@ -113,6 +124,8 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
+      window.clearTimeout(tabCloseTimer.current);
+      tabCloseTimer.current = undefined;
       window.clearTimeout(restoreReleaseTimer.current);
       openScrollPosition.current = { x: window.scrollX, y: window.scrollY };
       openedAt.current = performance.now();
