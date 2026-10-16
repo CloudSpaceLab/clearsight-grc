@@ -357,6 +357,10 @@ export function ReportsWorkspace({
       {(activeTab) => activeTab === "library"
         ? <div className="reports-library">
           <section className="reports-summary" aria-label="Report library summary">
+            <div className="reports-summary__heading">
+              <strong>Loaded report status</strong>
+              <span>{runs.length} loaded{nextCursor ? " · More available" : ""}</span>
+            </div>
             <ReportSummaryMetric label="Available" value={readyCount} />
             <ReportSummaryMetric label="In progress" value={runningCount} tone={runningCount ? "info" : "neutral"} />
             <ReportSummaryMetric label="Failed" value={failedCount} tone={failedCount ? "error" : "neutral"} />
