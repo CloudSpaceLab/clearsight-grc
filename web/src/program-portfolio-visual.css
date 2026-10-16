@@ -165,3 +165,28 @@
 @media (forced-colors: active) {
   .portfolio-workspace--programs .program-card::before { background: CanvasText !important; }
 }
+/* Stable Program page identity; loaded-page posture stays a secondary fact. */
+.portfolio-workspace--programs .program-portfolio-head {
+  margin-block: var(--cs-primitive-space-4) 0;
+  padding: var(--cs-space-section);
+  border: var(--cs-surface-border-width) solid var(--cs-border-default);
+  border-radius: var(--cs-surface-radius);
+  background: linear-gradient(115deg, var(--cs-bg-surface-1), color-mix(in srgb, var(--cs-accent-cyan) 5%, var(--cs-bg-surface-1)));
+}
+.portfolio-workspace--programs .program-portfolio-head h1 {
+  margin: var(--cs-primitive-space-2) 0;
+  color: var(--cs-text-strong);
+  font-size: var(--cs-primitive-font-size-28);
+  line-height: var(--cs-leading-tight);
+}
+.portfolio-workspace--programs .program-portfolio-head p {
+  max-inline-size: var(--cs-reading-measure);
+  margin: 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-body);
+}
+@container (max-width: 620px) {
+  .portfolio-workspace--programs .program-portfolio-head {
+    padding: var(--cs-space-group);
+  }
+}
