@@ -3,11 +3,18 @@ package main
 import "testing"
 
 func TestSeedModeAllowsOnlyOneScopedOperation(t *testing.T) {
+	if err := validateSeedMode(seedMode{}); err == nil {
+		t.Fatal("expected a no-mode invocation to reject implicit multi-journey data installation")
+	}
+	if err := validateSeedMode(seedMode{DemoJourneysOnly: true}); err != nil {
+		t.Fatalf("explicit non-production journey mode rejected: %v", err)
+	}
 	if err := validateSeedMode(seedMode{SourceRisksOnly: true}); err != nil {
 		t.Fatalf("Risk-only mode rejected: %v", err)
 	}
 	for name, mode := range map[string]seedMode{
 		"source records": {SourceRisksOnly: true, SourceRecordsOnly: true},
+		"demo journeys":  {DemoJourneysOnly: true, SourceRisksOnly: true},
 		"source losses":  {SourceRisksOnly: true, SourceLossesOnly: true},
 		"employees":      {SourceRisksOnly: true, SourceEmployeesOnly: true},
 		"documents":      {SourceRisksOnly: true, DocumentSamplesOnly: true},
