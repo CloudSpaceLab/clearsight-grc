@@ -58,7 +58,7 @@ describe("RoleAwareOnboarding", () => {
     expect(saveGuideState).not.toHaveBeenCalled();
     expect(screen.getByRole("alert").textContent).toContain("This guide step could not be opened. Try again.");
 
-    fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Home" }));
     await waitFor(() => expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ current_step: 1, completed: false })));
     expect(screen.getByRole("heading", { name: "Inspect a Program" })).toBeTruthy();
   });
@@ -72,7 +72,7 @@ describe("RoleAwareOnboarding", () => {
     expect(launcher.textContent).toContain("Resume guide");
     fireEvent.click(launcher);
     expect(await screen.findByRole("heading", { name: "Inspect a Program" })).toBeTruthy();
-    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
+    expect(screen.getByRole("complementary", { name: "Getting started" }).className).toContain("guide-panel--compact");
     expect(saveGuideState).not.toHaveBeenCalled();
   });
 
@@ -202,7 +202,7 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(loadGuideState).mockImplementation(async (code) => ({ ...initial, guide_code: code }));
     vi.mocked(saveGuideState).mockReturnValue(save.promise);
     const view = render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
-    fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Home" }));
     await waitFor(() => expect(saveGuideState).toHaveBeenCalled());
 
     view.rerender(<RoleAwareOnboarding surface="VENDORS" runtime={{ ...runtime, actor: { ...runtime.actor, id: "owner-1" } }} onStep={vi.fn()}/>);
@@ -218,7 +218,7 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(saveGuideState).mockRejectedValue(new Error("State store unavailable"));
     const onStep = vi.fn().mockResolvedValue(undefined);
     render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={onStep}/>);
-    fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Home" }));
 
     expect((await screen.findByRole("alert")).textContent).toBe("Guide progress could not be saved. Your workspace remains available; try again.");
     expect(onStep).toHaveBeenCalledOnce();
@@ -273,7 +273,7 @@ describe("RoleAwareOnboarding", () => {
     document.body.append(target);
     render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
 
-    fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Home" }));
 
     await waitFor(() => expect(scroll).toHaveBeenCalledWith({ behavior: "auto", block: "center" }));
     target.remove();
