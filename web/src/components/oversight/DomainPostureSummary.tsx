@@ -73,7 +73,7 @@ export function DomainPostureSummary({
     : undefined;
   const lossCard = useMemo(() => lossCardModel(lossBundle), [lossBundle]);
   const selected = useMemo<SelectedMetric | undefined>(() => {
-    if (selectedDomain && bundle) {
+    if (selectedDomain && bundle && selectedDomain.population > 0) {
       return {
         id: selectedDomain.id,
         label: selectedDomain.label,
