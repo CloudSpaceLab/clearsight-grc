@@ -5,12 +5,13 @@ type Props = {
   guide: OnboardingGuide;
   state: OnboardingState;
   busy?: boolean;
+  compact?: boolean;
   onAdvance: (step: GuideStep, next: OnboardingState) => void | Promise<void>;
   onBack: (next: OnboardingState) => void | Promise<void>;
   onDismiss: () => void | Promise<void>;
 };
 
-export function IntroGuide({ guide, state, busy = false, onAdvance, onBack, onDismiss }: Props) {
+export function IntroGuide({ guide, state, busy = false, compact = false, onAdvance, onBack, onDismiss }: Props) {
   const index = Math.min(state.current_step, Math.max(guide.steps.length - 1, 0));
   const step = guide.steps[index] ?? guide.steps[0];
   const final = index === guide.steps.length - 1;
@@ -29,7 +30,7 @@ export function IntroGuide({ guide, state, busy = false, onAdvance, onBack, onDi
     dismissed: false,
   };
 
-  return <aside className="guide-panel" data-guide-profile={guide.profile ?? "general"} aria-label="Getting started">
+  return <aside className={compact ? "guide-panel guide-panel--compact" : "guide-panel"} data-guide-profile={guide.profile ?? "general"} aria-label="Getting started">
     <button className="guide-close icon-button" type="button" onClick={() => void onDismiss()} aria-label="Dismiss guide" disabled={busy}><CloseIcon/></button>
     <div className="guide-copy">
       <div className="guide-meta"><span className="eyebrow">Getting started</span><span>Step {index + 1} of {guide.steps.length}</span></div>
