@@ -289,6 +289,34 @@ it("does not substitute Oversight counts when canonical metrics are unavailable"
   expect(screen.getByRole("article", { name: /Overdue: —.*Unavailable/ })).toBeTruthy();
 });
 
+it("does not mix initial Home metrics with a different reporting period", async () => {
+  const current = await metricApi.loadHomeMetrics();
+  metricApi.loadHomeMetrics.mockResolvedValueOnce({
+    ...current,
+    reporting_period: { ...current.reporting_period, start_date: "2026-08-01" },
+  });
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()} homeTab="attention"/>);
+
+  expect(await screen.findByRole("article", { name: /Critical and high: —.*Unavailable/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Critical and high: 7/ })).toBeNull();
+  expect(screen.getByRole("button", { name: /Reporting period/ })).toBeTruthy();
+});
+
+it("does not mix initial Home metrics with another organization scope", async () => {
+  const currentSnapshot = await api.loadOversight();
+  const currentMetrics = await metricApi.loadHomeMetrics();
+  api.loadOversight.mockResolvedValueOnce({ ...currentSnapshot, organization_scope_id: "technology" });
+  metricApi.loadHomeMetrics.mockResolvedValueOnce({
+    ...currentMetrics,
+    scope_id: "operations",
+    scope_kind: "ORGANIZATION_SCOPE",
+  });
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" organizationScopeID="technology" onOpenMatter={vi.fn()} homeTab="attention"/>);
+
+  expect(await screen.findByRole("article", { name: /Overdue: —.*Unavailable/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Overdue: 4/ })).toBeNull();
+});
+
 it("keeps Attention and My work isolated while preserving their actions", async () => {
   const onMetricFilterChange = vi.fn();
   const onOpenTodayItem = vi.fn();
