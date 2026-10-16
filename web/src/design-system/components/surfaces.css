@@ -59,3 +59,58 @@
 .cs-empty-state--compact .cs-empty-state__title {
   font-size: var(--cs-primitive-font-size-18);
 }
+
+/* Shared register composition for canonical Risk, Loss and future portfolio lists. */
+.cs-register-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-space-section);
+  min-inline-size: 0;
+  padding: var(--cs-space-section);
+  border: var(--cs-surface-border-width) solid var(--cs-border-default);
+  border-radius: var(--cs-surface-radius);
+  background: linear-gradient(115deg, var(--cs-bg-surface-1), color-mix(in srgb, var(--cs-accent-cyan) 5%, var(--cs-bg-surface-1)));
+}
+.cs-register-header > div { min-inline-size: 0; }
+.cs-register-header h1 { margin-block: var(--cs-primitive-space-2) 0; }
+.cs-register-header p {
+  max-inline-size: var(--cs-reading-measure);
+  margin: var(--cs-primitive-space-2) 0 0;
+  color: var(--cs-text-muted);
+}
+.cs-register-summary {
+  display: grid;
+  gap: var(--cs-space-group);
+  min-inline-size: 0;
+  padding: var(--cs-space-section);
+  border: var(--cs-surface-border-width) solid var(--cs-border-default);
+  border-radius: var(--cs-surface-radius);
+  background: var(--cs-bg-surface-1);
+  box-shadow: var(--cs-shadow-raised);
+}
+.cs-register-summary__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-space-inline);
+}
+.cs-register-summary__heading h2 {
+  margin: 0;
+  color: var(--cs-text-strong);
+  font-size: var(--cs-primitive-font-size-18);
+}
+.cs-register-summary__count {
+  padding: var(--cs-primitive-space-1) var(--cs-primitive-space-3);
+  border: var(--cs-surface-border-width) solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-10);
+  background: var(--cs-bg-surface-2);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 760px) {
+  .cs-register-header { flex-wrap: wrap; padding: var(--cs-space-group); }
+  .cs-register-summary { padding: var(--cs-space-group); }
+}
