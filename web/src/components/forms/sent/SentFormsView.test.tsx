@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../http";
+import type { Distribution } from "../../../formsDistributionApi";
 import { SentFormsView } from "../SentFormsView";
 
 const api = vi.hoisted(() => ({ loadDistributionPage: vi.fn(), loadDistribution: vi.fn(), transitionDistribution: vi.fn() }));
@@ -74,6 +75,47 @@ describe("SentFormsView", () => {
     render(<SentFormsView/>);
     fireEvent.click(await screen.findByRole("button", { name: "Load more sent forms" }));
     await waitFor(() => expect(api.loadDistributionPage).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: "cursor-2" })));
+    expect(screen.queryByRole("button", { name: "Load more sent forms" })).toBeNull();
+  });
+
+  it("discards an older filter response after a newer sent-form list completes", async () => {
+    let resolveOriginal!: (page: { items: Distribution[] }) => void;
+    const original = new Promise<{ items: Distribution[] }>((resolve) => { resolveOriginal = resolve; });
+    api.loadDistributionPage.mockImplementation((query: { status?: string }) =>
+      query.status === "LOCKED" ? Promise.resolve({ items: [outsideDistribution] }) : original,
+    );
+    render(<SentFormsView/>);
+
+    const status = screen.getByRole("button", { name: /Status/ });
+    fireEvent.click(status);
+    fireEvent.click(await screen.findByRole("option", { name: "Responses locked" }));
+    expect(await screen.findByRole("button", { name: "Open Off-page annual review" })).toBeTruthy();
+    resolveOriginal({ items: [distribution] });
+
+    await waitFor(() => expect(api.loadDistributionPage).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("button", { name: "Open Off-page annual review" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Open Quarterly control review" })).toBeNull();
+  });
+
+  it("does not append an old cursor page after changing sent-form filters", async () => {
+    let resolveOldPage!: (page: { items: Distribution[] }) => void;
+    const older = new Promise<{ items: Distribution[] }>((resolve) => { resolveOldPage = resolve; });
+    api.loadDistributionPage.mockImplementation((query: { cursor?: string; status?: string }) => {
+      if (query.cursor) return older;
+      if (query.status === "LOCKED") return Promise.resolve({ items: [outsideDistribution] });
+      return Promise.resolve({ items: [distribution], next_cursor: "older" });
+    });
+    render(<SentFormsView/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Load more sent forms" }));
+    await waitFor(() => expect(api.loadDistributionPage).toHaveBeenCalledWith(expect.objectContaining({ cursor: "older" })));
+
+    fireEvent.click(screen.getByRole("button", { name: /Status/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "Responses locked" }));
+    expect(await screen.findByRole("button", { name: "Open Off-page annual review" })).toBeTruthy();
+    resolveOldPage({ items: [distribution] });
+
+    expect(screen.queryByRole("button", { name: "Open Quarterly control review" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Load more sent forms" })).toBeNull();
   });
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { loadDistribution, loadDistributionPage, transitionDistribution, type Distribution, type DistributionDetail, type DistributionQuery } from "../../formsDistributionApi";
 import { ApiError } from "../../http";
 import { ActionLink, Button, EmptyState, FocusedSheet, Notice, Surface } from "../ui";
@@ -16,6 +16,7 @@ type DetailState = "idle" | "loading" | "live" | "error";
 export function SentFormsView() {
   const wideDetail = useMediaQuery("(min-width: 1180px)");
   const [query, setQuery] = useState<DistributionQuery>(() => readQuery());
+  const listReadRevision = useRef(0);
   const [listState, setListState] = useState<ListState>("loading");
   const [items, setItems] = useState<Distribution[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
@@ -29,7 +30,7 @@ export function SentFormsView() {
   const [detailError, setDetailError] = useState<string>();
   const [notice, setNotice] = useState<string>();
 
-  useEffect(() => { void refresh(); }, [query.status, query.due_state, query.subject_type, query.subject_id, query.owner, query.limit]);
+  useEffect(() => { void refresh(); return () => { listReadRevision.current++; }; }, [query.status, query.due_state, query.subject_type, query.subject_id, query.owner, query.limit]);
   useEffect(() => {
     if (selectedID) void loadSelectedDetail(selectedID);
     else { setDetail(undefined); setDetailState("idle"); setDetailError(undefined); }
@@ -48,14 +49,18 @@ export function SentFormsView() {
   }, []);
 
   async function refresh() {
+    const revision = ++listReadRevision.current;
+    setBusy((current) => current === "more" ? undefined : current);
     setListState("loading");
     setError(undefined);
     try {
       const page = await loadDistributionPage({ ...query, cursor: undefined, limit: query.limit ?? 25 });
+      if (revision !== listReadRevision.current) return;
       setItems(page.items);
       setNextCursor(page.next_cursor);
       setListState("live");
     } catch (cause) {
+      if (revision !== listReadRevision.current) return;
       setError(message(cause, "Sent forms could not be loaded for the current filters."));
       setListState(cause instanceof ApiError && cause.status === 401 ? "sign-in-required" : "error");
     }
@@ -76,20 +81,25 @@ export function SentFormsView() {
 
   async function loadMore() {
     if (!nextCursor || busy === "more") return;
+    const revision = listReadRevision.current;
     setBusy("more");
     try {
       const page = await loadDistributionPage({ ...query, cursor: nextCursor, limit: query.limit ?? 25 });
+      if (revision !== listReadRevision.current) return;
       setItems((current) => appendUniqueByID(current, page.items));
       setNextCursor(page.next_cursor);
     } catch (cause) {
-      setError(message(cause, "More sent forms could not be loaded."));
+      if (revision === listReadRevision.current) setError(message(cause, "More sent forms could not be loaded."));
     } finally {
-      setBusy(undefined);
+      if (revision === listReadRevision.current) setBusy(undefined);
     }
   }
 
   function updateQuery(patch: Partial<DistributionQuery>) {
     const next = { ...query, ...patch, cursor: undefined };
+    if ((Object.keys(next) as Array<keyof DistributionQuery>).every((key) => next[key] === query[key])) return;
+    // Invalidate responses before the query effect runs, so prior results never repopulate a new filter.
+    listReadRevision.current++;
     setQuery(next);
     writeQuery(next);
   }
