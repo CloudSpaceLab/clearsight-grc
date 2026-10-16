@@ -49,7 +49,7 @@ func main() {
 	flag.StringVar(&seed.SignatoryPrincipalID, "signatory", "", "authorized signatory principal UUID")
 	flag.Parse()
 	fatalIf(validateSeedMode(seedMode{
-		DemoJourneysOnly: demoJourneysOnly,
+		DemoJourneysOnly:  demoJourneysOnly,
 		SourceRecordsOnly: sourceRecordsOnly, SourceLossesOnly: sourceLossesOnly, SourceRisksOnly: sourceRisksOnly,
 		SourceEmployeesOnly: sourceEmployeesOnly, DocumentSamplesOnly: documentSamplesOnly,
 		CloudspaceRelationshipID: cloudspaceRelationshipID,
