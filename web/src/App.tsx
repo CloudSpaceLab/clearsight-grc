@@ -466,47 +466,51 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
 
   function closePanel() { captureLoadID.current++; routingLoadID.current++; setActivePanel("none"); }
 
-  async function inspectRouting(item: AttentionItem) {
-    if (!item.authority || !isAuthorityObjectType(item.action_target_type) || !item.action_target_id) return;
+  async function inspectRouting(item: AttentionItem): Promise<boolean> {
+    if (!item.authority || !isAuthorityObjectType(item.action_target_type) || !item.action_target_id) return false;
     const loadID = ++routingLoadID.current;
     setRoutingItem(item); setResolution(null); setRoutingState("loading"); setActivePanel("routing");
     try {
       const next = await resolveAuthority({ object_type: item.action_target_type, object_id: item.action_target_id, responsibility: item.authority.responsibility, decision_type: item.authority.decision_type, materiality: item.authority.materiality });
-      if (loadID !== routingLoadID.current) return;
+      if (loadID !== routingLoadID.current) return false;
       setResolution(next); setRoutingState("live");
+      return true;
     } catch (error) {
-      if (loadID !== routingLoadID.current) return;
+      if (loadID !== routingLoadID.current) return false;
       const kind = apiErrorKind(error);
       setRoutingState(kind === "forbidden" || kind === "unauthorized" ? "forbidden" : kind === "not_found" ? "not-found" : "unavailable");
+      return false;
     }
   }
 
-  async function openCapture(requestID: string) {
+  async function openCapture(requestID: string): Promise<boolean> {
     const loadID = ++captureLoadID.current;
     const scopeEpoch = evidenceScopeEpoch.current;
     setCaptureRequestID(requestID); setCapture(null); setCaptureState("loading"); setActivePanel("capture");
     try {
       const loaded = await loadEvidenceRequest(requestID, "capture_revalidation");
-      if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== captureLoadID.current) return;
+      if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== captureLoadID.current) return false;
       updateEvidenceEntity(loaded, scopeEpoch);
       if (!canRespondToEvidenceRequest(loaded, runtime?.actor.id)) {
         if (isEvidenceRequestAssignedToActor(loaded, runtime?.actor.id)) {
-          setCapture(loaded); setCaptureState("live"); return;
+          setCapture(loaded); setCaptureState("live"); return true;
         }
-        setCapture(null); setCaptureState("forbidden"); return;
+        setCapture(null); setCaptureState("forbidden"); return false;
       }
       setCapture(loaded); setCaptureState("live");
+      return true;
     } catch (error) {
-      if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== captureLoadID.current) return;
+      if (scopeEpoch !== evidenceScopeEpoch.current || loadID !== captureLoadID.current) return false;
       const kind = apiErrorKind(error);
       setCaptureState(kind === "forbidden" || kind === "unauthorized" ? "forbidden" : kind === "not_found" ? "not-found" : "unavailable");
+      return false;
     }
   }
 
   async function reloadCapture() { if (captureRequestID) await openCapture(captureRequestID); }
-  async function openPrimaryEvidence() {
-    if (!primaryEvidenceRequest) return;
-    await openCapture(primaryEvidenceRequest.id);
+  async function openPrimaryEvidence(): Promise<boolean> {
+    if (!primaryEvidenceRequest) return false;
+    return openCapture(primaryEvidenceRequest.id);
   }
 
   function openAttention(item: AttentionItem) {
@@ -516,9 +520,27 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   }
 
   async function executeGuideStep(step: GuideStep) {
-    if (step.intent === "open-routing") { navigate("oversight"); const authorityItem = items.find((item) => item.authority && item.action_target_type && item.action_target_id); if (authorityItem) await inspectRouting(authorityItem); return; }
-    if (step.intent === "open-capture") { navigate("oversight"); await openPrimaryEvidence(); return; }
-    if (step.intent === "open-first-attention" && items[0]) { openAttention(items[0]); return; }
+    if (step.intent === "open-routing") {
+      const authorityItem = items.find((item) => item.authority && item.action_target_type && item.action_target_id);
+      if (!authorityItem) throw new Error("guide_step_unavailable");
+      navigate("oversight");
+      if (!await inspectRouting(authorityItem)) throw new Error("guide_step_open_failed");
+      return;
+    }
+    if (step.intent === "open-capture") {
+      if (!primaryEvidenceRequest) throw new Error("guide_step_unavailable");
+      navigate("oversight");
+      if (!await openPrimaryEvidence()) throw new Error("guide_step_open_failed");
+      return;
+    }
+    if (step.intent === "open-first-attention") {
+      const first = items.find((item) =>
+        Boolean(item.action_target_id) &&
+        (item.action_target_type === "PROGRAM" || item.action_target_type === "MATTER" || item.action_target_type === "EVIDENCE_REQUEST"));
+      if (!first) throw new Error("guide_step_unavailable");
+      openAttention(first);
+      return;
+    }
     if (step.intent === "open-first-program") { navigate("programs", { openFirstProgram: true }); return; }
     if (step.intent === "open-first-matter") { navigate("work", { openFirstMatter: true }, "matters"); return; }
     const vendorIntent = step.intent;
@@ -535,9 +557,17 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     }
     if (step.intent === "switch-evidence" || step.intent === "open-first-evidence") {
       const requests = evidenceRequestState === "idle" ? await loadEvidenceWorkspace() : evidenceRequests;
-      navigate("work", { evidenceID: step.intent === "open-first-evidence" ? requests[0]?.id : undefined, openFirstEvidence: step.intent === "open-first-evidence" }, "evidence"); return;
+      if (step.intent === "open-first-evidence" && !requests[0]?.id) throw new Error("guide_step_unavailable");
+      navigate("work", { evidenceID: step.intent === "open-first-evidence" ? requests[0]?.id : undefined, openFirstEvidence: step.intent === "open-first-evidence" }, "evidence");
+      return;
     }
-    if (step.view) navigate(step.view);
+    if (step.view === "configure" && !configureEnabled ||
+        step.view === "imports" && !importsEnabled ||
+        step.view === "explore" && !referenceJourneysEnabled) {
+      throw new Error("guide_step_unavailable");
+    }
+    if (!step.view) throw new Error("guide_step_unavailable");
+    navigate(step.view);
   }
 
   const primaryEvidenceEntity = primaryEvidenceLoad.state === "live" && primaryEvidenceLoad.targetID === primaryEvidenceTargetID && primaryEvidenceTargetID ? evidenceByID[primaryEvidenceTargetID] : undefined;

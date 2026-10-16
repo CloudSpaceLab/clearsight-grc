@@ -79,8 +79,12 @@ export function RoleAwareOnboarding({ runtime, surface, onStep }: Props) {
     try {
       try {
         await onStep(step);
-      } catch {
-        if (epoch === loadID.current) setGuideError("This guide step could not be opened. Try again.");
+      } catch (error) {
+        if (epoch === loadID.current) setGuideError(
+          error instanceof Error && error.message === "guide_step_unavailable"
+            ? "No eligible item is available for this step."
+            : "This guide step could not be opened. Try again.",
+        );
         return;
       }
       if (epoch !== loadID.current) return;

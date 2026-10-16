@@ -36,19 +36,28 @@ vi.mock("./components/RoleAwareOnboarding", async () => {
   return { RoleAwareOnboarding: ({ onStep, surface }: { onStep: (step: { intent?: string; view?: string }) => void | Promise<void>; surface: string }) => {
     const [busy, setBusy] = React.useState(false);
     const [error, setError] = React.useState("");
-    async function openGuideAction() {
+    async function openStep(step: { intent?: string; view?: string }) {
       setBusy(true); setError("");
-      try { await onStep({ intent: "open-vendor-due-diligence", view: "vendors" }); }
-      catch { setError("This guide step could not be opened. Try again."); }
+      try { await onStep(step); }
+      catch (error) {
+        setError(error instanceof Error && error.message === "guide_step_unavailable"
+          ? "No eligible item is available for this step."
+          : "This guide step could not be opened. Try again.");
+      }
       finally { setBusy(false); }
     }
-    async function openNextVendorTask() {
-      setBusy(true); setError("");
-      try { await onStep({ intent: "open-vendor-next-action", view: "vendors" }); }
-      catch { setError("This guide step could not be opened. Try again."); }
-      finally { setBusy(false); }
-    }
-    return <aside aria-label={`${surface === "VENDORS" ? "Vendor" : "Oversight"} guide`}><output data-testid="onboarding-surface">{surface}</output><button type="button" disabled={busy} onClick={() => void openGuideAction()}>Review due diligence</button><button type="button" disabled={busy} onClick={() => void openNextVendorTask()}>Open next vendor task</button>{error && <p role="alert">{error}</p>}</aside>;
+    return <aside aria-label={`${surface === "VENDORS" ? "Vendor" : "Oversight"} guide`}>
+      <output data-testid="onboarding-surface">{surface}</output>
+      <button type="button" disabled={busy} onClick={() => void openStep({ intent: "open-vendor-due-diligence", view: "vendors" })}>Review due diligence</button>
+      <button type="button" disabled={busy} onClick={() => void openStep({ intent: "open-vendor-next-action", view: "vendors" })}>Open next vendor task</button>
+      {surface === "TODAY" && <>
+        <button type="button" disabled={busy} onClick={() => void openStep({ intent: "open-first-attention", view: "today" })}>Review first assigned item</button>
+        <button type="button" disabled={busy} onClick={() => void openStep({ intent: "open-routing", view: "today" })}>Check approval route</button>
+        <button type="button" disabled={busy} onClick={() => void openStep({ intent: "open-capture", view: "today" })}>Open assigned response</button>
+        <button type="button" disabled={busy} onClick={() => void openStep({ view: "configure" })}>Open guided configuration</button>
+      </>}
+      {error && <p role="alert">{error}</p>}
+    </aside>;
   }};
 });
 vi.mock("./components/VendorsWorkspace", () => ({
@@ -667,6 +676,77 @@ describe("runtime navigation", () => {
     expect(window.location.hash).toBe("#vendors");
     expect(portfolioButton.getAttribute("aria-current")).toBe("page");
     expect(vendorButton.getAttribute("aria-current")).toBe("page");
+  });
+
+  it("does not advance an empty attention or routing guide destination", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Review first assigned item" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("No eligible item is available");
+    expect(window.location.hash).toBe("#oversight");
+
+    fireEvent.click(screen.getByRole("button", { name: "Check approval route" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("No eligible item is available");
+    expect(window.location.hash).toBe("#oversight");
+  });
+
+  it("does not open a guide response without a revalidated actor-eligible request", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open assigned response" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("No eligible item is available");
+    expect(screen.queryByRole("heading", { name: "Confirm assigned evidence" })).toBeNull();
+    expect(window.location.hash).toBe("#oversight");
+  });
+
+  it("keeps a guide response step open when eligibility is revoked on revalidation", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    const assigned = evidenceRequest();
+    const returned = evidenceRequest({
+      recipient: { type: "INTERNAL_PRINCIPAL", principal_id: "role-cro", state: "REASSIGNMENT_REQUIRED", revision: 2 },
+      version: 2,
+    });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-10-16T09:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockResolvedValueOnce(assigned).mockResolvedValueOnce(returned);
+    render(<App />);
+
+    await screen.findAllByRole("button", { name: "Respond to evidence request" });
+    fireEvent.click(screen.getByRole("button", { name: "Open assigned response" }));
+
+    await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation"));
+    expect(await screen.findByText("This guide step could not be opened. Try again.")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "You cannot open this request" })).toBeTruthy();
+  });
+
+  it("does not navigate a first-run guide into a disabled Configure workspace", async () => {
+    const context = runtime(false);
+    vi.mocked(loadContext).mockResolvedValue({ ...context, capabilities: { ...context.capabilities, config_read: false } });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open guided configuration" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("No eligible item is available");
+    expect(window.location.hash).toBe("#oversight");
+  });
+
+  it("opens the first eligible attention target through the existing route", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadToday).mockResolvedValue({
+      generated_at: "2026-10-16T10:00:00Z",
+      items: [
+        { id: "incomplete", type: "MATTER", title: "Unrouted item", why_now: "Unassigned", scope: "Risk", state: "OPEN", evidence: "", owner: "",
+          due_at: "2099-01-01T00:00:00Z", primary_action: "Review item" },
+        { id: "program", type: "PROGRAM", title: "Review Program", why_now: "Approval due", scope: "Bank", state: "OPEN", evidence: "", owner: "CRO",
+          due_at: "2099-01-01T00:00:00Z", primary_action: "Review Program", action_target_type: "PROGRAM", action_target_id: "program-valid" },
+      ],
+    });
+    render(<App />);
+
+    await screen.findAllByText("Review Program");
+    fireEvent.click(screen.getByRole("button", { name: "Review first assigned item" }));
+    await screen.findByRole("heading", { name: "Programs" });
+    expect(window.location.hash).toBe("#programs/program-valid/overview");
   });
 
   it("passes the due-diligence guide intent to the Vendors workspace", async () => {

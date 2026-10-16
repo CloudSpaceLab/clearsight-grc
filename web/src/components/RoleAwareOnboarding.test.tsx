@@ -45,6 +45,19 @@ describe("RoleAwareOnboarding", () => {
     expect(loadRoleGuide).toHaveBeenCalledWith("TODAY");
   });
 
+  it("keeps the current step and does not persist a missing authorized destination", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState).mockResolvedValue(initial);
+    const onStep = vi.fn().mockRejectedValue(new Error("guide_step_unavailable"));
+    render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={onStep}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open Home" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("No eligible item is available for this step.");
+    expect(screen.getByRole("heading", { name: "Review Home" })).toBeTruthy();
+    expect(screen.getByText("Step 1 of 2")).toBeTruthy();
+    expect(saveGuideState).not.toHaveBeenCalled();
+  });
+
   it("keeps the guide retryable and advances only after a recovered workspace action", async () => {
     vi.mocked(loadRoleGuide).mockResolvedValue(guide);
     vi.mocked(loadGuideState).mockResolvedValue(initial);
