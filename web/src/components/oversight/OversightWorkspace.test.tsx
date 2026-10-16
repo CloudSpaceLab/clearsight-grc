@@ -283,7 +283,9 @@ it("keeps the four source-backed metric positions visible while switching bounde
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
   expect(await screen.findByRole("tab", { name: "Risk analysis" })).toBeTruthy();
   const metricNames = ["Outside appetite", "Indicator breaches", "Assurance failures", "Net operational loss"];
-  for (const label of metricNames) expect(screen.getByRole("article", { name: new RegExp(`^${label}:`) })).toBeTruthy();
+  const metricRow = document.querySelector(".domain-posture .oversight-counts");
+  expect(metricRow?.querySelectorAll(".cs-metric-card")).toHaveLength(4);
+  for (const label of metricNames) expect(metricRow?.textContent).toContain(label);
 
   fireEvent.click(screen.getByRole("tab", { name: "Loss analysis" }));
   expect(await screen.findByRole("heading", { name: "Loss concentration" })).toBeTruthy();
