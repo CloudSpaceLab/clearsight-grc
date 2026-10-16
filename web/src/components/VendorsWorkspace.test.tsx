@@ -156,6 +156,7 @@ describe("VendorsWorkspace", () => {
     const onPage = vi.fn();
     const view = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="overview" onPage={onPage}/>);
     expect(await screen.findByRole("navigation", { name: "Vendor sections" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Vendors", level: 1 }).closest("header")?.className).toContain("cs-register-header");
     expect(screen.getByRole("region", { name: "Vendor exception overview" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Vendor register" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Register" }));
