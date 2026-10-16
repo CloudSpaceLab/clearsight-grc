@@ -37,6 +37,17 @@ describe("portfolio filters", () => {
     await waitFor(() => expect(loadProgramSummaries).toHaveBeenCalledWith(expect.objectContaining({ organizationScopeID: "scope-risk", limit: 20 })));
   });
 
+  it("keeps the Issues title stable and scopes its summary to loaded work", async () => {
+    window.history.replaceState(null, "", "/#work/matters");
+    render(<MattersWorkspace/>);
+
+    const heading = await screen.findByRole("heading", { name: "Issues and changes", level: 2 });
+    expect(heading.closest("header")?.className).toContain("cs-register-header");
+    expect(screen.getByText("0 on this page")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "New issue or change" })).toBeTruthy();
+    expect(screen.getByLabelText("Loaded work summary")).toBeTruthy();
+  });
+
   it("applies issue type, priority, due and ownership filters together", async () => {
     window.history.replaceState(null, "", "/#work/matters");
     render(<MattersWorkspace/>);
