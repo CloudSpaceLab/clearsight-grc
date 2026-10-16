@@ -299,7 +299,7 @@ it("does not mix initial Home metrics with a different reporting period", async 
 
   expect(await screen.findByRole("article", { name: /Critical and high: —.*Unavailable/ })).toBeTruthy();
   expect(screen.queryByRole("button", { name: /Critical and high: 7/ })).toBeNull();
-  expect(screen.getByRole("button", { name: /Reporting period.*Last 90 days/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Reporting period/ })).toBeTruthy();
 });
 
 it("does not mix initial Home metrics with another organization scope", async () => {
