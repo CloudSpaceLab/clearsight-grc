@@ -93,7 +93,11 @@ export function SelectField<T extends string>({ label, value, placeholder, optio
         event.stopImmediatePropagation();
         finishClose();
         triggerButton.current?.focus();
-      } else if (event.key === "Tab") allowClose.current = true;
+      } else if (event.key === "Tab") {
+        // The non-modal popover may remain open after focus moves outside it.
+        // Close explicitly without preventing the browser's natural Tab order.
+        finishClose();
+      }
     }
     window.addEventListener("keydown", handleWindowKeyDown, true);
     return () => window.removeEventListener("keydown", handleWindowKeyDown, true);
