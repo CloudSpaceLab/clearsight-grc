@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import type { ProgramItemTarget, ProgramSection } from "../appRouting";
 import { loadProgramSummaries, type ScopeNode } from "../api";
 import { hasProgramAssessment, needsProgramAssessment, summarizeProgramPortfolio, type ProgramListSummary } from "../programPortfolioPresentation";
-import { RankedBarList, StackedDistribution } from "./ui";
+import { Button, RankedBarList, StackedDistribution } from "./ui";
 import type { ProgramAggregate, ProgramState } from "../types";
 import { EmptyState } from "./EmptyState";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
@@ -190,16 +190,20 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
   const singleState = displayedStates.length === 1 ? displayedStates[0] : undefined;
 
   return <div id="programs-workspace" className="portfolio-workspace portfolio-workspace--programs">
-    <section className="workspace-brief">
-        <div><span className="eyebrow">Ongoing compliance</span><h2>{briefTitle}</h2></div>
-      <div className="workspace-brief-side"><button className="primary-button" type="button" onClick={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</button></div>
-    </section>
+    <header className="program-portfolio-head cs-register-header" aria-labelledby="program-portfolio-title">
+      <div>
+        <span className="eyebrow">Portfolio</span>
+        <h2 id="program-portfolio-title">Program portfolio</h2>
+        <p>{briefTitle}{items.length > 0 ? ` · Loaded programs${nextCursor ? " · More available" : ""}` : ""}</p>
+      </div>
+      <div className="workspace-brief-side"><Button variant="primary" onPress={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</Button></div>
+    </header>
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} organizationScopes={organizationScopes} initialOrganizationScopeID={organizationScopeID} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
     {items.length > 0 && <section className={`program-portfolio-visual${singleState ? " program-portfolio-visual--uniform" : ""}`} aria-label="Program summary for displayed records">
       <div className="program-portfolio-visual__position">
         <header className="program-portfolio-visual__heading">
-          <div><span className="eyebrow">Programs</span><h3>Program status</h3></div>
-          <span className="program-portfolio-visual__scope">{items.length} shown{nextCursor ? " · More available" : ""}</span>
+          <div><span className="eyebrow">Loaded results</span><h2>Program status</h2></div>
+          <span className="program-portfolio-visual__scope">{items.length} loaded{nextCursor ? " · More available" : ""}</span>
         </header>
         {singleState
           ? <p className="program-portfolio-visual__uniform-status"><strong>{singleState.count}</strong> {singleState.id === "attention" ? "need follow-up" : singleState.id === "current" ? "up to date" : singleState.id === "setup" ? "need assessment or review" : "not applicable"}</p>
@@ -213,12 +217,11 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
               replaceWorkspaceHash(workspaceHash("#programs", { ...programFilters, overall_state: item.state }));
             }}>{item.count} {item.label} <span aria-hidden="true">→</span></button>)}
         </div>}
-        <p>Displayed programs only{nextCursor ? " · More available" : ""}</p>
       </div>
       <div className="program-portfolio-visual__issues">
         <header className="program-portfolio-visual__heading">
-          <div><span className="eyebrow">Issues and changes</span><h3>Most open issues</h3></div>
-          <span className="program-portfolio-visual__scope">{summary.knownIssuePrograms.length} shown</span>
+          <div><span className="eyebrow">Issues and changes</span><h2>Most open issues</h2></div>
+          <span className="program-portfolio-visual__scope">Top {summary.knownIssuePrograms.length} loaded</span>
         </header>
         {summary.knownIssuePrograms.length > 0
           ? <RankedBarList ariaLabel="Programs with the most open issues in the displayed records"
@@ -246,7 +249,10 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
       {filtersActive && <button className="text-button" type="button" onClick={clearFilters}>Clear filters</button>}
     </form>
     {filtersActive && <div className="workspace-filter-chips" aria-label="Applied Program filters">{search && <span>Search: {search}</span>}{status && <span>{status === "DRAFT" ? "Setup in progress" : status[0] + status.slice(1).toLowerCase()}</span>}{overallState && <span>{humanizeProgramState(overallState)}</span>}{jurisdiction && <span>{jurisdiction}</span>}{assignedToMe && <span>Assigned to me</span>}</div>}
-      {!items.length ? <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change filters." : "No Programs in this scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/> : items.length ? <section className="program-list" aria-label="Programs">
+      {!items.length ? <section aria-label="Program register">
+        <h2 className="cs-sr-only">Program register</h2>
+        <EmptyState label="Programs" title={filtersActive ? "No programs match these filters" : "No programs in this scope"} description={filtersActive ? "Change filters." : "No Programs in this scope."} action={filtersActive ? "Clear filters" : undefined} onAction={clearFilters}/>
+      </section> : items.length ? <section className="program-list" aria-label="Programs">
       {items.map((summaryItem) => {
         const program = summaryItem.program;
         const assessmentMissing = !hasProgramAssessment(summaryItem);
@@ -271,6 +277,6 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
         </article>;
       })}
     </section> : null}
-    {nextCursor && <div className="load-more"><button className="secondary-button" disabled={loadingMore} onClick={() => void load(false, nextCursor)}>{loadingMore ? "Loading…" : "Load more programs"}</button></div>}
+    {nextCursor && <div className="load-more"><Button variant="secondary" isDisabled={loadingMore} onPress={() => void load(false, nextCursor)}>{loadingMore ? "Loading…" : "Load more programs"}</Button></div>}
   </div>;
 }
