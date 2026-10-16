@@ -197,10 +197,17 @@ export function OversightWorkspace({
       setSnapshot(null);
       setState("unavailable");
     }
-    if (metricResult.status === "fulfilled") {
+    if (metricResult.status === "fulfilled" && (
+      snapshotResult.status !== "fulfilled" || (
+        sameReportingPeriod(snapshotResult.value.reporting_period, metricResult.value.reporting_period) &&
+        sameOrganizationScope(snapshotResult.value, metricResult.value, organizationScopeID)
+      )
+    )) {
       setMetrics(metricResult.value);
       setMetricState("live");
     } else {
+      // Keep the valid Oversight snapshot; never combine it with metrics from
+      // a different period or organization selection.
       setMetrics(null);
       setMetricState("unavailable");
     }
