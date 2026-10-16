@@ -169,7 +169,7 @@
 .portfolio-workspace--programs .program-portfolio-head {
   margin-block: var(--cs-primitive-space-4) 0;
 }
-.portfolio-workspace--programs .program-portfolio-head h1 {
+.portfolio-workspace--programs .program-portfolio-head h2 {
   margin: var(--cs-primitive-space-2) 0;
   color: var(--cs-text-strong);
   font-size: var(--cs-primitive-font-size-28);
