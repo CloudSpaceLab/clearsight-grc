@@ -3,7 +3,7 @@
 Date: 2026-10-15  
 Parent: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462)  
 Baseline: `main` at plan creation; refresh before each tranche  
-Status: T0 guidance and inventory; runtime redesign and reference installs remain gated
+Status: foundational guidance; see [16 October implementation and acceptance reconciliation](2026-10-16-control-tower-implementation-reconciliation.md) for merged runtime work, remaining gates and independent owners. Reference installs remain gated
 Fidelity acceptance: [31 traceable requirement gates](2026-10-15-fidelity-acceptance-map.md).
 
 ## Decision
