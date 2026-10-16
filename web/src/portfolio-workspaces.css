@@ -13,6 +13,22 @@
   line-height: 1.25;
 }
 
+.portfolio-workspace--matters .matter-register-header h2 {
+  margin: var(--cs-primitive-space-2) 0;
+  color: var(--cs-text-strong);
+  font-size: var(--cs-primitive-font-size-22);
+}
+.portfolio-workspace--matters .matter-register-header .workspace-brief-side {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--cs-space-group);
+}
+.portfolio-workspace--matters .matter-register-header .workspace-brief-facts {
+  justify-content: flex-end;
+}
+
 .portfolio-workspace .workspace-brief-facts {
   gap: 6px 16px;
   font-size: var(--cs-font-size-caption);
@@ -245,6 +261,8 @@
 }
 
 @container (max-width: 620px) {
+  .portfolio-workspace--matters .matter-register-header .workspace-brief-side { justify-content: flex-start; }
+  .portfolio-workspace--matters .matter-register-header .workspace-brief-facts { justify-content: flex-start; }
   .portfolio-workspace .workspace-brief {
     align-items: flex-start;
     flex-direction: column;
