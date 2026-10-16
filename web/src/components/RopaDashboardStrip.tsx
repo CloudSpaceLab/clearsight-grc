@@ -1,4 +1,4 @@
-import { Button, Notice, StatusBadge, type StatusTone } from "./ui";
+import { Button, MetricCard, Notice, StatusBadge, type MetricCardQuality, type StatusTone } from "./ui";
 import type { ProcessingActivityStatus, RegisterSummary } from "../ropaTypes";
 import "./ropa.css";
 
@@ -12,6 +12,18 @@ export type RopaDashboardStripProps = {
 export function RopaDashboardStrip({ summary, onRetry, onOpenStatus }: RopaDashboardStripProps) {
   const stale = summary.freshness !== "CURRENT";
   const counts = summary.counts;
+  const noPopulation = counts.total === 0;
+  const quality: MetricCardQuality = noPopulation || summary.coverage.population === undefined ||
+    summary.coverage.excluded == null || summary.coverage.unknown == null ? "unknown" :
+    stale ? "stale" : summary.coverage.excluded > 0 || summary.coverage.unknown > 0 ? "partial" : "current";
+  const cards: ReadonlyArray<{ label: string; value: number; tone: StatusTone }> = [
+    { label: "Processing activities", value: counts.total, tone: "neutral" },
+    { label: "In progress", value: counts.open, tone: "info" },
+    { label: "Reviews overdue", value: counts.review_overdue, tone: counts.review_overdue > 0 ? "warning" : "success" },
+    { label: "Missing lawful basis", value: counts.missing_lawful_basis, tone: counts.missing_lawful_basis > 0 ? "warning" : "success" },
+    { label: "Missing owner", value: counts.missing_owner, tone: counts.missing_owner > 0 ? "warning" : "success" },
+    { label: "Missing data subjects", value: counts.no_data_subjects, tone: counts.no_data_subjects > 0 ? "warning" : "success" },
+  ];
 
   return <section className="ropa-dashboard-strip" role="region" aria-label="Processing activity status and coverage">
     <div className="ropa-dashboard-strip__header">
@@ -31,12 +43,14 @@ export function RopaDashboardStrip({ summary, onRetry, onOpenStatus }: RopaDashb
     </Notice>}
 
     <div className="ropa-dashboard-strip__metrics" aria-label="Stored processing activity counts">
-      <CountMetric label="Processing activities" value={counts.total} />
-      <CountMetric label="In progress" value={counts.open} tone="info" />
-      <CountMetric label="Reviews overdue" value={counts.review_overdue} tone={counts.review_overdue > 0 ? "warning" : "success"} />
-      <ExceptionMetric label="Missing lawful basis" value={counts.missing_lawful_basis} />
-      <ExceptionMetric label="Missing owner" value={counts.missing_owner} />
-      <ExceptionMetric label="Missing data subjects" value={counts.no_data_subjects} />
+      {cards.map((card) => <MetricCard
+        key={card.label}
+        label={card.label}
+        value={noPopulation && card.label !== "Processing activities" ? "—" : formatCount(card.value)}
+        tone={card.tone}
+        quality={quality}
+        qualityLabel={noPopulation ? "No assessed population" : undefined}
+      />)}
     </div>
 
     <div className="ropa-dashboard-strip__coverage" aria-label="Register coverage">
@@ -49,22 +63,6 @@ export function RopaDashboardStrip({ summary, onRetry, onOpenStatus }: RopaDashb
       <Button variant="quiet" size="compact" onPress={() => onOpenStatus("OPEN")}>In progress</Button>
     </div>}
   </section>;
-}
-
-function CountMetric({ label, value, tone = "neutral" }: { label: string; value: number; tone?: StatusTone }) {
-  return <div className="ropa-dashboard-strip__metric">
-    <span>{label}</span>
-    <strong>{formatCount(value)}</strong>
-    <StatusBadge tone={tone}>{label}</StatusBadge>
-  </div>;
-}
-
-function ExceptionMetric({ label, value }: { label: string; value: number }) {
-  return <div className="ropa-dashboard-strip__metric ropa-dashboard-strip__metric--exception">
-    <span>Exception</span>
-    <strong>{formatCount(value)}</strong>
-    <StatusBadge tone={value > 0 ? "warning" : "success"}>{`${formatCount(value)} ${label.toLowerCase()}`}</StatusBadge>
-  </div>;
 }
 
 function coverageSummary(coverage: RegisterSummary["coverage"]): string {
