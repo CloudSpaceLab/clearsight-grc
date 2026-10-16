@@ -39,7 +39,7 @@ function bundle(population = 10): DomainMetricBundle {
 }
 
 it("retains four measures without treating an empty risk population as clear", () => {
-  render(<DomainPostureSummary bundle={bundle(0)} state="live"/>);
+  render(<DomainPostureSummary bundle={bundle(0)} state="live" lossState="unavailable"/>);
 
   for (const name of ["Outside appetite", "Indicator breaches", "Assurance failures"]) {
     const card = screen.getByRole("article", { name: new RegExp(`${name}: —.*No assessed population`) });
