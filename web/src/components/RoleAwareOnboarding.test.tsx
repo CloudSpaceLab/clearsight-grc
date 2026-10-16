@@ -38,7 +38,6 @@ describe("RoleAwareOnboarding", () => {
     const onStep = vi.fn();
     render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={onStep}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
     expect(saveGuideState).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole("button", { name: "Open Home" }));
     await waitFor(() => expect(onStep).toHaveBeenCalledWith(expect.objectContaining({ id: "today", view: "oversight" })));
@@ -53,7 +52,6 @@ describe("RoleAwareOnboarding", () => {
     const onStep = vi.fn().mockRejectedValueOnce(new Error("Vendor records are unavailable")).mockResolvedValueOnce(undefined);
     render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={onStep}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
     const action = await screen.findByRole("button", { name: "Open Home" });
     fireEvent.click(action);
     await waitFor(() => expect((action as HTMLButtonElement).disabled).toBe(false));
@@ -74,32 +72,54 @@ describe("RoleAwareOnboarding", () => {
     expect(launcher.textContent).toContain("Resume guide");
     fireEvent.click(launcher);
     expect(await screen.findByRole("heading", { name: "Inspect a Program" })).toBeTruthy();
-    expect(screen.queryByRole("complementary", { name: /Oversight guide/i })).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
     expect(saveGuideState).not.toHaveBeenCalled();
   });
 
-  it("restarts a completed guide at step zero and shows the cinematic introduction", async () => {
+  it("removes completed Home guidance without repeating setup", async () => {
     vi.mocked(loadRoleGuide).mockResolvedValue(guide);
     vi.mocked(loadGuideState).mockResolvedValue({ ...initial, current_step: 2, completed: true, version: 3 });
-    vi.mocked(saveGuideState).mockResolvedValue({ ...initial, version: 4 });
     render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
 
-    const launcher = await screen.findByRole("button", { name: /Restart Executive risk or compliance leader guide/ });
-    expect(launcher.textContent).toContain("Restart guide");
-    fireEvent.click(launcher);
-    expect(await screen.findByRole("complementary", { name: /Oversight guide/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Start guide" })).toBeTruthy();
+    await waitFor(() => expect(loadGuideState).toHaveBeenCalledWith(guide.code));
+    expect(screen.queryByRole("button", { name: /Restart Executive risk or compliance leader guide/ })).toBeNull();
     expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
-    expect(saveGuideState).toHaveBeenCalledWith(guide.code, { current_step: 0, completed: false, dismissed: false, version: 3 });
+    expect(saveGuideState).not.toHaveBeenCalled();
   });
 
-  it("persists Skip for now through the existing dismissal state", async () => {
+  it("preserves the completed vendor guide restart and cinematic introduction", async () => {
+    const vendorGuide = { ...guide, code: "vendor-operations-first-run", surface: "VENDORS" as const, role: "Vendor relationship owner" };
+    vi.mocked(loadRoleGuide).mockResolvedValue(vendorGuide);
+    vi.mocked(loadGuideState).mockResolvedValue({ ...initial, guide_code: vendorGuide.code, current_step: 2, completed: true, version: 3 });
+    vi.mocked(saveGuideState).mockResolvedValue({ ...initial, guide_code: vendorGuide.code, version: 4 });
+    render(<RoleAwareOnboarding surface="VENDORS" runtime={runtime} onStep={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Restart Vendor relationship owner guide/ }));
+    expect(await screen.findByRole("complementary", { name: /Vendor guide/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start guide" })).toBeTruthy();
+    expect(saveGuideState).toHaveBeenCalledWith(vendorGuide.code, { current_step: 0, completed: false, dismissed: false, version: 3 });
+  });
+
+  it("finishes the two-step Home guide and removes its launcher", async () => {
+    vi.mocked(loadRoleGuide).mockResolvedValue(guide);
+    vi.mocked(loadGuideState).mockResolvedValue(initial);
+    vi.mocked(saveGuideState).mockImplementation(async (_code, value) => ({ ...initial, ...value, version: value.version + 1 }));
+    render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open Home" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open first Program" }));
+    await waitFor(() => expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ completed: true, current_step: 2 })));
+    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Restart Executive risk or compliance leader guide/ })).toBeNull();
+  });
+
+  it("persists compact Home dismissal through the existing guide state", async () => {
     vi.mocked(loadRoleGuide).mockResolvedValue(guide);
     vi.mocked(loadGuideState).mockResolvedValue(initial);
     vi.mocked(saveGuideState).mockResolvedValue({ ...initial, dismissed: true, version: 1 });
     render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Skip for now" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Dismiss", exact: true }));
 
     await waitFor(() => expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ completed: false, dismissed: true })));
     expect(screen.getByRole("button", { name: /Resume Executive risk or compliance leader guide/ })).toBeTruthy();
@@ -152,7 +172,7 @@ describe("RoleAwareOnboarding", () => {
     view.rerender(<RoleAwareOnboarding surface="VENDORS" runtime={runtime} onStep={vi.fn()}/>);
     todayLoad.resolve(guide);
     await waitFor(() => expect(loadRoleGuide).toHaveBeenCalledWith("VENDORS"));
-    expect(screen.queryByText("Guide for Executive risk or compliance leader")).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
     vendorsLoad.resolve(vendorGuide);
     expect(await screen.findByText("Guide for Vendor relationship owner")).toBeTruthy();
   });
@@ -161,7 +181,7 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(loadRoleGuide).mockResolvedValueOnce(guide);
     vi.mocked(loadGuideState).mockResolvedValue(initial);
     const view = render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
-    expect(await screen.findByText("Guide for Executive risk or compliance leader")).toBeTruthy();
+    expect(await screen.findByRole("complementary", { name: "Getting started" })).toBeTruthy();
 
     const todayFailure = deferred<typeof guide>();
     const vendorGuide = { ...guide, code: "vendor-operations-first-run", surface: "VENDORS" as const, role: "Vendor relationship owner", title: "Manage vendor relationships" };
@@ -169,7 +189,7 @@ describe("RoleAwareOnboarding", () => {
     view.rerender(<RoleAwareOnboarding surface="TODAY" runtime={{ ...runtime, actor: { ...runtime.actor, id: "role-cro-2" } }} onStep={vi.fn()}/>);
     await waitFor(() => expect(loadRoleGuide).toHaveBeenCalledWith("TODAY"));
     view.rerender(<RoleAwareOnboarding surface="VENDORS" runtime={{ ...runtime, actor: { ...runtime.actor, id: "owner-1" } }} onStep={vi.fn()}/>);
-    expect(screen.queryByText("Guide for Executive risk or compliance leader")).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
     expect(await screen.findByText("Guide for Vendor relationship owner")).toBeTruthy();
     todayFailure.reject(new Error("stale Today failure"));
     await waitFor(() => expect(screen.getByText("Guide for Vendor relationship owner")).toBeTruthy());
@@ -182,7 +202,6 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(loadGuideState).mockImplementation(async (code) => ({ ...initial, guide_code: code }));
     vi.mocked(saveGuideState).mockReturnValue(save.promise);
     const view = render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
-    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
     fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
     await waitFor(() => expect(saveGuideState).toHaveBeenCalled());
 
@@ -199,7 +218,6 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(saveGuideState).mockRejectedValue(new Error("State store unavailable"));
     const onStep = vi.fn().mockResolvedValue(undefined);
     render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={onStep}/>);
-    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
     fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
 
     expect((await screen.findByRole("alert")).textContent).toBe("Guide progress could not be saved. Your workspace remains available; try again.");
@@ -218,7 +236,9 @@ describe("RoleAwareOnboarding", () => {
 
     render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    const panel = await screen.findByRole("complementary", { name: /Oversight guide/i });
+    const panel = await screen.findByRole("complementary", { name: "Getting started" });
+    expect(panel.className).toContain("guide-panel--compact");
+    expect(screen.queryByRole("button", { name: "Start guide" })).toBeNull();
     expect(panel.getAttribute("aria-modal")).toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(workspaceAction);
@@ -234,10 +254,10 @@ describe("RoleAwareOnboarding", () => {
 
     render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Skip for now" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Dismiss", exact: true }));
 
     await waitFor(() => expect(saveGuideState).toHaveBeenCalledTimes(2));
-    expect(screen.queryByRole("complementary", { name: /Oversight guide/i })).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
     expect(screen.getByRole("button", { name: /Resume Executive risk or compliance leader guide/ })).toBeTruthy();
     expect(screen.getByRole("alert").textContent).toBe("Guide dismissal could not be saved. The guide is closed for this session; resume it to try again.");
   });
@@ -253,7 +273,6 @@ describe("RoleAwareOnboarding", () => {
     document.body.append(target);
     render(<RoleAwareOnboarding surface="TODAY" runtime={runtime} onStep={vi.fn()}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Start guide" }));
     fireEvent.click(screen.getByRole("button", { name: "Open Home" }));
 
     await waitFor(() => expect(scroll).toHaveBeenCalledWith({ behavior: "auto", block: "center" }));
