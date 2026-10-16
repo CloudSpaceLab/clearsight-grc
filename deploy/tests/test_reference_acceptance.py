@@ -25,6 +25,8 @@ def receipts():
     responses = [
         {
             "id": f"response-{index}",
+            "tenant_id": "demo-bank",
+            "legal_entity_id": "demo-entity",
             "current": True,
             "subject_type": "PROGRAM",
             "subject_id": program,
@@ -85,6 +87,12 @@ class ReferenceAcceptanceTests(unittest.TestCase):
                 first["scoring_acceptance"]["responses"][0][attribute] = bad
                 with self.assertRaisesRegex(ValueError, "exact Program/Form"):
                     verifier.verify(first, repeated)
+
+    def test_rejects_cross_entity_response_membership(self):
+        first, repeated = receipts()
+        first["scoring_acceptance"]["responses"][1]["legal_entity_id"] = "other-entity"
+        with self.assertRaisesRegex(ValueError, "cross tenant/legal-entity"):
+            verifier.verify(first, repeated)
 
     def test_rejects_duplicate_or_missing_response(self):
         first, repeated = receipts()
