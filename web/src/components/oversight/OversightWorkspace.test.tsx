@@ -291,7 +291,8 @@ it("keeps the four source-backed metric positions visible while switching bounde
   expect(await screen.findByRole("heading", { name: "Loss concentration" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Loss trend" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Risk trend" })).toBeNull();
-  for (const label of metricNames) expect(screen.getByRole("article", { name: new RegExp(`^${label}:`) })).toBeTruthy();
+  expect(metricRow?.querySelectorAll(".cs-metric-card")).toHaveLength(4);
+  for (const label of metricNames) expect(metricRow?.textContent).toContain(label);
 
   fireEvent.click(screen.getByRole("tab", { name: "Risk analysis" }));
   expect(await screen.findByRole("heading", { name: "Risk trend" })).toBeTruthy();
