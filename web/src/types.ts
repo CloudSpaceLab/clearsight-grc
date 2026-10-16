@@ -104,7 +104,20 @@ export type Requirement = { id: string; source_id?: string; code: string; title:
 export type ControlImplementation = { id: string; objective_id?: string; name: string; description: string; implementation_type: string; owner_principal_id?: string; scope?: Record<string, unknown>; status: string; effective_from?: string; effective_until?: string; version?: number; };
 export type EvidenceContract = { id: string; requirement_id?: string; control_implementation_id?: string; code: string; name: string; claim: string; acceptable_source_ids?: string[]; population_scope?: Record<string, unknown>; status: string; freshness_minutes: number; minimum_coverage: number; independence_required?: boolean; contradiction_policy?: string; failure_action?: string; version?: number; };
 export type StateReason = { code: string; summary: string; object_type?: string; object_id?: string; };
-export type ProgramStateSnapshot = { id: string; overall_state?: ProgramState; overall?: ProgramState; dimensions: Record<string, ProgramState>; reasons: StateReason[]; open_matter_count: number; trigger_type?: string; trigger_id?: string; generated_at: string; program_version: number; projection_version: number; };
+export type ProgramComplianceSnapshot = {
+  policy_revision: string;
+  state: "NOT_ASSESSED" | "PROVISIONAL" | "FINAL";
+  score_bps?: number;
+  assessed_score_bps?: number;
+  coverage_bps: number;
+  eligible_count: number;
+  assessed_count: number;
+  unknown_count: number;
+  excluded_count: number;
+  unpopulated_categories?: string[];
+  categories: Array<{ code: string; weight_bps: number; eligible_count: number; assessed_count: number; unknown_count: number; excluded_count: number; coverage_bps: number; score_bps?: number }>;
+};
+export type ProgramStateSnapshot = { id: string; overall_state?: ProgramState; overall?: ProgramState; dimensions: Record<string, ProgramState>; reasons: StateReason[]; open_matter_count: number; trigger_type?: string; trigger_id?: string; generated_at: string; program_version: number; projection_version: number; calculation?: ProgramComplianceSnapshot; };
 export type ProgramFrameworkAdoption = { id: string; edition_id: string; publisher_code: string; framework_code: string; edition_code: string; status: "PENDING" | "ACTIVE" | "REJECTED" | "SUPERSEDED" | "RETIRED"; proposed_by: string; reviewed_by?: string; rationale: string; proposed_at: string; reviewed_at?: string; version: number };
 export type ProgramAggregate = { framework_adoptions?: ProgramFrameworkAdoption[]; state_label: string; program: Program; requirements: Requirement[]; applicability: Array<{ id: string; requirement_id: string; status: string; scope?: Record<string, unknown>; rationale: string; approved_by?: string; effective_from?: string; effective_until?: string; version?: number }>; control_objectives: Array<{ id: string; code: string; name: string; outcome: string; status: string; version?: number }>; control_implementations: ControlImplementation[]; requirement_control_links: Array<{ id?: string; requirement_id: string; implementation_id: string }>; evidence_contracts: EvidenceContract[]; evidence_assessments: Array<{ id: string; contract_id: string; conclusion: string; coverage: number; basis?: Record<string, unknown>; assessed_by?: string; assessed_at: string; valid_until?: string }>; current_state?: ProgramStateSnapshot; triggers: Array<{ id: string; type: string; observed_at: string; source: string }>; };
 

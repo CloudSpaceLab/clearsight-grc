@@ -46,6 +46,31 @@ function actionTarget(command: string) {
   return "program-details-panel";
 }
 
+function requirementComplianceSummary(aggregate: ProgramAggregate, stale: boolean): string | null {
+  const policy = aggregate.program.calculation_policy?.active;
+  const result = aggregate.current_state?.calculation;
+  const approvedCategory = policy?.definition.categories[0];
+  const measuredCategory = result?.categories?.[0];
+  if (stale || !policy?.approved_at || !result ||
+      policy.definition.categories.length !== 1 ||
+      approvedCategory?.code !== "REQUIREMENTS" || approvedCategory.weight_bps !== 10000 ||
+      result.categories?.length !== 1 ||
+      measuredCategory?.code !== "REQUIREMENTS" || measuredCategory.weight_bps !== 10000 ||
+      measuredCategory.coverage_bps !== result.coverage_bps ||
+      result.policy_revision !== policy.definition.revision ||
+      result.unpopulated_categories?.length ||
+      !Number.isInteger(result.coverage_bps) ||
+      result.coverage_bps < 0 || result.coverage_bps > 10000) return null;
+
+  const formatted = (basisPoints: number) => `${(basisPoints / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
+  const coverage = formatted(result.coverage_bps);
+  if (result.state !== "FINAL") return `Not assessed · ${coverage} coverage`;
+  if (!Number.isInteger(result.score_bps) || result.score_bps === undefined ||
+      result.score_bps < 0 || result.score_bps > 10000 ||
+      measuredCategory.score_bps !== result.score_bps) return null;
+  return `${formatted(result.score_bps)} · ${coverage} coverage`;
+}
+
 export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOwnerChange, onNavigate }: Props) {
   const current = aggregate.current_state;
   const assessedVersion = current?.program_version ?? 0;
@@ -60,6 +85,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
   const calculatedAt = validCalculationTime ? new Date(current!.generated_at).toLocaleString() : "Time unavailable";
   const openIssues = current?.open_matter_count;
   const knownOpenIssues = typeof openIssues === "number" && Number.isInteger(openIssues) && openIssues >= 0;
+  const requirementsCompliance = requirementComplianceSummary(aggregate, stale || !assessmentVersionKnown);
   const navigate = onNavigate ?? ((section: ProgramSection) => { window.location.hash = `#programs/${encodeURIComponent(aggregate.program.id)}/${section}`; });
 
   function goToAction() {
@@ -86,6 +112,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
         <span><strong>Owner</strong> {owner?.display_name ?? storedOwner ?? (aggregate.program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</span>
         <span><strong>Open issues</strong> {knownOpenIssues ? `${openIssues}${stale ? " (last calculation)" : ""}` : "Unknown"}</span>
         <span><strong>Requirements</strong> {aggregate.requirements.filter((requirement) => requirement.status === "APPROVED").length}</span>
+        {requirementsCompliance && <span><strong>Requirement compliance</strong> {requirementsCompliance}</span>}
       </div>
       {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Follow-up from the last calculation" : "What needs attention"}</h3><ProgramAttention aggregate={aggregate} onNavigate={navigate}/></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons unavailable." : stale ? "No prior status reasons." : "No status reasons."}</p>}
     </div>
