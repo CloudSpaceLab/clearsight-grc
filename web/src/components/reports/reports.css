@@ -51,6 +51,25 @@
   overflow: hidden;
 }
 
+.reports-summary__heading {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cs-space-inline);
+  padding: var(--cs-primitive-space-3) var(--cs-primitive-space-5);
+  border-bottom: var(--cs-surface-border-width) solid var(--cs-border-default);
+  background: var(--cs-bg-surface-2);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.reports-summary__heading strong {
+  color: var(--cs-text-primary);
+  font-weight: 650;
+}
+.reports-summary__heading span { font-variant-numeric: tabular-nums; }
+
 .reports-summary__metric {
   display: grid;
   gap: var(--cs-primitive-space-1);
