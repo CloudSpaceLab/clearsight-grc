@@ -119,7 +119,7 @@ describe("RoleAwareOnboarding", () => {
     vi.mocked(saveGuideState).mockResolvedValue({ ...initial, dismissed: true, version: 1 });
     render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Dismiss", exact: true }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Dismiss$/ }));
 
     await waitFor(() => expect(saveGuideState).toHaveBeenCalledWith(guide.code, expect.objectContaining({ completed: false, dismissed: true })));
     expect(screen.getByRole("button", { name: /Resume Executive risk or compliance leader guide/ })).toBeTruthy();
@@ -254,7 +254,7 @@ describe("RoleAwareOnboarding", () => {
 
     render(<RoleAwareOnboarding surface="TODAY" runtime={{ tenant: { id: "bank-demo" }, actor: { id: "role-cro", role_codes: ["CRO"] } }} onStep={vi.fn()}/>);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Dismiss", exact: true }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Dismiss$/ }));
 
     await waitFor(() => expect(saveGuideState).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("complementary", { name: "Getting started" })).toBeNull();
