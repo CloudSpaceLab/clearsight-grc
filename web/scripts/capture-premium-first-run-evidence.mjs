@@ -39,7 +39,7 @@ async function captureTodayIntroductions() {
   for (const capture of captures) {
     const { context, page } = await openPage({ ...capture, route: "#today", tour: "on", reducedMotion: "no-preference" });
     try {
-      await assertCinematicGuide(page, "Oversight guide", capture.name);
+      await assertCompactHomeGuide(page, capture.name);
       await capturePage(page, capture, "#today");
     } finally {
       await context.close();
@@ -49,8 +49,8 @@ async function captureTodayIntroductions() {
   const reduced = { name: "64-premium-today-intro-reduced-motion-1440x900", theme: "dark", viewport: { width: 1440, height: 900 }, state: "premium-today-intro-reduced-motion" };
   const reducedPage = await openPage({ ...reduced, route: "#today", tour: "on", reducedMotion: "reduce" });
   try {
-    await assertCinematicGuide(reducedPage.page, "Oversight guide", reduced.name);
-    const animations = await reducedPage.page.locator(".cinematic-guide__scene-layer, .cinematic-guide__scene-focus, .cinematic-guide__content").evaluateAll((elements) => elements.map((element) => getComputedStyle(element).animationName));
+    await assertCompactHomeGuide(reducedPage.page, reduced.name);
+    const animations = await reducedPage.page.locator(".guide-panel--compact").evaluateAll((elements) => elements.map((element) => getComputedStyle(element).animationName));
     if (animations.some((name) => name !== "none")) throw new Error(`${reduced.name} still animates under reduced motion: ${animations.join(", ")}`);
     await capturePage(reducedPage.page, reduced, "#today");
   } finally {
@@ -60,7 +60,7 @@ async function captureTodayIntroductions() {
   const zoomed = { name: "65-premium-today-intro-200pct-zoom-proxy", theme: "light", viewport: { width: 720, height: 900 }, state: "premium-today-intro-200pct-proxy" };
   const zoomPage = await openPage({ ...zoomed, route: "#today", tour: "on", reducedMotion: "reduce", deviceScaleFactor: 2 });
   try {
-    await zoomPage.page.getByRole("button", { name: "Start guide" }).scrollIntoViewIfNeeded();
+    await zoomPage.page.locator(".guide-panel--compact").scrollIntoViewIfNeeded();
     await assertNoHorizontalOverflow(zoomPage.page, zoomed.name);
     await zoomPage.page.getByRole("button", { name: "Home", exact: true }).waitFor({ state: "visible" });
     await capturePage(zoomPage.page, zoomed, "#today");
@@ -179,7 +179,7 @@ async function capturePresentationCover() {
   const capture = { name: "presentation-cover", theme: "dark", viewport: { width: 1600, height: 900 }, state: "presentation-cover" };
   const { context, page } = await openPage({ ...capture, route: "#today", tour: "on", reducedMotion: "reduce" });
   try {
-    await assertCinematicGuide(page, "Oversight guide", "presentation cover");
+    await assertCompactHomeGuide(page, "presentation cover");
     if (await page.locator("[role=dialog], .cs-sheet").count()) throw new Error("presentation cover contains an open modal or focused-work panel");
     await page.screenshot({ path: coverPath, fullPage: false, animations: "disabled", caret: "hide" });
     const dimensions = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
@@ -234,6 +234,16 @@ async function openPage({ theme, viewport, touch = false, route, fixture, tour, 
   await page.evaluate(() => document.fonts?.ready);
   if (browserErrors.length) throw new Error(`${route} emitted browser errors:\n${browserErrors.join("\n")}`);
   return { context, page };
+}
+
+async function assertCompactHomeGuide(page, name) {
+  const guide = page.getByRole("complementary", { name: "Getting started" });
+  await guide.waitFor({ state: "visible" });
+  await page.locator(".guide-panel--compact").waitFor({ state: "visible" });
+  await guide.getByRole("progressbar", { name: /Guide progress/ }).waitFor({ state: "visible" });
+  await guide.getByRole("button", { name: "Dismiss", exact: true }).waitFor({ state: "visible" });
+  if (await page.locator(".cinematic-guide").count()) throw new Error(`${name} still mounts the Home cinematic introduction`);
+  await assertNoHorizontalOverflow(page, name);
 }
 
 async function assertCinematicGuide(page, label, name) {
