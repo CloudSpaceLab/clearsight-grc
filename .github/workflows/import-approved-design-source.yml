@@ -1,0 +1,68 @@
+name: Import approved design reference source
+
+on:
+  push:
+    branches:
+      - agent/approved-design-assets-gate-20261017
+    paths:
+      - .github/workflows/import-approved-design-source.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: approved-design-source-import
+  cancel-in-progress: false
+
+jobs:
+  import-original-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download published original archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "gdown==5.2.0"
+          python -m gdown "https://drive.google.com/uc?id=1y1Ij8zyfZKUKfcxp68T9FmJHabyWREZ_" \
+            --output "$RUNNER_TEMP/clearsight-designs-original.zip" --no-cookies
+      - name: Validate source bytes and import reference files
+        run: python scripts/import-approved-design-source.py "$RUNNER_TEMP/clearsight-designs-original.zip"
+      - name: Commit reference sources in small groups
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          root="docs/design/references/clearsight-2026-10/source"
+          count=0
+          for directory in "$root"/clearsight-*; do
+            [ -d "$directory" ] || continue
+            git add -- "$directory"
+            if ! git diff --cached --quiet; then
+              git commit -m "docs(design): import $(basename "$directory") original sources"
+            fi
+            count=$((count + 1))
+            if [ $((count % 4)) -eq 0 ]; then
+              git push origin "HEAD:agent/approved-design-assets-gate-20261017"
+            fi
+          done
+          git add -- "$root/MANIFEST.json"
+          if ! git diff --cached --quiet; then
+            git commit -m "docs(design): record 96 original source checksums"
+          fi
+          git push origin "HEAD:agent/approved-design-assets-gate-20261017"
+      - name: Confirm runtime file graph unaffected
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --name-only "$GITHUB_SHA" HEAD | grep -Ev '^(docs/design/references/clearsight-2026-10/source/)'; then
+            echo "Import changed files outside the reference-only source directory" >&2
+            exit 1
+          fi
