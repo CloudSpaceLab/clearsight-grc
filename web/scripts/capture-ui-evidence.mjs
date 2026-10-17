@@ -137,11 +137,15 @@ async function capturePage(capture) {
     if (capture.matterTab) await openMatterWorkspaceTab(page, capture.matterTab);
     if (capture.frameworkCatalog === "loaded") {
       await page.getByRole("list", { name: "Published framework editions" }).waitFor({ state: "visible" });
+      const inspect = page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" });
+      await inspect.waitFor({ state: "visible" });
+      if (capture.viewport.width > 900 || capture.frameworkDetailSheet) await inspect.click();
       if (capture.viewport.width > 900) {
-        await page.getByRole("complementary", { name: "Framework edition details" }).waitFor({ state: "visible" });
+        const details = page.getByRole("complementary", { name: "Framework edition details" });
+        await details.waitFor({ state: "visible" });
+        await details.getByText("sample-release").waitFor({ state: "visible" });
       }
       if (capture.frameworkDetailSheet) {
-        await page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" }).click();
         await page.getByRole("dialog", { name: "Edition details: Sample security reference" }).waitFor({ state: "visible" });
       }
     }
