@@ -78,6 +78,14 @@ describe("Program overview measures", () => {
     for (const value of invalid) expect(programOverviewMetrics(value)[1]).toMatchObject({ value: "—", quality: "unknown" });
   });
 
+  it("renders unknown for malformed policy and category arrays", () => {
+    const malformed = [
+      { ...aggregate, program: { ...aggregate.program, calculation_policy: { active: { approved_at: "2026-10-15", definition: { revision: "r1" } } } }, current_state: snapshot },
+      { ...aggregate, program: { ...aggregate.program, calculation_policy: policy }, current_state: { ...snapshot, calculation: { ...calculation, categories: null } } },
+    ] as unknown as ProgramAggregate[];
+    for (const input of malformed) expect(programOverviewMetrics(input)[1]).toMatchObject({ value: "—", quality: "unknown" });
+  });
+
   it("does not treat invalid timestamps or counts as current posture", () => {
     const result = programOverviewMetrics({
       ...aggregate, current_state: { ...snapshot, generated_at: "invalid", open_matter_count: -2 },

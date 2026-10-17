@@ -32,7 +32,8 @@ function currentSnapshot(aggregate: ProgramAggregate) {
 
 function requirementCategory(aggregate: ProgramAggregate, calculation: ProgramComplianceSnapshot | undefined) {
   const policy = aggregate.program.calculation_policy?.active;
-  if (!policy?.approved_at || !calculation ||
+  if (!policy?.approved_at || !Array.isArray(policy.definition?.categories) ||
+      !Array.isArray(calculation?.categories) ||
       policy.definition.revision !== calculation.policy_revision ||
       calculation.state === "NOT_ASSESSED") return null;
   const definition = policy.definition.categories.filter((item) => item.code === "REQUIREMENTS");
