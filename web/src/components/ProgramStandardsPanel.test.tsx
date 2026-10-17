@@ -120,6 +120,22 @@ describe("Program standards — approved design integration", () => {
     expect(proposeProgramFrameworkAdoption).toHaveBeenCalledTimes(1);
   });
 
+  it("does not submit an adoption when searching the catalog", async () => {
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+      items: [edition("a")], next_after_id: "",
+    });
+    render(<ProgramStandardsPanel aggregate={aggregate()}
+      operations={[owner]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", {name: "Add standard"}));
+    fireEvent.click(await screen.findByRole("radio", {name: /Published SECURITY/}));
+    fireEvent.change(screen.getByLabelText("Reason for adoption"), {target: {value: "Applies to scope"}});
+    const search = screen.getByRole("searchbox", {name: "Search loaded standards"});
+    expect(search.closest("form")).toBeNull();
+    expect(screen.getByLabelText("Reason for adoption").closest("form")).not.toBeNull();
+    fireEvent.keyDown(search, {key: "Enter", code: "Enter"});
+    expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
+  });
+
   it("shows access denied separately from an empty published catalog", async () => {
     vi.mocked(loadFrameworkEditionPage).mockRejectedValue(
       new ApiError(403, "Select a legal entity.", "legal_entity_required"),
