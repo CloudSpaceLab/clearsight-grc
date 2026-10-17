@@ -13,6 +13,10 @@ type Props = {
   onChooseProgram: (edition: FrameworkEditionOption) => void;
 };
 
+function publisherMark(value: string): string {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) || "REF";
+}
+
 function normalizeJurisdiction(value: string): string | null {
   const code = value.trim().toUpperCase();
   return /^[A-Z][A-Z0-9._-]{0,63}$/.test(code) ? code : null;
@@ -129,6 +133,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
             {visible.map((item) => <li key={item.id}>
               <SelectableRecord
                 title={item.title}
+                startContent={<span className="cs-framework-library__publisher-mark">{publisherMark(item.publisher_code)}</span>}
                 metadata={item.publisher_code + " · " + item.framework_code + " · Edition " + item.edition_code}
                 description={item.jurisdiction + " · Published " + item.source_published_on}
                 endContent={<StatusBadge tone={frameworkEditionRightsLabel(item.license_basis) === "Not verified" ? "unknown" : "neutral"}>
