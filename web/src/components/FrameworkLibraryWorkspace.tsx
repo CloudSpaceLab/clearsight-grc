@@ -158,7 +158,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
       </aside>}
     </div>
     {compact && sheetOpen && selected && <FocusedSheet label={"Edition details: " + selected.title}
-      onClose={() => setSheetOpen(false)} size="wide">
+      closeLabel="Close edition details" onClose={() => setSheetOpen(false)} size="wide">
       {inspector}
       <Button variant="quiet" onPress={() => setSheetOpen(false)}>Close</Button>
     </FocusedSheet>}
