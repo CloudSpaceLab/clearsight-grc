@@ -87,6 +87,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
   const openIssues = current?.open_matter_count;
   const knownOpenIssues = typeof openIssues === "number" && Number.isInteger(openIssues) && openIssues >= 0;
   const requirementsCompliance = requirementComplianceSummary(aggregate, stale || !assessmentVersionKnown);
+  const activeStandards = (aggregate.framework_adoptions ?? []).filter((adoption) => adoption.status === "ACTIVE").length;
   const navigate = onNavigate ?? ((section: ProgramSection) => { window.location.hash = `#programs/${encodeURIComponent(aggregate.program.id)}/${section}`; });
 
   function goToAction() {
@@ -116,6 +117,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
         <span><strong>Owner</strong> {owner?.display_name ?? storedOwner ?? (aggregate.program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</span>
         <span><strong>Open issues</strong> {knownOpenIssues ? `${openIssues}${stale ? " (last calculation)" : ""}` : "Unknown"}</span>
         <span><strong>Requirements</strong> {aggregate.requirements.filter((requirement) => requirement.status === "APPROVED").length}</span>
+        {activeStandards > 0 && <span><strong>Standards</strong> {activeStandards}</span>}
         {requirementsCompliance && <span><strong>Requirement compliance</strong> {requirementsCompliance}</span>}
       </div>
       {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Follow-up from the last calculation" : "What needs attention"}</h3><ProgramAttention aggregate={aggregate} onNavigate={navigate}/></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons unavailable." : stale ? "No prior status reasons." : "No status reasons."}</p>}
