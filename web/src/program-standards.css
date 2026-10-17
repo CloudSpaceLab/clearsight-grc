@@ -54,6 +54,15 @@
   background: var(--cs-bg-surface-2);
 }
 .cs-program-standards__review { display: grid; gap: var(--cs-space-group); min-width: 0; }
+.cs-program-standards__review-source {
+  display: grid;
+  gap: var(--cs-space-group);
+  min-width: 0;
+  padding-block: var(--cs-space-group);
+  border-block: 1px solid var(--cs-border-default);
+}
+.cs-program-standards__review-source h4 { margin: 0; color: var(--cs-text-strong); font-size: var(--cs-font-size-body); }
+.cs-program-standards__review-source .cs-program-standards__facts { grid-template-columns: minmax(0, 1fr); }
 .cs-program-standards__section-head {
   display: flex;
   flex-wrap: wrap;

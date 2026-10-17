@@ -35,7 +35,10 @@ const approve = { command: "program.framework.approve", label: "Approve standard
 const reject = { command: "program.framework.reject", label: "Reject standard", responsibility: "AUTHORIZER", can_act: true, reason: "" };
 
 describe("Program standards — approved design integration", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [], next_after_id: ""});
+  });
 
   it("isolates the decision rationale for each pending adoption", () => {
     render(<ProgramStandardsPanel aggregate={aggregate([adoption("a", "SECURITY"), adoption("b", "PRIVACY")])}
@@ -55,6 +58,7 @@ describe("Program standards — approved design integration", () => {
   });
 
   it("retains a failed review decision in its focused sheet and blocks conflicting approval", async () => {
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [edition("a")], next_after_id: ""});
     const onReload = vi.fn();
     vi.mocked(decideProgramFrameworkAdoption).mockRejectedValue(
       new ApiError(409, "Program version changed.", "version_conflict"),
@@ -66,6 +70,7 @@ describe("Program standards — approved design integration", () => {
     expect(dialog).toBeTruthy();
     fireEvent.change(screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}),
       {target: {value: "Reviewed the pending submission"}});
+    await waitFor(() => expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(false));
     fireEvent.click(screen.getByRole("button", {name: "Approve standard"}));
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect((screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}) as HTMLTextAreaElement).value)
@@ -73,6 +78,53 @@ describe("Program standards — approved design integration", () => {
     expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(true);
     fireEvent.click(screen.getByRole("button", {name: "Reload Program"}));
     expect(onReload).toHaveBeenCalledOnce();
+  });
+
+  it("blocks approval without exact published source but permits rejection", async () => {
+    const updated = vi.fn();
+    vi.mocked(decideProgramFrameworkAdoption).mockResolvedValue(aggregate([]));
+    render(<ProgramStandardsPanel aggregate={aggregate([adoption("a", "SECURITY")])}
+      operations={[approve, reject]} onUpdated={updated} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", {name: "Review SECURITY 2026"}));
+    expect(await screen.findByText("Pending edition not found in this catalog jurisdiction.")).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}),
+      {target: {value: "Source not available"}});
+    expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", {name: "Reject standard"}));
+    await waitFor(() => expect(decideProgramFrameworkAdoption).toHaveBeenCalledWith(
+      "program-1", "a", 4, "reject", "Source not available",
+    ));
+    expect(updated).toHaveBeenCalledOnce();
+  });
+
+  it("never approves a matching edition ID with different publisher or standard", async () => {
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [edition("a", "PRIVACY")], next_after_id: ""});
+    render(<ProgramStandardsPanel aggregate={aggregate([adoption("a", "SECURITY")])}
+      operations={[approve, reject]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", {name: "Review SECURITY 2026"}));
+    expect(await screen.findByText("Published edition identity does not match this adoption.")).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}),
+      {target: {value: "Publisher identity conflict"}});
+    expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(true);
+    expect(decideProgramFrameworkAdoption).not.toHaveBeenCalled();
+  });
+
+  it("loads the next catalog page before allowing approval of the exact pinned edition", async () => {
+    vi.mocked(loadFrameworkEditionPage)
+      .mockResolvedValueOnce({items: [edition("b")], next_after_id: "b"})
+      .mockResolvedValueOnce({items: [edition("a")], next_after_id: ""});
+    render(<ProgramStandardsPanel aggregate={aggregate([adoption("a", "SECURITY")])}
+      operations={[approve, reject]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", {name: "Review SECURITY 2026"}));
+    const more = await screen.findByRole("button", {name: "Load more editions"});
+    expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(more);
+    expect(await screen.findByRole("link", {name: /Show published source/})).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(true));
+    fireEvent.change(screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}),
+      {target: {value: "Edition source inspected"}});
+    expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(false);
+    expect(loadFrameworkEditionPage).toHaveBeenNthCalledWith(2, "GLOBAL", "b");
   });
 
   it("keeps already-active or pending editions out of the proposal selection", async () => {

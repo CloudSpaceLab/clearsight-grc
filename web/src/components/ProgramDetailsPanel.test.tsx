@@ -174,12 +174,14 @@ describe("Program standards", () => {
       framework_code: "SECURITY", edition_code: "2026", status: "PENDING" as const,
       proposed_by: "owner", rationale: "Security", proposed_at: "2026-10-15T10:00:00Z", version: 1,
     };
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [publishedEdition], next_after_id: ""});
     vi.mocked(decideProgramFrameworkAdoption).mockResolvedValue({ ...aggregate, program: { ...program, version: 4 },
       framework_adoptions: [{ ...adoption, status: "ACTIVE", reviewed_by: "checker" }] });
     render(<ProgramDetailsPanel aggregate={{ ...aggregate, framework_adoptions: [adoption] }}
       operations={[approve, reject]} onUpdated={onUpdated} onReload={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button", { name: "Review SECURITY 2026" }));
     fireEvent.change(screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}), { target: { value: "Approved source and scope" } });
+    await waitFor(() => expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(false));
     fireEvent.click(screen.getByRole("button", { name: "Approve standard" }));
     await waitFor(() => expect(decideProgramFrameworkAdoption).toHaveBeenCalledWith("program-1", "adoption-1", 3, "approve", "Approved source and scope"));
     expect(onUpdated).toHaveBeenCalled();

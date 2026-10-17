@@ -2,7 +2,7 @@ import type { FrameworkEditionOption } from "../programOperationsApi";
 
 type Props = { edition: FrameworkEditionOption };
 
-function trustedSourceURL(value: string): string | null {
+export function trustedFrameworkSourceURL(value: string): string | null {
   try {
     const url = new URL(value);
     return url.protocol === "https:" && url.hostname && !url.username && !url.password ? url.href : null;
@@ -18,7 +18,7 @@ export function frameworkEditionRightsLabel(basis: string): string {
 
 /** Source provenance only. A published reference is not an adopted obligation. */
 export function FrameworkEditionProvenance({ edition }: Props) {
-  const sourceURL = trustedSourceURL(edition.source_url);
+  const sourceURL = trustedFrameworkSourceURL(edition.source_url);
   const rights = frameworkEditionRightsLabel(edition.license_basis);
 
   return <>

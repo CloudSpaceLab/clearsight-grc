@@ -6,8 +6,8 @@ import { decideProgramFrameworkAdoption, proposeProgramFrameworkAdoption } from 
 import type { ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate } from "../types";
 import { useFrameworkEditionCatalog } from "../hooks/useFrameworkEditionCatalog";
-import { Button, FocusedSheet, Notice, SearchField, StatusBadge, TextArea } from "./ui";
-import { FrameworkEditionProvenance } from "./FrameworkEditionProvenance";
+import { Button, FocusedSheet, Notice, SearchField, SelectField, StatusBadge, TextArea } from "./ui";
+import { FrameworkEditionProvenance, trustedFrameworkSourceURL } from "./FrameworkEditionProvenance";
 import "../program-standards.css";
 
 type Props = {
@@ -38,12 +38,19 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
   const [editionID, setEditionID] = useState("");
   const [proposalRationale, setProposalRationale] = useState("");
   const [reviewingID, setReviewingID] = useState<string | null>(null);
+  const [reviewJurisdiction, setReviewJurisdiction] = useState("GLOBAL");
   const [reviewRationale, setReviewRationale] = useState("");
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
   const [error, setError] = useState("");
   const [reloadRequired, setReloadRequired] = useState(false);
-  const catalog = useFrameworkEditionCatalog(addOpen && Boolean(proposeOperation?.can_act), jurisdiction);
+  const selectedReview = pending.find((item) => item.id === reviewingID);
+  const reviewing = Boolean(selectedReview && canReview);
+  const catalogJurisdiction = reviewing ? reviewJurisdiction : jurisdiction;
+  const catalog = useFrameworkEditionCatalog(
+    (addOpen && Boolean(proposeOperation?.can_act)) || reviewing,
+    catalogJurisdiction,
+  );
 
   // A decision is tied to a particular Program version, never another record.
   useEffect(() => {
@@ -81,7 +88,20 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
   const selectedEdition = catalog.items.find((item) => item.id === editionID);
   const alreadyLinked = adoptions.some((item) =>
     item.edition_id === editionID && (item.status === "ACTIVE" || item.status === "PENDING"));
-  const selectedReview = pending.find((item) => item.id === reviewingID);
+  // A pending review must match the exact published edition identity. A
+  // jurisdiction cursor or an edition with reused labels is not evidence.
+  const pinnedEdition = selectedReview && catalog.items.find((item) => item.id === selectedReview.edition_id);
+  const reviewEdition = pinnedEdition && selectedReview &&
+    pinnedEdition.publisher_code === selectedReview.publisher_code &&
+    pinnedEdition.framework_code === selectedReview.framework_code &&
+    pinnedEdition.edition_code === selectedReview.edition_code ? pinnedEdition : null;
+  const reviewSourceReady = Boolean(reviewEdition &&
+    catalog.state === "ready" && catalog.loadedJurisdiction === reviewJurisdiction &&
+    trustedFrameworkSourceURL(reviewEdition.source_url) &&
+    (reviewEdition.license_basis === "CITATIONS_ONLY" || reviewEdition.license_basis === "SUMMARIES_PERMITTED"));
+  const localJurisdiction = program.jurisdiction?.trim().toUpperCase();
+  const reviewJurisdictions = localJurisdiction && localJurisdiction !== "GLOBAL" && /^[A-Z][A-Z0-9._-]{0,63}$/.test(localJurisdiction)
+    ? [{ id: "GLOBAL", label: "Global" }, { id: localJurisdiction, label: program.jurisdiction }] : [{ id: "GLOBAL", label: "Global" }];
   const activeCount = adoptions.filter((item) => item.status === "ACTIVE").length;
 
   function openCatalog() {
@@ -99,6 +119,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
   function openReview(id: string) {
     setAddOpen(false);
     setReviewingID(id);
+    setReviewJurisdiction("GLOBAL");
     setReviewRationale("");
     setError("");
     setReloadRequired(false);
@@ -138,7 +159,8 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
 
   async function decide(id: string, action: "approve" | "reject") {
     const allowed = action === "approve" ? approveOperation?.can_act : rejectOperation?.can_act;
-    if (inFlight.current || !allowed || reviewingID !== id || !selectedReview || !reviewRationale.trim() || reloadRequired) return;
+    if (inFlight.current || !allowed || reviewingID !== id || !selectedReview || !reviewRationale.trim() ||
+        reloadRequired || (action === "approve" && !reviewSourceReady)) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
@@ -203,13 +225,37 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
         <div><dt>Proposal rationale</dt><dd>{selectedReview.rationale}</dd></div>
         <div><dt>Edition</dt><dd>{selectedReview.edition_code}</dd></div>
       </dl>
+      <section className="cs-program-standards__review-source" aria-label="Published edition source">
+        <h4>Published source</h4>
+        {reviewJurisdictions.length > 1 && <SelectField
+          label="Catalog jurisdiction" placeholder="Select jurisdiction"
+          value={reviewJurisdiction} options={reviewJurisdictions} allowsEmpty={false}
+          onChange={(value) => { if (value) setReviewJurisdiction(value); }}/>}
+        {catalog.state === "loading" && <p role="status">Loading published edition…</p>}
+        {catalog.state === "denied" && <Notice tone="warning">Published source access denied. Approval is unavailable.</Notice>}
+        {catalog.state === "error" && <Notice tone="warning">Published source unavailable.
+          <Button variant="secondary" size="compact" onPress={catalog.retry}>Retry source</Button>
+        </Notice>}
+        {catalog.state === "ready" && catalog.loadedJurisdiction === reviewJurisdiction && reviewEdition &&
+          <FrameworkEditionProvenance edition={reviewEdition}/>}
+        {catalog.state === "ready" && catalog.loadedJurisdiction === reviewJurisdiction && !reviewEdition &&
+          <Notice tone={pinnedEdition ? "error" : "info"}>
+            {pinnedEdition ? "Published edition identity does not match this adoption."
+              : catalog.nextAfterID ? "The pending edition is not in the loaded catalog page."
+              : "Pending edition not found in this catalog jurisdiction."}
+            {!pinnedEdition && catalog.nextAfterID &&
+              <Button variant="secondary" size="compact" onPress={catalog.loadMore}>Load more editions</Button>}
+          </Notice>}
+        {reviewEdition && !reviewSourceReady && catalog.state === "ready" &&
+          <Notice tone="warning">The source URL or content rights cannot be verified for approval.</Notice>}
+      </section>
       <div className="cs-program-standards__reason">
         <TextArea label={"Decision rationale for " + selectedReview.framework_code + " " + selectedReview.edition_code}
           isRequired rows={3} isDisabled={busy} value={reviewRationale} onChange={setReviewRationale}/>
       </div>
       <div className="cs-program-standards__actions">
         {approveOperation?.can_act && <Button variant="primary" isLoading={busy}
-          isDisabled={!reviewRationale.trim() || reloadRequired} onPress={() => void decide(selectedReview.id, "approve")}>Approve standard</Button>}
+          isDisabled={!reviewRationale.trim() || reloadRequired || !reviewSourceReady} onPress={() => void decide(selectedReview.id, "approve")}>Approve standard</Button>}
         {rejectOperation?.can_act && <Button variant="secondary" isDisabled={busy || !reviewRationale.trim() || reloadRequired}
           onPress={() => void decide(selectedReview.id, "reject")}>Reject standard</Button>}
         <Button variant="quiet" isDisabled={busy} onPress={closeReview}>Cancel</Button>
