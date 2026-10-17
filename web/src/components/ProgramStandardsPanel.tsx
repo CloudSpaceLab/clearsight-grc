@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import type { FrameworkEditionTarget } from "../appRouting";
+import type { FrameworkEditionTarget, ProgramSection } from "../appRouting";
 import { apiErrorKind } from "../http";
 import { decideProgramFrameworkAdoption, proposeProgramFrameworkAdoption } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
@@ -16,6 +16,7 @@ type Props = {
   frameworkEdition?: FrameworkEditionTarget;
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
+  onNavigate?: (section: ProgramSection) => void;
 };
 
 function adoptionStatus(status: string) {
@@ -24,7 +25,7 @@ function adoptionStatus(status: string) {
   return { label: status === "REJECTED" ? "Rejected" : status === "SUPERSEDED" ? "Superseded" : "Retired", tone: "neutral" as const };
 }
 
-export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition, onUpdated, onReload }: Props) {
+export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition, onUpdated, onReload, onNavigate }: Props) {
   const program = aggregate.program;
   const adoptions = aggregate.framework_adoptions ?? [];
   const pending = adoptions.filter((item) => item.status === "PENDING");
@@ -189,6 +190,10 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
         </p>
       </div>
       <div className="cs-program-standards__actions">
+        {activeCount > 0 && onNavigate && <>
+          <Button variant="secondary" size="compact" onPress={() => onNavigate("requirements-controls")}>Review requirement links</Button>
+          <Button variant="secondary" size="compact" onPress={() => onNavigate("monitoring")}>Collection forms</Button>
+        </>}
         <a className="cs-program-standards__source" href="#programs/library">Browse library</a>
         {proposeOperation?.can_act && !addOpen && <Button variant="secondary" onPress={openCatalog}>Add standard</Button>}
       </div>
