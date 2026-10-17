@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
-"""Import the verified ClearSight reference-only design package.
-
-Usage:
-  python3 scripts/import-approved-design-source.py /path/to/clearsight-approved-design-source.zip
-
-The input is the prepared package with MANIFEST.json, not the original nested ZIP.
-This script never imports prototype files into the runtime web source tree.
-"""
+"""Verify and import original, reference-only ClearSight design source bytes."""
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import pathlib
 import sys
@@ -17,35 +11,69 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TARGET = ROOT / "docs/design/references/clearsight-2026-10/source"
+ARCHIVE_SHA256 = "65dcc0e3f26e9d41e38efd1ae1d571f5db0f0582a2d561f8c942b25817a5f6e5"
+SPEC_SHA256 = "13e5531114779672c7920e939206db1e383be664af67718b617251efaf496c17"
+SUFFIXES = {".html", ".css", ".js", ".md", ".txt"}
+EXPECTED_FILES, EXPECTED_PACKAGES, EXPECTED_BYTES = 96, 18, 3_768_146
+
+
+def safe_path(path: str) -> pathlib.PurePosixPath:
+    result = pathlib.PurePosixPath(path)
+    if (not path or path.startswith("/") or "\\" in path
+            or any(part in (".", "..", "") for part in path.split("/"))):
+        raise ValueError(f"Unsafe source path: {path!r}")
+    return result
+
+
+def validated_entries(data: bytes) -> tuple[list[tuple[str, bytes]], dict]:
+    if hashlib.sha256(data).hexdigest() != ARCHIVE_SHA256:
+        raise ValueError("Original source archive SHA-256 mismatch")
+    records: list[dict[str, str | int]] = []
+    entries: list[tuple[str, bytes]] = []
+    with zipfile.ZipFile(io.BytesIO(data)) as outer:
+        packages = [entry for entry in outer.infolist() if not entry.is_dir()]
+        if len(packages) != EXPECTED_PACKAGES or any(not entry.filename.endswith(".zip") for entry in packages):
+            raise ValueError("Unexpected nested design package inventory")
+        for package in packages:
+            root = safe_path(package.filename).stem
+            with zipfile.ZipFile(io.BytesIO(outer.read(package))) as inner:
+                for item in inner.infolist():
+                    if item.is_dir() or pathlib.PurePosixPath(item.filename).suffix.lower() not in SUFFIXES:
+                        continue
+                    relative = str(safe_path(root) / safe_path(item.filename))
+                    raw = inner.read(item)
+                    raw.decode("utf-8")
+                    entries.append((relative, raw))
+                    records.append({"path": relative, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()})
+    if len(entries) != EXPECTED_FILES or sum(len(data) for _, data in entries) != EXPECTED_BYTES:
+        raise ValueError("Extracted source count or byte total mismatch")
+    if len({path for path, _ in entries}) != len(entries):
+        raise ValueError("Duplicate source path")
+    canonical = next((record for record in records if record["path"] ==
+        "clearsight-unified-design-system-v1/clearsight-design-system/clearsight-design-system-spec.md"), None)
+    if not canonical or canonical["sha256"] != SPEC_SHA256:
+        raise ValueError("Canonical design specification checksum mismatch")
+    return entries, {"source_archive": "complete designs.zip", "source_archive_sha256": ARCHIVE_SHA256, "files": records}
 
 
 def main() -> None:
     if len(sys.argv) != 2:
-        raise SystemExit("Expected one prepared source ZIP path")
-    archive = pathlib.Path(sys.argv[1])
-    with zipfile.ZipFile(archive) as source:
-        manifest = json.loads(source.read("MANIFEST.json"))
-        records = manifest["files"]
-        expected = {record["path"]: record for record in records}
-        names = {name for name in source.namelist() if not name.endswith("/")}
-        if names != set(expected) | {"MANIFEST.json"}:
-            raise SystemExit("Source entries differ from the manifest")
-        validated: list[tuple[pathlib.Path, bytes]] = []
-        for name, record in expected.items():
-            relative = pathlib.PurePosixPath(name)
-            if relative.is_absolute() or ".." in relative.parts or not relative.parts:
-                raise SystemExit(f"Unsafe source path: {name}")
-            data = source.read(name)
-            if len(data) != record["bytes"] or hashlib.sha256(data).hexdigest() != record["sha256"]:
-                raise SystemExit(f"Source checksum mismatch: {name}")
-            validated.append((TARGET.joinpath(*relative.parts), data))
-        for destination, data in validated:
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            if destination.exists() and destination.read_bytes() != data:
-                raise SystemExit(f"Existing source differs: {destination}")
-            destination.write_bytes(data)
-        (TARGET / "MANIFEST.json").write_bytes(source.read("MANIFEST.json"))
-    print(f"Verified and imported {len(validated)} original reference files into {TARGET}")
+        raise SystemExit("Usage: import-approved-design-source.py <original complete designs.zip>")
+    entries, manifest = validated_entries(pathlib.Path(sys.argv[1]).read_bytes())
+    # Verify all collisions before the first write.
+    for relative, raw in entries:
+        path = TARGET / relative
+        if path.exists() and path.read_bytes() != raw:
+            raise SystemExit(f"Existing reference source differs: {relative}")
+    manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    if (TARGET / "MANIFEST.json").exists() and (TARGET / "MANIFEST.json").read_bytes() != manifest_bytes:
+        raise SystemExit("Existing source manifest differs")
+    for relative, raw in entries:
+        path = TARGET / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+    (TARGET / "MANIFEST.json").write_bytes(manifest_bytes)
+    print(f"Verified {len(entries)} reference files across {EXPECTED_PACKAGES} packages; {EXPECTED_BYTES} original bytes")
 
 
 if __name__ == "__main__":
