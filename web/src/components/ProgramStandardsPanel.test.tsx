@@ -148,6 +148,51 @@ describe("Program standards — approved design integration", () => {
     expect(screen.getByRole("button", {name: "Submit for approval"}).hasAttribute("disabled")).toBe(true);
   });
 
+  it("resolves a selected Library edition before offering the governed proposal", async () => {
+    const onUpdated = vi.fn();
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+      items: [edition("a")], next_after_id: "",
+    });
+    vi.mocked(proposeProgramFrameworkAdoption).mockResolvedValue({
+      ...aggregate(), program: {...program, version: 5},
+    });
+    render(<ProgramStandardsPanel aggregate={aggregate()}
+      frameworkEdition={{editionID: "a", jurisdiction: "GLOBAL"}}
+      operations={[owner]} onUpdated={onUpdated} onReload={vi.fn()}/>);
+    const radio = await screen.findByRole("radio", {name: /Published SECURITY/}) as HTMLInputElement;
+    expect(radio.checked).toBe(true);
+    expect(screen.getByLabelText("Selected edition").textContent).toContain("Citations only");
+    expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Reason for adoption"), {target: {value: "Governed adoption request"}});
+    fireEvent.click(screen.getByRole("button", {name: "Submit for approval"}));
+    await waitFor(() => expect(proposeProgramFrameworkAdoption).toHaveBeenCalledWith(
+      "program-1", 4, "a", "Governed adoption request",
+    ));
+    expect(onUpdated).toHaveBeenCalledTimes(1);
+  });
+
+  it("never proposes an unverified deep-linked edition outside the loaded catalog page", async () => {
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+      items: [edition("b")], next_after_id: "",
+    });
+    render(<ProgramStandardsPanel aggregate={aggregate()}
+      frameworkEdition={{editionID: "a", jurisdiction: "GLOBAL"}}
+      operations={[owner]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    expect(await screen.findByText("The selected edition is unavailable in this jurisdiction. Return to the Framework Library.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Reason for adoption"), {target: {value: "Proposed by deep link"}});
+    expect(screen.getByRole("button", {name: "Submit for approval"}).hasAttribute("disabled")).toBe(true);
+    expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
+  });
+
+  it("does not open adoption from a Library hint without verified Program authority", () => {
+    render(<ProgramStandardsPanel aggregate={aggregate()}
+      frameworkEdition={{editionID: "a", jurisdiction: "GLOBAL"}}
+      operations={[]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    expect(screen.getByText(/Edition selected. Adoption is unavailable/)).toBeTruthy();
+    expect(screen.queryByRole("button", {name: "Submit for approval"})).toBeNull();
+    expect(loadFrameworkEditionPage).not.toHaveBeenCalled();
+  });
+
   it("does not expose proposal or approval actions without server authority", () => {
     render(<ProgramStandardsPanel aggregate={aggregate([adoption("a", "SECURITY")])}
       operations={[]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
