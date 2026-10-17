@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import type { FrameworkEditionTarget } from "../appRouting";
 import { apiErrorKind } from "../http";
 import { decideProgramFrameworkAdoption, proposeProgramFrameworkAdoption } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
@@ -12,6 +13,7 @@ import "../program-standards.css";
 type Props = {
   aggregate: ProgramAggregate;
   operations: ProgramOperation[];
+  frameworkEdition?: FrameworkEditionTarget;
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
 };
@@ -22,7 +24,7 @@ function adoptionStatus(status: string) {
   return { label: status === "REJECTED" ? "Rejected" : status === "SUPERSEDED" ? "Superseded" : "Retired", tone: "neutral" as const };
 }
 
-export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onReload }: Props) {
+export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition, onUpdated, onReload }: Props) {
   const program = aggregate.program;
   const adoptions = aggregate.framework_adoptions ?? [];
   const pending = adoptions.filter((item) => item.status === "PENDING");
@@ -53,6 +55,20 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
     setError("");
     setReloadRequired(false);
   }, [program.id, program.version]);
+
+  useEffect(() => {
+    if (!frameworkEdition || !proposeOperation?.can_act) return;
+    // A URL carries only identity; the selected metadata must be read from the
+    // current authorized catalog page before a material proposal can proceed.
+    setJurisdiction(frameworkEdition.jurisdiction);
+    setEditionID(frameworkEdition.editionID);
+    setProposalRationale("");
+    setReviewingID(null);
+    setReviewRationale("");
+    setError("");
+    setReloadRequired(false);
+    setAddOpen(true);
+  }, [frameworkEdition?.editionID, frameworkEdition?.jurisdiction, program.id, proposeOperation?.can_act]);
 
   const loadedMatches = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
@@ -141,10 +157,13 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
           {adoptions.length ? activeCount + " active · " + pending.length + " awaiting approval" : "No standards linked"}
         </p>
       </div>
-      {proposeOperation?.can_act && !addOpen &&
-        <Button variant="secondary" onPress={openCatalog}>Add standard</Button>}
+      <div className="cs-program-standards__actions">
+        <a className="cs-program-standards__source" href="#programs/library">Browse library</a>
+        {proposeOperation?.can_act && !addOpen && <Button variant="secondary" onPress={openCatalog}>Add standard</Button>}
+      </div>
     </div>
 
+    {frameworkEdition && !proposeOperation?.can_act && <p role="status" className="cs-program-standards__meta">Edition selected. Adoption is unavailable until Program authority and review status are confirmed.</p>}
     {adoptions.length > 0 && <ul className="cs-program-standards__adoptions" aria-label="Program standards">
       {adoptions.map((item) => {
         const status = adoptionStatus(item.status);
@@ -207,6 +226,7 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
         Published editions could not be loaded. <Button variant="secondary" size="compact" onPress={catalog.retry}>Retry</Button>
       </div>}
       {catalog.state === "ready" && catalog.items.length === 0 && <p role="status">No published standards available for this jurisdiction.</p>}
+      {catalog.state === "ready" && editionID === frameworkEdition?.editionID && !selectedEdition && <p role="status">{catalog.nextAfterID ? "The selected edition is outside the loaded page. Load more standards to verify its source." : "The selected edition is unavailable in this jurisdiction. Return to the Framework Library."}</p>}
       {catalog.items.length > 0 && loadedMatches.length === 0 && <p role="status">No matches in the loaded standards.</p>}
       {loadedMatches.length > 0 && <fieldset className="cs-program-standards__editions" aria-label="Published editions">
         <legend className="cs-sr-only">Published editions</legend>
