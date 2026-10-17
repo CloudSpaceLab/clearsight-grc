@@ -135,3 +135,18 @@ The horizontal T0–T7 headings above describe coverage, not permission to ship 
 **Dependencies:** V1 can ship independently of unfinished #437 catalog and #433 score work. V2 and V3 must wait for authoritative catalog/adoption contracts, never static arrays. A wholesale shell or shadcn rewrite is not a prerequisite. Scope and time semantics remain server-driven.
 
 **Current proof:** V1 rationale isolation and regression coverage are committed to draft PR #497; backend/web/UI review passed on the preceding implementation head. Four-actor runtime acceptance remains unverified, so V1 is not marked complete. T0 source bytes are imported; running-app visual baselines and design comparisons remain outstanding.
+
+## 7. First integrated Framework UI slice — 17 October 2026
+
+**Implemented on #497 (not yet accepted for release):**
+
+- Program Standards now uses `ProgramStandardsPanel`, extracted from `ProgramDetailsPanel`, and the shared `Button`, `SearchField` and `StatusBadge` primitives.
+- Catalog reads use `GET /api/v1/framework-catalog/editions` with exact tenant context, jurisdiction, bounded `after_id` pages and one sentinel row. The backend currently has **no server search filter or edition detail route**; the search control is explicitly labelled *Search loaded standards* and never implies whole-catalog coverage.
+- Selected editions expose publisher, revision, source publication date, licensing and recorded approval reference. These are source metadata, not tenant adoption or compliance results.
+- Existing `program.framework.propose`, `program.framework.approve` and `program.framework.reject` continue to own all writes. A reviewer selects exactly one pending adoption with a fresh rationale. Pending/active duplicates are not selectable.
+- A stale jurisdiction response is discarded, denied reads remain distinct from an empty catalog, and 409/412 Program conflicts lock the action until an authoritative reload.
+- No new route, backend schema, scoring unit, standards installation claim, or independent approval store.
+
+**Automated gates added:** edition page cursor tests; proposal source/rights selection; per-adoption decision isolation; duplicate edition protection; stale jurisdiction response; denied versus empty; version conflict; no-authority states. Backend, web and UI/UX CI must pass on the exact latest head before marking this slice accepted.
+
+**Remaining V2/V3:** source/rights detail accessible to reviewers without proposal permission; server-side catalog search and full cursor/filter contract under #437; source-to-runtime screenshot comparison and accessible keyboard/mobile proof at 390/768/1024/1280/1440 in both themes; real authorized Program-to-report actor acceptance. Do not infer completed catalog coverage or a full approved-design cutover from this bounded Program panel.
