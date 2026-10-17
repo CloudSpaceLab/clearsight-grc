@@ -593,7 +593,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
 
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation">
-      <div className="brand-mark" aria-label="ClearSight">C</div>
+      <div className="sidebar-brand">
+        <div className="brand-mark" aria-label="ClearSight">C</div>
+        <div className="sidebar-brand__name" aria-hidden="true"><strong>ClearSight</strong><small>Governance · Risk · Compliance</small></div>
+      </div>
       <nav>{operatingNavigation.map(({ label, view, activeViews }) => {
         const active = activeViews.includes(activeView);
         return <button className={active ? "nav-item active" : "nav-item"} key={label} aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><b>{label}</b></button>;
@@ -643,7 +646,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         insightsLegalEntityID: runtime?.legal_entity.id,
         ...(activeOrganizationScope?.id ? { insightsOrganizationScopeID: activeOrganizationScope.id } : {}),
       })}/></Suspense>}
-      {activeView === "programs" && <ProgramsView organizationName={organizationName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
+      {activeView === "programs" && <ProgramsView organizationName={organizationName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} programsPage={target.programsPage} frameworkEdition={target.frameworkEdition} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection, frameworkEdition: target.frameworkEdition })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
       {activeView === "risks" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading risks…</div>}><RisksWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} actorID={runtime?.actor?.id} targetID={target.riskID} onTarget={(id) => navigate("risks", id ? { riskID: id } : {})} onOpenProgram={(programID) => navigate("programs", { programID, programSection: "monitoring" })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")} onOpenProgramControl={(programID, objectiveID) => navigate("programs", { programID, programSection: "requirements-controls", programItem: { kind: "control-objective", id: objectiveID } })}/></Suspense>}
       {activeView === "rcsa" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading RCSA cycles…</div>}><RCSAWorkspace
         organizationName={organizationName}

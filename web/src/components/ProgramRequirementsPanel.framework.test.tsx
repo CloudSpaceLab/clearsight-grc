@@ -138,11 +138,35 @@ describe("Program framework mapping review", () => {
     fireEvent.click(screen.getByRole("button",{name:"Review clauses"}));
     await waitFor(() => expect(screen.getByText("Links awaiting review")).toBeTruthy());
     expect(screen.queryByRole("button",{name:"Propose link"})).toBeNull();
-    fireEvent.change(screen.getByLabelText("Review reason"),{target:{value:"Mapped to approved obligation"}});
+    fireEvent.click(screen.getByRole("button",{name:"Review link"}));
+    fireEvent.change(screen.getByLabelText("Decision rationale for A.1"),{target:{value:"Mapped to approved obligation"}});
     fireEvent.click(screen.getByRole("button",{name:"Approve link"}));
     await waitFor(() => expect(decideProgramFrameworkMapping).toHaveBeenCalledWith(
       "program-1","adoption-1","mapping-1",4,"approve","Mapped to approved obligation",
     ));
     expect(onUpdated).toHaveBeenCalled();
   });
+  it("keeps reviewer rationale scoped to the selected mapping", async () => {
+    vi.mocked(loadProgramFrameworkMappings).mockResolvedValue({
+      adoption_id:"adoption-1",program_version:4,next_after_id:"",
+      items:[
+        {id:"mapping-1",clause_id:"clause-1",clause_code:"A.1",requirement_id:"requirement-1",adoption_id:"adoption-1",mapping_kind:"EXACT",rationale:"",mapped_by:"owner",status:"PENDING",version:1},
+        {id:"mapping-2",clause_id:"clause-2",clause_code:"A.2",requirement_id:"requirement-1",adoption_id:"adoption-1",mapping_kind:"PARTIAL",rationale:"",mapped_by:"owner",status:"PENDING",version:1},
+      ],
+    });
+    render(<ProgramRequirementsPanel aggregate={aggregate} operations={[{
+      command:"program.framework.mapping.approve", label:"Approve link",
+      can_act:true,responsibility:"AUTHORIZER",reason:"",
+    }]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button",{name:"Review clauses"}));
+    await waitFor(() => expect(screen.getAllByRole("button",{name:"Review link"})).toHaveLength(2));
+    fireEvent.click(screen.getAllByRole("button",{name:"Review link"})[0]!);
+    fireEvent.change(screen.getByLabelText("Decision rationale for A.1"),{target:{value:"Specific to A.1"}});
+    fireEvent.click(screen.getByRole("button",{name:"Cancel"}));
+    fireEvent.click(screen.getAllByRole("button",{name:"Review link"})[1]!);
+    expect((screen.getByLabelText("Decision rationale for A.2") as HTMLTextAreaElement).value).toBe("");
+    expect(screen.getByRole("button",{name:"Approve link"}).hasAttribute("disabled")).toBe(true);
+    expect(decideProgramFrameworkMapping).not.toHaveBeenCalled();
+  });
+
 });
