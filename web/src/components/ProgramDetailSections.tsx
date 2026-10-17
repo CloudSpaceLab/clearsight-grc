@@ -23,10 +23,7 @@ export function ProgramDetailSections({ section, panels, onSectionChange }: Prop
   return <section className="program-detail-sections">
     <Tabs ariaLabel="Program sections" compactLabel="Program section"
       items={programSections} selectedKey={section} onSelectionChange={onSectionChange}>
-      {(key) => <div className="program-section-panel">
-        <h3>{programSections.find((item) => item.id === key)?.label}</h3>
-        {panels[key]}
-      </div>}
+      {(key) => <div className="program-section-panel">{panels[key]}</div>}
     </Tabs>
   </section>;
 }

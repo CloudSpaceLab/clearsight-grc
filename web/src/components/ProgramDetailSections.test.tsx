@@ -19,6 +19,7 @@ describe("Program detail sections", () => {
     expect(screen.getAllByRole("tab")).toHaveLength(6);
     expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
     expect(screen.getByRole("tabpanel", { name: "Overview" }).textContent).toContain("Overview content");
+    expect(screen.queryByRole("heading", { name: "Overview" })).toBeNull();
 
     const overview = screen.getByRole("tab", { name: "Overview" });
     overview.focus();
