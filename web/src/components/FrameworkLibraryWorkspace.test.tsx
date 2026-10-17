@@ -33,6 +33,10 @@ describe("Framework Library workspace", () => {
     expect(screen.getByRole("list", {name: "Published framework editions"})).toBeTruthy();
     expect(details.textContent).toContain("Citations only");
     expect(details.textContent).toContain("release-approved");
+    const checksumDisclosure = screen.getByText("Source checksums").closest("details");
+    expect(checksumDisclosure?.open).toBe(false);
+    fireEvent.click(screen.getByText("Source checksums"));
+    expect(checksumDisclosure?.open).toBe(true);
     expect(details.textContent).toContain("Publication does not establish Program adoption");
     expect(screen.getByRole("link", {name: /Show published source/}).getAttribute("href")).toBe("https://example.org/edition-1");
     expect(onChooseProgram).not.toHaveBeenCalled();

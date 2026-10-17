@@ -173,6 +173,20 @@
   color: var(--cs-text-primary);
   overflow-wrap: anywhere;
 }
+.cs-framework-provenance__checksums { min-width: 0; }
+.cs-framework-provenance__checksums summary {
+  display: flex;
+  min-height: var(--cs-control-height-compact);
+  align-items: center;
+  cursor: pointer;
+  color: var(--cs-text-primary);
+  font-size: var(--cs-font-size-caption);
+}
+.cs-framework-provenance__checksums summary:focus-visible {
+  outline: var(--cs-focus-width) solid var(--cs-focus-ring);
+  outline-offset: var(--cs-focus-offset);
+}
+.cs-framework-provenance__checksums .cs-program-standards__facts { padding-block: var(--cs-space-group); }
 .cs-program-standards__source {
   justify-self: start;
   text-decoration: underline;

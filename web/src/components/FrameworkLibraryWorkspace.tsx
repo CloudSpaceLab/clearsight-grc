@@ -67,14 +67,20 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
   }
 
   const inspector = selected && <div className="cs-framework-library__sheet">
-    <span className="eyebrow">Published reference</span>
-    <h2>{selected.title}</h2>
-    <StatusBadge tone="info">Edition {selected.edition_code}</StatusBadge>
-    <FrameworkEditionProvenance edition={selected}/>
-    <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
-    <div className="cs-program-standards__actions">
-      <Button variant="primary" isDisabled={catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction}
-        onPress={() => onChooseProgram(selected)}>Choose Program</Button>
+    <div className="cs-framework-library__detail-band" aria-hidden="true">
+      <span className="cs-framework-library__publisher-mark">{publisherMark(selected.publisher_code)}</span>
+      <span>Published · {selected.source_published_on}</span>
+    </div>
+    <div className="cs-framework-library__detail-body">
+      <span className="eyebrow">Published reference</span>
+      <h2>{selected.title}</h2>
+      <StatusBadge tone="info">Edition {selected.edition_code}</StatusBadge>
+      <FrameworkEditionProvenance edition={selected}/>
+      <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
+      <div className="cs-program-standards__actions">
+        <Button variant="primary" isDisabled={catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction}
+          onPress={() => onChooseProgram(selected)}>Choose Program</Button>
+      </div>
     </div>
   </div>;
 

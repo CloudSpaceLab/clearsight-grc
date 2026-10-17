@@ -23,7 +23,7 @@
   min-width: 0;
   border: 1px solid var(--cs-border-default);
   border-radius: var(--cs-primitive-radius-14);
-  padding: var(--cs-space-section);
+  overflow: hidden;
   background: var(--cs-bg-surface-1);
 }
 .cs-framework-library__header {
@@ -99,19 +99,33 @@
   color: var(--cs-text-muted);
   font-size: var(--cs-font-size-caption);
 }
-.cs-framework-library__sheet {
+.cs-framework-library__sheet { display: grid; min-width: 0; align-content: start; }
+.cs-framework-library__detail-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-space-group);
+  min-height: 76px;
+  padding: var(--cs-space-group) var(--cs-space-section);
+  background: linear-gradient(120deg, var(--cs-bg-surface-2), var(--cs-bg-surface-1));
+  border-bottom: 1px solid var(--cs-border-default);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.cs-framework-library__detail-body {
   display: grid;
+  align-content: start;
   gap: var(--cs-space-group);
   min-width: 0;
-  align-content: start;
+  padding: var(--cs-space-section);
 }
-.cs-framework-library__sheet > h2 {
+.cs-framework-library__detail-body > h2 {
   margin: 0;
   font-size: var(--cs-primitive-font-size-22);
   line-height: var(--cs-leading-tight);
   color: var(--cs-text-strong);
 }
-.cs-framework-library__sheet > .cs-status-badge {
+.cs-framework-library__detail-body > .cs-status-badge {
   justify-self: start;
 }
 .cs-framework-library__disclaimer {
@@ -121,7 +135,7 @@
   font-size: var(--cs-font-size-caption);
 }
 .cs-framework-library__sheet .cs-program-standards__facts {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 @media (max-width: 900px) {
   .cs-framework-library__layout {
@@ -130,6 +144,9 @@
   .cs-framework-library__inspector {
     display: none;
   }
+}
+@media (max-width: 560px) {
+  .cs-framework-library__sheet .cs-program-standards__facts { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 767px) {
   .cs-framework-library__header { align-items: start; }
