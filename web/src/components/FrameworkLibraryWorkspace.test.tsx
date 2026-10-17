@@ -29,6 +29,7 @@ describe("Framework Library workspace", () => {
     expect(screen.getByText("1 loaded · GLOBAL")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", {name: "Inspect edition for Published SECURITY 2026"}));
     const details = await screen.findByRole("complementary", {name: "Framework edition details"});
+    expect(screen.getByRole("list", {name: "Published framework editions"})).toBeTruthy();
     expect(details.textContent).toContain("Citations only");
     expect(details.textContent).toContain("release-approved");
     expect(details.textContent).toContain("Publication does not establish Program adoption");
@@ -78,8 +79,36 @@ describe("Framework Library workspace", () => {
     vi.mocked(loadFrameworkEditionPage).mockRejectedValue(new ApiError(403, "Access denied"));
     render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={vi.fn()}/>);
     expect(await screen.findByText("Published editions unavailable")).toBeTruthy();
-    expect(screen.queryByRole("table", {name: "Published framework editions"})).toBeNull();
+    expect(screen.queryByRole("list", {name: "Published framework editions"})).toBeNull();
     expect(screen.queryByRole("button", {name: /Inspect edition/})).toBeNull();
+  });
+
+  it("retains loaded sources but blocks choosing a Program when a later catalog page fails", async () => {
+    const onChooseProgram = vi.fn();
+    vi.mocked(loadFrameworkEditionPage)
+      .mockResolvedValueOnce({items: [edition("edition-1")], next_after_id: "edition-1"})
+      .mockRejectedValueOnce(new Error("Request failed"))
+      .mockResolvedValueOnce({items: [edition("edition-2", "PRIVACY")], next_after_id: ""});
+    render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={onChooseProgram}/>);
+    fireEvent.click(await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"}));
+    expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(false);
+    fireEvent.click(screen.getByRole("button", {name: "Load more editions"}));
+    expect(await screen.findByText(/Additional editions unavailable/)).toBeTruthy();
+    expect(screen.getByRole("list", {name: "Published framework editions"}).textContent).toContain("Published SECURITY");
+    expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", {name: "Retry catalog"}));
+    expect(await screen.findByRole("button", {name: "Inspect edition for Published PRIVACY 2026"})).toBeTruthy();
+    expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(false);
+    expect(onChooseProgram).not.toHaveBeenCalled();
+    expect(loadFrameworkEditionPage).toHaveBeenNthCalledWith(3, "GLOBAL", "edition-1");
+  });
+
+  it("never chooses an edition before explicit inspection", async () => {
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [edition("edition-1")], next_after_id: ""});
+    render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={vi.fn()}/>);
+    await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"});
+    expect(screen.getByText("Select an edition")).toBeTruthy();
+    expect(screen.queryByRole("button", {name: "Choose Program"})).toBeNull();
   });
 
   it("rejects invalid jurisdiction input before issuing another request", async () => {

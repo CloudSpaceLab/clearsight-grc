@@ -11,11 +11,15 @@ function trustedSourceURL(value: string): string | null {
   }
 }
 
+export function frameworkEditionRightsLabel(basis: string): string {
+  return basis === "CITATIONS_ONLY" ? "Citations only"
+    : basis === "SUMMARIES_PERMITTED" ? "Summaries permitted" : "Not verified";
+}
+
 /** Source provenance only. A published reference is not an adopted obligation. */
 export function FrameworkEditionProvenance({ edition }: Props) {
   const sourceURL = trustedSourceURL(edition.source_url);
-  const rights = edition.license_basis === "CITATIONS_ONLY" ? "Citations only"
-    : edition.license_basis === "SUMMARIES_PERMITTED" ? "Summaries permitted" : "Not verified";
+  const rights = frameworkEditionRightsLabel(edition.license_basis);
 
   return <>
     <dl className="cs-program-standards__facts">

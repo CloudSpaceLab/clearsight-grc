@@ -51,45 +51,35 @@
 }
 .cs-framework-library__jurisdiction {
   display: grid;
-  gap: 6px;
-  color: var(--cs-text-muted);
-  font-size: var(--cs-font-size-caption);
-  min-width: 0;
-}
-.cs-framework-library__jurisdiction-controls {
-  display: flex;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--cs-space-inline);
+  align-items: end;
   min-width: 0;
 }
-.cs-framework-library__jurisdiction-controls input {
-  color: var(--cs-text-primary);
-  background: var(--cs-bg-surface-2);
-  border: 1px solid var(--cs-border-field);
-  border-radius: var(--cs-primitive-radius-10);
-  min-height: var(--cs-control-height-compact);
-  min-width: 0;
-  width: 100%;
-  padding: 0 10px;
-  font-size: var(--cs-font-size-input-mobile);
+.cs-framework-library__jurisdiction .cs-field { min-width: 0; }
+.cs-framework-library__results-head {
+  display: flex;
+  gap: var(--cs-space-group);
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--cs-space-group);
 }
-.cs-framework-library__jurisdiction-controls input:focus-visible {
-  outline: var(--cs-focus-width) solid var(--cs-focus-ring);
-  outline-offset: var(--cs-focus-offset);
-}
-.cs-framework-library__identity {
+.cs-framework-library__results-head h3 { margin: 0; color: var(--cs-text-strong); font-size: var(--cs-font-size-control); }
+.cs-framework-library__results-head span { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.cs-framework-library__list {
   display: grid;
-  gap: 4px;
+  gap: var(--cs-space-group);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-framework-library__list .cs-selectable-record {
+  min-height: 88px;
+  padding: var(--cs-space-section);
   min-width: 0;
 }
-.cs-framework-library__identity strong {
-  color: var(--cs-text-primary);
-  font-size: var(--cs-font-size-control);
-  overflow-wrap: anywhere;
-}
-.cs-framework-library__identity small {
-  color: var(--cs-text-muted);
-  font-size: var(--cs-font-size-caption);
-}
+.cs-framework-library__sheet .cs-program-standards__facts dd,
+.cs-framework-library__sheet .cs-program-standards__facts code { overflow-wrap: anywhere; }
 .cs-framework-library__pagination {
   display: flex;
   align-items: center;
@@ -132,6 +122,8 @@
   }
 }
 @media (max-width: 767px) {
+  .cs-framework-library__jurisdiction { grid-template-columns: minmax(0, 1fr); }
+  .cs-framework-library__jurisdiction .cs-button { width: 100%; }
   .cs-framework-library .cs-filter-bar__fields {
     grid-template-columns: minmax(0, 1fr);
   }
