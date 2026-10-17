@@ -100,7 +100,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
 	navigate(command.startsWith("program.monitoring.") ? "monitoring" : command.startsWith("program.evidence.") ? "evidence-results" : command === "program.safeguard.define" || command === "program.requirement.add" || command === "program.applicability.decide" ? "requirements-controls" : "overview");
 	window.requestAnimationFrame(() => {
       const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-      document.getElementById(actionTarget(command))?.scrollIntoView?.({ behavior: reducedMotion ? "instant" : "smooth", block: "start" });
+      document.getElementById(actionTarget(command))?.scrollIntoView?.({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
     });
   }
 
