@@ -97,6 +97,21 @@ try {
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   try {
+    if (capture.name === "04-program-light-1440x900") {
+      const measures = page.locator(".program-overview-metrics");
+      await measures.waitFor({ state: "visible" });
+      for (const label of ["Approved requirements", "Assessed requirements", "Open issues", "Active evidence checks"]) {
+        const card = measures.getByRole("button", { name: new RegExp("^" + label + ":") });
+        await card.waitFor({ state: "visible" });
+        const quality = await card.getAttribute("data-quality");
+        if (!["current", "partial", "stale", "unknown"].includes(quality)) {
+          throw new Error(`Program measure ${label} lacks a data-quality state`);
+        }
+      }
+      if (await measures.getByRole("button").count() !== 4) {
+        throw new Error("Program Overview did not render exactly four grounded measures");
+      }
+    }
     if (capture.state === "report-library") {
       await page.getByRole("table", { name: "Generated reports" }).waitFor({ state: "visible" });
     }
