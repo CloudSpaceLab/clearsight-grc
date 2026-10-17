@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ProgramAggregate } from "../types";
 import type { ProgramOperations } from "../programOperationsApi";
 import type { ProgramReviewDigest } from "../programReviewApi";
-import { ProgramCurrentPosition } from "./ProgramCurrentPosition";
+import { ProgramCurrentPosition, dominantProgramAction } from "./ProgramCurrentPosition";
 
 const aggregate = { program: { id: "program-1", version: 3 }, state_label: "Up to date", requirements: [] } as unknown as ProgramAggregate;
 const operations = { operations: [] } as unknown as ProgramOperations;
@@ -113,5 +113,39 @@ describe("Program calculation truth", () => {
     expect(screen.getByText("Validity has ended for these internal assessments.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review assessments" }));
     expect(onNavigate).toHaveBeenCalledWith("evidence-results");
+  });
+});
+
+
+describe("Program primary action ordering", () => {
+  it("navigates to the permitted primary action without forced motion", () => {
+    const onNavigate = vi.fn();
+    const scrollIntoView = vi.fn();
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { callback(0); return 1; });
+    const scrollSpy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(scrollIntoView);
+    try {
+      const permitted = { operations: [{ command: "program.requirement.add", label: "Add requirement", can_act: true }] } as ProgramOperations;
+      render(<><div id="program-requirements-panel"/><ProgramCurrentPosition aggregate={aggregate} operations={permitted} digest={digest} onNavigate={onNavigate}/></>);
+      fireEvent.click(screen.getByRole("button", { name: "Add requirement" }));
+      expect(onNavigate).toHaveBeenCalledWith("requirements-controls");
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+    } finally {
+      vi.unstubAllGlobals();
+      scrollSpy.mockRestore();
+    }
+  });
+
+  it("prefers a known ranked action over an unranked executable command", () => {
+    const allowed = [
+      { command: "program.future.action", label: "Future action", can_act: true },
+      { command: "program.requirement.add", label: "Add requirement", can_act: true },
+    ] as ProgramOperations["operations"];
+    expect(dominantProgramAction(allowed, digest)?.command).toBe("program.requirement.add");
+  });
+
+  it("retains an unranked action when it is the only permitted action", () => {
+    const allowed = [{ command: "program.future.action", label: "Future action", can_act: true }] as ProgramOperations["operations"];
+    expect(dominantProgramAction(allowed, digest)?.command).toBe("program.future.action");
   });
 });
