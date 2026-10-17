@@ -365,7 +365,7 @@ export function VendorDueDiligence({
     await run(async () => {
       const outcome = await onRetrySetup(effectiveAssessment.id, effectiveAssessment.version);
       setLocalAssessment(outcome.assessment);
-      setNotice("Assessment setup queued. Review setup will continue in the background.");
+      setNotice("Assessment setup queued.");
     }, "Assessment setup could not be queued. Reload the assessment before trying again.");
   }
 

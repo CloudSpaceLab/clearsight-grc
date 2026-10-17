@@ -51,7 +51,7 @@ export function ProjectionHealthCard({ health, state = "live", canReconcile, onR
 
   return <article className="config-card wide projection-health-card">
     <div className="section-header">
-      <div><h2>Program status updates</h2><p>Checks whether calculated Program status has caught up with recorded changes.</p></div>
+      <div><h2>Program status updates</h2></div>
       <mark className={stateClass(health?.state ?? "NOT_CONFIGURED")}>{stateLabel(health?.state ?? "NOT_CONFIGURED")}</mark>
     </div>
     {!health ? <p>Calculated Program status updates are not configured for this scope.</p> : <div className="projection-health-grid">
@@ -63,6 +63,6 @@ export function ProjectionHealthCard({ health, state = "live", canReconcile, onR
     {health?.last_error && <p className="error-text">Latest error: {health.last_error}</p>}
     {result && <Notice tone="success">Checked {result.checked} Programs. {result.queued} new status update{result.queued === 1 ? " was" : "s were"} queued{result.already_queued ? `; ${result.already_queued} already waiting` : ""}.</Notice>}
     {error && <p className="error-text" role="alert">{error}</p>}
-    <div className="card-actions"><button type="button" className="secondary-button" disabled={running || !canReconcile} onClick={() => void checkRecords()}>{running ? "Checking…" : "Check status records"}</button>{!canReconcile && <small>Platform Operations must check these records because your access is read-only.</small>}</div>
+    <div className="card-actions"><button type="button" className="secondary-button" disabled={running || !canReconcile} onClick={() => void checkRecords()}>{running ? "Checking…" : "Check status records"}</button>{!canReconcile && <small>View-only access. Ask Platform Operations to check status records.</small>}</div>
   </article>;
 }

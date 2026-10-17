@@ -22,7 +22,7 @@ describe("ProjectionHealthCard reconciliation authority", () => {
     render(<ProjectionHealthCard health={health} canReconcile={false} onReconcile={onReconcile}/>);
 
     expect((screen.getByRole("button", { name: "Check status records" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText("Platform Operations must check these records because your access is read-only.")).toBeTruthy();
+    expect(screen.getByText("View-only access. Ask Platform Operations to check status records.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Check status records" }));
     expect(onReconcile).not.toHaveBeenCalled();
   });

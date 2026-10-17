@@ -228,7 +228,7 @@ export function VendorIdentityEditor({ record, onCancel, onIdentitySaved, onBran
   if (state === "unavailable") return <section className="vendor-state" role="alert"><h2>Vendor details are unavailable</h2><p>The current vendor identity could not be loaded. Return to the relationship or try again.</p><div className="vendor-form-actions"><button type="button" className="secondary-button" onClick={onCancel}>Return to relationship</button><button type="button" className="primary-button" onClick={retryInitialLoad}>Try again</button></div></section>;
 
   return <form className="vendor-form vendor-identity-form" onSubmit={saveIdentity} noValidate aria-busy={mutating || undefined}>
-    <div className="vendor-identity-form-heading"><div><span className="eyebrow">Shared vendor identity</span><h2>Edit vendor details</h2><p>Update the organization details used across this vendor&apos;s relationships.</p></div><div className="vendor-identity-heading-actions"><VendorBrandIcon vendorID={presentation.vendor.id} legalName={presentation.vendor.legal_name} brand={presentation.brand} size="detail"/><button type="button" className="secondary-button" onClick={onCancel} disabled={mutating}>Return to relationship</button></div></div>
+    <div className="vendor-identity-form-heading"><div><span className="eyebrow">Shared vendor identity</span><h2>Edit vendor details</h2></div><div className="vendor-identity-heading-actions"><VendorBrandIcon vendorID={presentation.vendor.id} legalName={presentation.vendor.legal_name} brand={presentation.brand} size="detail"/><button type="button" className="secondary-button" onClick={onCancel} disabled={mutating}>Return to relationship</button></div></div>
     {notice && <Notice tone="success">{notice}</Notice>}
     {formError && <div className="vendor-form-error" role="alert">{formError}</div>}
     {conflict && <div className="vendor-conflict-recovery"><button type="button" className="secondary-button" disabled={mutating} onClick={() => void reloadCurrentVendor()}>{reloading ? "Reloading…" : "Reload current vendor"}</button></div>}
@@ -278,7 +278,7 @@ function brandErrorText(kind: ReturnType<typeof apiErrorKind>) {
 }
 function brandStatusDetail(state: VendorIdentityPresentation["brand"]["state"]) {
   if (state === "APPROVED_LOGO") return "The approved image is used in vendor records.";
-  if (state === "WEBSITE_ICON") return "The stored website icon is used in vendor records.";
+  if (state === "WEBSITE_ICON") return "Website icon";
   if (state === "PENDING") return "Website icon retrieval is in progress. The vendor monogram remains available.";
   return "Check the website domain or upload an approved logo. The vendor monogram remains available.";
 }

@@ -282,8 +282,8 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   const deadline = new Date(today.getTime() + 2 * 86400000).toISOString().slice(0, 16);
 
   return <section className="monitoring-setup" aria-labelledby={`monitoring-${aggregate.program.id}`}>
-    <div className="monitoring-section-heading"><div><h3 id={`monitoring-${aggregate.program.id}`}>Data collection</h3><p>Collect responses or check connected data and calculate risk.</p></div>{canConfigureMonitoring && <button className="secondary-button" type="button" onClick={() => setMode(mode === "closed" ? "choose" : "closed")}>{mode === "closed" ? "Add data check" : "Close setup"}</button>}</div>
-    {!canConfigureMonitoring && <p className="program-operation-reason">{formDefineOperation?.reason ?? checkDefineOperation?.reason ?? "Data collection changes are disabled until current Program responsibilities are available. Existing checks and results remain available."}</p>}
+    <div className="monitoring-section-heading"><div><h3 id={`monitoring-${aggregate.program.id}`}>Data collection</h3></div>{canConfigureMonitoring && <button className="secondary-button" type="button" onClick={() => setMode(mode === "closed" ? "choose" : "closed")}>{mode === "closed" ? "Add data check" : "Close setup"}</button>}</div>
+    {!canConfigureMonitoring && <p className="program-operation-reason">{formDefineOperation?.reason ?? checkDefineOperation?.reason ?? "Assignments unavailable. Data collection changes disabled."}</p>}
     {state === "loading" && <p aria-live="polite">Loading data checks…</p>}
     {state === "unavailable" && <div className="inline-error"><p>Data checks could not be loaded.</p><button className="secondary-button" type="button" onClick={() => void reload()}>Try again</button></div>}
     {error && <Notice tone="error">{error}</Notice>}
