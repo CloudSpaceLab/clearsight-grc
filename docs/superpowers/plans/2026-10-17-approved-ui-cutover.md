@@ -115,3 +115,23 @@ Acceptance proof cannot consist of mocked UI screenshots. At least one real Prog
 ## 5. Implementation discipline
 
 One domain/component ownership per PR, small commits; do not merge draft or failing CI. Before each tranche: check main and active PRs for overlap; run component and CSS usage search; establish API shape and authority; create targeted tests before implementation; produce before/after screenshots and actual tests. Keep #462 tracker synchronized with independently proven work. Branch/PR #497 is a preparation branch, not complete cutover.
+
+## 6. Vertical integration and release order
+
+The horizontal T0–T7 headings above describe coverage, not permission to ship unconnected prototypes. Prioritize coherent, executable journeys. Each slice owns its route, authenticated API reads/mutations, decision and data-quality states, visual composition, evidence, tests and rollback.
+
+| Slice | Existing runtime owner | Delivery gate |
+| --- | --- | --- |
+| V1: Mapping review | ProgramRequirementsPanel and framework mapping operations | Focus one pending link, clear per-link rationale on change/cancel, enforce role, refresh versioned Program; regression test |
+| V2: Framework Library | #437 published edition catalog | Genuine edition search, source/rights/version, applicability and authorized bounded pagination; no synthetic scores |
+| V3: Adoption | Program versioned framework adoption | Select Program/scope/edition; propose and independently approve; preserve history and version conflicts |
+| V4: Requirement links | Existing Program Requirements and mapping APIs | Link existing obligations and review; multiple editions share one scored Requirement without duplication |
+| V5: Assessments | Forms/Capture, evidence and assessment | Choose existing Form, submit, assess and decide; separate answer completion, evidence and compliance |
+| V6: Reports | Persisted reporting runs and authorizations | Authorized export reconciles to exact source records, revision, snapshot, scope and denominator |
+| V7: Other domains | Vendor, risk, privacy, work, controls, audit and admin surfaces | Execute an end-to-end domain journey before retiring each legacy presentation |
+
+**Contract required for each PR:** current route, endpoint, authorized operation, scoped filters, input/output fields, loading/empty/denied/stale/conflict/failure states, desktop/mobile visual comparison, keyboard/focus/reduced-motion proof and test/CI result. An illustrative prototype control with no live endpoint is not an enabled production action.
+
+**Dependencies:** V1 can ship independently of unfinished #437 catalog and #433 score work. V2 and V3 must wait for authoritative catalog/adoption contracts, never static arrays. A wholesale shell or shadcn rewrite is not a prerequisite. Scope and time semantics remain server-driven.
+
+**Current proof:** V1 rationale isolation and regression coverage are committed to draft PR #497. CI and live actor-acceptance remain unverified, so V1 is not marked complete. T0 still requires source-byte import and running-app visual baselines.
