@@ -28,10 +28,12 @@
 }
 .cs-framework-library__header {
   display: flex;
-  align-items: start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--cs-space-group);
   flex-wrap: wrap;
+  padding-bottom: var(--cs-space-group);
+  border-bottom: 1px solid var(--cs-border-default);
 }
 .cs-framework-library__header p {
   color: var(--cs-text-muted);
@@ -117,13 +119,11 @@
   }
 }
 @media (max-width: 767px) {
+  .cs-framework-library__header { align-items: start; }
   .cs-framework-library__jurisdiction { grid-template-columns: minmax(0, 1fr); }
   .cs-framework-library__jurisdiction .cs-button { width: 100%; }
   .cs-framework-library .cs-filter-bar__fields {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .cs-framework-library__header > .cs-button {
-    width: 100%;
   }
   .cs-framework-library__pagination > .cs-button {
     width: 100%;

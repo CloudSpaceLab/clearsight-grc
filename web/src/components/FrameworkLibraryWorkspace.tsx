@@ -25,6 +25,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
   const [search, setSearch] = useState("");
   const [selectedID, setSelectedID] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [jurisdictionExpanded, setJurisdictionExpanded] = useState(false);
   const compact = useMediaQuery("(max-width: 900px)");
   const catalog = useFrameworkEditionCatalog(true, jurisdiction);
 
@@ -53,6 +54,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
     setSheetOpen(false);
     setJurisdictionDraft(code);
     setJurisdiction(code);
+    setJurisdictionExpanded(false);
   }
 
   function inspect(edition: FrameworkEditionOption) {
@@ -73,7 +75,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
   </div>;
 
   return <section className="cs-framework-library portfolio-workspace" aria-label="Framework Library workspace" id="framework-library-workspace">
-    <header className="cs-register-header cs-framework-library__header">
+    <header className="cs-framework-library__header">
       <div>
         <span className="eyebrow">Catalog scope</span>
         <p role="status">{catalog.items.length} loaded editions · {jurisdiction}{catalog.nextAfterID ? " · More available" : ""}</p>
@@ -83,18 +85,24 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
 
     <div className="cs-framework-library__layout">
       <div className="cs-framework-library__register">
-        <FilterBar label="Framework filters" resultCount={visible.length}
-          resultLabel={(count) => count + " matching loaded edition" + (count === 1 ? "" : "s")}
+        <FilterBar label="Framework filters"
           onClear={search ? () => setSearch("") : undefined}
           fields={<>
             <SearchField label="Search loaded standards" placeholder="Search loaded standards" value={search}
               onChange={setSearch} isLoading={catalog.state === "loading"}/>
-            <form className="cs-framework-library__jurisdiction" onSubmit={applyJurisdiction}>
+            {compact && <Button variant="secondary" size="compact" aria-expanded={jurisdictionExpanded}
+              onPress={() => {
+                if (jurisdictionExpanded) { setJurisdictionDraft(jurisdiction); setJurisdictionError(""); }
+                setJurisdictionExpanded((value) => !value);
+              }}>
+              {jurisdictionExpanded ? "Hide jurisdiction filter" : "Jurisdiction: " + jurisdiction}
+            </Button>}
+            {(!compact || jurisdictionExpanded) && <form className="cs-framework-library__jurisdiction" onSubmit={applyJurisdiction}>
               <TextField id="framework-jurisdiction" label="Jurisdiction code" autoComplete="off"
                 value={jurisdictionDraft} maxLength={64} onChange={setJurisdictionDraft}
                 isInvalid={Boolean(jurisdictionError)} errorMessage={jurisdictionError}/>
               <Button type="submit" variant="secondary" size="compact">Apply</Button>
-            </form>
+            </form>}
           </>}/>
         {catalog.state === "loading" && <p role="status">{catalog.items.length ? "Loading additional editions…" : "Loading published editions…"}</p>}
         {catalog.state === "denied" && <EmptyState role="alert" population="Framework Library"

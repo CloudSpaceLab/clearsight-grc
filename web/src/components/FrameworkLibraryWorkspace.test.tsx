@@ -63,6 +63,33 @@ describe("Framework Library workspace", () => {
     }
   });
 
+  it("keeps mobile jurisdiction editing collapsed until requested", async () => {
+    const original = window.matchMedia;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: () => ({matches: true, addEventListener: () => {}, removeEventListener: () => {}}),
+    });
+    try {
+      vi.mocked(loadFrameworkEditionPage)
+        .mockResolvedValueOnce({items: [edition("global")], next_after_id: ""})
+        .mockResolvedValueOnce({items: [{...edition("local"), jurisdiction: "NG"}], next_after_id: ""});
+      render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={vi.fn()}/>);
+      await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"});
+      expect(screen.queryByLabelText("Jurisdiction code")).toBeNull();
+      const toggle = screen.getByRole("button", {name: "Jurisdiction: GLOBAL"});
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
+      fireEvent.click(toggle);
+      expect(screen.getByLabelText("Jurisdiction code")).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Jurisdiction code"), {target: {value: "ng"}});
+      fireEvent.click(screen.getByRole("button", {name: "Apply"}));
+      await waitFor(() => expect(loadFrameworkEditionPage).toHaveBeenLastCalledWith("NG", ""));
+      expect(screen.getByRole("button", {name: "Jurisdiction: NG"}).getAttribute("aria-expanded")).toBe("false");
+      expect(screen.queryByLabelText("Jurisdiction code")).toBeNull();
+    } finally {
+      Object.defineProperty(window, "matchMedia", {configurable: true, value: original});
+    }
+  });
+
   it("searches only loaded editions and advances the authoritative cursor", async () => {
     vi.mocked(loadFrameworkEditionPage)
       .mockResolvedValueOnce({items: [edition("edition-1")], next_after_id: "edition-1"})
