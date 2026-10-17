@@ -632,7 +632,11 @@ async function captureDocumentResultHandoffs() {
           if (!title || !implementation || implementation.y < title.y + title.height || Math.abs(title.x - implementation.x) > 1) throw new Error("Narrow control objective still squeezes its title beside implementation details");
         }
         await saveState("control-objective");
-        if (width <= 720) await page.locator(".program-section-selector select").selectOption("overview");
+        if (width <= 720) {
+          const selector = page.locator(".program-detail-sections .cs-tabs__compact .cs-select-field__trigger");
+          await selector.click();
+          await page.getByRole("option", { name: "Overview", exact: true }).click();
+        }
         else await page.getByRole("tab", { name: "Overview", exact: true }).click();
         if (new URL(page.url()).hash !== "#programs/program-ndpa/overview") throw new Error("Changing Program sections retained the old item target");
         await page.goto(`${baseURL}/?tour=off&fixture=document-result-handoffs#programs/program-ndpa/requirements-controls/requirement/unavailable-item`, { waitUntil: "networkidle" });
