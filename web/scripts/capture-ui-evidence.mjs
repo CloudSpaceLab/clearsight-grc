@@ -415,7 +415,20 @@ async function assertFocusInsideSheet(page, name) {
 }
 
 async function record(page, capture, state) {
-  results.push({ name: capture.name, route: capture.route, fixture: capture.fixture ?? null, state, viewport: capture.viewport, theme: capture.theme, density: capture.density, metrics: await layoutMetrics(page) });
+  results.push({
+    name: capture.name,
+    route: capture.route,
+    fixture: capture.fixture ?? null,
+    state,
+    viewport: capture.viewport,
+    theme: capture.theme,
+    density: capture.density,
+    ...(capture.frameworkCatalog ? {
+      frameworkCatalog: capture.frameworkCatalog,
+      frameworkDetailSheet: Boolean(capture.frameworkDetailSheet),
+    } : {}),
+    metrics: await layoutMetrics(page),
+  });
   await writeManifest();
 }
 
