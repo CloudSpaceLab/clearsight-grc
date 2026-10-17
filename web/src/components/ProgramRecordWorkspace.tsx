@@ -207,7 +207,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <Notice tone="warning">Review status unavailable. Reload the Program before taking action.</Notice>}</article>
       <ProgramStatusPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
       <div className="program-record-overview-details">
-        <ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} frameworkEdition={frameworkEdition} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+        <ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} frameworkEdition={frameworkEdition} onNavigate={selectSection} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
       </div>
     </section>,
     "requirements-controls": <section className="program-record-grid">

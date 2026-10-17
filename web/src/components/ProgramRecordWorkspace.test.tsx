@@ -251,6 +251,24 @@ describe("Program record workspace", () => {
     expect(screen.getAllByTestId("program-dominant-action")).toHaveLength(1);
   });
 
+  it("routes active standard follow-up through the current Program section", async () => {
+    vi.mocked(loadProgram).mockResolvedValue({
+      ...aggregate,
+      framework_adoptions: [{
+        id: "adoption-1", edition_id: "edition-1", publisher_code: "REFERENCE",
+        framework_code: "SECURITY", edition_code: "2026", status: "ACTIVE",
+        proposed_by: "maker", proposed_at: "2026-10-15T00:00:00Z",
+        rationale: "In scope", version: 1,
+      }],
+    });
+    const onSectionChange = vi.fn();
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()} onSectionChange={onSectionChange}/>);
+    const link = await screen.findByRole("button", { name: "Review requirement links" });
+    fireEvent.click(link);
+    expect(onSectionChange).toHaveBeenCalledWith("requirements-controls");
+    expect(screen.queryByRole("button", { name: "Review requirement links" })).toBeNull();
+  });
+
   it("renders four scoped measures, preserving stale issue posture and unknown scoring", async () => {
     const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
     await screen.findByRole("heading", { name: "Nigeria data protection" });

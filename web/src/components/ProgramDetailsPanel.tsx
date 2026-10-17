@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { assignProgram, assignProgramApprovalAuthority, decideProgramCalculationPolicy, proposeProgramCalculationPolicy, updateProgramDetails } from "../programOperationsApi";
 import type { ProgramOperation } from "../programOperationsApi";
-import type { FrameworkEditionTarget } from "../appRouting";
+import type { FrameworkEditionTarget, ProgramSection } from "../appRouting";
 import type { ProgramAggregate, ProgramCalculationCategory, RecordResponsibleParty } from "../types";
 import { ProgramStandardsPanel } from "./ProgramStandardsPanel";
 
@@ -13,6 +13,7 @@ type Props = {
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
   frameworkEdition?: FrameworkEditionTarget;
+  onNavigate?: (section: ProgramSection) => void;
   ownerIntent?: number;
   suppressOwnerAction?: boolean;
 };
@@ -38,7 +39,7 @@ const calculationCategoryLabels: Record<string, string> = {
 };
 const calculationWeightTotal = (categories: ProgramCalculationCategory[]) => categories.reduce((total, category) => total + category.weight_bps, 0);
 
-export function ProgramDetailsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload, frameworkEdition, ownerIntent = 0, suppressOwnerAction = false }: Props) {
+export function ProgramDetailsPanel({ aggregate, operations, responsibleParties = [], onUpdated, onReload, frameworkEdition, onNavigate, ownerIntent = 0, suppressOwnerAction = false }: Props) {
   const program = aggregate.program;
   const detailsOperation = operations.find((operation) => operation.command === "program.details.update");
   const assignOperation = operations.find((operation) => operation.command === "program.assign");
@@ -208,7 +209,7 @@ export function ProgramDetailsPanel({ aggregate, operations, responsibleParties 
   return <article className="program-record-panel" id="program-details-panel">
     <div className="program-panel-heading"><div><span className="eyebrow">Program details</span><h2>Scope and ownership</h2></div><div className="program-panel-actions">{detailsOperation?.can_act && mode !== "details" && <button className="secondary-button" type="button" onClick={beginDetails}>Edit Program details</button>}{assignOperation?.can_act && !suppressOwnerAction && mode !== "owner" && <button className="secondary-button" type="button" onClick={beginOwner}>Change Program owner</button>}{approvalOperation?.can_act && mode !== "approval" && <button className="secondary-button" type="button" onClick={beginApprovalAuthority}>Change approval authority</button>}</div></div>
     <dl className="program-record-facts"><div><dt>Code</dt><dd>{program.code}</dd></div><div><dt>Owning function</dt><dd>{program.owning_function}</dd></div><div><dt>Jurisdiction</dt><dd>{program.jurisdiction || "Not recorded"}</dd></div><div><dt>Owner</dt><dd>{owner?.display_name ?? storedOwner ?? (program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</dd></div><div><dt>Approval authority</dt><dd>{approvalAuthority?.display_name ?? storedApprovalAuthority ?? (program.authority_principal_id ? "Recorded approval authority unavailable" : "Approval authority not assigned")}</dd></div><div><dt>Effective from</dt><dd>{dateValue(program.effective_from) || "Not recorded"}</dd></div><div><dt>Effective until</dt><dd>{dateValue(program.effective_until) || "No end date"}</dd></div><div><dt>Business lines</dt><dd>{scopeLines(program.scope) || "Not recorded"}</dd></div></dl>
-    <ProgramStandardsPanel aggregate={aggregate} operations={operations} frameworkEdition={frameworkEdition} onUpdated={onUpdated} onReload={onReload}/>
+    <ProgramStandardsPanel aggregate={aggregate} operations={operations} frameworkEdition={frameworkEdition} onUpdated={onUpdated} onReload={onReload} onNavigate={onNavigate}/>
     <section aria-label="Calculation rules" className="program-record-subsection">
       <div className="program-panel-heading">
         <div><h3>Calculation rules</h3><p className="program-operation-reason">{pendingPolicy ? "Awaiting approval" : activePolicy ? `Approved · Revision ${activePolicy.number}` : "Not configured"}</p></div>

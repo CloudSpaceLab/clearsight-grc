@@ -40,6 +40,32 @@ describe("Program standards — approved design integration", () => {
     vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [], next_after_id: ""});
   });
 
+  it("opens existing requirement and form work for approved active standards", () => {
+    const onNavigate = vi.fn();
+    render(<ProgramStandardsPanel
+      aggregate={aggregate([{...adoption("a", "SECURITY"), status: "ACTIVE"}])}
+      operations={[]} onUpdated={vi.fn()} onReload={vi.fn()} onNavigate={onNavigate}/>);
+    fireEvent.click(screen.getByRole("button", {name: "Review requirement links"}));
+    fireEvent.click(screen.getByRole("button", {name: "Collection forms"}));
+    expect(onNavigate).toHaveBeenNthCalledWith(1, "requirements-controls");
+    expect(onNavigate).toHaveBeenNthCalledWith(2, "monitoring");
+    expect(loadFrameworkEditionPage).not.toHaveBeenCalled();
+    expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
+  });
+
+  it("does not offer adoption follow-up for pending or rejected editions", () => {
+    const { rerender } = render(<ProgramStandardsPanel
+      aggregate={aggregate([adoption("a", "SECURITY")])}
+      operations={[]} onUpdated={vi.fn()} onReload={vi.fn()} onNavigate={vi.fn()}/>);
+    expect(screen.queryByRole("button", {name: "Review requirement links"})).toBeNull();
+    expect(screen.queryByRole("button", {name: "Collection forms"})).toBeNull();
+    rerender(<ProgramStandardsPanel
+      aggregate={aggregate([{...adoption("a", "SECURITY"), status: "REJECTED"}])}
+      operations={[]} onUpdated={vi.fn()} onReload={vi.fn()} onNavigate={vi.fn()}/>);
+    expect(screen.queryByRole("button", {name: "Review requirement links"})).toBeNull();
+    expect(screen.queryByRole("button", {name: "Collection forms"})).toBeNull();
+  });
+
   it("isolates the decision rationale for each pending adoption", () => {
     render(<ProgramStandardsPanel aggregate={aggregate([adoption("a", "SECURITY"), adoption("b", "PRIVACY")])}
       operations={[approve, reject]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
