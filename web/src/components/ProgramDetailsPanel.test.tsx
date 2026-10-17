@@ -1,13 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { decideProgramCalculationPolicy, decideProgramFrameworkAdoption, loadFrameworkEditions, proposeProgramCalculationPolicy, proposeProgramFrameworkAdoption } from "../programOperationsApi";
+import { decideProgramCalculationPolicy, decideProgramFrameworkAdoption, loadFrameworkEditionPage, proposeProgramCalculationPolicy, proposeProgramFrameworkAdoption } from "../programOperationsApi";
 import type { ProgramAggregate } from "../types";
 import { ProgramDetailsPanel } from "./ProgramDetailsPanel";
 
 vi.mock("../programOperationsApi", () => ({
   proposeProgramCalculationPolicy: vi.fn(),
   decideProgramCalculationPolicy: vi.fn(),
-  loadFrameworkEditions: vi.fn(),
+  loadFrameworkEditionPage: vi.fn(),
   proposeProgramFrameworkAdoption: vi.fn(),
   decideProgramFrameworkAdoption: vi.fn(),
 }));
@@ -129,15 +129,16 @@ describe("Program standards", () => {
   const owner = { command: "program.framework.propose", can_act: true, label: "Add standard", responsibility: "OWNER", reason: "" };
   const approve = { command: "program.framework.approve", can_act: true, label: "Approve standard", responsibility: "AUTHORIZER", reason: "" };
   const reject = { command: "program.framework.reject", can_act: true, label: "Reject standard", responsibility: "AUTHORIZER", reason: "" };
+  const publishedEdition = {
+    id: "edition-1", publisher_code: "EXAMPLE", framework_code: "SECURITY",
+    edition_code: "2026", title: "Reference security standard",
+    jurisdiction: "GLOBAL", source_url: "https://example.org/standard",
+    source_published_on: "2026-10-01", license_basis: "CITATIONS_ONLY",
+  };
 
   it("loads published editions and proposes the selected edition without creating requirements", async () => {
     const onUpdated = vi.fn();
-    vi.mocked(loadFrameworkEditions).mockResolvedValue([{
-      id: "edition-1", publisher_code: "EXAMPLE", framework_code: "SECURITY",
-      edition_code: "2026", title: "Reference security standard",
-      jurisdiction: "GLOBAL", source_url: "https://example.org/standard",
-      source_published_on: "2026-10-01", license_basis: "CITATIONS_ONLY",
-    }]);
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [publishedEdition], next_after_id: ""});
     vi.mocked(proposeProgramFrameworkAdoption).mockResolvedValue({
       ...aggregate, program: { ...program, version: 4 }, framework_adoptions: [{
         id: "adoption-1", edition_id: "edition-1", publisher_code: "EXAMPLE",
@@ -147,17 +148,19 @@ describe("Program standards", () => {
     });
     render(<ProgramDetailsPanel aggregate={aggregate} operations={[owner]} onUpdated={onUpdated} onReload={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button", { name: "Add standard" }));
-    await waitFor(() => expect(screen.getByRole("option", { name: "Reference security standard · 2026" })).toBeTruthy());
-    fireEvent.change(screen.getByLabelText("Published standard"), { target: { value: "edition-1" } });
+    const choice = await screen.findByRole("radio", { name: /Reference security standard/ });
+    fireEvent.click(choice);
+    expect(screen.getByLabelText("Selected edition").textContent).toContain("Citations only");
+    expect(screen.getByRole("link", {name: /Show published source/}).getAttribute("href")).toBe("https://example.org/standard");
     fireEvent.change(screen.getByLabelText("Reason for adoption"), { target: { value: "Applies to our Program" } });
     fireEvent.click(screen.getByRole("button", { name: "Submit for approval" }));
     await waitFor(() => expect(proposeProgramFrameworkAdoption).toHaveBeenCalledWith("program-1", 3, "edition-1", "Applies to our Program"));
     expect(onUpdated).toHaveBeenCalled();
-    expect(loadFrameworkEditions).toHaveBeenCalledWith("GLOBAL");
+    expect(loadFrameworkEditionPage).toHaveBeenCalledWith("GLOBAL", "");
   });
 
   it("shows an empty catalog instead of an unusable choice", async () => {
-    vi.mocked(loadFrameworkEditions).mockResolvedValue([]);
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({ items: [], next_after_id: "" });
     render(<ProgramDetailsPanel aggregate={aggregate} operations={[owner]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button", { name: "Add standard" }));
     await waitFor(() => expect(screen.getByText("No published standards available for this jurisdiction.")).toBeTruthy());
@@ -175,7 +178,8 @@ describe("Program standards", () => {
       framework_adoptions: [{ ...adoption, status: "ACTIVE", reviewed_by: "checker" }] });
     render(<ProgramDetailsPanel aggregate={{ ...aggregate, framework_adoptions: [adoption] }}
       operations={[approve, reject]} onUpdated={onUpdated} onReload={vi.fn()}/>);
-    fireEvent.change(screen.getByLabelText("Review reason"), { target: { value: "Approved source and scope" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review SECURITY 2026" }));
+    fireEvent.change(screen.getByLabelText("Decision rationale for SECURITY 2026"), { target: { value: "Approved source and scope" } });
     fireEvent.click(screen.getByRole("button", { name: "Approve standard" }));
     await waitFor(() => expect(decideProgramFrameworkAdoption).toHaveBeenCalledWith("program-1", "adoption-1", 3, "approve", "Approved source and scope"));
     expect(onUpdated).toHaveBeenCalled();
