@@ -136,7 +136,7 @@ async function capturePage(capture) {
     }
     if (capture.matterTab) await openMatterWorkspaceTab(page, capture.matterTab);
     if (capture.frameworkCatalog === "loaded") {
-      await page.getByRole("table", { name: "Published framework editions" }).waitFor({ state: "visible" });
+      await page.getByRole("list", { name: "Published framework editions" }).waitFor({ state: "visible" });
       if (capture.viewport.width > 900) {
         await page.getByRole("complementary", { name: "Framework edition details" }).waitFor({ state: "visible" });
       }
