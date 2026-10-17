@@ -769,7 +769,7 @@ describe("Program record workspace", () => {
 	fireEvent.click(screen.getByRole("button", { name: "Save evidence result" }));
 	await waitFor(() => expect(recordProgramEvidenceAssessment).toHaveBeenCalledWith("program-1", 4, expect.objectContaining({ contractID: "contract-1", conclusion: "PARTIALLY_SUPPORTED", coverage: .89, basis: { summary: "89 of 100 filing sections have current evidence.", evidence_references: ["Return register export", "Filing receipt"] } })));
 	fireEvent.click(screen.getByRole("tab", { name: "Data collection" }));
-	expect(screen.getAllByRole("heading", { name: "Data collection" })).toHaveLength(2);
+	expect(screen.getAllByRole("heading", { name: "Data collection" })).toHaveLength(1);
   });
 
   it("shows only exactly linked issues and opens newly created work", async () => {
