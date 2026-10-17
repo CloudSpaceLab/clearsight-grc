@@ -6,7 +6,7 @@ import { decideProgramFrameworkAdoption, proposeProgramFrameworkAdoption } from 
 import type { ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate } from "../types";
 import { useFrameworkEditionCatalog } from "../hooks/useFrameworkEditionCatalog";
-import { Button, SearchField, StatusBadge } from "./ui";
+import { Button, SearchField, StatusBadge, TextArea } from "./ui";
 import { FrameworkEditionProvenance } from "./FrameworkEditionProvenance";
 import "../program-standards.css";
 
@@ -191,11 +191,10 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
         <div><dt>Proposal rationale</dt><dd>{selectedReview.rationale}</dd></div>
         <div><dt>Edition</dt><dd>{selectedReview.edition_code}</dd></div>
       </dl>
-      <label className="cs-program-standards__reason">
-        <span>Decision rationale</span>
-        <textarea required value={reviewRationale} onChange={(event) => setReviewRationale(event.target.value)}
-          aria-label={"Decision rationale for " + selectedReview.framework_code + " " + selectedReview.edition_code}/>
-      </label>
+      <div className="cs-program-standards__reason">
+        <TextArea label={"Decision rationale for " + selectedReview.framework_code + " " + selectedReview.edition_code}
+          isRequired rows={3} isDisabled={busy} value={reviewRationale} onChange={setReviewRationale}/>
+      </div>
       <div className="cs-program-standards__actions">
         {approveOperation?.can_act && <Button variant="primary" isLoading={busy}
           isDisabled={!reviewRationale.trim() || reloadRequired} onPress={() => void decide(selectedReview.id, "approve")}>Approve standard</Button>}
@@ -251,9 +250,10 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
         <FrameworkEditionProvenance edition={selectedEdition}/>
       </div>}
       <form className="cs-program-standards__proposal" onSubmit={(event) => void submitProposal(event)}>
-      <label className="cs-program-standards__reason"><span>Reason for adoption</span>
-        <textarea required value={proposalRationale} onChange={(event) => setProposalRationale(event.target.value)}/>
-      </label>
+      <div className="cs-program-standards__reason">
+        <TextArea label="Reason for adoption" isRequired rows={3} isDisabled={busy}
+          value={proposalRationale} onChange={setProposalRationale}/>
+      </div>
       <div className="cs-program-standards__actions">
         <Button type="submit" variant="primary" isLoading={busy}
           isDisabled={!selectedEdition || alreadyLinked || !proposalRationale.trim() || reloadRequired || catalog.state !== "ready"}>Submit for approval</Button>

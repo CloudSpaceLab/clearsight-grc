@@ -87,8 +87,7 @@
   color: var(--cs-text-muted);
   font-size: var(--cs-font-size-caption);
 }
-.cs-program-standards__filters select,
-.cs-program-standards__reason textarea {
+.cs-program-standards__filters select {
   width: 100%;
   min-height: var(--cs-control-height-comfortable);
   padding: 10px 12px;
@@ -179,18 +178,8 @@
   gap: var(--cs-space-group);
   min-width: 0;
 }
-.cs-program-standards__reason {
-  display: grid;
-  gap: 6px;
-  color: var(--cs-text-muted);
-  font-size: var(--cs-font-size-caption);
-}
-.cs-program-standards__reason textarea {
-  resize: vertical;
-  min-height: 88px;
-  font-size: var(--cs-font-size-body);
-  line-height: var(--cs-leading-body);
-}
+.cs-program-standards__reason { min-width: 0; }
+.cs-program-standards__reason .cs-field__control { resize: vertical; min-height: 88px; }
 .cs-program-standards__actions {
   display: flex;
   gap: 8px;
