@@ -24,7 +24,8 @@ import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
-import { Notice, StatusBadge } from "./ui";
+import { MetricCard, Notice, StatusBadge } from "./ui";
+import { programOverviewMetrics } from "../programOverviewMetrics";
 
 type Props = { programID: string; section?: ProgramSection; programItem?: ProgramItemTarget; frameworkEdition?: FrameworkEditionTarget; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
 type LoadState = "loading" | "live" | "unavailable";
@@ -247,6 +248,14 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {digest
         ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onNavigate={selectSection} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
         : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2><ProgramAttention aggregate={aggregate} onNavigate={selectSection}/></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
+      {activeSection === "overview" && <section className="program-overview-metrics" aria-label="Program measures">
+        {programOverviewMetrics(aggregate).map((measure) =>
+          <MetricCard key={measure.id} label={measure.label} value={measure.value}
+            quality={measure.quality} qualityLabel={measure.qualityLabel}
+            tone={measure.id === "issues" && typeof measure.value === "number" && measure.value > 0 ? "warning" : "neutral"}
+            detail={measure.detail} meta={measure.meta} actionLabel={measure.actionLabel}
+            onPress={() => selectSection(measure.target)}/>)}
+      </section>}
       {activeSection === "overview" && <ProgramVendorFollowUp programID={aggregate.program.id}/>}
       {requestedItem && aggregateState === "live" && !itemAvailable && <Notice><strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong><p>Return to the import to check its result, or review the available requirements and controls below.</p></Notice>}
       {panels && <ProgramDetailSections section={activeSection} panels={panels} onSectionChange={selectSection}/>}
