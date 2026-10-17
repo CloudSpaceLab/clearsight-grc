@@ -185,7 +185,7 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
       </div>
     </div>}
 
-    {addOpen && <form className="cs-program-standards__browser" onSubmit={(event) => void submitProposal(event)}>
+    {addOpen && <div className="cs-program-standards__browser">
       <div className="cs-program-standards__section-head">
         <div><h4>Framework library</h4><p>{catalog.items.length} loaded{catalog.nextAfterID ? " · More available" : ""}</p></div>
         <Button variant="quiet" isDisabled={busy} onPress={() => { setAddOpen(false); setError(""); }}>Close</Button>
@@ -240,6 +240,7 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
           <a className="cs-program-standards__source" href={selectedEdition.source_url} target="_blank" rel="noopener noreferrer">Show published source ↗</a>
           : <span className="cs-program-standards__meta">Source reference unavailable</span>}
       </div>}
+      <form className="cs-program-standards__proposal" onSubmit={(event) => void submitProposal(event)}>
       <label className="cs-program-standards__reason"><span>Reason for adoption</span>
         <textarea required value={proposalRationale} onChange={(event) => setProposalRationale(event.target.value)}/>
       </label>
@@ -248,7 +249,8 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
           isDisabled={!selectedEdition || alreadyLinked || !proposalRationale.trim() || reloadRequired || catalog.state !== "ready"}>Submit for approval</Button>
         <Button variant="quiet" isDisabled={busy} onPress={() => { setAddOpen(false); setError(""); }}>Cancel</Button>
       </div>
-    </form>}
+      </form>
+    </div>}
     {error && <div role="alert" className="cs-program-standards__notice">
       <span>{error}</span> <Button variant="secondary" size="compact" onPress={onReload}>Reload Program</Button>
     </div>}
