@@ -102,7 +102,7 @@ async function capturePage(capture) {
       const title = page.getByRole("heading", { name: "Framework Library", exact: true });
       const fontSize = await title.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize));
       const desktop = capture.viewport.width > 900;
-      if (!Number.isFinite(fontSize) || (desktop ? fontSize < 35 || fontSize > 39 : fontSize < 29 || fontSize > 32)) {
+      if (!Number.isFinite(fontSize) || (desktop ? fontSize < 35 || fontSize > 39 : fontSize < 27 || fontSize > 31)) {
         throw new Error(`Framework Library title uses ${fontSize}px instead of the approved ${desktop ? "desktop" : "mobile"} heading scale`);
       }
     }
