@@ -745,7 +745,8 @@ describe("runtime navigation", () => {
 
     await screen.findAllByText("Review Program");
     fireEvent.click(screen.getByRole("button", { name: "Review first assigned item" }));
-    await screen.findByRole("heading", { name: "Programs" });
+    await screen.findByRole("region", { name: "Program record" });
+    expect(screen.queryByRole("heading", { name: "Programs" })).toBeNull();
     expect(window.location.hash).toBe("#programs/program-valid/overview");
   });
 
@@ -858,7 +859,8 @@ describe("runtime navigation", () => {
     render(<App />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Open program" }));
-    await screen.findByRole("heading", { name: "Programs" });
+    await screen.findByRole("region", { name: "Program record" });
+    expect(screen.queryByRole("heading", { name: "Programs" })).toBeNull();
     expect(window.location.hash).toBe("#programs/program-123/overview");
   });
 

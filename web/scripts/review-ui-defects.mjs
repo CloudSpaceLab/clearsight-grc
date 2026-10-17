@@ -176,7 +176,10 @@ async function openPage({ viewport, route = "", query = "tour=off", heading, tou
   const page = await context.newPage();
   const browserErrors = collectBrowserErrors(page);
   await page.goto(`${baseURL}/?${query}${route}`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: heading, exact: true }).first().waitFor({ state: "visible" });
+  const workspace = route.startsWith("#programs/") && !route.startsWith("#programs/library")
+    ? page.getByRole("region", { name: "Program record" })
+    : page.getByRole("heading", { name: heading, exact: true }).first();
+  await workspace.waitFor({ state: "visible" });
   await page.evaluate(() => document.fonts?.ready);
   return { context, page, browserErrors };
 }

@@ -348,7 +348,10 @@ async function openPage({ route, title, theme, density, viewport, touch = false,
   if (fixture) params.set("fixture", fixture);
   if (frameworkCatalog) params.set("fixture", "framework-library-" + frameworkCatalog);
   await page.goto(`${baseURL}/?${params.toString()}${route}`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: title, exact: true }).first().waitFor({ state: "visible" });
+  const workspace = route.startsWith("#programs/") && !route.startsWith("#programs/library")
+    ? page.getByRole("region", { name: "Program record" })
+    : page.getByRole("heading", { name: title, exact: true }).first();
+  await workspace.waitFor({ state: "visible" });
   await page.evaluate(() => document.fonts?.ready);
   if (browserErrors.length) throw new Error(`${route} emitted browser errors:\n${browserErrors.join("\n")}`);
   return { context, page };
