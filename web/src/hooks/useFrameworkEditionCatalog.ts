@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadFrameworkEditionPage } from "../programOperationsApi";
+import { apiErrorKind } from "../http";
 import type { FrameworkEditionOption } from "../programOperationsApi";
 
-type CatalogState = "idle" | "loading" | "ready" | "error";
+type CatalogState = "idle" | "loading" | "ready" | "error" | "denied";
 
 // Keep a bounded, server-cursor-backed list. Search in the consuming UI
 // applies only to these loaded editions, never to an implied global catalog.
@@ -22,14 +23,21 @@ export function useFrameworkEditionCatalog(enabled: boolean, jurisdiction: strin
     try {
       const page = await loadFrameworkEditionPage(jurisdiction, cursor);
       if (current !== requestID.current) return;
-      setItems((previous) => append ? [
-        ...previous,
-        ...page.items.filter((item) => !previous.some((existing) => existing.id === item.id)),
-      ] : page.items);
+      setItems((previous) => {
+        if (!append) return page.items;
+        const existing = new Set(previous.map((item) => item.id));
+        return [...previous, ...page.items.filter((item) => !existing.has(item.id))];
+      });
       setNextAfterID(page.next_after_id);
       setState("ready");
-    } catch {
-      if (current === requestID.current) setState("error");
+    } catch (cause) {
+      if (current !== requestID.current) return;
+      const kind = apiErrorKind(cause);
+      if (kind === "forbidden" || kind === "unauthorized") {
+        setItems([]);
+        setNextAfterID("");
+        setState("denied");
+      } else setState("error");
     }
   }, [jurisdiction]);
 
