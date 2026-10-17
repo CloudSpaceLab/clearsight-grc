@@ -166,12 +166,6 @@ export async function loadFrameworkEditionPage(
   };
 }
 
-export async function loadFrameworkEditions(jurisdiction = "GLOBAL"): Promise<FrameworkEditionOption[]> {
-  const query = new URLSearchParams({ jurisdiction, limit: "100" });
-  const result = await requestJSON<{ items: FrameworkEditionOption[] }>(apiBase, `${await tenantPath("/api/v1/framework-catalog/editions")}&${query.toString()}`);
-  return result.items ?? [];
-}
-
 export function proposeProgramFrameworkAdoption(programID: string, expectedVersion: number, editionID: string, rationale: string): Promise<ProgramAggregate> {
   return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/standards/propose`, {
     expected_version: expectedVersion, edition_id: editionID, rationale,
