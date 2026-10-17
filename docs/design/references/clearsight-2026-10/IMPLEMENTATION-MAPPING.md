@@ -26,7 +26,7 @@ Date: 2026-10-17. Source: [complete designs.zip](https://drive.google.com/file/d
 
 ## Recommended small tranches
 
-1. **Source & baselines**: commit exact source HTML/specs in segregated reference directory (and screenshots as CI/review artifacts or LFS); verify hashes; capture current live screen shots for parity. This remains incomplete in PR #497.
+1. **Source & baselines**: original HTML/CSS/JS/spec and design notes (96 files) are committed under `source/`, with exact SHA-256 manifest and verified original archive provenance. Running-app screenshots and prototype-to-runtime parity review remain pending under PR #497.
 2. **Shared shell & tokens**: single token and layout adjustment, responsive/scope/date consistency; tests.
 3. **Framework catalog**: edition list/search/filter/source detail from backend, page-level state matrix; tests.
 4. **Framework adoption**: guided scope → mapping → existing form selection → review; source/version checks and two-actor gates; tests.
