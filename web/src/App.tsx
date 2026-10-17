@@ -593,7 +593,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
 
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation">
-      <div className="brand-mark" aria-label="ClearSight">C</div>
+      <div className="sidebar-brand">
+        <div className="brand-mark" aria-label="ClearSight">C</div>
+        <div className="sidebar-brand__name" aria-hidden="true"><strong>ClearSight</strong><small>Governance · Risk · Compliance</small></div>
+      </div>
       <nav>{operatingNavigation.map(({ label, view, activeViews }) => {
         const active = activeViews.includes(activeView);
         return <button className={active ? "nav-item active" : "nav-item"} key={label} aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><b>{label}</b></button>;
