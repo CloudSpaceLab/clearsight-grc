@@ -1,9 +1,13 @@
-# Approved design source — import gate
+# Approved design source — verified import
 
-Source: `complete designs.zip` (Google Drive file `1y1Ij8zyfZKUKfcxp68T9FmJHabyWREZ_`), 78,899,802 bytes.
+Source: [complete designs.zip](https://drive.google.com/file/d/1y1Ij8zyfZKUKfcxp68T9FmJHabyWREZ_/view?usp=drivesdk), 78,899,802 bytes. SHA-256: `65dcc0e3f26e9d41e38efd1ae1d571f5db0f0582a2d561f8c942b25817a5f6e5`.
 
-The original archive was retrieved and inspected on 2026-10-17. It contains 18 nested ZIP packages. The canonical design-system specification is `clearsight-unified-design-system-v1.zip/clearsight-design-system/clearsight-design-system-spec.md` (12,643 bytes, SHA-256 `13e5531114779672c7920e939206db1e383be664af67718b617251efaf496c17`).
+All **96 original UTF-8 HTML/CSS/JavaScript/Markdown files** from **18 nested ZIP packages** are committed under this reference-only directory (3,768,146 source bytes). `MANIFEST.json` records each exact relative path, byte length and SHA-256; files were imported from the verified original archive by `scripts/import-approved-design-source.py`.
 
-**Import pending:** this folder does not yet contain the original HTML/CSS/JS/spec bytes. Preserve the exact source files and their paths, verify SHA-256 after import, and keep all reference files outside the shipped web asset graph. Do not mark T0 complete based on this inventory alone.
+Canonical specification: `clearsight-unified-design-system-v1/clearsight-design-system/clearsight-design-system-spec.md`, 12,643 bytes, SHA-256 `13e5531114779672c7920e939206db1e383be664af67718b617251efaf496c17`.
 
-The authoritative mapping and phased cutover plan are in the parent `IMPLEMENTATION-MAPPING.md` and `docs/superpowers/plans/2026-10-17-approved-ui-cutover.md`.
+These are **static design references only**. Do not import their prototype styles/scripts, demo data, or global navigation into `web/src`, or enable actions without verified backend contracts. The existing React UI, semantic tokens, routes, scopes and governed workflows remain authoritative.
+
+The source-byte import portion of T0 is complete. **Running-app baseline screenshots and approved-design comparison remain outstanding**, so the full T0 gate and design cutover are not complete.
+
+See `../IMPLEMENTATION-MAPPING.md` and `docs/superpowers/plans/2026-10-17-approved-ui-cutover.md`.
