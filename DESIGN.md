@@ -373,3 +373,8 @@ Recognized risk registers also offer **Import vendor findings** after the source
 ### Primary operating navigation
 
 Primary operating navigation is intentionally bounded. Home answers current posture and attention, Work answers what the actor must do, and Portfolio groups persistent governed records without rewriting their existing routes. Programs, Risks, Vendors, Processing activities and Forms remain independently addressable records/workspaces under Portfolio. Risk reads use the canonical ERM Risk/appetite kernel and keep remediation, evidence and work in their existing governed engines. Configure remains a restricted secondary destination. New GRC domains should extend Portfolio or Insights rather than adding another primary rail item.
+
+
+## Approved October 2026 source UI cutover
+
+The approved reference archive is indexed in [`docs/design/references/clearsight-2026-10/README.md`](docs/design/references/clearsight-2026-10/README.md), with an inspected [`implementation mapping`](docs/design/references/clearsight-2026-10/IMPLEMENTATION-MAPPING.md) and the [dependency-ordered cutover plan](docs/superpowers/plans/2026-10-17-approved-ui-cutover.md). The unified design-system specification overrides inconsistent prototype sidebars; preserve current authenticated routes and authority contracts. The source archive and illustrative HTML are not production state or API implementations. Keep #433 scoring and #437 framework publication/adoption ownership separate. Do not represent screenshots as operational acceptance. See #462 and draft PR #497.
