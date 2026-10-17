@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SelectableRecord } from "./SelectableRecord";
+import { StatusBadge } from "./StatusBadge";
 
 describe("SelectableRecord", () => {
   it("announces selection and preserves the record hierarchy", () => {
@@ -18,6 +19,19 @@ describe("SelectableRecord", () => {
     expect(record.getAttribute("data-selected")).toBe("true");
     expect(screen.getByText("Open · 26 Sep 2027")).toBeTruthy();
     expect(screen.getByText("2 submitted versions")).toBeTruthy();
+    fireEvent.click(record);
+    expect(onPress).toHaveBeenCalledOnce();
+  });
+
+  it("keeps trailing record status visible and selection intact", () => {
+    const onPress = vi.fn();
+    render(<SelectableRecord title="Published edition" metadata="GLOBAL · 2026"
+      description="Publisher reference" endContent={<StatusBadge tone="neutral">Citations only</StatusBadge>}
+      isSelected onPress={onPress}/>);
+    const record = screen.getByRole("button", {name: /Published edition/});
+    expect(record.getAttribute("data-has-end-content")).toBe("true");
+    expect(screen.getByText("Citations only")).toBeTruthy();
+    expect(record.getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(record);
     expect(onPress).toHaveBeenCalledOnce();
   });
