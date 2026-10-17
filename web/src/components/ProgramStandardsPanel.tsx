@@ -90,7 +90,7 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
   async function submitProposal(event: FormEvent) {
     event.preventDefault();
     if (inFlight.current || !proposeOperation?.can_act || !selectedEdition || alreadyLinked ||
-        !proposalRationale.trim() || reloadRequired) return;
+        !proposalRationale.trim() || reloadRequired || catalog.state !== "ready") return;
     inFlight.current = true;
     setBusy(true);
     setError("");
@@ -201,6 +201,7 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
         </label>
       </div>
       {catalog.state === "loading" && <p role="status">Loading published editions…</p>}
+      {catalog.state === "denied" && <p role="alert">Published standards are unavailable in this scope. Select an authorized legal entity.</p>}
       {catalog.state === "error" && <div role="alert" className="cs-program-standards__notice">
         Published editions could not be loaded. <Button variant="secondary" size="compact" onPress={catalog.retry}>Retry</Button>
       </div>}
@@ -244,7 +245,7 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
       </label>
       <div className="cs-program-standards__actions">
         <Button type="submit" variant="primary" isLoading={busy}
-          isDisabled={!selectedEdition || alreadyLinked || !proposalRationale.trim() || reloadRequired}>Submit for approval</Button>
+          isDisabled={!selectedEdition || alreadyLinked || !proposalRationale.trim() || reloadRequired || catalog.state !== "ready"}>Submit for approval</Button>
         <Button variant="quiet" isDisabled={busy} onPress={() => { setAddOpen(false); setError(""); }}>Cancel</Button>
       </div>
     </form>}
