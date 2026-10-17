@@ -118,6 +118,28 @@ describe("Program calculation truth", () => {
 
 
 describe("Program primary action ordering", () => {
+  it("navigates to the permitted primary action without forced motion", () => {
+    const onNavigate = vi.fn();
+    const previousMatchMedia = window.matchMedia;
+    const previousAnimationFrame = window.requestAnimationFrame;
+    const previousScrollIntoView = Element.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as typeof window.matchMedia;
+    window.requestAnimationFrame = ((callback: FrameRequestCallback) => { callback(0); return 1; }) as typeof window.requestAnimationFrame;
+    Element.prototype.scrollIntoView = scrollIntoView;
+    try {
+      const permitted = { operations: [{ command: "program.requirement.add", label: "Add requirement", can_act: true }] } as ProgramOperations;
+      render(<><div id="program-requirements-panel"/><ProgramCurrentPosition aggregate={aggregate} operations={permitted} digest={digest} onNavigate={onNavigate}/></>);
+      fireEvent.click(screen.getByRole("button", { name: "Add requirement" }));
+      expect(onNavigate).toHaveBeenCalledWith("requirements-controls");
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+    } finally {
+      window.matchMedia = previousMatchMedia;
+      window.requestAnimationFrame = previousAnimationFrame;
+      Element.prototype.scrollIntoView = previousScrollIntoView;
+    }
+  });
+
   it("prefers a known ranked action over an unranked executable command", () => {
     const allowed = [
       { command: "program.future.action", label: "Future action", can_act: true },
