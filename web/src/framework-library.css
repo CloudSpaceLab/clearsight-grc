@@ -33,11 +33,6 @@
   gap: var(--cs-space-group);
   flex-wrap: wrap;
 }
-.cs-framework-library__header h2 {
-  margin: 4px 0;
-  font-size: var(--cs-primitive-font-size-22);
-  color: var(--cs-text-strong);
-}
 .cs-framework-library__header p {
   color: var(--cs-text-muted);
   margin: 0;

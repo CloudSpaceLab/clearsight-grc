@@ -75,9 +75,8 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
   return <section className="cs-framework-library portfolio-workspace" aria-label="Framework Library workspace" id="framework-library-workspace">
     <header className="cs-register-header cs-framework-library__header">
       <div>
-        <span className="eyebrow">Compliance / Reference library</span>
-        <h2>Framework Library</h2>
-        <p>{catalog.items.length} loaded{catalog.nextAfterID ? " · More available" : ""} · {jurisdiction}</p>
+        <span className="eyebrow">Catalog scope</span>
+        <p role="status">{catalog.items.length} loaded editions · {jurisdiction}{catalog.nextAfterID ? " · More available" : ""}</p>
       </div>
       <Button variant="secondary" onPress={onBack}>Back to Programs</Button>
     </header>

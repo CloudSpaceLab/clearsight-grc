@@ -26,7 +26,8 @@ describe("Framework Library workspace", () => {
     });
     render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={onChooseProgram}/>);
     expect(await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"})).toBeTruthy();
-    expect(screen.getByText("1 loaded · GLOBAL")).toBeTruthy();
+    expect(screen.getByText("1 loaded editions · GLOBAL")).toBeTruthy();
+    expect(screen.queryByRole("heading", {name: "Framework Library"})).toBeNull();
     fireEvent.click(screen.getByRole("button", {name: "Inspect edition for Published SECURITY 2026"}));
     const details = await screen.findByRole("complementary", {name: "Framework edition details"});
     expect(screen.getByRole("list", {name: "Published framework editions"})).toBeTruthy();
