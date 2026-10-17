@@ -41,11 +41,12 @@ describe("Program standards — approved design integration", () => {
     render(<ProgramStandardsPanel aggregate={aggregate([adoption("a", "SECURITY"), adoption("b", "PRIVACY")])}
       operations={[approve, reject]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button", {name: "Review SECURITY 2026"}));
-    fireEvent.change(screen.getByLabelText("Decision rationale for SECURITY 2026"),
+    fireEvent.change(screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}),
       {target: {value: "Only security evidence was reviewed"}});
     fireEvent.click(screen.getByRole("button", {name: "Review PRIVACY 2026"}));
-    const other = screen.getByLabelText("Decision rationale for PRIVACY 2026") as HTMLTextAreaElement;
+    const other = screen.getByRole("textbox", {name: /Decision rationale for PRIVACY 2026/}) as HTMLTextAreaElement;
     expect(other.value).toBe("");
+    expect(other.required).toBe(true);
     expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(true);
     expect(decideProgramFrameworkAdoption).not.toHaveBeenCalled();
   });
@@ -111,7 +112,7 @@ describe("Program standards — approved design integration", () => {
       operations={[owner]} onUpdated={vi.fn()} onReload={onReload}/>);
     fireEvent.click(screen.getByRole("button", {name: "Add standard"}));
     fireEvent.click(await screen.findByRole("radio", {name: /Published SECURITY/}));
-    fireEvent.change(screen.getByLabelText("Reason for adoption"), {target: {value: "Regulatory requirement"}});
+    fireEvent.change(screen.getByRole("textbox", {name: /Reason for adoption/}), {target: {value: "Regulatory requirement"}});
     fireEvent.click(screen.getByRole("button", {name: "Submit for approval"}));
     await screen.findByRole("alert");
     expect(screen.getByRole("button", {name: "Submit for approval"}).hasAttribute("disabled")).toBe(true);
@@ -128,10 +129,10 @@ describe("Program standards — approved design integration", () => {
       operations={[owner]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button", {name: "Add standard"}));
     fireEvent.click(await screen.findByRole("radio", {name: /Published SECURITY/}));
-    fireEvent.change(screen.getByLabelText("Reason for adoption"), {target: {value: "Applies to scope"}});
+    fireEvent.change(screen.getByRole("textbox", {name: /Reason for adoption/}), {target: {value: "Applies to scope"}});
     const search = screen.getByRole("searchbox", {name: "Search loaded standards"});
     expect(search.closest("form")).toBeNull();
-    expect(screen.getByLabelText("Reason for adoption").closest("form")).not.toBeNull();
+    expect(screen.getByRole("textbox", {name: /Reason for adoption/}).closest("form")).not.toBeNull();
     fireEvent.keyDown(search, {key: "Enter", code: "Enter"});
     expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
   });
@@ -163,7 +164,7 @@ describe("Program standards — approved design integration", () => {
     expect(radio.checked).toBe(true);
     expect(screen.getByLabelText("Selected edition").textContent).toContain("Citations only");
     expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText("Reason for adoption"), {target: {value: "Governed adoption request"}});
+    fireEvent.change(screen.getByRole("textbox", {name: /Reason for adoption/}), {target: {value: "Governed adoption request"}});
     fireEvent.click(screen.getByRole("button", {name: "Submit for approval"}));
     await waitFor(() => expect(proposeProgramFrameworkAdoption).toHaveBeenCalledWith(
       "program-1", 4, "a", "Governed adoption request",
@@ -179,7 +180,7 @@ describe("Program standards — approved design integration", () => {
       frameworkEdition={{editionID: "a", jurisdiction: "GLOBAL"}}
       operations={[owner]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
     expect(await screen.findByText("The selected edition is unavailable in this jurisdiction. Return to the Framework Library.")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Reason for adoption"), {target: {value: "Proposed by deep link"}});
+    fireEvent.change(screen.getByRole("textbox", {name: /Reason for adoption/}), {target: {value: "Proposed by deep link"}});
     expect(screen.getByRole("button", {name: "Submit for approval"}).hasAttribute("disabled")).toBe(true);
     expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
   });

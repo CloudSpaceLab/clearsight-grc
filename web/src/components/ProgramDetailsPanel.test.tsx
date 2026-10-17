@@ -152,7 +152,7 @@ describe("Program standards", () => {
     fireEvent.click(choice);
     expect(screen.getByLabelText("Selected edition").textContent).toContain("Citations only");
     expect(screen.getByRole("link", {name: /Show published source/}).getAttribute("href")).toBe("https://example.org/standard");
-    fireEvent.change(screen.getByLabelText("Reason for adoption"), { target: { value: "Applies to our Program" } });
+    fireEvent.change(screen.getByRole("textbox", {name: /Reason for adoption/}), { target: { value: "Applies to our Program" } });
     fireEvent.click(screen.getByRole("button", { name: "Submit for approval" }));
     await waitFor(() => expect(proposeProgramFrameworkAdoption).toHaveBeenCalledWith("program-1", 3, "edition-1", "Applies to our Program"));
     expect(onUpdated).toHaveBeenCalled();
@@ -179,7 +179,7 @@ describe("Program standards", () => {
     render(<ProgramDetailsPanel aggregate={{ ...aggregate, framework_adoptions: [adoption] }}
       operations={[approve, reject]} onUpdated={onUpdated} onReload={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button", { name: "Review SECURITY 2026" }));
-    fireEvent.change(screen.getByLabelText("Decision rationale for SECURITY 2026"), { target: { value: "Approved source and scope" } });
+    fireEvent.change(screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}), { target: { value: "Approved source and scope" } });
     fireEvent.click(screen.getByRole("button", { name: "Approve standard" }));
     await waitFor(() => expect(decideProgramFrameworkAdoption).toHaveBeenCalledWith("program-1", "adoption-1", 3, "approve", "Approved source and scope"));
     expect(onUpdated).toHaveBeenCalled();
