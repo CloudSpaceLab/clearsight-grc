@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import type { ProgramItemTarget, ProgramSection } from "../appRouting";
+import { routeHash, withFrameworkSelection } from "../appRouting";
+import type { FrameworkEditionTarget, ProgramItemTarget, ProgramSection } from "../appRouting";
 import { loadProgramSummaries, type ScopeNode } from "../api";
 import { hasProgramAssessment, needsProgramAssessment, summarizeProgramPortfolio, type ProgramListSummary } from "../programPortfolioPresentation";
 import { Button, RankedBarList, StackedDistribution } from "./ui";
@@ -8,12 +9,13 @@ import type { ProgramAggregate, ProgramState } from "../types";
 import { EmptyState } from "./EmptyState";
 import { ProgramSetupWorkspace } from "./ProgramSetupWorkspace";
 import { ProgramRecordWorkspace } from "./ProgramRecordWorkspace";
+import { FrameworkLibraryWorkspace } from "./FrameworkLibraryWorkspace";
 import { readWorkspaceFilters, replaceWorkspaceHash, workspaceHash } from "../workspaceFilters";
 import "../portfolio-workspaces.css";
 import "../program-portfolio-visual.css";
 
 type LoadState = "loading" | "live" | "unavailable";
-type Props = { targetID?: string; targetSection?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; organizationScopeID?: string; organizationScopeName?: string; organizationScopes?: ScopeNode[]; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
+type Props = { targetID?: string; targetSection?: ProgramSection; programItem?: ProgramItemTarget; programsPage?: "library"; frameworkEdition?: FrameworkEditionTarget; onSectionChange?: (programID: string, section: ProgramSection) => void; openFirst?: boolean; actorPrincipalID?: string; canConfigureSources?: boolean; organizationScopeID?: string; organizationScopeName?: string; organizationScopes?: ScopeNode[]; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
 
 function ProgramIcon() {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 11h6M9 15h6M9 19h4"/></svg>;
@@ -52,7 +54,10 @@ function summaryFromAggregate(detail: ProgramAggregate): ProgramListSummary {
 }
 
 export function ProgramsWorkspace(props: Props) {
-  if (props.targetID) return <ProgramRecordWorkspace programID={props.targetID} section={props.targetSection} programItem={props.programItem} onSectionChange={(section) => props.onSectionChange?.(props.targetID!, section)} actorPrincipalID={props.actorPrincipalID} canConfigureSources={props.canConfigureSources} onOpenRequest={props.onOpenRequest} onOpenForm={props.onOpenForm} onBack={() => { window.location.hash = workspaceHash("#programs", readWorkspaceFilters(window.location.hash)); }}/>;
+  if (props.programsPage === "library") return <FrameworkLibraryWorkspace
+    onBack={() => { window.location.hash = "#programs"; }}
+    onChooseProgram={(edition) => { window.location.hash = routeHash("programs", { frameworkEdition: { editionID: edition.id, jurisdiction: edition.jurisdiction } }, "assigned"); }}/>
+  if (props.targetID) return <ProgramRecordWorkspace programID={props.targetID} section={props.targetSection} programItem={props.programItem} frameworkEdition={props.frameworkEdition} onSectionChange={(section) => props.onSectionChange?.(props.targetID!, section)} actorPrincipalID={props.actorPrincipalID} canConfigureSources={props.canConfigureSources} onOpenRequest={props.onOpenRequest} onOpenForm={props.onOpenForm} onBack={() => { window.location.hash = withFrameworkSelection(workspaceHash("#programs", readWorkspaceFilters(window.location.hash)), props.frameworkEdition); }}/>;
   return <ProgramListWorkspace {...props}/>;
 }
 
@@ -85,7 +90,7 @@ function humanizeProgramState(value: string) {
   return labels[value] ?? value.replaceAll("_", " ").toLowerCase();
 }
 
-function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = "", canConfigureSources = false, organizationScopeID, organizationScopes = [] }: Props) {
+function ProgramListWorkspace({ targetID, frameworkEdition, openFirst = false, actorPrincipalID = "", canConfigureSources = false, organizationScopeID, organizationScopes = [] }: Props) {
   const initialFilters = useMemo(() => readWorkspaceFilters(window.location.hash), []);
   const [items, setItems] = useState<ProgramListSummary[]>([]);
   const [state, setState] = useState<LoadState>("loading");
@@ -142,7 +147,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     setOverallState(overallStateDraft);
     setJurisdiction(nextJurisdiction);
     setAssignedToMe(assignedDraft);
-    replaceWorkspaceHash(workspaceHash("#programs", { q: nextSearch, status: statusDraft, overall_state: overallStateDraft, jurisdiction: nextJurisdiction, assigned_to_me: assignedDraft }));
+    replaceWorkspaceHash(withFrameworkSelection(workspaceHash("#programs", { q: nextSearch, status: statusDraft, overall_state: overallStateDraft, jurisdiction: nextJurisdiction, assigned_to_me: assignedDraft }), frameworkEdition));
   }
 
   function clearFilters() {
@@ -156,7 +161,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     setJurisdiction("");
     setAssignedDraft(false);
     setAssignedToMe(false);
-    replaceWorkspaceHash("#programs");
+    replaceWorkspaceHash(withFrameworkSelection("#programs", frameworkEdition));
   }
 
   function applyCreatedProgram(value: ProgramAggregate) {
@@ -172,8 +177,8 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     const id = targetID ?? (openFirst ? items[0]?.program.id : undefined);
     if (!id || handledTarget.current === id) return;
     handledTarget.current = id;
-    window.location.hash = workspaceHash(`#programs/${encodeURIComponent(id)}`, { q: search, status, overall_state: overallState, jurisdiction, assigned_to_me: assignedToMe });
-  }, [state, items, targetID, openFirst, search, status, overallState, jurisdiction, assignedToMe]);
+    window.location.hash = withFrameworkSelection(workspaceHash(`#programs/${encodeURIComponent(id)}`, { q: search, status, overall_state: overallState, jurisdiction, assigned_to_me: assignedToMe }), frameworkEdition);
+  }, [state, items, targetID, frameworkEdition, openFirst, search, status, overallState, jurisdiction, assignedToMe]);
 
   if (state === "loading") return <section id="programs-workspace" className="workspace-loading" aria-live="polite" aria-busy="true">Loading programs…</section>;
   if (state === "unavailable") return <div id="programs-workspace" className="portfolio-workspace portfolio-workspace--programs"><EmptyState label="Programs" title="Programs could not be loaded" description="Service unavailable." action="Try again" onAction={() => void load(true)}/></div>;
@@ -196,8 +201,9 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
         <h2 id="program-portfolio-title">Programs</h2>
         <p>{briefTitle}{items.length > 0 ? ` · Loaded programs${nextCursor ? " · More available" : ""}` : ""}</p>
       </div>
-      <div className="workspace-brief-side"><Button variant="primary" onPress={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</Button></div>
+      <div className="workspace-brief-side"><Button variant="secondary" onPress={() => { window.location.hash = "#programs/library"; }}>Framework Library</Button><Button variant="primary" onPress={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</Button></div>
     </header>
+    {frameworkEdition && <div className="inline-notice" role="status" aria-label="Selected framework edition"><strong>Choose a Program for this edition.</strong> The edition source and approval will be checked before adoption. <button className="text-button" type="button" onClick={() => { window.location.hash = workspaceHash("#programs", programFilters); }}>Clear selection</button></div>}
     {setupOpen && <ProgramSetupWorkspace actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources} organizationScopes={organizationScopes} initialOrganizationScopeID={organizationScopeID} onCreated={applyCreatedProgram} onClose={() => setSetupOpen(false)}/>}
     {items.length > 0 && <section className={`program-portfolio-visual${singleState ? " program-portfolio-visual--uniform" : ""}`} aria-label="Program summary for displayed records">
       <div className="program-portfolio-visual__position">
@@ -214,7 +220,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
             onClick={() => {
               setOverallState(item.state);
               setOverallStateDraft(item.state);
-              replaceWorkspaceHash(workspaceHash("#programs", { ...programFilters, overall_state: item.state }));
+              replaceWorkspaceHash(withFrameworkSelection(workspaceHash("#programs", { ...programFilters, overall_state: item.state }), frameworkEdition));
             }}>{item.count} {item.label} <span aria-hidden="true">→</span></button>)}
         </div>}
       </div>
@@ -262,7 +268,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
         const openIssues = summaryItem.open_matter_count;
         const knownOpenIssues = !assessmentMissing && typeof openIssues === "number" && Number.isInteger(openIssues) && openIssues >= 0;
         return <article className={targetID === program.id ? "program-card targeted" : "program-card"} data-operating-state={displayState} id={`program-${program.id}`} key={program.id}>
-          <a className="program-card-main" href={workspaceHash(`#programs/${encodeURIComponent(program.id)}`, programFilters)}>
+          <a className="program-card-main" href={withFrameworkSelection(workspaceHash(`#programs/${encodeURIComponent(program.id)}`, programFilters), frameworkEdition)}>
             <span className="program-icon"><ProgramIcon/></span>
             <span className="program-primary"><span className="program-kicker">{program.code} · {program.owning_function}</span><strong>{program.name}</strong>{program.jurisdiction && <small>{program.jurisdiction}</small>}</span>
             <span className="program-counts" aria-label="Program indicators">
