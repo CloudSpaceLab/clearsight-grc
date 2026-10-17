@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useFrameworkEditionCatalog } from "../hooks/useFrameworkEditionCatalog";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import type { FrameworkEditionOption } from "../programOperationsApi";
 import { Button, DataTable, EmptyState, FilterBar, FocusedSheet, SearchField, StatusBadge } from "./ui";
 import type { DataColumn } from "./ui";
@@ -51,7 +52,9 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
   const [jurisdiction, setJurisdiction] = useState("GLOBAL");
   const [jurisdictionError, setJurisdictionError] = useState("");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<FrameworkEditionOption | null>(null);
+  const [selectedID, setSelectedID] = useState("");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const compact = useMediaQuery("(max-width: 900px)");
   const catalog = useFrameworkEditionCatalog(true, jurisdiction);
 
   const visible = useMemo(() => {
@@ -62,6 +65,10 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
         .some((value) => value.toLocaleLowerCase().includes(query)));
   }, [catalog.items, search]);
 
+  // The first visible edition is the initial inspection, not an implicit
+  // adoption; selections disappearing under filters never produce an action.
+  const selected = visible.find((item) => item.id === selectedID) ?? visible[0] ?? null;
+
   function applyJurisdiction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const code = normalizeJurisdiction(jurisdictionDraft);
@@ -71,10 +78,27 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
     }
     setJurisdictionError("");
     setSearch("");
-    setSelected(null);
+    setSelectedID("");
+    setSheetOpen(false);
     setJurisdictionDraft(code);
     setJurisdiction(code);
   }
+
+  function inspect(edition: FrameworkEditionOption) {
+    setSelectedID(edition.id);
+    setSheetOpen(compact);
+  }
+
+  const inspector = selected && <div className="cs-framework-library__sheet">
+    <span className="eyebrow">Published reference</span>
+    <h2>{selected.title}</h2>
+    <StatusBadge tone="info">Edition {selected.edition_code}</StatusBadge>
+    <FrameworkEditionProvenance edition={selected}/>
+    <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
+    <div className="cs-program-standards__actions">
+      <Button variant="primary" onPress={() => onChooseProgram(selected)}>Choose Program</Button>
+    </div>
+  </div>;
 
   return <section className="cs-framework-library portfolio-workspace" aria-label="Framework Library workspace" id="framework-library-workspace">
     <header className="cs-register-header cs-framework-library__header">
@@ -86,57 +110,57 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
       <Button variant="secondary" onPress={onBack}>Back to Programs</Button>
     </header>
 
-    <FilterBar label="Framework filters" resultCount={visible.length}
-      resultLabel={(count) => count + " matching loaded edition" + (count === 1 ? "" : "s")}
-      onClear={search ? () => setSearch("") : undefined}
-      fields={<>
-        <SearchField label="Search loaded standards" placeholder="Search loaded standards" value={search}
-          onChange={setSearch} isLoading={catalog.state === "loading"}/>
-        <form className="cs-framework-library__jurisdiction" onSubmit={applyJurisdiction}>
-          <label htmlFor="framework-jurisdiction">Jurisdiction code</label>
-          <div className="cs-framework-library__jurisdiction-controls">
-            <input id="framework-jurisdiction" type="text" autoComplete="off"
-              value={jurisdictionDraft} maxLength={64} onChange={(event) => setJurisdictionDraft(event.target.value)}
-              aria-invalid={Boolean(jurisdictionError)} aria-describedby={jurisdictionError ? "framework-jurisdiction-error" : undefined}/>
-            <Button type="submit" variant="secondary" size="compact">Apply</Button>
-          </div>
-        </form>
-      </>}/>
-    {jurisdictionError && <p role="alert" id="framework-jurisdiction-error">{jurisdictionError}</p>}
+    <div className="cs-framework-library__layout">
+      <div className="cs-framework-library__register">
+        <FilterBar label="Framework filters" resultCount={visible.length}
+          resultLabel={(count) => count + " matching loaded edition" + (count === 1 ? "" : "s")}
+          onClear={search ? () => setSearch("") : undefined}
+          fields={<>
+            <SearchField label="Search loaded standards" placeholder="Search loaded standards" value={search}
+              onChange={setSearch} isLoading={catalog.state === "loading"}/>
+            <form className="cs-framework-library__jurisdiction" onSubmit={applyJurisdiction}>
+              <label htmlFor="framework-jurisdiction">Jurisdiction code</label>
+              <div className="cs-framework-library__jurisdiction-controls">
+                <input id="framework-jurisdiction" type="text" autoComplete="off"
+                  value={jurisdictionDraft} maxLength={64} onChange={(event) => setJurisdictionDraft(event.target.value)}
+                  aria-invalid={Boolean(jurisdictionError)} aria-describedby={jurisdictionError ? "framework-jurisdiction-error" : undefined}/>
+                <Button type="submit" variant="secondary" size="compact">Apply</Button>
+              </div>
+            </form>
+          </>}/>
+        {jurisdictionError && <p role="alert" id="framework-jurisdiction-error">{jurisdictionError}</p>}
+        {catalog.state === "loading" && <p role="status">Loading published editions…</p>}
+        {catalog.state === "denied" && <EmptyState role="alert" population="Framework Library"
+          title="Published editions unavailable" description="Select an authorized legal entity to view published standards."/>}
+        {catalog.state === "error" && <EmptyState role="alert" population="Framework Library"
+          title="Published editions could not be loaded" description="The current catalog is unavailable."
+          action={<Button variant="secondary" onPress={catalog.retry}>Retry catalog</Button>}/>}
+        {catalog.state === "ready" && catalog.items.length === 0 && <EmptyState population="Framework Library"
+          title="No published editions" description={"No verified editions are published for " + jurisdiction + "."}/>}
+        {catalog.state === "ready" && catalog.items.length > 0 && visible.length === 0 && <EmptyState population="Framework Library"
+          title="No matching loaded editions" description="Clear the search or load additional editions."
+          action={<Button variant="secondary" onPress={() => setSearch("")}>Clear search</Button>}/>}
 
-    {catalog.state === "loading" && <p role="status">Loading published editions…</p>}
-    {catalog.state === "denied" && <EmptyState role="alert" population="Framework Library"
-      title="Published editions unavailable" description="Select an authorized legal entity to view published standards."/>}
-    {catalog.state === "error" && <EmptyState role="alert" population="Framework Library"
-      title="Published editions could not be loaded" description="The current catalog is unavailable."
-      action={<Button variant="secondary" onPress={catalog.retry}>Retry catalog</Button>}/>}
-    {catalog.state === "ready" && catalog.items.length === 0 && <EmptyState population="Framework Library"
-      title="No published editions" description={"No verified editions are published for " + jurisdiction + "."}/>}
-    {catalog.state === "ready" && catalog.items.length > 0 && visible.length === 0 && <EmptyState population="Framework Library"
-      title="No matching loaded editions" description="Clear the search or load additional editions."
-      action={<Button variant="secondary" onPress={() => setSearch("")}>Clear search</Button>}/>}
+        {catalog.items.length > 0 && catalog.state !== "denied" && <DataTable ariaLabel="Published framework editions"
+          rows={visible} rowKey={(item) => item.id} rowName={(item) => item.title + " " + item.edition_code}
+          columns={columns} selectedKey={selected?.id} onSelectionChange={(item) => setSelectedID(item.id)}
+          onRowAction={inspect} rowActionLabel="Inspect edition" isLoading={catalog.state === "loading"}/>}
 
-    {catalog.items.length > 0 && catalog.state !== "denied" && <DataTable ariaLabel="Published framework editions"
-      rows={visible} rowKey={(item) => item.id} rowName={(item) => item.title + " " + item.edition_code}
-      columns={columns} onRowAction={setSelected} rowActionLabel="Inspect edition"
-      isLoading={catalog.state === "loading"}/>}
-
-    {catalog.nextAfterID && catalog.state !== "denied" && <div className="cs-framework-library__pagination">
-      <span>{catalog.items.length} loaded · More available</span>
-      <Button variant="secondary" onPress={catalog.loadMore} isDisabled={catalog.state === "loading"}>Load more editions</Button>
-    </div>}
-    {selected && catalog.items.some((item) => item.id === selected.id) && <FocusedSheet label={"Edition details: " + selected.title} onClose={() => setSelected(null)} size="wide">
-      <div className="cs-framework-library__sheet">
-        <span className="eyebrow">Published reference</span>
-        <h2>{selected.title}</h2>
-        <StatusBadge tone="info">Edition {selected.edition_code}</StatusBadge>
-        <FrameworkEditionProvenance edition={selected}/>
-        <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
-        <div className="cs-program-standards__actions">
-          <Button variant="primary" onPress={() => onChooseProgram(selected)}>Choose Program</Button>
-          <Button variant="quiet" onPress={() => setSelected(null)}>Close</Button>
-        </div>
+        {catalog.nextAfterID && catalog.state !== "denied" && <div className="cs-framework-library__pagination">
+          <span>{catalog.items.length} loaded · More available</span>
+          <Button variant="secondary" onPress={catalog.loadMore} isDisabled={catalog.state === "loading"}>Load more editions</Button>
+        </div>}
       </div>
+
+      {!compact && catalog.state === "ready" && <aside className="cs-framework-library__inspector" aria-label="Framework edition details">
+        {inspector ?? <EmptyState compact population="Framework Library" title="Select an edition"
+          description="Choose a published edition to inspect its source and rights."/>}
+      </aside>}
+    </div>
+    {compact && sheetOpen && selected && <FocusedSheet label={"Edition details: " + selected.title}
+      onClose={() => setSheetOpen(false)} size="wide">
+      {inspector}
+      <Button variant="quiet" onPress={() => setSheetOpen(false)}>Close</Button>
     </FocusedSheet>}
   </section>;
 }
