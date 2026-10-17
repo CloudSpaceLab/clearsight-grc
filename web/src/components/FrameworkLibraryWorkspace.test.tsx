@@ -28,7 +28,7 @@ describe("Framework Library workspace", () => {
     expect(await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"})).toBeTruthy();
     expect(screen.getByText("1 loaded · GLOBAL")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", {name: "Inspect edition for Published SECURITY 2026"}));
-    const details = await screen.findByRole("dialog", {name: "Edition details: Published SECURITY"});
+    const details = await screen.findByRole("complementary", {name: "Framework edition details"});
     expect(details.textContent).toContain("Citations only");
     expect(details.textContent).toContain("release-approved");
     expect(details.textContent).toContain("Publication does not establish Program adoption");
@@ -37,6 +37,28 @@ describe("Framework Library workspace", () => {
     fireEvent.click(screen.getByRole("button", {name: "Choose Program"}));
     expect(onChooseProgram).toHaveBeenCalledWith(edition("edition-1"));
     expect(loadFrameworkEditionPage).toHaveBeenCalledWith("GLOBAL", "");
+  });
+
+  it("uses an accessible detail sheet on compact viewports", async () => {
+    const original = window.matchMedia;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: () => ({matches: true, addEventListener: () => {}, removeEventListener: () => {}}),
+    });
+    try {
+      vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+        items: [edition("edition-1")], next_after_id: "",
+      });
+      render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={vi.fn()}/>);
+      const inspect = await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"});
+      expect(screen.queryByRole("complementary", {name: "Framework edition details"})).toBeNull();
+      fireEvent.click(inspect);
+      expect(await screen.findByRole("dialog", {name: "Edition details: Published SECURITY"})).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", {name: "Close"}));
+      await waitFor(() => expect(screen.queryByRole("dialog", {name: "Edition details: Published SECURITY"})).toBeNull());
+    } finally {
+      Object.defineProperty(window, "matchMedia", {configurable: true, value: original});
+    }
   });
 
   it("searches only loaded editions and advances the authoritative cursor", async () => {
