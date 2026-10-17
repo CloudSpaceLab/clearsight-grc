@@ -39,7 +39,7 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
     setReviewingMappingID(null);
     setMappingReviewRationale("");
     setMappingError("");
-  }, [program.id, program.version]);
+  }, [program.id, program.version, standardReview.adoptionID]);
   const [mode, setMode] = useState<Mode>(null);
   const [selected, setSelected] = useState<Requirement | null>(null);
   const [busy, setBusy] = useState(false);
@@ -126,7 +126,7 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
         }}>{showStandards ? "Hide clauses" : "Review clauses"}</button>
       </div>
       {showStandards && <>
-        <label><span>Standard</span><select aria-label="Review standard" value={standardReview.adoptionID} onChange={(event) => void standardReview.load(event.target.value)}>
+        <label><span>Standard</span><select aria-label="Review standard" value={standardReview.adoptionID} onChange={(event) => { setSelectedMapping(null); setMappingRationale(""); setReviewingMappingID(null); setMappingReviewRationale(""); setMappingError(""); void standardReview.load(event.target.value); }}>
           {activeStandards.map((standard) => <option key={standard.id} value={standard.id}>{standard.publisher_code} · {standard.framework_code} {standard.edition_code}</option>)}
         </select></label>
         {standardReview.status === "loading" && <p role="status">Loading clauses…</p>}
