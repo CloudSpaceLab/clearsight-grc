@@ -232,6 +232,25 @@ describe("Program record workspace", () => {
     expect(screen.queryByRole("region", { name: /^Requirement:/ })).toBeNull();
   });
 
+  it("separates stored lifecycle status from as-of posture in the approved Program overview", async () => {
+    const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", { name: "Nigeria data protection" });
+
+    const header = container.querySelector(".program-record-header");
+    expect(header).not.toBeNull();
+    expect(within(header as HTMLElement).getByText("Operating status")).toBeTruthy();
+    expect(within(header as HTMLElement).getByText("Setup in progress")).toBeTruthy();
+    expect(within(header as HTMLElement).getByText("Record version")).toBeTruthy();
+    expect(within(header as HTMLElement).queryByText("Calculated state")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Out of date" })).toBeTruthy();
+
+    const overview = await screen.findByRole("region", { name: "Program overview" });
+    expect(overview.querySelector("#program-review-panel")).not.toBeNull();
+    expect(overview.querySelector("#program-status-panel")).not.toBeNull();
+    expect(overview.querySelector(".program-record-overview-details #program-details-panel")).not.toBeNull();
+    expect(screen.getAllByTestId("program-dominant-action")).toHaveLength(1);
+  });
+
   it("shows owner, calculated-state freshness, reasons and one dominant action", async () => {
     render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
 
