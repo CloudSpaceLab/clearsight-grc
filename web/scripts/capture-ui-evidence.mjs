@@ -299,41 +299,12 @@ async function openPage({ route, title, theme, density, viewport, touch = false,
     localStorage.setItem("clearsight.density", density);
   }, { theme, density });
   const page = await context.newPage();
-  if (frameworkCatalog) {
-    // Evidence-only response: real customer builds always call the governed
-    // catalog. These illustrative rows never enter the shipped application.
-    await context.route("**/api/v1/framework-catalog/editions?**", (route) => {
-      if (frameworkCatalog === "denied") return route.fulfill({
-        status: 403, contentType: "application/json",
-        body: JSON.stringify({ error: { code: "legal_entity_required", message: "Select a legal entity." } }),
-      });
-      return route.fulfill({
-        status: 200, contentType: "application/json",
-        body: JSON.stringify({ items: [
-          {
-            id: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6001",
-            publisher_code: "SAMPLE", framework_code: "SECURITY", edition_code: "2026",
-            title: "Sample security reference", jurisdiction: "GLOBAL",
-            source_url: "https://example.org/sample-security", source_published_on: "2026-10-01",
-            license_basis: "CITATIONS_ONLY", approval_reference: "sample-release",
-          },
-          {
-            id: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6002",
-            publisher_code: "SAMPLE", framework_code: "PRIVACY", edition_code: "2026",
-            title: "Sample privacy reference", jurisdiction: "GLOBAL",
-            source_url: "https://example.org/sample-privacy", source_published_on: "2026-09-01",
-            license_basis: "SUMMARIES_PERMITTED", license_reference: "sample-license",
-            approval_reference: "sample-release",
-          },
-        ] }),
-      });
-    });
-  }
   const browserErrors = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
   const params = new URLSearchParams({ tour: "off" });
   if (fixture) params.set("fixture", fixture);
+  if (frameworkCatalog) params.set("fixture", "framework-library-" + frameworkCatalog);
   await page.goto(`${baseURL}/?${params.toString()}${route}`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: title, exact: true }).first().waitFor({ state: "visible" });
   await page.evaluate(() => document.fonts?.ready);
