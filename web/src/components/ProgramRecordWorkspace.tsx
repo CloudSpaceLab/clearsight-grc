@@ -24,7 +24,7 @@ import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
-import { Notice } from "./ui";
+import { Notice, StatusBadge } from "./ui";
 
 type Props = { programID: string; section?: ProgramSection; programItem?: ProgramItemTarget; frameworkEdition?: FrameworkEditionTarget; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
 type LoadState = "loading" | "live" | "unavailable";
@@ -201,10 +201,12 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   }
 
   const panels: Record<ProgramSection, ReactNode> | null = aggregate ? {
-    overview: <section className="program-record-grid">
-      <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <div className="inline-notice">Review actions are disabled until the current review status is available.</div>}</article>
+    overview: <section className="program-record-grid program-record-grid--overview" aria-label="Program overview">
+      <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <Notice tone="warning">Review status unavailable. Reload the Program before taking action.</Notice>}</article>
       <ProgramStatusPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-      <ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} frameworkEdition={frameworkEdition} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+      <div className="program-record-overview-details">
+        <ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} frameworkEdition={frameworkEdition} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+      </div>
     </section>,
     "requirements-controls": <section className="program-record-grid">
       <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
@@ -229,7 +231,10 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     {aggregate && <>
       <header className="program-record-header">
         <div><span className="program-kicker">{aggregate.program.code} · {aggregate.program.owning_function}</span><h1>{aggregate.program.name}</h1><p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p></div>
-        <dl><div><dt>Operating status</dt><dd>{statusLabel(aggregate.program.status)}</dd></div><div><dt>Calculated state</dt><dd>{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</dd></div><div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div></dl>
+        <dl className="program-record-header__facts">
+          <div><dt>Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
+          <div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div>
+        </dl>
       </header>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking who can act on this Program.</strong> Program details remain visible while assignments are loading.</div>}
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Program assignments could not be checked.</strong> Details and recorded owners remain visible, but changes are disabled until assignments can be confirmed. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry assignments</button></div>}

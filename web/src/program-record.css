@@ -4,7 +4,9 @@
 .program-response-result { display: grid; justify-items: start; gap: 5px; }
 .program-record-back { justify-self: start; min-height: 44px; }
 .program-requirement-card:focus, .program-safeguard-card:focus { outline: var(--cs-focus-width) solid var(--cs-focus-ring); outline-offset: var(--cs-focus-offset); }
-.program-record-header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .35fr); gap: 24px; align-items: end; padding: 24px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
+.program-record-header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .34fr); gap: var(--cs-space-section); align-items: center; padding: var(--cs-space-section); border: 1px solid var(--cs-border-default); border-radius: var(--cs-primitive-radius-14); background: var(--cs-bg-surface-1); }
+.program-record-header__facts dd { display: flex; align-items: center; justify-content: flex-end; text-align: end; min-width: 0; }
+.program-record-header__facts .cs-status-badge { max-width: 100%; }
 .program-record-header h1 { max-width: 820px; margin: 8px 0 6px; font-size: clamp(1.55rem, 3vw, 2.2rem); line-height: 1.12; }
 .program-record-header p { margin: 0; }
 .program-record-header dl { display: grid; gap: 8px; margin: 0; }
@@ -43,6 +45,10 @@
 .program-readonly-next { display: grid; gap: 5px; max-width: 300px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
 .program-readonly-next span { color: var(--muted); font-size: .75rem; }
 .program-record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.program-record-grid--overview { grid-template-columns: minmax(0, 1fr) minmax(300px, .57fr); align-items: start; }
+.program-record-overview-details { grid-column: 1 / -1; min-width: 0; }
+.program-record-overview-details > .program-record-panel { min-width: 0; }
+@media (max-width: 900px) { .program-record-grid--overview { grid-template-columns: minmax(0, 1fr); } }
 .program-record-panel { min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .program-record-panel h2 { margin: 5px 0 8px; font-size: 1.05rem; }
 .program-record-panel > p { margin: 0; }
