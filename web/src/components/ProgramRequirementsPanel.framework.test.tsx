@@ -160,10 +160,10 @@ describe("Program framework mapping review", () => {
     }]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button",{name:"Review clauses"}));
     await waitFor(() => expect(screen.getAllByRole("button",{name:"Review link"})).toHaveLength(2));
-    fireEvent.click(screen.getAllByRole("button",{name:"Review link"})[0]);
+    fireEvent.click(screen.getAllByRole("button",{name:"Review link"})[0]!);
     fireEvent.change(screen.getByLabelText("Decision rationale for A.1"),{target:{value:"Specific to A.1"}});
     fireEvent.click(screen.getByRole("button",{name:"Cancel"}));
-    fireEvent.click(screen.getAllByRole("button",{name:"Review link"})[1]);
+    fireEvent.click(screen.getAllByRole("button",{name:"Review link"})[1]!);
     expect((screen.getByLabelText("Decision rationale for A.2") as HTMLTextAreaElement).value).toBe("");
     expect(screen.getByRole("button",{name:"Approve link"}).hasAttribute("disabled")).toBe(true);
     expect(decideProgramFrameworkMapping).not.toHaveBeenCalled();
