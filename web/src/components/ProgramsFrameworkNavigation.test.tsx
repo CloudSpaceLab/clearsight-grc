@@ -51,8 +51,8 @@ describe("Framework Library to Program route", () => {
         },
         state_label: "Up to date", overall_state: "CURRENT",
         program_version: 3, assessed_program_version: 3, projection_stale: false,
-        requirement_count: 1, evidence_check_count: 1, open_matter_count: 0,
-        reasons: [],
+        requirement_count: 1, safeguard_count: 0, evidence_check_count: 1, open_matter_count: 0,
+        reasons: [], reasons_total: 0, reasons_omitted: 0, projection_version: 1,
       }],
     });
     render(<ProgramsWorkspace frameworkEdition={selection}/>);
