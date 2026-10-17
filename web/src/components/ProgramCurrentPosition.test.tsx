@@ -10,6 +10,28 @@ const operations = { operations: [] } as unknown as ProgramOperations;
 const digest = { review_required: false } as ProgramReviewDigest;
 const current = { id: "state-1", program_version: 3, generated_at: "2026-09-09T09:00:00Z", reasons: [], open_matter_count: 0 } as unknown as NonNullable<ProgramAggregate["current_state"]>;
 
+describe("Program standard adoption truth", () => {
+  it("counts only approved active standards and never infers compliance", () => {
+    const value = {
+      ...aggregate,
+      framework_adoptions: [
+        { id: "adopted-a", status: "ACTIVE" },
+        { id: "proposed-b", status: "PENDING" },
+        { id: "rejected-c", status: "REJECTED" },
+        { id: "adopted-d", status: "ACTIVE" },
+      ],
+    } as unknown as ProgramAggregate;
+    const { rerender } = render(<ProgramCurrentPosition aggregate={value} operations={operations} digest={digest}/>);
+    expect(screen.getByText("Standards").parentElement?.textContent).toBe("Standards 2");
+    expect(screen.queryByText("Requirement compliance")).toBeNull();
+
+    rerender(<ProgramCurrentPosition aggregate={{
+      ...value, framework_adoptions: value.framework_adoptions?.filter((adoption) => adoption.status !== "ACTIVE"),
+    }} operations={operations} digest={digest}/>);
+    expect(screen.queryByText("Standards")).toBeNull();
+  });
+});
+
 describe("Program calculation truth", () => {
   it("keeps an absent calculation and issue population unknown", () => {
     render(<ProgramCurrentPosition aggregate={aggregate} operations={operations} digest={digest}/>);
