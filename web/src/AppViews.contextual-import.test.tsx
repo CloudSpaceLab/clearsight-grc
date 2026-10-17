@@ -23,6 +23,22 @@ describe("contextual document analysis entry", () => {
     expect(onAnalyzeDocument).toHaveBeenCalledTimes(1);
   });
 
+  it("uses the Program record title without a redundant portfolio heading", () => {
+    const onAnalyzeDocument = vi.fn();
+    const { rerender } = render(<ProgramsView
+      organizationName="Meridian Trust Bank"
+      targetID="program-1"
+      onAnalyzeDocument={onAnalyzeDocument}
+    />);
+    expect(screen.queryByRole("heading", { name: "Programs" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Analyze document/ })).toBeNull();
+    expect(screen.getByText("Programs workspace")).toBeTruthy();
+
+    rerender(<ProgramsView organizationName="Meridian Trust Bank" programsPage="library"/>);
+    expect(screen.getByRole("heading", { name: "Framework Library" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Analyze document/ })).toBeNull();
+  });
+
   it("keeps a governed return action above exact evidence work", async () => {
     const onReturn = vi.fn();
     render(<WorkView
