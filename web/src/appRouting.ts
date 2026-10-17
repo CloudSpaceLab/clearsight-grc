@@ -3,6 +3,7 @@ export type View = "today" | "oversight" | "programs" | "risks" | "rcsa" | "loss
 export type WorkTab = "assigned" | "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "monitoring" | "evidence-results" | "issues-actions" | "history";
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
+export type FrameworkEditionTarget = { editionID: string; jurisdiction: string };
 export type VendorPage = "overview" | "register";
 export type RopaPage = "register" | "reports";
 export type OversightMetric = "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
@@ -12,6 +13,8 @@ export type InsightKind = "KRI" | "KCI";
 export type InsightView = "risk-loss";
 export type WorkspaceTarget = {
   programID?: string;
+  programsPage?: "library";
+  frameworkEdition?: FrameworkEditionTarget;
   riskID?: string;
   lossID?: string;
   rcsaCycleID?: string;
@@ -66,10 +69,15 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     return { view, target };
   }
   if (view === "programs") {
-    if (!parts[1]) return { view, target: {} };
+    if (parts[1] === "library") return { view, target: { programsPage: "library" } };
+    const editionID = query.get("edition_id") ?? "";
+    const jurisdiction = query.get("edition_jurisdiction") ?? "";
+    const frameworkEdition = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(editionID) &&
+      /^[A-Z][A-Z0-9._-]{0,63}$/.test(jurisdiction) ? { editionID, jurisdiction } : undefined;
+    if (!parts[1]) return { view, target: frameworkEdition ? { frameworkEdition } : {} };
     const allowedSections: ProgramSection[] = ["overview", "requirements-controls", "monitoring", "evidence-results", "issues-actions", "history"];
     const programSection = allowedSections.includes(parts[2] as ProgramSection) ? parts[2] as ProgramSection : "overview";
-    const target: WorkspaceTarget = { programID: decodeTarget(parts[1]), programSection };
+    const target: WorkspaceTarget = { programID: decodeTarget(parts[1]), programSection, ...(frameworkEdition ? { frameworkEdition } : {}) };
     const segments = route.split("/");
     if (programSection === "requirements-controls" && segments.length === 5 &&
       (segments[3] === "requirement" || segments[3] === "control-objective") && segments[4]) {
@@ -137,6 +145,16 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
   return { view, target: {} };
 }
 
+/** Retain a catalog selection through Program register filters without changing their schema. */
+export function withFrameworkSelection(hash: string, selection?: FrameworkEditionTarget): string {
+  if (!selection) return hash;
+  const params = new URLSearchParams({
+    edition_id: selection.editionID,
+    edition_jurisdiction: selection.jurisdiction,
+  });
+  return hash + (hash.includes("?") ? "&" : "?") + params.toString();
+}
+
 export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab) {
   if (view === "oversight") {
     const params = new URLSearchParams();
@@ -146,10 +164,15 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
     const query = params.toString();
     return query ? `#oversight?${query}` : "#oversight";
   }
-  if (view === "programs" && target.programID) {
-    const section = target.programSection ?? "overview";
-    const item = section === "requirements-controls" ? target.programItem : undefined;
-    return `#programs/${encodeURIComponent(target.programID)}/${section}${item?.id.trim() ? `/${item.kind}/${encodeURIComponent(item.id)}` : ""}`;
+  if (view === "programs") {
+    if (target.programsPage === "library") return "#programs/library";
+    if (target.programID) {
+      const section = target.programSection ?? "overview";
+      const item = section === "requirements-controls" ? target.programItem : undefined;
+      const path = `#programs/${encodeURIComponent(target.programID)}/${section}${item?.id.trim() ? `/${item.kind}/${encodeURIComponent(item.id)}` : ""}`;
+      return withFrameworkSelection(path, target.frameworkEdition);
+    }
+    return withFrameworkSelection("#programs", target.frameworkEdition);
   }
 	if (view === "risks" && target.riskID) return `#risks/${encodeURIComponent(target.riskID)}`;
 	if (view === "rcsa" && target.rcsaCycleID) return `#rcsa/${encodeURIComponent(target.rcsaCycleID)}`;

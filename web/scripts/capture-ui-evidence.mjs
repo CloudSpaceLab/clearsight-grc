@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
@@ -16,6 +17,7 @@ const captures = [
   { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "03-today-dark-compact-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
+  ...frameworkEvidenceScenarios,
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
@@ -130,6 +132,44 @@ async function capturePage(capture) {
       await page.getByRole("dialog", { name: "Generate report" }).waitFor({ state: "visible" });
     }
     if (capture.matterTab) await openMatterWorkspaceTab(page, capture.matterTab);
+    if (capture.frameworkCatalog === "loaded") {
+      await page.getByRole("list", { name: "Published framework editions" }).waitFor({ state: "visible" });
+      const inspect = page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" });
+      await inspect.waitFor({ state: "visible" });
+      const sidebar = page.locator(".app-shell > .sidebar");
+      if (capture.viewport.width >= 1440) {
+        const bounds = await sidebar.boundingBox();
+        if (!bounds || Math.abs(bounds.width - 220) > 1) throw new Error(`${capture.name} does not use the approved 220px desktop navigation rail.`);
+        await sidebar.locator(".sidebar-brand__name").getByText("ClearSight").waitFor({ state: "visible" });
+        const portfolio = sidebar.getByRole("button", { name: "Portfolio" });
+        if (await portfolio.getAttribute("aria-current") !== "page") throw new Error(`${capture.name} lost the active Portfolio navigation state.`);
+      }
+      if (capture.viewport.width <= 390) {
+        const record = await inspect.boundingBox();
+        const mobileNav = await page.locator(".mobile-nav").boundingBox();
+        if (!record || !mobileNav || record.y >= mobileNav.y) throw new Error(`${capture.name} hides all framework records below the mobile navigation.`);
+      }
+      if (capture.viewport.width > 900 || capture.frameworkDetailSheet) await inspect.click();
+      if (capture.viewport.width > 900) {
+        const details = page.getByRole("complementary", { name: "Framework edition details" });
+        await details.waitFor({ state: "visible" });
+        await details.getByText("sample-release").waitFor({ state: "visible" });
+      }
+      if (capture.frameworkDetailSheet) {
+        const sheet = page.getByRole("dialog", { name: "Edition details: Sample security reference" });
+        await sheet.waitFor({ state: "visible" });
+        const firstFact = sheet.locator(".cs-program-standards__facts > div").first();
+        const [label, value] = await Promise.all([
+          firstFact.locator("dt").boundingBox(),
+          firstFact.locator("dd").boundingBox(),
+        ]);
+        if (!label || !value || Math.abs(label.y - value.y) > 18) {
+          throw new Error(`${capture.name} stacks edition provenance labels and values vertically on mobile.`);
+        }
+        await sheet.getByRole("button", { name: "Choose Program" }).waitFor({ state: "visible" });
+      }
+    }
+
     if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
     if (capture.scrollIntoViewText) {
       // Some controls sit below the fold at the capture viewport. Scroll them
@@ -276,7 +316,7 @@ async function assertGuideLauncherDoesNotBlockNavigation(page, name, viewportWid
   }
 }
 
-async function openPage({ route, title, theme, density, viewport, touch = false, fixture }) {
+async function openPage({ route, title, theme, density, viewport, touch = false, fixture, frameworkCatalog }) {
   const context = await browser.newContext({ viewport, colorScheme: theme, hasTouch: touch, reducedMotion: "reduce", locale: "en-NG", timezoneId: "Africa/Lagos" });
   await context.addInitScript(({ theme, density }) => {
     localStorage.setItem("clearsight.theme", theme);
@@ -288,6 +328,7 @@ async function openPage({ route, title, theme, density, viewport, touch = false,
   page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
   const params = new URLSearchParams({ tour: "off" });
   if (fixture) params.set("fixture", fixture);
+  if (frameworkCatalog) params.set("fixture", "framework-library-" + frameworkCatalog);
   await page.goto(`${baseURL}/?${params.toString()}${route}`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: title, exact: true }).first().waitFor({ state: "visible" });
   await page.evaluate(() => document.fonts?.ready);
@@ -384,7 +425,20 @@ async function assertFocusInsideSheet(page, name) {
 }
 
 async function record(page, capture, state) {
-  results.push({ name: capture.name, route: capture.route, fixture: capture.fixture ?? null, state, viewport: capture.viewport, theme: capture.theme, density: capture.density, metrics: await layoutMetrics(page) });
+  results.push({
+    name: capture.name,
+    route: capture.route,
+    fixture: capture.fixture ?? null,
+    state,
+    viewport: capture.viewport,
+    theme: capture.theme,
+    density: capture.density,
+    ...(capture.frameworkCatalog ? {
+      frameworkCatalog: capture.frameworkCatalog,
+      frameworkDetailSheet: Boolean(capture.frameworkDetailSheet),
+    } : {}),
+    metrics: await layoutMetrics(page),
+  });
   await writeManifest();
 }
 
@@ -588,7 +642,11 @@ async function captureDocumentResultHandoffs() {
           if (!title || !implementation || implementation.y < title.y + title.height || Math.abs(title.x - implementation.x) > 1) throw new Error("Narrow control objective still squeezes its title beside implementation details");
         }
         await saveState("control-objective");
-        if (width <= 720) await page.locator(".program-section-selector select").selectOption("overview");
+        if (width <= 720) {
+          const selector = page.locator(".program-detail-sections .cs-tabs__compact .cs-select-field__trigger");
+          await selector.click();
+          await page.getByRole("option", { name: "Overview", exact: true }).click();
+        }
         else await page.getByRole("tab", { name: "Overview", exact: true }).click();
         if (new URL(page.url()).hash !== "#programs/program-ndpa/overview") throw new Error("Changing Program sections retained the old item target");
         await page.goto(`${baseURL}/?tour=off&fixture=document-result-handoffs#programs/program-ndpa/requirements-controls/requirement/unavailable-item`, { waitUntil: "networkidle" });

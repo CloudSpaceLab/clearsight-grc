@@ -875,6 +875,31 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone(programDetail) as T;
   }
   if (pathname === "/api/v1/programs/setup-candidates" && method === "GET") return clone({ owner_candidates: [{ id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }], approval_authority_candidates: [{ id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, { id: "role-deputy-cro", display_name: "Deputy Chief Risk Officer", kind: "POSITION", role: "Deputy CRO" }], has_more: false, generated_at: now }) as T;
+  if (pathname === "/api/v1/framework-catalog/editions" && fixture.startsWith("framework-library-")) {
+    if (fixture === "framework-library-denied") {
+      throw new StaticDemoHTTPError(403, "legal_entity_required", "Select a legal entity.");
+    }
+    // Deterministic UI evidence only. Never install or expose these as
+    // production catalog releases, tenant adoption or scored requirements.
+    const references = [
+      {
+        id: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6001",
+        publisher_code: "SAMPLE", framework_code: "SECURITY", edition_code: "2026",
+        title: "Sample security reference", jurisdiction: "GLOBAL",
+        source_url: "https://example.org/sample-security", source_published_on: "2026-10-01",
+        license_basis: "CITATIONS_ONLY", approval_reference: "sample-release",
+      },
+      {
+        id: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6002",
+        publisher_code: "SAMPLE", framework_code: "PRIVACY", edition_code: "2026",
+        title: "Sample privacy reference", jurisdiction: "GLOBAL",
+        source_url: "https://example.org/sample-privacy", source_published_on: "2026-09-01",
+        license_basis: "SUMMARIES_PERMITTED", license_reference: "sample-license",
+        approval_reference: "sample-release",
+      },
+    ];
+    return clone({ items: url.searchParams.get("jurisdiction") === "GLOBAL" ? references : [] }) as T;
+  }
   if (pathname === "/api/v1/program-summaries") return clone({ items: matchesProgramSummary(url) ? [programSummary] : [], generated_at: now }) as T;
   if (pathname === "/api/v1/form-templates" && method === "GET") {
     if (fixture === "collection-renewal-states" || fixture === "collection-long-content") return clone({ items: collectionFixtures(fixture).forms }) as T;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { ProgramItemTarget, ProgramSection } from "../appRouting";
+import type { FrameworkEditionTarget, ProgramItemTarget, ProgramSection } from "../appRouting";
 import { loadProgram, loadProgramAt } from "../api";
 import { loadProgramOperations } from "../programOperationsApi";
 import type { ProgramOperations } from "../programOperationsApi";
@@ -26,7 +26,7 @@ import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
 import { Notice } from "./ui";
 
-type Props = { programID: string; section?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
+type Props = { programID: string; section?: ProgramSection; programItem?: ProgramItemTarget; frameworkEdition?: FrameworkEditionTarget; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
 type LoadState = "loading" | "live" | "unavailable";
 
 function statusLabel(value: string) {
@@ -39,7 +39,7 @@ function statusLabel(value: string) {
   }
 }
 
-export function ProgramRecordWorkspace({ programID, section = "overview", programItem, onSectionChange, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenRequest, onOpenForm }: Props) {
+export function ProgramRecordWorkspace({ programID, section = "overview", programItem, frameworkEdition, onSectionChange, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenRequest, onOpenForm }: Props) {
   const [aggregateState, setAggregateState] = useState<LoadState>("loading");
   const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [reviewState, setReviewState] = useState<LoadState>("loading");
@@ -204,7 +204,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     overview: <section className="program-record-grid">
       <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <div className="inline-notice">Review actions are disabled until the current review status is available.</div>}</article>
       <ProgramStatusPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-      <ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+      <ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} frameworkEdition={frameworkEdition} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
     </section>,
     "requirements-controls": <section className="program-record-grid">
       <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>

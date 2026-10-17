@@ -140,6 +140,32 @@ describe("Program section routes", () => {
     expect(routeHash("programs", { programID: "program-1", programSection: "history", programItem: { kind: "requirement", id: "item-1" } }, "matters")).toBe("#programs/program-1/history");
   });
 
+  it("routes the Framework Library within Programs without treating it as a Program record", () => {
+    expect(parseRoute("#programs/library")).toEqual({ view: "programs", target: { programsPage: "library" } });
+    expect(routeHash("programs", { programsPage: "library" }, "assigned")).toBe("#programs/library");
+  });
+
+  it("carries only validated edition identity and jurisdiction into a Program", () => {
+    const frameworkEdition = {
+      editionID: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6001",
+      jurisdiction: "GLOBAL",
+    };
+    const hash = routeHash("programs", { programID: "program-1", programSection: "overview", frameworkEdition }, "assigned");
+    expect(hash).toBe("#programs/program-1/overview?edition_id=0199f39a-dac6-7be2-a4ca-1f6d2c7d6001&edition_jurisdiction=GLOBAL");
+    expect(parseRoute(hash).target).toEqual({ programID: "program-1", programSection: "overview", frameworkEdition });
+    expect(parseRoute(routeHash("programs", { frameworkEdition }, "assigned")).target).toEqual({ frameworkEdition });
+  });
+
+  it("rejects malformed framework selection without losing the Program route", () => {
+    for (const invalid of [
+      "#programs/program-1?edition_id=other&edition_jurisdiction=GLOBAL",
+      "#programs/program-1?edition_id=0199f39a-dac6-7be2-a4ca-1f6d2c7d6001&edition_jurisdiction=invalid",
+      "#programs/program-1?edition_id=0199f39a-dac6-7be2-a4ca-1f6d2c7d6001",
+    ]) {
+      expect(parseRoute(invalid).target).toEqual({ programID: "program-1", programSection: "overview" });
+    }
+  });
+
   it("parses a Program and its selected section", () => {
     expect(parseRoute("#programs/program-1/monitoring")).toEqual({ view: "programs", target: { programID: "program-1", programSection: "monitoring" } });
   });

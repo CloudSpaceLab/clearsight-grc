@@ -29,12 +29,15 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
   const [mappingKind, setMappingKind] = useState<FrameworkMappingKind>("EXACT");
   const [mappingRationale, setMappingRationale] = useState("");
   const [mappingReviewRationale, setMappingReviewRationale] = useState("");
+  const [reviewingMappingID, setReviewingMappingID] = useState<string | null>(null);
   const [mappingBusy, setMappingBusy] = useState(false);
   const [mappingError, setMappingError] = useState("");
 
   useEffect(() => {
     setShowStandards(false);
     setSelectedMapping(null);
+    setReviewingMappingID(null);
+    setMappingReviewRationale("");
     setMappingError("");
   }, [program.id, program.version]);
   const [mode, setMode] = useState<Mode>(null);
@@ -69,7 +72,7 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
 
   async function reviewMapping(mappingID: string, action: "approve" | "reject") {
     const allowed = action === "approve" ? mappingApproveOperation?.can_act : mappingRejectOperation?.can_act;
-    if (!allowed || !mappingReviewRationale.trim() || !standardReview.adoptionID) return;
+    if (!allowed || reviewingMappingID !== mappingID || !mappingReviewRationale.trim() || !standardReview.adoptionID) return;
     setMappingBusy(true); setMappingError("");
     try {
       const result = await decideProgramFrameworkMapping(
@@ -78,6 +81,7 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
       );
       onUpdated(result.program);
       setMappingReviewRationale("");
+      setReviewingMappingID(null);
     } catch (value) {
       setMappingError(value instanceof Error ? value.message : "Requirement link review could not be saved.");
     } finally { setMappingBusy(false); }
@@ -122,7 +126,7 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
         }}>{showStandards ? "Hide clauses" : "Review clauses"}</button>
       </div>
       {showStandards && <>
-        <label><span>Standard</span><select aria-label="Review standard" value={standardReview.adoptionID} onChange={(event) => void standardReview.load(event.target.value)}>
+        <label><span>Standard</span><select aria-label="Review standard" value={standardReview.adoptionID} onChange={(event) => { setSelectedMapping(null); setMappingRationale(""); setReviewingMappingID(null); setMappingReviewRationale(""); setMappingError(""); void standardReview.load(event.target.value); }}>
           {activeStandards.map((standard) => <option key={standard.id} value={standard.id}>{standard.publisher_code} · {standard.framework_code} {standard.edition_code}</option>)}
         </select></label>
         {standardReview.status === "loading" && <p role="status">Loading clauses…</p>}
@@ -132,15 +136,19 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
         {standardReview.mappingPage?.items.some((item) => item.status === "PENDING") && <div className="program-operation-form" aria-label="Pending standard links">
           <h4>Links awaiting review</h4>
           {standardReview.mappingPage.items.filter((item) => item.status === "PENDING").map((item) =>
-            <div className="program-form-actions wide" key={item.id}>
-              <span>{item.clause_code} · {aggregate.requirements.find((requirement) => requirement.id === item.requirement_id)?.title ?? item.requirement_id} · {label(item.mapping_kind)}</span>
-              {(mappingApproveOperation?.can_act || mappingRejectOperation?.can_act) && <>
-                {mappingApproveOperation?.can_act && <button className="primary-button" type="button" disabled={mappingBusy || !mappingReviewRationale.trim()} onClick={() => void reviewMapping(item.id, "approve")}>Approve link</button>}
-                {mappingRejectOperation?.can_act && <button className="secondary-button" type="button" disabled={mappingBusy || !mappingReviewRationale.trim()} onClick={() => void reviewMapping(item.id, "reject")}>Reject link</button>}
-              </>}
-            </div>
+            <section className="program-requirement-card" key={item.id} aria-label={`Pending link ${item.clause_code ?? item.clause_id}`}>
+              <div><strong>{item.clause_code ?? item.clause_id}</strong><p>{aggregate.requirements.find((requirement) => requirement.id === item.requirement_id)?.title ?? item.requirement_id} · {label(item.mapping_kind)}</p></div>
+              {reviewingMappingID === item.id ? <div className="program-operation-form">
+                <label className="wide"><span>Decision rationale</span><textarea aria-label={`Decision rationale for ${item.clause_code ?? item.clause_id}`} required value={mappingReviewRationale} onChange={(event) => setMappingReviewRationale(event.target.value)}/></label>
+                <div className="program-form-actions wide">
+                  {mappingApproveOperation?.can_act && <button className="primary-button" type="button" disabled={mappingBusy || !mappingReviewRationale.trim()} onClick={() => void reviewMapping(item.id, "approve")}>Approve link</button>}
+                  {mappingRejectOperation?.can_act && <button className="secondary-button" type="button" disabled={mappingBusy || !mappingReviewRationale.trim()} onClick={() => void reviewMapping(item.id, "reject")}>Reject link</button>}
+                  <button type="button" className="text-button" disabled={mappingBusy} onClick={() => { setReviewingMappingID(null); setMappingReviewRationale(""); }}>Cancel</button>
+                </div>
+              </div> : (mappingApproveOperation?.can_act || mappingRejectOperation?.can_act) &&
+                <button className="secondary-button" type="button" disabled={mappingBusy} onClick={() => { setReviewingMappingID(item.id); setMappingReviewRationale(""); setMappingError(""); }}>Review link</button>}
+            </section>
           )}
-          {(mappingApproveOperation?.can_act || mappingRejectOperation?.can_act) && <label className="wide"><span>Review reason</span><textarea value={mappingReviewRationale} onChange={(event) => setMappingReviewRationale(event.target.value)}/></label>}
         </div>}
         {standardReview.mappingPage?.next_after_id && <button type="button" className="secondary-button" disabled={standardReview.mappingStatus === "loading"} onClick={() => void standardReview.loadMoreMappings()}>More linked requirements</button>}
         {mappingError && <p role="alert" className="program-form-error">{mappingError} <button type="button" className="text-button" onClick={onReload}>Reload Program</button></p>}

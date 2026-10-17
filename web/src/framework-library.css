@@ -1,0 +1,175 @@
+/* Scoped Framework Library workspace; all colors/spacing come from shared semantic tokens. */
+.cs-framework-library {
+  min-width: 0;
+  display: grid;
+  gap: var(--cs-space-section);
+  margin-block: var(--cs-space-section);
+}
+.cs-framework-library__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(310px, .8fr);
+  gap: var(--cs-space-section);
+  align-items: start;
+  min-width: 0;
+}
+.cs-framework-library__register {
+  display: grid;
+  gap: var(--cs-space-group);
+  min-width: 0;
+}
+.cs-framework-library__inspector {
+  position: sticky;
+  top: var(--cs-space-section);
+  min-width: 0;
+  border: 1px solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  overflow: hidden;
+  background: var(--cs-bg-surface-1);
+}
+.cs-framework-library__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-space-group);
+  flex-wrap: wrap;
+  padding-bottom: var(--cs-space-group);
+  border-bottom: 1px solid var(--cs-border-default);
+}
+.cs-framework-library__header p {
+  color: var(--cs-text-muted);
+  margin: 0;
+  font-size: var(--cs-font-size-caption);
+}
+.cs-framework-library .cs-filter-bar__fields {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) minmax(220px, 1fr);
+  gap: var(--cs-space-group);
+  align-items: end;
+}
+.cs-framework-library__jurisdiction {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--cs-space-inline);
+  align-items: end;
+  min-width: 0;
+}
+.cs-framework-library__jurisdiction .cs-field { min-width: 0; }
+.cs-framework-library__results-head {
+  display: flex;
+  gap: var(--cs-space-group);
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--cs-space-group);
+}
+.cs-framework-library__results-head h3 { margin: 0; color: var(--cs-text-strong); font-size: var(--cs-font-size-control); }
+.cs-framework-library__results-head span { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.cs-framework-library__list {
+  display: grid;
+  gap: var(--cs-space-group);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cs-framework-library__list .cs-selectable-record {
+  min-height: 88px;
+  padding: var(--cs-space-section);
+  min-width: 0;
+}
+.cs-framework-library__publisher-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--cs-primitive-radius-10);
+  border: 1px solid var(--cs-border-default);
+  background: var(--cs-bg-surface-2);
+  color: var(--cs-action-primary);
+  font-weight: 700;
+  font-size: var(--cs-font-size-caption);
+  letter-spacing: -0.01em;
+}
+.cs-framework-library__sheet .cs-program-standards__facts dd,
+.cs-framework-library__sheet .cs-program-standards__facts code { overflow-wrap: anywhere; }
+.cs-framework-library__pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--cs-space-group);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.cs-framework-library__sheet { display: grid; min-width: 0; align-content: start; }
+.cs-framework-library__detail-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cs-space-group);
+  min-height: 76px;
+  padding: var(--cs-space-group) var(--cs-space-section);
+  background: linear-gradient(120deg, var(--cs-bg-surface-2), var(--cs-bg-surface-1));
+  border-bottom: 1px solid var(--cs-border-default);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.cs-framework-library__detail-body {
+  display: grid;
+  align-content: start;
+  gap: var(--cs-space-group);
+  min-width: 0;
+  padding: var(--cs-space-section);
+}
+.cs-framework-library__detail-body > h2 {
+  margin: 0;
+  font-size: var(--cs-primitive-font-size-22);
+  line-height: var(--cs-leading-tight);
+  color: var(--cs-text-strong);
+}
+.cs-framework-library__detail-body > .cs-status-badge {
+  justify-self: start;
+}
+.cs-framework-library__disclaimer {
+  padding-block: var(--cs-space-group);
+  border-top: 1px solid var(--cs-border-default);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.cs-framework-library__sheet .cs-program-standards__facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .cs-framework-library__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cs-framework-library__inspector {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .cs-framework-library__sheet .cs-program-standards__facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .cs-framework-library__sheet .cs-program-standards__facts > div {
+    grid-template-columns: minmax(90px, .8fr) minmax(0, 1.2fr);
+    align-items: baseline;
+    gap: var(--cs-space-group);
+    padding-block: var(--cs-space-inline);
+    border-bottom: 1px solid var(--cs-border-default);
+  }
+  .cs-framework-library__sheet .cs-program-standards__facts dd {
+    min-width: 0;
+    text-align: end;
+  }
+}
+@media (max-width: 767px) {
+  .cs-framework-library__header { align-items: start; }
+  .cs-framework-library__jurisdiction { grid-template-columns: minmax(0, 1fr); }
+  .cs-framework-library__jurisdiction .cs-button { width: 100%; }
+  .cs-framework-library .cs-filter-bar__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cs-framework-library__pagination > .cs-button {
+    width: 100%;
+  }
+}

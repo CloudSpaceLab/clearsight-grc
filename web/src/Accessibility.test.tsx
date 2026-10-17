@@ -98,7 +98,8 @@ describe("semantic accessibility gates", () => {
     const desktop = render(<ProgramDetailSections section="overview" panels={panels} onSectionChange={vi.fn()}/>);
     await expectNoSemanticViolations(desktop.container);
     desktop.unmount();
-    const compact = render(<ProgramDetailSections compact section="monitoring" panels={panels} onSectionChange={vi.fn()}/>);
+    const compact = render(<ProgramDetailSections section="monitoring" panels={panels} onSectionChange={vi.fn()}/>);
+    expect(screen.getByRole("button", { name: "Data collection Program section" })).toBeTruthy();
     await expectNoSemanticViolations(compact.container);
     compact.unmount();
   });

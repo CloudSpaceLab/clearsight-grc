@@ -136,12 +136,34 @@ export type FrameworkEditionOption = {
   source_url: string;
   source_published_on: string;
   license_basis: string;
+  license_reference?: string;
+  effective_on?: string;
+  source_sha256?: string;
+  release_sha256?: string;
+  approval_reference?: string;
 };
 
-export async function loadFrameworkEditions(jurisdiction = "GLOBAL"): Promise<FrameworkEditionOption[]> {
-  const query = new URLSearchParams({ jurisdiction, limit: "100" });
-  const result = await requestJSON<{ items: FrameworkEditionOption[] }>(apiBase, `${await tenantPath("/api/v1/framework-catalog/editions")}&${query.toString()}`);
-  return result.items ?? [];
+export type FrameworkEditionPage = {
+  items: FrameworkEditionOption[];
+  next_after_id: string;
+};
+
+// The catalog endpoint supports an ID cursor, not global text search.
+// Request one extra row so the UI never infers that a full page is the end.
+export async function loadFrameworkEditionPage(
+  jurisdiction = "GLOBAL", afterID = "", pageSize = 25,
+): Promise<FrameworkEditionPage> {
+  const limit = Math.max(1, Math.min(99, Math.trunc(pageSize)));
+  const query = new URLSearchParams({ jurisdiction, limit: String(limit + 1) });
+  if (afterID) query.set("after_id", afterID);
+  const result = await requestJSON<{ items: FrameworkEditionOption[] }>(
+    apiBase, `${await tenantPath("/api/v1/framework-catalog/editions")}&${query.toString()}`,
+  );
+  const entries = result.items ?? [];
+  return {
+    items: entries.slice(0, limit),
+    next_after_id: entries.length > limit ? entries[limit - 1]!.id : "",
+  };
 }
 
 export function proposeProgramFrameworkAdoption(programID: string, expectedVersion: number, editionID: string, rationale: string): Promise<ProgramAggregate> {

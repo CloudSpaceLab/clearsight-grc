@@ -3,6 +3,7 @@ import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { assessInteractionBundle, collectInteractionBundleMetrics } from "./ui-bundle-budget.mjs";
 import { formsEvidenceScenarios, requiredFormsCapabilities } from "./forms-evidence-scenarios.mjs";
+import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const homeT7ScenarioNames = [
@@ -22,6 +23,7 @@ const expectedNames = [
   "02-today-light-comfortable-1440x900",
   "03-today-dark-compact-1440x900",
   "04-program-light-1440x900",
+  ...frameworkEvidenceScenarios.map(({ name }) => name),
   "05-matter-dark-1440x900",
   "06-evidence-light-1440x900",
   "07-import-dark-1440x900",
@@ -181,6 +183,7 @@ const requiredStates = [
   "program-review-acknowledged",
   "program-review-mobile-changed",
   "program-overview-dark",
+  ...frameworkEvidenceScenarios.map(({ state }) => state),
   "program-evidence-results-tablet",
   "collection-current",
   "collection-delivery-blocked",
@@ -308,6 +311,19 @@ if (manifest) {
   const states = new Set(manifest.captures.map((capture) => capture.state));
   const missingStates = requiredStates.filter((state) => !states.has(state));
   if (missingStates.length) failures.push(`flow state coverage is missing: ${missingStates.join(", ")}`);
+  // The registry is also a metadata contract, not just a screenshot count.
+  const frameworkByName = new Map(manifest.captures.map((capture) => [capture.name, capture]));
+  for (const scenario of frameworkEvidenceScenarios) {
+    const actual = frameworkByName.get(scenario.name);
+    if (!actual) continue; // Missing captures are reported by expectedNames above.
+    const mismatches = [];
+    for (const key of ["route", "state", "theme", "frameworkCatalog"]) {
+      if (actual[key] !== scenario[key]) mismatches.push(key);
+    }
+    if (actual.viewport?.width !== scenario.viewport.width || actual.viewport?.height !== scenario.viewport.height) mismatches.push("viewport");
+    if (Boolean(actual.frameworkDetailSheet) !== Boolean(scenario.frameworkDetailSheet)) mismatches.push("detail sheet");
+    if (mismatches.length) failures.push(`${scenario.name} evidence metadata mismatch: ${mismatches.join(", ")}`);
+  }
   const formsByName = new Map(manifest.captures.filter((capture) => capture.name.includes("-forms-")).map((capture) => [capture.name, capture]));
   const formsCapabilities = new Set([...formsByName.values()].flatMap((capture) => capture.capabilities ?? []));
   const missingFormsCapabilities = requiredFormsCapabilities.filter((capability) => !formsCapabilities.has(capability));

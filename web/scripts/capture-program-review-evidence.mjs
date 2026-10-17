@@ -134,7 +134,7 @@ async function captureProgramSection({ name, section, fixture, theme, viewport, 
   const page = await openProgram(context, { section, fixture });
   try {
     if (compact) {
-      await page.getByRole("combobox", { name: "Program section" }).waitFor({ state: "visible" });
+      await page.locator(".cs-tabs__compact .cs-select-field__trigger").waitFor({ state: "visible" });
       if (await page.getByRole("tablist", { name: "Program sections" }).count()) throw new Error(`${name} retained the desktop tablist in a compact viewport`);
     } else {
       await page.getByRole("tablist", { name: "Program sections" }).waitFor({ state: "visible" });
@@ -227,7 +227,7 @@ async function captureProgramEvidenceResults({ name, state, fixture, theme, view
   const page = await openProgram(context, { section: "evidence-results", fixture });
   try {
     if (compact) {
-      await page.getByRole("combobox", { name: "Program section" }).waitFor({ state: "visible" });
+      await page.locator(".cs-tabs__compact .cs-select-field__trigger").waitFor({ state: "visible" });
       if (await page.getByRole("tablist", { name: "Program sections" }).count()) throw new Error(`${name} retained the desktop tablist in a compact viewport`);
     } else {
       await page.getByRole("tablist", { name: "Program sections" }).waitFor({ state: "visible" });
