@@ -48,7 +48,7 @@ export function AIGatewayTransportDraftForm({
   const [models, setModels] = useState<GatewayModelConfig[]>([newModel(initialProvider.id)]);
   const [failureThreshold, setFailureThreshold] = useState(3);
   const [openDurationMs, setOpenDurationMs] = useState(30000);
-  const [changeReason, setChangeReason] = useState("Establish governed organization AI provider routing");
+  const [changeReason, setChangeReason] = useState("Configure AI provider routing");
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -129,7 +129,7 @@ export function AIGatewayTransportDraftForm({
   return <form className="ai-gateway-transport__form" onSubmit={submit}>
     <section className="ai-gateway-transport__section" aria-labelledby="gateway-provider-heading">
       <div className="ai-gateway-transport__section-header">
-        <div><span className="eyebrow">Upstream boundary</span><h4 id="gateway-provider-heading">Providers</h4><p>Register fixed provider origins and secret-manager references. Credentials never enter ClearSight.</p></div>
+        <div><span className="eyebrow">Upstream boundary</span><h4 id="gateway-provider-heading">Providers</h4><p>Configure provider endpoints and secret references. Do not enter credentials.</p></div>
         <button className="secondary-button" type="button" onClick={addProvider} disabled={busy}>Add provider</button>
       </div>
       <div className="ai-gateway-transport__cards">
@@ -155,7 +155,7 @@ export function AIGatewayTransportDraftForm({
     </section>
 
     <section className="ai-gateway-transport__section" aria-labelledby="gateway-model-heading">
-      <div className="ai-gateway-transport__section-header"><div><span className="eyebrow">Application contract</span><h4 id="gateway-model-heading">Logical models</h4><p>Applications request stable aliases. Only approved routes decide the actual provider/model.</p></div><button className="secondary-button" type="button" onClick={addModel} disabled={busy}>Add alias</button></div>
+      <div className="ai-gateway-transport__section-header"><div><span className="eyebrow">Application contract</span><h4 id="gateway-model-heading">Logical models</h4><p>Map application aliases to approved provider routes.</p></div><button className="secondary-button" type="button" onClick={addModel} disabled={busy}>Add alias</button></div>
       <div className="ai-gateway-transport__cards">
         {models.map((model, modelIndex) => <div className="ai-gateway-transport__card" key={`${modelIndex}-${model.alias}`}>
           <label><span>Alias exposed to applications</span><input value={model.alias} onChange={(event) => updateModel(modelIndex, { alias: normalizeIdentifier(event.target.value) })} required/></label>

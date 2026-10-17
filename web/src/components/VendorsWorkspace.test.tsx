@@ -627,7 +627,7 @@ describe("VendorsWorkspace", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Retry due diligence setup" }));
 
     await waitFor(() => expect(retryVendorAssessmentSetup).toHaveBeenCalledWith("assessment-1", { expected_version: 3 }));
-    expect(await screen.findByText("Assessment setup queued. Review setup will continue in the background.")).toBeTruthy();
+    expect(await screen.findByText("Assessment setup queued.")).toBeTruthy();
     expect(screen.getByText("Setup in progress")).toBeTruthy();
     expect(screen.getByRole("button", { name: "View setup status" })).toBeTruthy();
     expect(screen.getAllByRole("button").filter((button) => button.classList.contains("cs-button--primary") && !(button as HTMLButtonElement).disabled)).toHaveLength(1);

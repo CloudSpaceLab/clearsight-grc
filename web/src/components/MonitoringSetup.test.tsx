@@ -367,7 +367,7 @@ describe("monitoring setup", () => {
     expect(screen.getByRole("heading", { name: "Draft monitoring check" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Pending monitoring check" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Active collection check" })).toBeTruthy();
-    expect(screen.getByText("Data collection changes are disabled until current Program responsibilities are available. Existing checks and results remain available.")).toBeTruthy();
+    expect(screen.getByText("Assignments unavailable. Data collection changes disabled.")).toBeTruthy();
     for (const name of ["Add data check", "Send for approval", "Approve form", "Set collection schedule", "Collect responses", "Approve check", "Check source now"]) {
       expect(screen.queryByRole("button", { name })).toBeNull();
     }

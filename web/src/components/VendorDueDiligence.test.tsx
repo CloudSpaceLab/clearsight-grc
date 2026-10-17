@@ -228,7 +228,7 @@ describe("VendorDueDiligence", () => {
     expect(screen.getByRole("alert").textContent).toContain("The review record could not be prepared after three attempts.");
     fireEvent.click(screen.getByRole("button", { name: "Retry due diligence setup" }));
     expect(onRetrySetup).toHaveBeenCalledWith("assessment-1", 3);
-    expect(await screen.findByText("Assessment setup queued. Review setup will continue in the background.")).toBeTruthy();
+    expect(await screen.findByText("Assessment setup queued.")).toBeTruthy();
     expect(primaryActions()).toHaveLength(1);
   });
 
