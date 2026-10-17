@@ -30,11 +30,12 @@ const actionOrder = [
 
 export function dominantProgramAction(operations: ProgramOperation[], digest: ProgramReviewDigest) {
   const executable = operations.filter((operation) => operation.can_act);
+  const priority = (command: string) => { const index = actionOrder.indexOf(command); return index < 0 ? actionOrder.length : index; };
   if (!digest.review_required) {
     const withoutReview = executable.filter((operation) => operation.command !== "program.review.accept");
-    if (withoutReview.length > 0) return [...withoutReview].sort((left, right) => actionOrder.indexOf(left.command) - actionOrder.indexOf(right.command))[0];
+    if (withoutReview.length > 0) return [...withoutReview].sort((left, right) => priority(left.command) - priority(right.command))[0];
   }
-  return [...executable].sort((left, right) => actionOrder.indexOf(left.command) - actionOrder.indexOf(right.command))[0];
+  return [...executable].sort((left, right) => priority(left.command) - priority(right.command))[0];
 }
 
 function actionTarget(command: string) {
