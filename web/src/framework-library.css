@@ -146,7 +146,21 @@
   }
 }
 @media (max-width: 560px) {
-  .cs-framework-library__sheet .cs-program-standards__facts { grid-template-columns: minmax(0, 1fr); }
+  .cs-framework-library__sheet .cs-program-standards__facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .cs-framework-library__sheet .cs-program-standards__facts > div {
+    grid-template-columns: minmax(90px, .8fr) minmax(0, 1.2fr);
+    align-items: baseline;
+    gap: var(--cs-space-group);
+    padding-block: var(--cs-space-inline);
+    border-bottom: 1px solid var(--cs-border-default);
+  }
+  .cs-framework-library__sheet .cs-program-standards__facts dd {
+    min-width: 0;
+    text-align: end;
+  }
 }
 @media (max-width: 767px) {
   .cs-framework-library__header { align-items: start; }

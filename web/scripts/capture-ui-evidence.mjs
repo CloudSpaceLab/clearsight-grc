@@ -156,7 +156,17 @@ async function capturePage(capture) {
         await details.getByText("sample-release").waitFor({ state: "visible" });
       }
       if (capture.frameworkDetailSheet) {
-        await page.getByRole("dialog", { name: "Edition details: Sample security reference" }).waitFor({ state: "visible" });
+        const sheet = page.getByRole("dialog", { name: "Edition details: Sample security reference" });
+        await sheet.waitFor({ state: "visible" });
+        const firstFact = sheet.locator(".cs-program-standards__facts > div").first();
+        const [label, value] = await Promise.all([
+          firstFact.locator("dt").boundingBox(),
+          firstFact.locator("dd").boundingBox(),
+        ]);
+        if (!label || !value || Math.abs(label.y - value.y) > 18) {
+          throw new Error(`${capture.name} stacks edition provenance labels and values vertically on mobile.`);
+        }
+        await sheet.getByRole("button", { name: "Choose Program" }).waitFor({ state: "visible" });
       }
     }
 
