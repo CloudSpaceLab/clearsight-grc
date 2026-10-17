@@ -145,6 +145,16 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
   return { view, target: {} };
 }
 
+/** Retain a catalog selection through Program register filters without changing their schema. */
+export function withFrameworkSelection(hash: string, selection?: FrameworkEditionTarget): string {
+  if (!selection) return hash;
+  const params = new URLSearchParams({
+    edition_id: selection.editionID,
+    edition_jurisdiction: selection.jurisdiction,
+  });
+  return hash + (hash.includes("?") ? "&" : "?") + params.toString();
+}
+
 export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab) {
   if (view === "oversight") {
     const params = new URLSearchParams();
@@ -156,16 +166,13 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
   }
   if (view === "programs") {
     if (target.programsPage === "library") return "#programs/library";
-    const selection = target.frameworkEdition;
-    const query = selection
-      ? `?edition_id=${encodeURIComponent(selection.editionID)}&edition_jurisdiction=${encodeURIComponent(selection.jurisdiction)}`
-      : "";
     if (target.programID) {
       const section = target.programSection ?? "overview";
       const item = section === "requirements-controls" ? target.programItem : undefined;
-      return `#programs/${encodeURIComponent(target.programID)}/${section}${item?.id.trim() ? `/${item.kind}/${encodeURIComponent(item.id)}` : ""}${query}`;
+      const path = `#programs/${encodeURIComponent(target.programID)}/${section}${item?.id.trim() ? `/${item.kind}/${encodeURIComponent(item.id)}` : ""}`;
+      return withFrameworkSelection(path, target.frameworkEdition);
     }
-    return `#programs${query}`;
+    return withFrameworkSelection("#programs", target.frameworkEdition);
   }
 	if (view === "risks" && target.riskID) return `#risks/${encodeURIComponent(target.riskID)}`;
 	if (view === "rcsa" && target.rcsaCycleID) return `#rcsa/${encodeURIComponent(target.rcsaCycleID)}`;
