@@ -136,6 +136,19 @@ async function capturePage(capture) {
       await page.getByRole("list", { name: "Published framework editions" }).waitFor({ state: "visible" });
       const inspect = page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" });
       await inspect.waitFor({ state: "visible" });
+      const sidebar = page.locator(".app-shell > .sidebar");
+      if (capture.viewport.width >= 1440) {
+        const bounds = await sidebar.boundingBox();
+        if (!bounds || Math.abs(bounds.width - 220) > 1) throw new Error(`${capture.name} does not use the approved 220px desktop navigation rail.`);
+        await sidebar.locator(".sidebar-brand__name").getByText("ClearSight").waitFor({ state: "visible" });
+        const portfolio = sidebar.getByRole("button", { name: "Portfolio" });
+        if (await portfolio.getAttribute("aria-current") !== "page") throw new Error(`${capture.name} lost the active Portfolio navigation state.`);
+      }
+      if (capture.viewport.width <= 390) {
+        const record = await inspect.boundingBox();
+        const mobileNav = await page.locator(".mobile-nav").boundingBox();
+        if (!record || !mobileNav || record.y >= mobileNav.y) throw new Error(`${capture.name} hides all framework records below the mobile navigation.`);
+      }
       if (capture.viewport.width > 900 || capture.frameworkDetailSheet) await inspect.click();
       if (capture.viewport.width > 900) {
         const details = page.getByRole("complementary", { name: "Framework edition details" });
