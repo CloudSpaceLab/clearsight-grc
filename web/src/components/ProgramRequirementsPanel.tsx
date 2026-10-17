@@ -39,7 +39,7 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
     setReviewingMappingID(null);
     setMappingReviewRationale("");
     setMappingError("");
-  }, [program.id, program.version, standardReview.adoptionID]);
+  }, [program.id, program.version]);
   const [mode, setMode] = useState<Mode>(null);
   const [selected, setSelected] = useState<Requirement | null>(null);
   const [busy, setBusy] = useState(false);
