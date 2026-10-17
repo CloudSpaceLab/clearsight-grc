@@ -5,6 +5,27 @@
   gap: var(--cs-space-section);
   margin-block: var(--cs-space-section);
 }
+.cs-framework-library__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(310px, .8fr);
+  gap: var(--cs-space-section);
+  align-items: start;
+  min-width: 0;
+}
+.cs-framework-library__register {
+  display: grid;
+  gap: var(--cs-space-group);
+  min-width: 0;
+}
+.cs-framework-library__inspector {
+  position: sticky;
+  top: var(--cs-space-section);
+  min-width: 0;
+  border: 1px solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  padding: var(--cs-space-section);
+  background: var(--cs-bg-surface-1);
+}
 .cs-framework-library__header {
   display: flex;
   align-items: start;
@@ -101,6 +122,14 @@
 }
 .cs-framework-library__sheet .cs-program-standards__facts {
   grid-template-columns: 1fr;
+}
+@media (max-width: 900px) {
+  .cs-framework-library__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cs-framework-library__inspector {
+    display: none;
+  }
 }
 @media (max-width: 767px) {
   .cs-framework-library .cs-filter-bar__fields {
