@@ -6,7 +6,7 @@ import { decideProgramFrameworkAdoption, proposeProgramFrameworkAdoption } from 
 import type { ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate } from "../types";
 import { useFrameworkEditionCatalog } from "../hooks/useFrameworkEditionCatalog";
-import { Button, SearchField, StatusBadge, TextArea } from "./ui";
+import { Button, FocusedSheet, Notice, SearchField, StatusBadge, TextArea } from "./ui";
 import { FrameworkEditionProvenance } from "./FrameworkEditionProvenance";
 import "../program-standards.css";
 
@@ -104,6 +104,14 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
     setReloadRequired(false);
   }
 
+  function closeReview() {
+    if (inFlight.current) return;
+    setReviewingID(null);
+    setReviewRationale("");
+    setError("");
+    setReloadRequired(false);
+  }
+
   async function submitProposal(event: FormEvent) {
     event.preventDefault();
     if (inFlight.current || !proposeOperation?.can_act || !selectedEdition || alreadyLinked ||
@@ -180,7 +188,10 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
       })}
     </ul>}
 
-    {selectedReview && canReview && <div className="cs-program-standards__review" aria-label="Standard adoption review">
+    {selectedReview && canReview && <FocusedSheet
+      label={"Review standard adoption: " + selectedReview.framework_code + " " + selectedReview.edition_code}
+      closeLabel="Close standard review" size="wide" isDismissable={!busy} onClose={closeReview}>
+      <div className="cs-program-standards__review" aria-label="Standard adoption review">
       <div className="cs-program-standards__section-head">
         <h4>{selectedReview.publisher_code} · {selectedReview.framework_code} {selectedReview.edition_code}</h4>
         <StatusBadge tone="warning">Awaiting approval</StatusBadge>
@@ -200,9 +211,13 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
           isDisabled={!reviewRationale.trim() || reloadRequired} onPress={() => void decide(selectedReview.id, "approve")}>Approve standard</Button>}
         {rejectOperation?.can_act && <Button variant="secondary" isDisabled={busy || !reviewRationale.trim() || reloadRequired}
           onPress={() => void decide(selectedReview.id, "reject")}>Reject standard</Button>}
-        <Button variant="quiet" isDisabled={busy} onPress={() => { setReviewingID(null); setReviewRationale(""); setError(""); }}>Cancel</Button>
+        <Button variant="quiet" isDisabled={busy} onPress={closeReview}>Cancel</Button>
       </div>
-    </div>}
+      {error && <Notice tone="error"><span>{error}</span>
+        <Button variant="secondary" size="compact" onPress={onReload}>Reload Program</Button>
+      </Notice>}
+      </div>
+    </FocusedSheet>}
 
     {addOpen && <div className="cs-program-standards__browser">
       <div className="cs-program-standards__section-head">
@@ -261,7 +276,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
       </div>
       </form>
     </div>}
-    {error && <div role="alert" className="cs-program-standards__notice">
+    {error && !selectedReview && <div role="alert" className="cs-program-standards__notice">
       <span>{error}</span> <Button variant="secondary" size="compact" onPress={onReload}>Reload Program</Button>
     </div>}
   </section>;

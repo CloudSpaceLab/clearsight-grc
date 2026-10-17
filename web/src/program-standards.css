@@ -43,8 +43,7 @@
   font-size: var(--cs-font-size-caption);
   overflow-wrap: anywhere;
 }
-.cs-program-standards__browser,
-.cs-program-standards__review {
+.cs-program-standards__browser {
   display: grid;
   gap: var(--cs-space-group);
   min-width: 0;
@@ -54,6 +53,7 @@
   border-radius: var(--cs-primitive-radius-14);
   background: var(--cs-bg-surface-2);
 }
+.cs-program-standards__review { display: grid; gap: var(--cs-space-group); min-width: 0; }
 .cs-program-standards__section-head {
   display: flex;
   flex-wrap: wrap;

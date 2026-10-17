@@ -43,12 +43,36 @@ describe("Program standards — approved design integration", () => {
     fireEvent.click(screen.getByRole("button", {name: "Review SECURITY 2026"}));
     fireEvent.change(screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}),
       {target: {value: "Only security evidence was reviewed"}});
+    expect(screen.getByRole("dialog", {name: "Review standard adoption: SECURITY 2026"})).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {name: "Close standard review"}));
+    expect(screen.queryByRole("dialog", {name: "Review standard adoption: SECURITY 2026"})).toBeNull();
     fireEvent.click(screen.getByRole("button", {name: "Review PRIVACY 2026"}));
     const other = screen.getByRole("textbox", {name: /Decision rationale for PRIVACY 2026/}) as HTMLTextAreaElement;
     expect(other.value).toBe("");
     expect(other.required).toBe(true);
     expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(true);
     expect(decideProgramFrameworkAdoption).not.toHaveBeenCalled();
+  });
+
+  it("retains a failed review decision in its focused sheet and blocks conflicting approval", async () => {
+    const onReload = vi.fn();
+    vi.mocked(decideProgramFrameworkAdoption).mockRejectedValue(
+      new ApiError(409, "Program version changed.", "version_conflict"),
+    );
+    render(<ProgramStandardsPanel aggregate={aggregate([adoption("a", "SECURITY")])}
+      operations={[approve, reject]} onUpdated={vi.fn()} onReload={onReload}/>);
+    fireEvent.click(screen.getByRole("button", {name: "Review SECURITY 2026"}));
+    const dialog = screen.getByRole("dialog", {name: "Review standard adoption: SECURITY 2026"});
+    expect(dialog).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}),
+      {target: {value: "Reviewed the pending submission"}});
+    fireEvent.click(screen.getByRole("button", {name: "Approve standard"}));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect((screen.getByRole("textbox", {name: /Decision rationale for SECURITY 2026/}) as HTMLTextAreaElement).value)
+      .toBe("Reviewed the pending submission");
+    expect(screen.getByRole("button", {name: "Approve standard"}).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", {name: "Reload Program"}));
+    expect(onReload).toHaveBeenCalledOnce();
   });
 
   it("keeps already-active or pending editions out of the proposal selection", async () => {
