@@ -846,7 +846,7 @@ async function verifyFormsSectionResumption(page) {
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await selectFormsSection(page, "Documents");
   await selectPortfolioLens(page, "Programs");
-  await page.getByRole("heading", { name: "Programs", exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("heading", { name: "Programs", exact: true, level: 2 }).waitFor({ state: "visible" });
   await selectPortfolioLens(page, "Forms");
   await selected("Templates");
   if (new URL(page.url()).hash !== "#forms") throw new Error("Returning to the Forms Portfolio lens must open the Templates root.");
