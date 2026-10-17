@@ -44,7 +44,9 @@ describe("Framework Library to Program route", () => {
       generated_at: "2026-10-17T00:00:00Z",
       items: [{
         program: {
-          id: "program-1", name: "Information security", code: "ISMS-001",
+          id: "program-1", tenant_id: "bank", name: "Information security", code: "ISMS-001",
+          type: "ASSURANCE", scope: {}, effective_from: "2026-01-01T00:00:00Z",
+          created_at: "2026-01-01T00:00:00Z", updated_at: "2026-10-17T00:00:00Z",
           owning_function: "Risk", status: "ACTIVE", version: 3,
         },
         state_label: "Up to date", overall_state: "CURRENT",
