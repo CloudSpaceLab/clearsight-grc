@@ -16,6 +16,11 @@ const captures = [
   { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "03-today-dark-compact-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
+  { name: "200-framework-library-light-1440x900", route: "#programs/library", title: "Framework Library", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, frameworkCatalog: "loaded", state: "framework-library-desktop", expectText: "Sample security reference" },
+  { name: "201-framework-library-dark-1280x800", route: "#programs/library", title: "Framework Library", theme: "dark", density: "comfortable", viewport: { width: 1280, height: 800 }, frameworkCatalog: "loaded", state: "framework-library-desktop-dark", expectText: "Sample security reference" },
+  { name: "202-framework-library-light-mobile-390x844", route: "#programs/library", title: "Framework Library", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, frameworkCatalog: "loaded", state: "framework-library-mobile", expectText: "Sample security reference" },
+  { name: "203-framework-library-sheet-dark-mobile-390x844", route: "#programs/library", title: "Framework Library", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, frameworkCatalog: "loaded", frameworkDetailSheet: true, state: "framework-library-detail-mobile" },
+  { name: "204-framework-library-denied-light-1440x900", route: "#programs/library", title: "Framework Library", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, frameworkCatalog: "denied", state: "framework-library-denied", expectText: "Published editions unavailable" },
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
@@ -130,6 +135,17 @@ async function capturePage(capture) {
       await page.getByRole("dialog", { name: "Generate report" }).waitFor({ state: "visible" });
     }
     if (capture.matterTab) await openMatterWorkspaceTab(page, capture.matterTab);
+    if (capture.frameworkCatalog === "loaded") {
+      await page.getByRole("table", { name: "Published framework editions" }).waitFor({ state: "visible" });
+      if (capture.viewport.width > 900) {
+        await page.getByRole("complementary", { name: "Framework edition details" }).waitFor({ state: "visible" });
+      }
+      if (capture.frameworkDetailSheet) {
+        await page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" }).click();
+        await page.getByRole("dialog", { name: "Edition details: Sample security reference" }).waitFor({ state: "visible" });
+      }
+    }
+
     if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
     if (capture.scrollIntoViewText) {
       // Some controls sit below the fold at the capture viewport. Scroll them
@@ -276,13 +292,43 @@ async function assertGuideLauncherDoesNotBlockNavigation(page, name, viewportWid
   }
 }
 
-async function openPage({ route, title, theme, density, viewport, touch = false, fixture }) {
+async function openPage({ route, title, theme, density, viewport, touch = false, fixture, frameworkCatalog }) {
   const context = await browser.newContext({ viewport, colorScheme: theme, hasTouch: touch, reducedMotion: "reduce", locale: "en-NG", timezoneId: "Africa/Lagos" });
   await context.addInitScript(({ theme, density }) => {
     localStorage.setItem("clearsight.theme", theme);
     localStorage.setItem("clearsight.density", density);
   }, { theme, density });
   const page = await context.newPage();
+  if (frameworkCatalog) {
+    // Evidence-only response: real customer builds always call the governed
+    // catalog. These illustrative rows never enter the shipped application.
+    await context.route("**/api/v1/framework-catalog/editions?**", (route) => {
+      if (frameworkCatalog === "denied") return route.fulfill({
+        status: 403, contentType: "application/json",
+        body: JSON.stringify({ error: { code: "legal_entity_required", message: "Select a legal entity." } }),
+      });
+      return route.fulfill({
+        status: 200, contentType: "application/json",
+        body: JSON.stringify({ items: [
+          {
+            id: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6001",
+            publisher_code: "SAMPLE", framework_code: "SECURITY", edition_code: "2026",
+            title: "Sample security reference", jurisdiction: "GLOBAL",
+            source_url: "https://example.org/sample-security", source_published_on: "2026-10-01",
+            license_basis: "CITATIONS_ONLY", approval_reference: "sample-release",
+          },
+          {
+            id: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6002",
+            publisher_code: "SAMPLE", framework_code: "PRIVACY", edition_code: "2026",
+            title: "Sample privacy reference", jurisdiction: "GLOBAL",
+            source_url: "https://example.org/sample-privacy", source_published_on: "2026-09-01",
+            license_basis: "SUMMARIES_PERMITTED", license_reference: "sample-license",
+            approval_reference: "sample-release",
+          },
+        ] }),
+      });
+    });
+  }
   const browserErrors = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
