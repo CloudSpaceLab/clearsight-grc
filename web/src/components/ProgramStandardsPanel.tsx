@@ -115,7 +115,8 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
   async function submitProposal(event: FormEvent) {
     event.preventDefault();
     if (inFlight.current || !proposeOperation?.can_act || !selectedEdition || alreadyLinked ||
-        !proposalRationale.trim() || reloadRequired || catalog.state !== "ready") return;
+        !proposalRationale.trim() || reloadRequired || catalog.state !== "ready" ||
+        catalog.loadedJurisdiction !== jurisdiction) return;
     inFlight.current = true;
     setBusy(true);
     setError("");
@@ -271,7 +272,8 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
       </div>
       <div className="cs-program-standards__actions">
         <Button type="submit" variant="primary" isLoading={busy}
-          isDisabled={!selectedEdition || alreadyLinked || !proposalRationale.trim() || reloadRequired || catalog.state !== "ready"}>Submit for approval</Button>
+          isDisabled={!selectedEdition || alreadyLinked || !proposalRationale.trim() || reloadRequired ||
+            catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction}>Submit for approval</Button>
         <Button variant="quiet" isDisabled={busy} onPress={() => { setAddOpen(false); setError(""); }}>Cancel</Button>
       </div>
       </form>

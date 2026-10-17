@@ -12,12 +12,14 @@ export function useFrameworkEditionCatalog(enabled: boolean, jurisdiction: strin
   const [items, setItems] = useState<FrameworkEditionOption[]>([]);
   const [nextAfterID, setNextAfterID] = useState("");
   const [state, setState] = useState<CatalogState>("idle");
+  const [loadedJurisdiction, setLoadedJurisdiction] = useState<string | null>(null);
 
   const load = useCallback(async (cursor = "", append = false) => {
     const current = ++requestID.current;
     if (!append) {
       setItems([]);
       setNextAfterID("");
+      setLoadedJurisdiction(null);
     }
     setState("loading");
     try {
@@ -29,6 +31,7 @@ export function useFrameworkEditionCatalog(enabled: boolean, jurisdiction: strin
         return [...previous, ...page.items.filter((item) => !existing.has(item.id))];
       });
       setNextAfterID(page.next_after_id);
+      setLoadedJurisdiction(jurisdiction);
       setState("ready");
     } catch (cause) {
       if (current !== requestID.current) return;
@@ -36,6 +39,7 @@ export function useFrameworkEditionCatalog(enabled: boolean, jurisdiction: strin
       if (kind === "forbidden" || kind === "unauthorized") {
         setItems([]);
         setNextAfterID("");
+        setLoadedJurisdiction(null);
         setState("denied");
       } else setState("error");
     }
@@ -47,6 +51,7 @@ export function useFrameworkEditionCatalog(enabled: boolean, jurisdiction: strin
       requestID.current += 1;
       setItems([]);
       setNextAfterID("");
+      setLoadedJurisdiction(null);
       setState("idle");
     }
     return () => { requestID.current += 1; };
@@ -56,7 +61,14 @@ export function useFrameworkEditionCatalog(enabled: boolean, jurisdiction: strin
     items,
     nextAfterID,
     state,
-    retry: () => void load(items.length ? nextAfterID : "", items.length > 0),
-    loadMore: () => { if (state !== "loading" && nextAfterID) void load(nextAfterID, true); },
+    loadedJurisdiction,
+    retry: () => {
+      const canContinue = loadedJurisdiction === jurisdiction && items.length > 0 && nextAfterID;
+      void load(canContinue ? nextAfterID : "", Boolean(canContinue));
+    },
+    loadMore: () => {
+      if (state !== "ready" || loadedJurisdiction !== jurisdiction || !nextAfterID) return;
+      void load(nextAfterID, true);
+    },
   };
 }

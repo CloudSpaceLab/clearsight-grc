@@ -67,7 +67,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
     <FrameworkEditionProvenance edition={selected}/>
     <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
     <div className="cs-program-standards__actions">
-      <Button variant="primary" isDisabled={catalog.state !== "ready"}
+      <Button variant="primary" isDisabled={catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction}
         onPress={() => onChooseProgram(selected)}>Choose Program</Button>
     </div>
   </div>;
