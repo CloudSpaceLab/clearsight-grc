@@ -107,6 +107,9 @@ async function capturePage(capture) {
         if (!["current", "partial", "stale", "unknown"].includes(quality)) {
           throw new Error(`Program measure ${label} lacks a data-quality state`);
         }
+        const clipped = await card.locator(".cs-metric-card__label").evaluate((node) =>
+          node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1);
+        if (clipped) throw new Error(`Program measure ${label} is visually clipped`);
       }
       if (await measures.getByRole("button").count() !== 4) {
         throw new Error("Program Overview did not render exactly four grounded measures");
