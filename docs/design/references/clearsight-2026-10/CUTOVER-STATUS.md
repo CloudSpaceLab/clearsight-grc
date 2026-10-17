@@ -48,7 +48,7 @@ These merges establish a tested partial runtime migration, **not complete approv
 3. **Framework/Program/assessment flow:** close the unimplemented approved steps using existing Program Requirements, Form templates, mapping and adoption commands. Where #437 lacks server-side direct edition lookup/search, surface the limitation instead of extending clients with unbounded reads.
 4. **Operating surfaces:** vendor, risk/loss, privacy, work and reports. Preserve exact scope, source population, as-of/period distinction and actor action across the routed handoffs.
 5. **Administration/context:** hierarchy, people/access, audit, controls/policies, automation, integrations, notifications, global search and Copilot only where authoritative contract exists. Keep a single shell and user journey.
-6. **Release acceptance:** execute the merged [four-actor/report plan](../../acceptance/issue-462-actor-report.md) against a real isolated authenticated deployment: administrator, contributor, reviewer, authorizer, negative tenant/entity/group authorization, immutable source-to-report parity, download digest. Test only approved nonproduction data.
+6. **Release acceptance:** execute the merged [four-actor/report plan](../../../acceptance/issue-462-actor-report.md) against a real isolated authenticated deployment: administrator, contributor, reviewer, authorizer, negative tenant/entity/group authorization, immutable source-to-report parity, download digest. Test only approved nonproduction data.
 
 ### Definition of completed
 
