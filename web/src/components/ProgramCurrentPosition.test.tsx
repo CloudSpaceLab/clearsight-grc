@@ -120,11 +120,10 @@ describe("Program calculation truth", () => {
 describe("Program primary action ordering", () => {
   it("navigates to the permitted primary action without forced motion", () => {
     const onNavigate = vi.fn();
-    const previousScrollIntoView = Element.prototype.scrollIntoView;
     const scrollIntoView = vi.fn();
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { callback(0); return 1; });
-    Element.prototype.scrollIntoView = scrollIntoView;
+    const scrollSpy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(scrollIntoView);
     try {
       const permitted = { operations: [{ command: "program.requirement.add", label: "Add requirement", can_act: true }] } as ProgramOperations;
       render(<><div id="program-requirements-panel"/><ProgramCurrentPosition aggregate={aggregate} operations={permitted} digest={digest} onNavigate={onNavigate}/></>);
@@ -133,7 +132,7 @@ describe("Program primary action ordering", () => {
       expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
     } finally {
       vi.unstubAllGlobals();
-      Element.prototype.scrollIntoView = previousScrollIntoView;
+      scrollSpy.mockRestore();
     }
   });
 
