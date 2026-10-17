@@ -101,7 +101,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
     (reviewEdition.license_basis === "CITATIONS_ONLY" || reviewEdition.license_basis === "SUMMARIES_PERMITTED"));
   const localJurisdiction = program.jurisdiction?.trim().toUpperCase();
   const reviewJurisdictions = localJurisdiction && localJurisdiction !== "GLOBAL" && /^[A-Z][A-Z0-9._-]{0,63}$/.test(localJurisdiction)
-    ? [{ id: "GLOBAL", label: "Global" }, { id: localJurisdiction, label: program.jurisdiction }] : [{ id: "GLOBAL", label: "Global" }];
+    ? [{ id: "GLOBAL", label: "Global" }, { id: localJurisdiction, label: localJurisdiction }] : [{ id: "GLOBAL", label: "Global" }];
   const activeCount = adoptions.filter((item) => item.status === "ACTIVE").length;
 
   function openCatalog() {
