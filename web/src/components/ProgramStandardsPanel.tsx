@@ -6,6 +6,7 @@ import type { ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate } from "../types";
 import { useFrameworkEditionCatalog } from "../hooks/useFrameworkEditionCatalog";
 import { Button, SearchField, StatusBadge } from "./ui";
+import { FrameworkEditionProvenance } from "./FrameworkEditionProvenance";
 import "../program-standards.css";
 
 type Props = {
@@ -227,18 +228,7 @@ export function ProgramStandardsPanel({ aggregate, operations, onUpdated, onRelo
         onPress={catalog.loadMore}>Load more standards</Button>}
       {selectedEdition && <div className="cs-program-standards__selection" aria-label="Selected edition">
         <div className="cs-program-standards__section-head"><h4>{selectedEdition.title}</h4><StatusBadge tone="info">Published edition</StatusBadge></div>
-        <dl className="cs-program-standards__facts">
-          <div><dt>Publisher</dt><dd>{selectedEdition.publisher_code}</dd></div>
-          <div><dt>Edition</dt><dd>{selectedEdition.edition_code}</dd></div>
-          <div><dt>Jurisdiction</dt><dd>{selectedEdition.jurisdiction}</dd></div>
-          <div><dt>Published</dt><dd>{selectedEdition.source_published_on}</dd></div>
-          <div><dt>Source rights</dt><dd>{selectedEdition.license_basis === "CITATIONS_ONLY" ? "Citations only" : "Licensed summaries"}</dd></div>
-          {selectedEdition.effective_on && <div><dt>Effective</dt><dd>{selectedEdition.effective_on}</dd></div>}
-          {selectedEdition.approval_reference && <div><dt>Release approval</dt><dd>{selectedEdition.approval_reference}</dd></div>}
-        </dl>
-        {selectedEdition.source_url.startsWith("https://") ?
-          <a className="cs-program-standards__source" href={selectedEdition.source_url} target="_blank" rel="noopener noreferrer">Show published source ↗</a>
-          : <span className="cs-program-standards__meta">Source reference unavailable</span>}
+        <FrameworkEditionProvenance edition={selectedEdition}/>
       </div>}
       <form className="cs-program-standards__proposal" onSubmit={(event) => void submitProposal(event)}>
       <label className="cs-program-standards__reason"><span>Reason for adoption</span>
