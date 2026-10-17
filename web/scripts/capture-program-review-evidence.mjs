@@ -101,7 +101,7 @@ async function openProgram(context, { section = "overview", fixture } = {}) {
   const params = new URLSearchParams({ tour: "off" });
   if (fixture) params.set("fixture", fixture);
   await page.goto(`${baseURL}/?${params.toString()}#programs/program-ndpa/${section}`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Programs", exact: true }).waitFor({ state: "visible" });
+  await page.getByRole("region", { name: "Program record" }).waitFor({ state: "visible" });
   await page.getByText("Nigeria Data Protection Programme", { exact: true }).first().waitFor({ state: "visible" });
   await page.evaluate(() => document.fonts?.ready);
   if (browserErrors.length) throw new Error(`Program review emitted browser errors:\n${browserErrors.join("\n")}`);
