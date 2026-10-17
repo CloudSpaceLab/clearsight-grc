@@ -52,7 +52,10 @@ try {
     page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
     try {
       await page.goto(`${baseURL}${scenario.path}`, { waitUntil: "networkidle" });
-      await page.getByRole("heading", { name: scenario.heading, exact: true }).first().waitFor({ state: "visible" });
+      const workspace = scenario.path.includes("#programs/") && !scenario.path.includes("#programs/library")
+        ? page.getByRole("region", { name: "Program record" })
+        : page.getByRole("heading", { name: scenario.heading, exact: true }).first();
+      await workspace.waitFor({ state: "visible" });
       await page.evaluate(() => document.fonts?.ready);
       await page.addScriptTag({ content: axeSource });
       const axe = await page.evaluate(async () => {
