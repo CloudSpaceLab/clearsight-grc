@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { FrameworkEditionTarget, ProgramItemTarget, ProgramSection } from "../appRouting";
 import { loadProgram, loadProgramAt } from "../api";
@@ -24,7 +24,8 @@ import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
-import { Notice, StatusBadge } from "./ui";
+import { MetricCard, Notice, StatusBadge } from "./ui";
+import { programOverviewMetrics } from "../programOverviewMetrics";
 
 type Props = { programID: string; section?: ProgramSection; programItem?: ProgramItemTarget; frameworkEdition?: FrameworkEditionTarget; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
 type LoadState = "loading" | "live" | "unavailable";
@@ -194,6 +195,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       };
   const dominantAction = digest ? dominantProgramAction(displayedOperations.operations, digest) : undefined;
   const ownerActionIsDominant = dominantAction?.command === "program.assign";
+  const overviewMeasures = useMemo(() => aggregate ? programOverviewMetrics(aggregate) : [], [aggregate]);
 
   function selectSection(next: ProgramSection) {
     setActiveSection(next);
@@ -244,9 +246,19 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {reviewState === "loading" && <div className="inline-notice" role="status"><strong>Checking the current review status.</strong> Program values remain visible while the latest review position is loaded.</div>}
       {reviewState === "unavailable" && <div className="inline-notice" role="status"><strong>Program review status could not be checked.</strong> Program values and calculated status remain visible, but changes are disabled until the current review position is available. <button className="text-button" type="button" onClick={() => void loadReview()}>Retry review status</button></div>}
       {reviewOutdated && <div className="inline-notice" role="status"><strong>Program review status is out of date.</strong> Program values and review history remain visible, but changes are disabled until the latest Program changes have been assessed. <button className="text-button" type="button" onClick={() => void loadReview()}>Reload review status</button></div>}
-      {digest
-        ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onNavigate={selectSection} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
-        : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2><ProgramAttention aggregate={aggregate} onNavigate={selectSection}/></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
+      <div className="program-overview-lead">
+        {activeSection === "overview" && <section className="program-overview-metrics" aria-label="Program measures">
+          {overviewMeasures.map((measure) =>
+            <MetricCard key={measure.id} label={measure.label} value={measure.value}
+              quality={measure.quality} qualityLabel={measure.qualityLabel}
+              tone={measure.id === "issues" && typeof measure.value === "number" && measure.value > 0 ? "warning" : "neutral"}
+              detail={measure.detail} meta={measure.meta} actionLabel={measure.actionLabel}
+              onPress={() => selectSection(measure.target)}/>)}
+        </section>}
+        {digest
+          ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onNavigate={selectSection} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
+          : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2><ProgramAttention aggregate={aggregate} onNavigate={selectSection}/></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
+      </div>
       {activeSection === "overview" && <ProgramVendorFollowUp programID={aggregate.program.id}/>}
       {requestedItem && aggregateState === "live" && !itemAvailable && <Notice><strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong><p>Return to the import to check its result, or review the available requirements and controls below.</p></Notice>}
       {panels && <ProgramDetailSections section={activeSection} panels={panels} onSectionChange={selectSection}/>}

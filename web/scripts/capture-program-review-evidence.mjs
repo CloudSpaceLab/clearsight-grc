@@ -33,6 +33,7 @@ async function captureDesktopReview() {
   const context = await openContext({ width: 1440, height: 900 });
   const page = await openProgram(context);
   try {
+    await assertOverviewMeasures(page, false);
     const digest = page.locator(".program-review-digest");
     await digest.scrollIntoViewIfNeeded();
     await page.getByRole("heading", { name: "3 changes since your last review" }).waitFor({ state: "visible" });
@@ -54,6 +55,7 @@ async function captureMobileReview() {
   const context = await openContext({ width: 390, height: 844 }, true);
   const page = await openProgram(context);
   try {
+    await assertOverviewMeasures(page, true);
     const digest = page.locator(".program-review-digest");
     await digest.scrollIntoViewIfNeeded();
     await page.getByRole("heading", { name: "3 changes since your last review" }).waitFor({ state: "visible" });
@@ -65,6 +67,20 @@ async function captureMobileReview() {
     await capture(page, "39-program-review-changed-light-mobile-390x844", "program-review-mobile-changed");
   } finally {
     await context.close();
+  }
+}
+
+async function assertOverviewMeasures(page, mobile) {
+  const metrics = page.locator(".program-overview-metrics");
+  const position = page.locator(".program-overview-lead > .program-current-position");
+  await metrics.waitFor({ state: "visible" });
+  await position.waitFor({ state: "visible" });
+  if (await metrics.getByRole("button").count() !== 4) throw new Error("Program Overview must expose exactly four measures");
+  const [cards, posture] = await Promise.all([metrics.boundingBox(), position.boundingBox()]);
+  if (!cards || !posture || (mobile ? posture.y >= cards.y : cards.y >= posture.y)) {
+    throw new Error(mobile
+      ? "Compact Program Overview places measure cards ahead of its primary action"
+      : "Desktop Program Overview does not lead with source-backed measures");
   }
 }
 

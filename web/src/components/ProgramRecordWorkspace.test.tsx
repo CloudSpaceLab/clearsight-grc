@@ -251,6 +251,25 @@ describe("Program record workspace", () => {
     expect(screen.getAllByTestId("program-dominant-action")).toHaveLength(1);
   });
 
+  it("renders four scoped measures, preserving stale issue posture and unknown scoring", async () => {
+    const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", { name: "Nigeria data protection" });
+    const measures = container.querySelector(".program-overview-metrics");
+    expect(measures).not.toBeNull();
+    const cards = within(measures as HTMLElement).getAllByRole("button");
+    expect(cards).toHaveLength(4);
+    expect(cards[0]!.getAttribute("aria-label")).toContain("Approved requirements: 0");
+    expect(cards[1]!.getAttribute("aria-label")).toContain("Assessed requirements: —");
+    expect(cards[1]!.getAttribute("data-quality")).toBe("unknown");
+    expect(cards[2]!.getAttribute("aria-label")).toContain("Open issues: 1");
+    expect(cards[2]!.getAttribute("data-quality")).toBe("stale");
+    expect(cards[3]!.getAttribute("aria-label")).toContain("Active evidence checks: 0");
+    expect(screen.getAllByTestId("program-dominant-action")).toHaveLength(1);
+    fireEvent.click(cards[2]!);
+    expect(screen.getByRole("tab", { name: "Issues & actions", selected: true })).toBeTruthy();
+    expect(container.querySelector(".program-overview-metrics")).toBeNull();
+  });
+
   it("shows owner, calculated-state freshness, reasons and one dominant action", async () => {
     render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
 

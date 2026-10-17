@@ -110,23 +110,22 @@ button.cs-metric-card {
 }
 
 .cs-metric-card__heading {
-  display: flex;
+  display: grid;
   min-width: 0;
-  align-items: center;
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: var(--cs-primitive-space-2);
 }
 
 .cs-metric-card__label {
   min-width: 0;
-  overflow: hidden;
+  overflow-wrap: break-word;
   color: var(--cs-text-muted);
   font-size: var(--cs-font-size-caption);
   font-weight: 700;
   letter-spacing: 0.04em;
-  text-overflow: ellipsis;
+  line-height: var(--cs-leading-body);
   text-transform: uppercase;
-  white-space: nowrap;
 }
 
 .cs-metric-card__quality {
