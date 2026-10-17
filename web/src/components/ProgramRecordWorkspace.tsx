@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { FrameworkEditionTarget, ProgramItemTarget, ProgramSection } from "../appRouting";
 import { loadProgram, loadProgramAt } from "../api";
@@ -195,6 +195,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       };
   const dominantAction = digest ? dominantProgramAction(displayedOperations.operations, digest) : undefined;
   const ownerActionIsDominant = dominantAction?.command === "program.assign";
+  const overviewMeasures = useMemo(() => aggregate ? programOverviewMetrics(aggregate) : [], [aggregate]);
 
   function selectSection(next: ProgramSection) {
     setActiveSection(next);
@@ -247,7 +248,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {reviewOutdated && <div className="inline-notice" role="status"><strong>Program review status is out of date.</strong> Program values and review history remain visible, but changes are disabled until the latest Program changes have been assessed. <button className="text-button" type="button" onClick={() => void loadReview()}>Reload review status</button></div>}
       <div className="program-overview-lead">
         {activeSection === "overview" && <section className="program-overview-metrics" aria-label="Program measures">
-          {programOverviewMetrics(aggregate).map((measure) =>
+          {overviewMeasures.map((measure) =>
             <MetricCard key={measure.id} label={measure.label} value={measure.value}
               quality={measure.quality} qualityLabel={measure.qualityLabel}
               tone={measure.id === "issues" && typeof measure.value === "number" && measure.value > 0 ? "warning" : "neutral"}
