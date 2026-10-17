@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
@@ -16,11 +17,7 @@ const captures = [
   { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "03-today-dark-compact-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
-  { name: "200-framework-library-light-1440x900", route: "#programs/library", title: "Framework Library", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, frameworkCatalog: "loaded", state: "framework-library-desktop", expectText: "Sample security reference" },
-  { name: "201-framework-library-dark-1280x800", route: "#programs/library", title: "Framework Library", theme: "dark", density: "comfortable", viewport: { width: 1280, height: 800 }, frameworkCatalog: "loaded", state: "framework-library-desktop-dark", expectText: "Sample security reference" },
-  { name: "202-framework-library-light-mobile-390x844", route: "#programs/library", title: "Framework Library", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, frameworkCatalog: "loaded", state: "framework-library-mobile", expectText: "Sample security reference" },
-  { name: "203-framework-library-sheet-dark-mobile-390x844", route: "#programs/library", title: "Framework Library", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, frameworkCatalog: "loaded", frameworkDetailSheet: true, state: "framework-library-detail-mobile" },
-  { name: "204-framework-library-denied-light-1440x900", route: "#programs/library", title: "Framework Library", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, frameworkCatalog: "denied", state: "framework-library-denied", expectText: "Published editions unavailable" },
+  ...frameworkEvidenceScenarios,
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },

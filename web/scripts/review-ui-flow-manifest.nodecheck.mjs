@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -35,4 +36,11 @@ test("the manifest reviewer rejects unknown capture names", async () => {
   const unknown = { ...capture, name: "unknown-capture-light-1440x900" };
   const { failures } = await review([capture, unknown]);
   assert.ok(failures.some((failure) => failure.startsWith("flow manifest contains unexpected captures:") && failure.includes(unknown.name)));
+});
+
+test("framework evidence names are required and may not silently disappear", async () => {
+  const { failures } = await review([]);
+  const missing = failures.find((failure) => failure.startsWith("flow manifest is missing:")) ?? "";
+  for (const scenario of frameworkEvidenceScenarios) assert.ok(missing.includes(scenario.name), scenario.name);
+  assert.equal(new Set(frameworkEvidenceScenarios.map((scenario) => scenario.name)).size, frameworkEvidenceScenarios.length);
 });
