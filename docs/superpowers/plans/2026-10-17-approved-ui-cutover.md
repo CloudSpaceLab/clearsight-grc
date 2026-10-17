@@ -57,7 +57,7 @@ Each tranche is independently reviewable, requires targeted tests plus rendered 
 - Add canonical design authority references to `DESIGN.md` and #462; snapshot existing shell and four key workflows in both themes.
 - Freeze matrix of real routes/components/API reads/mutations, mark prototype-only behavior.
 - Gate: reviewable source bytes and hashes, no runtime import, no build/test delta, no fake figures.
-- **Current status:** source indexed and mapping committed in PR #497; original source-byte import and rendered baseline still pending. No T0 completion claim until those gates pass.
+- **Current status:** all 96 original UTF-8 reference files from 18 ZIP packages and per-file `MANIFEST.json` are committed in PR #497; the pinned original archive SHA-256 and canonical specification checksum passed. Running-app baseline screenshots and rendered parity review remain pending, so full T0 is not yet complete.
 
 ### T1 — Shared shell, tokens and interaction primitives
 
@@ -134,4 +134,4 @@ The horizontal T0–T7 headings above describe coverage, not permission to ship 
 
 **Dependencies:** V1 can ship independently of unfinished #437 catalog and #433 score work. V2 and V3 must wait for authoritative catalog/adoption contracts, never static arrays. A wholesale shell or shadcn rewrite is not a prerequisite. Scope and time semantics remain server-driven.
 
-**Current proof:** V1 rationale isolation and regression coverage are committed to draft PR #497. CI and live actor-acceptance remain unverified, so V1 is not marked complete. T0 still requires source-byte import and running-app visual baselines.
+**Current proof:** V1 rationale isolation and regression coverage are committed to draft PR #497; backend/web/UI review passed on the preceding implementation head. Four-actor runtime acceptance remains unverified, so V1 is not marked complete. T0 source bytes are imported; running-app visual baselines and design comparisons remain outstanding.
