@@ -156,3 +156,8 @@
 @media (max-width: 600px) {
   .program-overview-metrics { grid-template-columns: minmax(0, 1fr); }
 }
+
+.program-overview-lead { display: grid; gap: var(--cs-space-group); min-width: 0; }
+@media (max-width: 600px) {
+  .program-overview-lead > .program-current-position { order: -1; }
+}
