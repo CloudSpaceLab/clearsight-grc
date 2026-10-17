@@ -193,7 +193,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     <header className="program-portfolio-head cs-register-header" aria-labelledby="program-portfolio-title">
       <div>
         <span className="eyebrow">Portfolio</span>
-        <h2 id="program-portfolio-title">Program portfolio</h2>
+        <h2 id="program-portfolio-title">Programs</h2>
         <p>{briefTitle}{items.length > 0 ? ` · Loaded programs${nextCursor ? " · More available" : ""}` : ""}</p>
       </div>
       <div className="workspace-brief-side"><Button variant="primary" onPress={() => setSetupOpen((current) => !current)}>{setupOpen ? "Close setup" : "New Program"}</Button></div>
@@ -202,7 +202,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
     {items.length > 0 && <section className={`program-portfolio-visual${singleState ? " program-portfolio-visual--uniform" : ""}`} aria-label="Program summary for displayed records">
       <div className="program-portfolio-visual__position">
         <header className="program-portfolio-visual__heading">
-          <div><span className="eyebrow">Loaded results</span><h2>Program status</h2></div>
+          <div><span className="eyebrow">Current selection</span><h2>Program status</h2></div>
           <span className="program-portfolio-visual__scope">{items.length} loaded{nextCursor ? " · More available" : ""}</span>
         </header>
         {singleState
@@ -236,7 +236,7 @@ function ProgramListWorkspace({ targetID, openFirst = false, actorPrincipalID = 
             : "No open issues reported for the assessed programs shown."}</p>}
         <p>{summary.excludedFromIssueComparison > 0
           ? summary.excludedFromIssueComparison + " program" + (summary.excludedFromIssueComparison === 1 ? "" : "s") + " not counted: assessment or issue count unavailable."
-          : "Select a program to review its issues."}</p>
+          : "Select a program to review issues."}</p>
       </div>
     </section>}
     <form className="workspace-toolbar" role="search" onSubmit={submitSearch}>
