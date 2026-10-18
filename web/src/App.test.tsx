@@ -928,7 +928,7 @@ describe("runtime navigation", () => {
     expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation");
   });
 
-  it("keeps short automatic and unauthorized multi-section responses out of the wide workspace", async () => {
+  it("keeps short automatic and terminal multi-section responses out of the wide workspace", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     const assigned = evidenceRequest({
       sections: [{ id: "first", title: "First" }, { id: "second", title: "Second" }],
@@ -956,7 +956,7 @@ describe("runtime navigation", () => {
     render(<App />);
     fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
     dialog = await screen.findByRole("dialog", { name: "Evidence request" });
-    await within(dialog).findByText(/request/i);
+    await within(dialog).findByText("This request has expired");
     expect(dialog.closest(".cs-sheet")?.classList.contains("cs-sheet--default")).toBe(true);
   });
 
