@@ -47,7 +47,7 @@ describe("Program standards — approved design integration", () => {
       operations={[]} onUpdated={vi.fn()} onReload={vi.fn()} onNavigate={onNavigate}/>);
     fireEvent.click(screen.getByRole("button", {name: "Review requirement links"}));
     fireEvent.click(screen.getByRole("button", {name: "Collection forms"}));
-    expect(onNavigate).toHaveBeenNthCalledWith(1, "requirements-controls");
+    expect(onNavigate).toHaveBeenNthCalledWith(1, "requirements-controls", "a");
     expect(onNavigate).toHaveBeenNthCalledWith(2, "monitoring");
     expect(loadFrameworkEditionPage).not.toHaveBeenCalled();
     expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
