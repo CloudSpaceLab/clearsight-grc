@@ -76,4 +76,18 @@ describe("approved Program recent assessments", () => {
     resolveOld({items: [response]});
     await waitFor(() => expect(screen.queryByText("Access review")).toBeNull());
   });
+  it("distinguishes an empty activity period from an unavailable source", async () => {
+    api.load.mockResolvedValueOnce({items: []}).mockRejectedValueOnce(new Error("Not authorized"))
+      .mockResolvedValueOnce({items: [response]});
+    render(<ProgramRecentAssessments programID="program-1" onNavigate={vi.fn()}/>);
+    expect(await screen.findByText("No submitted responses in this period.")).toBeTruthy();
+    expect(screen.queryByText("Recent submitted responses are unavailable.")).toBeNull();
+    fireEvent.change(screen.getByRole("combobox", {name: "Assessment activity period"}), {target: {value: "30"}});
+    expect(await screen.findByText("Recent submitted responses are unavailable.")).toBeTruthy();
+    expect(screen.queryByText("No submitted responses in this period.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name: "Retry assessments"}));
+    expect(await screen.findByText("Access review")).toBeTruthy();
+    expect(api.load).toHaveBeenCalledTimes(3);
+  });
+
 });
