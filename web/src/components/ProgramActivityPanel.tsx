@@ -72,7 +72,7 @@ export function ProgramActivityPanel({ aggregate, digest, onReload, children }: 
       {changes.length ? <ol className="program-activity__list">
         {changes.map((change, index) =>
           <li key={`${change.kind}-${change.object_type ?? ""}-${change.object_id ?? ""}-${index}`}>
-            <strong>{change.kind.replaceAll("_", " ").toLowerCase().replace(/(^|\\s)\\S/g, (part) => part.toUpperCase())}</strong>
+            <strong>{change.kind.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (part) => part.toUpperCase())}</strong>
             <span>{change.summary}</span>
           </li>)}
       </ol> : <p>Individual changes were not supplied by the review service.</p>}
