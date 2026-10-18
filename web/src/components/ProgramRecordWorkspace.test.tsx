@@ -269,6 +269,22 @@ describe("Program record workspace", () => {
     expect(screen.queryByRole("button", { name: "Review requirement links" })).toBeNull();
   });
 
+  it("places Program section navigation above measures and current position", async () => {
+    const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", { name: "Nigeria data protection" });
+    const tabs = screen.getByRole("tablist", { name: "Program sections" });
+    const measures = container.querySelector(".program-overview-metrics");
+    const posture = container.querySelector(".program-current-position");
+    expect(measures).not.toBeNull();
+    expect(posture).not.toBeNull();
+    expect(tabs.compareDocumentPosition(measures!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(tabs.compareDocumentPosition(posture!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Requirements & controls" }));
+    expect(screen.queryByRole("region", { name: "Program measures" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Out of date" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Requirements & controls", selected: true })).toBeTruthy();
+  });
+
   it("renders four scoped measures, preserving stale issue posture and unknown scoring", async () => {
     const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
     await screen.findByRole("heading", { name: "Nigeria data protection" });
