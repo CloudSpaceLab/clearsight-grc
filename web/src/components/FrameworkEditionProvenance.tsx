@@ -16,6 +16,13 @@ export function frameworkEditionRightsLabel(basis: string): string {
     : basis === "SUMMARIES_PERMITTED" ? "Summaries permitted" : "Not verified";
 }
 
+// Proposal and approval share one source/rights gate. A published metadata row
+// alone must never become an actionable Program standard.
+export function frameworkEditionHasVerifiableSource(edition: FrameworkEditionOption): boolean {
+  return Boolean(trustedFrameworkSourceURL(edition.source_url)) &&
+    (edition.license_basis === "CITATIONS_ONLY" || edition.license_basis === "SUMMARIES_PERMITTED");
+}
+
 /** Source provenance only. A published reference is not an adopted obligation. */
 export function FrameworkEditionProvenance({ edition }: Props) {
   const sourceURL = trustedFrameworkSourceURL(edition.source_url);
