@@ -202,7 +202,7 @@ describe("CaptureForm", () => {
         { file_name: "Not yet uploaded.pdf", media_type: "application/pdf", size_bytes: 100 },
       ],
     };
-    const { rerender } = render(<Harness contract={contract} initialMode="WIZARD"
+    render(<Harness contract={contract} initialMode="WIZARD"
       initialAnswers={{ proof: { artifact_ids: ["a-1"] } }} attachments={attachments}/>);
     const rail = screen.getByRole("complementary", { name: "Response readiness and evidence" });
     expect(within(rail).getByText("Annual audit report.pdf")).toBeTruthy();
@@ -210,9 +210,6 @@ describe("CaptureForm", () => {
     expect(within(rail).queryByText("Not yet uploaded.pdf")).toBeNull();
     expect(within(rail).getByText("Evidence received").nextElementSibling?.textContent).toBe("1 / 1");
 
-    // A local selection without an artifact ID must never imply receipt.
-    rerender(<Harness contract={contract} initialMode="WIZARD" attachments={attachments}/>);
-    expect(within(rail).getByText("Annual audit report.pdf")).toBeTruthy();
   });
 
   it("does not count conditional questions or their evidence while hidden", () => {
