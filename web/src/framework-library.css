@@ -207,3 +207,53 @@
     width: 100%;
   }
 }
+
+/* Keep the filter and first edition visible without adding another hero banner. */
+.cs-framework-library {
+  margin-block: var(--cs-space-group);
+  gap: var(--cs-space-group);
+}
+.cs-framework-library__header {
+  padding-bottom: var(--cs-space-inline);
+}
+
+/* Approved Framework Library hierarchy. Tokens keep light/dark in sync. */
+.cs-framework-library-page-heading {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 116px;
+  padding-block: var(--cs-space-inline) var(--cs-space-group);
+  border-bottom: 1px solid var(--cs-border-default);
+}
+.cs-framework-library-page-heading > div {
+  position: relative;
+  z-index: 1;
+}
+.cs-framework-library-page-heading p {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-body);
+  margin-top: var(--cs-space-inline);
+}
+.cs-framework-library-page-heading::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+  inset: 16px 0 0 auto;
+  width: min(48%, 550px);
+  background:
+    radial-gradient(ellipse at 84% 76%, color-mix(in srgb, var(--cs-action-primary) 11%, transparent) 0%, transparent 65%),
+    radial-gradient(ellipse at 42% 108%, color-mix(in srgb, var(--cs-action-primary) 7%, transparent) 0%, transparent 70%);
+  clip-path: polygon(0 90%, 18% 76%, 38% 80%, 58% 48%, 76% 62%, 100% 24%, 100% 100%, 0 100%);
+}
+@media (max-width: 767px) {
+  .cs-framework-library-page-heading {
+    min-height: 0;
+    padding-block: var(--cs-space-group);
+  }
+  .cs-framework-library-page-heading::after { width: 60%; opacity: .45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-framework-library-page-heading::after { animation: none; }
+}
