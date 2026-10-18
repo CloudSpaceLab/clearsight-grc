@@ -319,7 +319,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     {error && <Notice tone="error">{error}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
     {canConfigureMonitoring && mode === "choose" && <div className="monitoring-choice-grid">
-      {forms.length > 0 && <button type="button" aria-label="Use existing Program form"
+      {forms.length > 0 && <button type="button" className="monitoring-existing-form-action" aria-label="Use existing Program form"
         disabled={!canDefineCheck || !checksComplete || eligibleExistingForms.length === 0}
         onClick={() => { setConfiguringForm(null); setMode("existing"); }}>
         <strong>Use existing Program form</strong>
