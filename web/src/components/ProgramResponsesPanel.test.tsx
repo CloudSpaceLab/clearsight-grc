@@ -112,6 +112,47 @@ describe("Program submitted data panel", () => {
     expect(api.loadCompletedResponses).toHaveBeenCalledTimes(2);
   });
 
+
+  it("fails closed when a scoped response list contains another Program's record", async () => {
+    api.loadCompletedResponses.mockResolvedValueOnce({
+      items: [response, { ...earlier, subject_id: "program-2" }],
+    });
+    render(<ProgramResponsesPanel programID="program-1"/>);
+    expect(await screen.findByText("Submitted data could not be loaded")).toBeTruthy();
+    expect(screen.queryByText(response.title)).toBeNull();
+    expect(screen.queryByText(earlier.title)).toBeNull();
+    expect(screen.queryByRole("button", {name: /Review Branch incident self-assessment response/})).toBeNull();
+    expect(api.loadCompletedResponse).not.toHaveBeenCalled();
+  });
+
+  it("does not append a later response page from an unrelated Program", async () => {
+    api.loadCompletedResponses
+      .mockResolvedValueOnce({items: [response], next_cursor: "next"})
+      .mockResolvedValueOnce({items: [{...earlier, subject_id: "program-2"}], next_cursor: undefined});
+    render(<ProgramResponsesPanel programID="program-1"/>);
+    await screen.findByText(response.title);
+    fireEvent.click(screen.getByRole("button", {name: "Load more responses"}));
+    expect(await screen.findByText(/Returned responses do not match this Program/)).toBeTruthy();
+    expect(screen.getByText(response.title)).toBeTruthy();
+    expect(screen.queryByText(earlier.title)).toBeNull();
+  });
+
+  it("refuses a detail whose identity or subject disagrees with the selected response", async () => {
+    api.loadCompletedResponse.mockResolvedValueOnce({
+      response: {...response, subject_id: "program-2"},
+      revision: {id: "response-1", revision: 2, achieved_assurance: "EMAIL_VERIFIED",
+        scored_weight_coverage: 90, state: "FINAL", current: true,
+        created_at: "2026-09-01T09:30:00Z", score: response.score},
+    });
+    render(<ProgramResponsesPanel programID="program-1"/>);
+    fireEvent.click(await screen.findByRole("button", {name: "Review Branch incident self-assessment response"}));
+    const dialog = await screen.findByRole("dialog", {name: "Review Branch incident self-assessment response"});
+    expect(await within(dialog).findByText("Response details could not be loaded")).toBeTruthy();
+    expect(within(dialog).getByText(/does not belong to the selected Program/)).toBeTruthy();
+    expect(within(dialog).queryByRole("tab", {name: "Review"})).toBeNull();
+    expect(within(dialog).queryByRole("region", {name: "Assess response-1"})).toBeNull();
+  });
+
   it("opens a review sheet with Answers, Documents and Review tabs and passes semantic checks", async () => {
     const view = render(<ProgramResponsesPanel programID="program-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Review Branch incident self-assessment response" }));
