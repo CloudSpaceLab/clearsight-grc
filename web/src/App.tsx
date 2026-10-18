@@ -27,6 +27,7 @@ import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
 import { WorkspaceSwitcher } from "./components/ui";
 import type { CaptureLoadState } from "./components/CapturePanel";
+import { captureContract, effectivePresentationMode, visibleCaptureSections } from "./components/capture/contract";
 import { apiErrorKind } from "./http";
 import { canRespondToEvidenceRequest, isEvidenceRequestAssignedToActor } from "./evidenceAuthorization";
 import { parseRoute, routeHash } from "./appRouting";
@@ -86,6 +87,16 @@ type ProductRuntime = RuntimeContext & {
   };
   actor: RuntimeContext["actor"] & { role_codes?: string[] };
 };
+
+function isAuthorizedWizardAssessment(request: EvidenceRequest | null, actorID?: string): boolean {
+  if (!request || !canRespondToEvidenceRequest(request, actorID) ||
+      (request.status !== "READY" && request.status !== "IN_PROGRESS")) return false;
+  const contract = captureContract(request);
+  // Match CaptureForm's effective initial presentation, not simply the declared
+  // section count; a short AUTOMATIC form still opens in Classic.
+  return visibleCaptureSections(contract, {}).length > 1 &&
+    effectivePresentationMode(contract, {}, contract.presentation.default_mode) === "WIZARD";
+}
 
 function App({ presentation = "enterprise" }: { presentation?: RuntimePresentation }) {
   const displayPreferences = useDisplayPreferences();
@@ -592,7 +603,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   }
 
   const usesAssessmentWorkspace = activePanel === "capture" && captureState === "live" &&
-    (capture?.sections?.length ?? 0) > 1 && capture?.presentation?.default_mode !== "CLASSIC";
+    isAuthorizedWizardAssessment(capture, runtime?.actor.id);
 
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation">
