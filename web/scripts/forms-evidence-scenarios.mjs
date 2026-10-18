@@ -134,8 +134,14 @@ async function selectFileType(page, name) {
 }
 
 async function assertFileTypeSelected(page, name) {
-  const narrow = await page.locator(".document-browser").evaluate((browser) => matchMedia("(max-width: 760px)").matches
-    || browser.clientWidth <= (browser.classList.contains("document-browser--selecting") ? 760 : 960));
+  const narrow = await page.locator(".document-browser").evaluate((browser) => {
+    const style = getComputedStyle(browser);
+    const inlineSize = browser.getBoundingClientRect().width
+      - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth)
+      - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    return matchMedia("(max-width: 760px)").matches
+      || inlineSize <= (browser.classList.contains("document-browser--selecting") ? 760 : 960);
+  });
   const compact = page.getByRole("button", { name: `${name} File type`, exact: true });
   const sidebar = page.locator(".document-kinds");
   if (await compact.isVisible() !== narrow || await sidebar.isVisible() === narrow) throw new Error("File types must use one visible labelled navigation at the current width.");
