@@ -923,7 +923,7 @@ describe("runtime navigation", () => {
     expect(dialog.closest(".cs-sheet")?.classList.contains("assessment-capture-sheet")).toBe(true);
     expect(within(dialog).getByRole("navigation", { name: "Assessment sections" })).toBeTruthy();
     expect(within(dialog).getByRole("complementary", { name: "Response readiness and evidence" })).toBeTruthy();
-    expect(within(dialog).getByRole("button", { name: "Review response" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Continue" })).toBeTruthy();
     expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation");
   });
 
