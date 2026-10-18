@@ -26,7 +26,7 @@ export function ProgramDetailSections({ section, panels, onSectionChange, lead }
   if (section === "monitoring") {
     return <section className="program-detail-sections program-detail-sections--contextual" aria-label="Data collection workspace">
       <header className="program-contextual-header">
-        <div><span className="eyebrow">Program / Data collection</span><h2>Data collection</h2></div>
+        <span className="eyebrow">Program / Data collection</span>
         <button type="button" className="secondary-button" onClick={() => onSectionChange("overview")}>Back to Overview</button>
       </header>
       <div className="program-section-panel">{lead}{panels.monitoring}</div>
