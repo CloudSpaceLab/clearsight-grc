@@ -60,6 +60,38 @@ describe("approved Program Activity view", () => {
     expect(screen.queryByText("No recorded changes since the last review")).toBeNull();
   });
 
+  it("rejects absent, foreign-tenant and contradictory accepted checkpoints", () => {
+    const reviewed = { ...digest, state: "CURRENT", review_required: false,
+      changes: [], changes_total: 0, changes_omitted: 0, history_truncated: false };
+    const view = render(<ProgramActivityPanel aggregate={aggregate}
+      digest={{ ...reviewed, checkpoint: undefined }} onReload={vi.fn()}/>);
+    expect(screen.getByText("Review changes unavailable")).toBeTruthy();
+    expect(screen.queryByText("No recorded changes since the last review")).toBeNull();
+
+    view.rerender(<ProgramActivityPanel aggregate={aggregate}
+      digest={{ ...reviewed, checkpoint: { ...digest.checkpoint!, tenant_id: "another-tenant" } }}
+      onReload={vi.fn()}/>);
+    expect(screen.getByText("Review changes unavailable")).toBeTruthy();
+
+    view.rerender(<ProgramActivityPanel aggregate={aggregate}
+      digest={{ ...reviewed, review_required: true }} onReload={vi.fn()}/>);
+    expect(screen.getByText("Review changes unavailable")).toBeTruthy();
+
+    view.rerender(<ProgramActivityPanel aggregate={aggregate}
+      digest={{ ...reviewed, state: "NO_BASELINE" }} onReload={vi.fn()}/>);
+    expect(screen.getByText("Review changes unavailable")).toBeTruthy();
+    expect(screen.queryByText("No accepted review yet")).toBeNull();
+  });
+
+  it("rejects a digest if the Program projection is not current", () => {
+    const stale = { ...aggregate, current_state: {
+      ...aggregate.current_state!, program_version: 3,
+    }} as ProgramAggregate;
+    render(<ProgramActivityPanel aggregate={stale} digest={digest} onReload={vi.fn()}/>);
+    expect(screen.getByText("Review changes unavailable")).toBeTruthy();
+    expect(screen.queryByText("4 changes since the last review")).toBeNull();
+  });
+
   it("distinguishes first review, accepted current review and unavailable read", () => {
     const view = render(<ProgramActivityPanel aggregate={aggregate} digest={null} onReload={vi.fn()}/>);
     expect(screen.getByText("Review changes unavailable")).toBeTruthy();
