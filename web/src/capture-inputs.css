@@ -191,10 +191,21 @@
   .capture-wizard__layout--sectioned { grid-template-columns: minmax(170px, 225px) minmax(0, 1fr); }
   .capture-wizard__layout--sectioned > .capture-wizard__readiness { grid-column: 2; }
 }
-@container capture-wizard (max-width: 720px) {
+@container capture-wizard (max-width: 850px) {
   .capture-wizard__layout--sectioned { grid-template-columns: minmax(0, 1fr); }
   .capture-wizard__layout--sectioned > .capture-wizard__readiness { grid-column: auto; }
   .capture-wizard__sections { position: static; }
+}
+
+/* The wide authorized internal sheet retains its section/question split on
+   tablet widths without narrowing other capture contexts. */
+@container capture-wizard (min-width: 721px) and (max-width: 850px) {
+  .assessment-capture-sheet .capture-wizard__layout--sectioned {
+    grid-template-columns: minmax(170px, 225px) minmax(0, 1fr);
+  }
+  .assessment-capture-sheet .capture-wizard__layout--sectioned > .capture-wizard__readiness {
+    grid-column: 2;
+  }
 }
 
 @media (max-width: 900px) {
