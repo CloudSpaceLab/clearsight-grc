@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { createFormMonitoringCheck, createMonitoringLinkedIssue, createSourceMonitoringCheck, evaluateMonitoringSource, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionFormTemplate, transitionMonitoringCheck } from "../monitoringApi";
 import type { SourceCheckConfig } from "../monitoringApi";
@@ -17,7 +17,7 @@ import { concernScoreText } from "../concernScorePresentation";
 const FormBuilder = lazy(() => import("./FormBuilder").then((module) => ({ default: module.FormBuilder })));
 
 type Props = { aggregate: ProgramAggregate; actorPrincipalID: string; canConfigureSources: boolean; operations: ProgramOperation[]; onOpenMatter?: (matterID: string) => void; onOpenForm?: (formID: string) => void };
-type SetupMode = "closed" | "choose" | "form" | "source";
+type SetupMode = "closed" | "choose" | "form" | "source" | "existing";
 
 function latestByID<T extends { id: string; version: number }>(values: T[]) {
   const latest = new Map<string, T>();
@@ -93,25 +93,44 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   const [summaryState, setSummaryState] = useState<"loading" | "live" | "unavailable">("loading");
   const [latestResults, setLatestResults] = useState<Record<string, MonitoringResult>>({});
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
+  const [checksState, setChecksState] = useState<"loading" | "live" | "unavailable">("loading");
+  const [checksPageComplete, setChecksPageComplete] = useState(false);
   const [mode, setMode] = useState<SetupMode>("closed");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [collecting, setCollecting] = useState<FormTemplate | null>(null);
   const [configuringForm, setConfiguringForm] = useState<FormTemplate | null>(null);
   const [notice, setNotice] = useState("");
+  const loadRequestID = useRef(0);
 
   async function reload() {
+    const request = ++loadRequestID.current;
+    setForms([]);
+    setChecks([]);
+    setLatestResults({});
     setState("loading");
+    setChecksState("loading");
+    setChecksPageComplete(false);
     setSummaryState("loading");
     const [formResult, checkResult, summaryResult] = await Promise.allSettled([loadFormTemplates(aggregate.program.id), loadMonitoringChecks(aggregate.program.id), loadCollectionSummaries(aggregate.program.id)]);
+    if (request !== loadRequestID.current) return;
     if (formResult.status === "fulfilled") setForms(latestByID(formResult.value));
     if (checkResult.status === "fulfilled") {
       const currentChecks = latestByID(checkResult.value);
       setChecks(currentChecks);
+      // Check completeness against the raw page, not deduplicated revision IDs.
+      setChecksPageComplete(checkResult.value.length < 100);
+      setChecksState("live");
       const loaded = await Promise.allSettled(currentChecks.map(async (check) => ({ check, results: await loadMonitoringResults(check.id, check.version) })));
+      if (request !== loadRequestID.current) return;
       const next: Record<string, MonitoringResult> = {};
       for (const value of loaded) if (value.status === "fulfilled" && value.value.results[0]) next[value.value.check.id] = value.value.results[0];
       setLatestResults(next);
+    } else {
+      setChecks([]);
+      setLatestResults({});
+      setChecksPageComplete(false);
+      setChecksState("unavailable");
     }
     if (summaryResult.status === "fulfilled") {
       setCollectionSummaries(Object.fromEntries(summaryResult.value.map((summary) => [summary.monitoring_check_id, summary])));
@@ -122,7 +141,12 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     setState(formResult.status === "fulfilled" || checkResult.status === "fulfilled" ? "live" : "unavailable");
   }
 
-  useEffect(() => { void reload(); }, [aggregate.program.id]);
+  useEffect(() => {
+    setMode("closed");
+    setConfiguringForm(null);
+    void reload();
+    return () => { loadRequestID.current += 1; };
+  }, [aggregate.program.id]);
   const formDefineOperation = operations.find((operation) => operation.command === "program.monitoring.form.define" && !operation.subresource_id);
   const checkDefineOperation = operations.find((operation) => operation.command === "program.monitoring.define" && !operation.subresource_id);
   const canDefineForm = Boolean(formDefineOperation?.can_act);
@@ -139,7 +163,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       setConfiguringForm(null);
     }
     if (mode === "form" && !canDefineForm) setMode("choose");
-    if (mode === "source" && !canDefineCheck) setMode("choose");
+    if ((mode === "source" || mode === "existing") && !canDefineCheck) setMode("choose");
   }, [canConfigureMonitoring, canDefineForm, canDefineCheck, mode]);
 
   const linkedFormIDs = useMemo(() => new Set(checks.filter((check) => check.input_kind === "FORM").map((check) => check.form_template_id)), [checks]);
@@ -147,6 +171,14 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   const formFields = useMemo(() => new Map(forms.flatMap((form) => form.fields.map((field) => [`${form.id}:${field.id}`, field.label] as const))), [forms]);
   const formsByID = useMemo(() => new Map(forms.map((form) => [form.id, form])), [forms]);
   const unlinkedForms = useMemo(() => forms.filter((form) => !linkedFormIDs.has(form.id)), [forms, linkedFormIDs]);
+  // The existing Program form API is Program/tenant-scoped, and the check
+  // read is bounded at 100. Never infer "not linked" from a failed/full page.
+  const checksComplete = checksState === "live" && checksPageComplete;
+  const eligibleExistingForms = useMemo(() => unlinkedForms.filter((form) =>
+    form.tenant_id === aggregate.program.tenant_id &&
+    (!form.program_id || form.program_id === aggregate.program.id) &&
+    form.status === "ACTIVE" && form.is_current && hasScoredQuestions(form),
+  ), [unlinkedForms, aggregate.program.tenant_id, aggregate.program.id]);
   const formChecks = useMemo(() => checks.filter((check) => check.input_kind === "FORM"), [checks]);
   const sourceChecks = useMemo(() => checks.filter((check) => check.input_kind === "SOURCE"), [checks]);
 
@@ -163,12 +195,18 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   }
 
   async function addCheck(form: FormTemplate, policy: CollectionPolicy) {
-    if (!canDefineCheck) return;
+    const startedAtRequest = loadRequestID.current;
+    if (!canDefineCheck || !checksComplete || !eligibleExistingForms.some((item) =>
+      item.id === form.id && item.version === form.version)) {
+      throw new Error("Current Program forms or linked checks could not be verified. Reload before adding this collection.");
+    }
     setBusy(form.id); setError("");
     try {
       const check = await createFormMonitoringCheck(aggregate.program.id, form, policy);
+      if (startedAtRequest !== loadRequestID.current) return;
       setChecks((current) => latestByID([...current, check]));
       setConfiguringForm(null);
+      setMode("closed");
       setNotice("Collection schedule saved as a draft for approval.");
     } catch (caught) {
       throw caught instanceof Error ? caught : new Error("The collection schedule could not be saved.");
@@ -286,12 +324,39 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     {!canConfigureMonitoring && <p className="program-operation-reason">{formDefineOperation?.reason ?? checkDefineOperation?.reason ?? "Assignments unavailable. Data collection changes disabled."}</p>}
     {state === "loading" && <p aria-live="polite">Loading data checks…</p>}
     {state === "unavailable" && <div className="inline-error"><p>Data checks could not be loaded.</p><button className="secondary-button" type="button" onClick={() => void reload()}>Try again</button></div>}
+    {state === "live" && canDefineCheck && forms.length > 0 && checksState === "unavailable" &&
+      <Notice tone="warning">Linked checks could not be verified.
+        <button className="text-button" type="button" onClick={() => void reload()}>Retry data checks</button>
+      </Notice>}
+    {state === "live" && canDefineCheck && forms.length > 0 && checksState === "live" && !checksPageComplete &&
+      <Notice tone="warning">The first 100 checks are loaded. Existing form links cannot be verified until paginated checking is available.</Notice>}
     {error && <Notice tone="error">{error}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
     {canConfigureMonitoring && mode === "choose" && <div className="monitoring-choice-grid">
-      <button type="button" aria-label="Collection form" disabled={!canDefineForm} onClick={() => setMode("form")}><strong>Collection form</strong><span>{canDefineForm ? "Ask assigned staff for structured responses and score the answers." : formDefineOperation?.reason ?? "The current Program owner must create this form."}</span></button>
+      {forms.length > 0 && <button type="button" className="monitoring-existing-form-action" aria-label="Use existing Program form"
+        disabled={!canDefineCheck || !checksComplete || eligibleExistingForms.length === 0}
+        onClick={() => { setConfiguringForm(null); setMode("existing"); }}>
+        <strong>Use existing Program form</strong>
+        <span>{!canDefineCheck ? checkDefineOperation?.reason ?? "The current Program owner must add this check."
+          : !checksComplete ? "Reload checks to confirm which forms are already linked."
+          : eligibleExistingForms.length ? `${eligibleExistingForms.length} loaded approved form${eligibleExistingForms.length === 1 ? "" : "s"}`
+          : "No eligible forms among loaded Program records."}</span>
+      </button>}
+      <button type="button" aria-label="Collection form" disabled={!canDefineForm} onClick={() => setMode("form")}><strong>Collection form</strong><span>{canDefineForm ? "Create a new form draft for approval." : formDefineOperation?.reason ?? "The current Program owner must create this form."}</span></button>
       <button type="button" aria-label="Connected data" disabled={!canDefineCheck || !canConfigureSources} onClick={() => setMode("source")}><strong>Connected data</strong><span>{!canDefineCheck ? checkDefineOperation?.reason ?? "The current Program owner must add this check." : canConfigureSources ? "Check a status endpoint and calculate risk from the returned value." : "A GRC administrator can connect a new source."}</span></button>
     </div>}
+    {canDefineCheck && mode === "existing" && <section className="program-operation-form" aria-label="Choose existing Program form">
+      <div className="monitoring-section-heading">
+        <h4>Choose an approved Program form</h4>
+        <button type="button" className="text-button" onClick={() => { setConfiguringForm(null); setMode("choose"); }}>Back</button>
+      </div>
+      {!checksComplete && <p role="alert">Linked checks could not be verified. Reload before selecting a form.</p>}
+      {checksComplete && eligibleExistingForms.map((form) => <button key={form.id} type="button" className="secondary-button"
+        disabled={Boolean(busy) || configuringForm?.id === form.id}
+        onClick={() => setConfiguringForm(form)}>{form.name} · Revision {form.version}</button>)}
+      {checksComplete && configuringForm && eligibleExistingForms.some((form) => form.id === configuringForm.id && form.version === configuringForm.version) &&
+        <CollectionPolicyForm onCancel={() => setConfiguringForm(null)} onSave={(policy) => addCheck(configuringForm, policy)}/>}
+    </section>}
     {canDefineForm && mode === "form" && (
       <Suspense fallback={<p className="monitoring-builder-loading" role="status">Loading form editor…</p>}>
         <FormBuilder programID={aggregate.program.id} onCancel={() => setMode("choose")} onSaved={(form) => { setForms((current) => latestByID([...current, form])); setMode("closed"); setNotice("Form draft saved."); }}/>
@@ -309,10 +374,10 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("PENDING_APPROVAL") && form.status === "DRAFT" && <button className="secondary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "PENDING_APPROVAL")}>Send for approval</button>}
           {formTransitionOperation(form.id)?.can_act && formTransitionOperation(form.id)?.allowed_targets?.includes("ACTIVE") && form.status === "PENDING_APPROVAL" && form.submitted_by !== actorPrincipalID && <button className="primary-button" disabled={busy === form.id} onClick={() => void changeForm(form, "ACTIVE")}>Approve form</button>}
           {form.status === "PENDING_APPROVAL" && form.submitted_by === actorPrincipalID && <span className="action-note">Another approver must approve this form.</span>}
-          {canDefineCheck && form.status === "ACTIVE" && hasScoredQuestions(form) && <button className="secondary-button" disabled={busy === form.id} onClick={() => setConfiguringForm(form)}>Set collection schedule</button>}
+          {canDefineCheck && checksComplete && form.status === "ACTIVE" && form.is_current && hasScoredQuestions(form) && <button className="secondary-button" disabled={busy === form.id} onClick={() => { setMode("closed"); setConfiguringForm(form); }}>Set collection schedule</button>}
         </div>
         {canDefineCheck && form.status === "ACTIVE" && !hasScoredQuestions(form) && <p className="program-operation-reason">This active revision has no scored questions. Create and approve a scored revision in Forms before adding a data check.</p>}
-        {configuringForm?.id === form.id && <CollectionPolicyForm onCancel={() => setConfiguringForm(null)} onSave={(policy) => addCheck(form, policy)}/>}
+        {mode !== "existing" && configuringForm?.id === form.id && <CollectionPolicyForm onCancel={() => setConfiguringForm(null)} onSave={(policy) => addCheck(form, policy)}/>}
       </article>)}
       {formChecks.map((check) => {
         const form = check.form_template_id ? formsByID.get(check.form_template_id) : undefined;
