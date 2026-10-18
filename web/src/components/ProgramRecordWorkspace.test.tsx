@@ -174,6 +174,7 @@ describe("Program record workspace", () => {
     expect(await screen.findByRole("heading", { name: "Program changes and review history" })).toBeTruthy();
     expect(screen.getByText("Requirement review updated")).toBeTruthy();
     expect(screen.getByText("1 change since the last review")).toBeTruthy();
+    expect(document.querySelector(".program-current-position")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Program record history" })).toBeNull();
     expect(loadProgramReviewDigest).toHaveBeenCalledWith("program-1");
   });
