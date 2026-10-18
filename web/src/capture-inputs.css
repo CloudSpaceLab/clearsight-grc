@@ -4,6 +4,9 @@
 .assessment-capture-sheet {
   --cs-sheet-wide-width: min(1360px, calc(100vw - var(--cs-primitive-space-8)));
 }
+.assessment-capture-sheet .panel-content {
+  padding: var(--cs-space-section) var(--cs-space-group);
+}
 
 .panel-content { min-width: 0; }
 .panel-content .known-facts div { min-width: 0; }
