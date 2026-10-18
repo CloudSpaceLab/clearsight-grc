@@ -162,7 +162,8 @@ async function capturePage(capture) {
       await first.waitFor({ state: "visible" });
       const firstBox = await first.boundingBox();
       if (!firstBox || firstBox.y > 570) {
-        throw new Error("Approved mobile Program measures are pushed too far below the first viewport");
+        await page.screenshot({ path: path.join(outputDir, "04-program-mobile-viewport-failure.png"), fullPage: false, animations: "disabled" });
+        throw new Error(`Approved mobile Program measures are pushed too far below the first viewport: ${firstBox?.y ?? "unavailable"}px`);
       }
       const collectionAction = page.getByRole("button", { name: "Open data collection" });
       const actionBox = await collectionAction.boundingBox();
