@@ -178,7 +178,7 @@ describe("CaptureForm", () => {
       ],
     };
     render(<Harness contract={contract} initialMode="WIZARD"
-      initialAnswers={{ certificate: { document: { document_type: "ISO certification" } } }}/>);
+      initialAnswers={{ certificate: { document: { artifact_id: "", document_type: "ISO certification" } } }}/>);
     const readiness = screen.getByRole("complementary", { name: "Response readiness and evidence" });
     expect(within(readiness).getByText("0 / 1")).toBeTruthy();
     expect(within(readiness).getByText("Certificate").nextElementSibling?.textContent).toBe("Required");
