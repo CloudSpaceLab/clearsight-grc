@@ -3,6 +3,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureFormContract, CapturePresentationMode } from "../../types";
 import { CaptureForm } from "./CaptureForm";
+import type { CaptureAttachment } from "./CaptureFieldControl";
 import { CaptureWorkspaceRecoveryProvider, type CaptureWorkspaceRecoveryUI } from "./CaptureWorkspaceRecoveryContext";
 
 function Harness({
@@ -12,6 +13,7 @@ function Harness({
   onReview = vi.fn(),
   onBeforeSectionNavigation,
   recoveryUI,
+  attachments = {},
 }: {
   contract: CaptureFormContract;
   initialAnswers?: CaptureAnswers;
@@ -19,13 +21,14 @@ function Harness({
   onReview?: () => void;
   onBeforeSectionNavigation?: () => Promise<boolean>;
   recoveryUI?: CaptureWorkspaceRecoveryUI;
+  attachments?: Record<string, CaptureAttachment[]>;
 }) {
   const [answers, setAnswers] = useState(initialAnswers);
   const [mode, setMode] = useState(initialMode);
   const form = <CaptureForm
     contract={contract}
     answers={answers}
-    attachments={{}}
+    attachments={attachments}
     mode={mode}
     external
     uploadingField={null}
@@ -184,6 +187,32 @@ describe("CaptureForm", () => {
     expect(within(readiness).getByText("Evidence received").nextElementSibling?.textContent).toBe("0 / 1");
     expect(within(readiness).getByText("Certificate").nextElementSibling?.textContent).toBe("Required");
     expect(within(readiness).getByText("Required unanswered").nextElementSibling?.textContent).toBe("1");
+  });
+
+  it("shows only confirmed artifact filenames, not stale or unuploaded filenames", () => {
+    const contract: CaptureFormContract = {
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+      sections: [{ id: "responses", title: "Responses" }],
+      fields: [{ id: "proof", section_id: "responses", label: "Proof", type: "file", required: true }],
+    };
+    const attachments: Record<string, CaptureAttachment[]> = {
+      proof: [
+        { id: "a-1", file_name: "Annual audit report.pdf", media_type: "application/pdf", size_bytes: 400 },
+        { id: "a-2", file_name: "Stale draft.pdf", media_type: "application/pdf", size_bytes: 200 },
+        { file_name: "Not yet uploaded.pdf", media_type: "application/pdf", size_bytes: 100 },
+      ],
+    };
+    const { rerender } = render(<Harness contract={contract} initialMode="WIZARD"
+      initialAnswers={{ proof: { artifact_ids: ["a-1"] } }} attachments={attachments}/>);
+    const rail = screen.getByRole("complementary", { name: "Response readiness and evidence" });
+    expect(within(rail).getByText("Annual audit report.pdf")).toBeTruthy();
+    expect(within(rail).queryByText("Stale draft.pdf")).toBeNull();
+    expect(within(rail).queryByText("Not yet uploaded.pdf")).toBeNull();
+    expect(within(rail).getByText("Evidence received").nextElementSibling?.textContent).toBe("1 / 1");
+
+    // A local selection without an artifact ID must never imply receipt.
+    rerender(<Harness contract={contract} initialMode="WIZARD" attachments={attachments}/>);
+    expect(within(rail).getByText("Annual audit report.pdf")).toBeTruthy();
   });
 
   it("does not count conditional questions or their evidence while hidden", () => {
