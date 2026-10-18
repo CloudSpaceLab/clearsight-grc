@@ -970,7 +970,7 @@ async function captureInternalAssessment({ name, viewport, theme }) {
       if (railBox.x + railBox.width > workBox.x + 3 ||
           Math.abs(readinessBox.x - workBox.x) > 3 ||
           readinessBox.y < workBox.y + workBox.height - 3) {
-        throw new Error(name + " does not stack readiness below the two-column tablet questionnaire");
+        throw new Error(`${name} does not stack readiness below the two-column tablet questionnaire: ${JSON.stringify({ rail: railBox, work: workBox, readiness: readinessBox, sheet: sheetBox })}`);
       }
     } else if (railBox.y + railBox.height > workBox.y + 3 ||
                workBox.y + workBox.height > readinessBox.y + 3) {
