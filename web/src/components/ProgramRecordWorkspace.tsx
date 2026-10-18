@@ -244,7 +244,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     history: <section className="program-record-grid">
       <ProgramActivityPanel aggregate={aggregate}
         digest={digestVersionMatches && reviewState === "live" ? digest : null}
-        onReload={() => void loadReview()}>
+        onReload={() => void reloadRecord()}>
         <RecordSnapshotControl recordLabel="Program" loadSnapshot={async (at) => {
           const value = await loadProgramAt(aggregate.program.id, at);
           return { version: value.program.version, status: value.program.status, updatedAt: value.program.updated_at };
