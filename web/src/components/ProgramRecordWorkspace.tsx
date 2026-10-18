@@ -71,6 +71,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   useLayoutEffect(() => {
     if (activeTarget.current.id === programID) return;
     activeTarget.current = { id: programID, generation: activeTarget.current.generation + 1 };
+    setStandardLinkReviewID(undefined);
     setAggregate(null);
     setOperations(null);
     setDigest(null);
