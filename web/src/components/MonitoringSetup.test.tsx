@@ -74,6 +74,81 @@ describe("monitoring setup", () => {
     expect((screen.getByRole("button", { name: "Connected data" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
+
+  it("uses a current approved Program form without creating another questionnaire", async () => {
+    const form = {
+      id: "form-existing", tenant_id: "bank-1", program_id: "program-1",
+      code: "ACCESS-REVIEW", name: "Access review", purpose: "Confirm access controls",
+      fields: [{ id: "access", label: "Access reviewed?", type: "yes_no" as const, required: true,
+        options: ["Yes", "No"], scoring: { id: "access", required: true, weight: 100,
+          answer_scores: { Yes: 0, No: 100 } } }],
+      status: "ACTIVE" as const, is_current: true, version: 2,
+      created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-02T00:00:00Z",
+    };
+    vi.mocked(loadFormTemplates).mockResolvedValue([form]);
+    vi.mocked(createFormMonitoringCheck).mockResolvedValue({
+      id: "check-existing", tenant_id: "bank-1", program_id: "program-1",
+      code: "ACCESS-REVIEW-CHECK", name: form.name, claim: form.purpose,
+      input_kind: "FORM", form_template_id: form.id, form_template_version: form.version,
+      thresholds: { moderate_from: 25, high_from: 50, critical_from: 75 },
+      freshness_minutes: 10080, minimum_coverage: 1, failure_action: "REVIEW",
+      status: "DRAFT", is_current: false, version: 1,
+      created_at: "2026-10-02T00:00:00Z", updated_at: "2026-10-02T00:00:00Z",
+    });
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1"
+      canConfigureSources operations={ownerOperations}/>);
+    await screen.findByRole("button", { name: "Set collection schedule" });
+    fireEvent.click(screen.getByRole("button", {name: "Add data check"}));
+    fireEvent.click(screen.getByRole("button", {name: "Use existing Program form"}));
+    expect(screen.getByRole("region", {name: "Choose existing Program form"})).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {name: "Access review · Revision 2"}));
+    expect(screen.getAllByRole("button", {name: "Add collection to Program"})).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", {name: "Add collection to Program"}));
+    await waitFor(() => expect(createFormMonitoringCheck).toHaveBeenCalledWith(
+      "program-1", form, {validity_months: 12, renewal_window_days: 30, reminder_count: 3},
+    ));
+    expect(createFormTemplate).not.toHaveBeenCalled();
+    expect(await screen.findByText("Collection schedule saved as a draft for approval.")).toBeTruthy();
+  });
+
+  it("does not offer an existing-form link when the actor cannot define Program checks", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([{
+      id: "form-existing", tenant_id: "bank-1", program_id: "program-1",
+      code: "ACCESS", name: "Access review", purpose: "Confirm access",
+      fields: [{id: "access", label: "Access reviewed?", type: "yes_no", required: true,
+        scoring: {id: "access", required: true, weight: 100, answer_scores: {Yes: 0, No: 100}}}],
+      status: "ACTIVE", is_current: true, version: 1,
+      created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z",
+    }]);
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1"
+      canConfigureSources operations={[ownerOperations[0]!]}/>);
+    await screen.findByText("Access review");
+    fireEvent.click(screen.getByRole("button", {name: "Add data check"}));
+    expect((screen.getByRole("button", {name: "Use existing Program form"}) as HTMLButtonElement).disabled).toBe(true);
+    expect(createFormMonitoringCheck).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the existing check list cannot prove that a form is unlinked", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([{
+      id: "form-existing", tenant_id: "bank-1", program_id: "program-1",
+      code: "ACCESS", name: "Access review", purpose: "Confirm access",
+      fields: [{id: "access", label: "Access reviewed?", type: "yes_no", required: true,
+        scoring: {id: "access", required: true, weight: 100, answer_scores: {Yes: 0, No: 100}}}],
+      status: "ACTIVE", is_current: true, version: 1,
+      created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z",
+    }]);
+    vi.mocked(loadMonitoringChecks).mockRejectedValue(new Error("Unavailable"));
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1"
+      canConfigureSources operations={ownerOperations}/>);
+    await screen.findByText("Access review");
+    fireEvent.click(screen.getByRole("button", {name: "Add data check"}));
+    const existing = screen.getByRole("button", {name: "Use existing Program form"}) as HTMLButtonElement;
+    expect(existing.disabled).toBe(true);
+    expect(screen.getByText(/Reload checks to confirm which forms are already linked/)).toBeTruthy();
+    expect(screen.queryByRole("button", {name: "Set collection schedule"})).toBeNull();
+    expect(createFormMonitoringCheck).not.toHaveBeenCalled();
+  });
+
   it("builds a five-question password reset form with explicit risk scoring", async () => {
     vi.mocked(createFormTemplate).mockResolvedValue({
       id: "form-1", tenant_id: "bank-1", code: "PASSWORD-RESET-REVIEW", name: "Password reset security review", purpose: "Confirm that password reset safeguards operated during the reporting period.",
