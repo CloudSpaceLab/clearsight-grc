@@ -1,4 +1,13 @@
 .capture-form { display: grid; gap: 18px; margin-top: 18px; }
+/* The internal, actor-authorized questionnaire uses the approved three-pane
+   composition on wide screens. External capture retains its focused width. */
+.assessment-capture-sheet {
+  --cs-sheet-wide-width: min(1360px, calc(100vw - var(--cs-primitive-space-8)));
+}
+.assessment-capture-sheet .panel-content {
+  padding: var(--cs-space-section) var(--cs-space-group);
+}
+
 .panel-content { min-width: 0; }
 .panel-content .known-facts div { min-width: 0; }
 .panel-content .known-facts dd { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
@@ -186,6 +195,19 @@
   .capture-wizard__layout--sectioned { grid-template-columns: minmax(0, 1fr); }
   .capture-wizard__layout--sectioned > .capture-wizard__readiness { grid-column: auto; }
   .capture-wizard__sections { position: static; }
+}
+
+/* Keep the approved 1024px two-pane layout scoped to the authorized sheet.
+   The existing <=900px mobile composition continues to stack all three panes. */
+@media (min-width: 901px) {
+  @container capture-wizard (min-width: 721px) and (max-width: 850px) {
+    .assessment-capture-sheet .capture-wizard__layout--sectioned {
+      grid-template-columns: minmax(170px, 225px) minmax(0, 1fr);
+    }
+    .assessment-capture-sheet .capture-wizard__layout--sectioned > .capture-wizard__readiness {
+      grid-column: 2;
+    }
+  }
 }
 
 @media (max-width: 900px) {
