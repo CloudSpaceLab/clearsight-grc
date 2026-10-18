@@ -462,7 +462,7 @@
   gap: var(--cs-space-inline);
   padding: var(--cs-space-group);
   border: 1px solid var(--cs-border-default);
-  border-radius: var(--cs-primitive-radius-12);
+  border-radius: var(--cs-primitive-radius-14);
   background: var(--cs-bg-surface-2);
 }
 .program-activity__notice p { margin: 0; color: var(--cs-text-muted); }
@@ -475,7 +475,7 @@
   gap: var(--cs-space-group);
 }
 .program-activity__review-status {
-  color: var(--cs-text-warning);
+  color: var(--cs-text-primary);
   font-size: var(--cs-font-size-caption);
   font-weight: 650;
 }
@@ -491,7 +491,7 @@
   gap: var(--cs-space-inline);
   padding: var(--cs-space-group);
   border: 1px solid var(--cs-border-default);
-  border-radius: var(--cs-primitive-radius-12);
+  border-radius: var(--cs-primitive-radius-14);
   background: var(--cs-bg-surface-1);
 }
 .program-activity__list li strong { font-size: var(--cs-font-size-caption); color: var(--cs-text-muted); }
