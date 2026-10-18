@@ -928,6 +928,38 @@ describe("runtime navigation", () => {
     expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation");
   });
 
+  it("keeps short automatic and unauthorized multi-section responses out of the wide workspace", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    const assigned = evidenceRequest({
+      sections: [{ id: "first", title: "First" }, { id: "second", title: "Second" }],
+      fields: [
+        { id: "field-1", section_id: "first", label: "First answer", type: "short_text", required: false },
+        { id: "field-2", section_id: "second", label: "Second answer", type: "short_text", required: false },
+      ],
+      presentation: { default_mode: "AUTOMATIC", allow_mode_switch: false },
+    });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockResolvedValue(assigned);
+    const view = render(<App />);
+
+    fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
+    let dialog = await screen.findByRole("dialog", { name: "Evidence request" });
+    await within(dialog).findByRole("navigation", { name: "Request sections" });
+    expect(dialog.closest(".cs-sheet")?.classList.contains("cs-sheet--default")).toBe(true);
+
+    view.unmount();
+    vi.mocked(loadEvidenceRequest).mockResolvedValue({
+      ...assigned,
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+      status: "EXPIRED",
+    });
+    render(<App />);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
+    dialog = await screen.findByRole("dialog", { name: "Evidence request" });
+    await within(dialog).findByText(/request/i);
+    expect(dialog.closest(".cs-sheet")?.classList.contains("cs-sheet--default")).toBe(true);
+  });
+
   it("keeps a classic multi-section response in the focused default sheet", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     const assigned = evidenceRequest({
