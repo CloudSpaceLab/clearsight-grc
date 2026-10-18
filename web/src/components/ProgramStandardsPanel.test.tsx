@@ -53,6 +53,19 @@ describe("Program standards — approved design integration", () => {
     expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
   });
 
+
+  it("routes each active standard to its own reviewed links without choosing another edition", () => {
+    const onNavigate = vi.fn();
+    render(<ProgramStandardsPanel aggregate={aggregate([
+      {...adoption("a", "SECURITY"), status: "ACTIVE"},
+      {...adoption("b", "PRIVACY"), status: "ACTIVE"},
+    ])} operations={[]} onUpdated={vi.fn()} onReload={vi.fn()} onNavigate={onNavigate}/>);
+    expect(screen.queryByRole("button", {name: "Review requirement links"})).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name: "Review links for PRIVACY 2026"}));
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith("requirements-controls", "b");
+    expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
+  });
+
   it("does not offer adoption follow-up for pending or rejected editions", () => {
     const { rerender } = render(<ProgramStandardsPanel
       aggregate={aggregate([adoption("a", "SECURITY")])}
