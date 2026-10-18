@@ -134,8 +134,14 @@ async function selectFileType(page, name) {
 }
 
 async function assertFileTypeSelected(page, name) {
-  const narrow = await page.locator(".document-browser").evaluate((browser) => matchMedia("(max-width: 760px)").matches
-    || browser.clientWidth <= (browser.classList.contains("document-browser--selecting") ? 760 : 960));
+  const narrow = await page.locator(".document-browser").evaluate((browser) => {
+    const style = getComputedStyle(browser);
+    const inlineSize = browser.getBoundingClientRect().width
+      - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth)
+      - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    return matchMedia("(max-width: 760px)").matches
+      || inlineSize <= (browser.classList.contains("document-browser--selecting") ? 760 : 960);
+  });
   const compact = page.getByRole("button", { name: `${name} File type`, exact: true });
   const sidebar = page.locator(".document-kinds");
   if (await compact.isVisible() !== narrow || await sidebar.isVisible() === narrow) throw new Error("File types must use one visible labelled navigation at the current width.");
@@ -146,7 +152,13 @@ async function assertFileTypeSelected(page, name) {
 }
 
 async function assertDocumentNameWidth(page) {
-  const cards = await page.locator(".document-browser .cs-data-table").evaluate((table) => matchMedia("(max-width: 700px)").matches || table.clientWidth <= 700);
+  const cards = await page.locator(".document-browser .cs-data-table").evaluate((table) => {
+    const style = getComputedStyle(table);
+    const inlineSize = table.getBoundingClientRect().width
+      - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth)
+      - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    return matchMedia("(max-width: 700px)").matches || inlineSize <= 700;
+  });
   if (!cards) return;
   // Even the reduced-motion transition duration needs a rendering frame when
   // resize changes cell padding. Wait for the exact final width contract.
@@ -161,7 +173,29 @@ async function assertDocumentNameWidth(page) {
       return rowStyle.display === "grid" && cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
         && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2 && fullName.textContent === fullName.title;
     });
-  }).catch((error) => { throw new Error(`Complete document names must use the full available card width in narrow workspaces: ${error.message}`); });
+  }).catch(async (error) => {
+    const dimensions = await page.locator(".document-browser .cs-data-table").evaluate((table) => {
+      const container = getComputedStyle(table);
+      const rows = [...table.querySelectorAll('tbody tr')].map((row) => {
+        const cell = row.querySelector('td[data-label="Name"]');
+        const name = cell?.querySelector(".document-file-name");
+        const fullName = name?.querySelector("strong");
+        const style = getComputedStyle(row);
+        return {
+          rowDisplay: style.display,
+          rowWidth: row.clientWidth,
+          rowPadding: [style.paddingLeft, style.paddingRight],
+          cellWidth: cell?.getBoundingClientRect().width,
+          cellLayout: cell?.getAttribute("data-mobile-layout"),
+          nameWidth: name?.getBoundingClientRect().width,
+          titleMatches: fullName?.textContent === fullName?.title,
+          actionBounds: row.querySelector('.cs-data-table__action .cs-button')?.getBoundingClientRect().toJSON(),
+        };
+      });
+      return { viewport: innerWidth, tableWidth: table.getBoundingClientRect().width, containerName: container.containerName, rows };
+    });
+    throw new Error(`Complete document names must use the full available card width in narrow workspaces: ${error.message}; ${JSON.stringify(dimensions)}`);
+  });
 }
 
 async function assertDocumentHeader(page) {

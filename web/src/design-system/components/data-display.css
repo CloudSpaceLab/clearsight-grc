@@ -76,6 +76,23 @@
   .cs-data-table tbody tr td[data-mobile-layout="full-width"] { grid-template-columns: minmax(0, 1fr); }
   .cs-data-table[data-responsive-to="container"] tbody tr td { text-align: start; }
   .cs-data-table[data-responsive-to="container"] tbody tr td:not([data-mobile-layout="full-width"]) > * { justify-self: start; }
+  /* Full-width cells and row actions must fill the stacked card at the
+     container breakpoint, including in narrow record sheets. */
+  .cs-data-table[data-responsive-to="container"] tbody tr td[data-mobile-layout="full-width"],
+  .cs-data-table[data-responsive-to="container"] tbody tr td.cs-data-table__action {
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+  .cs-data-table[data-responsive-to="container"] tbody tr td[data-mobile-layout="full-width"] > * {
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+  .cs-data-table[data-responsive-to="container"] tbody tr td.cs-data-table__action > .cs-button {
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 @container cs-data-table (max-width: 360px) {
