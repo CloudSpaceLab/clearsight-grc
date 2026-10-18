@@ -898,6 +898,56 @@ describe("runtime navigation", () => {
     expect(loadCaptureRequest).not.toHaveBeenCalled();
   });
 
+  it("opens an authorized multi-section assessment in the wide shared sheet", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    const assigned = evidenceRequest({
+      sections: [
+        { id: "identity", title: "Identity" },
+        { id: "controls", title: "Controls" },
+        { id: "evidence", title: "Evidence" },
+      ],
+      fields: [
+        { id: "name", section_id: "identity", label: "Registered name", type: "short_text", required: true },
+        { id: "control", section_id: "controls", label: "Control description", type: "long_text", required: false },
+        { id: "proof", section_id: "evidence", label: "Supporting document", type: "file", required: true },
+      ],
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+    });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockResolvedValue(assigned);
+    render(<App />);
+
+    fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
+    const dialog = await screen.findByRole("dialog", { name: "Evidence request" });
+    expect(dialog.closest(".cs-sheet")?.classList.contains("cs-sheet--wide")).toBe(true);
+    expect(dialog.closest(".cs-sheet")?.classList.contains("assessment-capture-sheet")).toBe(true);
+    expect(within(dialog).getByRole("navigation", { name: "Assessment sections" })).toBeTruthy();
+    expect(within(dialog).getByRole("complementary", { name: "Response readiness and evidence" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Review response" })).toBeTruthy();
+    expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation");
+  });
+
+  it("keeps a classic multi-section response in the focused default sheet", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    const assigned = evidenceRequest({
+      sections: [{ id: "first", title: "First" }, { id: "second", title: "Second" }],
+      fields: [
+        { id: "first-name", section_id: "first", label: "First response", type: "short_text", required: false },
+        { id: "second-name", section_id: "second", label: "Second response", type: "short_text", required: false },
+      ],
+      presentation: { default_mode: "CLASSIC", allow_mode_switch: false },
+    });
+    vi.mocked(loadToday).mockResolvedValue({ items: [evidenceAttention(assigned.id)], generated_at: "2026-08-07T15:00:00Z" });
+    vi.mocked(loadEvidenceRequest).mockResolvedValue(assigned);
+    render(<App />);
+
+    fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
+    const dialog = await screen.findByRole("dialog", { name: "Evidence request" });
+    expect(dialog.closest(".cs-sheet")?.classList.contains("cs-sheet--default")).toBe(true);
+    expect(dialog.closest(".cs-sheet")?.classList.contains("assessment-capture-sheet")).toBe(false);
+    expect(within(dialog).getByRole("navigation", { name: "Request sections" })).toBeTruthy();
+  });
+
   it("revalidates the current request before opening capture", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     const assigned = evidenceRequest();
