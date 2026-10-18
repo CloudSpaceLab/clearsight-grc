@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CaptureFormContract, CapturePresentationMode, CaptureRequest } from "../../types";
 import { CaptureFieldControl, type CaptureAttachment } from "./CaptureFieldControl";
 import { useCaptureWorkspaceRecoveryUI } from "./CaptureWorkspaceRecoveryContext";
-import { answerText, documentAlreadyReceived, effectivePresentationMode, normalizeFieldType, validateCaptureFields, visibleCaptureSections } from "./contract";
+import { answerIsPresent, answerText, documentAlreadyReceived, effectivePresentationMode, normalizeFieldType, validateCaptureFields, visibleCaptureSections } from "./contract";
 import { CaptureFieldPreviousResponseNotice, CaptureFieldSourceNotice } from "./sourceProvenance";
 
 type Props = {
@@ -98,6 +98,15 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
 
   const section = sections[sectionIndex] ?? sections[0]!;
   const isLast = sectionIndex === sections.length - 1;
+  // Readiness is based only on currently visible questionnaire fields and
+  // already-received documents; neither presence nor upload implies approval.
+  const visibleFields = sections.flatMap((entry) => entry.fields);
+  const hasValue = (field: CaptureField) => answerIsPresent(answers[field.id]) || documentAlreadyReceived(field);
+  const answeredCount = visibleFields.filter(hasValue).length;
+  const missingRequiredCount = visibleFields.filter((field) => field.required && !hasValue(field)).length;
+  const evidenceFields = visibleFields.filter((field) =>
+    ["file", "photo", "vendor_document"].includes(normalizeFieldType(field.type) ?? ""));
+  const attachedCount = evidenceFields.filter(hasValue).length;
   return <div className="capture-form capture-wizard">
     {modeSwitch}
     <div className={sections.length > 1 ? "capture-wizard__layout capture-wizard__layout--sectioned" : "capture-wizard__layout"}>
@@ -126,6 +135,24 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
           <button className="primary-button" type="button" disabled={unsupported.length > 0 || Boolean(uploadingField) || navigating} onClick={() => validate(section.fields, () => isLast ? onReview() : navigateToSection(sectionIndex + 1))}>{uploadingField ? "Uploading…" : navigating ? "Saving…" : isLast ? reviewLabel : "Continue"}</button>
         </div>
       </div>
+      <aside className="capture-wizard__readiness" aria-label="Response readiness and evidence">
+        <section className="capture-wizard__summary" aria-labelledby="capture-readiness-heading">
+          <h3 id="capture-readiness-heading">Review readiness</h3>
+          <dl>
+            <div><dt>Answers recorded</dt><dd>{answeredCount} / {visibleFields.length}</dd></div>
+            <div><dt>Required unanswered</dt><dd>{missingRequiredCount}</dd></div>
+            <div><dt>Evidence received</dt><dd>{attachedCount} / {evidenceFields.length}</dd></div>
+          </dl>
+        </section>
+        {evidenceFields.length > 0 && <section className="capture-wizard__evidence" aria-labelledby="capture-evidence-heading">
+          <h3 id="capture-evidence-heading">Evidence</h3>
+          <ul>{evidenceFields.map((field) =>
+            <li key={field.id}>
+              <span>{field.label}</span>
+              <span>{hasValue(field) ? "Received" : field.required ? "Required" : "Not attached"}</span>
+            </li>)}</ul>
+        </section>}
+      </aside>
     </div>
   </div>;
 }
