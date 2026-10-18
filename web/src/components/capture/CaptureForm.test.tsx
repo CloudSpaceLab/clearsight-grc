@@ -169,6 +169,22 @@ describe("CaptureForm", () => {
     expect(within(readiness).getByText("Required unanswered").nextElementSibling?.textContent).toBe("1");
   });
 
+  it("does not treat a document title or metadata without an artifact as received", () => {
+    const contract: CaptureFormContract = {
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+      sections: [{ id: "evidence", title: "Evidence" }],
+      fields: [
+        { id: "certificate", section_id: "evidence", label: "Certificate", type: "vendor_document", required: true },
+      ],
+    };
+    render(<Harness contract={contract} initialMode="WIZARD"
+      initialAnswers={{ certificate: { document: { document_type: "ISO certification" } } }}/>);
+    const readiness = screen.getByRole("complementary", { name: "Response readiness and evidence" });
+    expect(within(readiness).getByText("0 / 1")).toBeTruthy();
+    expect(within(readiness).getByText("Certificate").nextElementSibling?.textContent).toBe("Required");
+    expect(within(readiness).getByText("Required unanswered").nextElementSibling?.textContent).toBe("1");
+  });
+
   it("does not count conditional questions or their evidence while hidden", () => {
     const contract: CaptureFormContract = {
       presentation: { default_mode: "WIZARD", allow_mode_switch: false },
