@@ -35,7 +35,7 @@ import type { HomeTab, View, WorkspaceTarget, WorkTab } from "./appRouting";
 import type { RuntimePresentation } from "./runtimePresentation";
 import { loadGroupOversight, type GroupOversightSnapshot } from "./groupOversightApi";
 import { subscribeInvalidations } from "./invalidationApi";
-import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, Readiness } from "./types";
+import type { AttentionItem, AuthorityResolution, EvidenceRequest, EvidenceSource, GuideStep, Readiness } from "./types";
 
 const FormsWorkspace = lazy(() => import("./components/FormsWorkspace").then((module) => ({ default: module.FormsWorkspace })));
 const VendorsWorkspace = lazy(() => import("./components/VendorsWorkspace").then((module) => ({ default: module.VendorsWorkspace })));
@@ -122,7 +122,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const [resolution, setResolution] = useState<AuthorityResolution | null>(null);
   const [routingItem, setRoutingItem] = useState<AttentionItem | null>(null);
   const [routingState, setRoutingState] = useState<RoutingLoadState>("loading");
-  const [capture, setCapture] = useState<CaptureRequest | null>(null);
+  const [capture, setCapture] = useState<EvidenceRequest | null>(null);
   const [captureState, setCaptureState] = useState<CaptureLoadState>("loading");
   const [captureRequestID, setCaptureRequestID] = useState<string | undefined>();
   const [readiness, setReadiness] = useState<Readiness | null>(null);
