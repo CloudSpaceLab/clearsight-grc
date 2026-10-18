@@ -208,13 +208,22 @@
   }
 }
 
+/* Keep the filter and first edition visible without adding another hero banner. */
+.cs-framework-library {
+  margin-block: var(--cs-space-group);
+  gap: var(--cs-space-group);
+}
+.cs-framework-library__header {
+  padding-bottom: var(--cs-space-inline);
+}
+
 /* Approved Framework Library hierarchy. Tokens keep light/dark in sync. */
 .cs-framework-library-page-heading {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  min-height: 146px;
-  padding-block: var(--cs-space-group) var(--cs-space-section);
+  min-height: 116px;
+  padding-block: var(--cs-space-inline) var(--cs-space-group);
   border-bottom: 1px solid var(--cs-border-default);
 }
 .cs-framework-library-page-heading > div {
