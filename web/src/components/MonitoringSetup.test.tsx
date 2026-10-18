@@ -137,7 +137,7 @@ describe("monitoring setup", () => {
       status: "ACTIVE", is_current: true, version: 1,
       created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z",
     }]);
-    vi.mocked(loadMonitoringChecks).mockRejectedValue(new Error("Unavailable"));
+    vi.mocked(loadMonitoringChecks).mockRejectedValueOnce(new Error("Unavailable")).mockResolvedValueOnce([]);
     render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1"
       canConfigureSources operations={ownerOperations}/>);
     await screen.findByText("Access review");
@@ -146,6 +146,10 @@ describe("monitoring setup", () => {
     expect(existing.disabled).toBe(true);
     expect(screen.getByText(/Reload checks to confirm which forms are already linked/)).toBeTruthy();
     expect(screen.queryByRole("button", {name: "Set collection schedule"})).toBeNull();
+    expect(createFormMonitoringCheck).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", {name: "Retry data checks"}));
+    await waitFor(() => expect(existing.disabled).toBe(false));
+    expect(loadMonitoringChecks).toHaveBeenCalledTimes(2);
     expect(createFormMonitoringCheck).not.toHaveBeenCalled();
   });
 
