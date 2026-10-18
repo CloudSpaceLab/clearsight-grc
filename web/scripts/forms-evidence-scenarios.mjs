@@ -134,6 +134,8 @@ async function selectFileType(page, name) {
 }
 
 async function assertFileTypeSelected(page, name) {
+  // Resolve both style and React state after a viewport or file-type change.
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const narrow = await page.locator(".document-browser").evaluate((browser) => {
     const style = getComputedStyle(browser);
     const inlineSize = browser.getBoundingClientRect().width
@@ -152,30 +154,37 @@ async function assertFileTypeSelected(page, name) {
 }
 
 async function assertDocumentNameWidth(page) {
-  const cards = await page.locator(".document-browser .cs-data-table").evaluate((table) => {
+  // Re-evaluate the active container contract on each animation frame. A
+  // preliminary narrow/wide snapshot can go stale across setViewportSize().
+  const expectedViewport = page.viewportSize()?.width;
+  await page.waitForFunction((width) => {
+    if (innerWidth !== width) return false;
+    const table = document.querySelector(".document-browser .cs-data-table");
+    if (!table) return false;
     const style = getComputedStyle(table);
-    const inlineSize = table.getBoundingClientRect().width
+    const availableWidth = table.getBoundingClientRect().width
       - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth)
       - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
-    return matchMedia("(max-width: 700px)").matches || inlineSize <= 700;
-  });
-  if (!cards) return;
-  // Even the reduced-motion transition duration needs a rendering frame when
-  // resize changes cell padding. Wait for the exact final width contract.
-  await page.waitForFunction(() => {
-    const cells = [...document.querySelectorAll('.document-browser td[data-label="Name"]')];
+    const narrow = matchMedia("(max-width: 700px)").matches || availableWidth <= 700;
+    const cells = [...table.querySelectorAll('tbody td[data-label="Name"]')];
     return cells.length > 0 && cells.every((cell) => {
       const row = cell.closest("tr");
       const name = cell.querySelector(".document-file-name");
       const fullName = name?.querySelector("strong");
+      if (!row || !name || !fullName || fullName.textContent !== fullName.title) return false;
       const rowStyle = getComputedStyle(row);
+      if (!narrow) return rowStyle.display === "table-row";
       const available = row.clientWidth - parseFloat(rowStyle.paddingLeft) - parseFloat(rowStyle.paddingRight);
-      return rowStyle.display === "grid" && cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
-        && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2 && fullName.textContent === fullName.title;
+      return rowStyle.display === "grid" && cell.getAttribute("data-mobile-layout") === "full-width"
+        && Math.abs(cell.getBoundingClientRect().width - available) <= 2
+        && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2;
     });
-  }).catch(async (error) => {
+  }, expectedViewport).catch(async (error) => {
     const dimensions = await page.locator(".document-browser .cs-data-table").evaluate((table) => {
       const container = getComputedStyle(table);
+      const availableWidth = table.getBoundingClientRect().width
+        - parseFloat(container.borderLeftWidth) - parseFloat(container.borderRightWidth)
+        - parseFloat(container.paddingLeft) - parseFloat(container.paddingRight);
       const rows = [...table.querySelectorAll('tbody tr')].map((row) => {
         const cell = row.querySelector('td[data-label="Name"]');
         const name = cell?.querySelector(".document-file-name");
@@ -189,12 +198,13 @@ async function assertDocumentNameWidth(page) {
           cellLayout: cell?.getAttribute("data-mobile-layout"),
           nameWidth: name?.getBoundingClientRect().width,
           titleMatches: fullName?.textContent === fullName?.title,
-          actionBounds: row.querySelector('.cs-data-table__action .cs-button')?.getBoundingClientRect().toJSON(),
         };
       });
-      return { viewport: innerWidth, tableWidth: table.getBoundingClientRect().width, containerName: container.containerName, rows };
+      return { viewport: innerWidth, tableWidth: table.getBoundingClientRect().width,
+        narrow: matchMedia("(max-width: 700px)").matches || availableWidth <= 700,
+        containerName: container.containerName, rows };
     });
-    throw new Error(`Complete document names must use the full available card width in narrow workspaces: ${error.message}; ${JSON.stringify(dimensions)}`);
+    throw new Error(`Document filenames must retain their responsive width and full titles: ${error.message}; ${JSON.stringify(dimensions)}`);
   });
 }
 
