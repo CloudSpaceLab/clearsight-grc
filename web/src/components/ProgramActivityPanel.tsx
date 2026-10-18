@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ProgramReviewDigest } from "../programReviewApi";
 import type { ProgramAggregate } from "../types";
 
@@ -5,6 +6,7 @@ type Props = {
   aggregate: ProgramAggregate;
   digest: ProgramReviewDigest | null;
   onReload: () => void;
+  children?: ReactNode;
 };
 
 function dateTime(value?: string) {
@@ -18,7 +20,7 @@ function dateTime(value?: string) {
  * since-checkpoint change summary, not a complete transaction/event timeline.
  * Never turn a missing/old digest into a "no changes" assertion.
  */
-export function ProgramActivityPanel({ aggregate, digest, onReload }: Props) {
+export function ProgramActivityPanel({ aggregate, digest, onReload, children }: Props) {
   const program = aggregate.program;
   const projection = aggregate.current_state?.projection_version ?? 0;
   const current = Boolean(digest &&
@@ -80,5 +82,6 @@ export function ProgramActivityPanel({ aggregate, digest, onReload }: Props) {
       {digest!.new_exceptions_total > 0 && <p>{digest!.new_exceptions_total} new exception{digest!.new_exceptions_total === 1 ? "" : "s"} recorded.</p>}
       {digest!.resolved_exceptions_total > 0 && <p>{digest!.resolved_exceptions_total} exception{digest!.resolved_exceptions_total === 1 ? "" : "s"} resolved.</p>}
     </section>}
+    {children && <div className="program-activity__snapshot">{children}</div>}
   </article>;
 }
