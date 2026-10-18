@@ -74,26 +74,29 @@ async function assertOverviewMeasures(page, mobile) {
   const metrics = page.locator(".program-overview-metrics");
   const coverage = page.locator(".program-overview-composition > .program-overview-coverage");
   const rail = page.getByRole("complementary", { name: "Program attention and setup" });
+  const recent = page.locator(".program-overview-recent");
   const position = rail.locator(".program-current-position");
   await Promise.all([
     metrics.waitFor({ state: "visible" }),
     coverage.waitFor({ state: "visible" }),
+    recent.waitFor({ state: "visible" }),
     position.waitFor({ state: "visible" }),
   ]);
   if (await metrics.getByRole("button").count() !== 4) {
     throw new Error("Program Overview must expose exactly four grounded measures");
   }
-  const [cards, coverageBox, railBox, posture] = await Promise.all([
-    metrics.boundingBox(), coverage.boundingBox(), rail.boundingBox(), position.boundingBox(),
+  const [cards, coverageBox, recentBox, railBox, posture] = await Promise.all([
+    metrics.boundingBox(), coverage.boundingBox(), recent.boundingBox(), rail.boundingBox(), position.boundingBox(),
   ]);
-  if (!cards || !coverageBox || !railBox || !posture ||
+  if (!cards || !coverageBox || !recentBox || !railBox || !posture ||
       cards.y + cards.height > coverageBox.y + 2 ||
       !await position.getByRole("heading").count()) {
     throw new Error("Program Overview lost its source-backed measures or current-position hierarchy");
   }
   if (mobile) {
-    if (coverageBox.y + coverageBox.height > railBox.y + 2 || posture.y < railBox.y) {
-      throw new Error("Compact Program Overview must stack coverage before actionable attention");
+    if (coverageBox.y + coverageBox.height > recentBox.y + 2 ||
+        recentBox.y + recentBox.height > railBox.y + 2 || posture.y < railBox.y) {
+      throw new Error("Compact Program Overview must stack coverage, recent assessments and attention in approved order");
     }
     if (page.viewportSize()?.width >= 375) {
       const boxes = await Promise.all(
@@ -106,8 +109,10 @@ async function assertOverviewMeasures(page, mobile) {
         throw new Error("Approved mobile Program must render four measures as a compact 2-by-2 grid");
       }
     }
-  } else if (coverageBox.x >= railBox.x || Math.abs(coverageBox.y - railBox.y) > 24) {
-    throw new Error("Desktop Program Overview must place coverage left of aligned attention rail");
+  } else if (coverageBox.x >= railBox.x || recentBox.x >= railBox.x ||
+             Math.abs(coverageBox.y - railBox.y) > 24 ||
+             coverageBox.y + coverageBox.height > recentBox.y + 2) {
+    throw new Error("Desktop Program Overview must place coverage and recent assessments left of the attention rail");
   }
 }
 

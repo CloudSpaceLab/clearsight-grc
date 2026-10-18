@@ -140,12 +140,20 @@ async function capturePage(capture) {
         throw new Error("Program section navigation must precede Overview measures");
       }
       const coverage = page.locator(".program-overview-coverage");
+      const recent = page.locator(".program-overview-recent");
       const rail = page.getByRole("complementary", {name:"Program attention and setup"});
-      const [coverageBox, railBox] = await Promise.all([coverage.boundingBox(), rail.boundingBox()]);
-      if (!coverageBox || !railBox || coverageBox.x >= railBox.x ||
-          Math.abs(coverageBox.y - railBox.y) > 24 || coverageBox.y <= metricBox.y) {
-        throw new Error("Program approved coverage/attention first-viewport composition is missing");
+      const [coverageBox, recentBox, railBox] = await Promise.all([
+        coverage.boundingBox(), recent.boundingBox(), rail.boundingBox(),
+      ]);
+      if (!coverageBox || !recentBox || !railBox ||
+          coverageBox.x >= railBox.x || recentBox.x >= railBox.x ||
+          Math.abs(coverageBox.y - railBox.y) > 24 ||
+          coverageBox.y <= metricBox.y ||
+          coverageBox.y + coverageBox.height > recentBox.y + 2) {
+        throw new Error("Program approved coverage/recent-assessments/attention composition is missing");
       }
+      const period = recent.getByRole("group", {name: "Assessment activity period"});
+      await period.getByRole("button", {name: "90 days", pressed: true}).waitFor({state:"visible"});
       for (const label of ["Approved requirements", "Assessed requirements", "Open issues", "Active evidence checks"]) {
         const card = measures.getByRole("button", { name: new RegExp("^" + label + ":") });
         await card.waitFor({ state: "visible" });

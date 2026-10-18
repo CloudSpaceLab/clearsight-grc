@@ -316,3 +316,83 @@
 @media (prefers-reduced-motion: reduce) {
   .program-record-header::before { animation: none; }
 }
+
+/* Approved Program HTML: the main column holds coverage then recent
+   assessments; the narrower attention rail stays aligned at the top. */
+.program-overview-composition {
+  grid-template-areas: "coverage rail" "recent rail";
+}
+.program-overview-coverage { grid-area: coverage; }
+.program-overview-rail { grid-area: rail; }
+.program-overview-recent {
+  grid-area: recent;
+  display: grid;
+  gap: var(--cs-space-group);
+  min-width: 0;
+  padding: var(--cs-space-section);
+  border: 1px solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  background: var(--cs-bg-surface-1);
+}
+.program-overview-recent__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--cs-space-group);
+}
+.program-overview-recent__header h2 {
+  margin: var(--cs-space-inline) 0;
+  color: var(--cs-text-strong);
+  font-size: var(--cs-primitive-font-size-18);
+}
+.program-overview-recent__header p,
+.program-overview-recent__foot {
+  margin: 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.program-overview-recent__periods {
+  display: inline-flex;
+  justify-self: start;
+  gap: var(--cs-space-inline);
+  padding: var(--cs-space-inline);
+  border: 1px solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-10);
+  background: var(--cs-bg-surface-2);
+}
+.program-overview-recent__period {
+  min-height: 36px;
+  min-width: 54px;
+  border: 0;
+  border-radius: var(--cs-primitive-radius-10);
+  background: transparent;
+  color: var(--cs-text-muted);
+  cursor: pointer;
+  font: inherit;
+}
+.program-overview-recent__period.is-active {
+  color: var(--cs-action-primary);
+  background: var(--cs-bg-surface-1);
+  font-weight: 700;
+}
+.program-overview-recent__period:focus-visible,
+.program-overview-recent__list button:focus-visible {
+  outline: var(--cs-focus-width) solid var(--cs-focus-ring);
+  outline-offset: var(--cs-focus-offset);
+}
+.program-overview-recent .cs-data-table {
+  min-width: 0;
+}
+.program-overview-recent .cs-data-table strong {
+  color: var(--cs-text-strong);
+}
+@media (max-width: 1023px) {
+  .program-overview-composition {
+    grid-template-areas: "coverage" "recent" "rail";
+  }
+}
+@media (max-width: 560px) {
+  .program-overview-recent { padding: var(--cs-space-group); }
+  .program-overview-recent__list button { align-items: flex-start; flex-wrap: wrap; }
+}

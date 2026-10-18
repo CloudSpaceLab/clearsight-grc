@@ -153,6 +153,14 @@ describe("Program submitted data panel", () => {
     expect(within(dialog).queryByRole("region", {name: "Assess response-1"})).toBeNull();
   });
 
+  it("opens the exact selected assessment from approved Program recent activity", async () => {
+    render(<ProgramResponsesPanel programID="program-1" reviewResponseID="response-1"/>);
+    const dialog = await screen.findByRole("dialog", {name: "Review Branch incident self-assessment response"});
+    expect(api.loadCompletedResponse).toHaveBeenCalledWith("response-1");
+    expect(within(dialog).getByRole("tab", {name: "Review"})).toBeTruthy();
+    expect(within(dialog).getByText("Email verified")).toBeTruthy();
+  });
+
   it("opens a review sheet with Answers, Documents and Review tabs and passes semantic checks", async () => {
     const view = render(<ProgramResponsesPanel programID="program-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Review Branch incident self-assessment response" }));

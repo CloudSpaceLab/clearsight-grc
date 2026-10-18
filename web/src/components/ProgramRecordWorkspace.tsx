@@ -25,6 +25,7 @@ import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
 import { ProgramRequirementCoverageSummary } from "./ProgramRequirementCoverageSummary";
+import { ProgramRecentAssessments } from "./ProgramRecentAssessments";
 import { MetricCard, Notice, StatusBadge } from "./ui";
 import { programOverviewMetrics } from "../programOverviewMetrics";
 
@@ -73,6 +74,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     if (activeTarget.current.id === programID) return;
     activeTarget.current = { id: programID, generation: activeTarget.current.generation + 1 };
     setStandardLinkReviewID(undefined);
+    setReviewResponseID(undefined);
     setAggregate(null);
     setOperations(null);
     setDigest(null);
@@ -198,12 +200,19 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   const dominantAction = digest ? dominantProgramAction(displayedOperations.operations, digest) : undefined;
   const ownerActionIsDominant = dominantAction?.command === "program.assign";
   const [standardLinkReviewID, setStandardLinkReviewID] = useState<string | undefined>();
+  const [reviewResponseID, setReviewResponseID] = useState<string | undefined>();
   const overviewMeasures = useMemo(() => aggregate ? programOverviewMetrics(aggregate) : [], [aggregate]);
 
   function selectSection(next: ProgramSection, reviewAdoptionID?: string) {
     setStandardLinkReviewID(next === "requirements-controls" ? reviewAdoptionID : undefined);
+    if (next !== "assessments") setReviewResponseID(undefined);
     setActiveSection(next);
     onSectionChange?.(next);
+  }
+
+  function openAssessment(responseID: string) {
+    setReviewResponseID(responseID);
+    selectSection("assessments");
   }
 
   const panels: Record<ProgramSection, ReactNode> | null = aggregate ? {
@@ -218,7 +227,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} reviewAdoptionID={standardLinkReviewID} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
       <ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
     </section>,
-    assessments: <section className="program-record-grid" aria-label="Program assessments"><ProgramResponsesPanel programID={aggregate.program.id}/></section>,
+    assessments: <section className="program-record-grid" aria-label="Program assessments"><ProgramResponsesPanel programID={aggregate.program.id} reviewResponseID={reviewResponseID}/></section>,
     "evidence-results": <section className="program-record-grid" aria-label="Program evidence"><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
     monitoring: <article id="program-monitoring-panel" className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter} onOpenForm={onOpenForm}/></article>,
     "issues-actions": <section className="program-record-grid">
@@ -258,6 +267,8 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
           {positionPanel}
           <ProgramVendorFollowUp programID={aggregate.program.id}/>
         </aside>
+        <ProgramRecentAssessments programID={aggregate.program.id}
+          onOpenAssessment={openAssessment} onViewAll={() => selectSection("assessments")}/>
       </div> : positionPanel}
     </div>
     {requestedItem && aggregateState === "live" && !itemAvailable && <Notice>

@@ -18,7 +18,7 @@ type ListState = "loading" | "live" | "unavailable";
 type DetailState = "idle" | "loading" | "live" | "error";
 const responseSections = [{ id: "ANSWERS", label: "Answers" }, { id: "DOCUMENTS", label: "Documents" }, { id: "REVIEW", label: "Review" }] as const;
 
-export function ProgramResponsesPanel({ programID }: { programID: string }) {
+export function ProgramResponsesPanel({ programID, reviewResponseID }: { programID: string; reviewResponseID?: string }) {
   const [query, setQuery] = useState<CompletedResponseQuery>({ sort: "COMPLETED_DESC", limit: 20 });
   const [items, setItems] = useState<CompletedResponseSummary[]>([]);
   const [listState, setListState] = useState<ListState>("loading");
@@ -115,6 +115,12 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
       setDetailState("error");
     }
   }
+
+  // The compact Overview activity list selects an exact response; the existing
+  // governed sheet still owns detail authorization, answers and reviewer tools.
+  useEffect(() => {
+    if (reviewResponseID) void openResponse(reviewResponseID);
+  }, [programID, reviewResponseID]);
 
   const columns: readonly DataColumn<CompletedResponseSummary>[] = [
     { id: "form", header: "Form", render: (value) => <div className="program-responses__form"><strong>{value.title}</strong><span>Revision {value.revision}{value.current ? " · Current" : " · Historical"} · Form revision {value.form_template_version}</span></div>, accessibleText: (value) => `${value.title}, response revision ${value.revision}, form revision ${value.form_template_version}` },

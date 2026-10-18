@@ -269,6 +269,33 @@ describe("Program record workspace", () => {
     expect(screen.queryByRole("button", { name: "Review requirement links" })).toBeNull();
   });
 
+  it("opens a recent Program assessment in the existing authorized review sheet", async () => {
+    vi.mocked(loadCompletedResponses).mockResolvedValue({items: [completedResponse]});
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", {name: "Nigeria data protection"});
+    await screen.findByRole("heading", {name: "Recent assessments"});
+    const open = await screen.findByRole("button", {name: "Review Branch incident self-assessment"});
+    fireEvent.click(open);
+    expect(screen.getByRole("tab", {name: "Assessments", selected: true})).toBeTruthy();
+    expect(await screen.findByRole("dialog", {name: "Review Branch incident self-assessment response"})).toBeTruthy();
+    expect(loadCompletedResponse).toHaveBeenCalledWith("response-1");
+  });
+
+  it("filters assessment activity without reloading or reclassifying current Program posture", async () => {
+    vi.mocked(loadCompletedResponses).mockResolvedValue({items: []});
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", {name: "Recent assessments"});
+    const metrics = screen.getByRole("region", {name: "Program measures"});
+    const originalValues = metrics.textContent;
+    fireEvent.click(screen.getByRole("button", {name: "7 days"}));
+    await waitFor(() => expect(loadCompletedResponses).toHaveBeenCalledWith(
+      expect.objectContaining({subject_id: "program-1", completed_from: expect.any(String), limit: 5}),
+    ));
+    expect(metrics.textContent).toBe(originalValues);
+    expect(loadProgram).toHaveBeenCalledTimes(1);
+    expect(loadProgramReviewDigest).toHaveBeenCalledTimes(1);
+  });
+
   it("uses approved desktop coverage and attention composition without inferred Program scores", async () => {
     const {container} = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
     await screen.findByRole("heading", {name: "Nigeria data protection"});
