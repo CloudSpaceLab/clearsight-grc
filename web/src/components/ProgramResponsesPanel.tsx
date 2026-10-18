@@ -40,6 +40,11 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
     try {
       const page = await loadCompletedResponses({ ...query, subject_type: "PROGRAM", subject_id: programID, current_only: true, cursor });
       if (sequence !== listSequence.current) return;
+      // An authorized query is not proof that each returned row belongs to
+      // the routed Program. Never mix cross-subject results into review.
+      if (page.items.some((item) => item.subject_type !== "PROGRAM" || item.subject_id !== programID)) {
+        throw new Error("Returned responses do not match this Program. Retry the scoped list.");
+      }
       setItems((current) => cursor ? [...current, ...page.items] : page.items);
       setNextCursor(page.next_cursor);
       setListState("live");
@@ -98,6 +103,10 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
     try {
       const value = await loadCompletedResponse(id);
       if (sequence !== detailSequence.current) return;
+      if (value.response.id !== id || value.response.subject_type !== "PROGRAM" ||
+          value.response.subject_id !== programID) {
+        throw new Error("This response does not belong to the selected Program. Reload the Program's responses.");
+      }
       setDetail(value);
       setDetailState("live");
     } catch (cause) {
