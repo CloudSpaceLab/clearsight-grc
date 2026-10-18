@@ -97,6 +97,15 @@ try {
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   try {
+    if (capture.name === "200-framework-library-light-1440x900" ||
+        capture.name === "202-framework-library-light-mobile-390x844") {
+      const title = page.getByRole("heading", { name: "Framework Library", exact: true });
+      const fontSize = await title.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize));
+      const desktop = capture.viewport.width > 900;
+      if (!Number.isFinite(fontSize) || (desktop ? fontSize < 35 || fontSize > 39 : fontSize < 27 || fontSize > 31)) {
+        throw new Error(`Framework Library title uses ${fontSize}px instead of the approved ${desktop ? "desktop" : "mobile"} heading scale`);
+      }
+    }
     if (capture.name === "04-program-light-1440x900") {
       const measures = page.locator(".program-overview-metrics");
       await measures.waitFor({ state: "visible" });

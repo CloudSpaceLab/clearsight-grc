@@ -40,6 +40,7 @@
   --cs-font-size-caption: var(--cs-primitive-font-size-12);
   --cs-font-size-control: var(--cs-primitive-font-size-14);
   --cs-font-size-body: var(--cs-primitive-font-size-14);
+  --cs-font-size-page-title: clamp(var(--cs-primitive-font-size-28), 2.8vw, var(--cs-primitive-font-size-36));
   --cs-font-size-input-mobile: var(--cs-primitive-font-size-16);
   --cs-leading-tight: var(--cs-primitive-leading-tight);
   --cs-leading-body: var(--cs-primitive-leading-body);
