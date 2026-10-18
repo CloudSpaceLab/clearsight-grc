@@ -191,7 +191,7 @@
   .capture-wizard__layout--sectioned { grid-template-columns: minmax(170px, 225px) minmax(0, 1fr); }
   .capture-wizard__layout--sectioned > .capture-wizard__readiness { grid-column: 2; }
 }
-@container capture-wizard (max-width: 850px) {
+@container capture-wizard (max-width: 720px) {
   .capture-wizard__layout--sectioned { grid-template-columns: minmax(0, 1fr); }
   .capture-wizard__layout--sectioned > .capture-wizard__readiness { grid-column: auto; }
   .capture-wizard__sections { position: static; }
