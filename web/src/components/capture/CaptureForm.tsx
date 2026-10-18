@@ -105,7 +105,7 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
         <strong>Sections</strong>
         <ol>{sections.map((entry, index) => <li key={entry.id}>
           <button type="button" aria-label={entry.title} aria-current={index === sectionIndex ? "step" : undefined}
-            disabled={navigating || Boolean(uploadingField) || index > sectionIndex + 1}
+            disabled={navigating || Boolean(uploadingField) || (index > sectionIndex && unsupported.length > 0) || index > sectionIndex + 1}
             onClick={() => {
               if (index === sectionIndex) return;
               if (index < sectionIndex) navigateToSection(index);
