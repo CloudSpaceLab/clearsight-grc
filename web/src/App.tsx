@@ -27,6 +27,7 @@ import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
 import { WorkspaceSwitcher } from "./components/ui";
 import type { CaptureLoadState } from "./components/CapturePanel";
+import { captureContract, effectivePresentationMode, visibleCaptureSections } from "./components/capture/contract";
 import { apiErrorKind } from "./http";
 import { canRespondToEvidenceRequest, isEvidenceRequestAssignedToActor } from "./evidenceAuthorization";
 import { parseRoute, routeHash } from "./appRouting";
@@ -34,7 +35,7 @@ import type { HomeTab, View, WorkspaceTarget, WorkTab } from "./appRouting";
 import type { RuntimePresentation } from "./runtimePresentation";
 import { loadGroupOversight, type GroupOversightSnapshot } from "./groupOversightApi";
 import { subscribeInvalidations } from "./invalidationApi";
-import type { AttentionItem, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceSource, GuideStep, Readiness } from "./types";
+import type { AttentionItem, AuthorityResolution, EvidenceRequest, EvidenceSource, GuideStep, Readiness } from "./types";
 
 const FormsWorkspace = lazy(() => import("./components/FormsWorkspace").then((module) => ({ default: module.FormsWorkspace })));
 const VendorsWorkspace = lazy(() => import("./components/VendorsWorkspace").then((module) => ({ default: module.VendorsWorkspace })));
@@ -87,6 +88,18 @@ type ProductRuntime = RuntimeContext & {
   actor: RuntimeContext["actor"] & { role_codes?: string[] };
 };
 
+function isAuthorizedWizardAssessment(request: EvidenceRequest | null, actorID?: string): boolean {
+  if (!request || !canRespondToEvidenceRequest(request, actorID) ||
+      (request.status !== "READY" && request.status !== "IN_PROGRESS")) return false;
+  const deadline = Date.parse(request.deadline);
+  if (Number.isFinite(deadline) && deadline <= Date.now()) return false;
+  const contract = captureContract(request);
+  // Match CaptureForm's effective initial presentation, not simply the declared
+  // section count; a short AUTOMATIC form still opens in Classic.
+  return visibleCaptureSections(contract, {}).length > 1 &&
+    effectivePresentationMode(contract, {}, contract.presentation.default_mode) === "WIZARD";
+}
+
 function App({ presentation = "enterprise" }: { presentation?: RuntimePresentation }) {
   const displayPreferences = useDisplayPreferences();
   const initialRoute = parseRoute(window.location.hash);
@@ -111,7 +124,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const [resolution, setResolution] = useState<AuthorityResolution | null>(null);
   const [routingItem, setRoutingItem] = useState<AttentionItem | null>(null);
   const [routingState, setRoutingState] = useState<RoutingLoadState>("loading");
-  const [capture, setCapture] = useState<CaptureRequest | null>(null);
+  const [capture, setCapture] = useState<EvidenceRequest | null>(null);
   const [captureState, setCaptureState] = useState<CaptureLoadState>("loading");
   const [captureRequestID, setCaptureRequestID] = useState<string | undefined>();
   const [readiness, setReadiness] = useState<Readiness | null>(null);
@@ -591,6 +604,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     setVendorGuideIntent((current) => current?.id === id ? undefined : current);
   }
 
+  const usesAssessmentWorkspace = activePanel === "capture" && captureState === "live" &&
+    isAuthorizedWizardAssessment(capture, runtime?.actor.id);
+
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation">
       <div className="sidebar-brand">
@@ -705,7 +721,11 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       const active = activeViews.includes(activeView);
       return <button key={label} type="button" aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><span>{label}</span></button>;
     })}</nav>
-    {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}>{activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}</FocusedSheet>}
+    {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}
+      size={usesAssessmentWorkspace ? "wide" : "default"}
+      panelClassName={usesAssessmentWorkspace ? "assessment-capture-sheet" : ""}>
+      {activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}
+    </FocusedSheet>}
   </div>;
 }
 

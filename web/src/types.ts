@@ -83,7 +83,19 @@ export type OnboardingState = { tenant_id: string; principal_id: string; guide_c
 export type WorkflowTask = { id: string; tenant_id: string; workflow_id: string; step_key: string; responsibility: string; principal_id?: string; title: string; status: string; due_at?: string; claimed_at?: string; completed_at?: string; context?: Record<string, string>; source_bindings?: BindingReference[]; version: number; };
 export type EvidenceSource = { id: string; tenant_id: string; legal_entity_id?: string; code: string; name: string; type: string; authority_class: string; owner_principal_id?: string; expected_freshness_minutes: number; last_observed_at?: string; last_success_at?: string; health: string; status: string; version: number; };
 export type EvidenceField = CaptureField;
-export type EvidenceRequest = { id: string; tenant_id: string; subject_type: string; subject_id: string; title: string; purpose: string; why_you: string; sensitivity: string; audience_type: string; recipient?: EvidenceRecipient; created_by?: string; estimated_minutes: number; deadline: string; known_facts: Record<string, string>; fields: EvidenceField[]; source_bindings?: RequestBindingReference[]; status: string; version: number; created_at: string; updated_at: string; };
+// The HTTP evidence.Request includes the same versioned presentation,
+// sections and fields as the capture contract. Retain the additional scoped
+// record identity instead of duplicating and silently dropping form metadata.
+export type EvidenceRequest = CaptureRequest & {
+  tenant_id: string;
+  legal_entity_id?: string;
+  subject_type: string;
+  subject_id: string;
+  audience_type: string;
+  source_bindings?: RequestBindingReference[];
+  created_at: string;
+  updated_at: string;
+};
 export type EvidenceReviewSubmission = { id: string; request_id: string; submitted_by?: string; channel: string; answers: CaptureAnswers; answer_provenance?: Record<string, unknown>; submitted_at: string; };
 
 export type ProgramState = "CURRENT" | "AT_RISK" | "GAP_IDENTIFIED" | "EVIDENCE_INSUFFICIENT" | "IMPLEMENTATION_PENDING" | "OVERDUE" | "UNDER_REVIEW" | "NOT_APPLICABLE" | "UNKNOWN";

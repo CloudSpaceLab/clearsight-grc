@@ -209,6 +209,23 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
   matterBaseline = clone(matterDetail);
   evidenceRequest = clone(fixtures.evidenceRequest);
   evidenceRequest.deadline = future;
+  if (activeFixture() === "internal-assessment-layout") {
+    // Isolated preview data only. The authenticated CapturePanel, persistence and
+    // authorization paths are unchanged; no prototype scores or decisions.
+    evidenceRequest.title = "Review annual-return control responses";
+    evidenceRequest.presentation = { default_mode: "WIZARD", allow_mode_switch: false };
+    evidenceRequest.sections = [
+      { id: "governance", title: "Governance" },
+      { id: "controls", title: "Controls" },
+      { id: "evidence", title: "Evidence" },
+    ];
+    evidenceRequest.fields = [
+      { id: "accountable_role", section_id: "governance", label: "Accountable role", type: "short_text", required: true },
+      { id: "periodic_review", section_id: "controls", label: "Periodic control review completed", type: "yes_no", required: true },
+      { id: "control_notes", section_id: "controls", label: "Review notes", type: "long_text", required: false },
+      { id: "review_report", section_id: "evidence", label: "Control review report", type: "file", required: true, accepted_formats: ["application/pdf"] },
+    ];
+  }
   evidenceRequests = [evidenceRequest];
   todayItems = clone(fixtures.todayItems);
   for (const item of todayItems) item.due_at = future;

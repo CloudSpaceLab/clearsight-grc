@@ -75,6 +75,14 @@ try {
     await captureVendorWorkflows();
   } else {
   for (const capture of captures) await capturePage(capture);
+  for (const scenario of [
+    { name: "211-internal-assessment-light-1440x900", viewport: { width: 1440, height: 900 }, theme: "light" },
+    { name: "212-internal-assessment-dark-1280x800", viewport: { width: 1280, height: 800 }, theme: "dark" },
+    { name: "215-internal-assessment-light-1024x768", viewport: { width: 1024, height: 768 }, theme: "light" },
+    { name: "216-internal-assessment-dark-768x900", viewport: { width: 768, height: 900 }, theme: "dark" },
+    { name: "213-internal-assessment-light-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "light" },
+    { name: "214-internal-assessment-dark-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "dark" },
+  ]) await captureInternalAssessment(scenario);
   await captureRouting();
   await captureAuthorityForbidden();
   await captureEvidenceReviewAndReceipt();
@@ -924,6 +932,55 @@ async function captureCaptureConflict() {
     await page.getByRole("button", { name: "Reload request" }).waitFor();
     await saveScreenshot(page, capture.name);
     await record(page, capture, "optimistic-conflict");
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureInternalAssessment({ name, viewport, theme }) {
+  const capture = { name, viewport, theme, route: "#today", title: "Oversight",
+    fixture: "internal-assessment-layout", density: "comfortable", touch: viewport.width <= 390 };
+  const { context, page } = await openPage(capture);
+  try {
+    const more = page.getByText("More actions", { exact: true });
+    // Desktop shows the primary action directly; the overflow summary is mobile-only.
+    if (await more.count() && await more.isVisible()) await more.click();
+    await page.getByRole("button", { name: "Respond to evidence request" }).click();
+    const dialog = page.getByRole("dialog", { name: "Evidence request" });
+    await dialog.getByRole("heading", { name: "Review annual-return control responses" }).waitFor({ state: "visible" });
+    const rail = dialog.getByRole("navigation", { name: "Assessment sections" });
+    const work = dialog.locator(".capture-wizard__main");
+    const readiness = dialog.getByRole("complementary", { name: "Response readiness and evidence" });
+    await Promise.all([rail.waitFor({ state: "visible" }), work.waitFor({ state: "visible" }),
+      readiness.waitFor({ state: "visible" })]);
+    const [railBox, workBox, readinessBox, sheetBox] = await Promise.all([
+      rail.boundingBox(), work.boundingBox(), readiness.boundingBox(),
+      dialog.locator("xpath=ancestor::*[contains(@class,'cs-sheet')]").first().boundingBox(),
+    ]);
+    if (!railBox || !workBox || !readinessBox || !sheetBox) {
+      throw new Error(name + " has missing authorized questionnaire panes");
+    }
+    await saveScreenshot(page, name);
+    if (viewport.width >= 1280) {
+      if (sheetBox.width < 1150 || railBox.x + railBox.width > workBox.x + 3 ||
+          workBox.x + workBox.width > readinessBox.x + 3 ||
+          Math.abs(railBox.y - readinessBox.y) > 15) {
+        throw new Error(`${name} does not show approved three-column internal assessment anatomy: ${JSON.stringify({ rail: railBox, work: workBox, readiness: readinessBox, sheet: sheetBox })}`);
+      }
+    } else if (viewport.width >= 900) {
+      if (railBox.x + railBox.width > workBox.x + 3 ||
+          Math.abs(readinessBox.x - workBox.x) > 3 ||
+          readinessBox.y < workBox.y + workBox.height - 3) {
+        throw new Error(`${name} does not stack readiness below the two-column tablet questionnaire: ${JSON.stringify({ rail: railBox, work: workBox, readiness: readinessBox, sheet: sheetBox })}`);
+      }
+    } else if (railBox.y + railBox.height > workBox.y + 3 ||
+               workBox.y + workBox.height > readinessBox.y + 3) {
+      throw new Error(name + " does not stack the section rail, questions and readiness on mobile");
+    }
+    await dialog.getByText("Required unanswered", { exact: true }).waitFor({ state: "visible" });
+    await assertFocusInsideSheet(page, name);
+    await assertNoHorizontalOverflow(page, name);
+    await record(page, capture, viewport.width >= 1280 ? "assessment-internal-three-pane" : viewport.width >= 900 ? "assessment-internal-tablet" : "assessment-internal-mobile");
   } finally {
     await context.close();
   }

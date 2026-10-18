@@ -28,10 +28,18 @@ const references = [
     source: "clearsight-program-designs/program-workspace-preview.html",
     runtime: { "1440x900": "04-program-light-1440x900.png", "390x844": "04-program-light-mobile-390x844.png" },
   },
+  {
+    id: "assessment-workspace",
+    source: "clearsight-designs-01-05/assessment-workspace-preview.html",
+    runtime: { "1440x900": "211-internal-assessment-light-1440x900.png", "1280x800": "212-internal-assessment-dark-1280x800.png", "1024x768": "215-internal-assessment-light-1024x768.png", "768x900": "216-internal-assessment-dark-768x900.png", "390x844": "213-internal-assessment-light-mobile-390x844.png" },
+  },
 ];
 
 const viewports = [
   { width: 1440, height: 900 },
+  { width: 1280, height: 800 },
+  { width: 1024, height: 768 },
+  { width: 768, height: 900 },
   { width: 390, height: 844 },
 ];
 
@@ -115,6 +123,7 @@ const lines = [
   "These screenshots render the hash-verified original HTML, not the ClearSight application.",
   "Runtime captures have separate files in the parent UI evidence artifact.",
   "Different source/demo data prevents meaningful pixel-diff scoring. Visual parity remains unreviewed.",
+  "Original HTML references use their approved light theme; paired dark runtime images support layout comparisons only.",
   "",
   "| Screen | Viewport | Approved screenshot | Runtime screenshot |",
   "| --- | --- | --- | --- |",
