@@ -18,7 +18,12 @@ type ListState = "loading" | "live" | "unavailable";
 type DetailState = "idle" | "loading" | "live" | "error";
 const responseSections = [{ id: "ANSWERS", label: "Answers" }, { id: "DOCUMENTS", label: "Documents" }, { id: "REVIEW", label: "Review" }] as const;
 
-export function ProgramResponsesPanel({ programID }: { programID: string }) {
+type RequestedResponse = Pick<CompletedResponseSummary, "id" | "revision" | "form_template_version">;
+
+export function ProgramResponsesPanel({ programID, requestedResponse }: {
+  programID: string;
+  requestedResponse?: RequestedResponse;
+}) {
   const [query, setQuery] = useState<CompletedResponseQuery>({ sort: "COMPLETED_DESC", limit: 20 });
   const [items, setItems] = useState<CompletedResponseSummary[]>([]);
   const [listState, setListState] = useState<ListState>("loading");
@@ -31,6 +36,7 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
   const [detailError, setDetailError] = useState<string>();
   const listSequence = useRef(0);
   const detailSequence = useRef(0);
+  const handledRequestKey = useRef("");
 
   const loadList = useCallback(async (cursor?: string) => {
     if (responseDateError(query)) return;
@@ -94,7 +100,7 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
     await loadList(nextCursor);
   }
 
-  async function openResponse(id: string) {
+  async function openResponse(id: string, expected?: RequestedResponse) {
     const sequence = ++detailSequence.current;
     setSelectedID(id);
     setDetail(undefined);
@@ -107,6 +113,12 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
           value.response.subject_id !== programID) {
         throw new Error("This response does not belong to the selected Program. Reload the Program's responses.");
       }
+      if (expected && (value.response.revision !== expected.revision ||
+          value.revision.revision !== expected.revision ||
+          value.response.form_template_version !== expected.form_template_version ||
+          !value.response.current)) {
+        throw new Error("The response revision has changed. Reload assessments before reviewing.");
+      }
       setDetail(value);
       setDetailState("live");
     } catch (cause) {
@@ -115,6 +127,21 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
       setDetailState("error");
     }
   }
+
+  // Navigation from the approved Overview selects a specific, versioned
+  // submission. Never auto-open another revision when the source changes.
+  const requestedKey = requestedResponse
+    ? [programID, requestedResponse.id, requestedResponse.revision, requestedResponse.form_template_version].join(":")
+    : "";
+  useEffect(() => {
+    if (!requestedResponse) {
+      handledRequestKey.current = "";
+      return;
+    }
+    if (handledRequestKey.current === requestedKey) return;
+    handledRequestKey.current = requestedKey;
+    void openResponse(requestedResponse.id, requestedResponse);
+  }, [requestedKey]);
 
   const columns: readonly DataColumn<CompletedResponseSummary>[] = [
     { id: "form", header: "Form", render: (value) => <div className="program-responses__form"><strong>{value.title}</strong><span>Revision {value.revision}{value.current ? " · Current" : " · Historical"} · Form revision {value.form_template_version}</span></div>, accessibleText: (value) => `${value.title}, response revision ${value.revision}, form revision ${value.form_template_version}` },

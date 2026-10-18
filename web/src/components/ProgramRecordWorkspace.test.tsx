@@ -936,6 +936,17 @@ describe("Program record workspace", () => {
 	expect(loadCompletedResponses).toHaveBeenCalledWith({ subject_type: "PROGRAM", subject_id: "program-1", current_only: true, sort: "COMPLETED_DESC", limit: 20, cursor: undefined });
   });
 
+  it("opens an approved Overview activity row directly in the exact assessment sheet", async () => {
+    vi.mocked(loadCompletedResponses).mockResolvedValue({items:[completedResponse]});
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", {name:"Nigeria data protection"});
+    fireEvent.click(await screen.findByRole("button", {name:"Review Branch incident self-assessment"}));
+    const dialog = await screen.findByRole("dialog", {name:/Review .* response/});
+    expect(loadCompletedResponse).toHaveBeenCalledWith("response-1");
+    expect(await within(dialog).findByRole("tab", {name:"Answers"})).toBeTruthy();
+    expect(within(dialog).getByRole("tab", {name:"Review"})).toBeTruthy();
+  });
+
   it("opens the submitted response review with Answers, Documents and Review tabs", async () => {
 	vi.mocked(loadCompletedResponses).mockResolvedValue({ items: [completedResponse] });
 	render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);

@@ -17,9 +17,10 @@ function submittedDate(value: string) {
 // Approved Program Overview: recent assessments are *submitted responses*,
 // not approved compliance or verified evidence. Reuse one authorized,
 // bounded Forms query and preserve the independent Assessments workspace.
-export function ProgramRecentAssessments({ programID, onNavigate }: {
+export function ProgramRecentAssessments({ programID, onNavigate, onOpenAssessment }: {
   programID: string;
   onNavigate: (section: ProgramSection) => void;
+  onOpenAssessment?: (response: CompletedResponseSummary) => void;
 }) {
   const [period, setPeriod] = useState<PeriodDays>(90);
   const [state, setState] = useState<State>("loading");
@@ -76,10 +77,12 @@ export function ProgramRecentAssessments({ programID, onNavigate }: {
     </Notice>}
     {state === "ready" && items.length === 0 && <p>No submitted responses in this period.</p>}
     {state === "ready" && items.length > 0 && <ul className="program-recent-assessments__list">
-      {items.map((item) => <li key={item.id} className="program-recent-assessments__row">
+      {items.map((item) => <li key={item.id} className={onOpenAssessment ? "program-recent-assessments__row has-review" : "program-recent-assessments__row"}>
         <div><strong>{item.title}</strong><small>Form revision {item.form_template_version} · Response revision {item.revision}</small></div>
         <time dateTime={item.completed_at}>{submittedDate(item.completed_at)}</time>
         <span>{item.state === "FINAL" ? concernText(item.score) : "Provisional response"}</span>
+        {onOpenAssessment && <Button variant="quiet" aria-label={`Review ${item.title}`}
+          onPress={() => onOpenAssessment(item)}>Review</Button>}
       </li>)}
     </ul>}
     <p className="program-recent-assessments__foot">Submission scores do not establish independent review or evidence acceptance.</p>

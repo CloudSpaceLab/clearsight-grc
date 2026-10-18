@@ -383,14 +383,23 @@
   min-width: 0;
   font-size: var(--cs-font-size-body);
 }
+.program-recent-assessments__row.has-review {
+  grid-template-columns: minmax(0, 1fr) auto minmax(90px, auto) auto;
+}
 .program-recent-assessments__row > div { display: grid; min-width: 0; gap: var(--cs-space-inline); }
 .program-recent-assessments__row strong { color: var(--cs-text-strong); overflow-wrap: anywhere; }
 .program-recent-assessments__row small,
 .program-recent-assessments__row time,
 .program-recent-assessments__row > span { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+@media (max-width: 1050px) {
+  .program-recent-assessments__row.has-review { grid-template-columns: minmax(0, 1fr) auto; }
+  .program-recent-assessments__row.has-review > span { grid-column: 1; }
+  .program-recent-assessments__row.has-review > button { grid-column: 2; justify-self: end; min-height: 44px; }
+}
 @media (max-width: 767px) {
   .program-recent-assessments__row { grid-template-columns: minmax(0, 1fr) auto; }
   .program-recent-assessments__row > span { grid-column: 1 / -1; }
+  .program-recent-assessments__row.has-review > span { grid-column: 1; }
   .program-recent-assessments__actions { width: 100%; justify-content: space-between; }
 }
 
