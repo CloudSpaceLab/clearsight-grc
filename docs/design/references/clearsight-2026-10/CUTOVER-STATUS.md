@@ -1,7 +1,58 @@
 # Approved UI cutover — runtime reconciliation
 
-Updated: 2026-10-17. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
+Updated: 2026-10-18. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
 Authority: the immutable [approved source archive](./source/README.md), its [manifest](./source/MANIFEST.json), the [implementation mapping](./IMPLEMENTATION-MAPPING.md) and the unified design specification. Source HTML is a **visual/interaction benchmark, not a data or permission contract**. No source-example totals, statuses, suggestions or approvals may ship as runtime facts.
+
+## Design fidelity register — 18 October 2026
+
+The reference artifact, **not the existing React screen**, defines each view's approved
+information hierarchy, actions, responsive anatomy and interaction states.
+The [source manifest](./source/MANIFEST.json) pins SHA-256 for all 96 original files.
+The [unified specification](./source/clearsight-unified-design-system-v1/clearsight-design-system/clearsight-design-system-spec.md)
+resolves conflicting prototype navigation variants. Sample records, scores and HTML-only
+actions are *fixtures* and may not be promoted into production data or authority.
+
+**Cutover means exact UI composition and real workflows, not incremental beautification.**
+Every screen must have (a) approved-HTML component/interaction inventory, (b) React owner
+and real API/authority wiring, (c) reference/runtime images at 1440/1280/1024/768/390,
+light and dark, (d) loading, empty, stale, partial, denied and conflict verification,
+(e) focused action round-trip, keyboard/focus and reduced-motion checks.
+A green screenshot job without a **side-by-side reference review** is *not* visual parity.
+
+| Approved screen (source under `source/`) | Runtime composition / cutover gate | Verified status |
+| --- | --- | --- |
+| Control Tower — `clearsight-designs-01-05/` | Existing Home/Oversight, four genuine scoped measures, activity and Attention, shared shell | Partial; full design comparison and actor proof outstanding |
+| Framework Library — `clearsight-framework-designs/framework-library.html` | Edition register/inspector, source rights, filters, governed selection | Partial; #497/#498/#505/#507/#508/#509/#513 merged, global catalog search and full parity outstanding |
+| Framework Adoption — `clearsight-framework-designs/framework-adoption.html` | Program & scope → requirement links → questionnaire → independent adoption review | Partial; #511/#512/#514 merged; no complete four-stage screen or global Form association |
+| Program — `clearsight-program-designs/program-workspace-preview.html` | **Six** tabs: Overview / Requirements / Assessments / Evidence / Issues / Activity; Data collection contextual | In cutover PR for six-section composition; real assessments/evidence split, historical route retained |
+| Assessment — `clearsight-designs-01-05/assessment-workspace-preview.html` | Three-column sections / form / evidence-readiness; mobile section rail; exact XLSX mapping | Not at reference parity; existing Forms/ResponseAssessment reused |
+| Vendor — `clearsight-vendor-management-designs/vendor-workspace-preview.html` | Relationship register, due diligence, expiring evidence and approval | Foundation only; parity/flows outstanding |
+| Operational Risk — `clearsight-operational-risk-designs/operational-risk-preview.html` | RCSA, indicator and loss have distinct semantics and authorized scope | Foundation only |
+| Privacy — `clearsight-privacy-data-designs/privacy-workspace-preview.html` | Processing register, DPIA, purpose-specific reviews | Foundation only |
+| Reports — `clearsight-reports-insights-designs/reports-workspace-preview.html` | Report definitions, persisted runs, source parity, authorized download digest | Foundation only; live four-actor report proof missing |
+| Work/Approvals — `clearsight-work-approvals-designs/work-approvals-preview.html` | Existing queues + independent decisions/focused record | Foundation only |
+| Controls/Policies — `clearsight-controls-policies-designs/controls-policies.html` | Existing control/policy lifecycle and versioned decisions | Foundation only |
+| Enterprise Setup — `clearsight-enterprise-setup-designs/enterprise-setup.html` | Real hierarchy, branches/departments/group scope | Foundation only |
+| Integrations — `clearsight-integrations-designs/integrations-workspace-preview.html` | Source connections, reviewable mappings and run health | Foundation only |
+| Search — `clearsight-search-command-center-designs/search-command-center-preview.html` | Authorized indexed/bounded query and exact result inspector | Blocked on authoritative federated search contract |
+| Notifications — `clearsight-notifications-activity-designs/notifications-activity-preview.html` | Actor-safe inbox, state and receipts | Foundation only |
+| Audit/Assurance — `clearsight-audit-assurance-designs/audit-assurance.html` | Plans, fieldwork and evidence lineage | Foundation only |
+| People/Access — `clearsight-people-access-designs/people-access-preview.html` | Identity, positions, delegations and effective authority | Foundation only |
+| Automation — `clearsight-automation-governance-designs/automation-governance.html` | Draft, simulate, review, approve, activate and rollback | Foundation only |
+| Copilot — `clearsight-contextual-copilot-designs/ai-copilot.html` | Three or fewer human-chosen, source-grounded suggestions | Foundation only; no fabricated answers |
+
+**Program design discrepancy confirmed:** the older runtime combined submitted forms and evidence
+under “Evidence & results,” placed “Data collection” in the primary tablist, and lacked a distinct
+Assessments destination. The approved [Program source](./source/clearsight-program-designs/program-workspace-preview.html)
+and [design notes](./source/clearsight-program-designs/program-workspace-design-notes.md)
+require the six primary tabs above. The Program cutover tranche separates existing
+`ProgramResponsesPanel` (Assessments) and `ProgramEvidencePanel` (Evidence)
+without inventing backend statuses or an assessment system; `/monitoring` remains a
+contextual route for existing deep links and authorized collection actions.
+
+**Release blocking:** full screenshot/geometry comparisons, forms/assessment desktop-three-column
+composition, four-actor workflow, authorized report-to-source parity and cross-tenant/LE/group
+denial receipts. Issue #462 stays open until these are verified, not inferred from CI.
 
 ## What is integrated
 
