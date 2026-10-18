@@ -98,7 +98,36 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
 
   const section = sections[sectionIndex] ?? sections[0]!;
   const isLast = sectionIndex === sections.length - 1;
-  return <div className="capture-form capture-wizard">{modeSwitch}<div className="capture-progress"><span aria-live="polite">Step {sectionIndex + 1} of {sections.length}</span><progress max={sections.length} value={sectionIndex + 1} aria-label={`Section ${sectionIndex + 1} of ${sections.length}`}/></div>{errorSummary}{unsupported.length > 0 && <UnsupportedFields fields={unsupported}/>}<section className="capture-section" aria-labelledby={`capture-section-title-${section.id}`}><h3 id={`capture-section-title-${section.id}`}>{section.title}</h3>{section.help && <p className="field-help">{section.help}</p>}{renderFields(section.fields)}</section><div className="wizard-actions">{sectionIndex > 0 && <button className="secondary-button" type="button" disabled={navigating} onClick={() => navigateToSection(sectionIndex - 1)}>Back</button>}<button className="primary-button" type="button" disabled={unsupported.length > 0 || Boolean(uploadingField) || navigating} onClick={() => validate(section.fields, () => isLast ? onReview() : navigateToSection(sectionIndex + 1))}>{uploadingField ? "Uploading…" : navigating ? "Saving…" : isLast ? reviewLabel : "Continue"}</button></div></div>;
+  return <div className="capture-form capture-wizard">
+    {modeSwitch}
+    <div className={sections.length > 1 ? "capture-wizard__layout capture-wizard__layout--sectioned" : "capture-wizard__layout"}>
+      {sections.length > 1 && <nav className="capture-wizard__sections" aria-label="Assessment sections">
+        <strong>Sections</strong>
+        <ol>{sections.map((entry, index) => <li key={entry.id}>
+          <button type="button" aria-label={entry.title} aria-current={index === sectionIndex ? "step" : undefined}
+            disabled={navigating || Boolean(uploadingField) || index > sectionIndex + 1}
+            onClick={() => {
+              if (index === sectionIndex) return;
+              if (index < sectionIndex) navigateToSection(index);
+              else validate(section.fields, () => navigateToSection(index));
+            }}>
+            <span className="capture-wizard__section-number" aria-hidden="true">{index + 1}</span>
+            <span>{entry.title}</span>
+          </button>
+        </li>)}</ol>
+      </nav>}
+      <div className="capture-wizard__main">
+        <div className="capture-progress"><span aria-live="polite">Step {sectionIndex + 1} of {sections.length}</span><progress max={sections.length} value={sectionIndex + 1} aria-label={"Section " + (sectionIndex + 1) + " of " + sections.length}/></div>
+        {errorSummary}
+        {unsupported.length > 0 && <UnsupportedFields fields={unsupported}/>}
+        <section className="capture-section" aria-labelledby={"capture-section-title-" + section.id}><h3 id={"capture-section-title-" + section.id}>{section.title}</h3>{section.help && <p className="field-help">{section.help}</p>}{renderFields(section.fields)}</section>
+        <div className="wizard-actions">
+          {sectionIndex > 0 && <button className="secondary-button" type="button" disabled={navigating} onClick={() => navigateToSection(sectionIndex - 1)}>Back</button>}
+          <button className="primary-button" type="button" disabled={unsupported.length > 0 || Boolean(uploadingField) || navigating} onClick={() => validate(section.fields, () => isLast ? onReview() : navigateToSection(sectionIndex + 1))}>{uploadingField ? "Uploading…" : navigating ? "Saving…" : isLast ? reviewLabel : "Continue"}</button>
+        </div>
+      </div>
+    </div>
+  </div>;
 }
 
 function UnsupportedFields({ fields }: { fields: CaptureField[] }) {
