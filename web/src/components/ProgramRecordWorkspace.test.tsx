@@ -163,8 +163,14 @@ describe("Program record workspace", () => {
   };
 
   it("renders approved Activity with the governed Program review digest, not static metadata alone", async () => {
+    vi.mocked(loadProgram).mockResolvedValue({ ...aggregate, current_state: {
+      ...aggregate.current_state!, program_version: 4,
+    }});
     vi.mocked(loadProgramReviewDigest).mockResolvedValue({
       ...digest, state: "CHANGED", review_required: true,
+      checkpoint: { id: "review-1", tenant_id: "bank", program_id: "program-1",
+        principal_id: "reviewer-1", program_version: 3, projection_version: 7,
+        accepted_at: "2026-08-24T09:00:00Z" },
       changes: [{ kind: "REQUIREMENT", summary: "Requirement review updated" }],
       changes_total: 1, changes_omitted: 0, history_truncated: false,
     });
