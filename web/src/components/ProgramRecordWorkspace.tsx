@@ -24,6 +24,7 @@ import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
+import { ProgramRequirementCoverageSummary } from "./ProgramRequirementCoverageSummary";
 import { MetricCard, Notice, StatusBadge } from "./ui";
 import { programOverviewMetrics } from "../programOverviewMetrics";
 
@@ -219,7 +220,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     </section>,
     assessments: <section className="program-record-grid" aria-label="Program assessments"><ProgramResponsesPanel programID={aggregate.program.id}/></section>,
     "evidence-results": <section className="program-record-grid" aria-label="Program evidence"><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
-    monitoring: <article className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter} onOpenForm={onOpenForm}/></article>,
+    monitoring: <article id="program-monitoring-panel" className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter} onOpenForm={onOpenForm}/></article>,
     "issues-actions": <section className="program-record-grid">
       <ProgramIssuesPanel aggregate={aggregate} canCreateIssue={mutationsReady} onOpenMatter={onOpenMatter}/>
       <VendorRelationshipLinks targetType="PROGRAM" targetID={aggregate.program.id}/>
@@ -230,22 +231,39 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     </section>,
   } : null;
 
+  const positionPanel = aggregate ? (digest
+    ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest}
+        onNavigate={selectSection} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
+    : <section className="program-current-position" aria-labelledby="program-current-position-heading">
+        <div><span className="eyebrow">Current position</span>
+          <h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2>
+          <ProgramAttention aggregate={aggregate} onNavigate={selectSection}/>
+        </div>
+        <div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div>
+      </section>) : null;
+
   const lead = aggregate ? <>
     <div className="program-overview-lead">
-        {activeSection === "overview" && <section className="program-overview-metrics" aria-label="Program measures">
-          {overviewMeasures.map((measure) =>
-            <MetricCard key={measure.id} label={measure.label} value={measure.value}
-              quality={measure.quality} qualityLabel={measure.qualityLabel}
-              tone={measure.id === "issues" && typeof measure.value === "number" && measure.value > 0 ? "warning" : "neutral"}
-              detail={measure.detail} meta={measure.meta} actionLabel={measure.actionLabel}
-              onPress={() => selectSection(measure.target)}/>)}
-        </section>}
-        {digest
-          ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onNavigate={selectSection} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
-          : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2><ProgramAttention aggregate={aggregate} onNavigate={selectSection}/></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
-      </div>
-      {activeSection === "overview" && <ProgramVendorFollowUp programID={aggregate.program.id}/>}
-      {requestedItem && aggregateState === "live" && !itemAvailable && <Notice><strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong><p>Return to the import to check its result, or review the available requirements and controls below.</p></Notice>}
+      {activeSection === "overview" && <section className="program-overview-metrics" aria-label="Program measures">
+        {overviewMeasures.map((measure) =>
+          <MetricCard key={measure.id} label={measure.label} value={measure.value}
+            quality={measure.quality} qualityLabel={measure.qualityLabel}
+            tone={measure.id === "issues" && typeof measure.value === "number" && measure.value > 0 ? "warning" : "neutral"}
+            detail={measure.detail} meta={measure.meta} actionLabel={measure.actionLabel}
+            onPress={() => selectSection(measure.target)}/>)}
+      </section>}
+      {activeSection === "overview" ? <div className="program-overview-composition">
+        <ProgramRequirementCoverageSummary aggregate={aggregate} onNavigate={selectSection}/>
+        <aside className="program-overview-rail" aria-label="Program attention and setup">
+          {positionPanel}
+          <ProgramVendorFollowUp programID={aggregate.program.id}/>
+        </aside>
+      </div> : positionPanel}
+    </div>
+    {requestedItem && aggregateState === "live" && !itemAvailable && <Notice>
+      <strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong>
+      <p>Return to the import to check its result, or review the available requirements and controls below.</p>
+    </Notice>}
   </> : null;
 
   return <section className="program-record-workspace" aria-label="Program record">
@@ -255,12 +273,14 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     {aggregate && <>
       <header className="program-record-header">
         <div><span className="program-kicker">{aggregate.program.code} · {aggregate.program.owning_function}</span><h1>{aggregate.program.name}</h1><p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p></div>
-        <dl className="program-record-header__facts">
-          <div><dt>Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
-          <div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div>
-        </dl>
-        <div className="program-record-header__actions">
-          <button type="button" className="secondary-button" onClick={() => selectSection("monitoring")}>Open data collection</button>
+        <div className="program-record-header__side">
+          <dl className="program-record-header__facts">
+            <div><dt>Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
+            <div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div>
+          </dl>
+          <div className="program-record-header__actions">
+            <button type="button" className="secondary-button" onClick={() => selectSection("monitoring")}>Open data collection</button>
+          </div>
         </div>
       </header>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking who can act on this Program.</strong> Program details remain visible while assignments are loading.</div>}

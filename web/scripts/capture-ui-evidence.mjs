@@ -139,6 +139,13 @@ async function capturePage(capture) {
       if (!tabBox || !metricBox || tabBox.y >= metricBox.y) {
         throw new Error("Program section navigation must precede Overview measures");
       }
+      const coverage = page.locator(".program-overview-coverage");
+      const rail = page.getByRole("complementary", {name:"Program attention and setup"});
+      const [coverageBox, railBox] = await Promise.all([coverage.boundingBox(), rail.boundingBox()]);
+      if (!coverageBox || !railBox || coverageBox.x >= railBox.x ||
+          Math.abs(coverageBox.y - railBox.y) > 24 || coverageBox.y <= metricBox.y) {
+        throw new Error("Program approved coverage/attention first-viewport composition is missing");
+      }
       for (const label of ["Approved requirements", "Assessed requirements", "Open issues", "Active evidence checks"]) {
         const card = measures.getByRole("button", { name: new RegExp("^" + label + ":") });
         await card.waitFor({ state: "visible" });

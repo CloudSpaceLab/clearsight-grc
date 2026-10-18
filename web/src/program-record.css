@@ -164,11 +164,19 @@
 @media (max-width: 600px) {
   .program-overview-metrics { grid-template-columns: minmax(0, 1fr); }
 }
-
-.program-overview-lead { display: grid; gap: var(--cs-space-group); min-width: 0; }
-@media (max-width: 600px) {
-  .program-overview-lead > .program-current-position { order: -1; }
+/* The approved mobile Program shows four compact measures in a 2-by-2 grid.
+   Keep 320px reflow and unusually narrow containers on a single column. */
+@media (min-width: 375px) and (max-width: 600px) {
+  .program-overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--cs-space-inline);
+  }
+  .program-overview-metrics .cs-metric-card {
+    --cs-metric-card-padding: var(--cs-space-group);
+    --cs-metric-card-min-height: 118px;
+  }
 }
+.program-overview-lead { display: grid; gap: var(--cs-space-group); min-width: 0; }
 
 /* Approved Program HTML: six primary sections and a distinct collection workflow. */
 .program-record-header__actions {
@@ -194,4 +202,117 @@
   .program-record-header__actions .secondary-button { width: 100%; }
   .program-contextual-header { align-items: stretch; }
   .program-contextual-header .secondary-button { width: 100%; }
+}
+
+/* Approved Program HTML first viewport: coverage workspace and attention rail.
+   The component owns live source/status checks; this CSS has no demo totals. */
+.program-overview-composition {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(285px, .82fr);
+  gap: var(--cs-space-section);
+  align-items: start;
+  min-width: 0;
+}
+.program-overview-coverage {
+  display: grid;
+  align-content: start;
+  gap: var(--cs-space-section);
+  min-width: 0;
+  min-height: 290px;
+  padding: var(--cs-space-section);
+  border: 1px solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  background: var(--cs-bg-surface-1);
+}
+.program-overview-coverage__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--cs-space-group);
+}
+.program-overview-coverage__header h2 {
+  margin: var(--cs-space-inline) 0;
+  font-size: var(--cs-primitive-font-size-18);
+  color: var(--cs-text-strong);
+}
+.program-overview-coverage__header p, .program-overview-coverage__basis {
+  margin: 0;
+  font-size: var(--cs-font-size-caption);
+  color: var(--cs-text-muted);
+}
+.program-overview-coverage__totals {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--cs-space-group);
+  color: var(--cs-text-primary);
+}
+.program-overview-coverage__totals strong {
+  font-size: var(--cs-primitive-font-size-28);
+  color: var(--cs-text-strong);
+}
+.program-overview-coverage progress {
+  appearance: auto;
+  display: block;
+  width: 100%;
+  height: var(--cs-space-group);
+  accent-color: var(--cs-action-primary);
+}
+.program-overview-coverage__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cs-space-group);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.program-overview-coverage__unavailable {
+  display: grid;
+  gap: var(--cs-space-group);
+  color: var(--cs-text-muted);
+}
+.program-overview-coverage__unavailable strong { color: var(--cs-text-strong); }
+.program-overview-coverage__unavailable p { margin: 0; }
+.program-overview-rail { display: grid; gap: var(--cs-space-section); min-width: 0; }
+.program-overview-rail > * { min-width: 0; }
+@media (max-width: 1023px) {
+  .program-overview-composition { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Original approved Program page heading: concise identity + narrow actions.
+   Use only semantic light/dark tokens; wave has no meaning or animation. */
+.program-record-header {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, .35fr);
+  align-items: start;
+  padding: var(--cs-space-section);
+  background: linear-gradient(115deg, var(--cs-bg-surface-1), var(--cs-bg-surface-2));
+  border-color: var(--cs-border-default);
+}
+.program-record-header::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 0 auto;
+  width: min(57%, 650px);
+  background:
+    radial-gradient(ellipse at 80% 70%, color-mix(in srgb, var(--cs-action-primary) 12%, transparent), transparent 72%),
+    radial-gradient(ellipse at 25% 95%, color-mix(in srgb, var(--cs-action-primary) 7%, transparent), transparent 76%);
+  clip-path: polygon(0 85%, 19% 66%, 35% 78%, 58% 32%, 75% 57%, 100% 21%, 100% 100%, 0 100%);
+}
+.program-record-header > * { position: relative; z-index: 1; }
+.program-record-header__side { display: grid; align-content: start; justify-items: stretch; gap: var(--cs-space-group); min-width: 0; }
+.program-record-header__facts { width: 100%; }
+.program-record-header__actions { grid-column: auto; justify-content: flex-end; }
+@media (max-width: 767px) {
+  .program-record-header { grid-template-columns: minmax(0, 1fr); }
+  .program-record-header__side { justify-items: stretch; }
+  .program-record-header__actions { justify-content: stretch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .program-record-header::before { animation: none; }
 }
