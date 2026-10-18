@@ -115,6 +115,13 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
   const evidenceFields = visibleFields.filter((field) =>
     ["file", "photo", "vendor_document"].includes(normalizeFieldType(field.type) ?? ""));
   const attachedCount = evidenceFields.filter(hasValue).length;
+  const receivedFileNames = (field: CaptureField): string[] => {
+    const answer = answers[field.id];
+    const selected = new Set([...(answer?.artifact_ids ?? []), answer?.document?.artifact_id].filter((id): id is string => Boolean(id)));
+    return (attachments[field.id] ?? [])
+      .filter((file) => file.id && selected.has(file.id) && file.file_name.trim())
+      .map((file) => file.file_name);
+  };
   return <div className="capture-form capture-wizard">
     {modeSwitch}
     <div className={sections.length > 1 ? "capture-wizard__layout capture-wizard__layout--sectioned" : "capture-wizard__layout"}>
@@ -154,11 +161,16 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
         </section>
         {evidenceFields.length > 0 && <section className="capture-wizard__evidence" aria-labelledby="capture-evidence-heading">
           <h3 id="capture-evidence-heading">Evidence</h3>
-          <ul>{evidenceFields.map((field) =>
-            <li key={field.id}>
+          <ul>{evidenceFields.map((field) => {
+            const files = receivedFileNames(field);
+            return <li key={field.id}>
               <span>{field.label}</span>
               <span>{hasValue(field) ? "Received" : field.required ? "Required" : "Not attached"}</span>
-            </li>)}</ul>
+              {files.length > 0 && <small className="capture-wizard__evidence-files">
+                {files.slice(0, 3).join(" · ")}{files.length > 3 ? ` · +${files.length - 3} more` : ""}
+              </small>}
+            </li>;
+          })}</ul>
         </section>}
       </aside>
     </div>
