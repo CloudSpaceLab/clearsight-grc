@@ -951,7 +951,8 @@ describe("runtime navigation", () => {
     vi.mocked(loadEvidenceRequest).mockResolvedValue({
       ...assigned,
       presentation: { default_mode: "WIZARD", allow_mode_switch: false },
-      status: "EXPIRED",
+      status: "READY",
+      deadline: "2000-01-01T00:00:00Z",
     });
     render(<App />);
     fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
