@@ -16,7 +16,7 @@ type Props = {
   frameworkEdition?: FrameworkEditionTarget;
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
-  onNavigate?: (section: ProgramSection) => void;
+  onNavigate?: (section: ProgramSection, reviewAdoptionID?: string) => void;
 };
 
 function adoptionStatus(status: string) {
@@ -103,7 +103,8 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
   const localJurisdiction = program.jurisdiction?.trim().toUpperCase();
   const reviewJurisdictions = localJurisdiction && localJurisdiction !== "GLOBAL" && /^[A-Z][A-Z0-9._-]{0,63}$/.test(localJurisdiction)
     ? [{ id: "GLOBAL", label: "Global" }, { id: localJurisdiction, label: localJurisdiction }] : [{ id: "GLOBAL", label: "Global" }];
-  const activeCount = adoptions.filter((item) => item.status === "ACTIVE").length;
+  const activeAdoptions = adoptions.filter((item) => item.status === "ACTIVE");
+  const activeCount = activeAdoptions.length;
 
   function openCatalog() {
     setJurisdiction("GLOBAL");
@@ -191,7 +192,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
       </div>
       <div className="cs-program-standards__actions">
         {activeCount > 0 && onNavigate && <>
-          <Button variant="secondary" size="compact" onPress={() => onNavigate("requirements-controls")}>Review requirement links</Button>
+          <Button variant="secondary" size="compact" onPress={() => onNavigate("requirements-controls", activeAdoptions[0]?.id)}>Review requirement links</Button>
           <Button variant="secondary" size="compact" onPress={() => onNavigate("monitoring")}>Collection forms</Button>
         </>}
         <a className="cs-program-standards__source" href="#programs/library">Browse library</a>
