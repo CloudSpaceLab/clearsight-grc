@@ -1,7 +1,7 @@
 import type { ReportingPeriodQuery } from "./reportingPeriod";
 export type View = "today" | "oversight" | "programs" | "risks" | "rcsa" | "losses" | "forms" | "vendors" | "ropa" | "reports" | "insights" | "work" | "people" | "imports" | "explore" | "configure";
 export type WorkTab = "assigned" | "matters" | "evidence";
-export type ProgramSection = "overview" | "requirements-controls" | "monitoring" | "evidence-results" | "issues-actions" | "history";
+export type ProgramSection = "overview" | "requirements-controls" | "assessments" | "evidence-results" | "issues-actions" | "history" | "monitoring";
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
 export type FrameworkEditionTarget = { editionID: string; jurisdiction: string };
 export type VendorPage = "overview" | "register";
@@ -75,7 +75,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     const frameworkEdition = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(editionID) &&
       /^[A-Z][A-Z0-9._-]{0,63}$/.test(jurisdiction) ? { editionID, jurisdiction } : undefined;
     if (!parts[1]) return { view, target: frameworkEdition ? { frameworkEdition } : {} };
-    const allowedSections: ProgramSection[] = ["overview", "requirements-controls", "monitoring", "evidence-results", "issues-actions", "history"];
+    const allowedSections: ProgramSection[] = ["overview", "requirements-controls", "assessments", "evidence-results", "issues-actions", "history", "monitoring"];
     const programSection = allowedSections.includes(parts[2] as ProgramSection) ? parts[2] as ProgramSection : "overview";
     const target: WorkspaceTarget = { programID: decodeTarget(parts[1]), programSection, ...(frameworkEdition ? { frameworkEdition } : {}) };
     const segments = route.split("/");

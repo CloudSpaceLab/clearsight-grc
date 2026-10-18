@@ -116,7 +116,7 @@ async function assertChangedContent(page) {
 
 async function captureProgramSectionsAndCollections() {
   await captureProgramSection({ name: "40-program-overview-dark-1440x900", section: "overview", theme: "dark", viewport: { width: 1440, height: 900 }, state: "program-overview-dark" });
-  await captureProgramSection({ name: "41-program-evidence-results-light-1024x768", section: "evidence-results", theme: "light", viewport: { width: 1024, height: 768 }, touch: true, state: "program-evidence-results-tablet" });
+  await captureProgramSection({ name: "41-program-evidence-light-1024x768", section: "evidence-results", theme: "light", viewport: { width: 1024, height: 768 }, touch: true, state: "program-evidence-results-tablet" });
   await captureProgramSection({ name: "42-program-monitoring-light-1440x900", section: "monitoring", fixture: "collection-renewal-states", theme: "light", viewport: { width: 1440, height: 900 }, state: "collection-current", expectedText: "Ada Okafor · Vendor assurance lead" });
   await captureProgramSection({ name: "43-program-monitoring-blocked-dark-1440x900", section: "monitoring", fixture: "collection-renewal-states", theme: "dark", viewport: { width: 1440, height: 900 }, state: "collection-delivery-blocked", expectedText: "Renewal blocked", scrollText: "Renewal blocked" });
   await captureProgramSection({ name: "44-program-monitoring-light-mobile-390x844", section: "monitoring", fixture: "collection-renewal-states", theme: "light", viewport: { width: 390, height: 844 }, touch: true, compact: true, state: "collection-mobile-selector", expectedText: "Sample · Current vendor security confirmation" });
@@ -126,9 +126,9 @@ async function captureProgramSectionsAndCollections() {
   const context = await openContext({ width: 1440, height: 900 });
   const page = await openProgram(context, { section: "overview" });
   try {
-    const monitoringTab = page.getByRole("tab", { name: "Data collection" });
+    const monitoringTab = page.getByRole("tab", { name: "Assessments" });
     await monitoringTab.focus();
-    if (!(await monitoringTab.evaluate((element) => element === document.activeElement))) throw new Error("Program Data collection tab did not retain keyboard focus");
+    if (!(await monitoringTab.evaluate((element) => element === document.activeElement))) throw new Error("Program Assessments tab did not retain keyboard focus");
     await capture(page, "47-program-sections-tab-focus-light-1440x900", "program-tab-focus", { route: "#programs/program-ndpa/overview" });
   } finally {
     await context.close();
@@ -137,10 +137,10 @@ async function captureProgramSectionsAndCollections() {
   await captureProgramPortfolioList({ name: "48-program-portfolio-list-light-1440x900", state: "program-portfolio-list", theme: "light", viewport: { width: 1440, height: 900 } });
   await captureProgramPortfolioList({ name: "49-program-portfolio-list-dark-mobile-390x844", state: "program-portfolio-list-mobile", theme: "dark", viewport: { width: 390, height: 844 }, touch: true });
 
-  await captureProgramEvidenceResults({ name: "50-program-evidence-empty-light-1440x900", state: "program-evidence-empty", fixture: "program-evidence-empty", theme: "light", viewport: { width: 1440, height: 900 } });
-  await captureProgramEvidenceResults({ name: "51-program-evidence-populated-light-1440x900", state: "program-evidence-populated", fixture: "program-responses", theme: "light", viewport: { width: 1440, height: 900 } });
+  await captureProgramEvidenceResults({ name: "50-program-assessments-empty-light-1440x900", state: "program-evidence-empty", fixture: "program-evidence-empty", theme: "light", viewport: { width: 1440, height: 900 } });
+  await captureProgramEvidenceResults({ name: "51-program-assessments-populated-light-1440x900", state: "program-evidence-populated", fixture: "program-responses", theme: "light", viewport: { width: 1440, height: 900 } });
   await captureProgramResponseSheets();
-  await captureProgramEvidenceResults({ name: "55-program-evidence-populated-dark-mobile-390x844", state: "program-evidence-populated-mobile", fixture: "program-responses", theme: "dark", viewport: { width: 390, height: 844 }, touch: true, compact: true });
+  await captureProgramEvidenceResults({ name: "55-program-assessments-populated-dark-mobile-390x844", state: "program-evidence-populated-mobile", fixture: "program-responses", theme: "dark", viewport: { width: 390, height: 844 }, touch: true, compact: true });
   await captureProgramRegisterResponseSheets({ name: "56-program-register-sheet-answers-light-1440x900", state: "program-register-sheet-answers", viewport: { width: 1440, height: 900 }, theme: "light", branch: "CAC" });
   await captureProgramRegisterResponseSheets({ name: "57-program-register-sheet-answers-dark-mobile-390x844", state: "program-register-sheet-answers-mobile", viewport: { width: 390, height: 844 }, theme: "dark", touch: true, branch: "Marina" });
 }
@@ -149,7 +149,10 @@ async function captureProgramSection({ name, section, fixture, theme, viewport, 
   const context = await openContext(viewport, touch, theme);
   const page = await openProgram(context, { section, fixture });
   try {
-    if (compact) {
+    if (section === "monitoring") {
+      await page.getByRole("region", { name: "Data collection workspace" }).waitFor({ state: "visible" });
+      if (await page.getByRole("tab", { name: "Data collection" }).count()) throw new Error("Collection is not a primary Program tab");
+    } else if (compact) {
       await page.locator(".cs-tabs__compact .cs-select-field__trigger").waitFor({ state: "visible" });
       if (await page.getByRole("tablist", { name: "Program sections" }).count()) throw new Error(`${name} retained the desktop tablist in a compact viewport`);
     } else {
@@ -240,7 +243,7 @@ async function captureProgramPortfolioList({ name, state, theme, viewport, touch
 
 async function captureProgramEvidenceResults({ name, state, fixture, theme, viewport, touch = false, compact = false }) {
   const context = await openContext(viewport, touch, theme);
-  const page = await openProgram(context, { section: "evidence-results", fixture });
+  const page = await openProgram(context, { section: "assessments", fixture });
   try {
     if (compact) {
       await page.locator(".cs-tabs__compact .cs-select-field__trigger").waitFor({ state: "visible" });
@@ -259,7 +262,7 @@ async function captureProgramEvidenceResults({ name, state, fixture, theme, view
     await page.locator(".program-detail-sections").evaluate((element) => element.scrollIntoView({ block: "start" }));
     await page.evaluate(() => window.scrollBy(0, -70));
     await assertNoHorizontalOverflow(page, name);
-    await capture(page, name, state, { route: "#programs/program-ndpa/evidence-results", fixture, theme });
+    await capture(page, name, state, { route: "#programs/program-ndpa/assessments", fixture, theme });
   } finally {
     await context.close();
   }
@@ -267,25 +270,25 @@ async function captureProgramEvidenceResults({ name, state, fixture, theme, view
 
 async function captureProgramResponseSheets() {
   const context = await openContext({ width: 1440, height: 900 });
-  const page = await openProgram(context, { section: "evidence-results", fixture: "program-responses" });
+  const page = await openProgram(context, { section: "assessments", fixture: "program-responses" });
   try {
     await page.getByRole("button", { name: "Review Annual data-processing review response" }).click();
     await page.locator(".cs-sheet-heading").getByText("Annual data-processing review", { exact: true }).waitFor({ state: "visible" });
     await page.getByRole("heading", { name: "Submitted answers" }).waitFor({ state: "visible" });
-    await assertNoHorizontalOverflow(page, "52-program-evidence-sheet-answers-light-1440x900");
-    await capture(page, "52-program-evidence-sheet-answers-light-1440x900", "program-response-sheet-answers", { route: "#programs/program-ndpa/evidence-results", fixture: "program-responses", theme: "light" });
+    await assertNoHorizontalOverflow(page, "52-program-assessments-sheet-answers-light-1440x900");
+    await capture(page, "52-program-assessments-sheet-answers-light-1440x900", "program-response-sheet-answers", { route: "#programs/program-ndpa/assessments", fixture: "program-responses", theme: "light" });
 
     await page.getByRole("tab", { name: "Documents" }).click();
     await page.getByRole("heading", { name: "Documents" }).waitFor({ state: "visible" });
     await page.getByText("Program processor register.pdf", { exact: true }).waitFor({ state: "visible" });
-    await assertNoHorizontalOverflow(page, "53-program-evidence-sheet-documents-light-1440x900");
-    await capture(page, "53-program-evidence-sheet-documents-light-1440x900", "program-response-sheet-documents", { route: "#programs/program-ndpa/evidence-results", fixture: "program-responses", theme: "light" });
+    await assertNoHorizontalOverflow(page, "53-program-assessments-sheet-documents-light-1440x900");
+    await capture(page, "53-program-assessments-sheet-documents-light-1440x900", "program-response-sheet-documents", { route: "#programs/program-ndpa/assessments", fixture: "program-responses", theme: "light" });
 
     await page.getByRole("tab", { name: "Review" }).click();
     await page.getByRole("heading", { name: "Assessment" }).waitFor({ state: "visible" });
     await page.getByText("Reviewed result", { exact: true }).waitFor({ state: "visible" });
-    await assertNoHorizontalOverflow(page, "54-program-evidence-sheet-review-light-1440x900");
-    await capture(page, "54-program-evidence-sheet-review-light-1440x900", "program-response-sheet-review", { route: "#programs/program-ndpa/evidence-results", fixture: "program-responses", theme: "light" });
+    await assertNoHorizontalOverflow(page, "54-program-assessments-sheet-review-light-1440x900");
+    await capture(page, "54-program-assessments-sheet-review-light-1440x900", "program-response-sheet-review", { route: "#programs/program-ndpa/assessments", fixture: "program-responses", theme: "light" });
   } finally {
     await context.close();
   }
@@ -293,7 +296,7 @@ async function captureProgramResponseSheets() {
 
 async function captureProgramRegisterResponseSheets({ name, state, viewport, theme, touch = false, branch }) {
   const context = await openContext(viewport, touch, theme);
-  const page = await openProgram(context, { section: "evidence-results", fixture: "program-responses" });
+  const page = await openProgram(context, { section: "assessments", fixture: "program-responses" });
   try {
     const responseTitle = `Branch KRI — November 2025 · ${branch}`;
     await page.getByRole("button", { name: `Review ${responseTitle} response` }).click();
@@ -320,7 +323,7 @@ async function captureProgramRegisterResponseSheets({ name, state, viewport, the
     await page.getByRole("button", { name: "All answers", exact: true }).click();
     await page.getByText("Cash overage", { exact: true }).first().waitFor({ state: "visible" });
     await assertNoHorizontalOverflow(page, name);
-    await capture(page, name, state, { route: "#programs/program-ndpa/evidence-results", fixture: "program-responses", theme });
+    await capture(page, name, state, { route: "#programs/program-ndpa/assessments", fixture: "program-responses", theme });
   } finally {
     await context.close();
   }

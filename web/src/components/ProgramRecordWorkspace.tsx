@@ -217,8 +217,9 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} reviewAdoptionID={standardLinkReviewID} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
       <ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
     </section>,
+    assessments: <section className="program-record-grid" aria-label="Program assessments"><ProgramResponsesPanel programID={aggregate.program.id}/></section>,
+    "evidence-results": <section className="program-record-grid" aria-label="Program evidence"><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
     monitoring: <article className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter} onOpenForm={onOpenForm}/></article>,
-    "evidence-results": <section className="program-record-grid"><ProgramResponsesPanel programID={aggregate.program.id}/><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
     "issues-actions": <section className="program-record-grid">
       <ProgramIssuesPanel aggregate={aggregate} canCreateIssue={mutationsReady} onOpenMatter={onOpenMatter}/>
       <VendorRelationshipLinks targetType="PROGRAM" targetID={aggregate.program.id}/>
@@ -258,6 +259,9 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
           <div><dt>Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
           <div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div>
         </dl>
+        <div className="program-record-header__actions">
+          <button type="button" className="secondary-button" onClick={() => selectSection("monitoring")}>Open data collection</button>
+        </div>
       </header>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking who can act on this Program.</strong> Program details remain visible while assignments are loading.</div>}
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Program assignments could not be checked.</strong> Details and recorded owners remain visible, but changes are disabled until assignments can be confirmed. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry assignments</button></div>}

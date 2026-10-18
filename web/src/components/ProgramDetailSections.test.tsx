@@ -25,7 +25,7 @@ describe("Program detail sections", () => {
     overview.focus();
     fireEvent.keyDown(overview, { key: "ArrowRight" });
     expect(onChange).toHaveBeenLastCalledWith("requirements-controls");
-    expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Requirements & controls" }));
+    expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Requirements" }));
     fireEvent.keyDown(document.activeElement!, { key: "End" });
     expect(onChange).toHaveBeenLastCalledWith("history");
     fireEvent.keyDown(document.activeElement!, { key: "Home" });
@@ -40,19 +40,31 @@ describe("Program detail sections", () => {
     // selector remains present and accessible at every width.
     const trigger = screen.getByRole("button", { name: "Overview Program section" });
     fireEvent.click(trigger);
-    fireEvent.click(await screen.findByRole("option", { name: "Data collection" }));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith("monitoring");
-    expect(screen.getByRole("tabpanel", { name: "Data collection" }).textContent).toContain("Data collection content");
+    fireEvent.click(await screen.findByRole("option", { name: "Assessments" }));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith("assessments");
+    expect(screen.getByRole("tabpanel", { name: "Assessments" }).textContent).toContain("Assessments content");
     expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
     expect(screen.queryByText("Overview content")).toBeNull();
   });
 
   it("keeps panel identity aligned with the selected navigation tab", () => {
     render(<Harness/>);
-    fireEvent.click(screen.getByRole("tab", { name: "Evidence & results" }));
-    const tab = screen.getByRole("tab", { name: "Evidence & results", selected: true });
-    const panel = screen.getByRole("tabpanel", { name: "Evidence & results" });
+    fireEvent.click(screen.getByRole("tab", { name: "Evidence" }));
+    const tab = screen.getByRole("tab", { name: "Evidence", selected: true });
+    const panel = screen.getByRole("tabpanel", { name: "Evidence" });
     expect(document.getElementById(tab.getAttribute("aria-controls") ?? "")).toBe(panel);
     expect(panel.getAttribute("aria-labelledby")).toBe(tab.id);
   });
+  it("keeps Data collection contextual and leaves exactly six approved primary tabs", () => {
+    const onChange = vi.fn();
+    render(<ProgramDetailSections section="monitoring"
+      panels={{...panels, monitoring: <p>Scoped collection checks</p>}}
+      onSectionChange={onChange}/>);
+    expect(screen.queryByRole("tab", {name: "Data collection"})).toBeNull();
+    expect(screen.getByRole("region", {name: "Data collection workspace"})).toBeTruthy();
+    expect(screen.getByText("Scoped collection checks")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {name: "Back to Overview"}));
+    expect(onChange).toHaveBeenCalledWith("overview");
+  });
+
 });

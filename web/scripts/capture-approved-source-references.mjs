@@ -26,7 +26,7 @@ const references = [
   {
     id: "program-workspace",
     source: "clearsight-program-designs/program-workspace-preview.html",
-    runtime: { "1440x900": "04-program-light-1440x900.png" },
+    runtime: { "1440x900": "04-program-light-1440x900.png", "390x844": "04-program-light-mobile-390x844.png" },
   },
 ];
 
