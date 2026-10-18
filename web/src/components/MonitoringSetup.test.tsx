@@ -153,6 +153,33 @@ describe("monitoring setup", () => {
     expect(createFormMonitoringCheck).not.toHaveBeenCalled();
   });
 
+  it("treats a full raw check page as incomplete even when revisions collapse to one ID", async () => {
+    vi.mocked(loadFormTemplates).mockResolvedValue([{
+      id: "form-existing", tenant_id: "bank-1", program_id: "program-1",
+      code: "ACCESS", name: "Access review", purpose: "Confirm access",
+      fields: [{id: "access", label: "Access reviewed?", type: "yes_no", required: true,
+        scoring: {id: "access", required: true, weight: 100, answer_scores: {Yes: 0, No: 100}}}],
+      status: "ACTIVE", is_current: true, version: 1,
+      created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z",
+    }]);
+    vi.mocked(loadMonitoringChecks).mockResolvedValue(Array.from({length: 100}, (_, i) => ({
+      id: "other-check", tenant_id: "bank-1", program_id: "program-1",
+      code: "OTHER", name: "Historical check", claim: "Retired",
+      input_kind: "SOURCE" as const, thresholds: {moderate_from: 25, high_from: 50, critical_from: 75},
+      freshness_minutes: 10080, minimum_coverage: 1, failure_action: "REVIEW" as const,
+      status: "RETIRED" as const, is_current: false, version: i + 1,
+      created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z",
+    })));
+    render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1"
+      canConfigureSources operations={ownerOperations}/>);
+    await screen.findByText("Access review");
+    fireEvent.click(screen.getByRole("button", {name: "Add data check"}));
+    expect((screen.getByRole("button", {name: "Use existing Program form"}) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/first 100 checks are loaded/)).toBeTruthy();
+    expect(screen.queryByRole("button", {name: "Set collection schedule"})).toBeNull();
+    expect(createFormMonitoringCheck).not.toHaveBeenCalled();
+  });
+
   it("builds a five-question password reset form with explicit risk scoring", async () => {
     vi.mocked(createFormTemplate).mockResolvedValue({
       id: "form-1", tenant_id: "bank-1", code: "PASSWORD-RESET-REVIEW", name: "Password reset security review", purpose: "Confirm that password reset safeguards operated during the reporting period.",
