@@ -176,4 +176,28 @@ describe("Framework Library workspace", () => {
     fireEvent.click(screen.getByRole("button", {name: "Back to Programs"}));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
+  
+  it("blocks Program handoff when an edition has no verifiable source or reuse rights", async () => {
+    const onChooseProgram = vi.fn();
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+      items: [
+        {...edition("unknown"), license_basis: "UNVERIFIED"},
+        {...edition("insecure", "PRIVACY"), source_url: "http://example.org/editions"},
+      ],
+      next_after_id: "",
+    });
+    render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={onChooseProgram}/>);
+    for (const label of [
+      "Inspect edition for Published SECURITY 2026",
+      "Inspect edition for Published PRIVACY 2026",
+    ]) {
+      fireEvent.click(await screen.findByRole("button", {name: label}));
+      expect(screen.getByText(/Source or reuse rights are unverified/)).toBeTruthy();
+      const action = screen.getByRole("button", {name: "Choose Program"});
+      expect(action.hasAttribute("disabled")).toBe(true);
+      fireEvent.click(action);
+    }
+    expect(onChooseProgram).not.toHaveBeenCalled();
+  });
+
 });
