@@ -152,7 +152,13 @@ async function assertFileTypeSelected(page, name) {
 }
 
 async function assertDocumentNameWidth(page) {
-  const cards = await page.locator(".document-browser .cs-data-table").evaluate((table) => matchMedia("(max-width: 700px)").matches || table.clientWidth <= 700);
+  const cards = await page.locator(".document-browser .cs-data-table").evaluate((table) => {
+    const style = getComputedStyle(table);
+    const inlineSize = table.getBoundingClientRect().width
+      - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth)
+      - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    return matchMedia("(max-width: 700px)").matches || inlineSize <= 700;
+  });
   if (!cards) return;
   // Even the reduced-motion transition duration needs a rendering frame when
   // resize changes cell padding. Wait for the exact final width contract.
