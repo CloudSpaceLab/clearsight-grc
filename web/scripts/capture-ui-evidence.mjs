@@ -943,7 +943,8 @@ async function captureInternalAssessment({ name, viewport, theme }) {
   const { context, page } = await openPage(capture);
   try {
     const more = page.getByText("More actions", { exact: true });
-    if (await more.count()) await more.click();
+    // Desktop shows the primary action directly; the overflow summary is mobile-only.
+    if (await more.count() && await more.isVisible()) await more.click();
     await page.getByRole("button", { name: "Respond to evidence request" }).click();
     const dialog = page.getByRole("dialog", { name: "Evidence request" });
     await dialog.getByRole("heading", { name: "Review annual-return control responses" }).waitFor({ state: "visible" });
