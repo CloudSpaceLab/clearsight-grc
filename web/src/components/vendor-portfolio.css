@@ -1,16 +1,33 @@
-.vendor-portfolio { display:grid; gap:8px; margin-block-start:8px; min-inline-size:0; }
+.vendor-portfolio { display:grid; gap:var(--cs-space-group); margin-block-start:var(--cs-primitive-space-3); min-inline-size:0; }
 .vendor-portfolio--detail { margin-block:20px; }
 
-.vendor-overview-summary { display:flex; align-items:center; justify-content:space-between; min-block-size:68px; gap:16px; padding:8px 14px; border:1px solid color-mix(in srgb,var(--cyan) 28%,var(--cs-border-default)); border-radius:var(--cs-surface-radius); background:linear-gradient(105deg,color-mix(in srgb,var(--cyan) 7%,var(--cs-bg-surface-1)),var(--cs-bg-surface-1)); box-shadow:var(--cs-primitive-shadow-1); }
-.vendor-summary-counts { display:flex; align-items:stretch; min-inline-size:0; }
-.vendor-summary-counts > .cs-button { display:grid; grid-template-columns:auto auto; align-content:center; align-items:baseline; gap:5px; min-block-size:48px; padding:4px 16px; border-inline-end:1px solid var(--cs-border-default); border-radius:0; color:var(--cs-text-muted); white-space:nowrap; }
-.vendor-summary-counts > .cs-button:first-child { padding-inline-start:8px; }
-.vendor-summary-counts > .cs-button:last-child { border-inline-end:0; }
-.vendor-summary-counts > .cs-button[aria-pressed="true"] { color:var(--cs-text-primary); background:color-mix(in srgb,var(--cyan) 10%,transparent); box-shadow:inset 0 -2px var(--cyan); }
-.vendor-summary-counts > .cs-button > span { display:grid; grid-template-columns:auto auto; align-items:baseline; gap:5px; }
-.vendor-summary-counts strong { font-size:var(--cs-primitive-font-size-22); line-height:1; color:var(--cs-text-strong); font-variant-numeric:tabular-nums; }
-.vendor-summary-counts span { font-size:var(--cs-font-size-caption); }
-.vendor-summary-context { display:grid; justify-items:end; gap:2px; flex:0 0 auto; color:var(--cs-text-muted); font-size:var(--cs-font-size-caption); }
+/* The approved Vendor overview leads with four independent, selectable
+   measures. Counts and drill filters remain supplied by VendorPortfolio. */
+.vendor-overview-summary { display:grid; gap:var(--cs-primitive-space-2); min-inline-size:0; }
+.vendor-summary-counts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--cs-space-group); }
+.vendor-summary-counts > .cs-button {
+  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr;
+  justify-items:start; align-content:start; gap:var(--cs-primitive-space-3);
+  min-inline-size:0; min-block-size:108px; padding:var(--cs-space-group);
+  border:1px solid var(--cs-border-default); border-radius:var(--cs-surface-radius);
+  background:var(--cs-bg-surface-1); color:var(--cs-text-muted);
+  box-shadow:var(--cs-primitive-shadow-1); text-align:left; white-space:normal;
+}
+.vendor-summary-counts > .cs-button[aria-pressed="true"] {
+  color:var(--cs-text-primary); border-color:var(--cs-border-strong);
+  background:color-mix(in srgb,var(--cyan) 5%,var(--cs-bg-surface-1));
+  box-shadow:inset 0 0 0 1px var(--cyan), var(--cs-primitive-shadow-1);
+}
+.vendor-summary-counts > .cs-button > span {
+  grid-row:1; min-inline-size:0; color:var(--cs-text-muted);
+  font-size:var(--cs-font-size-caption); font-weight:650; line-height:1.35;
+}
+.vendor-summary-counts strong {
+  grid-row:2; min-inline-size:0; align-self:end;
+  font-size:var(--cs-primitive-font-size-28); line-height:1;
+  color:var(--cs-text-strong); font-variant-numeric:tabular-nums;
+}
+.vendor-summary-context { display:flex; gap:var(--cs-space-group); flex-wrap:wrap; min-inline-size:0; color:var(--cs-text-muted); font-size:var(--cs-font-size-caption); }
 .vendor-summary-context > span:first-child:not(:last-child) { color:var(--amber); font-weight:650; }
 
 .vendor-exceptions { min-inline-size:0; border:1px solid var(--cs-border-default); border-radius:var(--cs-surface-radius); background:var(--cs-bg-surface-1); box-shadow:var(--cs-primitive-shadow-1); overflow:hidden; scroll-margin-top:20px; }
@@ -52,9 +69,7 @@
 .vendor-exceptions > .cs-button { margin:12px 14px; }
 
 @media (max-width:1100px) {
-  .vendor-overview-summary { align-items:flex-start; }
-  .vendor-summary-counts { display:grid; grid-template-columns:repeat(2,auto); }
-  .vendor-summary-counts > .cs-button:nth-child(2) { border-inline-end:0; }
+  .vendor-summary-counts { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .vendor-exceptions-header { grid-template-columns:1fr auto; }
   .vendor-facet-filters { grid-column:1 / -1; justify-content:flex-start; }
   .vendor-exception-row { grid-template-columns:minmax(220px,1.4fr) minmax(140px,.7fr) minmax(190px,1.1fr) minmax(110px,.6fr) auto; gap:8px; }
@@ -62,13 +77,11 @@
 }
 
 @media (max-width:760px) {
-  .vendor-portfolio { gap:8px; margin-block-start:8px; }
-  .vendor-overview-summary { display:grid; min-block-size:0; padding:8px; }
-  .vendor-summary-counts { grid-template-columns:repeat(2,minmax(0,1fr)); inline-size:100%; }
-  .vendor-summary-counts > .cs-button { grid-template-columns:auto 1fr; min-inline-size:0; padding:5px 8px; border-block-end:1px solid var(--cs-border-default); }
-  .vendor-summary-counts > .cs-button:nth-child(3),.vendor-summary-counts > .cs-button:nth-child(4) { border-block-end:0; }
-  .vendor-summary-counts span { overflow:hidden; text-overflow:ellipsis; }
-  .vendor-summary-context { display:flex; justify-content:space-between; justify-items:start; gap:8px; }
+  .vendor-portfolio { gap:var(--cs-space-group); }
+  .vendor-summary-counts { inline-size:100%; gap:var(--cs-primitive-space-2); }
+  .vendor-summary-counts > .cs-button { min-block-size:94px; padding:var(--cs-primitive-space-3); }
+  .vendor-summary-counts strong { font-size:var(--cs-primitive-font-size-22); }
+  .vendor-summary-context { gap:var(--cs-primitive-space-2); }
   .vendor-exceptions-header { display:grid; min-block-size:0; padding:10px; }
   .vendor-attention-filters { display:none; }
   .vendor-mobile-status-filter { display:grid; grid-column:1 / -1; gap:2px; color:var(--cs-text-muted); font-size:var(--cs-primitive-font-size-11); font-weight:650; }
