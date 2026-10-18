@@ -168,7 +168,7 @@
   font-size: var(--cs-font-size-caption);
 }
 .capture-wizard__evidence li span:first-child { color: var(--cs-text-primary); min-width: 0; overflow-wrap: anywhere; }
-.capture-wizard__evidence li span:last-child { color: var(--cs-text-muted); white-space: nowrap; }
+.capture-wizard__evidence li span:nth-child(2) { color: var(--cs-text-muted); white-space: nowrap; }
 .capture-wizard__evidence-files {
   grid-column: 1 / -1;
   flex: 1 0 100%;
