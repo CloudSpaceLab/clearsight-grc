@@ -60,6 +60,27 @@
     .document-browser--selecting > .document-browser-body > .document-kinds { display: none; }
     .document-browser--selecting > .document-browser-body > .document-browser-content > .document-kind-selector { display: block; }
   }
+  /* Document card geometry follows the shared DataTable container breakpoint.
+     A narrower desktop shell must not compress names or hide row actions. */
+  @container cs-data-table (max-width: 700px) {
+    .document-browser .cs-data-table tbody tr td[data-mobile-layout="full-width"] {
+      inline-size: 100%;
+    }
+    .document-browser .cs-data-table tbody tr td[data-mobile-layout="full-width"] > .document-file-name {
+      inline-size: 100%;
+      min-inline-size: 0;
+    }
+    .document-browser .cs-data-table tbody tr td.cs-data-table__action {
+      inline-size: 100%;
+      min-inline-size: 0;
+    }
+    .document-browser .cs-data-table tbody tr td.cs-data-table__action .cs-button {
+      min-inline-size: 0;
+      max-inline-size: 100%;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+  }
   @media (max-width: 760px) {
     .document-browser-heading { flex-direction: column; align-items: stretch; }
     .document-browser-body { display: block; }
