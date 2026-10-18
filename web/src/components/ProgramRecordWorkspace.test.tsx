@@ -162,6 +162,22 @@ describe("Program record workspace", () => {
     control_objectives: [{ id: "item/1 #銀行", code: "C1", name: "Complete account records", outcome: "Records remain available.", status: "DRAFT" }],
   };
 
+  it("renders approved Activity with the governed Program review digest, not static metadata alone", async () => {
+    vi.mocked(loadProgramReviewDigest).mockResolvedValue({
+      ...digest, state: "CHANGED", review_required: true,
+      changes: [{ kind: "REQUIREMENT", summary: "Requirement review updated" }],
+      changes_total: 1, changes_omitted: 0, history_truncated: false,
+    });
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", { name: "Nigeria data protection" });
+    fireEvent.click(screen.getByRole("tab", { name: "Activity" }));
+    expect(await screen.findByRole("heading", { name: "Program changes and review history" })).toBeTruthy();
+    expect(screen.getByText("Requirement review updated")).toBeTruthy();
+    expect(screen.getByText("1 change since the last review")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Program record history" })).toBeNull();
+    expect(loadProgramReviewDigest).toHaveBeenCalledWith("program-1");
+  });
+
   it("focuses a requirement only after the requested Program is loaded", async () => {
     const pending = deferred<ProgramAggregate>();
     vi.mocked(loadProgram).mockReturnValue(pending.promise);
