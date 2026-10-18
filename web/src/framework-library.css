@@ -71,8 +71,8 @@
   list-style: none;
 }
 .cs-framework-library__list .cs-selectable-record {
-  min-height: 88px;
-  padding: var(--cs-space-section);
+  min-height: 76px;
+  padding: var(--cs-space-group);
   min-width: 0;
 }
 .cs-framework-library__publisher-mark {

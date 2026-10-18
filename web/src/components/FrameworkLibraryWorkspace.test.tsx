@@ -200,4 +200,27 @@ describe("Framework Library workspace", () => {
     expect(onChooseProgram).not.toHaveBeenCalled();
   });
 
+  
+  it("keeps source rights readable in compact register rows without a separate badge row", async () => {
+    const original = window.matchMedia;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: () => ({matches: true, addEventListener: () => {}, removeEventListener: () => {}}),
+    });
+    try {
+      vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+        items: [edition("edition-1")], next_after_id: "",
+      });
+      render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={vi.fn()}/>);
+      const row = await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"});
+      expect(row.textContent).toContain("GLOBAL · Citations only");
+      expect(row.querySelector(".cs-selectable-record__end")).toBeNull();
+      fireEvent.click(row);
+      expect(await screen.findByRole("dialog", {name: "Edition details: Published SECURITY"})).toBeTruthy();
+      expect(screen.getByText("2026-10-01")).toBeTruthy();
+    } finally {
+      Object.defineProperty(window, "matchMedia", {configurable: true, value: original});
+    }
+  });
+
 });
