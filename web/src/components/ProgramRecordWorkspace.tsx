@@ -265,7 +265,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       </section>) : null;
 
   const lead = aggregate ? <>
-    <div className="program-overview-lead">
+    {activeSection !== "history" && <div className="program-overview-lead">
       {activeSection === "overview" && <section className="program-overview-metrics" aria-label="Program measures">
         {overviewMeasures.map((measure) =>
           <MetricCard key={measure.id} label={measure.label} value={measure.value}
@@ -284,7 +284,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
           <ProgramVendorFollowUp programID={aggregate.program.id}/>
         </aside>
       </div> : positionPanel}
-    </div>
+    </div>}
     {requestedItem && aggregateState === "live" && !itemAvailable && <Notice>
       <strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong>
       <p>Return to the import to check its result, or review the available requirements and controls below.</p>
