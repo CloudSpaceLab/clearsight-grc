@@ -169,6 +169,14 @@
 }
 .capture-wizard__evidence li span:first-child { color: var(--cs-text-primary); min-width: 0; overflow-wrap: anywhere; }
 .capture-wizard__evidence li span:last-child { color: var(--cs-text-muted); white-space: nowrap; }
+.capture-wizard__evidence-files {
+  grid-column: 1 / -1;
+  flex: 1 0 100%;
+  color: var(--cs-text-muted);
+  line-height: var(--cs-leading-body);
+  overflow-wrap: anywhere;
+  min-inline-size: 0;
+}
 
 @container capture-wizard (max-width: 1150px) {
   .capture-wizard__layout--sectioned { grid-template-columns: minmax(170px, 225px) minmax(0, 1fr); }
