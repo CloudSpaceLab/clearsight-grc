@@ -269,6 +269,18 @@ describe("Program record workspace", () => {
     expect(screen.queryByRole("button", { name: "Review requirement links" })).toBeNull();
   });
 
+  it("uses approved desktop coverage and attention composition without inferred Program scores", async () => {
+    const {container} = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", {name: "Nigeria data protection"});
+    expect(screen.getByRole("heading", {name: "Requirement coverage"})).toBeTruthy();
+    expect(container.querySelector(".program-overview-composition")).not.toBeNull();
+    expect(screen.getByRole("complementary", {name: "Program attention and setup"})).toBeTruthy();
+    expect(screen.getByText("Coverage not assessed")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {name: "View requirements"}));
+    expect(screen.getByRole("tab", {name: "Requirements", selected: true})).toBeTruthy();
+    expect(screen.queryByRole("heading", {name: "Requirement coverage"})).toBeNull();
+  });
+
   it("places Program section navigation above measures and current position", async () => {
     const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
     await screen.findByRole("heading", { name: "Nigeria data protection" });

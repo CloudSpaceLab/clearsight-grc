@@ -158,6 +158,29 @@ describe("Program primary action ordering", () => {
     }
   });
 
+  it("sends Program monitoring actions to the contextual collection panel, not Evidence", () => {
+    const onNavigate = vi.fn();
+    const scroll = vi.fn();
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({matches: true}));
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {callback(0); return 1;});
+    const output = render(<>
+      <div id="program-monitoring-panel"/>
+      <div id="program-evidence-panel"/>
+      <ProgramCurrentPosition aggregate={aggregate}
+        operations={{operations: [{command: "program.monitoring.define", label: "Add collection check", can_act: true}]} as ProgramOperations}
+        digest={digest} onNavigate={onNavigate}/>
+    </>);
+    const target = output.container.querySelector("#program-monitoring-panel")!;
+    Object.defineProperty(target, "scrollIntoView", {value: scroll});
+    try {
+      fireEvent.click(screen.getByRole("button", {name: "Add collection check"}));
+      expect(onNavigate).toHaveBeenCalledWith("monitoring");
+      expect(scroll).toHaveBeenCalledWith({behavior: "auto", block: "start"});
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("prefers a known ranked action over an unranked executable command", () => {
     const allowed = [
       { command: "program.future.action", label: "Future action", can_act: true },

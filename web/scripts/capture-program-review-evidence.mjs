@@ -72,15 +72,42 @@ async function captureMobileReview() {
 
 async function assertOverviewMeasures(page, mobile) {
   const metrics = page.locator(".program-overview-metrics");
-  const position = page.locator(".program-overview-lead > .program-current-position");
-  await metrics.waitFor({ state: "visible" });
-  await position.waitFor({ state: "visible" });
-  if (await metrics.getByRole("button").count() !== 4) throw new Error("Program Overview must expose exactly four measures");
-  const [cards, posture] = await Promise.all([metrics.boundingBox(), position.boundingBox()]);
-  if (!cards || !posture || (mobile ? posture.y >= cards.y : cards.y >= posture.y)) {
-    throw new Error(mobile
-      ? "Compact Program Overview places measure cards ahead of its primary action"
-      : "Desktop Program Overview does not lead with source-backed measures");
+  const coverage = page.locator(".program-overview-composition > .program-overview-coverage");
+  const rail = page.getByRole("complementary", { name: "Program attention and setup" });
+  const position = rail.locator(".program-current-position");
+  await Promise.all([
+    metrics.waitFor({ state: "visible" }),
+    coverage.waitFor({ state: "visible" }),
+    position.waitFor({ state: "visible" }),
+  ]);
+  if (await metrics.getByRole("button").count() !== 4) {
+    throw new Error("Program Overview must expose exactly four grounded measures");
+  }
+  const [cards, coverageBox, railBox, posture] = await Promise.all([
+    metrics.boundingBox(), coverage.boundingBox(), rail.boundingBox(), position.boundingBox(),
+  ]);
+  if (!cards || !coverageBox || !railBox || !posture ||
+      cards.y + cards.height > coverageBox.y + 2 ||
+      !await position.getByRole("heading").count()) {
+    throw new Error("Program Overview lost its source-backed measures or current-position hierarchy");
+  }
+  if (mobile) {
+    if (coverageBox.y + coverageBox.height > railBox.y + 2 || posture.y < railBox.y) {
+      throw new Error("Compact Program Overview must stack coverage before actionable attention");
+    }
+    if (page.viewportSize()?.width >= 375) {
+      const boxes = await Promise.all(
+        (await metrics.getByRole("button").all()).map((item) => item.boundingBox()),
+      );
+      if (boxes.some((box) => !box) ||
+          Math.abs(boxes[0].y - boxes[1].y) > 3 ||
+          boxes[1].x <= boxes[0].x ||
+          boxes[2].y < boxes[0].y + boxes[0].height - 3) {
+        throw new Error("Approved mobile Program must render four measures as a compact 2-by-2 grid");
+      }
+    }
+  } else if (coverageBox.x >= railBox.x || Math.abs(coverageBox.y - railBox.y) > 24) {
+    throw new Error("Desktop Program Overview must place coverage left of aligned attention rail");
   }
 }
 
