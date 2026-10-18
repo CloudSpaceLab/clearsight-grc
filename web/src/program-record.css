@@ -316,3 +316,80 @@
 @media (prefers-reduced-motion: reduce) {
   .program-record-header::before { animation: none; }
 }
+
+/* Approved Program Overview: requirement coverage + recent assessed responses
+   share the wide analytical column; attention retains the narrow rail. */
+.program-overview-main {
+  display: grid;
+  gap: var(--cs-space-section);
+  min-width: 0;
+  align-content: start;
+}
+.program-recent-assessments {
+  display: grid;
+  gap: var(--cs-space-group);
+  min-width: 0;
+  padding: var(--cs-space-section);
+  border: 1px solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  background: var(--cs-bg-surface-1);
+}
+.program-recent-assessments__head {
+  display: flex;
+  gap: var(--cs-space-group);
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: start;
+}
+.program-recent-assessments__head h2 {
+  margin: 0;
+  font-size: var(--cs-primitive-font-size-18);
+  color: var(--cs-text-strong);
+}
+.program-recent-assessments__head p,
+.program-recent-assessments__foot {
+  margin: var(--cs-space-inline) 0 0;
+  font-size: var(--cs-font-size-caption);
+  color: var(--cs-text-muted);
+}
+.program-recent-assessments__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--cs-space-inline);
+}
+.program-recent-assessments__actions label {
+  display: grid;
+  gap: var(--cs-space-inline);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.program-recent-assessments__actions select {
+  min-height: 44px;
+  padding-inline: var(--cs-space-group);
+  background: var(--cs-bg-surface-1);
+  color: var(--cs-text-primary);
+  border: 1px solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-8);
+}
+.program-recent-assessments__list { margin: 0; padding: 0; list-style: none; }
+.program-recent-assessments__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(100px, auto);
+  gap: var(--cs-space-group);
+  align-items: center;
+  padding-block: var(--cs-space-group);
+  border-top: 1px solid var(--cs-border-default);
+  min-width: 0;
+  font-size: var(--cs-font-size-body);
+}
+.program-recent-assessments__row > div { display: grid; min-width: 0; gap: var(--cs-space-inline); }
+.program-recent-assessments__row strong { color: var(--cs-text-strong); overflow-wrap: anywhere; }
+.program-recent-assessments__row small,
+.program-recent-assessments__row time,
+.program-recent-assessments__row > span { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+@media (max-width: 767px) {
+  .program-recent-assessments__row { grid-template-columns: minmax(0, 1fr) auto; }
+  .program-recent-assessments__row > span { grid-column: 1 / -1; }
+  .program-recent-assessments__actions { width: 100%; justify-content: space-between; }
+}

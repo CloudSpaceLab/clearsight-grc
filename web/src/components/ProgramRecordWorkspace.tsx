@@ -25,6 +25,7 @@ import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
 import { ProgramRequirementCoverageSummary } from "./ProgramRequirementCoverageSummary";
+import { ProgramRecentAssessments } from "./ProgramRecentAssessments";
 import { MetricCard, Notice, StatusBadge } from "./ui";
 import { programOverviewMetrics } from "../programOverviewMetrics";
 
@@ -253,7 +254,10 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
             onPress={() => selectSection(measure.target)}/>)}
       </section>}
       {activeSection === "overview" ? <div className="program-overview-composition">
-        <ProgramRequirementCoverageSummary aggregate={aggregate} onNavigate={selectSection}/>
+        <div className="program-overview-main">
+          <ProgramRequirementCoverageSummary aggregate={aggregate} onNavigate={selectSection}/>
+          <ProgramRecentAssessments programID={aggregate.program.id} onNavigate={selectSection}/>
+        </div>
         <aside className="program-overview-rail" aria-label="Program attention and setup">
           {positionPanel}
           <ProgramVendorFollowUp programID={aggregate.program.id}/>

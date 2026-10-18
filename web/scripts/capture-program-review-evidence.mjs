@@ -72,9 +72,11 @@ async function captureMobileReview() {
 
 async function assertOverviewMeasures(page, mobile) {
   const metrics = page.locator(".program-overview-metrics");
-  const coverage = page.locator(".program-overview-composition > .program-overview-coverage");
+  const coverage = page.locator(".program-overview-main > .program-overview-coverage");
+  const recent = page.locator(".program-overview-main > .program-recent-assessments");
   const rail = page.getByRole("complementary", { name: "Program attention and setup" });
   const position = rail.locator(".program-current-position");
+  await page.getByRole("heading", { name: "Recent assessments" }).waitFor({ state: "visible" });
   await Promise.all([
     metrics.waitFor({ state: "visible" }),
     coverage.waitFor({ state: "visible" }),
@@ -83,11 +85,14 @@ async function assertOverviewMeasures(page, mobile) {
   if (await metrics.getByRole("button").count() !== 4) {
     throw new Error("Program Overview must expose exactly four grounded measures");
   }
-  const [cards, coverageBox, railBox, posture] = await Promise.all([
-    metrics.boundingBox(), coverage.boundingBox(), rail.boundingBox(), position.boundingBox(),
+  const [cards, coverageBox, recentBox, railBox, posture] = await Promise.all([
+    metrics.boundingBox(), coverage.boundingBox(), recent.boundingBox(),
+    rail.boundingBox(), position.boundingBox(),
   ]);
-  if (!cards || !coverageBox || !railBox || !posture ||
+  if (!cards || !coverageBox || !recentBox || !railBox || !posture ||
       cards.y + cards.height > coverageBox.y + 2 ||
+      Math.abs(coverageBox.x - recentBox.x) > 4 ||
+      recentBox.y < coverageBox.y + coverageBox.height - 2 ||
       !await position.getByRole("heading").count()) {
     throw new Error("Program Overview lost its source-backed measures or current-position hierarchy");
   }
