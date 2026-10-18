@@ -173,7 +173,29 @@ async function assertDocumentNameWidth(page) {
       return rowStyle.display === "grid" && cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
         && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2 && fullName.textContent === fullName.title;
     });
-  }).catch((error) => { throw new Error(`Complete document names must use the full available card width in narrow workspaces: ${error.message}`); });
+  }).catch(async (error) => {
+    const dimensions = await page.locator(".document-browser .cs-data-table").evaluate((table) => {
+      const container = getComputedStyle(table);
+      const rows = [...table.querySelectorAll('tbody tr')].map((row) => {
+        const cell = row.querySelector('td[data-label="Name"]');
+        const name = cell?.querySelector(".document-file-name");
+        const fullName = name?.querySelector("strong");
+        const style = getComputedStyle(row);
+        return {
+          rowDisplay: style.display,
+          rowWidth: row.clientWidth,
+          rowPadding: [style.paddingLeft, style.paddingRight],
+          cellWidth: cell?.getBoundingClientRect().width,
+          cellLayout: cell?.getAttribute("data-mobile-layout"),
+          nameWidth: name?.getBoundingClientRect().width,
+          titleMatches: fullName?.textContent === fullName?.title,
+          actionBounds: row.querySelector('.cs-data-table__action .cs-button')?.getBoundingClientRect().toJSON(),
+        };
+      });
+      return { viewport: innerWidth, tableWidth: table.getBoundingClientRect().width, containerName: container.containerName, rows };
+    });
+    throw new Error(`Complete document names must use the full available card width in narrow workspaces: ${error.message}; ${JSON.stringify(dimensions)}`);
+  });
 }
 
 async function assertDocumentHeader(page) {
