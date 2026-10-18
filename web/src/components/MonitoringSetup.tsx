@@ -305,6 +305,12 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     {!canConfigureMonitoring && <p className="program-operation-reason">{formDefineOperation?.reason ?? checkDefineOperation?.reason ?? "Assignments unavailable. Data collection changes disabled."}</p>}
     {state === "loading" && <p aria-live="polite">Loading data checks…</p>}
     {state === "unavailable" && <div className="inline-error"><p>Data checks could not be loaded.</p><button className="secondary-button" type="button" onClick={() => void reload()}>Try again</button></div>}
+    {state === "live" && canDefineCheck && forms.length > 0 && checksState === "unavailable" &&
+      <Notice tone="warning">Linked checks could not be verified.
+        <button className="text-button" type="button" onClick={() => void reload()}>Retry data checks</button>
+      </Notice>}
+    {state === "live" && canDefineCheck && forms.length > 0 && checksState === "live" && checks.length >= 100 &&
+      <Notice tone="warning">The first 100 checks are loaded. Existing form links cannot be verified until paginated checking is available.</Notice>}
     {error && <Notice tone="error">{error}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
     {canConfigureMonitoring && mode === "choose" && <div className="monitoring-choice-grid">
