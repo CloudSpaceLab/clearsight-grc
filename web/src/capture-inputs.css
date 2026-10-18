@@ -1,4 +1,10 @@
 .capture-form { display: grid; gap: 18px; margin-top: 18px; }
+/* The internal, actor-authorized questionnaire uses the approved three-pane
+   composition on wide screens. External capture retains its focused width. */
+.assessment-capture-sheet {
+  --cs-sheet-wide-width: min(1360px, calc(100vw - var(--cs-primitive-space-8)));
+}
+
 .panel-content { min-width: 0; }
 .panel-content .known-facts div { min-width: 0; }
 .panel-content .known-facts dd { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
