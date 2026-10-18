@@ -78,6 +78,8 @@ try {
   for (const scenario of [
     { name: "211-internal-assessment-light-1440x900", viewport: { width: 1440, height: 900 }, theme: "light" },
     { name: "212-internal-assessment-dark-1280x800", viewport: { width: 1280, height: 800 }, theme: "dark" },
+    { name: "215-internal-assessment-light-1024x768", viewport: { width: 1024, height: 768 }, theme: "light" },
+    { name: "216-internal-assessment-dark-768x900", viewport: { width: 768, height: 900 }, theme: "dark" },
     { name: "213-internal-assessment-light-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "light" },
     { name: "214-internal-assessment-dark-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "dark" },
   ]) await captureInternalAssessment(scenario);
@@ -963,6 +965,12 @@ async function captureInternalAssessment({ name, viewport, theme }) {
           Math.abs(railBox.y - readinessBox.y) > 15) {
         throw new Error(name + " does not show approved three-column internal assessment anatomy");
       }
+    } else if (viewport.width >= 900) {
+      if (railBox.x + railBox.width > workBox.x + 3 ||
+          Math.abs(readinessBox.x - workBox.x) > 3 ||
+          readinessBox.y < workBox.y + workBox.height - 3) {
+        throw new Error(name + " does not stack readiness below the two-column tablet questionnaire");
+      }
     } else if (railBox.y + railBox.height > workBox.y + 3 ||
                workBox.y + workBox.height > readinessBox.y + 3) {
       throw new Error(name + " does not stack the section rail, questions and readiness on mobile");
@@ -971,7 +979,7 @@ async function captureInternalAssessment({ name, viewport, theme }) {
     await assertFocusInsideSheet(page, name);
     await assertNoHorizontalOverflow(page, name);
     await saveScreenshot(page, name);
-    await record(page, capture, viewport.width >= 1280 ? "assessment-internal-three-pane" : "assessment-internal-mobile");
+    await record(page, capture, viewport.width >= 1280 ? "assessment-internal-three-pane" : viewport.width >= 900 ? "assessment-internal-tablet" : "assessment-internal-mobile");
   } finally {
     await context.close();
   }
