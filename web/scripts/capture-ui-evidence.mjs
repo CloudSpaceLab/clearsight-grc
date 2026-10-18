@@ -127,6 +127,21 @@ async function capturePage(capture) {
         throw new Error("Approved compact Program still shows desktop tab strip");
       }
     }
+    if (capture.name === "04-program-light-mobile-390x844") {
+      const first = page.locator(".program-overview-metrics .cs-metric-card").first();
+      await first.waitFor({ state: "visible" });
+      const firstBox = await first.boundingBox();
+      if (!firstBox || firstBox.y > 570) {
+        throw new Error("Approved mobile Program measures are pushed too far below the first viewport");
+      }
+      const collectionAction = page.getByRole("button", { name: "Open data collection" });
+      const actionBox = await collectionAction.boundingBox();
+      if (!actionBox || actionBox.height < 44) {
+        throw new Error("Compact Program collection action does not meet the 44px touch target");
+      }
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+      if (overflow) throw new Error("Compact Program introduces horizontal page overflow");
+    }
     if (capture.name === "04-program-light-1440x900") {
       const measures = page.locator(".program-overview-metrics");
       await measures.waitFor({ state: "visible" });

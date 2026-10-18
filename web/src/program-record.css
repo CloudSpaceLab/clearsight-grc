@@ -393,3 +393,51 @@
   .program-recent-assessments__row > span { grid-column: 1 / -1; }
   .program-recent-assessments__actions { width: 100%; justify-content: space-between; }
 }
+
+/* Approved mobile Program: put scope, state and actions ahead of measures
+   without making the identity card occupy the entire initial viewport. */
+@media (min-width: 375px) and (max-width: 600px) {
+  .program-record-workspace { margin-top: var(--cs-space-inline); gap: var(--cs-space-inline); }
+  .program-record-header {
+    padding: var(--cs-space-group);
+    gap: var(--cs-space-group);
+  }
+  .program-record-header h1 {
+    margin-block: var(--cs-space-inline);
+    line-height: var(--cs-leading-tight);
+  }
+  .program-record-header__side {
+    grid-template-columns: minmax(0, 1fr) minmax(132px, .9fr);
+    align-items: center;
+    gap: var(--cs-space-group);
+  }
+  .program-record-header__facts {
+    display: grid;
+    gap: var(--cs-space-inline);
+  }
+  .program-record-header dl div {
+    display: flex;
+    align-items: start;
+    flex-direction: column;
+    justify-content: start;
+    padding: 0;
+    gap: var(--cs-space-inline);
+    border: 0;
+  }
+  .program-record-header__facts dd {
+    justify-content: start;
+    text-align: start;
+  }
+  .program-record-header__actions { grid-column: auto; }
+  .program-record-header__actions .secondary-button {
+    width: 100%;
+    min-height: 44px;
+    padding-inline: var(--cs-space-inline);
+    font-size: var(--cs-font-size-caption);
+    white-space: normal;
+  }
+}
+/* At true narrow-screen/reflow widths, do not squeeze governance facts. */
+@media (max-width: 374px) {
+  .program-record-header__side { grid-template-columns: minmax(0, 1fr); }
+}
