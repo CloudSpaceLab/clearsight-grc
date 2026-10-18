@@ -17,6 +17,7 @@ const captures = [
   { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "03-today-dark-compact-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
+  { name: "04-program-light-mobile-390x844", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true },
   ...frameworkEvidenceScenarios,
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
@@ -118,10 +119,22 @@ async function capturePage(capture) {
         throw new Error(`Framework Library title uses ${fontSize}px instead of the approved ${desktop ? "desktop" : "mobile"} heading scale`);
       }
     }
+    if (capture.name === "04-program-light-mobile-390x844") {
+      const sections = page.getByRole("button", {name: "Overview Program section"});
+      await sections.waitFor({state:"visible"});
+      await page.getByRole("button", {name: "Open data collection"}).waitFor({state:"visible"});
+      if (await page.getByRole("tablist", {name:"Program sections"}).isVisible().catch(() => false)) {
+        throw new Error("Approved compact Program still shows desktop tab strip");
+      }
+    }
     if (capture.name === "04-program-light-1440x900") {
       const measures = page.locator(".program-overview-metrics");
       await measures.waitFor({ state: "visible" });
       const tabs = page.getByRole("tablist", { name: "Program sections" });
+      const names = await tabs.getByRole("tab").allTextContents();
+      if (names.join("|") !== "Overview|Requirements|Assessments|Evidence|Issues|Activity") {
+        throw new Error("Program tabs do not match approved HTML structure: " + names.join("|"));
+      }
       const [tabBox, metricBox] = await Promise.all([tabs.boundingBox(), measures.boundingBox()]);
       if (!tabBox || !metricBox || tabBox.y >= metricBox.y) {
         throw new Error("Program section navigation must precede Overview measures");
