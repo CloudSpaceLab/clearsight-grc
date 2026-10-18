@@ -74,6 +74,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
     <div className="cs-framework-library__detail-body">
       <span className="eyebrow">Published reference</span>
       <h2>{selected.title}</h2>
+      <p className="cs-framework-library__detail-subtitle">{selected.publisher_code} · {selected.framework_code}</p>
       <StatusBadge tone="info">Edition {selected.edition_code}</StatusBadge>
       <FrameworkEditionProvenance edition={selected}/>
       <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
@@ -143,13 +144,21 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
               <SelectableRecord
                 title={item.title}
                 startContent={<span className="cs-framework-library__publisher-mark">{publisherMark(item.publisher_code)}</span>}
-                metadata={item.publisher_code + " · " + item.framework_code + " · Edition " + item.edition_code}
+                metadata={compact
+                  ? item.publisher_code + " · " + item.framework_code + " · Edition " + item.edition_code
+                  : item.framework_code}
                 description={compact
                   ? item.jurisdiction + " · " + frameworkEditionRightsLabel(item.license_basis)
                   : item.jurisdiction + " · Published " + item.source_published_on}
-                endContent={compact ? undefined : <StatusBadge tone={frameworkEditionRightsLabel(item.license_basis) === "Not verified" ? "unknown" : "neutral"}>
-                  {frameworkEditionRightsLabel(item.license_basis)}
-                </StatusBadge>}
+                endContent={compact ? undefined : <span className="cs-framework-library__record-facts">
+                  <span className="cs-framework-library__record-edition">
+                    <strong>{item.publisher_code}</strong>
+                    <small>Edition {item.edition_code}</small>
+                  </span>
+                  <StatusBadge tone={frameworkEditionRightsLabel(item.license_basis) === "Not verified" ? "unknown" : "neutral"}>
+                    {frameworkEditionRightsLabel(item.license_basis)}
+                  </StatusBadge>
+                </span>}
                 isSelected={selected?.id === item.id}
                 aria-label={"Inspect edition for " + item.title + " " + item.edition_code}
                 onPress={() => inspect(item)}

@@ -223,4 +223,28 @@ describe("Framework Library workspace", () => {
     }
   });
 
+  it("matches the approved desktop edition/publisher/right-hand record hierarchy without duplicating metadata", async () => {
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+      items: [edition("standard-a"), {...edition("standard-b", "PRIVACY"), license_basis: "UNVERIFIED"}],
+      next_after_id: "",
+    });
+    render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={vi.fn()}/>);
+    const item = await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"});
+    const facts = item.querySelector(".cs-framework-library__record-facts");
+    expect(facts).not.toBeNull();
+    expect(facts?.textContent).toContain("REFERENCE");
+    expect(facts?.textContent).toContain("Edition 2026");
+    expect(facts?.textContent).toContain("Citations only");
+    expect(item.querySelector(".cs-selectable-record__metadata")?.textContent).toBe("SECURITY");
+    expect(item.querySelector(".cs-selectable-record__description")?.textContent).toContain("Published 2026-10-01");
+
+    const unknown = screen.getByRole("button", {name: "Inspect edition for Published PRIVACY 2026"});
+    expect(unknown.querySelector(".cs-framework-library__record-facts")?.textContent).toContain("Not verified");
+    fireEvent.click(item);
+    const detail = await screen.findByRole("complementary", {name: "Framework edition details"});
+    expect(detail.querySelector(".cs-framework-library__detail-subtitle")?.textContent).toBe("REFERENCE · SECURITY");
+    expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(false);
+  });
+
+
 });
