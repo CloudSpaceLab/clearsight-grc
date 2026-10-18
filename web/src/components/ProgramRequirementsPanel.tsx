@@ -61,7 +61,10 @@ export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoption
   async function submitMapping(event: FormEvent) {
     event.preventDefault();
     if (!selectedMapping || !mappingProposalOperation?.can_act || !standardReview.adoptionID ||
-        !mappingRationale.trim() || standardReview.mappingStatus !== "loaded") return;
+        !mappingRationale.trim() || standardReview.mappingStatus !== "loaded" ||
+        !standardReview.mappingPage || standardReview.mappingPage.next_after_id ||
+        standardReview.mappingPage.items.some((mapping) =>
+          mapping.clause_id === selectedMapping.clauseID && mapping.requirement_id === selectedMapping.requirementID)) return;
     setMappingBusy(true); setMappingError("");
     try {
       const result = await proposeProgramFrameworkMapping(
@@ -157,7 +160,10 @@ export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoption
             </section>
           )}
         </div>}
-        {standardReview.mappingPage?.next_after_id && <button type="button" className="secondary-button" disabled={standardReview.mappingStatus === "loading"} onClick={() => void standardReview.loadMoreMappings()}>More linked requirements</button>}
+        {standardReview.mappingPage?.next_after_id && <>
+          <p role="status" className="program-operation-reason">More links are available. Load the remaining decisions before proposing another link.</p>
+          <button type="button" className="secondary-button" disabled={standardReview.mappingStatus === "loading"} onClick={() => void standardReview.loadMoreMappings()}>More linked requirements</button>
+        </>}
         {mappingError && <p role="alert" className="program-form-error">{mappingError} <button type="button" className="text-button" onClick={onReload}>Reload Program</button></p>}
         {standardReview.page && <div className="program-requirement-list">
           {standardReview.page.candidates.map((clause) => <section className="program-requirement-card" key={clause.clause_code} aria-label={`Clause ${clause.clause_code}`}>
@@ -169,7 +175,8 @@ export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoption
                 {standardReview.mappingPage?.items.some((mapping) => mapping.clause_id === clause.clause_id && mapping.requirement_id === candidate.requirement_id && mapping.status === "APPROVED") && <small>Linked</small>}
                 {standardReview.mappingPage?.items.some((mapping) => mapping.clause_id === clause.clause_id && mapping.requirement_id === candidate.requirement_id && mapping.status === "PENDING") && <small>Awaiting review</small>}
                 {mappingProposalOperation?.can_act && clause.clause_id && standardReview.mappingStatus === "loaded" &&
-                  !standardReview.mappingPage?.items.some((mapping) => mapping.clause_id === clause.clause_id && mapping.requirement_id === candidate.requirement_id) &&
+                  standardReview.mappingPage && !standardReview.mappingPage.next_after_id &&
+                  !standardReview.mappingPage.items.some((mapping) => mapping.clause_id === clause.clause_id && mapping.requirement_id === candidate.requirement_id) &&
                   <button className="text-button" type="button" onClick={() => {
                     setSelectedMapping({ clauseID: clause.clause_id, requirementID: candidate.requirement_id });
                     setMappingKind("EXACT"); setMappingRationale(""); setMappingError("");
