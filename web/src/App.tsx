@@ -91,6 +91,8 @@ type ProductRuntime = RuntimeContext & {
 function isAuthorizedWizardAssessment(request: EvidenceRequest | null, actorID?: string): boolean {
   if (!request || !canRespondToEvidenceRequest(request, actorID) ||
       (request.status !== "READY" && request.status !== "IN_PROGRESS")) return false;
+  const deadline = Date.parse(request.deadline);
+  if (Number.isFinite(deadline) && deadline <= Date.now()) return false;
   const contract = captureContract(request);
   // Match CaptureForm's effective initial presentation, not simply the declared
   // section count; a short AUTOMATIC form still opens in Classic.
