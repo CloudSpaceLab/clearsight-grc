@@ -960,11 +960,12 @@ async function captureInternalAssessment({ name, viewport, theme }) {
     if (!railBox || !workBox || !readinessBox || !sheetBox) {
       throw new Error(name + " has missing authorized questionnaire panes");
     }
+    await saveScreenshot(page, name);
     if (viewport.width >= 1280) {
       if (sheetBox.width < 1150 || railBox.x + railBox.width > workBox.x + 3 ||
           workBox.x + workBox.width > readinessBox.x + 3 ||
           Math.abs(railBox.y - readinessBox.y) > 15) {
-        throw new Error(name + " does not show approved three-column internal assessment anatomy");
+        throw new Error(`${name} does not show approved three-column internal assessment anatomy: ${JSON.stringify({ rail: railBox, work: workBox, readiness: readinessBox, sheet: sheetBox })}`);
       }
     } else if (viewport.width >= 900) {
       if (railBox.x + railBox.width > workBox.x + 3 ||
@@ -979,7 +980,6 @@ async function captureInternalAssessment({ name, viewport, theme }) {
     await dialog.getByText("Required unanswered", { exact: true }).waitFor({ state: "visible" });
     await assertFocusInsideSheet(page, name);
     await assertNoHorizontalOverflow(page, name);
-    await saveScreenshot(page, name);
     await record(page, capture, viewport.width >= 1280 ? "assessment-internal-three-pane" : viewport.width >= 900 ? "assessment-internal-tablet" : "assessment-internal-mobile");
   } finally {
     await context.close();
