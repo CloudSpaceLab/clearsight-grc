@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { createFormMonitoringCheck, createMonitoringLinkedIssue, createSourceMonitoringCheck, evaluateMonitoringSource, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionFormTemplate, transitionMonitoringCheck } from "../monitoringApi";
 import type { SourceCheckConfig } from "../monitoringApi";
@@ -101,13 +101,19 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   const [collecting, setCollecting] = useState<FormTemplate | null>(null);
   const [configuringForm, setConfiguringForm] = useState<FormTemplate | null>(null);
   const [notice, setNotice] = useState("");
+  const loadRequestID = useRef(0);
 
   async function reload() {
+    const request = ++loadRequestID.current;
+    setForms([]);
+    setChecks([]);
+    setLatestResults({});
     setState("loading");
     setChecksState("loading");
     setChecksPageComplete(false);
     setSummaryState("loading");
     const [formResult, checkResult, summaryResult] = await Promise.allSettled([loadFormTemplates(aggregate.program.id), loadMonitoringChecks(aggregate.program.id), loadCollectionSummaries(aggregate.program.id)]);
+    if (request !== loadRequestID.current) return;
     if (formResult.status === "fulfilled") setForms(latestByID(formResult.value));
     if (checkResult.status === "fulfilled") {
       const currentChecks = latestByID(checkResult.value);
@@ -116,6 +122,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       setChecksPageComplete(checkResult.value.length < 100);
       setChecksState("live");
       const loaded = await Promise.allSettled(currentChecks.map(async (check) => ({ check, results: await loadMonitoringResults(check.id, check.version) })));
+      if (request !== loadRequestID.current) return;
       const next: Record<string, MonitoringResult> = {};
       for (const value of loaded) if (value.status === "fulfilled" && value.value.results[0]) next[value.value.check.id] = value.value.results[0];
       setLatestResults(next);
@@ -134,7 +141,12 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     setState(formResult.status === "fulfilled" || checkResult.status === "fulfilled" ? "live" : "unavailable");
   }
 
-  useEffect(() => { void reload(); }, [aggregate.program.id]);
+  useEffect(() => {
+    setMode("closed");
+    setConfiguringForm(null);
+    void reload();
+    return () => { loadRequestID.current += 1; };
+  }, [aggregate.program.id]);
   const formDefineOperation = operations.find((operation) => operation.command === "program.monitoring.form.define" && !operation.subresource_id);
   const checkDefineOperation = operations.find((operation) => operation.command === "program.monitoring.define" && !operation.subresource_id);
   const canDefineForm = Boolean(formDefineOperation?.can_act);
@@ -183,6 +195,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   }
 
   async function addCheck(form: FormTemplate, policy: CollectionPolicy) {
+    const startedAtRequest = loadRequestID.current;
     if (!canDefineCheck || !checksComplete || !eligibleExistingForms.some((item) =>
       item.id === form.id && item.version === form.version)) {
       throw new Error("Current Program forms or linked checks could not be verified. Reload before adding this collection.");
@@ -190,6 +203,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     setBusy(form.id); setError("");
     try {
       const check = await createFormMonitoringCheck(aggregate.program.id, form, policy);
+      if (startedAtRequest !== loadRequestID.current) return;
       setChecks((current) => latestByID([...current, check]));
       setConfiguringForm(null);
       setMode("closed");
