@@ -141,3 +141,21 @@
 @media (prefers-reduced-motion: reduce) {
   .monitoring-choice-grid button { transition: none; }
 }
+
+/* Prefer a compact existing-Form action over another large setup tile. */
+.monitoring-choice-grid .monitoring-existing-form-action {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  min-height: var(--cs-target-min);
+  gap: var(--cs-space-inline);
+  padding: var(--cs-space-group);
+  border-color: var(--cs-border-default);
+  background: var(--cs-bg-surface-1);
+}
+.monitoring-choice-grid .monitoring-existing-form-action span {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
