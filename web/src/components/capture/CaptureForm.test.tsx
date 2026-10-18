@@ -172,6 +172,7 @@ describe("CaptureForm", () => {
   it("prevents skipping future sections and keeps the current step when draft saving fails", async () => {
     const contract = wizardContract();
     contract.sections.push({ id: "third", title: "Additional details" });
+    contract.fields.push({ id: "extra", section_id: "third", label: "Additional note", type: "short_text", required: false });
     const save = vi.fn().mockResolvedValue(false);
     render(<Harness contract={contract} initialMode="WIZARD" onBeforeSectionNavigation={save}/>);
     expect((screen.getByRole("button", { name: "Additional details" }) as HTMLButtonElement).disabled).toBe(true);
