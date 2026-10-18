@@ -28,6 +28,11 @@ const references = [
     source: "clearsight-program-designs/program-workspace-preview.html",
     runtime: { "1440x900": "04-program-light-1440x900.png", "390x844": "04-program-light-mobile-390x844.png" },
   },
+  {
+    id: "assessment-workspace",
+    source: "clearsight-designs-01-05/assessment-workspace-preview.html",
+    runtime: { "1440x900": "211-internal-assessment-light-1440x900.png", "390x844": "213-internal-assessment-light-mobile-390x844.png" },
+  },
 ];
 
 const viewports = [
