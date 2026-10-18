@@ -170,6 +170,14 @@ describe("Program section routes", () => {
     expect(parseRoute("#programs/program-1/monitoring")).toEqual({ view: "programs", target: { programID: "program-1", programSection: "monitoring" } });
   });
 
+  it("round-trips the approved Assessments destination", () => {
+    expect(parseRoute("#programs/program-1/assessments")).toEqual({
+      view: "programs", target: {programID: "program-1", programSection: "assessments"},
+    });
+    expect(routeHash("programs", {programID: "program-1", programSection: "assessments"}, "matters"))
+      .toBe("#programs/program-1/assessments");
+  });
+
   it("builds a Program section hash", () => {
     expect(routeHash("programs", { programID: "program-1", programSection: "history" }, "matters")).toBe("#programs/program-1/history");
   });
