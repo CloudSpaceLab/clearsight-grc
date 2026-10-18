@@ -705,7 +705,11 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       const active = activeViews.includes(activeView);
       return <button key={label} type="button" aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><span>{label}</span></button>;
     })}</nav>
-    {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}>{activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}</FocusedSheet>}
+    {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}
+      size={activePanel === "capture" && captureState === "live" && (capture?.sections?.length ?? 0) > 1 && capture?.presentation?.default_mode !== "CLASSIC" ? "wide" : "default"}
+      panelClassName={activePanel === "capture" && captureState === "live" && (capture?.sections?.length ?? 0) > 1 && capture?.presentation?.default_mode !== "CLASSIC" ? "assessment-capture-sheet" : ""}>
+      {activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}
+    </FocusedSheet>}
   </div>;
 }
 
