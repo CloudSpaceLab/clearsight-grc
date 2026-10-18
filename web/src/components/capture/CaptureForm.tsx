@@ -101,7 +101,15 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
   // Readiness is based only on currently visible questionnaire fields and
   // already-received documents; neither presence nor upload implies approval.
   const visibleFields = sections.flatMap((entry) => entry.fields);
-  const hasValue = (field: CaptureField) => answerIsPresent(answers[field.id]) || documentAlreadyReceived(field);
+  const hasValue = (field: CaptureField) => {
+    if (documentAlreadyReceived(field)) return true;
+    const value = answers[field.id];
+    const type = normalizeFieldType(field.type);
+    if (type === "file" || type === "photo" || type === "vendor_document") {
+      return Boolean(value?.artifact_ids?.length || value?.document?.artifact_id);
+    }
+    return answerIsPresent(value);
+  };
   const answeredCount = visibleFields.filter(hasValue).length;
   const missingRequiredCount = visibleFields.filter((field) => field.required && !hasValue(field)).length;
   const evidenceFields = visibleFields.filter((field) =>
