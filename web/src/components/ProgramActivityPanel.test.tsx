@@ -102,8 +102,8 @@ describe("approved Program Activity view", () => {
     expect(screen.getByText("No accepted review yet")).toBeTruthy();
     expect(screen.queryByText("No recorded changes since the last review")).toBeNull();
     view.rerender(<ProgramActivityPanel aggregate={aggregate} digest={{
-      ...digest, state: "CURRENT", changes: [], changes_total: 0, changes_omitted: 0,
-      history_truncated: false,
+      ...digest, state: "CURRENT", review_required: false,
+      changes: [], changes_total: 0, changes_omitted: 0, history_truncated: false,
     }} onReload={vi.fn()}/>);
     expect(screen.getByText("No recorded changes since the last review")).toBeTruthy();
     expect(screen.queryByText("4 changes since the last review")).toBeNull();
