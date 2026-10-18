@@ -24,8 +24,8 @@ A green screenshot job without a **side-by-side reference review** is *not* visu
 | Control Tower — `clearsight-designs-01-05/` | Existing Home/Oversight, four genuine scoped measures, activity and Attention, shared shell | Partial; full design comparison and actor proof outstanding |
 | Framework Library — `clearsight-framework-designs/framework-library.html` | Edition register/inspector, source rights, filters, governed selection | Partial; #497/#498/#505/#507/#508/#509/#513 merged, global catalog search and full parity outstanding |
 | Framework Adoption — `clearsight-framework-designs/framework-adoption.html` | Program & scope → requirement links → questionnaire → independent adoption review | Partial; #511/#512/#514 merged; no complete four-stage screen or global Form association |
-| Program — `clearsight-program-designs/program-workspace-preview.html` | **Six** tabs: Overview / Requirements / Assessments / Evidence / Issues / Activity; Data collection contextual | In cutover PR for six-section composition; real assessments/evidence split, historical route retained |
-| Assessment — `clearsight-designs-01-05/assessment-workspace-preview.html` | Three-column sections / form / evidence-readiness; mobile section rail; exact XLSX mapping | Not at reference parity; existing Forms/ResponseAssessment reused |
+| Program — `clearsight-program-designs/program-workspace-preview.html` | **Six** tabs: Overview / Requirements / Assessments / Evidence / Issues / Activity; Data collection contextual | Partial; #516/#517/#519/#520/#521 merged; #522 Activity review-digest in CI; global layout/source-to-runtime parity outstanding |
+| Assessment — `clearsight-designs-01-05/assessment-workspace-preview.html` | Three-column sections / form / evidence-readiness; mobile section rail; exact XLSX mapping | Partial; #523 adds governed CaptureForm wizard section rail. Source-backed third-column guidance, import/mapping and 1440/390 parity still outstanding |
 | Vendor — `clearsight-vendor-management-designs/vendor-workspace-preview.html` | Relationship register, due diligence, expiring evidence and approval | Foundation only; parity/flows outstanding |
 | Operational Risk — `clearsight-operational-risk-designs/operational-risk-preview.html` | RCSA, indicator and loss have distinct semantics and authorized scope | Foundation only |
 | Privacy — `clearsight-privacy-data-designs/privacy-workspace-preview.html` | Processing register, DPIA, purpose-specific reviews | Foundation only |
@@ -50,6 +50,8 @@ require the six primary tabs above. The Program cutover tranche separates existi
 without inventing backend statuses or an assessment system; `/monitoring` remains a
 contextual route for existing deep links and authorized collection actions.
 
+**October 18 source-vs-runtime visual inspection:** compared the approved Program HTML rendering at 1440px with the generated runtime Program Overview and Activity screenshot artifacts. The runtime's top-level Program header, shell scale, score-card hierarchy and spacing still differ materially from the approved composition. The Activity evidence script intentionally scrolls to the selected section (211px desktop; 298px mobile), so its clipped page header is not proof of a runtime clipping bug. Capture separate top-of-page and section-focused reference pairs before claiming visual parity.
+
 **Release blocking:** full screenshot/geometry comparisons, forms/assessment desktop-three-column
 composition, four-actor workflow, authorized report-to-source parity and cross-tenant/LE/group
 denial receipts. Issue #462 stays open until these are verified, not inferred from CI.
@@ -63,6 +65,9 @@ denial receipts. Issue #462 stays open until these are verified, not inferred fr
 - **#501:** Program record title is the single detail-page heading; register and Framework Library headings remain.
 - **#495:** four-actor/report acceptance **plan**; not hosted execution.
 - **#502:** active-standard requirement/form follow-through proposed; evaluate its exact-head checks before integration.
+- **#515/#516/#517/#519/#520/#521:** scoped Program safeguards, six-section workspace, Overview attention, recent assessments, compact mobile navigation and exact submitted-response review merged.
+- **#522:** Program Activity from the per-actor governed review digest. Current state is a draft PR undergoing exact-head CI; not a complete chronological event stream.
+- **#523:** Assessment wizard section rail implemented using the existing capture form, draft save, validation and response-review contracts; pending CI and visual acceptance.
 
 These merges establish a tested partial runtime migration, **not complete approved-HTML visual parity or production release acceptance**.
 

@@ -140,6 +140,52 @@ describe("CaptureForm", () => {
     expect(onReview).toHaveBeenCalledTimes(1);
   });
 
+  it("uses the approved Assessment section rail without bypassing field validation or draft persistence", async () => {
+    const save = vi.fn().mockResolvedValue(true);
+    render(<Harness contract={wizardContract()} initialMode="WIZARD" onBeforeSectionNavigation={save}/>);
+    const rail = screen.getByRole("navigation", { name: "Assessment sections" });
+    expect(rail).toBeTruthy();
+    const company = screen.getByRole("button", { name: "Company" });
+    const evidence = screen.getByRole("button", { name: "Evidence" });
+    expect(company.getAttribute("aria-current")).toBe("step");
+    expect(evidence.getAttribute("aria-current")).toBeNull();
+
+    fireEvent.click(evidence);
+    expect(screen.getByText("Step 1 of 2")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toContain("Registered name is required");
+    expect(save).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByRole("textbox", { name: /Registered name/ }), {
+      target: { value: "Acme Processing Limited" },
+    });
+    fireEvent.click(evidence);
+    await screen.findByText("Step 2 of 2");
+    expect(evidence.getAttribute("aria-current")).toBe("step");
+    expect(save).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(company);
+    await screen.findByText("Step 1 of 2");
+    expect(save).toHaveBeenCalledTimes(2);
+    expect((screen.getByRole("textbox", { name: /Registered name/ }) as HTMLInputElement).value).toBe("Acme Processing Limited");
+  });
+
+  it("prevents skipping future sections and keeps the current step when draft saving fails", async () => {
+    const contract = wizardContract();
+    contract.sections.push({ id: "third", title: "Additional details" });
+    contract.fields.push({ id: "extra", section_id: "third", label: "Additional note", type: "short_text", required: false });
+    const save = vi.fn().mockResolvedValue(false);
+    render(<Harness contract={contract} initialMode="WIZARD" onBeforeSectionNavigation={save}/>);
+    expect((screen.getByRole("button", { name: "Additional details" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByRole("textbox", { name: /Registered name/ }), {
+      target: { value: "Acme Processing Limited" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Evidence" }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("Step 1 of 3")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Company" }).getAttribute("aria-current")).toBe("step");
+    expect((screen.getByRole("textbox", { name: /Registered name/ }) as HTMLInputElement).value).toBe("Acme Processing Limited");
+  });
+
   it("waits for a successful draft save before moving in either Wizard direction", async () => {
     const save = vi.fn().mockResolvedValue(true);
     render(<Harness contract={wizardContract()} initialMode="WIZARD" onBeforeSectionNavigation={save}/>);
