@@ -16,7 +16,7 @@ type Props = {
   frameworkEdition?: FrameworkEditionTarget;
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
-  onNavigate?: (section: ProgramSection) => void;
+  onNavigate?: (section: ProgramSection, reviewAdoptionID?: string) => void;
 };
 
 function adoptionStatus(status: string) {
@@ -103,7 +103,8 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
   const localJurisdiction = program.jurisdiction?.trim().toUpperCase();
   const reviewJurisdictions = localJurisdiction && localJurisdiction !== "GLOBAL" && /^[A-Z][A-Z0-9._-]{0,63}$/.test(localJurisdiction)
     ? [{ id: "GLOBAL", label: "Global" }, { id: localJurisdiction, label: localJurisdiction }] : [{ id: "GLOBAL", label: "Global" }];
-  const activeCount = adoptions.filter((item) => item.status === "ACTIVE").length;
+  const activeAdoptions = adoptions.filter((item) => item.status === "ACTIVE");
+  const activeCount = activeAdoptions.length;
 
   function openCatalog() {
     setJurisdiction("GLOBAL");
@@ -191,7 +192,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
       </div>
       <div className="cs-program-standards__actions">
         {activeCount > 0 && onNavigate && <>
-          <Button variant="secondary" size="compact" onPress={() => onNavigate("requirements-controls")}>Review requirement links</Button>
+          {activeCount === 1 && <Button variant="secondary" size="compact" onPress={() => onNavigate("requirements-controls", activeAdoptions[0]?.id)}>Review requirement links</Button>}
           <Button variant="secondary" size="compact" onPress={() => onNavigate("monitoring")}>Collection forms</Button>
         </>}
         <a className="cs-program-standards__source" href="#programs/library">Browse library</a>
@@ -210,6 +211,8 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
             <span className="cs-program-standards__meta">{item.status === "PENDING" ? "Proposed " + item.proposed_at.slice(0, 10) : item.reviewed_at ? "Reviewed " + item.reviewed_at.slice(0, 10) : "Edition pinned"}</span>
           </div>
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+          {item.status === "ACTIVE" && activeCount > 1 && onNavigate &&
+            <Button variant="secondary" size="compact" onPress={() => onNavigate("requirements-controls", item.id)}>Review links for {item.framework_code} {item.edition_code}</Button>}
           {item.status === "PENDING" && canReview &&
             <Button variant="secondary" size="compact" isDisabled={busy} onPress={() => openReview(item.id)}>Review {item.framework_code} {item.edition_code}</Button>}
         </li>;

@@ -47,9 +47,22 @@ describe("Program standards — approved design integration", () => {
       operations={[]} onUpdated={vi.fn()} onReload={vi.fn()} onNavigate={onNavigate}/>);
     fireEvent.click(screen.getByRole("button", {name: "Review requirement links"}));
     fireEvent.click(screen.getByRole("button", {name: "Collection forms"}));
-    expect(onNavigate).toHaveBeenNthCalledWith(1, "requirements-controls");
+    expect(onNavigate).toHaveBeenNthCalledWith(1, "requirements-controls", "a");
     expect(onNavigate).toHaveBeenNthCalledWith(2, "monitoring");
     expect(loadFrameworkEditionPage).not.toHaveBeenCalled();
+    expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
+  });
+
+
+  it("routes each active standard to its own reviewed links without choosing another edition", () => {
+    const onNavigate = vi.fn();
+    render(<ProgramStandardsPanel aggregate={aggregate([
+      {...adoption("a", "SECURITY"), status: "ACTIVE"},
+      {...adoption("b", "PRIVACY"), status: "ACTIVE"},
+    ])} operations={[]} onUpdated={vi.fn()} onReload={vi.fn()} onNavigate={onNavigate}/>);
+    expect(screen.queryByRole("button", {name: "Review requirement links"})).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name: "Review links for PRIVACY 2026"}));
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith("requirements-controls", "b");
     expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
   });
 

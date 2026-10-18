@@ -60,6 +60,30 @@ describe("Program framework clause review", () => {
     expect(loadFrameworkClauseCandidates).toHaveBeenNthCalledWith(2, "program-1", "adoption-1", "A.1");
   });
 
+
+  it("opens the exact active standard's authorized clauses from the Program overview handoff", async () => {
+    vi.mocked(loadFrameworkClauseCandidates).mockResolvedValue(firstPage);
+    render(<ProgramRequirementsPanel aggregate={aggregate} operations={[]} reviewAdoptionID="adoption-1"
+      onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    await waitFor(() => expect(screen.getByRole("region", {name: "Clause A.1"})).toBeTruthy());
+    expect(screen.getByRole("button", {name: "Hide clauses"})).toBeTruthy();
+    expect(loadFrameworkClauseCandidates).toHaveBeenCalledWith("program-1", "adoption-1", "");
+    expect(loadProgramFrameworkMappings).toHaveBeenCalledWith("program-1", "adoption-1");
+  });
+
+  it("does not trust a stale or unrelated standard ID from navigation", async () => {
+    vi.mocked(loadFrameworkClauseCandidates).mockResolvedValue(firstPage);
+    const {rerender} = render(<ProgramRequirementsPanel aggregate={aggregate} operations={[]}
+      reviewAdoptionID="unknown-adoption" onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    expect(screen.getByRole("button", {name: "Review clauses"})).toBeTruthy();
+    expect(loadFrameworkClauseCandidates).not.toHaveBeenCalled();
+    expect(loadProgramFrameworkMappings).not.toHaveBeenCalled();
+    rerender(<ProgramRequirementsPanel aggregate={{
+      ...aggregate, framework_adoptions: aggregate.framework_adoptions?.map((value) => ({...value,status:"PENDING" as const})),
+    }} operations={[]} reviewAdoptionID="adoption-1" onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    expect(screen.queryByRole("button", {name: "Review clauses"})).toBeNull();
+    expect(loadFrameworkClauseCandidates).not.toHaveBeenCalled();
+  });
   it("hides standard review for Programs without an active edition", () => {
     render(<ProgramRequirementsPanel aggregate={{ ...aggregate, framework_adoptions: [
       { id: "adoption-1", edition_id: "edition-1", publisher_code: "EXAMPLE", framework_code: "SECURITY",

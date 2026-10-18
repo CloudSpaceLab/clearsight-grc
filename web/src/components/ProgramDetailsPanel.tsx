@@ -13,7 +13,7 @@ type Props = {
   onUpdated: (value: ProgramAggregate) => void;
   onReload: () => void;
   frameworkEdition?: FrameworkEditionTarget;
-  onNavigate?: (section: ProgramSection) => void;
+  onNavigate?: (section: ProgramSection, reviewAdoptionID?: string) => void;
   ownerIntent?: number;
   suppressOwnerAction?: boolean;
 };
