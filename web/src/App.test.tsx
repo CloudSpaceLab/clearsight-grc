@@ -919,6 +919,7 @@ describe("runtime navigation", () => {
 
     fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
     const dialog = await screen.findByRole("dialog", { name: "Evidence request" });
+    await within(dialog).findByRole("navigation", { name: "Assessment sections" });
     expect(dialog.closest(".cs-sheet")?.classList.contains("cs-sheet--wide")).toBe(true);
     expect(dialog.closest(".cs-sheet")?.classList.contains("assessment-capture-sheet")).toBe(true);
     expect(within(dialog).getByRole("navigation", { name: "Assessment sections" })).toBeTruthy();
@@ -943,6 +944,7 @@ describe("runtime navigation", () => {
 
     fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
     const dialog = await screen.findByRole("dialog", { name: "Evidence request" });
+    await within(dialog).findByRole("navigation", { name: "Request sections" });
     expect(dialog.closest(".cs-sheet")?.classList.contains("cs-sheet--default")).toBe(true);
     expect(dialog.closest(".cs-sheet")?.classList.contains("assessment-capture-sheet")).toBe(false);
     expect(within(dialog).getByRole("navigation", { name: "Request sections" })).toBeTruthy();
