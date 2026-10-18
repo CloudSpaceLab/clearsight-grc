@@ -27,6 +27,7 @@ import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
 import { ProgramRequirementCoverageSummary } from "./ProgramRequirementCoverageSummary";
 import { ProgramRecentAssessments } from "./ProgramRecentAssessments";
+import { ProgramActivityPanel } from "./ProgramActivityPanel";
 import { MetricCard, Notice, StatusBadge } from "./ui";
 import { programOverviewMetrics } from "../programOverviewMetrics";
 
@@ -241,7 +242,14 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       <VendorWorkPanel targetType="PROGRAM" targetID={aggregate.program.id} onOpenRequest={onOpenRequest}/>
     </section>,
     history: <section className="program-record-grid">
-      <article className="program-record-panel program-wide-panel"><div className="program-panel-heading"><div><span className="eyebrow">History</span><h2>Program record history</h2></div></div><dl className="program-history-facts"><div><dt>Program version</dt><dd>{aggregate.program.version}</dd></div><div><dt>Created</dt><dd><time dateTime={aggregate.program.created_at}>{new Date(aggregate.program.created_at).toLocaleString()}</time></dd></div><div><dt>Last changed</dt><dd><time dateTime={aggregate.program.updated_at}>{new Date(aggregate.program.updated_at).toLocaleString()}</time></dd></div><div><dt>Latest status calculated</dt><dd>{aggregate.current_state?.generated_at ? <time dateTime={aggregate.current_state.generated_at}>{new Date(aggregate.current_state.generated_at).toLocaleString()}</time> : "Not available"}</dd></div></dl><RecordSnapshotControl recordLabel="Program" loadSnapshot={async (at) => { const value = await loadProgramAt(aggregate.program.id, at); return { version: value.program.version, status: value.program.status, updatedAt: value.program.updated_at }; }}/></article>
+      <ProgramActivityPanel aggregate={aggregate}
+        digest={digestVersionMatches && reviewState === "live" ? digest : null}
+        onReload={() => void loadReview()}>
+        <RecordSnapshotControl recordLabel="Program" loadSnapshot={async (at) => {
+          const value = await loadProgramAt(aggregate.program.id, at);
+          return { version: value.program.version, status: value.program.status, updatedAt: value.program.updated_at };
+        }}/>
+      </ProgramActivityPanel>
     </section>,
   } : null;
 
