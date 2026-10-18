@@ -7,7 +7,7 @@ import type { ProgramOperation } from "../programOperationsApi";
 import type { ProgramAggregate } from "../types";
 import { useFrameworkEditionCatalog } from "../hooks/useFrameworkEditionCatalog";
 import { Button, FocusedSheet, Notice, SearchField, SelectField, StatusBadge, TextArea } from "./ui";
-import { FrameworkEditionProvenance, trustedFrameworkSourceURL } from "./FrameworkEditionProvenance";
+import { FrameworkEditionProvenance, frameworkEditionHasVerifiableSource, frameworkEditionRightsLabel } from "./FrameworkEditionProvenance";
 import "../program-standards.css";
 
 type Props = {
@@ -87,6 +87,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
   }, [catalog.items, search]);
 
   const selectedEdition = catalog.items.find((item) => item.id === editionID);
+  const proposalSourceReady = Boolean(selectedEdition && frameworkEditionHasVerifiableSource(selectedEdition));
   const alreadyLinked = adoptions.some((item) =>
     item.edition_id === editionID && (item.status === "ACTIVE" || item.status === "PENDING"));
   // A pending review must match the exact published edition identity. A
@@ -98,8 +99,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
     pinnedEdition.edition_code === selectedReview.edition_code ? pinnedEdition : null;
   const reviewSourceReady = Boolean(reviewEdition &&
     catalog.state === "ready" && catalog.loadedJurisdiction === reviewJurisdiction &&
-    trustedFrameworkSourceURL(reviewEdition.source_url) &&
-    (reviewEdition.license_basis === "CITATIONS_ONLY" || reviewEdition.license_basis === "SUMMARIES_PERMITTED"));
+    frameworkEditionHasVerifiableSource(reviewEdition));
   const localJurisdiction = program.jurisdiction?.trim().toUpperCase();
   const reviewJurisdictions = localJurisdiction && localJurisdiction !== "GLOBAL" && /^[A-Z][A-Z0-9._-]{0,63}$/.test(localJurisdiction)
     ? [{ id: "GLOBAL", label: "Global" }, { id: localJurisdiction, label: localJurisdiction }] : [{ id: "GLOBAL", label: "Global" }];
@@ -136,7 +136,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
 
   async function submitProposal(event: FormEvent) {
     event.preventDefault();
-    if (inFlight.current || !proposeOperation?.can_act || !selectedEdition || alreadyLinked ||
+    if (inFlight.current || !proposeOperation?.can_act || !selectedEdition || !proposalSourceReady || alreadyLinked ||
         !proposalRationale.trim() || reloadRequired || catalog.state !== "ready" ||
         catalog.loadedJurisdiction !== jurisdiction) return;
     inFlight.current = true;
@@ -304,7 +304,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
             <span className="cs-program-standards__edition-body">
               <strong>{edition.title}</strong>
               <small>{edition.publisher_code} · {edition.framework_code} · Edition {edition.edition_code}</small>
-              <small>{edition.jurisdiction} · Published {edition.source_published_on} · {edition.license_basis === "CITATIONS_ONLY" ? "Citations only" : "Licensed summaries"}</small>
+              <small>{edition.jurisdiction} · Published {edition.source_published_on} · {frameworkEditionRightsLabel(edition.license_basis)}</small>
             </span>
             {linked && <StatusBadge tone="neutral">Already linked</StatusBadge>}
           </label>;
@@ -315,6 +315,9 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
       {selectedEdition && <div className="cs-program-standards__selection" aria-label="Selected edition">
         <div className="cs-program-standards__section-head"><h4>{selectedEdition.title}</h4><StatusBadge tone="info">Published edition</StatusBadge></div>
         <FrameworkEditionProvenance edition={selectedEdition}/>
+        {!proposalSourceReady && <Notice tone="warning">
+          Source or reuse rights are unverified. Select another edition.
+        </Notice>}
       </div>}
       <form className="cs-program-standards__proposal" onSubmit={(event) => void submitProposal(event)}>
       <div className="cs-program-standards__reason">
@@ -323,7 +326,7 @@ export function ProgramStandardsPanel({ aggregate, operations, frameworkEdition,
       </div>
       <div className="cs-program-standards__actions">
         <Button type="submit" variant="primary" isLoading={busy}
-          isDisabled={!selectedEdition || alreadyLinked || !proposalRationale.trim() || reloadRequired ||
+          isDisabled={!proposalSourceReady || alreadyLinked || !proposalRationale.trim() || reloadRequired ||
             catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction}>Submit for approval</Button>
         <Button variant="quiet" isDisabled={busy} onPress={() => { setAddOpen(false); setError(""); }}>Cancel</Button>
       </div>
