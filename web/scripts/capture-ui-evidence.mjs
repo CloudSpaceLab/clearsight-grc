@@ -109,6 +109,11 @@ async function capturePage(capture) {
     if (capture.name === "04-program-light-1440x900") {
       const measures = page.locator(".program-overview-metrics");
       await measures.waitFor({ state: "visible" });
+      const tabs = page.getByRole("tablist", { name: "Program sections" });
+      const [tabBox, metricBox] = await Promise.all([tabs.boundingBox(), measures.boundingBox()]);
+      if (!tabBox || !metricBox || tabBox.y >= metricBox.y) {
+        throw new Error("Program section navigation must precede Overview measures");
+      }
       for (const label of ["Approved requirements", "Assessed requirements", "Open issues", "Active evidence checks"]) {
         const card = measures.getByRole("button", { name: new RegExp("^" + label + ":") });
         await card.waitFor({ state: "visible" });
