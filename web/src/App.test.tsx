@@ -307,17 +307,22 @@ describe("legal entity scope selector", () => {
     expect(screen.queryByRole("button", { name: /Organization scope/ })).toBeNull();
   });
 
-  it("keeps organization and legal entity as passive context while the hierarchy action sits with shell controls", async () => {
+  it("places the authorized scope selector beside passive organization identity, not shell actions", async () => {
     vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
     render(<App/>);
 
     const context = await screen.findByLabelText("Active workspace context");
-    const passiveScope = context.querySelector(".context-scope");
-    if (!(passiveScope instanceof HTMLElement)) throw new Error("Passive scope context is missing");
-    expect(within(passiveScope).getByText("Clear Bank")).toBeTruthy();
-    expect(within(passiveScope).getByText("Clear Bank Nigeria")).toBeTruthy();
-    const trigger = within(context).getByRole("button", { name: /Organization scope/ });
+    const scope = context.querySelector(".context-scope");
+    const identity = scope?.querySelector(".context-identity");
+    const actions = context.querySelector(".context-role");
+    if (!(scope instanceof HTMLElement) || !(identity instanceof HTMLElement) || !(actions instanceof HTMLElement)) {
+      throw new Error("Shell identity or action context is missing");
+    }
+    expect(within(identity).getByText("Clear Bank")).toBeTruthy();
+    expect(within(identity).getByText("Clear Bank Nigeria")).toBeTruthy();
+    const trigger = within(scope).getByRole("button", { name: /Organization scope/ });
     expect(trigger.textContent).toContain("Clear Bank Nigeria");
+    expect(within(actions).queryByRole("button", { name: /Organization scope/ })).toBeNull();
     expect(within(context).queryByText("Non-production data")).toBeNull();
   });
 
