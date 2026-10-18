@@ -144,8 +144,10 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
                 title={item.title}
                 startContent={<span className="cs-framework-library__publisher-mark">{publisherMark(item.publisher_code)}</span>}
                 metadata={item.publisher_code + " · " + item.framework_code + " · Edition " + item.edition_code}
-                description={item.jurisdiction + " · Published " + item.source_published_on}
-                endContent={<StatusBadge tone={frameworkEditionRightsLabel(item.license_basis) === "Not verified" ? "unknown" : "neutral"}>
+                description={compact
+                  ? item.jurisdiction + " · " + frameworkEditionRightsLabel(item.license_basis)
+                  : item.jurisdiction + " · Published " + item.source_published_on}
+                endContent={compact ? undefined : <StatusBadge tone={frameworkEditionRightsLabel(item.license_basis) === "Not verified" ? "unknown" : "neutral"}>
                   {frameworkEditionRightsLabel(item.license_basis)}
                 </StatusBadge>}
                 isSelected={selected?.id === item.id}
