@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createFormMonitoringCheck, createFormTemplate, createMonitoringLinkedIssue, loadCollectionSummaries, loadFormTemplates, loadMonitoringChecks, loadMonitoringResults, startFormCollection, transitionMonitoringCheck } from "../monitoringApi";
 import { ApiError } from "../http";
@@ -148,7 +148,7 @@ describe("monitoring setup", () => {
     expect(screen.queryByRole("button", {name: "Set collection schedule"})).toBeNull();
     expect(createFormMonitoringCheck).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", {name: "Retry data checks"}));
-    await waitFor(() => expect(existing.disabled).toBe(false));
+    await waitFor(() => expect((screen.getByRole("button", {name: "Use existing Program form"}) as HTMLButtonElement).disabled).toBe(false));
     expect(loadMonitoringChecks).toHaveBeenCalledTimes(2);
     expect(createFormMonitoringCheck).not.toHaveBeenCalled();
   });
@@ -177,6 +177,38 @@ describe("monitoring setup", () => {
     expect((screen.getByRole("button", {name: "Use existing Program form"}) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/first 100 checks are loaded/)).toBeTruthy();
     expect(screen.queryByRole("button", {name: "Set collection schedule"})).toBeNull();
+    expect(createFormMonitoringCheck).not.toHaveBeenCalled();
+  });
+
+
+  it("discards a prior Program form read after changing the Program route", async () => {
+    let completeOld!: (forms: Awaited<ReturnType<typeof loadFormTemplates>>) => void;
+    vi.mocked(loadFormTemplates)
+      .mockImplementationOnce(() => new Promise((resolve) => { completeOld = resolve; }))
+      .mockResolvedValueOnce([{
+        id: "form-new", tenant_id: "bank-2", program_id: "program-2",
+        code: "NEW", name: "New Program form", purpose: "Current scope",
+        fields: [{id: "ok", label: "Current?", type: "yes_no", required: true,
+          scoring: {id: "ok", required: true, weight: 100, answer_scores: {Yes: 0, No: 100}}}],
+        status: "ACTIVE", is_current: true, version: 1,
+        created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z",
+      }]);
+    const second = {...program, program: {...program.program, id: "program-2", tenant_id: "bank-2"}};
+    const view = render(<MonitoringSetup aggregate={program} actorPrincipalID="owner-1"
+      canConfigureSources operations={ownerOperations}/>);
+    await waitFor(() => expect(loadFormTemplates).toHaveBeenCalledTimes(1));
+    view.rerender(<MonitoringSetup aggregate={second} actorPrincipalID="owner-1"
+      canConfigureSources operations={ownerOperations}/>);
+    expect(await screen.findByText("New Program form")).toBeTruthy();
+    await act(async () => completeOld([{
+      id: "form-old", tenant_id: "bank-1", program_id: "program-1",
+      code: "OLD", name: "Old Program form", purpose: "Old scope",
+      fields: [], status: "ACTIVE", is_current: true, version: 1,
+      created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z",
+    }]));
+    expect(screen.queryByText("Old Program form")).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name: "Add data check"}));
+    expect((screen.getByRole("button", {name: "Use existing Program form"}) as HTMLButtonElement).disabled).toBe(false);
     expect(createFormMonitoringCheck).not.toHaveBeenCalled();
   });
 
