@@ -55,6 +55,16 @@ describe("approved Program recent assessment activity", () => {
     expect(screen.queryByRole("progressbar", {name: /compliance/i})).toBeNull();
   });
 
+  it("shows a provisional submission without presenting it as an approved assessment", async () => {
+    vi.mocked(loadCompletedResponses).mockResolvedValue({items: [{
+      ...response, state: "PROVISIONAL", score: {state: "PROVISIONAL"},
+    }]});
+    render(<ProgramRecentAssessments programID="program-1"
+      onOpenAssessment={vi.fn()} onViewAll={vi.fn()}/>);
+    expect(await screen.findByText("Provisional")).toBeTruthy();
+    expect(screen.getByRole("button", {name: "Review Access review"})).toBeTruthy();
+  });
+
   it("does not display cross-Program source rows", async () => {
     vi.mocked(loadCompletedResponses).mockResolvedValue({
       items: [response, {...response, id: "foreign", subject_id: "program-2"}],
