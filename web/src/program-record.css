@@ -169,3 +169,29 @@
 @media (max-width: 600px) {
   .program-overview-lead > .program-current-position { order: -1; }
 }
+
+/* Approved Program HTML: six primary sections and a distinct collection workflow. */
+.program-record-header__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--cs-space-group);
+}
+.program-contextual-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--cs-space-group);
+  padding: var(--cs-space-group) var(--cs-space-section);
+  border: 1px solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  background: var(--cs-bg-surface-1);
+}
+.program-contextual-header h2 { margin: var(--cs-space-inline) 0 0; color: var(--cs-text-strong); }
+@media (max-width: 767px) {
+  .program-record-header__actions { justify-content: stretch; }
+  .program-record-header__actions .secondary-button { width: 100%; }
+  .program-contextual-header { align-items: stretch; }
+  .program-contextual-header .secondary-button { width: 100%; }
+}
