@@ -195,9 +195,11 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       };
   const dominantAction = digest ? dominantProgramAction(displayedOperations.operations, digest) : undefined;
   const ownerActionIsDominant = dominantAction?.command === "program.assign";
+  const [standardLinkReviewID, setStandardLinkReviewID] = useState<string | undefined>();
   const overviewMeasures = useMemo(() => aggregate ? programOverviewMetrics(aggregate) : [], [aggregate]);
 
-  function selectSection(next: ProgramSection) {
+  function selectSection(next: ProgramSection, reviewAdoptionID?: string) {
+    setStandardLinkReviewID(next === "requirements-controls" ? reviewAdoptionID : undefined);
     setActiveSection(next);
     onSectionChange?.(next);
   }
@@ -211,7 +213,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       </div>
     </section>,
     "requirements-controls": <section className="program-record-grid">
-      <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+      <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} reviewAdoptionID={standardLinkReviewID} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
       <ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
     </section>,
     monitoring: <article className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter} onOpenForm={onOpenForm}/></article>,
