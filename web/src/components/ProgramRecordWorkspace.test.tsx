@@ -255,6 +255,30 @@ describe("Program record workspace", () => {
     expect(screen.queryByRole("region", { name: /^Requirement:/ })).toBeNull();
   });
 
+  it("uses the approved breadcrumb and inline Program heading with source-backed facts", async () => {
+    const onBack = vi.fn();
+    const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={onBack}/>);
+    await screen.findByRole("heading", { name: "Nigeria data protection" });
+    const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
+    const current = within(breadcrumb).getByText("Nigeria data protection");
+    expect(current.getAttribute("aria-current")).toBe("page");
+    const back = within(breadcrumb).getByRole("button", { name: "Back to Programs" });
+    fireEvent.click(back);
+    expect(onBack).toHaveBeenCalledTimes(1);
+
+    const header = container.querySelector(".program-record-header");
+    expect(header).not.toBeNull();
+    expect(within(header as HTMLElement).getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(within(header as HTMLElement).getByText("NDPA · PRIVACY")).toBeTruthy();
+    expect(within(header as HTMLElement).getByText("Operating status")).toBeTruthy();
+    expect(within(header as HTMLElement).getByText("Setup in progress")).toBeTruthy();
+    expect(within(header as HTMLElement).getByText("Owning function")).toBeTruthy();
+    expect(within(header as HTMLElement).getByText("Data Protection Office")).toBeTruthy();
+    expect(within(header as HTMLElement).getByText("Record version")).toBeTruthy();
+    expect(within(header as HTMLElement).getByRole("button", { name: "Open data collection" })).toBeTruthy();
+    expect(within(header as HTMLElement).queryByText("Calculated state")).toBeNull();
+  });
+
   it("separates stored lifecycle status from as-of posture in the approved Program overview", async () => {
     const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
     await screen.findByRole("heading", { name: "Nigeria data protection" });

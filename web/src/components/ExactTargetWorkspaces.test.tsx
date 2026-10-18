@@ -88,7 +88,7 @@ describe("exact workspace targets", () => {
 
     render(<ProgramsWorkspace targetID={programDetail.program.id}/>);
 
-    expect(await screen.findByText("Program outside first page")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Program outside first page" })).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "What needs attention" })).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Issues" }));
     expect(screen.getByTestId("vendor-links-PROGRAM-program-outside-page")).toBeTruthy();

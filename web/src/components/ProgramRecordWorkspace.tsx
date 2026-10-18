@@ -292,17 +292,26 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   </> : null;
 
   return <section className="program-record-workspace" aria-label="Program record">
-    <button aria-label="Back to Programs" className="text-button program-record-back" type="button" onClick={onBack}>← Back to Programs</button>
+    <nav className="program-record-breadcrumb" aria-label="Breadcrumb">
+      <button aria-label="Back to Programs" className="text-button program-record-back" type="button" onClick={onBack}>Programs</button>
+      <span aria-hidden="true">›</span>
+      <span aria-current="page">{aggregate?.program.name ?? "Program"}</span>
+    </nav>
     {aggregateState === "loading" && !aggregate && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Program record…</div>}
     {aggregateState === "unavailable" && !aggregate && <EmptyState kind="unavailable" label="Program" title="Program record could not be loaded" description="The current Program information is unavailable. Retry the Program record before relying on its status or evidence." action="Retry Program record" onAction={() => void loadAggregate()}/>}
     {aggregate && <>
       <header className="program-record-header">
-        <div><span className="program-kicker">{aggregate.program.code} · {aggregate.program.owning_function}</span><h1>{aggregate.program.name}</h1><p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p></div>
-        <div className="program-record-header__side">
+        <div className="program-record-header__identity">
+          <span className="program-kicker">{aggregate.program.code} · {aggregate.program.type.replaceAll("_", " ")}</span>
+          <h1>{aggregate.program.name}</h1>
+          <p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p>
           <dl className="program-record-header__facts">
             <div><dt>Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
+            <div><dt>Owning function</dt><dd>{aggregate.program.owning_function || "Not recorded"}</dd></div>
             <div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div>
           </dl>
+        </div>
+        <div className="program-record-header__side">
           <div className="program-record-header__actions">
             <button type="button" className="secondary-button" onClick={() => selectSection("monitoring")}>Open data collection</button>
           </div>

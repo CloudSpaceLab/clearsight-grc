@@ -95,6 +95,35 @@ try {
   await browser.close();
 }
 
+async function assertApprovedProgramHeading(page, mobile) {
+  const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+  const header = page.locator(".program-record-header");
+  const title = header.getByRole("heading", { level: 1 });
+  const back = breadcrumb.getByRole("button", { name: "Back to Programs" });
+  await Promise.all([header.waitFor({ state: "visible" }), back.waitFor({ state: "visible" })]);
+  await header.getByText("Owning function").waitFor({ state: "visible" });
+  await header.getByText("Record version").waitFor({ state: "visible" });
+
+  const [breadcrumbBox, headerBox, actionBox, headingStyle] = await Promise.all([
+    breadcrumb.boundingBox(), header.boundingBox(),
+    header.getByRole("button", { name: "Open data collection" }).boundingBox(),
+    header.evaluate((node) => ({
+      borderWidth: Number.parseFloat(getComputedStyle(node).borderTopWidth),
+      titleSize: Number.parseFloat(getComputedStyle(node.querySelector("h1")).fontSize),
+    })),
+  ]);
+  if (!breadcrumbBox || !headerBox || !actionBox ||
+      breadcrumbBox.y + breadcrumbBox.height > headerBox.y + 3 ||
+      headingStyle.borderWidth !== 0 ||
+      actionBox.height < 44 ||
+      (mobile ? headingStyle.titleSize < 22 : headingStyle.titleSize < 34)) {
+    throw new Error("Program heading does not match the approved open, source-backed responsive hierarchy");
+  }
+  if (!mobile && actionBox.x < headerBox.x + headerBox.width * .6) {
+    throw new Error("Program desktop action must follow the identity to the right");
+  }
+}
+
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   try {
@@ -119,6 +148,7 @@ async function capturePage(capture) {
         throw new Error(`Framework Library title uses ${fontSize}px instead of the approved ${desktop ? "desktop" : "mobile"} heading scale`);
       }
     }
+    if (capture.name === "04-program-light-mobile-390x844") await assertApprovedProgramHeading(page, true);
     if (capture.name === "04-program-light-mobile-390x844") {
       const sections = page.getByRole("button", {name: "Overview Program section"});
       await sections.waitFor({state:"visible"});
@@ -132,7 +162,8 @@ async function capturePage(capture) {
       await first.waitFor({ state: "visible" });
       const firstBox = await first.boundingBox();
       if (!firstBox || firstBox.y > 570) {
-        throw new Error("Approved mobile Program measures are pushed too far below the first viewport");
+        await page.screenshot({ path: path.join(outputDir, "04-program-mobile-viewport-failure.png"), fullPage: false, animations: "disabled" });
+        throw new Error(`Approved mobile Program measures are pushed too far below the first viewport: ${firstBox?.y ?? "unavailable"}px`);
       }
       const collectionAction = page.getByRole("button", { name: "Open data collection" });
       const actionBox = await collectionAction.boundingBox();
@@ -142,6 +173,7 @@ async function capturePage(capture) {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
       if (overflow) throw new Error("Compact Program introduces horizontal page overflow");
     }
+    if (capture.name === "04-program-light-1440x900") await assertApprovedProgramHeading(page, false);
     if (capture.name === "04-program-light-1440x900") {
       const measures = page.locator(".program-overview-metrics");
       await measures.waitFor({ state: "visible" });
