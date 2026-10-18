@@ -23,14 +23,22 @@ function dateTime(value?: string) {
 export function ProgramActivityPanel({ aggregate, digest, onReload, children }: Props) {
   const program = aggregate.program;
   const projection = aggregate.current_state?.projection_version ?? 0;
-  const current = Boolean(digest &&
+  // A CURRENT/CHANGED review requires the actor's accepted checkpoint.
+  // NO_BASELINE must not contain a checkpoint. Never infer "no changes" from
+  // a contradictory, foreign-tenant or unprojected review response.
+  const checkpointMatches = Boolean(digest?.checkpoint &&
+    digest.checkpoint.program_id === program.id &&
+    digest.checkpoint.tenant_id === program.tenant_id);
+  const current = Boolean(digest && aggregate.current_state &&
+    aggregate.current_state.program_version === program.version &&
     digest.program_id === program.id &&
     digest.current_program_version === program.version &&
     digest.current_projection_version === projection &&
-    (!digest.checkpoint || digest.checkpoint.program_id === program.id));
+    (digest.state === "NO_BASELINE" ? !digest.checkpoint : checkpointMatches));
   const noBaseline = current && digest?.state === "NO_BASELINE";
-  const changed = current && digest?.state === "CHANGED";
-  const unchanged = current && digest?.state === "CURRENT";
+  const changed = current && digest?.state === "CHANGED" && digest.review_required;
+  const unchanged = current && digest?.state === "CURRENT" && !digest.review_required &&
+    digest.changes_total === 0 && digest.changes_omitted === 0 && !digest.history_truncated;
   const reliable = noBaseline || changed || unchanged;
   const changes = changed ? digest!.changes : [];
 
@@ -39,7 +47,6 @@ export function ProgramActivityPanel({ aggregate, digest, onReload, children }: 
       <div>
         <span className="eyebrow">Activity</span>
         <h2 id="program-activity-heading">Program changes and review history</h2>
-        <p>Recorded changes since the last review</p>
       </div>
     </div>
     <dl className="program-history-facts">
@@ -49,13 +56,13 @@ export function ProgramActivityPanel({ aggregate, digest, onReload, children }: 
       <div><dt>Status calculated</dt><dd>{aggregate.current_state?.generated_at
         ? <time dateTime={aggregate.current_state.generated_at}>{dateTime(aggregate.current_state.generated_at)}</time>
         : "Unavailable"}</dd></div>
-      <div><dt>Last accepted review</dt><dd>{reliable && digest?.checkpoint?.accepted_at
+      <div><dt>Your last accepted review</dt><dd>{reliable && digest?.checkpoint?.accepted_at
         ? <time dateTime={digest.checkpoint.accepted_at}>{dateTime(digest.checkpoint.accepted_at)}</time>
         : "Not recorded"}</dd></div>
     </dl>
     {!reliable && <div className="program-activity__notice" role="status">
       <strong>Review changes unavailable</strong>
-      <p>The latest review status must match this Program revision before changes can be shown.</p>
+      <p>Reload the current Program review.</p>
       <button className="secondary-button" type="button" onClick={onReload}>Reload review status</button>
     </div>}
     {noBaseline && <div className="program-activity__notice" role="status">
