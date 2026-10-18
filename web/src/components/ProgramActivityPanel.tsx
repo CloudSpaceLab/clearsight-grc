@@ -26,7 +26,8 @@ export function ProgramActivityPanel({ aggregate, digest, onReload, children }: 
   const current = Boolean(digest &&
     digest.program_id === program.id &&
     digest.current_program_version === program.version &&
-    digest.current_projection_version === projection);
+    digest.current_projection_version === projection &&
+    (!digest.checkpoint || digest.checkpoint.program_id === program.id));
   const noBaseline = current && digest?.state === "NO_BASELINE";
   const changed = current && digest?.state === "CHANGED";
   const unchanged = current && digest?.state === "CURRENT";
