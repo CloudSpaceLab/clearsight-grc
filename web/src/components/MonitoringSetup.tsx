@@ -94,6 +94,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   const [latestResults, setLatestResults] = useState<Record<string, MonitoringResult>>({});
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [checksState, setChecksState] = useState<"loading" | "live" | "unavailable">("loading");
+  const [checksPageComplete, setChecksPageComplete] = useState(false);
   const [mode, setMode] = useState<SetupMode>("closed");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -104,12 +105,15 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   async function reload() {
     setState("loading");
     setChecksState("loading");
+    setChecksPageComplete(false);
     setSummaryState("loading");
     const [formResult, checkResult, summaryResult] = await Promise.allSettled([loadFormTemplates(aggregate.program.id), loadMonitoringChecks(aggregate.program.id), loadCollectionSummaries(aggregate.program.id)]);
     if (formResult.status === "fulfilled") setForms(latestByID(formResult.value));
     if (checkResult.status === "fulfilled") {
       const currentChecks = latestByID(checkResult.value);
       setChecks(currentChecks);
+      // Check completeness against the raw page, not deduplicated revision IDs.
+      setChecksPageComplete(checkResult.value.length < 100);
       setChecksState("live");
       const loaded = await Promise.allSettled(currentChecks.map(async (check) => ({ check, results: await loadMonitoringResults(check.id, check.version) })));
       const next: Record<string, MonitoringResult> = {};
@@ -118,6 +122,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
     } else {
       setChecks([]);
       setLatestResults({});
+      setChecksPageComplete(false);
       setChecksState("unavailable");
     }
     if (summaryResult.status === "fulfilled") {
@@ -156,7 +161,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
   const unlinkedForms = useMemo(() => forms.filter((form) => !linkedFormIDs.has(form.id)), [forms, linkedFormIDs]);
   // The existing Program form API is Program/tenant-scoped, and the check
   // read is bounded at 100. Never infer "not linked" from a failed/full page.
-  const checksComplete = checksState === "live" && checks.length < 100;
+  const checksComplete = checksState === "live" && checksPageComplete;
   const eligibleExistingForms = useMemo(() => unlinkedForms.filter((form) =>
     form.tenant_id === aggregate.program.tenant_id &&
     (!form.program_id || form.program_id === aggregate.program.id) &&
@@ -309,7 +314,7 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
       <Notice tone="warning">Linked checks could not be verified.
         <button className="text-button" type="button" onClick={() => void reload()}>Retry data checks</button>
       </Notice>}
-    {state === "live" && canDefineCheck && forms.length > 0 && checksState === "live" && checks.length >= 100 &&
+    {state === "live" && canDefineCheck && forms.length > 0 && checksState === "live" && !checksPageComplete &&
       <Notice tone="warning">The first 100 checks are loaded. Existing form links cannot be verified until paginated checking is available.</Notice>}
     {error && <Notice tone="error">{error}</Notice>}
     {notice && <Notice tone="success">{notice}</Notice>}
