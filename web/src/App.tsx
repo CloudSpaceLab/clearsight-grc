@@ -607,15 +607,10 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     <main>
       <div className="context-bar" aria-label="Active workspace context">
         <div className="context-scope">
-          <strong>{organizationName}</strong>
-          <span>{legalEntityName}</span>
-        </div>
-        <div className="context-role">
-          {runtime && <NotificationCenter key={notificationScopeKey(runtime)}/>}
-          <DisplayPreferencesMenu/>
-          <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
-          {serverDemoMode && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}
-          <span>{roleName}</span>
+          <div className="context-identity">
+            <strong>{organizationName}</strong>
+            <span>{legalEntityName}</span>
+          </div>
           {showScopeControl && scopeHierarchy && currentScopeID && <div className="context-scope-control">
             <EnterpriseScopeSwitcher
               hierarchy={scopeHierarchy}
@@ -633,6 +628,13 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
             {scopeSwitchState === "changing" && <span className="context-scope__status" aria-live="polite">Changing…</span>}
             {scopeSwitchError && <span className="context-scope__error" role="alert">{scopeSwitchError}</span>}
           </div>}
+        </div>
+        <div className="context-role">
+          {runtime && <NotificationCenter key={notificationScopeKey(runtime)}/>}
+          <DisplayPreferencesMenu/>
+          <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
+          {serverDemoMode && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}
+          <span>{roleName}</span>
         </div>
       </div>
       {activePortfolioView && <WorkspaceSwitcher ariaLabel="Portfolio lenses" compactLabel="Portfolio lens" items={portfolioLenses} selectedKey={activePortfolioView} onSelectionChange={(view) => navigate(view)}/>}

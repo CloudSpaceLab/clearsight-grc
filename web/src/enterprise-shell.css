@@ -1,6 +1,24 @@
 .sidebar-secondary { width: 100%; margin-top: auto; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent); }
 .sidebar-secondary .nav-item { width: 100%; }
 .sidebar > .avatar { margin-top: 14px; }
+/* Scope belongs with the active entity, not alongside notification/actions. */
+.context-bar > .context-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cs-space-group);
+}
+.context-bar .context-identity {
+  display: grid;
+  gap: var(--cs-space-inline);
+  min-width: 0;
+}
+.context-bar .context-identity > strong,
+.context-bar .context-identity > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .context-role { position: relative; }
 .context-scope-control { position: relative; display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .administration-menu, .demo-environment-menu { position: relative; }

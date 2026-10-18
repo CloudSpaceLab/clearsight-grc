@@ -97,6 +97,15 @@ try {
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   try {
+    const contextSwitcher = page.locator(".context-bar .context-scope-control");
+    if (await contextSwitcher.count()) {
+      if (!await page.locator(".context-bar > .context-scope > .context-scope-control").count()) {
+        throw new Error("Authorized scope selector must remain alongside active entity identity");
+      }
+      if (await page.locator(".context-bar > .context-role .context-scope-control").count()) {
+        throw new Error("Authorized scope selector must not be nested with notification controls");
+      }
+    }
     if (capture.name === "200-framework-library-light-1440x900" ||
         capture.name === "202-framework-library-light-mobile-390x844") {
       const title = page.getByRole("heading", { name: "Framework Library", exact: true });

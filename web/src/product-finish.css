@@ -87,7 +87,7 @@ main { padding-top: 24px; }
   .sidebar { display: none; }
   main { padding: 16px 18px 46px; }
   .context-bar { top: 8px; margin-bottom: 24px; }
-  .context-bar > div:first-child span { display: none; }
+  .context-bar > .context-scope .context-identity > span { display: none; }
   .topbar { display: grid; }
   .topbar-actions { justify-content: flex-start; }
   .brief-grid, .program-summary, .matter-summary, .evidence-summary { grid-template-columns: 1fr; }
