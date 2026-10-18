@@ -118,8 +118,29 @@
 .sidebar-brand { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; }
 .sidebar-brand__name { display: none; }
 
-@media (min-width: 1440px) {
+@media (min-width: 1025px) {
   .app-shell { grid-template-columns: 220px minmax(0, 1fr); }
+  .app-shell > main {
+    width: 100%;
+    max-width: 1940px;
+    padding: 0 var(--cs-primitive-space-8) var(--cs-primitive-space-12);
+  }
+  .app-shell > main > .context-bar {
+    position: sticky;
+    top: 0;
+    z-index: var(--cs-primitive-z-sticky);
+    min-height: 76px;
+    margin: 0 calc(0px - var(--cs-primitive-space-8)) var(--cs-primitive-space-8);
+    padding: var(--cs-space-inline) var(--cs-primitive-space-8);
+    border: 0;
+    border-bottom: 1px solid var(--cs-border-default);
+    border-radius: 0;
+    background: var(--cs-bg-surface-1);
+    box-shadow: none;
+    backdrop-filter: blur(15px);
+  }
+  .app-shell > main > .context-bar .enterprise-scope-trigger { min-height: 40px; }
+
   .app-shell > .sidebar {
     align-items: stretch;
     padding: 24px 15px 18px;

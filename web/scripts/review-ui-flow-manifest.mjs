@@ -23,6 +23,7 @@ const expectedNames = [
   "02-today-light-comfortable-1440x900",
   "03-today-dark-compact-1440x900",
   "04-program-light-1440x900",
+  "04-program-light-1280x800",
   "04-program-light-mobile-390x844",
   ...frameworkEvidenceScenarios.map(({ name }) => name),
   "05-matter-dark-1440x900",
