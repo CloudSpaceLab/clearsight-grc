@@ -4,7 +4,7 @@ import { useFrameworkEditionCatalog } from "../hooks/useFrameworkEditionCatalog"
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import type { FrameworkEditionOption } from "../programOperationsApi";
 import { Button, EmptyState, FilterBar, FocusedSheet, Notice, SearchField, SelectableRecord, StatusBadge, TextField } from "./ui";
-import { FrameworkEditionProvenance, frameworkEditionRightsLabel } from "./FrameworkEditionProvenance";
+import { FrameworkEditionProvenance, frameworkEditionHasVerifiableSource, frameworkEditionRightsLabel } from "./FrameworkEditionProvenance";
 import "../framework-library.css";
 import "../program-standards.css";
 
@@ -77,8 +77,11 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
       <StatusBadge tone="info">Edition {selected.edition_code}</StatusBadge>
       <FrameworkEditionProvenance edition={selected}/>
       <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
+      {!frameworkEditionHasVerifiableSource(selected) && <Notice tone="warning">
+        Source or reuse rights are unverified. This edition cannot be selected for a Program.
+      </Notice>}
       <div className="cs-program-standards__actions">
-        <Button variant="primary" isDisabled={catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction}
+        <Button variant="primary" isDisabled={catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction || !frameworkEditionHasVerifiableSource(selected)}
           onPress={() => onChooseProgram(selected)}>Choose Program</Button>
       </div>
     </div>
