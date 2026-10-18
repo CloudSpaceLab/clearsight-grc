@@ -147,6 +147,12 @@ async function assertChangedContent(page) {
 }
 
 async function captureProgramSectionsAndCollections() {
+  await captureProgramSection({ name: "58-program-activity-light-1440x900", section: "history", theme: "light",
+    viewport: { width: 1440, height: 900 }, state: "program-activity-reviewed",
+    expectedText: "Program changes and review history" });
+  await captureProgramSection({ name: "59-program-activity-dark-mobile-390x844", section: "history", theme: "dark",
+    viewport: { width: 390, height: 844 }, touch: true, compact: true, state: "program-activity-mobile",
+    expectedText: "Program changes and review history" });
   await captureProgramSection({ name: "40-program-overview-dark-1440x900", section: "overview", theme: "dark", viewport: { width: 1440, height: 900 }, state: "program-overview-dark" });
   await captureProgramSection({ name: "41-program-evidence-light-1024x768", section: "evidence-results", theme: "light", viewport: { width: 1024, height: 768 }, touch: true, state: "program-evidence-results-tablet" });
   await captureProgramSection({ name: "42-program-monitoring-light-1440x900", section: "monitoring", fixture: "collection-renewal-states", theme: "light", viewport: { width: 1440, height: 900 }, state: "collection-current", expectedText: "Ada Okafor · Vendor assurance lead" });

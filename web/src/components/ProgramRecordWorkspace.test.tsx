@@ -162,6 +162,29 @@ describe("Program record workspace", () => {
     control_objectives: [{ id: "item/1 #銀行", code: "C1", name: "Complete account records", outcome: "Records remain available.", status: "DRAFT" }],
   };
 
+  it("renders approved Activity with the governed Program review digest, not static metadata alone", async () => {
+    vi.mocked(loadProgram).mockResolvedValue({ ...aggregate, current_state: {
+      ...aggregate.current_state!, program_version: 4,
+    }});
+    vi.mocked(loadProgramReviewDigest).mockResolvedValue({
+      ...digest, state: "CHANGED", review_required: true,
+      checkpoint: { id: "review-1", tenant_id: "bank", program_id: "program-1",
+        principal_id: "reviewer-1", program_version: 3, projection_version: 7,
+        accepted_at: "2026-08-24T09:00:00Z" },
+      changes: [{ kind: "REQUIREMENT", summary: "Requirement review updated" }],
+      changes_total: 1, changes_omitted: 0, history_truncated: false,
+    });
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", { name: "Nigeria data protection" });
+    fireEvent.click(screen.getByRole("tab", { name: "Activity" }));
+    expect(await screen.findByRole("heading", { name: "Program changes and review history" })).toBeTruthy();
+    expect(screen.getByText("Requirement review updated")).toBeTruthy();
+    expect(screen.getByText("1 change since the last review")).toBeTruthy();
+    expect(document.querySelector(".program-current-position")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Program record history" })).toBeNull();
+    expect(loadProgramReviewDigest).toHaveBeenCalledWith("program-1");
+  });
+
   it("focuses a requirement only after the requested Program is loaded", async () => {
     const pending = deferred<ProgramAggregate>();
     vi.mocked(loadProgram).mockReturnValue(pending.promise);
