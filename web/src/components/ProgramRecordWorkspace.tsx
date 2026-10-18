@@ -7,6 +7,7 @@ import type { ProgramOperations } from "../programOperationsApi";
 import { loadProgramReviewDigest } from "../programReviewApi";
 import type { ProgramReviewDigest as ReviewDigest } from "../programReviewApi";
 import type { ProgramAggregate } from "../types";
+import type { CompletedResponseSummary } from "../formsDistributionApi";
 import { EmptyState } from "./EmptyState";
 import { dominantProgramAction, ProgramCurrentPosition } from "./ProgramCurrentPosition";
 import { ProgramAttention } from "./ProgramAttention";
@@ -51,6 +52,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   const [digest, setDigest] = useState<ReviewDigest | null>(null);
   const [activeSection, setActiveSection] = useState<ProgramSection>(section);
   const [ownerIntent, setOwnerIntent] = useState(0);
+  const [assessmentReview, setAssessmentReview] = useState<{ programID: string; id: string; revision: number; form_template_version: number } | null>(null);
   const loadIDs = useRef({ aggregate: 0, operations: 0, review: 0 });
   const activeTarget = useRef({ id: programID, generation: 0 });
   const startedTargetID = useRef<string | null>(null);
@@ -74,6 +76,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     if (activeTarget.current.id === programID) return;
     activeTarget.current = { id: programID, generation: activeTarget.current.generation + 1 };
     setStandardLinkReviewID(undefined);
+    setAssessmentReview(null);
     setAggregate(null);
     setOperations(null);
     setDigest(null);
@@ -203,8 +206,18 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
 
   function selectSection(next: ProgramSection, reviewAdoptionID?: string) {
     setStandardLinkReviewID(next === "requirements-controls" ? reviewAdoptionID : undefined);
+    if (next !== "assessments") setAssessmentReview(null);
     setActiveSection(next);
     onSectionChange?.(next);
+  }
+
+  function openRecentAssessment(response: CompletedResponseSummary) {
+    if (response.subject_type !== "PROGRAM" || response.subject_id !== programID || !response.current) return;
+    setAssessmentReview({
+      programID, id: response.id, revision: response.revision,
+      form_template_version: response.form_template_version,
+    });
+    selectSection("assessments");
   }
 
   const panels: Record<ProgramSection, ReactNode> | null = aggregate ? {
@@ -219,7 +232,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} reviewAdoptionID={standardLinkReviewID} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
       <ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
     </section>,
-    assessments: <section className="program-record-grid" aria-label="Program assessments"><ProgramResponsesPanel programID={aggregate.program.id}/></section>,
+    assessments: <section className="program-record-grid" aria-label="Program assessments"><ProgramResponsesPanel programID={aggregate.program.id} requestedResponse={assessmentReview?.programID === programID ? assessmentReview : undefined}/></section>,
     "evidence-results": <section className="program-record-grid" aria-label="Program evidence"><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
     monitoring: <article id="program-monitoring-panel" className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter} onOpenForm={onOpenForm}/></article>,
     "issues-actions": <section className="program-record-grid">
@@ -256,7 +269,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {activeSection === "overview" ? <div className="program-overview-composition">
         <div className="program-overview-main">
           <ProgramRequirementCoverageSummary aggregate={aggregate} onNavigate={selectSection}/>
-          <ProgramRecentAssessments programID={aggregate.program.id} onNavigate={selectSection}/>
+          <ProgramRecentAssessments programID={aggregate.program.id} onNavigate={selectSection} onOpenAssessment={openRecentAssessment}/>
         </div>
         <aside className="program-overview-rail" aria-label="Program attention and setup">
           {positionPanel}

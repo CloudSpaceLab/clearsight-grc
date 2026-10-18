@@ -153,6 +153,30 @@ describe("Program submitted data panel", () => {
     expect(within(dialog).queryByRole("region", {name: "Assess response-1"})).toBeNull();
   });
 
+  it("opens a selected Overview response through the existing governed sheet", async () => {
+    render(<ProgramResponsesPanel programID="program-1"
+      requestedResponse={{id:"response-1",revision:2,form_template_version:4}}/>);
+    const dialog = await screen.findByRole("dialog", {name: /Review .* response/});
+    expect(api.loadCompletedResponse).toHaveBeenCalledWith("response-1");
+    expect(await within(dialog).findByRole("tab", {name:"Answers"})).toBeTruthy();
+    expect(within(dialog).getByRole("tab", {name:"Review"})).toBeTruthy();
+  });
+
+  it("refuses a newer revision than the selected Overview snapshot", async () => {
+    api.loadCompletedResponse.mockResolvedValueOnce({
+      response: {...response,revision:3},
+      revision: {id:"response-1",revision:3,achieved_assurance:"EMAIL_VERIFIED",
+        scored_weight_coverage:90,state:"FINAL",current:true,
+        created_at:"2026-10-18T09:00:00Z",score:response.score},
+    });
+    render(<ProgramResponsesPanel programID="program-1"
+      requestedResponse={{id:"response-1",revision:2,form_template_version:4}}/>);
+    const dialog = await screen.findByRole("dialog", {name: /Review .* response/});
+    expect(await within(dialog).findByText("Response details could not be loaded")).toBeTruthy();
+    expect(within(dialog).getByText(/response revision has changed/)).toBeTruthy();
+    expect(within(dialog).queryByRole("tab", {name:"Review"})).toBeNull();
+  });
+
   it("opens a review sheet with Answers, Documents and Review tabs and passes semantic checks", async () => {
     const view = render(<ProgramResponsesPanel programID="program-1"/>);
     fireEvent.click(await screen.findByRole("button", { name: "Review Branch incident self-assessment response" }));

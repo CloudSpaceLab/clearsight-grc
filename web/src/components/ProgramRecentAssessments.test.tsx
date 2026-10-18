@@ -41,6 +41,15 @@ describe("approved Program recent assessments", () => {
     expect(navigate).toHaveBeenCalledWith("assessments");
   });
 
+  it("selects the exact submitted response for existing governed review", async () => {
+    const onOpenAssessment = vi.fn();
+    render(<ProgramRecentAssessments programID="program-1" onNavigate={vi.fn()}
+      onOpenAssessment={onOpenAssessment}/>);
+    await screen.findByText("Access review");
+    fireEvent.click(screen.getByRole("button", {name: "Review Access review"}));
+    expect(onOpenAssessment).toHaveBeenCalledExactlyOnceWith(response);
+  });
+
   it("applies 7 and 30 day periods to submitted activity without changing Program posture", async () => {
     render(<ProgramRecentAssessments programID="program-1" onNavigate={vi.fn()}/>);
     await screen.findByText("Access review");
