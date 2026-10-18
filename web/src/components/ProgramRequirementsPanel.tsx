@@ -8,18 +8,21 @@ import { decideProgramFrameworkMapping, proposeProgramFrameworkMapping } from ".
 import type { FrameworkMappingKind } from "../programFrameworkCandidatesApi";
 import { TextField } from "./ui";
 
-type Props = { aggregate: ProgramAggregate; operations: ProgramOperation[]; onUpdated: (value: ProgramAggregate) => void; onReload: () => void };
+type Props = { aggregate: ProgramAggregate; operations: ProgramOperation[]; reviewAdoptionID?: string; onUpdated: (value: ProgramAggregate) => void; onReload: () => void };
 type Mode = "add" | "replace" | "applicability" | null;
 
 function today() { return new Date().toISOString().slice(0, 10); }
 function isoDate(value: string) { return new Date(`${value}T00:00:00Z`).toISOString(); }
 function label(value?: string) { return (value || "Not recorded").replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
 
-export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onReload }: Props) {
+export function ProgramRequirementsPanel({ aggregate, operations, reviewAdoptionID, onUpdated, onReload }: Props) {
   const program = aggregate.program;
   const addOperation = operations.find((operation) => operation.command === "program.requirement.add");
   const applicabilityOperation = operations.find((operation) => operation.command === "program.applicability.decide");
   const activeStandards = (aggregate.framework_adoptions ?? []).filter((value) => value.status === "ACTIVE");
+  // Only an active adoption from the current authorized Program may open
+  // clause review; route intent alone is never a catalog identity or decision.
+  const requestedAdoptionID = activeStandards.some((value) => value.id === reviewAdoptionID) ? reviewAdoptionID : undefined;
   const standardReview = useFrameworkClauseCandidates(program.id, program.version);
   const [showStandards, setShowStandards] = useState(false);
   const mappingProposalOperation = operations.find((operation) => operation.command === "program.framework.mapping.propose");
@@ -34,12 +37,16 @@ export function ProgramRequirementsPanel({ aggregate, operations, onUpdated, onR
   const [mappingError, setMappingError] = useState("");
 
   useEffect(() => {
-    setShowStandards(false);
+    setShowStandards(Boolean(requestedAdoptionID));
     setSelectedMapping(null);
     setReviewingMappingID(null);
     setMappingReviewRationale("");
     setMappingError("");
-  }, [program.id, program.version]);
+  }, [program.id, program.version, requestedAdoptionID]);
+
+  useEffect(() => {
+    if (requestedAdoptionID) void standardReview.load(requestedAdoptionID);
+  }, [requestedAdoptionID, program.id, program.version, standardReview.load]);
   const [mode, setMode] = useState<Mode>(null);
   const [selected, setSelected] = useState<Requirement | null>(null);
   const [busy, setBusy] = useState(false);
