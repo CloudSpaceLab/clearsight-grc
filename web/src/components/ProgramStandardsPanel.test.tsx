@@ -302,4 +302,28 @@ describe("Program standards — approved design integration", () => {
     expect(screen.queryByRole("button", {name: "Add standard"})).toBeNull();
     expect(screen.queryByRole("button", {name: "Review SECURITY 2026"})).toBeNull();
   });
+  
+  it("fails closed on unverified rights and unsafe source before proposing a Program adoption", async () => {
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+      items: [
+        {...edition("unknown"), license_basis: "UNVERIFIED"},
+        {...edition("unsafe", "PRIVACY"), source_url: "http://example.org/unsafe"},
+      ],
+      next_after_id: "",
+    });
+    render(<ProgramStandardsPanel aggregate={aggregate()}
+      operations={[owner]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", {name: "Add standard"}));
+    for (const label of [/Published SECURITY/, /Published PRIVACY/]) {
+      fireEvent.click(await screen.findByRole("radio", {name: label}));
+      expect(screen.getByText(/Source or reuse rights are unverified/)).toBeTruthy();
+      fireEvent.change(screen.getByRole("textbox", {name: /Reason for adoption/}),
+        {target: {value: "Required compliance coverage"}});
+      const submit = screen.getByRole("button", {name: "Submit for approval"});
+      expect(submit.hasAttribute("disabled")).toBe(true);
+      fireEvent.submit(submit.closest("form")!);
+    }
+    expect(proposeProgramFrameworkAdoption).not.toHaveBeenCalled();
+  });
+
 });
