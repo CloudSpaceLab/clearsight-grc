@@ -17,6 +17,7 @@ const captures = [
   { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "03-today-dark-compact-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
+  { name: "04-program-light-1280x800", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1280, height: 800 } },
   { name: "04-program-light-mobile-390x844", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true },
   ...frameworkEvidenceScenarios,
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
@@ -95,9 +96,41 @@ try {
   await browser.close();
 }
 
+async function assertApprovedShell(page, width) {
+  const navigation = page.locator(".app-shell > .sidebar");
+  const contextBar = page.locator(".app-shell > main > .context-bar");
+  await contextBar.waitFor({ state: "visible" });
+  const [navBox, barBox] = await Promise.all([navigation.boundingBox(), contextBar.boundingBox()]);
+  if (!barBox) throw new Error("The authenticated context bar is missing");
+  if (width <= 1024) {
+    if (width === 1024 && (!navBox || navBox.width > 120)) {
+      throw new Error("Approved 1024px shell must retain compact navigation");
+    }
+    return;
+  }
+  const style = await contextBar.evaluate((node) => ({
+    borderRadius: Number.parseFloat(getComputedStyle(node).borderTopLeftRadius),
+    boxShadow: getComputedStyle(node).boxShadow,
+  }));
+  if (!navBox || navBox.width < 215 || navBox.width > 228 ||
+      barBox.y > 2 || Math.abs(barBox.x - (navBox.x + navBox.width)) > 2 ||
+      barBox.height < 68 || barBox.height > 105 ||
+      style.borderRadius !== 0 || style.boxShadow !== "none") {
+    throw new Error("Desktop shell does not match approved full rail and flat top context bar");
+  }
+  const activeIdentity = contextBar.locator(".context-identity > strong");
+  if (!(await activeIdentity.textContent())?.trim()) {
+    throw new Error("Desktop context bar lost the authorized organization identity");
+  }
+}
+
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   try {
+    if (["04-program-light-1440x900", "04-program-light-1280x800",
+         "09-today-dark-tablet-1024x768"].includes(capture.name)) {
+      await assertApprovedShell(page, capture.viewport.width);
+    }
     const contextSwitcher = page.locator(".context-bar .context-scope-control");
     if (await contextSwitcher.count()) {
       if (!await page.locator(".context-bar > .context-scope > .context-scope-control").count()) {
