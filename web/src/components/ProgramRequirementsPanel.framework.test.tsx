@@ -170,6 +170,59 @@ describe("Program framework mapping review", () => {
     ));
     expect(onUpdated).toHaveBeenCalled();
   });
+
+  it("does not offer an apparently new clause link until all reviewed mapping pages have loaded", async () => {
+    vi.mocked(loadProgramFrameworkMappings)
+      .mockResolvedValueOnce({
+        adoption_id: "adoption-1", program_version: 4, next_after_id: "earlier-link",
+        items: [{
+          id: "earlier-link", adoption_id: "adoption-1", clause_id: "other-clause",
+          requirement_id: "other-requirement", mapping_kind: "EXACT",
+          status: "APPROVED", version: 1, mapped_by: "owner", rationale: "Other link",
+        }],
+      })
+      .mockResolvedValueOnce({
+        adoption_id: "adoption-1", program_version: 4, next_after_id: "", items: [],
+      });
+    render(<ProgramRequirementsPanel aggregate={aggregate} operations={[{
+      command: "program.framework.mapping.propose", label: "Propose link",
+      can_act: true, responsibility: "OWNER", reason: "",
+    }]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", {name: "Review clauses"}));
+    await waitFor(() => expect(screen.getByRole("region", {name: "Clause A.1"})).toBeTruthy());
+    expect(await screen.findByText(/Load the remaining decisions before proposing another link/)).toBeTruthy();
+    expect(screen.queryByRole("button", {name: "Propose link"})).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name: "More linked requirements"}));
+    await waitFor(() => expect(screen.getByRole("button", {name: "Propose link"})).toBeTruthy());
+    expect(loadProgramFrameworkMappings).toHaveBeenNthCalledWith(2, "program-1", "adoption-1", "earlier-link");
+    expect(proposeProgramFrameworkMapping).not.toHaveBeenCalled();
+  });
+
+  it("does not offer a duplicate after the later mapping page identifies the same requirement", async () => {
+    vi.mocked(loadProgramFrameworkMappings)
+      .mockResolvedValueOnce({
+        adoption_id: "adoption-1", program_version: 4, next_after_id: "earlier-link", items: [],
+      })
+      .mockResolvedValueOnce({
+        adoption_id: "adoption-1", program_version: 4, next_after_id: "",
+        items: [{
+          id: "existing-link", adoption_id: "adoption-1", clause_id: "clause-1",
+          requirement_id: "requirement-1", mapping_kind: "EXACT",
+          status: "PENDING", version: 1, mapped_by: "owner", rationale: "Submitted",
+        }],
+      });
+    render(<ProgramRequirementsPanel aggregate={aggregate} operations={[{
+      command: "program.framework.mapping.propose", label: "Propose link",
+      can_act: true, responsibility: "OWNER", reason: "",
+    }]} onUpdated={vi.fn()} onReload={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", {name: "Review clauses"}));
+    await waitFor(() => expect(screen.getByRole("button", {name: "More linked requirements"})).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", {name: "More linked requirements"}));
+    await waitFor(() => expect(screen.getByText("Links awaiting review")).toBeTruthy());
+    expect(screen.queryByRole("button", {name: "Propose link"})).toBeNull();
+    expect(proposeProgramFrameworkMapping).not.toHaveBeenCalled();
+  });
+
   it("keeps reviewer rationale scoped to the selected mapping", async () => {
     vi.mocked(loadProgramFrameworkMappings).mockResolvedValue({
       adoption_id:"adoption-1",program_version:4,next_after_id:"",
