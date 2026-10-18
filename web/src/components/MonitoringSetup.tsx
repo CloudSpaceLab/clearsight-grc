@@ -325,8 +325,8 @@ export function MonitoringSetup({ aggregate, actorPrincipalID, canConfigureSourc
         <strong>Use existing Program form</strong>
         <span>{!canDefineCheck ? checkDefineOperation?.reason ?? "The current Program owner must add this check."
           : !checksComplete ? "Reload checks to confirm which forms are already linked."
-          : eligibleExistingForms.length ? `${eligibleExistingForms.length} approved form${eligibleExistingForms.length === 1 ? "" : "s"} available`
-          : "No unlinked, approved scored forms in this Program."}</span>
+          : eligibleExistingForms.length ? `${eligibleExistingForms.length} loaded approved form${eligibleExistingForms.length === 1 ? "" : "s"}`
+          : "No eligible forms among loaded Program records."}</span>
       </button>}
       <button type="button" aria-label="Collection form" disabled={!canDefineForm} onClick={() => setMode("form")}><strong>Collection form</strong><span>{canDefineForm ? "Create a new form draft for approval." : formDefineOperation?.reason ?? "The current Program owner must create this form."}</span></button>
       <button type="button" aria-label="Connected data" disabled={!canDefineCheck || !canConfigureSources} onClick={() => setMode("source")}><strong>Connected data</strong><span>{!canDefineCheck ? checkDefineOperation?.reason ?? "The current Program owner must add this check." : canConfigureSources ? "Check a status endpoint and calculate risk from the returned value." : "A GRC administrator can connect a new source."}</span></button>
