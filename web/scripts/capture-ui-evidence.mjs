@@ -83,6 +83,8 @@ try {
     { name: "213-internal-assessment-light-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "light" },
     { name: "214-internal-assessment-dark-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "dark" },
   ]) await captureInternalAssessment(scenario);
+  await captureApprovedVendorMeasures("217-vendor-approved-measures-light-1440x900", "light", { width: 1440, height: 900 });
+  await captureApprovedVendorMeasures("218-vendor-approved-measures-dark-mobile-390x844", "dark", { width: 390, height: 844 });
   await captureRouting();
   await captureAuthorityForbidden();
   await captureEvidenceReviewAndReceipt();
@@ -820,6 +822,34 @@ async function captureDocumentResultHandoffs() {
         await context.close();
       }
     }
+  }
+}
+
+async function captureApprovedVendorMeasures(name, theme, viewport) {
+  const capture = { name, route: "#vendors/overview", title: "Vendors", theme,
+    fixture: "vendor-form-assessment", density: "comfortable", viewport, touch: viewport.width <= 390 };
+  const { context, page } = await openPage(capture);
+  try {
+    const summary = page.getByRole("region", { name: "Vendor overview summary" });
+    await summary.waitFor({ state: "visible" });
+    await summary.getByRole("button", { name: "5 open exceptions" }).waitFor({ state: "visible" });
+    const cards = summary.locator(".vendor-summary-counts > .cs-button");
+    if (await cards.count() !== 4) throw new Error(name + " is missing approved Vendor measure cards");
+    const boxes = await Promise.all([0, 1, 2, 3].map((index) => cards.nth(index).boundingBox()));
+    if (boxes.some((box) => !box || box.height < 90)) throw new Error(name + " has collapsed Vendor measure cards");
+    const [first, second, third, fourth] = boxes;
+    if (viewport.width >= 1280) {
+      if (!(first.x < second.x && second.x < third.x && third.x < fourth.x &&
+            Math.abs(first.y - fourth.y) < 3)) throw new Error(name + " is not a four-card desktop row");
+    } else if (!(first.x < second.x && Math.abs(first.y - second.y) < 3 &&
+                 third.x < fourth.x && third.y >= first.y + first.height - 3)) {
+      throw new Error(name + " is not a two-by-two mobile card grid");
+    }
+    await assertNoHorizontalOverflow(page, name);
+    await saveScreenshot(page, name);
+    await record(page, capture, viewport.width >= 1280 ? "vendor-approved-measures-desktop" : "vendor-approved-measures-mobile");
+  } finally {
+    await context.close();
   }
 }
 

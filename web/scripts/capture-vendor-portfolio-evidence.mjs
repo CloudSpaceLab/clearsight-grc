@@ -24,12 +24,21 @@ try {
       if (overflow) throw new Error(`Horizontal overflow: ${file}`);
       if (await page.locator('.vendor-metric').count() !== 0) throw new Error(`Legacy metric card rendered: ${file}`);
       if (state === 'unavailable' && await page.getByRole('button', { name: 'Unknown overdue actions' }).count() !== 1) throw new Error('Missing exceptions represented as known');
-      if (state === 'live' && width === 1440) {
-        const heading = await page.getByRole('heading', { name: 'Vendors', exact: true }).boundingBox();
-        const queue = await page.getByRole('heading', { name: 'Vendor exceptions', exact: true }).boundingBox();
-        if (!heading || !queue || queue.y - heading.y > 220) throw new Error(`Exception queue starts too low: ${queue?.y - heading?.y}px`);
-        const visibleRows = await page.locator('.vendor-exception-row').evaluateAll(rows => rows.filter(row => row.getBoundingClientRect().top < innerHeight).length);
-        if (visibleRows < 5) throw new Error(`Only ${visibleRows} exception rows visible in desktop viewport`);
+      if (state === 'live') {
+        const cards = page.locator('.vendor-summary-counts > .cs-button');
+        const boxes = await Promise.all([0, 1, 2, 3].map(index => cards.nth(index).boundingBox()));
+        if (await cards.count() !== 4 || boxes.some(box => !box || box.height < 90)) {
+          throw new Error(`Approved Vendor measures not rendered as four cards: ${file}`);
+        }
+        const [first, second, third, fourth] = boxes;
+        if (width === 1440 && !(first.x < second.x && second.x < third.x && third.x < fourth.x &&
+            Math.abs(first.y - fourth.y) < 3)) {
+          throw new Error(`Vendor cards must form a single desktop row: ${file}`);
+        }
+        if (width === 390 && !(first.x < second.x && Math.abs(first.y - second.y) < 3 &&
+            third.x < fourth.x && third.y > first.y + first.height - 3)) {
+          throw new Error(`Vendor cards must form a 2x2 mobile grid: ${file}`);
+        }
       }
       results.push({ file, state, theme, width, overflow });
       if (state === 'live') {
