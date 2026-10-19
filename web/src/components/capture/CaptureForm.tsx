@@ -12,6 +12,7 @@ type Props = {
   attachments: Record<string, CaptureAttachment[]>;
   mode: CapturePresentationMode;
   external: boolean;
+  fullPage?: boolean;
   uploadingField: string | null;
   onAnswer: (fieldID: string, value: CaptureAnswerValue) => void;
   onUpload: (field: CaptureField, files: File[], previewURL?: string) => void;
@@ -21,7 +22,7 @@ type Props = {
   onReview: () => void;
 };
 
-export function CaptureForm({ request, contract, answers, attachments, mode, external, uploadingField, onAnswer, onUpload, onRemoveAttachment, onModeChange, onBeforeSectionNavigation, onReview }: Props) {
+export function CaptureForm({ request, contract, answers, attachments, mode, external, fullPage = false, uploadingField, onAnswer, onUpload, onRemoveAttachment, onModeChange, onBeforeSectionNavigation, onReview }: Props) {
   const sections = visibleCaptureSections(contract, answers);
   const effectiveMode = effectivePresentationMode(contract, answers, mode);
   const recoveryUI = useCaptureWorkspaceRecoveryUI();
@@ -122,7 +123,19 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
       .filter((file) => file.id && selected.has(file.id) && file.file_name.trim())
       .map((file) => file.file_name);
   };
-  return <div className="capture-form capture-wizard">
+  return <div className={fullPage ? "capture-form capture-wizard capture-wizard--full-page" : "capture-form capture-wizard"}>
+    {fullPage && <nav className="capture-wizard__views" aria-label="Assessment views">
+      <span aria-current="page">Questions</span>
+      <button type="button" disabled title="Reviewed Excel-answer import is unavailable">Excel import</button>
+      <button type="button" disabled={Boolean(uploadingField) || unsupported.length > 0}
+        onClick={() => validate(visibleFields, onReview)}>Review</button>
+    </nav>}
+    {fullPage && <section className="capture-wizard__completion" aria-label="Assessment completion">
+      <div><span>Completion</span><strong>{answeredCount} of {visibleFields.length} answered</strong></div>
+      <progress max={Math.max(visibleFields.length, 1)} value={answeredCount} aria-label="Questions answered"/>
+      <strong>{visibleFields.length ? Math.round(answeredCount * 100 / visibleFields.length) : 0}%</strong>
+      <small>{missingRequiredCount} required unanswered · {attachedCount} documents received</small>
+    </section>}
     {modeSwitch}
     <div className={sections.length > 1 ? "capture-wizard__layout capture-wizard__layout--sectioned" : "capture-wizard__layout"}>
       {sections.length > 1 && <nav className="capture-wizard__sections" aria-label="Assessment sections">
@@ -141,7 +154,7 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
         </li>)}</ol>
       </nav>}
       <div className="capture-wizard__main">
-        <div className="capture-progress"><span aria-live="polite">Step {sectionIndex + 1} of {sections.length}</span><progress max={sections.length} value={sectionIndex + 1} aria-label={"Section " + (sectionIndex + 1) + " of " + sections.length}/></div>
+        <div className="capture-progress"><span aria-live="polite">{fullPage ? "Section " : "Step "}{sectionIndex + 1} of {sections.length}</span>{!fullPage && <progress max={sections.length} value={sectionIndex + 1} aria-label={"Section " + (sectionIndex + 1) + " of " + sections.length}/>}</div>
         {errorSummary}
         {unsupported.length > 0 && <UnsupportedFields fields={unsupported}/>}
         <section className="capture-section" aria-labelledby={"capture-section-title-" + section.id}><h3 id={"capture-section-title-" + section.id}>{section.title}</h3>{section.help && <p className="field-help">{section.help}</p>}{renderFields(section.fields)}</section>
