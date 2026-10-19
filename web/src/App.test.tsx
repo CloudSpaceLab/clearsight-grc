@@ -931,7 +931,10 @@ describe("runtime navigation", () => {
     expect(Boolean(views.compareDocumentPosition(completion) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
     fireEvent.click(within(views).getByRole("button", { name: "Review" }));
     expect(within(workspace).getByText("Check the highlighted answers")).toBeTruthy();
-    expect(within(workspace).getByText("Request context")).toBeTruthy();
+    const context = within(workspace).getByText("Request context").closest("details");
+    expect(context).toBeTruthy();
+    expect(Boolean(completion.compareDocumentPosition(context!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(within(workspace).getAllByRole("progressbar")).toHaveLength(1);
     expect(within(workspace).getByRole("navigation", { name: "Assessment sections" })).toBeTruthy();
     expect(within(workspace).getByRole("complementary", { name: "Response readiness and evidence" })).toBeTruthy();
     expect(within(workspace).getByRole("button", { name: "Continue" })).toBeTruthy();
