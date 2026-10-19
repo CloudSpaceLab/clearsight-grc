@@ -69,7 +69,7 @@ function WorkContext({ item, onOpen, onInspectAuthority }: { item: AttentionItem
       <div><dt>Owner</dt><dd>{item.owner || "Unassigned"}</dd></div>
       <div><dt>Evidence</dt><dd>{item.evidence || "Not recorded"}</dd></div>
     </dl>
-    <div className="assigned-workspace__next"><span>Next action</span><strong>{item.recommendation?.proposed_action || item.primary_action}</strong></div>
+    <div className="assigned-workspace__next"><span>{item.recommendation ? "Recommended action" : "Next action"}</span><strong>{item.recommendation?.proposed_action || item.primary_action}</strong></div>
     {item.verification && <VerificationContext item={item}/>}
     <div className="assigned-workspace__actions">
       {canOpen
