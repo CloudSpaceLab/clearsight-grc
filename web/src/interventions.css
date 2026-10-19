@@ -104,3 +104,23 @@
   .workspace-brief-facts { display: grid; gap: 4px; white-space: normal; }
   .review-assertions > div { grid-template-columns: 1fr; gap: 5px; }
 }
+
+
+/* Approved Work queue: selected record beside the existing actor-scoped feed. */
+.assigned-workspace { margin-block-start: var(--cs-space-group); container: assigned-work / inline-size; }
+.assigned-workspace__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .4fr); align-items: start; gap: var(--cs-space-group); }
+.assigned-workspace__record { display: flex; align-items: center; gap: var(--cs-space-inline); min-inline-size: 0; }
+.assigned-workspace__record strong { overflow-wrap: anywhere; }
+.assigned-workspace__context { min-inline-size: 0; padding: var(--cs-space-group); background: var(--cs-bg-surface-1); border: 1px solid var(--cs-border-default); border-radius: var(--cs-surface-radius); }
+.assigned-workspace__context h3 { margin-block: var(--cs-space-inline); overflow-wrap: anywhere; }
+.assigned-workspace__context > p { color: var(--cs-text-muted); overflow-wrap: anywhere; }
+.assigned-workspace__context dl { display: grid; gap: var(--cs-space-inline); margin: 0; }
+.assigned-workspace__context dl > div { display: grid; grid-template-columns: minmax(90px, .35fr) minmax(0, 1fr); gap: var(--cs-space-inline); }
+.assigned-workspace__context dt { color: var(--cs-text-muted); }
+.assigned-workspace__context dd { margin: 0; overflow-wrap: anywhere; }
+.assigned-workspace__next { display: grid; gap: var(--cs-primitive-space-1); margin-block: var(--cs-space-group); }
+.assigned-workspace__next > span { color: var(--cs-text-muted); }
+.assigned-workspace__actions { display: flex; flex-wrap: wrap; gap: var(--cs-space-inline); margin-block-start: var(--cs-space-group); }
+@container assigned-work (max-width: 980px) {
+  .assigned-workspace__grid { grid-template-columns: minmax(0, 1fr); }
+}
