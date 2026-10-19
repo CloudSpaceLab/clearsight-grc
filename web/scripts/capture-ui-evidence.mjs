@@ -421,6 +421,7 @@ async function capturePage(capture) {
       await action.getByText("Overdue", { exact: true }).waitFor({ state: "visible" });
       await action.scrollIntoViewIfNeeded();
     }
+    if (capture.state === "work-assigned-desktop" || capture.state === "work-assigned-mobile") await assertWorkMeasureLabels(page, capture);
     await saveScreenshot(page, capture.name);
     const recordedCapture = capture.openRopaActivity ? { ...capture, route: new URL(page.url()).hash } : capture;
     await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
@@ -872,6 +873,44 @@ async function captureApprovedVendorMeasures(name, theme, viewport) {
     await record(page, capture, viewport.width >= 1280 ? "vendor-approved-measures-desktop" : "vendor-approved-measures-mobile");
   } finally {
     await context.close();
+  }
+}
+
+async function assertWorkMeasureLabels(page, capture) {
+  const cards = page.locator(".assigned-workspace__signals .cs-metric-card");
+  await cards.first().waitFor({ state: "visible" });
+  if (await cards.count() !== 4) throw new Error(`${capture.name}: expected four scoped Work measures`);
+
+  const measures = await cards.evaluateAll((elements) => elements.map((card) => {
+    const label = card.querySelector(".cs-metric-card__label");
+    const quality = card.querySelector(".cs-metric-card__quality");
+    const rect = card.getBoundingClientRect();
+    const labelRect = label?.getBoundingClientRect();
+    return {
+      accessible: card.getAttribute("aria-label") ?? "",
+      label: label?.textContent?.trim() ?? "",
+      width: labelRect?.width ?? 0,
+      overflow: label ? label.scrollWidth > label.clientWidth + 1 : true,
+      qualityDisplay: quality ? getComputedStyle(quality).display : "",
+      x: rect.x,
+      y: rect.y,
+    };
+  }));
+  const labels = ["Overdue", "Due next 7 days", "Your approvals", "Evidence needed"];
+  for (const [index, item] of measures.entries()) {
+    if (item.label !== labels[index] || item.width < 78 || item.overflow) {
+      throw new Error(`${capture.name}: unreadable Work measure label ${JSON.stringify(item)}`);
+    }
+    if (item.qualityDisplay !== "none" || !item.accessible.includes("Loaded work")) {
+      throw new Error(`${capture.name}: loaded-feed qualification missing or duplicated in Work measures`);
+    }
+  }
+  if (capture.viewport.width <= 390) {
+    const [first, second, third, fourth] = measures;
+    if (!(first.x < second.x && Math.abs(first.y - second.y) < 3 &&
+      third.x < fourth.x && third.y > first.y)) {
+      throw new Error(`${capture.name}: Work measures must retain the approved 2×2 mobile order`);
+    }
   }
 }
 
