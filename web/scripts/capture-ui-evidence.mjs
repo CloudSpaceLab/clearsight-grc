@@ -322,7 +322,19 @@ async function capturePage(capture) {
     }
     if (capture.matterTab) await openMatterWorkspaceTab(page, capture.matterTab);
     if (capture.frameworkCatalog === "loaded") {
-      await page.getByRole("list", { name: "Published framework editions" }).waitFor({ state: "visible" });
+      const views = page.getByRole("navigation", { name: "Library views" });
+      const search = page.getByRole("searchbox", { name: "Search loaded standards" });
+      const editions = page.getByRole("list", { name: "Published framework editions" });
+      await Promise.all([views.waitFor({ state: "visible" }), search.waitFor({ state: "visible" }), editions.waitFor({ state: "visible" })]);
+      if (await page.getByRole("navigation", { name: "Portfolio lenses" }).count()) {
+        throw new Error("Framework Library still mounts the generic Portfolio navigation above its approved Explore views.");
+      }
+      const [viewsBox, searchBox, listBox] = await Promise.all([views.boundingBox(), search.boundingBox(), editions.boundingBox()]);
+      if (!viewsBox || !searchBox || !listBox ||
+          viewsBox.y + viewsBox.height > searchBox.y + 3 ||
+          searchBox.y + searchBox.height > listBox.y + 5) {
+        throw new Error("Framework Library must preserve approved views → filters → edition-list content order.");
+      }
       const inspect = page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" });
       await inspect.waitFor({ state: "visible" });
       const sidebar = page.locator(".app-shell > .sidebar");
