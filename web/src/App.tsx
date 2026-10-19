@@ -615,9 +615,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       </div>
       <nav>{operatingNavigation.map(({ label, view, activeViews }) => {
         const active = activeViews.includes(activeView);
-        return <button className={active ? "nav-item active" : "nav-item"} key={label} aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><b>{label}</b></button>;
+        return <button className={active ? "nav-item active" : "nav-item"} key={label} type="button" aria-label={label} title={label} aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><b>{label}</b></button>;
       })}</nav>
-      {configureEnabled && <div className="sidebar-secondary"><button className={activeView === "configure" ? "nav-item active" : "nav-item"} type="button" aria-current={activeView === "configure" ? "page" : undefined} onClick={() => navigate("configure")}><NavigationIcon view="configure"/><b>Configure</b></button></div>}
+      {configureEnabled && <div className="sidebar-secondary"><button className={activeView === "configure" ? "nav-item active" : "nav-item"} type="button" aria-label="Configure" title="Configure" aria-current={activeView === "configure" ? "page" : undefined} onClick={() => navigate("configure")}><NavigationIcon view="configure"/><b>Configure</b></button></div>}
       <div className="avatar" aria-label={`Signed in as ${actorName}`}>{initials(actorName)}</div>
     </aside>
     <main>

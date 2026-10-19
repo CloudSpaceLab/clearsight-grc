@@ -147,7 +147,20 @@ async function assertApprovedShell(page, width) {
   const [navBox, barBox] = await Promise.all([navigation.boundingBox(), contextBar.boundingBox()]);
   if (!barBox) throw new Error("The authenticated context bar is missing");
   if (width <= 1024) {
-    if (width === 1024 && (!navBox || navBox.width > 120)) {
+    if (width <= 650) {
+      const bottomNavigationVisible = await page.locator(".mobile-nav").isVisible();
+      const brandVisible = await navigation.locator(".brand-mark").isVisible();
+      const mainBox = await page.locator(".app-shell > main").boundingBox();
+      if (!brandVisible || !navBox || !mainBox || Math.abs(navBox.width - 56) > 1 ||
+          navBox.x !== 0 || bottomNavigationVisible ||
+          Math.abs(mainBox.x - navBox.width) > 2 ||
+          Math.abs(mainBox.width - (width - navBox.width)) > 2 ||
+          Math.abs(barBox.x - mainBox.x) > 2 ||
+          Math.abs(barBox.width - mainBox.width) > 2 ||
+          barBox.y > 2 || barBox.height < 56 || barBox.height > 95) {
+        throw new Error("Approved mobile shell requires a 56px left rail, an aligned context bar and adjacent content");
+      }
+    } else if (width === 1024 && (!navBox || navBox.width > 120)) {
       throw new Error("Approved 1024px shell must retain compact navigation");
     }
     return;
@@ -322,8 +335,11 @@ async function capturePage(capture) {
       }
       if (capture.viewport.width <= 390) {
         const record = await inspect.boundingBox();
-        const mobileNav = await page.locator(".mobile-nav").boundingBox();
-        if (!record || !mobileNav || record.y >= mobileNav.y) throw new Error(`${capture.name} hides all framework records below the mobile navigation.`);
+        const rail = await page.locator(".app-shell > .sidebar").boundingBox();
+        if (!record || !rail || record.x < rail.x + rail.width - 2 ||
+            record.y >= capture.viewport.height - 44) {
+          throw new Error(`${capture.name} hides framework records behind the compact source-aligned rail or below the first viewport.`);
+        }
       }
       if (capture.viewport.width > 900 || capture.frameworkDetailSheet) await inspect.click();
       if (capture.viewport.width > 900) {
