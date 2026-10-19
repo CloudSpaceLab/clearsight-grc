@@ -264,8 +264,16 @@
     gap: var(--cs-space-inline);
   }
   .program-overview-metrics .cs-metric-card {
-    --cs-metric-card-padding: var(--cs-space-group);
-    --cs-metric-card-min-height: 118px;
+    --cs-metric-card-padding: var(--cs-space-inline);
+    --cs-metric-card-gap: var(--cs-primitive-space-1);
+    --cs-metric-card-min-height: 116px;
+    align-content: start;
+  }
+  .program-overview-metrics :is(.cs-metric-card__label, .cs-metric-card__quality,
+    .cs-metric-card__detail, .cs-metric-card__meta, .cs-metric-card__action) {
+    font-size: 10px;
+    line-height: 1.25;
+    letter-spacing: 0;
   }
 }
 .program-overview-lead { display: grid; gap: var(--cs-space-group); min-width: 0; }
