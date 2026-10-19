@@ -44,6 +44,11 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
   // Source inspection requires an explicit record selection. Filtering out the
   // selected edition also removes its action until that record is selected again.
   const selected = visible.find((item) => item.id === selectedID) ?? null;
+  // The approved desktop library opens with a populated reference inspector.
+  // Previewing is read-only: a user must still select an exact edition before
+  // proceeding into the governed Program adoption handoff.
+  const preview = selected ?? (catalog.state === "ready" && catalog.loadedJurisdiction === jurisdiction
+    ? visible[0] ?? null : null);
 
   function applyJurisdiction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,25 +71,26 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
     setSheetOpen(compact);
   }
 
-  const inspector = selected && <div className="cs-framework-library__sheet">
+  const inspector = preview && <div className="cs-framework-library__sheet">
     <div className="cs-framework-library__detail-band" aria-hidden="true">
-      <span className="cs-framework-library__publisher-mark">{publisherMark(selected.publisher_code)}</span>
-      <span>Published · {selected.source_published_on}</span>
+      <span className="cs-framework-library__publisher-mark">{publisherMark(preview.publisher_code)}</span>
+      <span>Published · {preview.source_published_on}</span>
     </div>
     <div className="cs-framework-library__detail-body">
       <span className="eyebrow">Published reference</span>
-      <h2>{selected.title}</h2>
-      <p className="cs-framework-library__detail-subtitle">{selected.publisher_code} · {selected.framework_code}</p>
-      <StatusBadge tone="info">Edition {selected.edition_code}</StatusBadge>
-      <FrameworkEditionProvenance edition={selected}/>
+      <h2>{preview.title}</h2>
+      <p className="cs-framework-library__detail-subtitle">{preview.publisher_code} · {preview.framework_code}</p>
+      <StatusBadge tone="info">Edition {preview.edition_code}</StatusBadge>
+      <FrameworkEditionProvenance edition={preview}/>
       <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
-      {!frameworkEditionHasVerifiableSource(selected) && <Notice tone="warning">
+      {!frameworkEditionHasVerifiableSource(preview) && <Notice tone="warning">
         Source or reuse rights are unverified. This edition cannot be selected for a Program.
       </Notice>}
       <div className="cs-program-standards__actions">
-        <Button variant="primary" isDisabled={catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction || !frameworkEditionHasVerifiableSource(selected)}
-          onPress={() => onChooseProgram(selected)}>Choose Program</Button>
+        <Button variant="primary" isDisabled={!selected || catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction || !frameworkEditionHasVerifiableSource(preview)}
+          onPress={() => { if (selected) onChooseProgram(selected); }}>Choose Program</Button>
       </div>
+      {!selected && <p className="cs-framework-library__preview-note">Select an edition in the list to continue.</p>}
     </div>
   </div>;
 

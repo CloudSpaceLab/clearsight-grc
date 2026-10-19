@@ -168,6 +168,12 @@
   color: var(--cs-text-muted);
   font-size: var(--cs-font-size-caption);
 }
+.cs-framework-library__preview-note {
+  margin: 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  line-height: var(--cs-primitive-leading-body);
+}
 .cs-framework-library__sheet .cs-program-standards__facts {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
