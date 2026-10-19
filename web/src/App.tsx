@@ -676,7 +676,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
           </div>
           <Button variant="secondary" onPress={closePanel}>Close assessment</Button>
         </header>
-        <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>
+        <CapturePanel fullPage request={capture} state={captureState} onReload={() => void reloadCapture()}/>
       </section> : <>
       {activePortfolioView && !(activeView === "programs" && target.programID) && <WorkspaceSwitcher ariaLabel="Portfolio lenses" compactLabel="Portfolio lens" items={portfolioLenses} selectedKey={activePortfolioView} onSelectionChange={(view) => navigate(view)}/>}
       {((activeView === "oversight" && !groupScopeRequested) || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>} 
