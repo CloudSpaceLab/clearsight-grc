@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, DataTable, StatusBadge, type DataColumn } from "./ui";
+import { Button, DataTable, FocusedSheet, StatusBadge, type DataColumn } from "./ui";
 import { EmptyState } from "./EmptyState";
 import { WorkItemIcon } from "./WorkItemIcon";
 import type { AttentionItem, InterventionClass } from "../types";
@@ -22,7 +22,9 @@ export function AssignedWorkQueue({ items, state, onOpenItem, onInspectAuthority
   const title = state === "loading" ? "Loading assigned work" : state === "unavailable" ? "Assigned work is unavailable" : count;
   const Heading = headingLevel;
   const [selectedID, setSelectedID] = useState<string>();
+  const [inspectingID, setInspectingID] = useState<string>();
   const selected = items.find((item) => item.id === selectedID) ?? items[0];
+  const inspecting = items.find((item) => item.id === inspectingID);
 
   return <section className={`intervention-brief${presentation === "workspace" ? " assigned-workspace" : ""}`} aria-labelledby="assigned-work-heading">
     <header className="intervention-heading">
@@ -35,11 +37,12 @@ export function AssignedWorkQueue({ items, state, onOpenItem, onInspectAuthority
         : items.length
           ? presentation === "workspace"
             ? <div className="assigned-workspace__grid" id="attention-list">
-              <DataTable ariaLabel="Assigned work" rows={items} rowKey={(item) => item.id} rowName={(item) => item.title} columns={workColumns} selectedKey={selected?.id} onSelectionChange={(item) => setSelectedID(item.id)} onRowAction={(item) => setSelectedID(item.id)} rowActionLabel="Inspect" responsiveTo="container"/>
+              <DataTable ariaLabel="Assigned work" rows={items} rowKey={(item) => item.id} rowName={(item) => item.title} columns={workColumns} selectedKey={selected?.id} onSelectionChange={(item) => setSelectedID(item.id)} onRowAction={(item) => { setSelectedID(item.id); setInspectingID(item.id); }} rowActionLabel="Inspect" responsiveTo="container"/>
               {selected && <WorkContext item={selected} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>}
             </div>
             : <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
           : <div id="attention-list"><EmptyState label="Assigned work" title="Nothing needs your action right now" description="No open assigned work."/></div>}
+    {presentation === "workspace" && state === "live" && inspecting && <FocusedSheet label={`Selected work: ${inspecting.title}`} onClose={() => setInspectingID(undefined)}><WorkContext item={inspecting} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/></FocusedSheet>}
   </section>;
 }
 
