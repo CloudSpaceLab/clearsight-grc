@@ -33,6 +33,20 @@ const references = [
     source: "clearsight-designs-01-05/assessment-workspace-preview.html",
     runtime: { "1440x900": "211-internal-assessment-light-1440x900.png", "1280x800": "212-internal-assessment-dark-1280x800.png", "1024x768": "215-internal-assessment-light-1024x768.png", "768x900": "216-internal-assessment-dark-768x900.png", "390x844": "213-internal-assessment-light-mobile-390x844.png" },
   },
+  { id: "vendor-management", source: "clearsight-vendor-management-designs/vendor-workspace-preview.html", runtime: {} },
+  { id: "operational-risk", source: "clearsight-operational-risk-designs/operational-risk-preview.html", runtime: {} },
+  { id: "privacy-data", source: "clearsight-privacy-data-designs/privacy-workspace-preview.html", runtime: {} },
+  { id: "reports-insights", source: "clearsight-reports-insights-designs/reports-workspace-preview.html", runtime: {} },
+  { id: "work-approvals", source: "clearsight-work-approvals-designs/work-approvals-preview.html", runtime: {} },
+  { id: "controls-policies", source: "clearsight-controls-policies-designs/controls-policies-preview.html", runtime: {} },
+  { id: "enterprise-setup", source: "clearsight-enterprise-setup-designs/enterprise-setup-preview.html", runtime: {} },
+  { id: "integrations", source: "clearsight-integrations-designs/integrations-workspace-preview.html", runtime: {} },
+  { id: "search-command-center", source: "clearsight-search-command-center-designs/search-command-center-preview.html", runtime: {} },
+  { id: "notifications-activity", source: "clearsight-notifications-activity-designs/notifications-activity-preview.html", runtime: {} },
+  { id: "audit-assurance", source: "clearsight-audit-assurance-designs/audit-assurance-preview.html", runtime: {} },
+  { id: "people-access", source: "clearsight-people-access-designs/people-access-preview.html", runtime: {} },
+  { id: "automation-governance", source: "clearsight-automation-governance-designs/automation-governance-preview.html", runtime: {} },
+  { id: "contextual-copilot", source: "clearsight-contextual-copilot-designs/ai-copilot-preview.html", runtime: {} },
 ];
 
 const viewports = [
@@ -130,6 +144,7 @@ const lines = [
   ...captures.map((capture) =>
     `| ${capture.id} | ${capture.viewport.width}×${capture.viewport.height} | ${capture.image} | ${capture.runtime_capture ?? "No matching journey captured"} |`),
   "",
+  "No standalone Control Tower HTML is indexed in the source archive; verify its missing reference before visual sign-off.",
   "Review navigation, hierarchy, spacing, typography, panels, content density, interaction states, and responsive behavior manually.",
   "Treat prototype values as illustrative; validate live data, authority, and scope separately under #462.",
   "",
