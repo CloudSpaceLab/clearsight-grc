@@ -6,9 +6,7 @@
   inline-size: 38px;
   block-size: 38px;
   font-size: 0;
-  background: transparent;
   border: 0;
-  border-radius: 0;
   box-shadow: none;
 }
 .app-shell > .sidebar .brand-mark::before,
@@ -123,7 +121,7 @@
   }
   .app-shell > main {
     min-inline-size: 0;
-    padding: 0 var(--cs-space-group) var(--cs-space-section);
+    padding: 0 var(--cs-space-inline) var(--cs-space-section);
   }
   .app-shell > main > .context-bar {
     position: sticky;
@@ -152,7 +150,6 @@
     display: grid;
     gap: 1px;
     min-inline-size: 0;
-    max-inline-size: 100%;
   }
   .app-shell > main > .context-bar .context-identity > strong {
     color: var(--cs-text-strong);
