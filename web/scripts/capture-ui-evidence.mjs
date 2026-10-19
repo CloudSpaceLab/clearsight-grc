@@ -992,30 +992,48 @@ async function captureInternalAssessment({ name, viewport, theme }) {
     const readiness = dialog.getByRole("complementary", { name: "Response readiness and evidence" });
     await Promise.all([rail.waitFor({ state: "visible" }), work.waitFor({ state: "visible" }),
       readiness.waitFor({ state: "visible" })]);
-    const [railBox, workBox, readinessBox, sheetBox] = await Promise.all([
-      rail.boundingBox(), work.boundingBox(), readiness.boundingBox(),
-      dialog.locator("xpath=ancestor::*[contains(@class,'cs-sheet')]").first().boundingBox(),
-    ]);
-    if (!railBox || !workBox || !readinessBox || !sheetBox) {
-      throw new Error(name + " has missing authorized questionnaire panes");
-    }
+    // Read all panes from one browser layout frame. Independent boundingBox()
+    // calls can straddle the sheet's first wide-layout reflow and falsely pair
+    // a 560px questionnaire with a 1024px sheet. Never relax the approved
+    // two-/three-column contract; wait for the actual final geometry instead.
+    const layoutReady = (width) => {
+      if (innerWidth !== width) return false;
+      const sheet = document.querySelector(".assessment-capture-sheet");
+      const sections = sheet?.querySelector(".capture-wizard__sections");
+      const questions = sheet?.querySelector(".capture-wizard__main");
+      const evidence = sheet?.querySelector(".capture-wizard__readiness");
+      if (!sheet || !sections || !questions || !evidence) return false;
+      const outer = sheet.getBoundingClientRect();
+      const left = sections.getBoundingClientRect();
+      const middle = questions.getBoundingClientRect();
+      const right = evidence.getBoundingClientRect();
+      if (!left.width || !middle.width || !right.width) return false;
+      if (width >= 1280) return outer.width >= 1150 &&
+        left.right <= middle.left + 3 && middle.right <= right.left + 3 &&
+        Math.abs(left.top - right.top) <= 15;
+      if (width >= 900) return left.right <= middle.left + 3 &&
+        Math.abs(right.left - middle.left) <= 3 && right.top >= middle.bottom - 3;
+      return left.bottom <= middle.top + 3 && middle.bottom <= right.top + 3;
+    };
+    // Playwright serializes this callback into the page; the layout contract
+    // remains evaluated on each animation frame until the panes settle.
+    await page.waitForFunction(layoutReady, viewport.width, { polling: "raf", timeout: 12000 })
+      .catch(async (error) => {
+        const geometry = await dialog.evaluate((node) => {
+          const sheet = node.closest(".cs-sheet");
+          const bounds = (selector) => {
+            const element = selector === "sheet" ? sheet : node.querySelector(selector);
+            if (!element) return null;
+            const { x, y, width, height } = element.getBoundingClientRect();
+            return { x, y, width, height };
+          };
+          return { viewport: innerWidth, sheet: bounds("sheet"),
+            rail: bounds(".capture-wizard__sections"), work: bounds(".capture-wizard__main"),
+            readiness: bounds(".capture-wizard__readiness") };
+        });
+        throw new Error(`${name} did not reach the approved assessment pane layout: ${error.message}; ${JSON.stringify(geometry)}`);
+      });
     await saveScreenshot(page, name);
-    if (viewport.width >= 1280) {
-      if (sheetBox.width < 1150 || railBox.x + railBox.width > workBox.x + 3 ||
-          workBox.x + workBox.width > readinessBox.x + 3 ||
-          Math.abs(railBox.y - readinessBox.y) > 15) {
-        throw new Error(`${name} does not show approved three-column internal assessment anatomy: ${JSON.stringify({ rail: railBox, work: workBox, readiness: readinessBox, sheet: sheetBox })}`);
-      }
-    } else if (viewport.width >= 900) {
-      if (railBox.x + railBox.width > workBox.x + 3 ||
-          Math.abs(readinessBox.x - workBox.x) > 3 ||
-          readinessBox.y < workBox.y + workBox.height - 3) {
-        throw new Error(`${name} does not stack readiness below the two-column tablet questionnaire: ${JSON.stringify({ rail: railBox, work: workBox, readiness: readinessBox, sheet: sheetBox })}`);
-      }
-    } else if (railBox.y + railBox.height > workBox.y + 3 ||
-               workBox.y + workBox.height > readinessBox.y + 3) {
-      throw new Error(name + " does not stack the section rail, questions and readiness on mobile");
-    }
     await dialog.getByText("Required unanswered", { exact: true }).waitFor({ state: "visible" });
     await assertFocusInsideSheet(page, name);
     await assertNoHorizontalOverflow(page, name);
