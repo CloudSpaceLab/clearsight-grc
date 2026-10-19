@@ -55,6 +55,18 @@ describe("AssignedWorkQueue approved Work presentation", () => {
     expect(within(detail).queryByRole("button", { name: "Check authority" })).toBeNull();
   });
 
+  it("drops an inspected record when a new scoped feed replaces it", () => {
+    const open = vi.fn();
+    const { rerender } = render(<AssignedWorkQueue presentation="workspace" state="live" items={[request]} onOpenItem={open}/>);
+    fireEvent.click(within(screen.getByRole("table", { name: "Assigned work" })).getByRole("button", { name: `Inspect for ${request.title}` }));
+    expect(screen.getByRole("dialog", { name: `Selected work: ${request.title}` })).toBeTruthy();
+    rerender(<AssignedWorkQueue presentation="workspace" state="live"
+      items={[{ ...request, title: "Other scope request", action_target_id: "another-id" }]} onOpenItem={open}/>);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(within(screen.getByRole("complementary", { name: "Selected work" })).getByRole("heading", { name: "Other scope request" })).toBeTruthy();
+    expect(open).not.toHaveBeenCalled();
+  });
+
   it("preserves the shared brief presentation and fail-closed unavailable state", () => {
     const { rerender } = render(<AssignedWorkQueue state="live" items={[request]} onOpenItem={vi.fn()}/>);
     expect(screen.getByRole("article")).toBeTruthy();
