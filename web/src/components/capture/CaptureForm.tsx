@@ -154,7 +154,7 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
         </li>)}</ol>
       </nav>}
       <div className="capture-wizard__main">
-        <div className="capture-progress"><span aria-live="polite">Step {sectionIndex + 1} of {sections.length}</span><progress max={sections.length} value={sectionIndex + 1} aria-label={"Section " + (sectionIndex + 1) + " of " + sections.length}/></div>
+        <div className="capture-progress"><span aria-live="polite">{fullPage ? "Section " : "Step "}{sectionIndex + 1} of {sections.length}</span>{!fullPage && <progress max={sections.length} value={sectionIndex + 1} aria-label={"Section " + (sectionIndex + 1) + " of " + sections.length}/>}</div>
         {errorSummary}
         {unsupported.length > 0 && <UnsupportedFields fields={unsupported}/>}
         <section className="capture-section" aria-labelledby={"capture-section-title-" + section.id}><h3 id={"capture-section-title-" + section.id}>{section.title}</h3>{section.help && <p className="field-help">{section.help}</p>}{renderFields(section.fields)}</section>
