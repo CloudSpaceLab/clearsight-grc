@@ -36,9 +36,6 @@
     min-block-size: 68px;
     margin-block-end: var(--cs-space-section);
   }
-  .app-shell > main > .context-bar .context-scope {
-    gap: var(--cs-space-group);
-  }
 }
 
 /* Match the original compact left navigation at phone widths.
@@ -82,8 +79,6 @@
     inline-size: 35px;
     block-size: 35px;
   }
-  .app-shell > .sidebar .sidebar-brand__name,
-  .app-shell > .sidebar > .avatar { display: none; }
   .app-shell > .sidebar nav {
     display: flex;
     flex-direction: column;
@@ -127,7 +122,6 @@
   .app-shell > main > .context-bar {
     position: sticky;
     inset-block-start: 0;
-    display: flex;
     align-items: center;
     min-block-size: 64px;
     gap: var(--cs-space-inline);
