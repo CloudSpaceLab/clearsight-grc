@@ -24,8 +24,8 @@ describe("AssignedWorkQueue approved Work presentation", () => {
     const onOpenItem = vi.fn();
     const onInspectAuthority = vi.fn();
     render(<AssignedWorkQueue presentation="workspace" state="live" items={[request, approval]} onOpenItem={onOpenItem} onInspectAuthority={onInspectAuthority}/>);
-    expect(screen.getByRole("heading", { name: "My work" })).toBeTruthy();
-    expect(screen.getByText("2 items loaded")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Work queue" })).toBeTruthy();
+    expect(screen.getByText(/2 items loaded/)).toBeTruthy();
     const table = screen.getByRole("table", { name: "Assigned work" });
     const selected = screen.getByRole("complementary", { name: "Selected work" });
     expect(within(selected).getByRole("heading", { name: request.title })).toBeTruthy();
@@ -65,6 +65,26 @@ describe("AssignedWorkQueue approved Work presentation", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(within(screen.getByRole("complementary", { name: "Selected work" })).getByRole("heading", { name: "Other scope request" })).toBeTruthy();
     expect(open).not.toHaveBeenCalled();
+  });
+
+  it("filters the loaded actor queue without inventing organization-wide metrics", () => {
+    const now = Date.now();
+    const overdue = { ...request, id: "late", title: "Late request", due_at: new Date(now - 3600000).toISOString() };
+    const soon = { ...request, id: "soon", title: "Due tomorrow", due_at: new Date(now + 86400000).toISOString() };
+    const exception = { ...request, id: "gap", title: "Evidence gap", intervention_class: "EVIDENCE_EXCEPTION" as const, due_at: "" };
+    render(<AssignedWorkQueue presentation="workspace" state="live" items={[overdue, soon, approval, exception]} onOpenItem={vi.fn()}/>);
+    const measures = screen.getByLabelText("Loaded work measures");
+    expect(within(measures).getByRole("button", { name: /Overdue: 1/ })).toBeTruthy();
+    expect(within(measures).getByRole("button", { name: /Due next 7 days: 1/ })).toBeTruthy();
+    expect(within(measures).getByRole("button", { name: /Your approvals: 1/ })).toBeTruthy();
+    expect(within(measures).getByRole("button", { name: /Evidence needed: 1/ })).toBeTruthy();
+    fireEvent.click(within(measures).getByRole("button", { name: /Overdue: 1/ }));
+    expect(within(screen.getByRole("table", { name: "Assigned work" })).getAllByRole("row")).toHaveLength(2);
+    expect(within(screen.getByRole("table", { name: "Assigned work" })).getByRole("row", { name: "Late request" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear filter" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Approvals" }));
+    expect(within(screen.getByRole("table", { name: "Assigned work" })).getByRole("row", { name: approval.title })).toBeTruthy();
+    expect(within(screen.getByRole("table", { name: "Assigned work" })).getAllByRole("row")).toHaveLength(2);
   });
 
   it("preserves the shared brief presentation and fail-closed unavailable state", () => {
