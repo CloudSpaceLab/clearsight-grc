@@ -269,12 +269,12 @@ describe("Program record workspace", () => {
     const header = container.querySelector(".program-record-header");
     expect(header).not.toBeNull();
     expect(within(header as HTMLElement).getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(within(header as HTMLElement).getByText("NDPA · PRIVACY")).toBeTruthy();
+    expect(header?.querySelector(".program-kicker")?.textContent).toContain("NDPA · PRIVACY");
     expect(within(header as HTMLElement).getByText("Operating status")).toBeTruthy();
     expect(within(header as HTMLElement).getByText("Setup in progress")).toBeTruthy();
     expect(within(header as HTMLElement).getByText("Owning function")).toBeTruthy();
     expect(within(header as HTMLElement).getByText("Data Protection Office")).toBeTruthy();
-    expect(within(header as HTMLElement).getByText("Record version")).toBeTruthy();
+    expect(within(header as HTMLElement).getByTitle("Record version").textContent).toMatch(/^v[0-9]+$/);
     expect(within(header as HTMLElement).getByRole("button", { name: "Open data collection" })).toBeTruthy();
     expect(within(header as HTMLElement).queryByText("Calculated state")).toBeNull();
   });
@@ -287,7 +287,7 @@ describe("Program record workspace", () => {
     expect(header).not.toBeNull();
     expect(within(header as HTMLElement).getByText("Operating status")).toBeTruthy();
     expect(within(header as HTMLElement).getByText("Setup in progress")).toBeTruthy();
-    expect(within(header as HTMLElement).getByText("Record version")).toBeTruthy();
+    expect(within(header as HTMLElement).getByTitle("Record version").textContent).toMatch(/^v[0-9]+$/);
     expect(within(header as HTMLElement).queryByText("Calculated state")).toBeNull();
     expect(screen.getByRole("heading", { name: "Out of date" })).toBeTruthy();
 
@@ -331,6 +331,9 @@ describe("Program record workspace", () => {
   it("places Program section navigation above measures and current position", async () => {
     const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
     await screen.findByRole("heading", { name: "Nigeria data protection" });
+    const version = container.querySelector(".program-record-header .program-kicker abbr[title='Record version']");
+    expect(version?.textContent).toMatch(/^v[0-9]+$/);
+    expect(container.querySelector(".program-record-header__facts")?.textContent).not.toContain("Record version");
     const tabs = screen.getByRole("tablist", { name: "Program sections" });
     const measures = container.querySelector(".program-overview-metrics");
     const posture = container.querySelector(".program-current-position");
