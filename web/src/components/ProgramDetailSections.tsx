@@ -33,7 +33,7 @@ export function ProgramDetailSections({ section, panels, onSectionChange, lead }
     </section>;
   }
   return <section className="program-detail-sections">
-    <Tabs ariaLabel="Program sections" compactLabel="Program section"
+    <Tabs ariaLabel="Program sections"
       items={programSections} selectedKey={section} onSelectionChange={onSectionChange}>
       {(key) => <div className="program-section-panel">{lead}{panels[key]}</div>}
     </Tabs>
