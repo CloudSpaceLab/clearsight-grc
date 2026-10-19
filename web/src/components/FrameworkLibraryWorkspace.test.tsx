@@ -26,7 +26,7 @@ describe("Framework Library workspace", () => {
     });
     render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={onChooseProgram}/>);
     expect(await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"})).toBeTruthy();
-    expect(screen.getByText("1 loaded editions · GLOBAL")).toBeTruthy();
+    expect(screen.getByText("1 matching loaded · 1 loaded editions · GLOBAL")).toBeTruthy();
     expect(screen.queryByRole("heading", {name: "Framework Library"})).toBeNull();
     fireEvent.click(screen.getByRole("button", {name: "Inspect edition for Published SECURITY 2026"}));
     const details = await screen.findByRole("complementary", {name: "Framework edition details"});
@@ -59,6 +59,11 @@ describe("Framework Library workspace", () => {
     const list = screen.getByRole("list", { name: "Published framework editions" });
     expect(Boolean(views.compareDocumentPosition(filter) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
     expect(Boolean(filter.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    const workspace = screen.getByRole("region", { name: "Framework Library workspace" });
+    const filterBar = workspace.querySelector(".cs-filter-bar");
+    const layout = workspace.querySelector(".cs-framework-library__layout");
+    expect(filterBar?.parentElement).toBe(workspace);
+    expect(filterBar?.nextElementSibling).toBe(layout);
     fireEvent.click(within(views).getByRole("button", { name: "In my Programs" }));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
@@ -218,7 +223,7 @@ describe("Framework Library workspace", () => {
     vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [], next_after_id: ""});
     const onBack = vi.fn();
     render(<FrameworkLibraryWorkspace onBack={onBack} onChooseProgram={vi.fn()}/>);
-    fireEvent.click(screen.getByRole("button", {name: "Back to Programs"}));
+    fireEvent.click(within(screen.getByRole("navigation", {name: "Library views"})).getByRole("button", {name: "In my Programs"}));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
   
