@@ -309,8 +309,11 @@ async function capturePage(capture) {
       }
       if (capture.viewport.width <= 390) {
         const record = await inspect.boundingBox();
-        const mobileNav = await page.locator(".mobile-nav").boundingBox();
-        if (!record || !mobileNav || record.y >= mobileNav.y) throw new Error(`${capture.name} hides all framework records below the mobile navigation.`);
+        const rail = await page.locator(".app-shell > .sidebar").boundingBox();
+        if (!record || !rail || record.x < rail.x + rail.width - 2 ||
+            record.y >= capture.viewport.height - 44) {
+          throw new Error(`${capture.name} hides framework records behind the compact source-aligned rail or below the first viewport.`);
+        }
       }
       if (capture.viewport.width > 900 || capture.frameworkDetailSheet) await inspect.click();
       if (capture.viewport.width > 900) {
