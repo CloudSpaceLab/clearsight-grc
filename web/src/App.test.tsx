@@ -939,7 +939,7 @@ describe("runtime navigation", () => {
     expect(within(workspace).getByRole("complementary", { name: "Response readiness and evidence" })).toBeTruthy();
     expect(within(workspace).getByRole("button", { name: "Continue" })).toBeTruthy();
     expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation");
-    fireEvent.click(within(workspace).getByRole("button", { name: "Close assessment" }));
+    fireEvent.click(within(workspace).getByRole("button", { name: "Back to work" }));
     expect(screen.queryByRole("region", { name: "Internal assessment workspace" })).toBeNull();
   });
 
