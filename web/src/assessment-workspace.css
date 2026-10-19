@@ -2,9 +2,9 @@
    CapturePanel remains the only response editor and source of answer state. */
 .internal-assessment-workspace {
   display: grid;
-  gap: var(--cs-space-group);
+  gap: var(--cs-space-inline);
   min-inline-size: 0;
-  margin-block: var(--cs-space-inline) var(--cs-space-section);
+  margin-block: 0 var(--cs-space-section);
 }
 .internal-assessment-workspace__breadcrumb {
   display: flex;
@@ -25,8 +25,8 @@
   align-items: end;
   justify-content: space-between;
   gap: var(--cs-space-section);
-  min-block-size: 164px;
-  padding: var(--cs-space-group) 0 var(--cs-space-section);
+  min-block-size: 0;
+  padding: var(--cs-space-inline) 0 var(--cs-space-group);
   border-bottom: 1px solid var(--cs-border-default);
 }
 .internal-assessment-workspace__header::before {
@@ -63,11 +63,10 @@
 .internal-assessment-workspace .why-you {
   margin-block: var(--cs-space-inline);
 }
-.internal-assessment-workspace__header { min-block-size: 124px; }
 .capture-panel--full-page .capture-panel__context {
   margin: 0;
   color: var(--cs-text-primary);
-  border-bottom: 1px solid var(--cs-border-default);
+  border-top: 1px solid var(--cs-border-default);
 }
 .capture-panel--full-page .capture-panel__context > summary {
   display: flex;
@@ -219,7 +218,7 @@
   .internal-assessment-workspace__header {
     display: grid;
     align-items: start;
-    gap: var(--cs-space-group);
+    gap: var(--cs-space-inline);
     min-block-size: 0;
     padding-block: var(--cs-space-inline) var(--cs-space-group);
   }
