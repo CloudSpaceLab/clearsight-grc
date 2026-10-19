@@ -1105,7 +1105,7 @@ async function captureInternalAssessment({ name, viewport, theme }) {
       count: button.querySelector(".capture-wizard__section-count")?.textContent?.trim() ?? "",
     })));
     if (!sectionProgress.length || sectionProgress.some((section) =>
-      !/^\\d+\\/\\d+$/.test(section.count) ||
+      !/^[0-9]+\/[0-9]+$/.test(section.count) ||
       !section.accessible.includes(section.count.replace("/", " of ") + " answered"))) {
       throw new Error(name + " lacks answer-derived section completion in the approved questionnaire navigator");
     }
