@@ -133,6 +133,10 @@
   margin-block: var(--cs-space-group);
 }
 .assigned-workspace__signals > * { min-inline-size: 0; }
+/* The bounded-feed qualifier is already present above the cards. Keep card
+   headings readable in the approved 2×2 mobile composition. */
+.assigned-workspace__signals .cs-metric-card__heading { grid-template-columns: minmax(0, 1fr); }
+.assigned-workspace__signals .cs-metric-card__quality { display: none; }
 .assigned-workspace__filter {
   display: flex;
   flex-wrap: wrap;
