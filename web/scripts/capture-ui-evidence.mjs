@@ -288,7 +288,9 @@ async function capturePage(capture) {
     }
     if (capture.openReadyReport) {
       const table = page.getByRole("table", { name: "Generated reports" });
-      const row = table.locator("tbody tr").filter({ has: page.getByRole("button", { name: "Download", exact: true }) }).first();
+      // The ready fixture is deliberately expired. Inspection remains valid,
+      // but download is not permitted, so do not select by a Download action.
+      const row = table.getByRole("row", { name: /Processing activities with open exceptions/ }).first();
       await row.waitFor({ state: "visible" });
       await row.getByRole("button", { name: /^View for / }).click();
       const source = page.getByRole("dialog", { name: "Report details" }).getByRole("region", { name: "Source snapshot" });
