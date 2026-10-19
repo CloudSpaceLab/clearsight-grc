@@ -26,20 +26,42 @@
   overflow: hidden;
   background: var(--cs-bg-surface-1);
 }
-.cs-framework-library__header {
+.cs-framework-library__header { min-width: 0; }
+.cs-framework-library__views {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--cs-space-group);
-  flex-wrap: wrap;
-  padding-bottom: var(--cs-space-group);
+  gap: var(--cs-space-section);
+  align-items: stretch;
+  min-width: 0;
   border-bottom: 1px solid var(--cs-border-default);
+  overflow-x: auto;
 }
-.cs-framework-library__header p {
+.cs-framework-library__view {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  flex: 0 0 auto;
+  padding: 0 var(--cs-space-inline);
+  border: 0;
+  background: transparent;
   color: var(--cs-text-muted);
-  margin: 0;
+  font: inherit;
   font-size: var(--cs-font-size-caption);
+  font-weight: 600;
+  white-space: nowrap;
 }
+.cs-framework-library__view--active { color: var(--cs-action-primary); font-weight: 750; }
+.cs-framework-library__view--active::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--cs-action-primary);
+}
+.cs-framework-library__view:not(:disabled):not([aria-current]):hover { color: var(--cs-action-primary); }
+.cs-framework-library__view:focus-visible { outline: 2px solid var(--cs-focus-ring); outline-offset: -2px; }
+.cs-framework-library__view:disabled { opacity: .58; cursor: not-allowed; }
 .cs-framework-library .cs-filter-bar__fields {
   display: grid;
   grid-template-columns: minmax(220px, 1.6fr) minmax(220px, 1fr);
@@ -203,7 +225,6 @@
   }
 }
 @media (max-width: 767px) {
-  .cs-framework-library__header { align-items: start; }
   .cs-framework-library__jurisdiction { grid-template-columns: minmax(0, 1fr); }
   .cs-framework-library__jurisdiction .cs-button { width: 100%; }
   .cs-framework-library .cs-filter-bar__fields {
