@@ -134,23 +134,49 @@ async function selectFileType(page, name) {
 }
 
 async function assertFileTypeSelected(page, name) {
-  // Resolve both style and React state after a viewport or file-type change.
-  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-  const narrow = await page.locator(".document-browser").evaluate((browser) => {
+  // Check the CSS container and its navigation in one browser read. Separate
+  // viewport/visibility reads can observe different responsive layout frames.
+  const expectedViewport = page.viewportSize()?.width;
+  await page.waitForFunction(({ expectedName, viewport }) => {
+    if (innerWidth !== viewport) return false;
+    const browser = document.querySelector(".document-browser");
+    const sidebar = browser?.querySelector(".document-kinds");
+    const selector = browser?.querySelector(".document-kind-selector");
+    if (!browser || !sidebar || !selector) return false;
     const style = getComputedStyle(browser);
     const inlineSize = browser.getBoundingClientRect().width
       - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth)
       - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
-    return matchMedia("(max-width: 760px)").matches
-      || inlineSize <= (browser.classList.contains("document-browser--selecting") ? 760 : 960);
+    const narrow = inlineSize <= (browser.classList.contains("document-browser--selecting") ? 760 : 960);
+    const visible = (element) => getComputedStyle(element).display !== "none" && element.getBoundingClientRect().width > 0;
+    if (visible(selector) !== narrow || visible(sidebar) === narrow) return false;
+    const selected = [...sidebar.querySelectorAll('button[aria-pressed="true"]')];
+    return selected.length === 1
+      && selected[0].querySelector('.document-kind-label > span:not([aria-hidden="true"])')?.textContent === expectedName;
+  }, { expectedName: name, viewport: expectedViewport }).catch(async (error) => {
+    const state = await page.locator(".document-browser").evaluate((browser) => {
+      const style = getComputedStyle(browser);
+      const inlineSize = browser.getBoundingClientRect().width
+        - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth)
+        - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const sidebar = browser.querySelector(".document-kinds");
+      const selector = browser.querySelector(".document-kind-selector");
+      return {
+        viewport: innerWidth, inlineSize, selecting: browser.classList.contains("document-browser--selecting"),
+        sidebarDisplay: getComputedStyle(sidebar).display, selectorDisplay: getComputedStyle(selector).display,
+        pressed: [...sidebar.querySelectorAll('button[aria-pressed="true"]')].map((button) => button.textContent?.trim()),
+      };
+    });
+    throw new Error(`File type navigation must match its current CSS container: ${error.message}; ${JSON.stringify(state)}`);
   });
   const compact = page.getByRole("button", { name: `${name} File type`, exact: true });
   const sidebar = page.locator(".document-kinds");
-  if (await compact.isVisible() !== narrow || await sidebar.isVisible() === narrow) throw new Error("File types must use one visible labelled navigation at the current width.");
-  const selected = sidebar.getByRole("button", { pressed: true, includeHidden: true });
-  const selectedLabel = selected.locator('.document-kind-label > span:not([aria-hidden="true"])');
-  if (await selected.count() !== 1 || await selectedLabel.textContent() !== name) throw new Error("Compact and desktop file types must share the selected value.");
-  if (!narrow && await sidebar.getByRole("button", { name, exact: true, pressed: true }).count() !== 1) throw new Error("The selected file type must retain its accessible label.");
+  if (await sidebar.isVisible()) {
+    if (await sidebar.getByRole("button", { name, exact: true, pressed: true }).count() !== 1)
+      throw new Error("The selected file type must retain its accessible label.");
+  } else if (!await compact.isVisible()) {
+    throw new Error("The compact file type selector must retain its accessible label.");
+  }
 }
 
 async function assertDocumentNameWidth(page) {
