@@ -26,10 +26,7 @@
   overflow: hidden;
   background: var(--cs-bg-surface-1);
 }
-.cs-framework-library__header {
-  display: grid;
-  gap: var(--cs-space-group);
-}
+.cs-framework-library__header { min-width: 0; }
 .cs-framework-library__views {
   display: flex;
   gap: var(--cs-space-section);
@@ -65,18 +62,6 @@
 .cs-framework-library__view:not(:disabled):not([aria-current]):hover { color: var(--cs-action-primary); }
 .cs-framework-library__view:focus-visible { outline: 2px solid var(--cs-focus-ring); outline-offset: -2px; }
 .cs-framework-library__view:disabled { opacity: .58; cursor: not-allowed; }
-.cs-framework-library__scope {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--cs-space-group);
-  flex-wrap: wrap;
-}
-.cs-framework-library__scope p {
-  color: var(--cs-text-muted);
-  margin: 0;
-  font-size: var(--cs-font-size-caption);
-}
 .cs-framework-library .cs-filter-bar__fields {
   display: grid;
   grid-template-columns: minmax(220px, 1.6fr) minmax(220px, 1fr);
@@ -240,7 +225,6 @@
   }
 }
 @media (max-width: 767px) {
-  .cs-framework-library__scope { align-items: start; }
   .cs-framework-library__jurisdiction { grid-template-columns: minmax(0, 1fr); }
   .cs-framework-library__jurisdiction .cs-button { width: 100%; }
   .cs-framework-library .cs-filter-bar__fields {
