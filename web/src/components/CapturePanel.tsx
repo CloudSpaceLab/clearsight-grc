@@ -367,17 +367,18 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
       <span>Your answers and files are shared with the organization that sent this request.</span>
       <span>For changes to the request or your access, contact the person who sent this link.</span>
     </div>}
-    {fullPage ? <details className="capture-panel__context">
-      <summary>Request context{Object.keys(request.known_facts).length ? ` · ${Object.keys(request.known_facts).length} known facts` : ""}</summary>
-      {request.why_you && <p>{request.why_you}</p>}
-      {Object.keys(request.known_facts).length > 0 && <dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl>}
-    </details> : <>
+    {!fullPage && <>
       <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
       {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
     </>}
     {external && workspacePersistence ? <WorkspaceSaveStatus state={workspacePersistence.saveState} onRetry={workspacePersistence.onRetry}/>
       : external && sessionToken ? <DraftStatus state={draftState} onRetry={() => void retryDraftSave()}/> : null}
     <CaptureForm request={request} contract={contract} answers={answers} attachments={attachments} mode={effectivePresentationMode(contract, answers, mode)} external={external} fullPage={fullPage} uploadingField={uploadingField} onAnswer={updateAnswer} onUpload={(field, files, previewURL) => void upload(field, files, previewURL)} onRemoveAttachment={removeAttachment} onModeChange={changeMode} onBeforeSectionNavigation={workspacePersistence || (external && sessionToken) ? saveBeforeSectionNavigation : undefined} onReview={() => { setError(null); setErrorKind(null); setReviewing(true); }}/>
+    {fullPage && <details className="capture-panel__context">
+      <summary>Request context{Object.keys(request.known_facts).length ? ` · ${Object.keys(request.known_facts).length} known facts` : ""}</summary>
+      {request.why_you && <p>{request.why_you}</p>}
+      {Object.keys(request.known_facts).length > 0 && <dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl>}
+    </details>}
     {error && <p className="error-text" role="alert">{error}</p>}
   </div>;
 }
