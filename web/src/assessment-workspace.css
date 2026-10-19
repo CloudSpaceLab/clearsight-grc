@@ -175,13 +175,27 @@
     grid-column: auto;
   }
 }
-@media (max-width: 767px) {
+/* The approved Assessment scales its own record heading below 850px.
+   Keep this scoped to internal questionnaires; other workspaces and external
+   invitation forms retain their existing heading hierarchy. */
+@media (max-width: 850px) {
   .internal-assessment-workspace__header {
     display: grid;
     align-items: start;
+    gap: var(--cs-space-group);
     min-block-size: 0;
     padding-block: var(--cs-space-inline) var(--cs-space-group);
   }
+  .internal-assessment-workspace__header h1 {
+    font-size: 29px;
+    line-height: 1.1;
+    margin-block: var(--cs-space-inline);
+  }
   .internal-assessment-workspace__header > button { justify-self: start; }
+}
+@media (max-width: 600px) {
+  .internal-assessment-workspace__breadcrumb { gap: var(--cs-primitive-space-1); }
+  .internal-assessment-workspace__header h1 { font-size: 25px; }
+  .internal-assessment-workspace__header p { font-size: 11px; line-height: 1.45; }
 }
 
