@@ -1076,60 +1076,90 @@ async function captureInternalAssessment({ name, viewport, theme }) {
   const { context, page } = await openPage(capture);
   try {
     const more = page.getByText("More actions", { exact: true });
-    // Desktop shows the primary action directly; the overflow summary is mobile-only.
     if (await more.count() && await more.isVisible()) await more.click();
     await page.getByRole("button", { name: "Respond to evidence request" }).click();
-    const dialog = page.getByRole("dialog", { name: "Evidence request" });
-    await dialog.getByRole("heading", { name: "Review annual-return control responses" }).waitFor({ state: "visible" });
-    const rail = dialog.getByRole("navigation", { name: "Assessment sections" });
-    const work = dialog.locator(".capture-wizard__main");
-    const readiness = dialog.getByRole("complementary", { name: "Response readiness and evidence" });
+    const workspace = page.getByRole("region", { name: "Internal assessment workspace" });
+    await workspace.getByRole("heading", { name: "Review annual-return control responses", level: 1 }).waitFor({ state: "visible" });
+    if (await page.getByRole("dialog", { name: "Evidence request" }).count()) {
+      throw new Error(name + " still mounts the authorized Assessment in a modal");
+    }
+    const views = workspace.getByRole("navigation", { name: "Assessment views" });
+    await views.waitFor({ state: "visible" });
+    if (await views.getByRole("button", { name: "Excel import" }).isEnabled()) {
+      throw new Error(name + " exposes an unreviewed Excel-answer import action");
+    }
+    const completion = workspace.getByRole("region", { name: "Assessment completion" });
+    const [viewsBox, completionBox] = await Promise.all([views.boundingBox(), completion.boundingBox()]);
+    if (!viewsBox || !completionBox || viewsBox.y + viewsBox.height > completionBox.y + 3) {
+      throw new Error(name + " must keep approved Assessment views above the completion strip");
+    }
+    const rail = workspace.getByRole("navigation", { name: "Assessment sections" });
+    const work = workspace.locator(".capture-wizard__main");
+    const readiness = workspace.getByRole("complementary", { name: "Response readiness and evidence" });
     await Promise.all([rail.waitFor({ state: "visible" }), work.waitFor({ state: "visible" }),
       readiness.waitFor({ state: "visible" })]);
-    // Read all panes from one browser layout frame. Independent boundingBox()
-    // calls can straddle the sheet's first wide-layout reflow and falsely pair
-    // a 560px questionnaire with a 1024px sheet. Never relax the approved
-    // two-/three-column contract; wait for the actual final geometry instead.
     const layoutReady = (width) => {
       if (innerWidth !== width) return false;
-      const sheet = document.querySelector(".assessment-capture-sheet");
-      const sections = sheet?.querySelector(".capture-wizard__sections");
-      const questions = sheet?.querySelector(".capture-wizard__main");
-      const evidence = sheet?.querySelector(".capture-wizard__readiness");
-      if (!sheet || !sections || !questions || !evidence) return false;
-      const outer = sheet.getBoundingClientRect();
+      const host = document.querySelector(".internal-assessment-workspace");
+      const sections = host?.querySelector(".capture-wizard__sections");
+      const questions = host?.querySelector(".capture-wizard__main");
+      const evidence = host?.querySelector(".capture-wizard__readiness");
+      if (!host || !sections || !questions || !evidence) return false;
+      const outer = host.getBoundingClientRect();
       const left = sections.getBoundingClientRect();
       const middle = questions.getBoundingClientRect();
       const right = evidence.getBoundingClientRect();
-      if (!left.width || !middle.width || !right.width) return false;
-      if (width >= 1280) return outer.width >= 1150 &&
+      if (!left.width || !middle.width || !right.width || outer.width < 300) return false;
+      if (width >= 1280) return outer.width >= 900 &&
         left.right <= middle.left + 3 && middle.right <= right.left + 3 &&
         Math.abs(left.top - right.top) <= 15;
       if (width >= 900) return left.right <= middle.left + 3 &&
         Math.abs(right.left - middle.left) <= 3 && right.top >= middle.bottom - 3;
       return left.bottom <= middle.top + 3 && middle.bottom <= right.top + 3;
     };
-    // Playwright serializes this callback into the page; the layout contract
-    // remains evaluated on each animation frame until the panes settle.
     await page.waitForFunction(layoutReady, viewport.width, { polling: "raf", timeout: 12000 })
       .catch(async (error) => {
-        const geometry = await dialog.evaluate((node) => {
-          const sheet = node.closest(".cs-sheet");
+        const geometry = await workspace.evaluate((node) => {
           const bounds = (selector) => {
-            const element = selector === "sheet" ? sheet : node.querySelector(selector);
+            const element = selector === "host" ? node : node.querySelector(selector);
             if (!element) return null;
             const { x, y, width, height } = element.getBoundingClientRect();
             return { x, y, width, height };
           };
-          return { viewport: innerWidth, sheet: bounds("sheet"),
+          return { viewport: innerWidth, host: bounds("host"),
             rail: bounds(".capture-wizard__sections"), work: bounds(".capture-wizard__main"),
             readiness: bounds(".capture-wizard__readiness") };
         });
-        throw new Error(`${name} did not reach the approved assessment pane layout: ${error.message}; ${JSON.stringify(geometry)}`);
+        throw new Error(`${name} does not match the approved full-page assessment composition: ${error.message}; ${JSON.stringify(geometry)}`);
       });
+    await workspace.getByText("Required unanswered", { exact: true }).waitFor({ state: "visible" });
+    if (viewport.width <= 850) {
+      const geometry = await workspace.evaluate((node) => {
+        const heading = node.querySelector(".internal-assessment-workspace__header h1");
+        const completion = node.querySelector(".capture-wizard__completion");
+        const sections = node.querySelector(".capture-wizard__sections");
+        return {
+          fontSize: heading ? Number.parseFloat(getComputedStyle(heading).fontSize) : null,
+          completionBottom: completion?.getBoundingClientRect().bottom ?? null,
+          sectionsTop: sections?.getBoundingClientRect().top ?? null,
+        };
+      });
+      const approvedSize = viewport.width <= 600 ? 25 : 29;
+      if (geometry.fontSize !== approvedSize) {
+        throw new Error(`${name} assessment heading diverges from approved ${approvedSize}px size: ${JSON.stringify(geometry)}`);
+      }
+      if (viewport.width <= 390 &&
+          (geometry.completionBottom === null || geometry.completionBottom > viewport.height ||
+           geometry.sectionsTop === null || geometry.sectionsTop >= viewport.height)) {
+        throw new Error(`${name} hides Assessment progress or section navigation below the mobile first viewport: ${JSON.stringify(geometry)}`);
+      }
+    }
     await saveScreenshot(page, name);
-    await dialog.getByText("Required unanswered", { exact: true }).waitFor({ state: "visible" });
-    await assertFocusInsideSheet(page, name);
+    const close = workspace.getByRole("button", { name: "Close assessment" });
+    await close.focus();
+    if (!await close.evaluate((element) => element === document.activeElement)) {
+      throw new Error(name + " does not provide keyboard access to the Assessment return control");
+    }
     await assertNoHorizontalOverflow(page, name);
     await record(page, capture, viewport.width >= 1280 ? "assessment-internal-three-pane" : viewport.width >= 900 ? "assessment-internal-tablet" : "assessment-internal-mobile");
   } finally {

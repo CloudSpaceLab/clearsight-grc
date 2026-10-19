@@ -899,7 +899,7 @@ describe("runtime navigation", () => {
     expect(loadCaptureRequest).not.toHaveBeenCalled();
   });
 
-  it("opens an authorized multi-section assessment in the wide shared sheet", async () => {
+  it("opens an authorized multi-section assessment as a full-page workspace", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     const assigned = evidenceRequest({
       sections: [
@@ -919,14 +919,25 @@ describe("runtime navigation", () => {
     render(<App />);
 
     fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
-    const dialog = await screen.findByRole("dialog", { name: "Evidence request" });
-    await within(dialog).findByRole("navigation", { name: "Assessment sections" });
-    expect(dialog.closest(".cs-sheet")?.classList.contains("cs-sheet--wide")).toBe(true);
-    expect(dialog.closest(".cs-sheet")?.classList.contains("assessment-capture-sheet")).toBe(true);
-    expect(within(dialog).getByRole("navigation", { name: "Assessment sections" })).toBeTruthy();
-    expect(within(dialog).getByRole("complementary", { name: "Response readiness and evidence" })).toBeTruthy();
-    expect(within(dialog).getByRole("button", { name: "Continue" })).toBeTruthy();
+    const workspace = await screen.findByRole("region", { name: "Internal assessment workspace" });
+    expect(within(workspace).getByRole("heading", { name: assigned.title, level: 1 })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Evidence request" })).toBeNull();
+    const completion = within(workspace).getByRole("region", { name: "Assessment completion" });
+    expect(within(completion).getByText("0 of 3 answered")).toBeTruthy();
+    expect(within(completion).getByText("0%")).toBeTruthy();
+    const views = within(workspace).getByRole("navigation", { name: "Assessment views" });
+    expect(within(views).getByText("Questions").getAttribute("aria-current")).toBe("page");
+    expect(within(views).getByRole("button", { name: "Excel import" }).hasAttribute("disabled")).toBe(true);
+    expect(Boolean(views.compareDocumentPosition(completion) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    fireEvent.click(within(views).getByRole("button", { name: "Review" }));
+    expect(within(workspace).getByText("Check the highlighted answers")).toBeTruthy();
+    expect(within(workspace).getByText("Request context")).toBeTruthy();
+    expect(within(workspace).getByRole("navigation", { name: "Assessment sections" })).toBeTruthy();
+    expect(within(workspace).getByRole("complementary", { name: "Response readiness and evidence" })).toBeTruthy();
+    expect(within(workspace).getByRole("button", { name: "Continue" })).toBeTruthy();
     expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation");
+    fireEvent.click(within(workspace).getByRole("button", { name: "Close assessment" }));
+    expect(screen.queryByRole("region", { name: "Internal assessment workspace" })).toBeNull();
   });
 
   it("keeps short automatic and terminal multi-section responses out of the wide workspace", async () => {
