@@ -455,12 +455,14 @@ try {
 }
 
 const status = failures.length ? "FAIL" : "PASS";
-const review = { generatedAt: new Date().toISOString(), status, checks, failures, bundle, defects, evidence };
+const review = { generatedAt: new Date().toISOString(), status, approved_html_visual_parity: "NOT_ASSESSED", checks, failures, bundle, defects, evidence };
 await writeFile(path.join(outputDir, "review.json"), JSON.stringify(review, null, 2));
 const markdown = [
   "# Automated UI/UX and functional defect review",
   "",
-  `**Status:** ${status}`,
+  `**Functional/rendered-flow status:** ${status}`,
+  "**Original HTML visual parity:** NOT ASSESSED by this CI review. A screenshot being captured does not mean it matches the approved design.",
+  "See `docs/design/references/clearsight-2026-10/VISUAL-PARITY-RESET-2026-10-19.md` for source-to-runtime acceptance.",
   "",
   ...checks.map((check) => `- ${check.status === "PASS" ? "✅" : "❌"} **${check.name}:** ${check.detail}`),
   "",
