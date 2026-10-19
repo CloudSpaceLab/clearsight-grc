@@ -36,6 +36,21 @@ try {
 
   await detail.locator("summary").click();
   await page.setViewportSize({ width: 390, height: 844 });
+  // A viewport resize can briefly expose the old desktop grid alongside the
+  // newly sized mobile rail. Verify one coherent layout before measuring overflow.
+  await page.waitForFunction(() => {
+    const shell = document.querySelector(".app-shell");
+    const rail = shell?.querySelector(":scope > .sidebar");
+    const main = shell?.querySelector(":scope > main");
+    if (!shell || !rail || !main || !matchMedia("(max-width: 650px)").matches) return false;
+    const shellRect = shell.getBoundingClientRect();
+    const railRect = rail.getBoundingClientRect();
+    const mainRect = main.getBoundingClientRect();
+    return getComputedStyle(shell).display === "grid" &&
+      Math.abs(railRect.width - 56) <= 1 &&
+      Math.abs(mainRect.left - (shellRect.left + 56)) <= 1 &&
+      Math.abs(mainRect.right - shellRect.right) <= 1;
+  }, null, { timeout: 5000 });
   if (await detail.evaluate((element) => element.open)) throw new Error("mobile verification detail should start collapsed");
   await assertNoHorizontalOverflow(page, "35-today-lifecycle-collapsed-light-mobile-390x844");
   await assertFirstActionVisible(page, 762, "35-today-lifecycle-collapsed-light-mobile-390x844");
