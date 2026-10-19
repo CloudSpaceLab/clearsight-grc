@@ -1164,7 +1164,7 @@ async function captureInternalAssessment({ name, viewport, theme }) {
         throw new Error(name + " hides the first questionnaire field below the mobile first viewport: " + JSON.stringify(firstQuestion));
       }
     }
-    const close = workspace.getByRole("button", { name: "Close assessment" });
+    const close = workspace.getByRole("button", { name: "Back to work" });
     await close.focus();
     if (!await close.evaluate((element) => element === document.activeElement)) {
       throw new Error(name + " does not provide keyboard access to the Assessment return control");
