@@ -95,9 +95,15 @@ async function assertAccessLive(page, name) {
 }
 
 async function assertMobileShell(page, name) {
-  const mobileNav = page.getByRole("navigation", { name: "Mobile navigation" });
-  await mobileNav.waitFor({ state: "visible" });
-  if (await mobileNav.getByRole("button", { name: /Configure/i }).count()) throw new Error(`${name} puts Configuration in the daily mobile navigation`);
+  const sidebar = page.getByRole("complementary", { name: "Primary navigation" });
+  await sidebar.waitFor({ state: "visible" });
+  const daily = sidebar.getByRole("navigation");
+  if (await daily.getByRole("button", { name: /Configure/i }).count()) {
+    throw new Error(`${name} mixes Configuration with daily destinations`);
+  }
+  if (await sidebar.getByRole("button", { name: "Configure" }).count() !== 1) {
+    throw new Error(`${name} does not retain the permitted Configuration route`);
+  }
 }
 
 async function assertNoHorizontalOverflow(page, name) {
