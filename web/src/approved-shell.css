@@ -127,12 +127,11 @@
     position: sticky;
     inset-block-start: 0;
     display: flex;
-    flex-wrap: nowrap;
     align-items: center;
     min-block-size: 64px;
     gap: var(--cs-space-inline);
-    margin: 0 calc(-1 * var(--cs-space-group)) var(--cs-space-section);
-    padding: var(--cs-space-inline) var(--cs-space-group);
+    margin: 0 calc(-1 * var(--cs-space-inline)) var(--cs-space-section);
+    padding: var(--cs-space-inline);
     border: 0;
     border-block-end: 1px solid var(--cs-border-default);
     border-radius: 0;
@@ -167,12 +166,9 @@
     min-inline-size: 0;
   }
   .app-shell > main > .context-bar .context-role {
-    display: flex;
     flex: 0 1 auto;
-    inline-size: auto;
     min-inline-size: 0;
     gap: 4px;
-    flex-wrap: nowrap;
     justify-content: flex-end;
   }
   .app-shell > main > .context-bar .display-preferences,
