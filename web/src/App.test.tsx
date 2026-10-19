@@ -922,6 +922,10 @@ describe("runtime navigation", () => {
     const workspace = await screen.findByRole("region", { name: "Internal assessment workspace" });
     expect(within(workspace).getByRole("heading", { name: assigned.title, level: 1 })).toBeTruthy();
     expect(screen.queryByRole("dialog", { name: "Evidence request" })).toBeNull();
+    const completion = within(workspace).getByRole("region", { name: "Assessment completion" });
+    expect(within(completion).getByText("0 of 3 answered")).toBeTruthy();
+    expect(within(completion).getByText("0%")).toBeTruthy();
+    expect(within(workspace).getByText("Request context")).toBeTruthy();
     expect(within(workspace).getByRole("navigation", { name: "Assessment sections" })).toBeTruthy();
     expect(within(workspace).getByRole("complementary", { name: "Response readiness and evidence" })).toBeTruthy();
     expect(within(workspace).getByRole("button", { name: "Continue" })).toBeTruthy();
