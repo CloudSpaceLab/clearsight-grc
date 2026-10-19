@@ -152,8 +152,10 @@ async function assertApprovedShell(page, width) {
           navBox.x !== 0 || bottomNavigationVisible ||
           Math.abs(mainBox.x - navBox.width) > 2 ||
           Math.abs(mainBox.width - (width - navBox.width)) > 2 ||
+          Math.abs(barBox.x - mainBox.x) > 2 ||
+          Math.abs(barBox.width - mainBox.width) > 2 ||
           barBox.y > 2 || barBox.height < 56 || barBox.height > 95) {
-        throw new Error("Approved mobile shell requires a 56px left rail, adjacent content and a compact top context bar");
+        throw new Error("Approved mobile shell requires a 56px left rail, an aligned context bar and adjacent content");
       }
     } else if (width === 1024 && (!navBox || navBox.width > 120)) {
       throw new Error("Approved 1024px shell must retain compact navigation");
