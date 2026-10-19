@@ -209,6 +209,26 @@ describe("ReportsWorkspace", () => {
     expect(screen.queryByRole("button", { name: "Load older reports" })).toBeNull();
   });
 
+  it("shows recorded digests without claiming downloaded bytes were verified", async () => {
+    const run: ReportRun = {
+      ...readyRun,
+      data_sha256: "ab".repeat(32),
+      manifest_sha256: "cd".repeat(32),
+      source_boundary: { ...readyRun.source_boundary, population_complete: true },
+    };
+    loadRunPage.mockResolvedValueOnce({ items: [run] });
+    renderWorkspace();
+    const table = await screen.findByRole("table", { name: "Generated reports" });
+    fireEvent.click(within(table).getByRole("button", { name: /View for Vendor portfolio/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Report details" });
+    const source = within(dialog).getByRole("region", { name: "Source snapshot" });
+    expect(within(source).getByText("Population complete")).toBeTruthy();
+    fireEvent.click(within(source).getByText("Run identifiers and digests"));
+    expect(within(source).getByText("ab".repeat(32))).toBeTruthy();
+    expect(within(source).getByText("cd".repeat(32))).toBeTruthy();
+    expect(within(source).getByText("run-ready")).toBeTruthy();
+  });
+
   it("shows concise report details from the central library", async () => {
     renderWorkspace();
     const table = await screen.findByRole("table", { name: "Generated reports" });
@@ -217,7 +237,10 @@ describe("ReportsWorkspace", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Report details" });
     expect(within(dialog).getByRole("heading", { name: "Vendor portfolio" })).toBeTruthy();
-    expect(within(dialog).getByText("18")).toBeTruthy();
+    const source = within(dialog).getByRole("region", { name: "Source snapshot" });
+    expect(within(dialog).getAllByText("18")).toHaveLength(2);
+    expect(within(source).getByText("Population incomplete")).toBeTruthy();
+    expect(within(source).getByText("2")).toBeTruthy();
     expect(within(dialog).getByText("XLSX")).toBeTruthy();
     expect(within(dialog).queryByText("vendor-relationship-report.v1")).toBeNull();
   });
