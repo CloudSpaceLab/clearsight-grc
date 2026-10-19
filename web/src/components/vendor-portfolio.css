@@ -6,8 +6,8 @@
 .vendor-overview-summary { display:grid; gap:var(--cs-primitive-space-2); min-inline-size:0; }
 .vendor-summary-counts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--cs-space-group); }
 .vendor-summary-counts > .cs-button {
-  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr;
-  justify-items:start; align-content:start; gap:var(--cs-primitive-space-3);
+  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:1fr;
+  align-items:stretch; justify-items:stretch;
   min-inline-size:0; min-block-size:108px; padding:var(--cs-space-group);
   border:1px solid var(--cs-border-default); border-radius:var(--cs-surface-radius);
   background:var(--cs-bg-surface-1); color:var(--cs-text-muted);
@@ -18,11 +18,17 @@
   background:color-mix(in srgb,var(--cyan) 5%,var(--cs-bg-surface-1));
   box-shadow:inset 0 0 0 1px var(--cyan), var(--cs-primitive-shadow-1);
 }
+/* The shared Button wraps children in a span. Place the measure's
+   label/value grid inside that wrapper, not on the button itself. */
 .vendor-summary-counts > .cs-button > span {
+  display:grid; grid-template-rows:auto 1fr;
+  min-inline-size:0; gap:var(--cs-primitive-space-3);
+}
+.vendor-summary-counts > .cs-button > span > span {
   grid-row:1; min-inline-size:0; color:var(--cs-text-muted);
   font-size:var(--cs-font-size-caption); font-weight:650; line-height:1.35;
 }
-.vendor-summary-counts strong {
+.vendor-summary-counts > .cs-button > span > strong {
   grid-row:2; min-inline-size:0; align-self:end;
   font-size:var(--cs-primitive-font-size-28); line-height:1;
   color:var(--cs-text-strong); font-variant-numeric:tabular-nums;

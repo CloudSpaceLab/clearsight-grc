@@ -860,6 +860,20 @@ async function captureApprovedVendorMeasures(name, theme, viewport) {
     if (await cards.count() !== 4) throw new Error(name + " is missing approved Vendor measure cards");
     const boxes = await Promise.all([0, 1, 2, 3].map((index) => cards.nth(index).boundingBox()));
     if (boxes.some((box) => !box || box.height < 90)) throw new Error(name + " has collapsed Vendor measure cards");
+    const anatomy = await cards.evaluateAll((elements) => elements.map((card) => {
+      const content = card.firstElementChild;
+      const label = content?.querySelector(":scope > span")?.getBoundingClientRect();
+      const measure = content?.querySelector(":scope > strong")?.getBoundingClientRect();
+      return { labelTop: label?.top, labelBottom: label?.bottom, labelLeft: label?.left,
+        valueTop: measure?.top, valueLeft: measure?.left, contentDisplay: content ? getComputedStyle(content).display : "" };
+    }));
+    for (const [index, item] of anatomy.entries()) {
+      if (item.contentDisplay !== "grid" || item.labelBottom === undefined || item.valueTop === undefined ||
+          item.labelLeft === undefined || item.valueLeft === undefined ||
+          item.labelBottom + 2 > item.valueTop || Math.abs(item.labelLeft - item.valueLeft) > 2) {
+        throw new Error(`${name} card ${index + 1} lacks approved label-over-measure anatomy: ${JSON.stringify(item)}`);
+      }
+    }
     const [first, second, third, fourth] = boxes;
     if (viewport.width >= 1280) {
       if (!(first.x < second.x && second.x < third.x && third.x < fourth.x &&
