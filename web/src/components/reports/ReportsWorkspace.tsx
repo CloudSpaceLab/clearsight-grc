@@ -517,6 +517,28 @@ function ReportRunDetails({ run, definition, downloading, onDownload }: { run: R
       <div><dt>Format</dt><dd>{run.format}</dd></div>
       <div><dt>Expires</dt><dd>{formatDateTime(run.expires_at)}</dd></div>
     </dl>
+    {run.status === "READY" && <section className="report-run-details__source" aria-label="Source snapshot">
+      <div className="report-run-details__source-heading">
+        <h3>Source snapshot</h3>
+        <StatusBadge tone={run.source_boundary?.population_complete === true ? "neutral" : "warning"}>
+          {run.source_boundary?.population_complete === true ? "Population complete"
+            : run.source_boundary?.population_complete === false ? "Population incomplete" : "Coverage unknown"}
+        </StatusBadge>
+      </div>
+      <dl>
+        <div><dt>Source captured</dt><dd>{run.source_boundary?.captured_at ? formatDateTime(run.source_boundary.captured_at) : "Unavailable"}</dd></div>
+        <div><dt>Source records</dt><dd>{run.source_boundary?.population?.toLocaleString() ?? "Unknown"}</dd></div>
+        <div><dt>Definition revision</dt><dd>{run.definition_version}</dd></div>
+      </dl>
+      <details>
+        <summary>Run identifiers and digests</summary>
+        <dl>
+          <div><dt>Run ID</dt><dd><code>{run.id}</code></dd></div>
+          <div><dt>Recorded file SHA-256</dt><dd><code>{run.data_sha256 || "Unavailable"}</code></dd></div>
+          <div><dt>Recorded manifest SHA-256</dt><dd><code>{run.manifest_sha256 || "Unavailable"}</code></dd></div>
+        </dl>
+      </details>
+    </section>}
     {run.failure_code && <Notice tone="error"><span>Generation stopped: {humanizeCode(run.failure_code)}</span></Notice>}
     <div className="report-run-details__footer">
       <Button variant="secondary" isDisabled={!available} isLoading={downloading} onPress={onDownload}>
