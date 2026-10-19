@@ -33,14 +33,13 @@ describe("Program detail sections", () => {
     expect(document.querySelectorAll(".cs-tabs__indicator")).toHaveLength(1);
   });
 
-  it("uses the shared compact selector without mounting duplicate program panels", async () => {
+  it("keeps the six approved record tabs without a duplicate compact selector", () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange}/>);
-    // CSS hides the desktop tablist at compact widths; the same controlled
-    // selector remains present and accessible at every width.
-    const trigger = screen.getByRole("button", { name: "Overview Program section" });
-    fireEvent.click(trigger);
-    fireEvent.click(await screen.findByRole("option", { name: "Assessments" }));
+    expect(screen.getByRole("tablist", { name: "Program sections" })).toBeTruthy();
+    expect(screen.getAllByRole("tab")).toHaveLength(6);
+    expect(document.querySelector(".program-detail-sections .cs-tabs__compact")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Assessments" }));
     expect(onChange).toHaveBeenCalledExactlyOnceWith("assessments");
     expect(screen.getByRole("tabpanel", { name: "Assessments" }).textContent).toContain("Assessments content");
     expect(screen.getAllByRole("tabpanel")).toHaveLength(1);

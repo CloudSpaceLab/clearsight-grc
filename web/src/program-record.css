@@ -529,3 +529,19 @@
 .program-activity__list li span { overflow-wrap: anywhere; }
 .program-activity__changes > p { margin: 0; color: var(--cs-text-muted); }
 .program-activity__snapshot { padding-top: var(--cs-space-group); border-top: 1px solid var(--cs-border-default); }
+
+/* Approved Program keeps the six record views as a scrollable tab row on phones. */
+@media (max-width: 760px) {
+  .program-detail-sections .cs-tabs__list {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .program-detail-sections .cs-tabs__tab {
+    flex: 0 0 auto;
+    inline-size: auto;
+    white-space: nowrap;
+  }
+  .program-detail-sections .cs-tabs__list::-webkit-scrollbar { display: none; }
+}

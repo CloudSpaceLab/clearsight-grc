@@ -191,11 +191,13 @@ async function captureProgramSection({ name, section, fixture, theme, viewport, 
     if (section === "monitoring") {
       await page.getByRole("region", { name: "Data collection workspace" }).waitFor({ state: "visible" });
       if (await page.getByRole("tab", { name: "Data collection" }).count()) throw new Error("Collection is not a primary Program tab");
-    } else if (compact) {
-      await page.locator(".cs-tabs__compact .cs-select-field__trigger").waitFor({ state: "visible" });
-      if (await page.getByRole("tablist", { name: "Program sections" }).count()) throw new Error(`${name} retained the desktop tablist in a compact viewport`);
     } else {
-      await page.getByRole("tablist", { name: "Program sections" }).waitFor({ state: "visible" });
+      const tabs = page.getByRole("tablist", { name: "Program sections" });
+      await tabs.waitFor({ state: "visible" });
+      if (compact && (await tabs.getByRole("tab").count() !== 6 ||
+          await page.locator(".program-detail-sections .cs-tabs__compact").count())) {
+        throw new Error(`${name} does not match the six-tab mobile Program navigation`);
+      }
     }
     if (expectedText) await page.getByText(expectedText, { exact: false }).first().waitFor({ state: "visible" });
     const anchor = scrollText ? page.getByText(scrollText, { exact: true }).first() : page.locator(".program-detail-sections");
@@ -286,11 +288,11 @@ async function captureProgramEvidenceResults({ name, state, fixture, theme, view
   const context = await openContext(viewport, touch, theme);
   const page = await openProgram(context, { section: "assessments", fixture });
   try {
-    if (compact) {
-      await page.locator(".cs-tabs__compact .cs-select-field__trigger").waitFor({ state: "visible" });
-      if (await page.getByRole("tablist", { name: "Program sections" }).count()) throw new Error(`${name} retained the desktop tablist in a compact viewport`);
-    } else {
-      await page.getByRole("tablist", { name: "Program sections" }).waitFor({ state: "visible" });
+    const tabs = page.getByRole("tablist", { name: "Program sections" });
+    await tabs.waitFor({ state: "visible" });
+    if (compact && (await tabs.getByRole("tab").count() !== 6 ||
+        await page.locator(".program-detail-sections .cs-tabs__compact").count())) {
+      throw new Error(`${name} does not preserve approved six-tab navigation on mobile`);
     }
     if (fixture === "program-evidence-empty") {
       await page.getByText("No data collected yet", { exact: true }).waitFor({ state: "visible" });
