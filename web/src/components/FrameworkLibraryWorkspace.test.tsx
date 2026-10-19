@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../http";
 import { loadFrameworkEditionPage } from "../programOperationsApi";
@@ -43,6 +43,24 @@ describe("Framework Library workspace", () => {
     fireEvent.click(screen.getByRole("button", {name: "Choose Program"}));
     expect(onChooseProgram).toHaveBeenCalledWith(edition("edition-1"));
     expect(loadFrameworkEditionPage).toHaveBeenCalledWith("GLOBAL", "");
+  });
+
+  it("orders the approved Library menu ahead of search and edition content, without fake update actions", async () => {
+    const onBack = vi.fn();
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+      items: [edition("edition-1")], next_after_id: "",
+    });
+    render(<FrameworkLibraryWorkspace onBack={onBack} onChooseProgram={vi.fn()}/>);
+    await screen.findByRole("button", { name: "Inspect edition for Published SECURITY 2026" });
+    const views = screen.getByRole("navigation", { name: "Library views" });
+    expect(within(views).getByText("Explore").getAttribute("aria-current")).toBe("page");
+    expect(within(views).getByRole("button", { name: "Edition updates" }).hasAttribute("disabled")).toBe(true);
+    const filter = screen.getByRole("searchbox", { name: "Search loaded standards" });
+    const list = screen.getByRole("list", { name: "Published framework editions" });
+    expect(Boolean(views.compareDocumentPosition(filter) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(Boolean(filter.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    fireEvent.click(within(views).getByRole("button", { name: "In my Programs" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 
   it("uses an accessible detail sheet on compact viewports", async () => {
