@@ -151,6 +151,25 @@ describe("Framework Library workspace", () => {
     expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(false);
   });
 
+  it("never carries preview selection between filtered edition identities", async () => {
+    const onChooseProgram = vi.fn();
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+      items: [edition("first", "SECURITY"), edition("second", "PRIVACY")], next_after_id: "",
+    });
+    render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={onChooseProgram}/>);
+    const first = await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"});
+    fireEvent.click(first);
+    expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(false);
+    fireEvent.change(screen.getByRole("searchbox", {name: "Search loaded standards"}), {target: {value: "PRIVACY"}});
+    const details = screen.getByRole("complementary", {name: "Framework edition details"});
+    expect(details.textContent).toContain("Published PRIVACY");
+    expect(details.textContent).not.toContain("Published SECURITY");
+    expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(true);
+    expect(onChooseProgram).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", {name: "Inspect edition for Published PRIVACY 2026"}));
+    expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(false);
+  });
+
   it("rejects invalid jurisdiction input before issuing another request", async () => {
     vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [], next_after_id: ""});
     render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={vi.fn()}/>);
