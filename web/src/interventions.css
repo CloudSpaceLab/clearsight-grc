@@ -123,4 +123,5 @@
 .assigned-workspace__actions { display: flex; flex-wrap: wrap; gap: var(--cs-space-inline); margin-block-start: var(--cs-space-group); }
 @container assigned-work (max-width: 980px) {
   .assigned-workspace__grid { grid-template-columns: minmax(0, 1fr); }
+  .assigned-workspace__grid > .assigned-workspace__context { display: none; }
 }
