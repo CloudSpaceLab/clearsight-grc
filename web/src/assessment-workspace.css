@@ -60,9 +60,6 @@
 .internal-assessment-workspace > .panel-content > :is(.eyebrow, h2, p:first-of-type) {
   display: none;
 }
-.internal-assessment-workspace .why-you {
-  margin-block: var(--cs-space-inline);
-}
 .capture-panel--full-page .capture-panel__context {
   margin: 0;
   color: var(--cs-text-primary);
