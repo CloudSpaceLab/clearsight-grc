@@ -1100,6 +1100,15 @@ async function captureInternalAssessment({ name, viewport, theme }) {
     const readiness = workspace.getByRole("complementary", { name: "Response readiness and evidence" });
     await Promise.all([rail.waitFor({ state: "visible" }), work.waitFor({ state: "visible" }),
       readiness.waitFor({ state: "visible" })]);
+    const sectionProgress = await rail.locator("li > button").evaluateAll((buttons) => buttons.map((button) => ({
+      accessible: button.getAttribute("aria-label") ?? "",
+      count: button.querySelector(".capture-wizard__section-count")?.textContent?.trim() ?? "",
+    })));
+    if (!sectionProgress.length || sectionProgress.some((section) =>
+      !/^\\d+\\/\\d+$/.test(section.count) ||
+      !section.accessible.includes(section.count.replace("/", " of ") + " answered"))) {
+      throw new Error(name + " lacks answer-derived section completion in the approved questionnaire navigator");
+    }
     const layoutReady = (width) => {
       if (innerWidth !== width) return false;
       const host = document.querySelector(".internal-assessment-workspace");
