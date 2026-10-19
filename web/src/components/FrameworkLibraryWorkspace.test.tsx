@@ -135,12 +135,20 @@ describe("Framework Library workspace", () => {
     expect(loadFrameworkEditionPage).toHaveBeenNthCalledWith(3, "GLOBAL", "edition-1");
   });
 
-  it("never chooses an edition before explicit inspection", async () => {
+  it("shows source-backed first-edition preview without silently selecting it for Program adoption", async () => {
+    const onChooseProgram = vi.fn();
     vi.mocked(loadFrameworkEditionPage).mockResolvedValue({items: [edition("edition-1")], next_after_id: ""});
-    render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={vi.fn()}/>);
-    await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"});
-    expect(screen.getByText("Select an edition")).toBeTruthy();
-    expect(screen.queryByRole("button", {name: "Choose Program"})).toBeNull();
+    render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={onChooseProgram}/>);
+    const first = await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"});
+    const details = screen.getByRole("complementary", {name: "Framework edition details"});
+    expect(details.textContent).toContain("Published SECURITY");
+    expect(details.textContent).toContain("Citations only");
+    expect(details.textContent).toContain("Select an edition in the list to continue.");
+    expect(first.getAttribute("aria-pressed")).not.toBe("true");
+    expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(true);
+    expect(onChooseProgram).not.toHaveBeenCalled();
+    fireEvent.click(first);
+    expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(false);
   });
 
   it("rejects invalid jurisdiction input before issuing another request", async () => {
