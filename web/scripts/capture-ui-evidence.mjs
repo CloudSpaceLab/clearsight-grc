@@ -55,6 +55,8 @@ const captures = [
   { name: "131a-ropa-register-row-action-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "View details", state: "ropa-register-row-action", scrollIntoViewText: "View details" },
   { name: "132-ropa-register-dark-mobile-390x844", route: "#ropa", title: "Processing activity register", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Customer account opening", state: "ropa-register-mobile" },
   { name: "133-ropa-activity-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-activity", openRopaActivity: true },
+  { name: "219-report-source-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReadyReport: true, state: "report-source-desktop" },
+  { name: "220-report-source-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openReadyReport: true, state: "report-source-mobile" },
   { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-library" },
   { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
   { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openFailedReport: true, expectText: "Generation stopped: Row Limit Exceeded", state: "report-run-failed" },
@@ -283,6 +285,15 @@ async function capturePage(capture) {
       await table.waitFor({ state: "visible" });
       await table.getByRole("button", { name: /^Inspect for / }).first().click();
       await page.getByRole("dialog", { name: /^Selected work: / }).waitFor({ state: "visible" });
+    }
+    if (capture.openReadyReport) {
+      const table = page.getByRole("table", { name: "Generated reports" });
+      const row = table.locator("tbody tr").filter({ has: page.getByRole("button", { name: "Download", exact: true }) }).first();
+      await row.waitFor({ state: "visible" });
+      await row.getByRole("button", { name: /^View for / }).click();
+      const source = page.getByRole("dialog", { name: "Report details" }).getByRole("region", { name: "Source snapshot" });
+      await source.waitFor({ state: "visible" });
+      await source.getByText(/Population (complete|incomplete)|Coverage unknown/).waitFor({ state: "visible" });
     }
     if (capture.openFailedReport) {
       const failedRow = page.getByRole("table", { name: "Generated reports" }).getByRole("row").filter({ hasText: "Failed" }).first();
