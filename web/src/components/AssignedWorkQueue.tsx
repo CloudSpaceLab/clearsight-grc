@@ -70,7 +70,7 @@ export function AssignedWorkQueue({ items, state, onOpenItem, onInspectAuthority
           </>
           : items.length
             ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
-            : <div id="attention-list"><EmptyState label="Assigned work" title="Nothing needs your action right now" description="No open assigned work."/></div>
+            : <div id="attention-list"><EmptyState label="Assigned work" title="Nothing needs your action right now" description="No open assigned work."/></div>}
     {presentation === "workspace" && state === "live" && inspecting && <FocusedSheet label={`Selected work: ${inspecting.title}`} onClose={() => setInspectingItem(undefined)}><WorkContext item={inspecting} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/></FocusedSheet>}
   </section>;
 }
