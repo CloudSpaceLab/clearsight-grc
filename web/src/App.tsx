@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import "./document-import.css";
 import "./monitoring.css";
 import "./program-record.css";
+import "./assessment-workspace.css";
 import "./employee-profile.css";
 import {
   loadContext,
@@ -25,7 +26,7 @@ import { EnterpriseScopeSwitcher } from "./components/EnterpriseScopeSwitcher";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
-import { WorkspaceSwitcher } from "./components/ui";
+import { Button, WorkspaceSwitcher } from "./components/ui";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { captureContract, effectivePresentationMode, visibleCaptureSections } from "./components/capture/contract";
 import { apiErrorKind } from "./http";
@@ -136,6 +137,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const [evidenceRequestState, setEvidenceRequestState] = useState<LoadState>("idle");
   const [activePanel, setActivePanel] = useState<"none" | "routing" | "capture">("none");
   const captureLoadID = useRef(0);
+  const captureReturnFocus = useRef<HTMLElement | null>(null);
   const routingLoadID = useRef(0);
   const evidenceTargetAttempts = useRef(new Set<string>());
   const evidenceWorkspaceLoadID = useRef(0);
@@ -477,7 +479,12 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     if (view === "forms") setFormsNavigationLocation({ hash });
   }
 
-  function closePanel() { captureLoadID.current++; routingLoadID.current++; setActivePanel("none"); }
+  function closePanel() {
+    captureLoadID.current++; routingLoadID.current++; setActivePanel("none");
+    const restore = captureReturnFocus.current;
+    captureReturnFocus.current = null;
+    requestAnimationFrame(() => { if (restore?.isConnected) restore.focus(); });
+  }
 
   async function inspectRouting(item: AttentionItem): Promise<boolean> {
     if (!item.authority || !isAuthorityObjectType(item.action_target_type) || !item.action_target_id) return false;
@@ -499,6 +506,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   async function openCapture(requestID: string): Promise<boolean> {
     const loadID = ++captureLoadID.current;
     const scopeEpoch = evidenceScopeEpoch.current;
+    if (activePanel !== "capture" && document.activeElement instanceof HTMLElement) {
+      captureReturnFocus.current = document.activeElement;
+    }
     setCaptureRequestID(requestID); setCapture(null); setCaptureState("loading"); setActivePanel("capture");
     try {
       const loaded = await loadEvidenceRequest(requestID, "capture_revalidation");
@@ -653,6 +663,21 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
           <span>{roleName}</span>
         </div>
       </div>
+      {usesAssessmentWorkspace ? <section className="internal-assessment-workspace" aria-label="Internal assessment workspace">
+        <nav className="internal-assessment-workspace__breadcrumb" aria-label="Assessment breadcrumb">
+          <button className="text-button" type="button" onClick={closePanel}>Back to work</button>
+          <span aria-hidden="true">›</span><span>Assessment</span>
+        </nav>
+        <header className="internal-assessment-workspace__header">
+          <div>
+            <span className="eyebrow">Assessment · Evidence request</span>
+            <h1>{capture?.title}</h1>
+            {capture?.purpose && <p>{capture.purpose}</p>}
+          </div>
+          <Button variant="secondary" onPress={closePanel}>Close assessment</Button>
+        </header>
+        <CapturePanel fullPage request={capture} state={captureState} onReload={() => void reloadCapture()}/>
+      </section> : <>
       {activePortfolioView && !(activeView === "programs" && (target.programID || target.programsPage === "library")) && <WorkspaceSwitcher ariaLabel="Portfolio lenses" compactLabel="Portfolio lens" items={portfolioLenses} selectedKey={activePortfolioView} onSelectionChange={(view) => navigate(view)}/>}
       {((activeView === "oversight" && !groupScopeRequested) || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>} 
       {activeView === "oversight" && !groupScopeRequested && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
@@ -715,15 +740,15 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       {activeView === "imports" && importsEnabled && <><header className="topbar"><div><span className="eyebrow">{organizationName}</span><h1>Imports</h1><p>Import documents, compare their obligations with current Programs, controls and evidence, then review proposed updates.</p></div></header><DocumentImportWorkspace/></>}
       {activeView === "explore" && referenceJourneysEnabled && <ReferenceJourneysView organizationName={organizationName}/>}
       {activeView === "configure" && configureEnabled && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Configuration…</div>}><ConfigureWorkspace importsEnabled={importsEnabled} canReconcileProjection={runtime?.capabilities?.platform_operations_write === true} onOpenImports={() => navigate("imports")}/></Suspense>}
+      </>}
       <div id="cs-overlay-root" className="cs-overlay-root" aria-live="off"/>
     </main>
     <nav className="mobile-nav" aria-label="Mobile navigation">{operatingNavigation.map(({ label, view, activeViews }) => {
       const active = activeViews.includes(activeView);
       return <button key={label} type="button" aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><span>{label}</span></button>;
     })}</nav>
-    {activePanel !== "none" && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}
-      size={usesAssessmentWorkspace ? "wide" : "default"}
-      panelClassName={usesAssessmentWorkspace ? "assessment-capture-sheet" : ""}>
+    {activePanel !== "none" && !usesAssessmentWorkspace && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}
+      size="default">
       {activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}
     </FocusedSheet>}
   </div>;
