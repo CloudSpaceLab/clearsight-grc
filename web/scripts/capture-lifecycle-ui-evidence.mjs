@@ -1,3 +1,4 @@
+import { overflowElements } from "./ui-overflow-diagnostics.mjs";
 import { chromium } from "playwright";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -76,7 +77,9 @@ async function capture(page, name, state) {
 
 async function assertNoHorizontalOverflow(page, name) {
   const metrics = await layoutMetrics(page);
-  if (metrics.scrollWidth > metrics.clientWidth + 1) throw new Error(`${name} has horizontal overflow: ${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport`);
+  if (metrics.scrollWidth > metrics.clientWidth + 1) {
+    throw new Error(`${name} has horizontal overflow: ${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport; ${JSON.stringify(await overflowElements(page))}`);
+  }
 }
 
 async function assertFirstActionVisible(page, viewportBottom, name) {
