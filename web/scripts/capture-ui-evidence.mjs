@@ -1029,6 +1029,27 @@ async function captureInternalAssessment({ name, viewport, theme }) {
         throw new Error(`${name} does not match the approved full-page assessment composition: ${error.message}; ${JSON.stringify(geometry)}`);
       });
     await workspace.getByText("Required unanswered", { exact: true }).waitFor({ state: "visible" });
+    if (viewport.width <= 850) {
+      const geometry = await workspace.evaluate((node) => {
+        const heading = node.querySelector(".internal-assessment-workspace__header h1");
+        const completion = node.querySelector(".capture-wizard__completion");
+        const sections = node.querySelector(".capture-wizard__sections");
+        return {
+          fontSize: heading ? Number.parseFloat(getComputedStyle(heading).fontSize) : null,
+          completionBottom: completion?.getBoundingClientRect().bottom ?? null,
+          sectionsTop: sections?.getBoundingClientRect().top ?? null,
+        };
+      });
+      const approvedSize = viewport.width <= 600 ? 25 : 29;
+      if (geometry.fontSize !== approvedSize) {
+        throw new Error(`${name} assessment heading diverges from approved ${approvedSize}px size: ${JSON.stringify(geometry)}`);
+      }
+      if (viewport.width <= 390 &&
+          (geometry.completionBottom === null || geometry.completionBottom > viewport.height ||
+           geometry.sectionsTop === null || geometry.sectionsTop >= viewport.height)) {
+        throw new Error(`${name} hides Assessment progress or section navigation below the mobile first viewport: ${JSON.stringify(geometry)}`);
+      }
+    }
     await saveScreenshot(page, name);
     const close = workspace.getByRole("button", { name: "Close assessment" });
     await close.focus();
