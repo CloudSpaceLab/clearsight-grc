@@ -1,5 +1,7 @@
 # Approved UI cutover — runtime reconciliation
 
+> **VISUAL PARITY RESET · 2026-10-19** — **0 of 19 original HTML screens accepted**. This file's historical "Partial" entries refer to feature/contract integration only, not an approved redesign. The 1440px Program, Framework Library and Assessment source/runtime captures have material structural differences; the 390px Program view also diverges. See [verified side-by-side review](VISUAL-PARITY-RESET-2026-10-19.md). Successful CI and 226/226 screenshots prove flow execution and artifact completeness, **not source parity**. Stop counting cosmetic or data-quality fixes as UI cutover. Full cutover is BLOCKED until named screen-by-screen comparison approval.
+
 Updated: 2026-10-18. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
 Authority: the immutable [approved source archive](./source/README.md), its [manifest](./source/MANIFEST.json), the [implementation mapping](./IMPLEMENTATION-MAPPING.md) and the unified design specification. Source HTML is a **visual/interaction benchmark, not a data or permission contract**. No source-example totals, statuses, suggestions or approvals may ship as runtime facts.
 
