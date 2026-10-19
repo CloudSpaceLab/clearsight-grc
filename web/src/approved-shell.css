@@ -80,7 +80,6 @@
     padding: 0 0 var(--cs-space-section);
   }
   .app-shell > .sidebar .brand-mark {
-    display: grid;
     flex-basis: 35px;
     inline-size: 35px;
     block-size: 35px;
@@ -125,7 +124,6 @@
   }
   .app-shell > main {
     min-inline-size: 0;
-    inline-size: 100%;
     padding: 0 var(--cs-space-group) var(--cs-space-section);
   }
   .app-shell > main > .context-bar {
