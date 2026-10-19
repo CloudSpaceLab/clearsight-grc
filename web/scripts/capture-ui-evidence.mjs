@@ -145,7 +145,14 @@ async function assertApprovedShell(page, width) {
   const [navBox, barBox] = await Promise.all([navigation.boundingBox(), contextBar.boundingBox()]);
   if (!barBox) throw new Error("The authenticated context bar is missing");
   if (width <= 1024) {
-    if (width === 1024 && (!navBox || navBox.width > 120)) {
+    if (width <= 650) {
+      const bottomNavigationVisible = await page.locator(".mobile-nav").isVisible();
+      if (!navBox || Math.abs(navBox.width - 56) > 1 ||
+          navBox.x !== 0 || bottomNavigationVisible ||
+          barBox.y > 2 || barBox.height < 56 || barBox.height > 95) {
+        throw new Error("Approved mobile shell requires one 56px left rail and a compact top context bar");
+      }
+    } else if (width === 1024 && (!navBox || navBox.width > 120)) {
       throw new Error("Approved 1024px shell must retain compact navigation");
     }
     return;
