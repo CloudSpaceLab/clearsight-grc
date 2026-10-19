@@ -2,6 +2,10 @@
 
 This is the fast, implementation-ready design contract for people and coding agents. Canonical product and safety semantics remain in `docs/`; this file defines how those semantics should appear and behave in the interface.
 
+## Approved October HTML cutover — visual acceptance
+
+**Status: 0/19 screens accepted as of 19 October 2026.** See [source-vs-runtime audit](docs/design/references/clearsight-2026-10/VISUAL-PARITY-RESET-2026-10-19.md). A component migration, route/permission repair or green screenshot CI is **not** a visual redesign. Code and layout must be reviewed side by side with the exact SHA-256-pinned original HTML at 1440/1280/1024/768/390 and relevant interaction states. Do not claim a screen is cut over until a named reviewer accepts its **global shell + page composition + navigation + visuals + functionality** together. Sample prototype data remain prohibited; backend gaps render honest states in the approved layout. All 19 areas remain unaccepted until proven.
+
 ## Product and users
 
 Program follow-up groups assessment expiry, missing assessments, source updates and open issues into compact rows. Each row names the affected population, expands its supporting reasons and links to the relevant Program section. Desktop actions align beside the reason; below 560px they stack below it with a 44px minimum target. Supporting information status does not establish vendor document or response freshness. Submitted-response tables combine score and concern under Assessment result; scoring coverage remains in response detail. Existing theme and focus tokens apply.
