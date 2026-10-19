@@ -96,11 +96,16 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
 
   return <section className="cs-framework-library portfolio-workspace" aria-label="Framework Library workspace" id="framework-library-workspace">
     <header className="cs-framework-library__header">
-      <div>
-        <span className="eyebrow">Catalog scope</span>
+      <nav className="cs-framework-library__views" aria-label="Library views">
+        <span aria-current="page" className="cs-framework-library__view cs-framework-library__view--active">Explore</span>
+        <button type="button" className="cs-framework-library__view" onClick={onBack}>In my Programs</button>
+        <button type="button" className="cs-framework-library__view" disabled
+          title="Edition updates are not available from the current catalog">Edition updates</button>
+      </nav>
+      <div className="cs-framework-library__scope">
         <p role="status">{catalog.items.length} loaded editions · {jurisdiction}{catalog.nextAfterID ? " · More available" : ""}</p>
+        <Button variant="secondary" onPress={onBack}>Back to Programs</Button>
       </div>
-      <Button variant="secondary" onPress={onBack}>Back to Programs</Button>
     </header>
 
     <div className="cs-framework-library__layout">
