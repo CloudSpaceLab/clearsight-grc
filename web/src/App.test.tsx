@@ -935,7 +935,13 @@ describe("runtime navigation", () => {
     expect(context).toBeTruthy();
     expect(Boolean(completion.compareDocumentPosition(context!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
     expect(within(workspace).getAllByRole("progressbar")).toHaveLength(1);
-    expect(within(workspace).getByRole("navigation", { name: "Assessment sections" })).toBeTruthy();
+    const sections = within(workspace).getByRole("navigation", { name: "Assessment sections" });
+    expect(within(sections).getByRole("button", { name: "Identity, 0 of 1 answered" })).toBeTruthy();
+    expect(within(sections).getByRole("button", { name: "Controls, 0 of 1 answered" })).toBeTruthy();
+    expect(within(sections).getByRole("button", { name: "Evidence, 0 of 1 answered" })).toBeTruthy();
+    fireEvent.change(within(workspace).getByRole("textbox", { name: /Registered name/ }), { target: { value: "Example company" } });
+    expect(within(sections).getByRole("button", { name: "Identity, 1 of 1 answered" })).toBeTruthy();
+    expect(within(sections).getByRole("button", { name: "Controls, 0 of 1 answered" })).toBeTruthy();
     expect(within(workspace).getByRole("complementary", { name: "Response readiness and evidence" })).toBeTruthy();
     expect(within(workspace).getByRole("button", { name: "Continue" })).toBeTruthy();
     expect(loadEvidenceRequest).toHaveBeenCalledWith(assigned.id, "capture_revalidation");

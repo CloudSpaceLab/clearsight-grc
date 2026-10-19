@@ -60,9 +60,6 @@
 .internal-assessment-workspace > .panel-content > :is(.eyebrow, h2, p:first-of-type) {
   display: none;
 }
-.internal-assessment-workspace .why-you {
-  margin-block: var(--cs-space-inline);
-}
 .capture-panel--full-page .capture-panel__context {
   margin: 0;
   color: var(--cs-text-primary);
@@ -160,6 +157,14 @@
 }
 .capture-wizard--full-page .capture-wizard__sections > strong {
   color: var(--cs-text-strong);
+}
+.capture-wizard--full-page .capture-wizard__section-count {
+  margin-inline-start: auto;
+  flex: 0 0 auto;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  font-weight: 500;
+  white-space: nowrap;
 }
 .capture-wizard--full-page .capture-wizard__main > .capture-section {
   gap: var(--cs-space-inline);

@@ -141,7 +141,8 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
       {sections.length > 1 && <nav className="capture-wizard__sections" aria-label="Assessment sections">
         <strong>Sections</strong>
         <ol>{sections.map((entry, index) => <li key={entry.id}>
-          <button type="button" aria-label={entry.title} aria-current={index === sectionIndex ? "step" : undefined}
+          <button type="button" aria-label={fullPage ? `${entry.title}, ${entry.fields.filter(hasValue).length} of ${entry.fields.length} answered` : entry.title}
+            aria-current={index === sectionIndex ? "step" : undefined}
             disabled={navigating || Boolean(uploadingField) || (index > sectionIndex && unsupported.length > 0) || index > sectionIndex + 1}
             onClick={() => {
               if (index === sectionIndex) return;
@@ -150,6 +151,9 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
             }}>
             <span className="capture-wizard__section-number" aria-hidden="true">{index + 1}</span>
             <span>{entry.title}</span>
+            {fullPage && <small className="capture-wizard__section-count" aria-hidden="true">
+              {entry.fields.filter(hasValue).length}/{entry.fields.length}
+            </small>}
           </button>
         </li>)}</ol>
       </nav>}
