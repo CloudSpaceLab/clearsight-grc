@@ -592,7 +592,8 @@ describe("runtime navigation", () => {
 
     expect(window.location.hash).toBe("#work");
     expect(await screen.findByRole("tab", { name: "Assigned", selected: true })).toBeTruthy();
-    expect(screen.getByText("Confirm assigned evidence")).toBeTruthy();
+    expect(within(screen.getByRole("table", { name: "Assigned work" })).getByText("Confirm assigned evidence")).toBeTruthy();
+    expect(within(screen.getByRole("complementary", { name: "Selected work" })).getByRole("heading", { name: "Confirm assigned evidence" })).toBeTruthy();
     expect(loadEvidenceRequests).not.toHaveBeenCalled();
   });
 

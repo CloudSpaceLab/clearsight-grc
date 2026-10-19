@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Button, DataTable, FocusedSheet, StatusBadge, type DataColumn } from "./ui";
 import { EmptyState } from "./EmptyState";
 import { WorkItemIcon } from "./WorkItemIcon";
 import type { AttentionItem, InterventionClass } from "../types";
@@ -12,25 +14,70 @@ export type AssignedWorkQueueProps = {
   onInspectAuthority?: (item: AttentionItem) => void;
   onRetry?: () => void;
   headingLevel?: "h2" | "h3";
+  presentation?: "brief" | "workspace";
 };
 
-export function AssignedWorkQueue({ items, state, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2" }: AssignedWorkQueueProps) {
+export function AssignedWorkQueue({ items, state, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief" }: AssignedWorkQueueProps) {
   const count = items.length === 1 ? "1 item needs your action" : `${items.length} items need your action`;
   const title = state === "loading" ? "Loading assigned work" : state === "unavailable" ? "Assigned work is unavailable" : count;
   const Heading = headingLevel;
+  const [selectedID, setSelectedID] = useState<string>();
+  const [inspectingItem, setInspectingItem] = useState<AttentionItem>();
+  const selected = items.find((item) => item.id === selectedID) ?? items[0];
+  // A fresh actor/scope feed invalidates an inspection, even if IDs happen to match.
+  const inspecting = items.find((item) => item === inspectingItem);
 
-  return <section className="intervention-brief" aria-labelledby="assigned-work-heading">
+  return <section className={`intervention-brief${presentation === "workspace" ? " assigned-workspace" : ""}`} aria-labelledby="assigned-work-heading">
     <header className="intervention-heading">
-      <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{title}</Heading></div>
+      <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{presentation === "workspace" && state === "live" ? "My work" : title}</Heading>{presentation === "workspace" && state === "live" && <p>{items.length} {items.length === 1 ? "item" : "items"} loaded</p>}</div>
     </header>
     {state === "loading"
       ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
       : state === "unavailable"
         ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry." action="Try again" onAction={onRetry}/>
         : items.length
-          ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
+          ? presentation === "workspace"
+            ? <div className="assigned-workspace__grid" id="attention-list">
+              <DataTable ariaLabel="Assigned work" rows={items} rowKey={(item) => item.id} rowName={(item) => item.title} columns={workColumns} selectedKey={selected?.id} onSelectionChange={(item) => setSelectedID(item.id)} onRowAction={(item) => { setSelectedID(item.id); setInspectingItem(item); }} rowActionLabel="Inspect" responsiveTo="container"/>
+              {selected && <WorkContext item={selected} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>}
+            </div>
+            : <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
           : <div id="attention-list"><EmptyState label="Assigned work" title="Nothing needs your action right now" description="No open assigned work."/></div>}
+    {presentation === "workspace" && state === "live" && inspecting && <FocusedSheet label={`Selected work: ${inspecting.title}`} onClose={() => setInspectingItem(undefined)}><WorkContext item={inspecting} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/></FocusedSheet>}
   </section>;
+}
+
+const workColumns: readonly DataColumn<AttentionItem>[] = [
+  { id: "work", header: "Work", mobileLayout: "full-width", render: (item) => <span className="assigned-workspace__record"><WorkItemIcon type={item.type}/><strong>{item.title}</strong></span>, accessibleText: (item) => item.title },
+  { id: "status", header: "Status", kind: "status", render: (item) => <StatusBadge tone="neutral">{item.state || "Unknown"}</StatusBadge>, accessibleText: (item) => item.state || "Unknown" },
+  { id: "due", header: "Due", render: (item) => formatDue(item.due_at), accessibleText: (item) => formatDue(item.due_at) },
+  { id: "owner", header: "Owner", render: (item) => item.owner || "Unassigned", accessibleText: (item) => item.owner || "Unassigned" },
+];
+
+function WorkContext({ item, onOpen, onInspectAuthority }: { item: AttentionItem; onOpen: (item: AttentionItem) => void; onInspectAuthority?: (item: AttentionItem) => void }) {
+  const target = item.action_target_type;
+  const canOpen = Boolean(target && item.action_target_id);
+  const canInspect = Boolean(canOpen && target !== "DOCUMENT_IMPORT" && item.authority && onInspectAuthority);
+  return <aside className="assigned-workspace__context" aria-label="Selected work">
+    <span className="eyebrow">{gateLabel(item.intervention_class, target)}</span>
+    <h3>{item.title}</h3>
+    <StatusBadge tone="neutral">{item.state || "Unknown"}</StatusBadge>
+    <p>{item.material_conclusion || item.why_now}</p>
+    <dl>
+      <div><dt>Due</dt><dd>{formatDue(item.due_at)}</dd></div>
+      <div><dt>Scope</dt><dd>{item.scope || "Not specified"}</dd></div>
+      <div><dt>Owner</dt><dd>{item.owner || "Unassigned"}</dd></div>
+      <div><dt>Evidence</dt><dd>{item.evidence || "Not recorded"}</dd></div>
+    </dl>
+    <div className="assigned-workspace__next"><span>{item.recommendation ? "Recommended action" : "Next action"}</span><strong>{item.recommendation?.proposed_action || item.primary_action}</strong></div>
+    {item.verification && <VerificationContext item={item}/>}
+    <div className="assigned-workspace__actions">
+      {canOpen
+        ? <Button variant="primary" onPress={() => openItem(item, onOpen)}>{openLabel(target, item.action_target_id)}</Button>
+        : <p>No linked record is available.</p>}
+      {canInspect && <Button variant="secondary" onPress={() => onInspectAuthority?.(item)}>Check authority</Button>}
+    </div>
+  </aside>;
 }
 
 function InterventionRow({ item, onOpen, onInspectAuthority }: { item: AttentionItem; onOpen: (item: AttentionItem) => void; onInspectAuthority?: (item: AttentionItem) => void }) {
