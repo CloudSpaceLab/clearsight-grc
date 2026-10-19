@@ -102,33 +102,31 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
         <button type="button" className="cs-framework-library__view" disabled
           title="Edition updates are not available from the current catalog">Edition updates</button>
       </nav>
-      <div className="cs-framework-library__scope">
-        <p role="status">{catalog.items.length} loaded editions · {jurisdiction}{catalog.nextAfterID ? " · More available" : ""}</p>
-        <Button variant="secondary" onPress={onBack}>Back to Programs</Button>
-      </div>
     </header>
+
+    <FilterBar label="Framework filters"
+      onClear={search ? () => setSearch("") : undefined}
+      fields={<>
+        <SearchField label="Search loaded standards" placeholder="Search loaded standards" value={search}
+          onChange={setSearch} isLoading={catalog.state === "loading"}/>
+        {compact && <Button variant="secondary" size="compact" aria-expanded={jurisdictionExpanded}
+          onPress={() => {
+            if (jurisdictionExpanded) { setJurisdictionDraft(jurisdiction); setJurisdictionError(""); }
+            setJurisdictionExpanded((value) => !value);
+          }}>
+          {jurisdictionExpanded ? "Hide jurisdiction filter" : "Jurisdiction: " + jurisdiction}
+        </Button>}
+        {(!compact || jurisdictionExpanded) && <form className="cs-framework-library__jurisdiction" onSubmit={applyJurisdiction}>
+          <TextField id="framework-jurisdiction" label="Jurisdiction code" autoComplete="off"
+            value={jurisdictionDraft} maxLength={64} onChange={setJurisdictionDraft}
+            isInvalid={Boolean(jurisdictionError)} errorMessage={jurisdictionError}/>
+          <Button type="submit" variant="secondary" size="compact">Apply</Button>
+        </form>}
+      </>}/>
 
     <div className="cs-framework-library__layout">
       <div className="cs-framework-library__register">
-        <FilterBar label="Framework filters"
-          onClear={search ? () => setSearch("") : undefined}
-          fields={<>
-            <SearchField label="Search loaded standards" placeholder="Search loaded standards" value={search}
-              onChange={setSearch} isLoading={catalog.state === "loading"}/>
-            {compact && <Button variant="secondary" size="compact" aria-expanded={jurisdictionExpanded}
-              onPress={() => {
-                if (jurisdictionExpanded) { setJurisdictionDraft(jurisdiction); setJurisdictionError(""); }
-                setJurisdictionExpanded((value) => !value);
-              }}>
-              {jurisdictionExpanded ? "Hide jurisdiction filter" : "Jurisdiction: " + jurisdiction}
-            </Button>}
-            {(!compact || jurisdictionExpanded) && <form className="cs-framework-library__jurisdiction" onSubmit={applyJurisdiction}>
-              <TextField id="framework-jurisdiction" label="Jurisdiction code" autoComplete="off"
-                value={jurisdictionDraft} maxLength={64} onChange={setJurisdictionDraft}
-                isInvalid={Boolean(jurisdictionError)} errorMessage={jurisdictionError}/>
-              <Button type="submit" variant="secondary" size="compact">Apply</Button>
-            </form>}
-          </>}/>
+
         {catalog.state === "loading" && <p role="status">{catalog.items.length ? "Loading additional editions…" : "Loading published editions…"}</p>}
         {catalog.state === "denied" && <EmptyState role="alert" population="Framework Library"
           title="Published editions unavailable" description="Select an authorized legal entity to view published standards."/>}
@@ -148,7 +146,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
         {catalog.items.length > 0 && catalog.state !== "denied" && <section aria-label="Published framework editions">
           <div className="cs-framework-library__results-head">
             <h3>Reference editions</h3>
-            <span>{visible.length} matching loaded</span>
+            <span role="status">{visible.length} matching loaded · {catalog.items.length} loaded editions · {jurisdiction}{catalog.nextAfterID ? " · More available" : ""}</span>
           </div>
           <ul className="cs-framework-library__list" aria-label="Published framework editions">
             {visible.map((item) => <li key={item.id}>
