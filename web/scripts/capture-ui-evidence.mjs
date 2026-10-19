@@ -147,10 +147,13 @@ async function assertApprovedShell(page, width) {
   if (width <= 1024) {
     if (width <= 650) {
       const bottomNavigationVisible = await page.locator(".mobile-nav").isVisible();
-      if (!navBox || Math.abs(navBox.width - 56) > 1 ||
+      const mainBox = await page.locator(".app-shell > main").boundingBox();
+      if (!navBox || !mainBox || Math.abs(navBox.width - 56) > 1 ||
           navBox.x !== 0 || bottomNavigationVisible ||
+          Math.abs(mainBox.x - navBox.width) > 2 ||
+          Math.abs(mainBox.width - (width - navBox.width)) > 2 ||
           barBox.y > 2 || barBox.height < 56 || barBox.height > 95) {
-        throw new Error("Approved mobile shell requires one 56px left rail and a compact top context bar");
+        throw new Error("Approved mobile shell requires a 56px left rail, adjacent content and a compact top context bar");
       }
     } else if (width === 1024 && (!navBox || navBox.width > 120)) {
       throw new Error("Approved 1024px shell must retain compact navigation");
