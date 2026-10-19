@@ -89,8 +89,8 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
       <div className="cs-program-standards__actions">
         <Button variant="primary" isDisabled={!selected || catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction || !frameworkEditionHasVerifiableSource(preview)}
           onPress={() => { if (selected) onChooseProgram(selected); }}>Choose Program</Button>
-        {!selected && <p className="cs-framework-library__preview-note">Select an edition in the list to continue.</p>}
       </div>
+      {!selected && <p className="cs-framework-library__preview-note">Select an edition in the list to continue.</p>}
     </div>
   </div>;
 
