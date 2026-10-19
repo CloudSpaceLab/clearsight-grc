@@ -674,7 +674,6 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
             <h1>{capture?.title}</h1>
             {capture?.purpose && <p>{capture.purpose}</p>}
           </div>
-          <Button variant="secondary" onPress={closePanel}>Close assessment</Button>
         </header>
         <CapturePanel fullPage request={capture} state={captureState} onReload={() => void reloadCapture()}/>
       </section> : <>
