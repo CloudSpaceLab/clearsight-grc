@@ -161,6 +161,14 @@
 .capture-wizard--full-page .capture-wizard__sections > strong {
   color: var(--cs-text-strong);
 }
+.capture-wizard--full-page .capture-wizard__section-count {
+  margin-inline-start: auto;
+  flex: 0 0 auto;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  font-weight: 500;
+  white-space: nowrap;
+}
 .capture-wizard--full-page .capture-wizard__main > .capture-section {
   gap: var(--cs-space-inline);
 }
