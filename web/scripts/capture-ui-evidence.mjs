@@ -235,6 +235,21 @@ async function capturePage(capture) {
         await page.screenshot({ path: path.join(outputDir, "04-program-mobile-viewport-failure.png"), fullPage: false, animations: "disabled" });
         throw new Error(`Approved mobile Program measures are pushed too far below the first viewport: ${firstBox?.y ?? "unavailable"}px`);
       }
+      const measureLayout = await page.locator(".program-overview-metrics .cs-metric-card").evaluateAll((cards) =>
+        cards.map((card) => {
+          const { x, y, width, height } = card.getBoundingClientRect();
+          return { x, y, width, height, clipped: card.scrollHeight > card.clientHeight + 1 };
+        }));
+      if (measureLayout.length !== 4 ||
+          Math.abs(measureLayout[0].y - measureLayout[1].y) > 2 ||
+          Math.abs(measureLayout[2].y - measureLayout[3].y) > 2 ||
+          measureLayout[2].y <= measureLayout[0].y ||
+          measureLayout[0].x >= measureLayout[1].x ||
+          measureLayout[2].x >= measureLayout[3].x ||
+          measureLayout[2].y > 750 ||
+          measureLayout.some((measure) => measure.clipped)) {
+        throw new Error("Mobile Program must keep four readable measures in a dense 2×2 grid: " + JSON.stringify(measureLayout));
+      }
       const collectionAction = page.getByRole("button", { name: "Open data collection" });
       const actionBox = await collectionAction.boundingBox();
       if (!actionBox || actionBox.height < 44) {
