@@ -35,16 +35,12 @@
   background: linear-gradient(165deg, var(--cs-accent-cyan), var(--cs-accent-violet));
 }
 @media (min-width: 1025px) {
-  .app-shell > .sidebar .sidebar-brand { min-block-size: 68px; }
   .app-shell > main > .context-bar {
     min-block-size: 68px;
     margin-block-end: var(--cs-space-section);
   }
   .app-shell > main > .context-bar .context-scope {
     gap: var(--cs-space-group);
-  }
-  .app-shell > main > .context-bar .context-identity > strong {
-    color: var(--cs-text-strong);
   }
 }
 
@@ -53,7 +49,7 @@
    bottom bar. Tablet/desktop preserve their existing permission-aware routes. */
 @media (max-width: 650px) {
   body { padding-bottom: 0; }
-  .app-shell:has(> .sidebar) {
+  .app-shell.app-shell {
     display: grid;
     grid-template-columns: 56px minmax(0, 1fr);
     min-inline-size: 0;
