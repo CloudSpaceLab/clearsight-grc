@@ -227,7 +227,6 @@
     line-height: 1.1;
     margin-block: var(--cs-space-inline);
   }
-  .internal-assessment-workspace__header > button { justify-self: start; }
 }
 @media (max-width: 600px) {
   .internal-assessment-workspace__breadcrumb { gap: var(--cs-primitive-space-1); }
