@@ -20,6 +20,9 @@ const captures = [
   { name: "04-program-light-1280x800", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1280, height: 800 } },
   { name: "04-program-light-mobile-390x844", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true },
   ...frameworkEvidenceScenarios,
+  { name: "150-work-queue-light-1440x900", route: "#work", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "My work", state: "work-assigned-desktop" },
+  { name: "151-work-queue-dark-mobile-390x844", route: "#work", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "My work", state: "work-assigned-mobile" },
+  { name: "152-work-detail-dark-mobile-390x844", route: "#work", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openAssignedInspection: true, state: "work-inspection-mobile" },
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
@@ -274,6 +277,12 @@ async function capturePage(capture) {
         await page.getByRole("option", { name: "Saved setups", exact: true }).click();
       }
       await page.getByRole("heading", { name: "Saved setups", exact: true }).waitFor({ state: "visible" });
+    }
+    if (capture.openAssignedInspection) {
+      const table = page.getByRole("table", { name: "Assigned work" });
+      await table.waitFor({ state: "visible" });
+      await table.getByRole("button", { name: /^Inspect for / }).first().click();
+      await page.getByRole("dialog", { name: /^Selected work: / }).waitFor({ state: "visible" });
     }
     if (capture.openFailedReport) {
       const failedRow = page.getByRole("table", { name: "Generated reports" }).getByRole("row").filter({ hasText: "Failed" }).first();
