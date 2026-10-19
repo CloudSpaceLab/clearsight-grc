@@ -212,12 +212,20 @@ async function capturePage(capture) {
     }
     if (capture.name === "04-program-light-mobile-390x844") await assertApprovedProgramHeading(page, true);
     if (capture.name === "04-program-light-mobile-390x844") {
-      const sections = page.getByRole("button", {name: "Overview Program section"});
-      await sections.waitFor({state:"visible"});
-      await page.getByRole("button", {name: "Open data collection"}).waitFor({state:"visible"});
-      if (await page.getByRole("tablist", {name:"Program sections"}).isVisible().catch(() => false)) {
-        throw new Error("Approved compact Program still shows desktop tab strip");
+      const tabs = page.getByRole("tablist", { name: "Program sections" });
+      await tabs.waitFor({ state: "visible" });
+      if (await tabs.getByRole("tab").count() !== 6 ||
+          await page.locator(".program-detail-sections .cs-tabs__compact").count()) {
+        throw new Error("Approved mobile Program requires six real tabs, not a duplicate compact selector");
       }
+      const tabGeometry = await tabs.evaluate((element) => ({
+        display: getComputedStyle(element).display,
+        overflowX: getComputedStyle(element).overflowX,
+      }));
+      if (tabGeometry.display !== "flex" || tabGeometry.overflowX !== "auto") {
+        throw new Error("Program mobile tabs must remain a horizontally scrollable source-aligned row");
+      }
+      await page.getByRole("button", {name: "Open data collection"}).waitFor({state:"visible"});
     }
     if (capture.name === "04-program-light-mobile-390x844") {
       const first = page.locator(".program-overview-metrics .cs-metric-card").first();
@@ -851,12 +859,7 @@ async function captureDocumentResultHandoffs() {
           if (!title || !implementation || implementation.y < title.y + title.height || Math.abs(title.x - implementation.x) > 1) throw new Error("Narrow control objective still squeezes its title beside implementation details");
         }
         await saveState("control-objective");
-        if (width <= 720) {
-          const selector = page.locator(".program-detail-sections .cs-tabs__compact .cs-select-field__trigger");
-          await selector.click();
-          await page.getByRole("option", { name: "Overview", exact: true }).click();
-        }
-        else await page.getByRole("tab", { name: "Overview", exact: true }).click();
+        await page.getByRole("tab", { name: "Overview", exact: true }).click();
         if (new URL(page.url()).hash !== "#programs/program-ndpa/overview") throw new Error("Changing Program sections retained the old item target");
         await page.goto(`${baseURL}/?tour=off&fixture=document-result-handoffs#programs/program-ndpa/requirements-controls/requirement/unavailable-item`, { waitUntil: "networkidle" });
         const unavailable = page.getByText("The requested requirement is unavailable in this Program.", { exact: false });

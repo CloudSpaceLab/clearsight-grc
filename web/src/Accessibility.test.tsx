@@ -93,13 +93,15 @@ describe("semantic accessibility gates", () => {
     }
   });
 
-  it("passes axe for desktop tabs and the compact Program section selector", async () => {
+  it("passes axe for the same six Program tabs on desktop and compact viewports", async () => {
     const panels = Object.fromEntries(programSections.map((section) => [section.id, <p key={section.id}>{section.label} records</p>])) as Record<ProgramSection, ReactNode>;
     const desktop = render(<ProgramDetailSections section="overview" panels={panels} onSectionChange={vi.fn()}/>);
     await expectNoSemanticViolations(desktop.container);
     desktop.unmount();
     const compact = render(<ProgramDetailSections section="assessments" panels={panels} onSectionChange={vi.fn()}/>);
-    expect(screen.getByRole("button", { name: "Assessments Program section" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Assessments", selected: true })).toBeTruthy();
+    expect(screen.getAllByRole("tab")).toHaveLength(6);
+    expect(compact.container.querySelector(".cs-tabs__compact")).toBeNull();
     await expectNoSemanticViolations(compact.container);
     compact.unmount();
   });
