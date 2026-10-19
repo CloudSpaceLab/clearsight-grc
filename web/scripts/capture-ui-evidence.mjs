@@ -147,8 +147,9 @@ async function assertApprovedShell(page, width) {
   if (width <= 1024) {
     if (width <= 650) {
       const bottomNavigationVisible = await page.locator(".mobile-nav").isVisible();
+      const brandVisible = await navigation.locator(".brand-mark").isVisible();
       const mainBox = await page.locator(".app-shell > main").boundingBox();
-      if (!navBox || !mainBox || Math.abs(navBox.width - 56) > 1 ||
+      if (!brandVisible || !navBox || !mainBox || Math.abs(navBox.width - 56) > 1 ||
           navBox.x !== 0 || bottomNavigationVisible ||
           Math.abs(mainBox.x - navBox.width) > 2 ||
           Math.abs(mainBox.width - (width - navBox.width)) > 2 ||
