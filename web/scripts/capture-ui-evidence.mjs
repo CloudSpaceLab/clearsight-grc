@@ -1155,6 +1155,15 @@ async function captureInternalAssessment({ name, viewport, theme }) {
       }
     }
     await saveScreenshot(page, name);
+    if (await workspace.locator(".capture-progress progress").count()) {
+      throw new Error(name + " duplicates the Assessment completion meter with a second step progress bar");
+    }
+    if (viewport.width === 390) {
+      const firstQuestion = await workspace.locator(".capture-field-shell").first().boundingBox();
+      if (!firstQuestion || firstQuestion.y >= viewport.height - 12) {
+        throw new Error(name + " hides the first questionnaire field below the mobile first viewport: " + JSON.stringify(firstQuestion));
+      }
+    }
     const close = workspace.getByRole("button", { name: "Close assessment" });
     await close.focus();
     if (!await close.evaluate((element) => element === document.activeElement)) {
