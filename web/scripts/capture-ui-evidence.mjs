@@ -147,18 +147,19 @@ async function assertApprovedShell(page, width) {
   const [navBox, barBox] = await Promise.all([navigation.boundingBox(), contextBar.boundingBox()]);
   if (!barBox) throw new Error("The authenticated context bar is missing");
   if (width <= 1024) {
-    if (width <= 650) {
+    if (width <= 820) {
+      const expectedRail = width <= 650 ? 56 : 72;
       const bottomNavigationVisible = await page.locator(".mobile-nav").isVisible();
       const brandVisible = await navigation.locator(".brand-mark").isVisible();
       const mainBox = await page.locator(".app-shell > main").boundingBox();
-      if (!brandVisible || !navBox || !mainBox || Math.abs(navBox.width - 56) > 1 ||
+      if (!brandVisible || !navBox || !mainBox || Math.abs(navBox.width - expectedRail) > 1 ||
           navBox.x !== 0 || bottomNavigationVisible ||
           Math.abs(mainBox.x - navBox.width) > 2 ||
           Math.abs(mainBox.width - (width - navBox.width)) > 2 ||
           Math.abs(barBox.x - mainBox.x) > 2 ||
           Math.abs(barBox.width - mainBox.width) > 2 ||
           barBox.y > 2 || barBox.height < 56 || barBox.height > 95) {
-        throw new Error("Approved mobile shell requires a 56px left rail, an aligned context bar and adjacent content");
+        throw new Error(`Approved compact shell requires a ${expectedRail}px left rail, aligned context bar and adjacent content`);
       }
     } else if (width === 1024 && (!navBox || navBox.width > 120)) {
       throw new Error("Approved 1024px shell must retain compact navigation");
@@ -1075,6 +1076,7 @@ async function captureInternalAssessment({ name, viewport, theme }) {
     fixture: "internal-assessment-layout", density: "comfortable", touch: viewport.width <= 390 };
   const { context, page } = await openPage(capture);
   try {
+    if (viewport.width === 768) await assertApprovedShell(page, viewport.width);
     const more = page.getByText("More actions", { exact: true });
     if (await more.count() && await more.isVisible()) await more.click();
     await page.getByRole("button", { name: "Respond to evidence request" }).click();
