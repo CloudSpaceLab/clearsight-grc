@@ -24,15 +24,15 @@ describe("AssignedWorkQueue approved Work presentation", () => {
     const onOpenItem = vi.fn();
     const onInspectAuthority = vi.fn();
     render(<AssignedWorkQueue presentation="workspace" state="live" items={[request, approval]} onOpenItem={onOpenItem} onInspectAuthority={onInspectAuthority}/>);
-    expect(screen.getByRole("heading", { name: "My work" })).toBeInTheDocument();
-    expect(screen.getByText("2 items shown from the current work feed")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "My work" })).toBeTruthy();
+    expect(screen.getByText("2 items shown from the current work feed")).toBeTruthy();
     const table = screen.getByRole("table", { name: "Assigned work" });
     const selected = screen.getByRole("complementary", { name: "Selected work" });
-    expect(within(selected).getByRole("heading", { name: request.title })).toBeInTheDocument();
-    expect(within(selected).queryByRole("button", { name: "Check authority" })).not.toBeInTheDocument();
+    expect(within(selected).getByRole("heading", { name: request.title })).toBeTruthy();
+    expect(within(selected).queryByRole("button", { name: "Check authority" })).toBeNull();
     fireEvent.click(within(table).getByRole("button", { name: `Inspect for ${approval.title}` }));
-    expect(within(selected).getByRole("heading", { name: approval.title })).toBeInTheDocument();
-    expect(within(selected).getByText("Issue revision 3")).toBeInTheDocument();
+    expect(within(selected).getByRole("heading", { name: approval.title })).toBeTruthy();
+    expect(within(selected).getByText("Issue revision 3")).toBeTruthy();
     expect(onOpenItem).not.toHaveBeenCalled();
     expect(onInspectAuthority).not.toHaveBeenCalled();
     fireEvent.click(within(selected).getByRole("button", { name: "Check authority" }));
@@ -47,18 +47,18 @@ describe("AssignedWorkQueue approved Work presentation", () => {
       items={[{ ...request, action_target_id: undefined, authority: approval.authority }]}
       onOpenItem={vi.fn()} onInspectAuthority={vi.fn()}/>);
     const detail = screen.getByRole("complementary", { name: "Selected work" });
-    expect(within(detail).getByText("No linked record is available.")).toBeInTheDocument();
-    expect(within(detail).queryByRole("button", { name: "Open request" })).not.toBeInTheDocument();
-    expect(within(detail).queryByRole("button", { name: "Check authority" })).not.toBeInTheDocument();
+    expect(within(detail).getByText("No linked record is available.")).toBeTruthy();
+    expect(within(detail).queryByRole("button", { name: "Open request" })).toBeNull();
+    expect(within(detail).queryByRole("button", { name: "Check authority" })).toBeNull();
   });
 
   it("preserves the shared brief presentation and fail-closed unavailable state", () => {
     const { rerender } = render(<AssignedWorkQueue state="live" items={[request]} onOpenItem={vi.fn()}/>);
-    expect(screen.getByRole("article")).toBeInTheDocument();
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByRole("article")).toBeTruthy();
+    expect(screen.queryByRole("table")).toBeNull();
     rerender(<AssignedWorkQueue presentation="workspace" state="unavailable" items={[request]} onOpenItem={vi.fn()} onRetry={vi.fn()}/>);
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.queryByRole("complementary", { name: "Selected work" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Selected work" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 });
