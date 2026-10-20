@@ -71,7 +71,7 @@ func TestSnapshotServicePreservesCoverageWithoutMutatingLoadedSource(t *testing.
 	legacy, err := NewDynamicService(func(context.Context, identity.Actor) ([]AttentionItem, error) {
 		return nil, nil
 	}).SnapshotFor(context.Background(), actor)
-	if err != nil || legacy.WorkflowHasMore != nil || legacy.Items == nil {
+	if err != nil || legacy.WorkflowHasMore != nil || len(legacy.Items) != 0 {
 		t.Fatalf("legacy loaders must not invent completeness: %+v, %v", legacy, err)
 	}
 }
