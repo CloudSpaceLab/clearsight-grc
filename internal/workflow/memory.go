@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,6 +36,7 @@ func NewMemoryRepositoryWithNotifications(seed []Task, notifications []InAppNoti
 }
 
 func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, error) {
+	search := strings.ToLower(strings.TrimSpace(filter.Search))
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	values := []Task{}
@@ -52,6 +54,15 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 			continue
 		}
 		if filter.WorkflowKind != "" && task.WorkflowKind != filter.WorkflowKind {
+			continue
+		}
+		if search != "" && !strings.Contains(strings.ToLower(task.Title), search) {
+			continue
+		}
+		if filter.DueFrom != nil && (task.DueAt == nil || task.DueAt.Before(*filter.DueFrom)) {
+			continue
+		}
+		if filter.DueBefore != nil && (task.DueAt == nil || !task.DueAt.Before(*filter.DueBefore)) {
 			continue
 		}
 		if filter.ActiveOnly && (task.Status == StatusCompleted || task.Status == StatusCancelled) {

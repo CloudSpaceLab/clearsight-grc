@@ -42,10 +42,14 @@ func (r *PostgresRepository) ListDocumentProposalActorWork(ctx context.Context, 
 		    OR
 		    (wt.step_key='document-proposal-authorization' AND current_handoff.handoff_status='AWAITING_AUTHORIZATION')
 		  )
+		  AND ($8='' OR strpos(lower(wt.title),$8)>0)
+		  AND ($9::timestamptz IS NULL OR wt.due_at >= $9::timestamptz)
+		  AND ($10::timestamptz IS NULL OR wt.due_at < $10::timestamptz)
 		ORDER BY wt.due_at IS NULL,wt.due_at ASC NULLS LAST,wt.updated_at DESC,wt.id ASC
 		LIMIT $7`,
 		filter.TenantID, filter.PrincipalID, filter.LegalEntityID, string(filter.Status),
 		DocumentProposalWorkflowKind, filter.ActiveOnly, filter.Limit,
+		filter.Search, filter.DueFrom, filter.DueBefore,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list actor document proposal work: %w", err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 type Service struct{ repo Repository }
@@ -16,6 +17,16 @@ func (s *Service) List(ctx context.Context, filter ListFilter) ([]Task, error) {
 	}
 	if filter.Limit <= 0 || filter.Limit > 200 {
 		filter.Limit = 50
+	}
+	filter.Search = strings.ToLower(strings.TrimSpace(filter.Search))
+	if utf8.RuneCountInString(filter.Search) > 120 {
+		return nil, fmt.Errorf("work search cannot exceed 120 characters")
+	}
+	if (filter.VisibleActorWorkOnly || filter.VisibleMatterWorkOnly) && strings.TrimSpace(filter.PrincipalID) == "" {
+		return nil, fmt.Errorf("actor work requires principal_id")
+	}
+	if filter.DueFrom != nil && filter.DueBefore != nil && !filter.DueFrom.Before(*filter.DueBefore) {
+		return nil, fmt.Errorf("due window must end after it begins")
 	}
 	values, err := s.repo.List(ctx, filter)
 	if err != nil {
