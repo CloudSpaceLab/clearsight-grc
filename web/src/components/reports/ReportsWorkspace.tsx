@@ -353,8 +353,8 @@ export function ReportsWorkspace({
   return <section className="reports-workspace" aria-labelledby="reports-heading">
     <header className="reports-workspace__header cs-workspace-header">
       <div>
-        <span className="eyebrow">{organizationName || "ClearSight"} · {legalEntityName || "Current legal entity"}</span>
-        <h1 id="reports-heading">Reports</h1>
+        <span className="eyebrow">Reporting · {legalEntityName || organizationName || "Current legal entity"}</span>
+        <h1 id="reports-heading">Reports &amp; insights</h1>
       </div>
       {tab !== "templates" && <div className="reports-workspace__actions">
         <Button variant="secondary" onPress={refresh} isLoading={runState === "loading" || definitionState === "loading"}>Refresh</Button>
@@ -364,7 +364,6 @@ export function ReportsWorkspace({
 
     <Tabs
       ariaLabel="Reports workspace"
-      compactLabel="Reports view"
       items={[{ id: "overview", label: "Overview" }, { id: "library", label: "Reports" }, { id: "templates", label: "Saved setups" }]}
       selectedKey={tab}
       onSelectionChange={setTab}
