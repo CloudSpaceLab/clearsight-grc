@@ -150,3 +150,15 @@
 @container assigned-work (max-width: 310px) {
   .assigned-workspace__signals { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* The approved phone Work view uses a short intent row and compact 2x2
+   measures so the first assignment is visible without scrolling. */
+@container assigned-work (max-width: 620px) {
+  .assigned-workspace__signals .cs-metric-card {
+    --cs-metric-card-min-height: 0;
+    --cs-metric-card-padding: var(--cs-primitive-space-3);
+    --cs-metric-card-gap: var(--cs-primitive-space-1);
+  }
+  .assigned-workspace .cs-tabs__list { overflow-x: auto; scrollbar-width: none; }
+  .assigned-workspace .cs-tabs__tab { flex: none; }
+}
