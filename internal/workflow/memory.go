@@ -36,6 +36,7 @@ func NewMemoryRepositoryWithNotifications(seed []Task, notifications []InAppNoti
 }
 
 func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, error) {
+	search := strings.ToLower(strings.TrimSpace(filter.Search))
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	values := []Task{}
@@ -55,7 +56,7 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 		if filter.WorkflowKind != "" && task.WorkflowKind != filter.WorkflowKind {
 			continue
 		}
-		if filter.Search != "" && !strings.Contains(strings.ToLower(task.Title), strings.ToLower(strings.TrimSpace(filter.Search))) {
+		if search != "" && !strings.Contains(strings.ToLower(task.Title), search) {
 			continue
 		}
 		if filter.DueFrom != nil && (task.DueAt == nil || task.DueAt.Before(*filter.DueFrom)) {
