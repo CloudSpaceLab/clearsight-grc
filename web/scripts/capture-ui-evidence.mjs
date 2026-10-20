@@ -193,6 +193,30 @@ async function capturePage(capture) {
          "09-today-dark-tablet-1024x768"].includes(capture.name)) {
       await assertApprovedShell(page, capture.viewport.width);
     }
+    if (capture.name === "04-program-light-mobile-390x844") {
+      const bar = page.locator(".context-bar");
+      const menu = page.getByRole("button", { name: "Workspace controls" });
+      const controls = page.locator("#workspace-context-controls");
+      await menu.waitFor({ state: "visible" });
+      const bounds = await bar.boundingBox();
+      if (!bounds || bounds.height > 74) {
+        throw new Error(`Approved phone shell exceeds compact 64px context bar: ${bounds?.height ?? "unavailable"}px`);
+      }
+      if (await controls.isVisible() || await menu.getAttribute("aria-expanded") !== "false") {
+        throw new Error("Workspace controls should start collapsed on a phone");
+      }
+      await menu.click();
+      if (!await controls.isVisible() || await menu.getAttribute("aria-expanded") !== "true") {
+        throw new Error("Workspace controls are not available through the compact mobile disclosure");
+      }
+      const scope = page.locator(".context-bar .context-scope-control");
+      if (await scope.count() && !await scope.isVisible()) {
+        throw new Error("The verified legal-entity and Group selector is inaccessible on a phone");
+      }
+      await assertNoHorizontalOverflow(page, `${capture.name} expanded context`);
+      await menu.click();
+      await controls.waitFor({ state: "hidden" });
+    }
     const contextSwitcher = page.locator(".context-bar .context-scope-control");
     if (await contextSwitcher.count()) {
       if (!await page.locator(".context-bar > .context-scope > .context-scope-control").count()) {
@@ -280,7 +304,7 @@ async function capturePage(capture) {
       const first = page.locator(".program-overview-metrics .cs-metric-card").first();
       await first.waitFor({ state: "visible" });
       const firstBox = await first.boundingBox();
-      if (!firstBox || firstBox.y > 520) {
+      if (!firstBox || firstBox.y > 465) {
         await page.screenshot({ path: path.join(outputDir, "04-program-mobile-viewport-failure.png"), fullPage: false, animations: "disabled" });
         throw new Error(`Approved mobile Program measures are pushed too far below the first viewport: ${firstBox?.y ?? "unavailable"}px`);
       }

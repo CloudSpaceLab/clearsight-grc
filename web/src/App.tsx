@@ -103,6 +103,7 @@ function isAuthorizedWizardAssessment(request: EvidenceRequest | null, actorID?:
 
 function App({ presentation = "enterprise" }: { presentation?: RuntimePresentation }) {
   const displayPreferences = useDisplayPreferences();
+  const [mobileContextOpen, setMobileContextOpen] = useState(false);
   const initialRoute = parseRoute(window.location.hash);
   const [runtime, setRuntime] = useState<ProductRuntime | null>(null);
   const [scopeSwitchState, setScopeSwitchState] = useState<"idle" | "changing">("idle");
@@ -635,7 +636,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       <div className="avatar" aria-label={`Signed in as ${actorName}`}>{initials(actorName)}</div>
     </aside>
     <main>
-      <div className="context-bar" aria-label="Active workspace context">
+      <div className="context-bar" aria-label="Active workspace context"
+        data-mobile-controls={mobileContextOpen ? "open" : "closed"}
+        data-has-scope={Boolean(showScopeControl && scopeHierarchy && currentScopeID)}>
         <div className="context-scope">
           <div className="context-identity">
             <strong>{organizationName}</strong>
@@ -659,8 +662,15 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
             {scopeSwitchError && <span className="context-scope__error" role="alert">{scopeSwitchError}</span>}
           </div>}
         </div>
-        <div className="context-role">
+        <div className="context-top-actions">
           {runtime && <NotificationCenter key={notificationScopeKey(runtime)}/>}
+          <button type="button" className="context-mobile-controls-toggle" aria-label="Workspace controls"
+            aria-controls="workspace-context-controls" aria-expanded={mobileContextOpen}
+            onClick={() => setMobileContextOpen((open) => !open)}>
+            <NavigationIcon view="configure"/>
+          </button>
+        </div>
+        <div className="context-role" id="workspace-context-controls">
           <DisplayPreferencesMenu/>
           <AdministrationMenu enabled={configureEnabled} onOpen={() => navigate("configure")}/>
           {serverDemoMode && <DemoEnvironmentMenu onOpenReferenceJourneys={referenceJourneysEnabled ? () => navigate("explore") : undefined}/>}

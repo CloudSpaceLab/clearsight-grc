@@ -1,6 +1,6 @@
+import { lazy, Suspense } from "react";
 import { EmptyState } from "./components/EmptyState";
 import { AssignedWorkQueue, type AssignedWorkState } from "./components/AssignedWorkQueue";
-import { BankJourneysWorkspace } from "./components/BankJourneysWorkspace";
 import { EvidenceWorkspace } from "./components/EvidenceWorkspace";
 import { MattersWorkspace } from "./components/MattersWorkspace";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
@@ -13,6 +13,8 @@ import { initials } from "./components/Monogram";
 import type { FrameworkEditionTarget, ProgramItemTarget, ProgramSection, WorkTab } from "./appRouting";
 
 export { CapturePanel } from "./components/CapturePanel";
+
+const BankJourneysWorkspace = lazy(() => import("./components/BankJourneysWorkspace").then(({ BankJourneysWorkspace }) => ({ default: BankJourneysWorkspace })));
 
 type LoadState = "loading" | "live" | "unavailable";
 type ConnectionState = "loading" | "live" | "unavailable";
@@ -34,7 +36,7 @@ export function ProgramsView({ organizationName, organizationScopeID, organizati
 }
 
 export function ReferenceJourneysView({ organizationName }: { organizationName: string }) {
-  return <><header className="topbar"><div><span className="eyebrow">Demo environment · {organizationName}</span><h1>Reference journeys</h1><p>Walk through sample, non-production compliance scenarios using the same ClearSight operating records.</p></div></header><BankJourneysWorkspace/></>;
+  return <><header className="topbar"><div><span className="eyebrow">Demo environment · {organizationName}</span><h1>Reference journeys</h1><p>Walk through sample, non-production compliance scenarios using the same ClearSight operating records.</p></div></header><Suspense fallback={<div className="workspace-loading" role="status">Loading reference journeys…</div>}><BankJourneysWorkspace/></Suspense></>;
 }
 
 export function WorkView({ refreshToken, organizationName, actorPrincipalID, evidenceScopeToken, tab, onTab, onBackMatter, returnContext, assignedItems, assignedState, assignedAsOf, assignedHasMore, onOpenAssignedItem, onInspectAuthority, sources, requests, evidenceSourceState, evidenceRequestState, onEvidenceRetry, onEvidenceRequestUpdated, matterTargetID, openFirstMatter, evidenceTargetID, openFirstEvidence, onOpenEvidence, onOpenLoss, onOpenIndicator, onAnalyzeDocument }: { refreshToken?: string; organizationName: string; actorPrincipalID?: string; evidenceScopeToken: number; tab: WorkTab; onTab: (value: WorkTab) => void; onBackMatter: () => void; returnContext?: { label: string; onReturn: () => void }; assignedItems: AttentionItem[]; assignedState: AssignedWorkState; assignedAsOf?: string; assignedHasMore?: boolean; onOpenAssignedItem: (item: AttentionItem) => void; onInspectAuthority?: (item: AttentionItem) => void; sources: EvidenceSource[]; requests: EvidenceRequest[]; evidenceSourceState: LoadState; evidenceRequestState: LoadState; onEvidenceRetry: () => void; onEvidenceRequestUpdated: (request: EvidenceRequest, scopeToken: number) => boolean; matterTargetID?: string; openFirstMatter?: boolean; evidenceTargetID?: string; openFirstEvidence?: boolean; onOpenEvidence: (id: string) => void; onOpenLoss?: (lossID: string) => void; onOpenIndicator?: (indicatorID: string, kind?: "KRI" | "KCI") => void; onAnalyzeDocument?: () => void }) {
