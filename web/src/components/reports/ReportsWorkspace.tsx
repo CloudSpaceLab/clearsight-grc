@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { loadHomeMetrics as loadHomeMetricsRequest } from "../../metricApi";
+import type { ReportingPeriodQuery } from "../../reportingPeriod";
 import {
   createReportRun as createReportRunRequest,
   downloadReportRun as downloadReportRunRequest,
@@ -25,13 +27,21 @@ import {
 } from "../ui";
 import "./reports.css";
 
-type WorkspaceTab = "overview" | "library" | "templates";
+const RiskLossInsights = lazy(() => import("../insights/RiskLossInsights").then(({ RiskLossInsights }) => ({ default: RiskLossInsights })));
+
+type WorkspaceTab = "overview" | "explore" | "library" | "templates";
 type ReportArea = "ALL" | "VENDORS" | "PROGRAMS" | "WORK";
 type LoadState = "loading" | "live" | "error";
 
 export type ReportsWorkspaceProps = {
   organizationName?: string;
   legalEntityName?: string;
+  legalEntityID?: string;
+  organizationScopeID?: string;
+  scopeAuthorized?: boolean;
+  loadMetricBasis?: typeof loadHomeMetricsRequest;
+  onOpenRisk?: (riskID: string) => void;
+  onOpenLoss?: (lossID: string) => void;
   loadDefinitions?: typeof listReportDefinitionsRequest;
   loadRunPage?: typeof listReportRunPageRequest;
   loadOwners?: typeof listReportOwnerOptionsRequest;
@@ -56,6 +66,12 @@ const generationAreaOptions: readonly { id: Exclude<ReportArea, "ALL">; label: s
 export function ReportsWorkspace({
   organizationName,
   legalEntityName,
+  legalEntityID,
+  organizationScopeID,
+  scopeAuthorized = true,
+  loadMetricBasis = loadHomeMetricsRequest,
+  onOpenRisk,
+  onOpenLoss,
   loadDefinitions = listReportDefinitionsRequest,
   loadRunPage = listReportRunPageRequest,
   loadOwners = listReportOwnerOptionsRequest,
@@ -64,6 +80,8 @@ export function ReportsWorkspace({
   onOpenInsights,
 }: ReportsWorkspaceProps) {
   const [tab, setTab] = useState<WorkspaceTab>("library");
+  const [metricPeriod, setMetricPeriod] = useState<ReportingPeriodQuery>();
+  const [metricPeriodState, setMetricPeriodState] = useState<"idle" | "loading" | "live" | "unavailable">("idle");
   const [definitions, setDefinitions] = useState<ReportDefinition[]>([]);
   const [runs, setRuns] = useState<ReportRun[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
@@ -118,6 +136,36 @@ export function ReportsWorkspace({
     });
     return () => controller.abort();
   }, [loadDefinitions, loadRunPage, refreshKey]);
+
+  // Reuse the governed Home reporting period for loss flows, and never
+  // combine metric data from a different verified entity or group.
+  useEffect(() => {
+    let current = true;
+    setMetricPeriod(undefined);
+    if (tab !== "explore" || !scopeAuthorized) {
+      setMetricPeriodState("idle");
+      return;
+    }
+    setMetricPeriodState("loading");
+    void loadMetricBasis(undefined, organizationScopeID).then((bundle) => {
+      if (!current) return;
+      const scopeMatches = organizationScopeID
+        ? bundle.scope_kind === "ORGANIZATION_SCOPE" && bundle.scope_id === organizationScopeID
+        : bundle.scope_kind === "LEGAL_ENTITY" && (!legalEntityID || bundle.scope_id === legalEntityID);
+      const { start_date, end_date } = bundle.reporting_period;
+      const validPeriod = /^\d{4}-\d{2}-\d{2}$/.test(start_date)
+        && /^\d{4}-\d{2}-\d{2}$/.test(end_date) && start_date <= end_date;
+      if (!scopeMatches || !validPeriod) {
+        setMetricPeriodState("unavailable");
+        return;
+      }
+      setMetricPeriod({ start_date, end_date });
+      setMetricPeriodState("live");
+    }).catch(() => {
+      if (current) setMetricPeriodState("unavailable");
+    });
+    return () => { current = false; };
+  }, [tab, scopeAuthorized, legalEntityID, organizationScopeID, loadMetricBasis]);
 
   const definitionsByID = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -364,7 +412,7 @@ export function ReportsWorkspace({
 
     <Tabs
       ariaLabel="Reports workspace"
-      items={[{ id: "overview", label: "Overview" }, { id: "library", label: "Reports" }, { id: "templates", label: "Saved setups" }]}
+      items={[{ id: "overview", label: "Overview" }, { id: "explore", label: "Explore" }, { id: "library", label: "Reports" }, { id: "templates", label: "Saved setups" }]}
       selectedKey={tab}
       onSelectionChange={setTab}
     >
@@ -378,7 +426,7 @@ export function ReportsWorkspace({
                 <p>Latest {recentRuns.length} loaded reports{nextCursor ? " · More available" : ""}</p>
               </div>
               <div className="reports-overview__actions">
-                {onOpenInsights && <Button variant="quiet" onPress={onOpenInsights}>Explore insights</Button>}
+                <Button variant="quiet" onPress={() => setTab("explore")}>Explore insights</Button>
                 <Button variant="secondary" onPress={() => setTab("library")}>View reports</Button>
               </div>
             </header>
@@ -391,6 +439,20 @@ export function ReportsWorkspace({
               columns={columns} onRowAction={setSelectedRun} rowActionLabel="View" isLoading={runState === "loading"}/>}
           </section>
         </div>
+        : activeTab === "explore"
+        ? <section className="reports-explore" aria-label="Risk and loss reporting">
+          <header className="reports-overview__recent">
+            <h2>Risk and loss analysis</h2>
+            {onOpenInsights && <Button variant="secondary" onPress={onOpenInsights}>Open Insights workspace</Button>}
+          </header>
+          {!scopeAuthorized && <Notice tone="warning">Select an authorized organization scope to review risk and loss data.</Notice>}
+          {scopeAuthorized && metricPeriodState === "loading" && <p role="status">Loading reporting period…</p>}
+          {scopeAuthorized && metricPeriodState === "unavailable" && <Notice tone="warning">Reporting metrics are unavailable for the selected scope.</Notice>}
+          {scopeAuthorized && metricPeriodState === "live" && metricPeriod && <Suspense fallback={<p role="status">Loading risk and loss analysis…</p>}>
+            <RiskLossInsights period={metricPeriod} organizationScopeID={organizationScopeID} scopeAuthorized
+              onOpenRisk={onOpenRisk} onOpenLoss={onOpenLoss}/>
+          </Suspense>}
+        </section>
         : activeTab === "library"
         ? <div className="reports-library">
           {runState === "live" ? statusPanel : <Notice tone="warning">Report status totals unavailable until report runs load.</Notice>}
