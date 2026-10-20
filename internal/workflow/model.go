@@ -54,9 +54,9 @@ type Task struct {
 // DueFrom is inclusive; DueBefore is exclusive. Undated work is excluded only
 // when a due boundary is supplied.
 type ListFilter struct {
-	Search                 string
-	DueFrom                *time.Time
-	DueBefore              *time.Time
+	Search                string
+	DueFrom               *time.Time
+	DueBefore             *time.Time
 	TenantID              string
 	LegalEntityID         string
 	PrincipalID           string
