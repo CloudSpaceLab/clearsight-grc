@@ -33,9 +33,11 @@ describe("source-backed Work title search", () => {
     render(<AssignedWorkQueue presentation="workspace" state="live" items={[local]}
       sourceSearchScopeKey="actor:entity" onOpenItem={vi.fn()}/>);
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search assignment titles" }), {
-      target: { value: "retained evidence" },
-    });
+    const searchField = screen.getByRole("searchbox", { name: "Search assignment titles" });
+    searchField.focus();
+    fireEvent.change(searchField, { target: { value: "retained evidence" } });
+    expect(screen.getByRole("searchbox", { name: "Search assignment titles" })).toBe(searchField);
+    expect(document.activeElement).toBe(searchField);
     await waitFor(() => expect(loadActorWorkPage).toHaveBeenCalledWith("retained evidence"));
     const table = await screen.findByRole("table", { name: "Assigned work" });
     expect(within(table).getByRole("row", { name: item.title })).toBeTruthy();
@@ -69,7 +71,8 @@ describe("source-backed Work title search", () => {
     rerender(<AssignedWorkQueue presentation="workspace" state="live" items={[]}
       sourceSearchScopeKey="actor:entity-b" onOpenItem={vi.fn()}/>);
     expect(screen.queryByRole("row", { name: item.title })).toBeNull();
-    expect(screen.getByText("Loading assigned work…")).toBeTruthy();
+    expect(screen.getByText("Searching assignment titles…")).toBeTruthy();
+    expect(screen.getByRole("searchbox", { name: "Search assignment titles" })).toBeTruthy();
   });
 
   it("does not use server search when a narrower scope cannot be queried", () => {
