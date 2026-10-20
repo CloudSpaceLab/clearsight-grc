@@ -344,6 +344,11 @@ describe("Program record workspace", () => {
     expect(areas.compareDocumentPosition(recent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(overview).getByText("Reviewed control-area results are unavailable.")).toBeTruthy();
     expect(attention.closest(".program-overview-rail")).not.toBeNull();
+    const setup = within(overview).getByRole("region", {name: "Program setup"});
+    expect(setup.compareDocumentPosition(attention) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(within(setup).getByText("Not available")).toBeTruthy();
+    expect(within(setup).getByText("Nigeria")).toBeTruthy();
+    expect(within(setup).getByRole("button", {name: "View details"})).toBeTruthy();
     expect(within(overview).getAllByLabelText("Program follow-up")).toHaveLength(1);
 
     fireEvent.change(period, {target: {value: "7"}});
@@ -354,6 +359,27 @@ describe("Program record workspace", () => {
       completed_from: expect.any(String),
     })));
     expect(screen.getByRole("tab", {name: "Overview", selected: true})).toBeTruthy();
+  });
+
+  it("shows only active adopted standards from the current Program and opens its existing details", async () => {
+    vi.mocked(loadProgram).mockResolvedValue({...aggregate, framework_adoptions: [
+      {id: "adopted", edition_id: "edition-2022", publisher_code: "ISO",
+       framework_code: "ISO27001", edition_code: "2022", status: "ACTIVE",
+       proposed_by: "owner", rationale: "Approved", proposed_at: "2026-10-01T00:00:00Z", version: 1},
+      {id: "pending", edition_id: "edition-new", publisher_code: "ISO",
+       framework_code: "ISO27001", edition_code: "2026", status: "PENDING",
+       proposed_by: "owner", rationale: "Awaiting review", proposed_at: "2026-10-02T00:00:00Z", version: 1},
+    ]});
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    const setup = await screen.findByRole("region", {name: "Program setup"});
+    expect(within(setup).getByText("ISO27001 · 2022")).toBeTruthy();
+    expect(within(setup).queryByText("ISO27001 · 2026")).toBeNull();
+    const target = document.getElementById("program-details-panel");
+    expect(target).not.toBeNull();
+    const scroll = vi.fn();
+    target!.scrollIntoView = scroll;
+    fireEvent.click(within(setup).getByRole("button", {name: "View details"}));
+    expect(scroll).toHaveBeenCalledWith({block: "start"});
   });
 
   it("places Program section navigation above measures and current position", async () => {
