@@ -35,7 +35,9 @@ func TestTodayEndpointEncodesNoAssignedWorkAsEmptyCollection(t *testing.T) {
 	}
 
 	var body struct {
-		Items json.RawMessage `json:"items"`
+		Items           json.RawMessage `json:"items"`
+		CountBasis      string          `json:"count_basis"`
+		WorkflowHasMore *bool           `json:"workflow_has_more"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -43,14 +45,10 @@ func TestTodayEndpointEncodesNoAssignedWorkAsEmptyCollection(t *testing.T) {
 	if string(body.Items) != "[]" {
 		t.Fatalf("expected an empty JSON collection, got %s", body.Items)
 	}
-	var coverage map[string]json.RawMessage
-	if err := json.Unmarshal(response.Body.Bytes(), &coverage); err != nil {
-		t.Fatal(err)
+	if body.CountBasis != "LOADED" {
+		t.Fatalf("Today counts must be explicitly loaded-only: %s", body.CountBasis)
 	}
-	if string(coverage["count_basis"]) != `"LOADED"` {
-		t.Fatalf("Today counts must be explicitly loaded-only: %s", response.Body.String())
-	}
-	if _, known := coverage["workflow_has_more"]; known {
+	if body.WorkflowHasMore != nil {
 		t.Fatal("legacy loaders must not invent workflow completeness")
 	}
 }
