@@ -79,9 +79,15 @@ func TestWorkflowReadConfinesActorToVerifiedLegalEntity(t *testing.T) {
 	request = request.WithContext(identity.WithActor(request.Context(), actor))
 	response := httptest.NewRecorder()
 	api.listWorkflowTasks(response, request)
-	if response.Code != http.StatusOK { t.Fatalf("expected scoped read: %d %s", response.Code, response.Body.String()) }
-	var body struct { Items []workflow.Task `json:"items"` }
-	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil { t.Fatal(err) }
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected scoped read: %d %s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Items []workflow.Task `json:"items"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
 	if len(body.Items) != 1 || body.Items[0].ID != "entity-a-only" {
 		t.Fatalf("cross-entity work was visible: %#v", body.Items)
 	}
