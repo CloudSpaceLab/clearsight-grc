@@ -84,6 +84,7 @@ describe("ReportsWorkspace", () => {
   const loadOwners = vi.fn();
   const createRun = vi.fn();
   const downloadRun = vi.fn();
+  const onOpenInsights = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -113,6 +114,7 @@ describe("ReportsWorkspace", () => {
       loadOwners={loadOwners}
       createRun={createRun}
       downloadRun={downloadRun}
+      onOpenInsights={onOpenInsights}
     />);
   }
 
@@ -132,6 +134,30 @@ describe("ReportsWorkspace", () => {
     expect(within(summary).getByText("2 loaded")).toBeTruthy();
     expect(loadRunPage).toHaveBeenCalledWith({ limit: 50 }, expect.any(AbortSignal));
     expect(loadDefinitions).toHaveBeenCalledWith(true, expect.any(AbortSignal));
+  });
+
+  it("reuses loaded runs in the approved Overview and routes to existing Insights", async () => {
+    renderWorkspace();
+    await screen.findByRole("table", { name: "Generated reports" });
+    fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
+    expect(screen.getByRole("region", { name: "Report library summary" })).toBeTruthy();
+    const recent = screen.getByRole("table", { name: "Recent reports" });
+    expect(within(recent).getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
+    expect(within(recent).getByRole("row", { name: /Program health/ })).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "Report library summary" }))
+      .getByText("Loaded").nextElementSibling?.textContent).toBe("2");
+    fireEvent.click(screen.getByRole("button", { name: "Explore insights" }));
+    expect(onOpenInsights).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "View reports" }));
+    expect(screen.getByRole("table", { name: "Generated reports" })).toBeTruthy();
+  });
+
+  it("does not represent an unavailable report population as zero", async () => {
+    loadRunPage.mockRejectedValueOnce(new Error("Report API unavailable"));
+    renderWorkspace();
+    fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
+    expect(await screen.findByText("Report status totals unavailable until report runs load.")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Report library summary" })).toBeNull();
   });
 
   it("generates a vendor report from a ready saved setup", async () => {
