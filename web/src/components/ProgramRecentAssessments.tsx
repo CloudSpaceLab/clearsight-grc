@@ -5,7 +5,7 @@ import { concernText } from "./forms/responseScorePresentation";
 import { Button, Notice } from "./ui";
 
 type State = "loading" | "ready" | "unavailable";
-type PeriodDays = 7 | 30 | 90;
+export type AssessmentPeriodDays = 7 | 30 | 90;
 
 function submittedDate(value: string) {
   const date = new Date(value);
@@ -17,12 +17,12 @@ function submittedDate(value: string) {
 // Approved Program Overview: recent assessments are *submitted responses*,
 // not approved compliance or verified evidence. Reuse one authorized,
 // bounded Forms query and preserve the independent Assessments workspace.
-export function ProgramRecentAssessments({ programID, onNavigate, onOpenAssessment }: {
+export function ProgramRecentAssessments({ programID, period, onNavigate, onOpenAssessment }: {
   programID: string;
+  period: AssessmentPeriodDays;
   onNavigate: (section: ProgramSection) => void;
   onOpenAssessment?: (response: CompletedResponseSummary) => void;
 }) {
-  const [period, setPeriod] = useState<PeriodDays>(90);
   const [state, setState] = useState<State>("loading");
   const [items, setItems] = useState<CompletedResponseSummary[]>([]);
   const [error, setError] = useState("");
@@ -60,14 +60,6 @@ export function ProgramRecentAssessments({ programID, onNavigate, onOpenAssessme
         <p>Submitted responses · Last {period} days</p>
       </div>
       <div className="program-recent-assessments__actions">
-        <label>Activity period
-          <select aria-label="Assessment activity period" value={period}
-            onChange={(event) => setPeriod(Number(event.target.value) as PeriodDays)}>
-            <option value={7}>7 days</option>
-            <option value={30}>30 days</option>
-            <option value={90}>90 days</option>
-          </select>
-        </label>
         <Button variant="quiet" onPress={() => onNavigate("assessments")}>View assessments</Button>
       </div>
     </header>
