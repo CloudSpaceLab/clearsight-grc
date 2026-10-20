@@ -15,10 +15,10 @@ func TestWorkSourceSearchFindsAuthorizedAssignmentsBeyondFirstFifty(t *testing.T
 		items = append(items, Task{
 			ID: fmt.Sprintf("work-%03d", i), TenantID: "bank", LegalEntityID: "entity-a",
 			PrincipalID: "reviewer", WorkflowKind: MatterActionWorkflowKind,
-			MatterID: fmt.Sprintf("matter-%03d", i),
+			MatterID:    fmt.Sprintf("matter-%03d", i),
 			MatterScope: json.RawMessage(`{"access":"RESTRICTED"}`),
-			Title: fmt.Sprintf("Routine check %03d", i),
-			Status: StatusReady, UpdatedAt: start.Add(time.Duration(74-i) * time.Minute),
+			Title:       fmt.Sprintf("Routine check %03d", i),
+			Status:      StatusReady, UpdatedAt: start.Add(time.Duration(74-i) * time.Minute),
 		})
 	}
 	items[74].Title = "Review attestation from September"
@@ -86,7 +86,7 @@ func TestWorkSourceQueryRejectsUnscopedAndInvalidRequests(t *testing.T) {
 		{"matter without principal", ListFilter{TenantID: "bank", VisibleMatterWorkOnly: true}},
 		{"search too long", ListFilter{TenantID: "bank", Search: strings.Repeat("x", 121)}},
 		{"reverse due window", ListFilter{TenantID: "bank",
-			DueFrom: ptrWorkTime(time.Date(2026, 10, 21, 0, 0, 0, 0, time.UTC)),
+			DueFrom:   ptrWorkTime(time.Date(2026, 10, 21, 0, 0, 0, 0, time.UTC)),
 			DueBefore: ptrWorkTime(time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC))}},
 	}
 	for _, tc := range cases {
