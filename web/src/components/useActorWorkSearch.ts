@@ -21,6 +21,7 @@ const emptyResult: SearchResult = {
 export function useActorWorkSearch(search: string, scopeKey: string, enabled: boolean) {
   const term = enabled ? search.trim() : "";
   const generation = useRef(0);
+  const [retryToken, setRetryToken] = useState(0);
   const [result, setResult] = useState<SearchResult>(emptyResult);
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export function useActorWorkSearch(search: string, scopeKey: string, enabled: bo
       window.clearTimeout(timer);
       generation.current++;
     };
-  }, [term, scopeKey]);
+  }, [term, scopeKey, retryToken]);
 
   const loadMore = useCallback(() => {
     if (!term || result.state !== "live" || !result.hasMore ||
@@ -75,5 +76,5 @@ export function useActorWorkSearch(search: string, scopeKey: string, enabled: bo
     });
   }, [result, term]);
 
-  return { ...result, loadMore };
+  return { ...result, loadMore, retry: () => setRetryToken((value) => value + 1) };
 }
