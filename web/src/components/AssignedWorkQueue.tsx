@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useActorWorkSearch } from "./useActorWorkSearch";
 import { Button, DataTable, FilterBar, FocusedSheet, MetricCard, SearchField, SelectField, StatusBadge, Tabs, type DataColumn } from "./ui";
 import { countLoadedWork, filterLoadedWork, type WorkDueWindow, type WorkQueueFilter } from "./workQueuePresentation";
 import { EmptyState } from "./EmptyState";
@@ -18,9 +19,10 @@ export type AssignedWorkQueueProps = {
   onRetry?: () => void;
   headingLevel?: "h2" | "h3";
   presentation?: "brief" | "workspace";
+  sourceSearchScopeKey?: string;
 };
 
-export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief" }: AssignedWorkQueueProps) {
+export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief", sourceSearchScopeKey }: AssignedWorkQueueProps) {
   const count = items.length === 1 ? "1 item needs your action" : `${items.length} items need your action`;
   const title = state === "loading" ? "Loading assigned work" : state === "unavailable" ? "Assigned work is unavailable" : count;
   const Heading = headingLevel;
@@ -30,24 +32,29 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const [dueWindow, setDueWindow] = useState<WorkDueWindow>("ALL");
   const [selectedID, setSelectedID] = useState<string>();
   const [inspectingItem, setInspectingItem] = useState<AttentionItem>();
-  const snapshotTime = Date.parse(asOf ?? "");
+  const sourceSearch = presentation === "workspace" && Boolean(sourceSearchScopeKey) && search.trim() !== "";
+  const searched = useActorWorkSearch(search, sourceSearchScopeKey ?? "", Boolean(sourceSearchScopeKey) && presentation === "workspace");
+  const currentItems = sourceSearch ? searched.items : items;
+  const currentState = sourceSearch ? searched.state === "idle" ? "loading" : searched.state : state;
+  const currentHasMore = sourceSearch ? searched.hasMore : hasMore;
+  const snapshotTime = Date.parse((sourceSearch ? searched.asOf : asOf) ?? "");
   const now = Number.isFinite(snapshotTime) ? snapshotTime : Date.now();
-  const counts = countLoadedWork(items, now);
-  const statuses = [...new Set(items.map((item) => item.state).filter(Boolean))]
+  const counts = countLoadedWork(currentItems, now);
+  const statuses = [...new Set(currentItems.map((item) => item.state).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b)).map((value) => ({ id: value, label: value }));
-  const filtered = filterLoadedWork(items, filter, search, status, now, dueWindow);
+  const filtered = filterLoadedWork(currentItems, filter, sourceSearch ? "" : search, status, now, dueWindow);
   const selected = filtered.find((item) => item.id === selectedID) ?? filtered[0];
-  // A fresh actor/scope feed invalidates an inspection, even if IDs happen to match.
-  const inspecting = items.find((item) => item === inspectingItem);
+  // Inspection references are invalidated when the source population changes.
+  const inspecting = currentItems.find((item) => item === inspectingItem);
 
   return <section className={`intervention-brief${presentation === "workspace" ? " assigned-workspace" : ""}`} aria-labelledby="assigned-work-heading">
-    {(presentation !== "workspace" || state !== "live") && <header className="intervention-heading">
+    {(presentation !== "workspace" || currentState !== "live") && <header className="intervention-heading">
       <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{title}</Heading></div>
     </header>}
-    {state === "loading"
+    {currentState === "loading"
       ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
-      : state === "unavailable"
-        ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry." action="Try again" onAction={onRetry}/>
+      : currentState === "unavailable"
+        ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry." action="Try again" onAction={sourceSearch ? searched.retry : onRetry}/>
         : presentation === "workspace"
           ? <>
             <Tabs ariaLabel="Assigned work queues" items={workQueues}
@@ -62,8 +69,10 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                 </div>
                 <header className="intervention-heading">
                   <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">Assigned to me</Heading>
-                    <p>{items.length} {items.length === 1 ? "item" : "items"} loaded</p>
-                    {hasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}
+                    <p>{currentItems.length} {currentItems.length === 1 ? "item" : "items"} loaded</p>
+                    {sourceSearch
+                      ? <p role="status">Workflow assignments only · title matches · loaded results, not total work.</p>
+                      : currentHasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}
                   </div>
                   <div className="assigned-workspace__due-window">
                     <SelectField label="Due-date window" value={dueWindow} placeholder="All due dates"
@@ -71,13 +80,13 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                       onChange={(value) => setDueWindow(value ?? "ALL")}/>
                   </div>
                 </header>
-                <FilterBar label="Filter loaded work"
+                <FilterBar label={sourceSearch ? "Filter matching assignments" : "Filter loaded work"}
                   fields={<>
-                    <SearchField label="Search loaded work" value={search} onChange={(value) => setSearch(value.slice(0, 120))} placeholder="Search loaded work"/>
+                    <SearchField label={sourceSearchScopeKey ? "Search assignment titles" : "Search loaded work"} value={search} onChange={(value) => setSearch(value.slice(0, 120))} placeholder={sourceSearchScopeKey ? "Search assignment titles" : "Search loaded work"}/>
                     <SelectField label="Work status" isLabelHidden value={status} placeholder="All statuses" options={statuses} onChange={setStatus}/>
                   </>}
                   resultCount={filtered.length}
-                  resultLabel={(count) => `${count} of ${items.length} loaded items · ${workFilterLabel(filter)}`}
+                  resultLabel={(count) => `${count} of ${currentItems.length} loaded ${sourceSearch ? "assignment matches" : "items"} · ${workFilterLabel(filter)}`}
                   onClear={search || status || filter !== "ALL" || dueWindow !== "ALL" ? () => { setSearch(""); setStatus(undefined); setDueWindow("ALL"); setFilter("ALL"); } : undefined}
                 />
                 {filtered.length ? <div className="assigned-workspace__grid" id="attention-list">
@@ -87,15 +96,19 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                     onRowAction={(item) => { setSelectedID(item.id); setInspectingItem(item); }}
                     rowActionLabel="Inspect" responsiveTo="container"/>
                   {selected && <WorkContext item={selected} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>}
-                </div> : <div id="attention-list"><EmptyState label="Assigned work" title={filter === "ALL" && !search && !status ? "Nothing needs your action right now" : "No matching work"}
-                  description={filter === "ALL" && !search && !status ? "No open assigned work." : "No matching items in the loaded queue."}/></div>}
+                </div> : <div id="attention-list"><EmptyState label="Assigned work" title={sourceSearch ? "No matching assignment titles" : filter === "ALL" && !search && !status ? "Nothing needs your action right now" : "No matching work"}
+                  description={sourceSearch ? "No matching workflow assignments in the current page." : filter === "ALL" && !search && !status ? "No open assigned work." : "No matching items in the loaded queue."}/></div>}
+                {sourceSearch && currentHasMore && <div className="workspace-recovery-actions">
+                  <Button variant="secondary" isDisabled={searched.loadingMore} onPress={searched.loadMore}>{searched.loadingMore ? "Loading assignments…" : "Load more assignments"}</Button>
+                </div>}
+                {sourceSearch && searched.loadMoreFailed && <p role="alert">More assignments could not be loaded. Retry the page.</p>}
               </>}
             </Tabs>
           </>
           : items.length
             ? <div className="intervention-list" id="attention-list">{items.map((item) => <InterventionRow key={item.id} item={item} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>)}</div>
             : <div id="attention-list"><EmptyState label="Assigned work" title="Nothing needs your action right now" description="No open assigned work."/></div>}
-    {presentation === "workspace" && state === "live" && inspecting && <FocusedSheet label={`Selected work: ${inspecting.title}`} onClose={() => setInspectingItem(undefined)}><WorkContext item={inspecting} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/></FocusedSheet>}
+    {presentation === "workspace" && currentState === "live" && inspecting && <FocusedSheet label={`Selected work: ${inspecting.title}`} onClose={() => setInspectingItem(undefined)}><WorkContext item={inspecting} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/></FocusedSheet>}
   </section>;
 }
 
