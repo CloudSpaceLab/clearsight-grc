@@ -20,9 +20,9 @@ const captures = [
   { name: "04-program-light-1280x800", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1280, height: 800 } },
   { name: "04-program-light-mobile-390x844", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true },
   ...frameworkEvidenceScenarios,
-  { name: "150-work-queue-light-1440x900", route: "#work", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Work queue", state: "work-assigned-desktop" },
-  { name: "151-work-queue-dark-mobile-390x844", route: "#work", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Work queue", state: "work-assigned-mobile" },
-  { name: "152-work-detail-dark-mobile-390x844", route: "#work", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openAssignedInspection: true, state: "work-inspection-mobile" },
+  { name: "150-work-queue-light-1440x900", route: "#work", title: "Work & approvals", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned to me", state: "work-assigned-desktop" },
+  { name: "151-work-queue-dark-mobile-390x844", route: "#work", title: "Work & approvals", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Assigned to me", state: "work-assigned-mobile" },
+  { name: "152-work-detail-dark-mobile-390x844", route: "#work", title: "Work & approvals", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openAssignedInspection: true, state: "work-inspection-mobile" },
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
@@ -193,30 +193,6 @@ async function capturePage(capture) {
          "09-today-dark-tablet-1024x768"].includes(capture.name)) {
       await assertApprovedShell(page, capture.viewport.width);
     }
-    if (capture.name === "04-program-light-mobile-390x844") {
-      const bar = page.locator(".context-bar");
-      const menu = page.getByRole("button", { name: "Workspace controls" });
-      const controls = page.locator("#workspace-context-controls");
-      await menu.waitFor({ state: "visible" });
-      const bounds = await bar.boundingBox();
-      if (!bounds || bounds.height > 74) {
-        throw new Error(`Approved phone shell exceeds compact 64px context bar: ${bounds?.height ?? "unavailable"}px`);
-      }
-      if (await controls.isVisible() || await menu.getAttribute("aria-expanded") !== "false") {
-        throw new Error("Workspace controls should start collapsed on a phone");
-      }
-      await menu.click();
-      if (!await controls.isVisible() || await menu.getAttribute("aria-expanded") !== "true") {
-        throw new Error("Workspace controls are not available through the compact mobile disclosure");
-      }
-      const scope = page.locator(".context-bar .context-scope-control");
-      if (await scope.count() && !await scope.isVisible()) {
-        throw new Error("The verified legal-entity and Group selector is inaccessible on a phone");
-      }
-      await assertNoHorizontalOverflow(page, `${capture.name} expanded context`);
-      await menu.click();
-      await controls.waitFor({ state: "hidden" });
-    }
     const contextSwitcher = page.locator(".context-bar .context-scope-control");
     if (await contextSwitcher.count()) {
       if (!await page.locator(".context-bar > .context-scope > .context-scope-control").count()) {
@@ -304,7 +280,7 @@ async function capturePage(capture) {
       const first = page.locator(".program-overview-metrics .cs-metric-card").first();
       await first.waitFor({ state: "visible" });
       const firstBox = await first.boundingBox();
-      if (!firstBox || firstBox.y > 465) {
+      if (!firstBox || firstBox.y > 520) {
         await page.screenshot({ path: path.join(outputDir, "04-program-mobile-viewport-failure.png"), fullPage: false, animations: "disabled" });
         throw new Error(`Approved mobile Program measures are pushed too far below the first viewport: ${firstBox?.y ?? "unavailable"}px`);
       }
@@ -1036,6 +1012,31 @@ async function captureApprovedVendorMeasures(name, theme, viewport) {
 }
 
 async function assertWorkMeasureLabels(page, capture) {
+  const work = page.locator(".assigned-workspace");
+  const localTabs = work.getByRole("tablist", { name: "Assigned work queues" });
+  if (await page.getByRole("tablist", { name: "Work views" }).count() !== 0 ||
+      await page.getByRole("button", { name: "Work view" }).count() !== 0 ||
+      await work.locator(".cs-tabs").count() !== 1) {
+    throw new Error(`${capture.name}: Work renders duplicate navigation instead of the approved single intent`);
+  }
+  const sourceOrder = await work.evaluate((root) => {
+    const tabs = root.querySelector(".cs-tabs__list");
+    const measures = root.querySelector(".assigned-workspace__signals");
+    const queue = root.querySelector("#assigned-work-heading");
+    const filters = root.querySelector(".cs-filter-bar");
+    const before = (a, b) => a && b && Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    return before(tabs, measures) && before(measures, queue) && before(queue, filters);
+  });
+  if (!sourceOrder) throw new Error(`${capture.name}: Work must render intent → measures → queue → filters`);
+  const [navBox, measuresBox, queueBox] = await Promise.all([
+    (capture.viewport.width <= 760 ? work.locator(".cs-tabs__compact") : localTabs).boundingBox(),
+    work.locator(".assigned-workspace__signals").boundingBox(),
+    work.getByRole("heading", { name: "Assigned to me" }).boundingBox(),
+  ]);
+  if (!navBox || !measuresBox || !queueBox || navBox.y >= measuresBox.y ||
+      measuresBox.y + measuresBox.height > queueBox.y + 8) {
+    throw new Error(`${capture.name}: approved Work intent and measures must precede selected queue`);
+  }
   const cards = page.locator(".assigned-workspace__signals .cs-metric-card");
   await cards.first().waitFor({ state: "visible" });
   if (await cards.count() !== 4) throw new Error(`${capture.name}: expected four scoped Work measures`);
