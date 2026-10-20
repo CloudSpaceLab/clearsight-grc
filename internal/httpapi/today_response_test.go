@@ -59,17 +59,17 @@ func TestTodayEndpointReturnsExplicitActorWorkflowOverflow(t *testing.T) {
 	version, rules := authority.DemoPolicySet()
 	more := true
 	handler := New(Dependencies{
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger:        slog.New(slog.NewTextHandler(io.Discard, nil)),
 		AllowedOrigin: "http://localhost:5173",
-		Mode: "test-memory",
-		Identity: identity.NewDevelopmentAuthenticator("bank-demo", "role-cro", "bank-ng"),
-		Authority: authority.NewResolver(version, rules),
+		Mode:          "test-memory",
+		Identity:      identity.NewDevelopmentAuthenticator("bank-demo", "role-cro", "bank-ng"),
+		Authority:     authority.NewResolver(version, rules),
 		Today: today.NewSnapshotService(func(_ context.Context, actor identity.Actor) (today.ActorWorkSnapshot, error) {
 			if actor.PrincipalID != "role-cro" {
 				t.Fatalf("unexpected reader: %s", actor.PrincipalID)
 			}
 			return today.ActorWorkSnapshot{
-				Items: []today.AttentionItem{{ID: "work-1", Title: "Review evidence"}},
+				Items:           []today.AttentionItem{{ID: "work-1", Title: "Review evidence"}},
 				WorkflowHasMore: &more,
 			}, nil
 		}),
@@ -80,9 +80,9 @@ func TestTodayEndpointReturnsExplicitActorWorkflowOverflow(t *testing.T) {
 		t.Fatalf("Today response: %d %s", response.Code, response.Body.String())
 	}
 	var payload struct {
-		Items []today.AttentionItem `json:"items"`
-		CountBasis string `json:"count_basis"`
-		WorkflowHasMore *bool `json:"workflow_has_more"`
+		Items           []today.AttentionItem `json:"items"`
+		CountBasis      string                `json:"count_basis"`
+		WorkflowHasMore *bool                 `json:"workflow_has_more"`
 	}
 	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 		t.Fatal(err)
