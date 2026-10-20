@@ -180,6 +180,9 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		      ELSE false
 		    END
 		  )
+		  AND ($10='' OR strpos(lower(wt.title),$10)>0)
+		  AND ($11::timestamptz IS NULL OR wt.due_at >= $11::timestamptz)
+		  AND ($12::timestamptz IS NULL OR wt.due_at < $12::timestamptz)
 		ORDER BY
 		  CASE WHEN $5::boolean THEN wt.due_at IS NULL ELSE false END ASC,
 		  CASE WHEN $5::boolean THEN wt.due_at END ASC NULLS LAST,
@@ -188,6 +191,7 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		LIMIT $9`,
 		filter.TenantID, filter.PrincipalID, string(filter.Status), filter.WorkflowKind,
 		filter.ActiveOnly, filter.VisibleMatterWorkOnly, filter.VisibleActorWorkOnly, filter.LegalEntityID, filter.Limit,
+		filter.Search, filter.DueFrom, filter.DueBefore,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list workflow tasks: %w", err)
