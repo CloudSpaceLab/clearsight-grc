@@ -328,6 +328,34 @@ describe("Program record workspace", () => {
     expect(screen.queryByRole("heading", {name: "Requirement coverage"})).toBeNull();
   });
 
+  it("matches approved Overview order and scopes the header period to submitted assessments", async () => {
+    const {container} = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", {name: "Nigeria data protection"});
+    const header = container.querySelector(".program-record-header") as HTMLElement;
+    const period = within(header).getByRole("combobox", {name: "Assessment activity period"}) as HTMLSelectElement;
+    expect(period.value).toBe("90");
+
+    const overview = screen.getByRole("region", {name: "Program overview"});
+    const coverage = within(overview).getByRole("heading", {name: "Requirement coverage"});
+    const areas = within(overview).getByRole("heading", {name: "By control area"});
+    const recent = within(overview).getByRole("heading", {name: "Recent assessments"});
+    const attention = within(overview).getByRole("heading", {name: "Needs attention"});
+    expect(coverage.compareDocumentPosition(areas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(areas.compareDocumentPosition(recent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(overview).getByText("Reviewed control-area results are unavailable.")).toBeTruthy();
+    expect(attention.closest(".program-overview-rail")).not.toBeNull();
+    expect(within(overview).getAllByLabelText("Program follow-up")).toHaveLength(1);
+
+    fireEvent.change(period, {target: {value: "7"}});
+    expect(period.value).toBe("7");
+    expect(screen.getByText("Submitted responses · Last 7 days")).toBeTruthy();
+    await waitFor(() => expect(loadCompletedResponses).toHaveBeenCalledWith(expect.objectContaining({
+      subject_type: "PROGRAM", subject_id: "program-1", limit: 3,
+      completed_from: expect.any(String),
+    })));
+    expect(screen.getByRole("tab", {name: "Overview", selected: true})).toBeTruthy();
+  });
+
   it("places Program section navigation above measures and current position", async () => {
     const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
     await screen.findByRole("heading", { name: "Nigeria data protection" });
