@@ -110,6 +110,13 @@ describe("AssignedWorkQueue approved Work presentation", () => {
     expect(within(measures).getByRole("button", { name: /Overdue: 0/ })).toBeTruthy();
   });
 
+  it("qualifies loaded counts when the authorized backend reports more assignments", () => {
+    render(<AssignedWorkQueue presentation="workspace" state="live" items={[request]}
+      hasMore onOpenItem={vi.fn()}/>);
+    expect(screen.getByRole("status").textContent).toContain("Counts and search cover loaded work only.");
+    expect(screen.getByText("1 item loaded")).toBeTruthy();
+  });
+
   it("preserves the shared brief presentation and fail-closed unavailable state", () => {
     const { rerender } = render(<AssignedWorkQueue state="live" items={[request]} onOpenItem={vi.fn()}/>);
     expect(screen.getByRole("article")).toBeTruthy();
