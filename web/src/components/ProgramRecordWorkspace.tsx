@@ -26,7 +26,7 @@ import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
 import { ProgramRequirementCoverageSummary } from "./ProgramRequirementCoverageSummary";
-import { ProgramRecentAssessments } from "./ProgramRecentAssessments";
+import { ProgramRecentAssessments, type AssessmentPeriodDays } from "./ProgramRecentAssessments";
 import { ProgramActivityPanel } from "./ProgramActivityPanel";
 import { MetricCard, Notice, StatusBadge } from "./ui";
 import { programOverviewMetrics } from "../programOverviewMetrics";
@@ -52,6 +52,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   const [operations, setOperations] = useState<ProgramOperations | null>(null);
   const [digest, setDigest] = useState<ReviewDigest | null>(null);
   const [activeSection, setActiveSection] = useState<ProgramSection>(section);
+  const [activityPeriod, setActivityPeriod] = useState<AssessmentPeriodDays>(90);
   const [ownerIntent, setOwnerIntent] = useState(0);
   const [assessmentReview, setAssessmentReview] = useState<{ programID: string; id: string; revision: number; form_template_version: number } | null>(null);
   const loadIDs = useRef({ aggregate: 0, operations: 0, review: 0 });
@@ -277,9 +278,18 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {activeSection === "overview" ? <div className="program-overview-composition">
         <div className="program-overview-main">
           <ProgramRequirementCoverageSummary aggregate={aggregate} onNavigate={selectSection}/>
-          <ProgramRecentAssessments programID={aggregate.program.id} onNavigate={selectSection} onOpenAssessment={openRecentAssessment}/>
+          <ProgramRecentAssessments programID={aggregate.program.id} period={activityPeriod} onNavigate={selectSection} onOpenAssessment={openRecentAssessment}/>
         </div>
         <aside className="program-overview-rail" aria-label="Program attention and setup">
+          <section className="program-overview-attention" aria-labelledby="program-overview-attention-heading">
+            <h2 id="program-overview-attention-heading">Needs attention</h2>
+            <p>{aggregate.current_state?.program_version !== aggregate.program.version
+              ? "Based on the last available Program state"
+              : "Recorded issues and outstanding checks"}</p>
+            {aggregate.current_state?.reasons?.length
+              ? <ProgramAttention aggregate={aggregate} onNavigate={selectSection}/>
+              : <p>{aggregate.current_state ? "No recorded follow-up reasons." : "Follow-up is unavailable."}</p>}
+          </section>
           {positionPanel}
           <ProgramVendorFollowUp programID={aggregate.program.id}/>
         </aside>
@@ -312,6 +322,14 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
         </div>
         <div className="program-record-header__side">
           <div className="program-record-header__actions">
+            <label className="program-record-header__period">Activity period
+              <select aria-label="Assessment activity period" value={activityPeriod}
+                onChange={(event) => setActivityPeriod(Number(event.target.value) as AssessmentPeriodDays)}>
+                <option value={90}>Last 90 days</option>
+                <option value={30}>Last 30 days</option>
+                <option value={7}>Last 7 days</option>
+              </select>
+            </label>
             <button type="button" className="secondary-button" onClick={() => selectSection("monitoring")}>Open data collection</button>
           </div>
         </div>
