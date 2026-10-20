@@ -566,3 +566,20 @@
     padding: var(--cs-primitive-space-4);
   }
 }
+
+/* Reports source Overview: preserve the existing authorized report register,
+   with a separate latest-runs preview and one route to current Insights. */
+.reports-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.reports-overview { display: grid; gap: var(--cs-space-section); min-width: 0; padding-top: var(--cs-space-group); }
+.reports-overview__recent { display: grid; gap: var(--cs-space-group); min-width: 0; }
+.reports-overview__recent > header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cs-space-inline); }
+.reports-overview__recent h2 { margin: 0; color: var(--cs-text-strong); font-size: var(--cs-primitive-font-size-18); }
+.reports-overview__recent header p { margin: 4px 0 0; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.reports-overview__actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--cs-space-inline); }
+@media (max-width: 760px) {
+  .reports-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reports-summary__metric:nth-child(even) { border-right: 1px solid var(--cs-border-default); }
+  .reports-summary__metric:nth-last-child(-n+2) { border-bottom: 0; }
+  .reports-overview__actions { width: 100%; }
+  .reports-overview__actions > * { flex: 1 1 auto; }
+}

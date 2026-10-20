@@ -25,7 +25,7 @@ import {
 } from "../ui";
 import "./reports.css";
 
-type WorkspaceTab = "library" | "templates";
+type WorkspaceTab = "overview" | "library" | "templates";
 type ReportArea = "ALL" | "VENDORS" | "PROGRAMS" | "WORK";
 type LoadState = "loading" | "live" | "error";
 
@@ -37,6 +37,7 @@ export type ReportsWorkspaceProps = {
   loadOwners?: typeof listReportOwnerOptionsRequest;
   createRun?: typeof createReportRunRequest;
   downloadRun?: typeof downloadReportRunRequest;
+  onOpenInsights?: () => void;
 };
 
 const areaOptions = [
@@ -60,6 +61,7 @@ export function ReportsWorkspace({
   loadOwners = listReportOwnerOptionsRequest,
   createRun = createReportRunRequest,
   downloadRun = downloadReportRunRequest,
+  onOpenInsights,
 }: ReportsWorkspaceProps) {
   const [tab, setTab] = useState<WorkspaceTab>("library");
   const [definitions, setDefinitions] = useState<ReportDefinition[]>([]);
@@ -335,13 +337,26 @@ export function ReportsWorkspace({
     },
   ];
 
+  // Loaded runs are not a complete tenant-wide historical population.
+  const recentRuns = [...runs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 5);
+  const statusPanel = <section className="reports-summary" aria-label="Report library summary">
+    <div className="reports-summary__heading">
+      <strong>Loaded report status</strong>
+      <span>{runs.length} loaded{nextCursor ? " · More available" : ""}</span>
+    </div>
+    <ReportSummaryMetric label="Loaded" value={runs.length} />
+    <ReportSummaryMetric label="Available" value={readyCount} />
+    <ReportSummaryMetric label="In progress" value={runningCount} tone={runningCount ? "info" : "neutral"} />
+    <ReportSummaryMetric label="Failed" value={failedCount} tone={failedCount ? "error" : "neutral"} />
+  </section>;
+
   return <section className="reports-workspace" aria-labelledby="reports-heading">
     <header className="reports-workspace__header cs-workspace-header">
       <div>
         <span className="eyebrow">{organizationName || "ClearSight"} · {legalEntityName || "Current legal entity"}</span>
         <h1 id="reports-heading">Reports</h1>
       </div>
-      {tab === "library" && <div className="reports-workspace__actions">
+      {tab !== "templates" && <div className="reports-workspace__actions">
         <Button variant="secondary" onPress={refresh} isLoading={runState === "loading" || definitionState === "loading"}>Refresh</Button>
         <Button variant="primary" isDisabled={definitionState === "error"} onPress={openGenerate}>Generate report</Button>
       </div>}
@@ -350,21 +365,36 @@ export function ReportsWorkspace({
     <Tabs
       ariaLabel="Reports workspace"
       compactLabel="Reports view"
-      items={[{ id: "library", label: "Generated reports" }, { id: "templates", label: "Saved setups" }]}
+      items={[{ id: "overview", label: "Overview" }, { id: "library", label: "Reports" }, { id: "templates", label: "Saved setups" }]}
       selectedKey={tab}
       onSelectionChange={setTab}
     >
-      {(activeTab) => activeTab === "library"
-        ? <div className="reports-library">
-          <section className="reports-summary" aria-label="Report library summary">
-            <div className="reports-summary__heading">
-              <strong>Loaded report status</strong>
-              <span>{runs.length} loaded{nextCursor ? " · More available" : ""}</span>
-            </div>
-            <ReportSummaryMetric label="Available" value={readyCount} />
-            <ReportSummaryMetric label="In progress" value={runningCount} tone={runningCount ? "info" : "neutral"} />
-            <ReportSummaryMetric label="Failed" value={failedCount} tone={failedCount ? "error" : "neutral"} />
+      {(activeTab) => activeTab === "overview"
+        ? <div className="reports-overview">
+          {runState === "live" ? statusPanel : <Notice tone="warning">Report status totals unavailable until report runs load.</Notice>}
+          {runState === "error" && <Notice tone="error"><span>{runError}</span><Button variant="secondary" size="compact" onPress={refresh}>Retry reports</Button></Notice>}
+          <section className="reports-overview__recent" aria-labelledby="reports-recent-heading">
+            <header>
+              <div><h2 id="reports-recent-heading">Recent reports</h2>
+                <p>Latest {recentRuns.length} loaded reports{nextCursor ? " · More available" : ""}</p>
+              </div>
+              <div className="reports-overview__actions">
+                {onOpenInsights && <Button variant="quiet" onPress={onOpenInsights}>Explore insights</Button>}
+                <Button variant="secondary" onPress={() => setTab("library")}>View reports</Button>
+              </div>
+            </header>
+            {runState === "loading" && <p role="status">Loading recent reports…</p>}
+            {runState === "live" && recentRuns.length === 0 && <EmptyState
+              population="generated reports" title="No reports yet" description="Generate a report to get started."/>}
+            {recentRuns.length > 0 && <DataTable ariaLabel="Recent reports" rows={recentRuns}
+              rowKey={(run) => run.id}
+              rowName={(run) => definitionsByID.get(run.definition_id)?.name || humanizeCode(run.definition_code)}
+              columns={columns} onRowAction={setSelectedRun} rowActionLabel="View" isLoading={runState === "loading"}/>}
           </section>
+        </div>
+        : activeTab === "library"
+        ? <div className="reports-library">
+          {runState === "live" ? statusPanel : <Notice tone="warning">Report status totals unavailable until report runs load.</Notice>}
 
           {commandMessage && <Notice tone="success"><span>{commandMessage}</span></Notice>}
           {commandError && <Notice tone="error"><span>{commandError}</span></Notice>}
