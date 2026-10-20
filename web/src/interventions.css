@@ -226,3 +226,29 @@
   .assigned-workspace .cs-filter-bar__summary { gap: var(--cs-primitive-space-2); }
   .assigned-workspace .cs-filter-bar__count { font-size: 10px; white-space: normal; }
 }
+
+/* Work heading follows the approved source's Home / Work breadcrumb.
+   Keep global organization context in the shared authenticated shell. */
+.work-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--cs-primitive-space-2);
+  min-inline-size: 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.work-breadcrumb .cs-action-link {
+  min-block-size: var(--cs-target-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cs-action-primary);
+  font: inherit;
+  font-weight: 650;
+}
+.work-breadcrumb [aria-current="page"] { overflow-wrap: anywhere; }
+.work-topbar__basis {
+  margin-block: var(--cs-primitive-space-2) 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
