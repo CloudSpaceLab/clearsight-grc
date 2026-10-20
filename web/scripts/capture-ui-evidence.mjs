@@ -455,6 +455,23 @@ async function capturePage(capture) {
         const details = page.getByRole("complementary", { name: "Framework edition details" });
         await details.waitFor({ state: "visible" });
         await details.getByText("sample-release").waitFor({ state: "visible" });
+        if (capture.viewport.width >= 1440) {
+          const band = details.locator(".cs-framework-library__detail-band");
+          const [hero, mark, state] = await Promise.all([
+            band.boundingBox(),
+            band.locator(".cs-framework-library__publisher-mark").boundingBox(),
+            band.locator(".cs-framework-library__detail-state").boundingBox(),
+          ]);
+          if (!hero || !mark || !state || hero.height < 110 || hero.height > 150 ||
+              mark.y < hero.y + 45 || state.x <= mark.x + mark.width) {
+            throw new Error(`${capture.name} does not match the approved Framework edition inspector hero layout`);
+          }
+          if (await band.getAttribute("data-selected") !== "true" ||
+              !await band.getByText("Selected edition", { exact: true }).isVisible()) {
+            throw new Error(`${capture.name} lost the explicit edition selection status`);
+          }
+        }
+
       }
       if (capture.frameworkDetailSheet) {
         const sheet = page.getByRole("dialog", { name: "Edition details: Sample security reference" });
