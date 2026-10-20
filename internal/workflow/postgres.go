@@ -184,7 +184,7 @@ func (r *PostgresRepository) List(ctx context.Context, filter ListFilter) ([]Tas
 		  AND ($10='' OR strpos(lower(wt.title),$10)>0)
 		  AND ($11::timestamptz IS NULL OR wt.due_at >= $11::timestamptz)
 		  AND ($12::timestamptz IS NULL OR wt.due_at < $12::timestamptz)
-		` + postgresWorkPagePredicate(13) + `
+		`+postgresWorkPagePredicate(13)+`
 		ORDER BY
 		  CASE WHEN $5::boolean THEN wt.due_at IS NULL ELSE false END ASC,
 		  CASE WHEN $5::boolean THEN wt.due_at END ASC NULLS LAST,
