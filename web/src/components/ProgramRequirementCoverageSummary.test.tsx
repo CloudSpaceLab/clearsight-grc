@@ -41,6 +41,11 @@ describe("approved Program Requirement coverage", () => {
     expect(progress.getAttribute("value")).toBe("2");
     expect(progress.getAttribute("max")).toBe("4");
     expect(screen.getByText("Support and gap breakdowns remain unavailable without separately verified assessments.")).toBeTruthy();
+    const area = screen.getByRole("heading", {name: "By control area"});
+    expect(area).toBeTruthy();
+    expect(screen.getByText("Reviewed control-area results are unavailable.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {name: "Open requirements"}));
+    expect(onNavigate).toHaveBeenCalledWith("requirements-controls");
     fireEvent.click(screen.getByRole("button", {name: "View requirements"}));
     expect(onNavigate).toHaveBeenCalledWith("requirements-controls");
   });
@@ -53,6 +58,8 @@ describe("approved Program Requirement coverage", () => {
     expect(screen.getByText("Coverage not assessed")).toBeTruthy();
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(screen.queryByText("2 of 4")).toBeNull();
+    expect(screen.getByRole("heading", {name: "By control area"})).toBeTruthy();
+    expect(screen.queryByText("Supported 2")).toBeNull();
   });
 
   it("labels an old Program projection as out-of-date without presenting it as current", () => {
