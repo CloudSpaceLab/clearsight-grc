@@ -26,7 +26,7 @@ import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
 import { ProgramRequirementCoverageSummary } from "./ProgramRequirementCoverageSummary";
-import { ProgramRecentAssessments } from "./ProgramRecentAssessments";
+import { ProgramRecentAssessments, type AssessmentPeriodDays } from "./ProgramRecentAssessments";
 import { ProgramActivityPanel } from "./ProgramActivityPanel";
 import { MetricCard, Notice, StatusBadge } from "./ui";
 import { programOverviewMetrics } from "../programOverviewMetrics";
@@ -52,6 +52,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   const [operations, setOperations] = useState<ProgramOperations | null>(null);
   const [digest, setDigest] = useState<ReviewDigest | null>(null);
   const [activeSection, setActiveSection] = useState<ProgramSection>(section);
+  const [activityPeriod, setActivityPeriod] = useState<AssessmentPeriodDays>(90);
   const [ownerIntent, setOwnerIntent] = useState(0);
   const [assessmentReview, setAssessmentReview] = useState<{ programID: string; id: string; revision: number; form_template_version: number } | null>(null);
   const loadIDs = useRef({ aggregate: 0, operations: 0, review: 0 });
@@ -204,6 +205,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   const ownerActionIsDominant = dominantAction?.command === "program.assign";
   const [standardLinkReviewID, setStandardLinkReviewID] = useState<string | undefined>();
   const overviewMeasures = useMemo(() => aggregate ? programOverviewMetrics(aggregate) : [], [aggregate]);
+  const adoptedStandards = aggregate?.framework_adoptions?.filter((item) => item.status === "ACTIVE");
 
   function selectSection(next: ProgramSection, reviewAdoptionID?: string) {
     setStandardLinkReviewID(next === "requirements-controls" ? reviewAdoptionID : undefined);
@@ -255,11 +257,12 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
 
   const positionPanel = aggregate ? (digest
     ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest}
-        onNavigate={selectSection} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
+        onNavigate={selectSection} showAttention={activeSection !== "overview"}
+        onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
     : <section className="program-current-position" aria-labelledby="program-current-position-heading">
         <div><span className="eyebrow">Current position</span>
           <h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2>
-          <ProgramAttention aggregate={aggregate} onNavigate={selectSection}/>
+          {activeSection !== "overview" && <ProgramAttention aggregate={aggregate} onNavigate={selectSection}/>}
         </div>
         <div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div>
       </section>) : null;
@@ -277,9 +280,35 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {activeSection === "overview" ? <div className="program-overview-composition">
         <div className="program-overview-main">
           <ProgramRequirementCoverageSummary aggregate={aggregate} onNavigate={selectSection}/>
-          <ProgramRecentAssessments programID={aggregate.program.id} onNavigate={selectSection} onOpenAssessment={openRecentAssessment}/>
+          <ProgramRecentAssessments programID={aggregate.program.id} period={activityPeriod} onNavigate={selectSection} onOpenAssessment={openRecentAssessment}/>
         </div>
         <aside className="program-overview-rail" aria-label="Program attention and setup">
+          <section className="program-overview-attention" aria-labelledby="program-overview-attention-heading">
+            <h2 id="program-overview-attention-heading">Needs attention</h2>
+            <p>{!aggregate.current_state ? "Current Program state unavailable"
+              : aggregate.current_state.program_version !== aggregate.program.version
+                ? "Based on the previous Program state"
+                : "Recorded issues and outstanding checks"}</p>
+            {aggregate.current_state?.reasons?.length
+              ? <ProgramAttention aggregate={aggregate} onNavigate={selectSection}/>
+              : <p>{aggregate.current_state ? "No recorded follow-up reasons." : "Follow-up is unavailable."}</p>}
+          </section>
+          <section className="program-overview-setup" aria-labelledby="program-overview-setup-heading">
+            <header>
+              <h2 id="program-overview-setup-heading">Program setup</h2>
+              <button type="button" className="text-button" onClick={() => {
+                document.getElementById("program-details-panel")?.scrollIntoView?.({ block: "start" });
+              }}>View details</button>
+            </header>
+            <dl>
+              <div><dt>Standards</dt><dd>{adoptedStandards === undefined ? "Not available"
+                : adoptedStandards.length === 0 ? "None adopted"
+                : adoptedStandards.map((item) =>
+                  <span key={item.id}>{item.framework_code} · {item.edition_code}</span>)}</dd></div>
+              <div><dt>Jurisdiction</dt><dd>{aggregate.program.jurisdiction || "Not recorded"}</dd></div>
+              <div><dt>Owning function</dt><dd>{aggregate.program.owning_function || "Not recorded"}</dd></div>
+            </dl>
+          </section>
           {positionPanel}
           <ProgramVendorFollowUp programID={aggregate.program.id}/>
         </aside>
@@ -306,12 +335,20 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
           <h1>{aggregate.program.name}</h1>
           <p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p>
           <dl className="program-record-header__facts">
-            <div><dt>Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
+            <div><dt className="sr-only">Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
             <div><dt>Owning function</dt><dd>{aggregate.program.owning_function || "Not recorded"}</dd></div>
           </dl>
         </div>
         <div className="program-record-header__side">
           <div className="program-record-header__actions">
+            <label className="program-record-header__period">Assessment period
+              <select aria-label="Assessment activity period" value={activityPeriod}
+                onChange={(event) => setActivityPeriod(Number(event.target.value) as AssessmentPeriodDays)}>
+                <option value={90}>Last 90 days</option>
+                <option value={30}>Last 30 days</option>
+                <option value={7}>Last 7 days</option>
+              </select>
+            </label>
             <button type="button" className="secondary-button" onClick={() => selectSection("monitoring")}>Open data collection</button>
           </div>
         </div>

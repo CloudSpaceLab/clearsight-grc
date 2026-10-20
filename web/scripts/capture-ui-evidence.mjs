@@ -214,7 +214,22 @@ async function capturePage(capture) {
         throw new Error(`Framework Library title uses ${fontSize}px instead of the approved ${desktop ? "desktop" : "mobile"} heading scale`);
       }
     }
-    if (capture.name === "04-program-light-mobile-390x844") await assertApprovedProgramHeading(page, true);
+    if (capture.name === "04-program-light-mobile-390x844") {
+      await assertApprovedProgramHeading(page, true);
+      const header = page.locator(".program-record-header");
+      const period = header.getByRole("combobox", { name: "Assessment activity period" });
+      const action = header.getByRole("button", { name: "Open data collection" });
+      const [headerBox, periodBox, actionBox] = await Promise.all([
+        header.boundingBox(), period.boundingBox(), action.boundingBox(),
+      ]);
+      if (!headerBox || !periodBox || !actionBox ||
+          headerBox.height > 230 ||
+          periodBox.x >= actionBox.x ||
+          Math.abs(periodBox.y + periodBox.height - actionBox.y - actionBox.height) > 3) {
+        throw new Error("Approved mobile Program requires a compact record heading and adjacent period / collection actions: " +
+          JSON.stringify({ headerBox, periodBox, actionBox }));
+      }
+    }
     if (capture.name === "04-program-light-mobile-390x844") {
       const tabs = page.getByRole("tablist", { name: "Program sections" });
       await tabs.waitFor({ state: "visible" });
@@ -231,11 +246,41 @@ async function capturePage(capture) {
       }
       await page.getByRole("button", {name: "Open data collection"}).waitFor({state:"visible"});
     }
+    if (capture.name === "04-program-light-mobile-390x844" ||
+        capture.name === "04-program-light-1440x900") {
+      const period = page.locator(".program-record-header__period select");
+      await period.waitFor({ state: "visible" });
+      if (await period.inputValue() !== "90") {
+        throw new Error("Program header does not own the real 90-day assessment period");
+      }
+      const coverage = page.getByRole("heading", { name: "Requirement coverage" });
+      const areas = page.getByRole("heading", { name: "By control area" });
+      const recent = page.getByRole("heading", { name: "Recent assessments" });
+      const attention = page.getByRole("heading", { name: "Needs attention" });
+      await Promise.all([coverage.waitFor(), areas.waitFor(), recent.waitFor(), attention.waitFor()]);
+      const ordered = await page.evaluate(() => {
+        const a = document.getElementById("program-overview-coverage-heading");
+        const b = document.getElementById("program-overview-areas-heading");
+        const c = document.getElementById("program-recent-assessments-heading");
+        const d = document.getElementById("program-overview-attention-heading");
+        const e = document.getElementById("program-overview-setup-heading");
+        const rail = document.querySelector(".program-overview-rail");
+        return Boolean(a && b && c && d && e && rail &&
+          a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          b.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          d.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          rail.contains(d) && rail.contains(e));
+      });
+      if (!ordered) throw new Error("Program Overview does not follow approved coverage → control area → recent assessments + attention rail structure");
+      if (await page.getByLabel("Program follow-up").count() > 1) {
+        throw new Error("Program attention is duplicated inside the current-position card");
+      }
+    }
     if (capture.name === "04-program-light-mobile-390x844") {
       const first = page.locator(".program-overview-metrics .cs-metric-card").first();
       await first.waitFor({ state: "visible" });
       const firstBox = await first.boundingBox();
-      if (!firstBox || firstBox.y > 570) {
+      if (!firstBox || firstBox.y > 520) {
         await page.screenshot({ path: path.join(outputDir, "04-program-mobile-viewport-failure.png"), fullPage: false, animations: "disabled" });
         throw new Error(`Approved mobile Program measures are pushed too far below the first viewport: ${firstBox?.y ?? "unavailable"}px`);
       }

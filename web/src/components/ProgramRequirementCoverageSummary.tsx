@@ -60,5 +60,12 @@ export function ProgramRequirementCoverageSummary({
         : "A current approved calculation is required before coverage can be shown."}</p>
       <p>Requirements remain available for review without an inferred compliance result.</p>
     </div>}
+    <section className="program-overview-coverage__areas" aria-labelledby="program-overview-areas-heading">
+      <h3 id="program-overview-areas-heading">By control area</h3>
+      <p>Reviewed control-area results are unavailable.</p>
+      <button type="button" className="text-button" onClick={() => onNavigate("requirements-controls")}>
+        Open requirements
+      </button>
+    </section>
   </section>;
 }

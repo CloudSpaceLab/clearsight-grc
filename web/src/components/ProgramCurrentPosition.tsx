@@ -10,6 +10,7 @@ type Props = {
   digest: ProgramReviewDigest;
   onOpenOwnerChange?: () => void;
   onNavigate?: (section: ProgramSection) => void;
+  showAttention?: boolean;
 };
 
 const actionOrder = [
@@ -73,7 +74,7 @@ function requirementComplianceSummary(aggregate: ProgramAggregate, stale: boolea
   return `${formatted(result.score_bps)} · ${coverage} coverage`;
 }
 
-export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOwnerChange, onNavigate }: Props) {
+export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOwnerChange, onNavigate, showAttention = true }: Props) {
   const current = aggregate.current_state;
   const assessedVersion = current?.program_version ?? 0;
   const assessmentVersionKnown = Number.isInteger(assessedVersion) && assessedVersion > 0;
@@ -121,7 +122,7 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
         {activeStandards > 0 && <span><strong>Standards</strong> {activeStandards}</span>}
         {requirementsCompliance && <span><strong>Requirement compliance</strong> {requirementsCompliance}</span>}
       </div>
-      {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Follow-up from the last calculation" : "What needs attention"}</h3><ProgramAttention aggregate={aggregate} onNavigate={navigate}/></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons unavailable." : stale ? "No prior status reasons." : "No status reasons."}</p>}
+      {showAttention && (reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Follow-up from the last calculation" : "What needs attention"}</h3><ProgramAttention aggregate={aggregate} onNavigate={navigate}/></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons unavailable." : stale ? "No prior status reasons." : "No status reasons."}</p>)}
     </div>
   </section>;
 }

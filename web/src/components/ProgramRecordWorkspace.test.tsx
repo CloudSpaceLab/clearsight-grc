@@ -328,6 +328,68 @@ describe("Program record workspace", () => {
     expect(screen.queryByRole("heading", {name: "Requirement coverage"})).toBeNull();
   });
 
+  it("matches approved Overview order and scopes the header period to submitted assessments", async () => {
+    const {container} = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    await screen.findByRole("heading", {name: "Nigeria data protection"});
+    const header = container.querySelector(".program-record-header") as HTMLElement;
+    const period = within(header).getByRole("combobox", {name: "Assessment activity period"}) as HTMLSelectElement;
+    expect(period.value).toBe("90");
+
+    const overview = screen.getByRole("tabpanel", {name: "Overview"});
+    const coverage = within(overview).getByRole("heading", {name: "Requirement coverage"});
+    const areas = within(overview).getByRole("heading", {name: "By control area"});
+    const recent = within(overview).getByRole("heading", {name: "Recent assessments"});
+    const attention = within(overview).getByRole("heading", {name: "Needs attention"});
+    expect(coverage.compareDocumentPosition(areas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(areas.compareDocumentPosition(recent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(overview).getByText("Reviewed control-area results are unavailable.")).toBeTruthy();
+    expect(attention.closest(".program-overview-rail")).not.toBeNull();
+    const setup = within(overview).getByRole("region", {name: "Program setup"});
+    expect(setup.compareDocumentPosition(attention) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    expect(within(setup).getByText("Not available")).toBeTruthy();
+    expect(within(setup).getByText("Nigeria")).toBeTruthy();
+    expect(within(setup).getByRole("button", {name: "View details"})).toBeTruthy();
+    expect(within(overview).getAllByLabelText("Program follow-up")).toHaveLength(1);
+    expect(within(overview).getByText("Based on the previous Program state")).toBeTruthy();
+
+    fireEvent.change(period, {target: {value: "7"}});
+    expect(period.value).toBe("7");
+    expect(screen.getByText("Submitted responses · Last 7 days")).toBeTruthy();
+    await waitFor(() => expect(loadCompletedResponses).toHaveBeenCalledWith(expect.objectContaining({
+      subject_type: "PROGRAM", subject_id: "program-1", limit: 3,
+      completed_from: expect.any(String),
+    })));
+    expect(screen.getByRole("tab", {name: "Overview", selected: true})).toBeTruthy();
+  });
+
+  it("shows only active adopted standards from the current Program and opens its existing details", async () => {
+    vi.mocked(loadProgram).mockResolvedValue({...aggregate, framework_adoptions: [
+      {id: "adopted", edition_id: "edition-2022", publisher_code: "ISO",
+       framework_code: "ISO27001", edition_code: "2022", status: "ACTIVE",
+       proposed_by: "owner", rationale: "Approved", proposed_at: "2026-10-01T00:00:00Z", version: 1},
+      {id: "pending", edition_id: "edition-new", publisher_code: "ISO",
+       framework_code: "ISO27001", edition_code: "2026", status: "PENDING",
+       proposed_by: "owner", rationale: "Awaiting review", proposed_at: "2026-10-02T00:00:00Z", version: 1},
+    ]});
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    const setup = await screen.findByRole("region", {name: "Program setup"});
+    expect(within(setup).getByText("ISO27001 · 2022")).toBeTruthy();
+    expect(within(setup).queryByText("ISO27001 · 2026")).toBeNull();
+    const target = document.getElementById("program-details-panel");
+    expect(target).not.toBeNull();
+    fireEvent.click(within(setup).getByRole("button", {name: "View details"}));
+    expect(target!.scrollIntoView).toHaveBeenCalledWith({block: "start"});
+  });
+
+  it("does not present a nonexistent Program projection as an older calculation", async () => {
+    vi.mocked(loadProgram).mockResolvedValue({...aggregate, current_state: undefined});
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    const attention = await screen.findByRole("heading", {name: "Needs attention"});
+    const panel = attention.closest(".program-overview-attention") as HTMLElement;
+    expect(within(panel).getByText("Current Program state unavailable")).toBeTruthy();
+    expect(within(panel).getByText("Follow-up is unavailable.")).toBeTruthy();
+  });
+
   it("places Program section navigation above measures and current position", async () => {
     const { container } = render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
     await screen.findByRole("heading", { name: "Nigeria data protection" });
