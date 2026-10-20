@@ -214,7 +214,22 @@ async function capturePage(capture) {
         throw new Error(`Framework Library title uses ${fontSize}px instead of the approved ${desktop ? "desktop" : "mobile"} heading scale`);
       }
     }
-    if (capture.name === "04-program-light-mobile-390x844") await assertApprovedProgramHeading(page, true);
+    if (capture.name === "04-program-light-mobile-390x844") {
+      await assertApprovedProgramHeading(page, true);
+      const header = page.locator(".program-record-header");
+      const period = header.getByRole("combobox", { name: "Assessment activity period" });
+      const action = header.getByRole("button", { name: "Open data collection" });
+      const [headerBox, periodBox, actionBox] = await Promise.all([
+        header.boundingBox(), period.boundingBox(), action.boundingBox(),
+      ]);
+      if (!headerBox || !periodBox || !actionBox ||
+          headerBox.height > 230 ||
+          periodBox.x >= actionBox.x ||
+          Math.abs(periodBox.y + periodBox.height - actionBox.y - actionBox.height) > 3) {
+        throw new Error("Approved mobile Program requires a compact record heading and adjacent period / collection actions: " +
+          JSON.stringify({ headerBox, periodBox, actionBox }));
+      }
+    }
     if (capture.name === "04-program-light-mobile-390x844") {
       const tabs = page.getByRole("tablist", { name: "Program sections" });
       await tabs.waitFor({ state: "visible" });
@@ -263,7 +278,7 @@ async function capturePage(capture) {
       const first = page.locator(".program-overview-metrics .cs-metric-card").first();
       await first.waitFor({ state: "visible" });
       const firstBox = await first.boundingBox();
-      if (!firstBox || firstBox.y > 570) {
+      if (!firstBox || firstBox.y > 520) {
         await page.screenshot({ path: path.join(outputDir, "04-program-mobile-viewport-failure.png"), fullPage: false, animations: "disabled" });
         throw new Error(`Approved mobile Program measures are pushed too far below the first viewport: ${firstBox?.y ?? "unavailable"}px`);
       }
