@@ -38,13 +38,17 @@ func TestWorkSourceSearchFindsAuthorizedAssignmentsBeyondFirstFifty(t *testing.T
 		VisibleActorWorkOnly: true, ActiveOnly: true, Limit: 50,
 	}
 	first, err := service.List(t.Context(), filter)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(first) != 50 {
 		t.Fatalf("expected bounded first 50 authorized tasks, got %d", len(first))
 	}
 	filter.Search = "  ATTESTATION  "
 	matched, err := service.List(t.Context(), filter)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(matched) != 1 || matched[0].ID != "work-074" {
 		t.Fatalf("search must filter the entire authorized source before limit, got %#v", matched)
 	}
@@ -64,7 +68,9 @@ func TestWorkSourceDueWindowUsesInclusiveStartExclusiveEnd(t *testing.T) {
 	values, err := service.List(t.Context(), ListFilter{
 		TenantID: "bank", PrincipalID: "actor", ActiveOnly: true, DueFrom: &start, DueBefore: &end, Limit: 20,
 	})
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(values) != 2 || values[0].ID != "start" || values[1].ID != "middle" {
 		t.Fatalf("due window returned %#v", values)
 	}
