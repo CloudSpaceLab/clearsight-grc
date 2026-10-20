@@ -285,9 +285,10 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
         <aside className="program-overview-rail" aria-label="Program attention and setup">
           <section className="program-overview-attention" aria-labelledby="program-overview-attention-heading">
             <h2 id="program-overview-attention-heading">Needs attention</h2>
-            <p>{aggregate.current_state?.program_version !== aggregate.program.version
-              ? "Based on the last available Program state"
-              : "Recorded issues and outstanding checks"}</p>
+            <p>{!aggregate.current_state ? "Current Program state unavailable"
+              : aggregate.current_state.program_version !== aggregate.program.version
+                ? "Based on the previous Program state"
+                : "Recorded issues and outstanding checks"}</p>
             {aggregate.current_state?.reasons?.length
               ? <ProgramAttention aggregate={aggregate} onNavigate={selectSection}/>
               : <p>{aggregate.current_state ? "No recorded follow-up reasons." : "Follow-up is unavailable."}</p>}
