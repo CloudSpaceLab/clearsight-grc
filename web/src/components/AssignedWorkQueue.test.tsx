@@ -113,7 +113,7 @@ describe("AssignedWorkQueue approved Work presentation", () => {
   it("qualifies loaded counts when the authorized backend reports more assignments", () => {
     render(<AssignedWorkQueue presentation="workspace" state="live" items={[request]}
       hasMore onOpenItem={vi.fn()}/>);
-    expect(screen.getByRole("status").textContent).toContain("Counts and search cover loaded work only.");
+    expect(screen.getByText("More assignments exist. Counts and search cover loaded work only.")).toBeTruthy();
     expect(screen.getByText("1 item loaded")).toBeTruthy();
   });
 
