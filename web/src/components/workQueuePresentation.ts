@@ -17,6 +17,25 @@ export function matchesWorkFilter(item: AttentionItem, filter: WorkQueueFilter, 
   return filter === "OVERDUE" ? due < now : due >= now && due <= now + sevenDaysMs;
 }
 
+/** Restrict this search to the already authorized Today response. It is not a
+ * server search or a count of all work in the tenant. */
+export function filterLoadedWork(
+  items: readonly AttentionItem[],
+  filter: WorkQueueFilter,
+  query: string,
+  status: string | undefined,
+  asOf: number,
+): AttentionItem[] {
+  const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  return items.filter((item) => {
+    if (!matchesWorkFilter(item, filter, asOf) || (status && item.state !== status)) return false;
+    if (terms.length === 0) return true;
+    const searchable = [item.title, item.scope, item.owner, item.state, item.evidence]
+      .join(" ").toLocaleLowerCase();
+    return terms.every((term) => searchable.includes(term));
+  });
+}
+
 export function countLoadedWork(items: readonly AttentionItem[], now: number): WorkQueueCounts {
   const counts: WorkQueueCounts = { ALL: items.length, OVERDUE: 0, DUE_SOON: 0, APPROVALS: 0, EVIDENCE: 0 };
   for (const item of items) {

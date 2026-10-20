@@ -81,10 +81,40 @@ describe("AssignedWorkQueue approved Work presentation", () => {
     fireEvent.click(within(measures).getByRole("button", { name: /Overdue: 1/ }));
     expect(within(screen.getByRole("table", { name: "Assigned work" })).getAllByRole("row")).toHaveLength(2);
     expect(within(screen.getByRole("table", { name: "Assigned work" })).getByRole("row", { name: "Late request" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Clear filter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     fireEvent.click(screen.getByRole("tab", { name: "Approvals" }));
     expect(within(screen.getByRole("table", { name: "Assigned work" })).getByRole("row", { name: approval.title })).toBeTruthy();
     expect(within(screen.getByRole("table", { name: "Assigned work" })).getAllByRole("row")).toHaveLength(2);
+  });
+
+
+  it("searches only the bounded actor-visible Work feed and clears combined filters", () => {
+    render(<AssignedWorkQueue presentation="workspace" state="live" items={[request, approval]} onOpenItem={vi.fn()}/>);
+    const search = screen.getByRole("searchbox", { name: "Search loaded work" });
+    fireEvent.change(search, { target: { value: "Authorize issue" } });
+    const table = screen.getByRole("table", { name: "Assigned work" });
+    expect(within(table).getByRole("row", { name: approval.title })).toBeTruthy();
+    expect(within(table).queryByRole("row", { name: request.title })).toBeNull();
+    expect(screen.getByText(/1 of 2 loaded items/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect((search as HTMLInputElement).value).toBe("");
+    expect(within(table).getByRole("row", { name: request.title })).toBeTruthy();
+  });
+
+  it("uses the server snapshot time for deadline classification when provided", () => {
+    const snapshot = "2026-10-19T12:00:00Z";
+    const nearDeadline = { ...request, due_at: "2026-10-20T12:00:00Z" };
+    render(<AssignedWorkQueue presentation="workspace" state="live" asOf={snapshot} items={[nearDeadline]} onOpenItem={vi.fn()}/>);
+    const measures = screen.getByLabelText("Loaded work measures");
+    expect(within(measures).getByRole("button", { name: /Due next 7 days: 1/ })).toBeTruthy();
+    expect(within(measures).getByRole("button", { name: /Overdue: 0/ })).toBeTruthy();
+  });
+
+  it("qualifies loaded counts when the authorized backend reports more assignments", () => {
+    render(<AssignedWorkQueue presentation="workspace" state="live" items={[request]}
+      hasMore onOpenItem={vi.fn()}/>);
+    expect(screen.getByText("More assignments exist. Counts and search cover loaded work only.")).toBeTruthy();
+    expect(screen.getByText("1 item loaded")).toBeTruthy();
   });
 
   it("preserves the shared brief presentation and fail-closed unavailable state", () => {
