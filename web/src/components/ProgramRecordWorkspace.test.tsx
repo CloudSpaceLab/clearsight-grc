@@ -377,10 +377,8 @@ describe("Program record workspace", () => {
     expect(within(setup).queryByText("ISO27001 · 2026")).toBeNull();
     const target = document.getElementById("program-details-panel");
     expect(target).not.toBeNull();
-    const scroll = vi.fn();
-    target!.scrollIntoView = scroll;
     fireEvent.click(within(setup).getByRole("button", {name: "View details"}));
-    expect(scroll).toHaveBeenCalledWith({block: "start"});
+    expect(target!.scrollIntoView).toHaveBeenCalledWith({block: "start"});
   });
 
   it("does not present a nonexistent Program projection as an older calculation", async () => {
