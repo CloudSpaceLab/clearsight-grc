@@ -74,7 +74,7 @@ export function AssignedWorkQueue({ items, state, asOf, onOpenItem, onInspectAut
                     onRowAction={(item) => { setSelectedID(item.id); setInspectingItem(item); }}
                     rowActionLabel="Inspect" responsiveTo="container"/>
                   {selected && <WorkContext item={selected} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>}
-                </div> : <div id="attention-list"><EmptyState label="Assigned work" title={filter === "ALL" ? "Nothing needs your action right now" : "No matching work"}
+                </div> : <div id="attention-list"><EmptyState label="Assigned work" title={filter === "ALL" && !search && !status ? "Nothing needs your action right now" : "No matching work"}
                   description={filter === "ALL" && !search && !status ? "No open assigned work." : "No matching items in the loaded queue."}/></div>}
               </>}
             </Tabs>
