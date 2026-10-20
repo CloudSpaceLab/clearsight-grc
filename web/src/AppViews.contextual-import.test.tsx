@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ProgramsView, WorkView } from "./AppViews";
+import { ProgramsView, ReferenceJourneysView, WorkView } from "./AppViews";
 
 vi.mock("./components/ProgramsWorkspace", () => ({ ProgramsWorkspace: () => <div>Programs workspace</div> }));
 vi.mock("./components/MattersWorkspace", () => ({ MattersWorkspace: () => <div>Matters workspace</div> }));
@@ -14,6 +14,12 @@ vi.mock("./components/WorkspaceErrorBoundary", () => ({ WorkspaceErrorBoundary: 
 afterEach(() => vi.restoreAllMocks());
 
 describe("contextual document analysis entry", () => {
+  it("loads the non-production reference journeys on demand", async () => {
+    render(<ReferenceJourneysView organizationName="Meridian Trust Bank"/>);
+    expect(screen.getByRole("heading", { name: "Reference journeys" })).toBeTruthy();
+    expect(await screen.findByText("Reference journeys", { selector: "div" })).toBeTruthy();
+  });
+
   it("offers document analysis from Programs when the capability is supplied", () => {
     const onAnalyzeDocument = vi.fn();
     render(<ProgramsView organizationName="Meridian Trust Bank" onAnalyzeDocument={onAnalyzeDocument}/>);
