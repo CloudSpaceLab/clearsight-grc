@@ -77,7 +77,7 @@ export type SessionStatus = {
   demo_login_available: boolean;
 };
 
-export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string };
+export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string; count_basis?: "LOADED"; workflow_has_more?: boolean };
 export type EmployeeProfile = { person: { id: string; display_name: string; status: string; position?: string; function?: string; sample: boolean }; metrics: Record<string, { value?: number }>; as_of: string };
 export type EmployeeWorkItem = { id: string; record_type: string; record_id: string; responsibility: string; title: string; status: string; due_at?: string; updated_at: string };
 export type EmployeeActivityItem = { event_id: string; occurred_at: string; action: string; record_type: string; record_id: string; title: string; source: string };
