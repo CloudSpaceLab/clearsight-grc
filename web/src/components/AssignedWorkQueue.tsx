@@ -50,7 +50,7 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
         ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry." action="Try again" onAction={onRetry}/>
         : presentation === "workspace"
           ? <>
-            <Tabs ariaLabel="Assigned work queues" compactLabel="Work queue" items={workQueues}
+            <Tabs ariaLabel="Assigned work queues" items={workQueues}
               selectedKey={filter === "APPROVALS" ? "APPROVALS" : "ALL"}
               onSelectionChange={(key) => setFilter(key)}>
               {() => <>

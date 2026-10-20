@@ -150,3 +150,79 @@
 @container assigned-work (max-width: 310px) {
   .assigned-workspace__signals { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* The approved phone Work view uses a short intent row and compact 2x2
+   measures so the first assignment is visible without scrolling. */
+@container assigned-work (max-width: 620px) {
+  .assigned-workspace__signals .cs-metric-card {
+    --cs-metric-card-min-height: 0;
+    --cs-metric-card-padding: var(--cs-primitive-space-3);
+    --cs-metric-card-gap: var(--cs-primitive-space-1);
+  }
+  .assigned-workspace .cs-tabs__list { overflow-x: auto; scrollbar-width: none; }
+  .assigned-workspace .cs-tabs__tab { flex: none; }
+}
+
+/* Work's approved phone layout keeps tabs, measures, queue and first record
+   in the initial viewport. Preserve values, filter state and touch targets. */
+@media (max-width: 650px) {
+  .work-topbar { gap: var(--cs-primitive-space-2); }
+  .work-topbar h1 { font-size: 26px; line-height: 1.12; margin-block: var(--cs-primitive-space-1); }
+  .work-topbar .topbar-actions { gap: var(--cs-primitive-space-2); }
+  .assigned-workspace { margin-block-start: var(--cs-primitive-space-2); }
+}
+@container assigned-work (max-width: 620px) {
+  .assigned-workspace .cs-tabs__panel { padding-block-start: var(--cs-primitive-space-1); }
+  .assigned-workspace__signals {
+    gap: var(--cs-primitive-space-2);
+    margin-block: var(--cs-primitive-space-2);
+  }
+  .assigned-workspace__signals .cs-metric-card {
+    block-size: 82px;
+    min-block-size: 0;
+    padding: var(--cs-primitive-space-2);
+    align-content: center;
+    gap: var(--cs-primitive-space-1);
+  }
+  .assigned-workspace__signals .cs-metric-card__measure { order: -1; }
+  .assigned-workspace__signals .cs-metric-card__measure strong { font-size: 26px; }
+  .assigned-workspace__signals .cs-metric-card__label {
+    font-size: 10px;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+  .assigned-workspace .intervention-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--cs-primitive-space-2);
+    padding-block-end: var(--cs-primitive-space-2);
+  }
+  .assigned-workspace .intervention-heading .eyebrow { display: none; }
+  .assigned-workspace .intervention-heading h2 {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.2;
+  }
+  .assigned-workspace .intervention-heading p {
+    margin-block-start: var(--cs-primitive-space-1);
+    font-size: 11px;
+  }
+  .assigned-workspace__due-window { min-inline-size: 0; inline-size: 100%; }
+  .assigned-workspace__due-window .cs-select-field__label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .assigned-workspace .cs-filter-bar { display: grid; gap: var(--cs-primitive-space-1); }
+  .assigned-workspace .cs-filter-bar__fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: var(--cs-primitive-space-2);
+  }
+  .assigned-workspace .cs-filter-bar__fields > * { min-inline-size: 0; inline-size: 100%; }
+  .assigned-workspace .cs-filter-bar__summary { gap: var(--cs-primitive-space-2); }
+  .assigned-workspace .cs-filter-bar__count { font-size: 10px; white-space: normal; }
+}

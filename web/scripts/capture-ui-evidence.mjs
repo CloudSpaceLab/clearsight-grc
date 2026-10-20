@@ -1029,7 +1029,7 @@ async function assertWorkMeasureLabels(page, capture) {
   });
   if (!sourceOrder) throw new Error(`${capture.name}: Work must render intent → measures → queue → filters`);
   const [navBox, measuresBox, queueBox] = await Promise.all([
-    (capture.viewport.width <= 760 ? work.locator(".cs-tabs__compact") : localTabs).boundingBox(),
+    localTabs.boundingBox(),
     work.locator(".assigned-workspace__signals").boundingBox(),
     work.getByRole("heading", { name: "Assigned to me" }).boundingBox(),
   ]);
@@ -1070,6 +1070,14 @@ async function assertWorkMeasureLabels(page, capture) {
     if (!(first.x < second.x && Math.abs(first.y - second.y) < 3 &&
       third.x < fourth.x && third.y > first.y)) {
       throw new Error(`${capture.name}: Work measures must retain the approved 2×2 mobile order`);
+    }
+    if (await work.locator(".cs-tabs__compact").count()) {
+      throw new Error(`${capture.name}: phone Work intent must be a short horizontal tab row`);
+    }
+    const firstRow = work.getByRole("table", { name: "Assigned work" }).locator("tbody tr").first();
+    const rowBox = await firstRow.boundingBox();
+    if (!rowBox || rowBox.y >= capture.viewport.height - 8) {
+      throw new Error(`${capture.name}: first Work assignment remains below the mobile first viewport: ${rowBox?.y ?? "unavailable"}`);
     }
   }
 }
