@@ -217,7 +217,7 @@
     gap: var(--cs-space-inline);
     padding: 12px;
     border: 1px solid var(--cs-border-default);
-    border-radius: var(--cs-primitive-radius-12);
+    border-radius: var(--cs-primitive-radius-10);
     background: var(--cs-bg-surface-1);
     box-shadow: 0 12px 28px rgb(10 29 67 / 12%);
   }
@@ -231,12 +231,12 @@
     padding: 10px 12px;
     border: 1px solid var(--cs-border-default);
     border-bottom: 0;
-    border-radius: var(--cs-primitive-radius-12) var(--cs-primitive-radius-12) 0 0;
+    border-radius: var(--cs-primitive-radius-10) var(--cs-primitive-radius-10) 0 0;
     background: var(--cs-bg-surface-1);
   }
   .app-shell > main > .context-bar[data-mobile-controls="open"][data-has-scope="true"] > .context-role {
     inset-block-start: calc(100% + 66px);
-    border-radius: 0 0 var(--cs-primitive-radius-12) var(--cs-primitive-radius-12);
+    border-radius: 0 0 var(--cs-primitive-radius-10) var(--cs-primitive-radius-10);
   }
   .app-shell > main > .context-bar[data-mobile-controls="open"] .enterprise-scope-trigger {
     inline-size: 100%;
