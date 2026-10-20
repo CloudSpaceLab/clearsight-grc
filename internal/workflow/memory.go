@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,6 +53,15 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 			continue
 		}
 		if filter.WorkflowKind != "" && task.WorkflowKind != filter.WorkflowKind {
+			continue
+		}
+		if filter.Search != "" && !strings.Contains(strings.ToLower(task.Title), strings.ToLower(strings.TrimSpace(filter.Search))) {
+			continue
+		}
+		if filter.DueFrom != nil && (task.DueAt == nil || task.DueAt.Before(*filter.DueFrom)) {
+			continue
+		}
+		if filter.DueBefore != nil && (task.DueAt == nil || !task.DueAt.Before(*filter.DueBefore)) {
 			continue
 		}
 		if filter.ActiveOnly && (task.Status == StatusCompleted || task.Status == StatusCancelled) {
