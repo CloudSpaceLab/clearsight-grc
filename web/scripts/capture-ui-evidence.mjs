@@ -263,11 +263,13 @@ async function capturePage(capture) {
         const b = document.getElementById("program-overview-areas-heading");
         const c = document.getElementById("program-recent-assessments-heading");
         const d = document.getElementById("program-overview-attention-heading");
+        const e = document.getElementById("program-overview-setup-heading");
         const rail = document.querySelector(".program-overview-rail");
-        return Boolean(a && b && c && d && rail &&
+        return Boolean(a && b && c && d && e && rail &&
           a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING &&
           b.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING &&
-          rail.contains(d));
+          d.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          rail.contains(d) && rail.contains(e));
       });
       if (!ordered) throw new Error("Program Overview does not follow approved coverage → control area → recent assessments + attention rail structure");
       if (await page.getByLabel("Program follow-up").count() > 1) {
