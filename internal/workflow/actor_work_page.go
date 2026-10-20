@@ -32,12 +32,12 @@ type ActorWorkPageQuery struct {
 }
 
 type ActorWorkPage struct {
-	Items           []Task    `json:"items"`
-	NextCursor      string    `json:"next_cursor,omitempty"`
-	HasMore         bool      `json:"has_more"`
-	AsOf            time.Time `json:"as_of"`
-	Coverage        string    `json:"coverage"`
-	CountBasis      string    `json:"count_basis"`
+	Items      []Task    `json:"items"`
+	NextCursor string    `json:"next_cursor,omitempty"`
+	HasMore    bool      `json:"has_more"`
+	AsOf       time.Time `json:"as_of"`
+	Coverage   string    `json:"coverage"`
+	CountBasis string    `json:"count_basis"`
 }
 
 type actorWorkCursor struct {
@@ -109,8 +109,8 @@ func actorWorkScopeFingerprint(query ActorWorkPageQuery) string {
 	// The fingerprint is a cursor consistency check, not an access grant.
 	value, _ := json.Marshal(struct {
 		Tenant, Entity, Principal, Search string
-		Status                          Status
-		DueFrom, DueBefore              *time.Time
+		Status                            Status
+		DueFrom, DueBefore                *time.Time
 	}{
 		query.TenantID, query.LegalEntityID, query.PrincipalID,
 		query.Search, query.Status, query.DueFrom, query.DueBefore,
