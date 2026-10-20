@@ -150,7 +150,7 @@ func TestActorWorkCursorRejectsExpiredAndTerminalSelections(t *testing.T) {
 }
 
 func actorPageTestID(number int) string {
-	return fmt.Sprintf("00000000-0000-4000-8000-%012x", number + 1)
+	return fmt.Sprintf("00000000-0000-4000-8000-%012x", number+1)
 }
 
 func actorPageTestTask(number int, updated, due time.Time) Task {
