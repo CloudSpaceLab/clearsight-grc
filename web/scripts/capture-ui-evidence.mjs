@@ -60,6 +60,8 @@ const captures = [
   { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-library" },
   { name: "140a-report-overview-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-overview-desktop", openReportOverview: true },
   { name: "140b-report-overview-light-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-overview-mobile", openReportOverview: true },
+  { name: "140c-report-explore-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-explore-desktop", openReportExplore: true },
+  { name: "140d-report-explore-light-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-explore-mobile", openReportExplore: true },
 
 
   { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
@@ -349,6 +351,22 @@ async function capturePage(capture) {
     if (capture.state === "report-library") {
       await page.getByRole("table", { name: "Generated reports" }).waitFor({ state: "visible" });
     }
+    if (capture.openReportExplore) {
+      const workspace = page.locator(".reports-workspace");
+      await workspace.getByRole("tab", { name: "Explore", exact: true }).click();
+      const explore = workspace.getByRole("region", { name: "Risk and loss reporting" });
+      await explore.getByRole("heading", { name: "Risk and loss analysis" }).waitFor({ state: "visible" });
+      await explore.getByRole("button", { name: "Open Insights workspace" }).waitFor({ state: "visible" });
+      await page.waitForFunction(() => {
+        const region = document.querySelector('[aria-label="Risk and loss reporting"]');
+        return Boolean(region?.querySelector('[aria-label="Risk and loss analysis"]')
+          || region?.textContent?.includes("Reporting metrics are unavailable for the selected scope."));
+      }, undefined, { timeout: 12000 });
+      if (await workspace.locator(".cs-tabs__compact").count()) {
+        throw new Error(`${capture.name}: Reports Explore uses a redundant compact selector`);
+      }
+    }
+
     if (capture.openReportOverview) {
       const workspace = page.locator(".reports-workspace");
       if (await workspace.locator(".cs-tabs__compact").count()) {
