@@ -48,12 +48,12 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const inspecting = currentItems.find((item) => item === inspectingItem);
 
   return <section className={`intervention-brief${presentation === "workspace" ? " assigned-workspace" : ""}`} aria-labelledby="assigned-work-heading">
-    {(presentation !== "workspace" || currentState !== "live") && <header className="intervention-heading">
+    {(presentation !== "workspace" || (currentState !== "live" && !sourceSearch)) && <header className="intervention-heading">
       <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{title}</Heading></div>
     </header>}
-    {currentState === "loading"
+    {currentState === "loading" && !sourceSearch
       ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
-      : currentState === "unavailable"
+      : currentState === "unavailable" && !sourceSearch
         ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry." action="Try again" onAction={sourceSearch ? searched.retry : onRetry}/>
         : presentation === "workspace"
           ? <>
@@ -61,15 +61,15 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
               selectedKey={filter === "APPROVALS" ? "APPROVALS" : "ALL"}
               onSelectionChange={(key) => setFilter(key)}>
               {() => <>
-                <div className="assigned-workspace__signals" aria-label="Loaded work measures">
+                {(!sourceSearch || currentState === "live") && <div className="assigned-workspace__signals" aria-label="Loaded work measures">
                   {workSignals.map(({ key, label, tone }) => <MetricCard
                     key={key} label={label} value={counts[key]} qualityLabel="Loaded work" tone={tone}
                     isSelected={filter === key} ariaControls="attention-list" onPress={() => setFilter(filter === key ? "ALL" : key)}
                   />)}
-                </div>
+                </div>}
                 <header className="intervention-heading">
                   <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">Assigned to me</Heading>
-                    <p>{currentItems.length} {currentItems.length === 1 ? "item" : "items"} loaded</p>
+                    {(!sourceSearch || currentState === "live") && <p>{currentItems.length} {currentItems.length === 1 ? "item" : "items"} loaded</p>}
                     {sourceSearch
                       ? <p role="status">Workflow assignments only · title matches · loaded results, not total work.</p>
                       : currentHasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}
@@ -86,10 +86,14 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                     <SelectField label="Work status" isLabelHidden value={status} placeholder="All statuses" options={statuses} onChange={setStatus}/>
                   </>}
                   resultCount={filtered.length}
-                  resultLabel={(count) => `${count} of ${currentItems.length} loaded ${sourceSearch ? "assignment matches" : "items"} · ${workFilterLabel(filter)}`}
+                  resultLabel={(count) => sourceSearch && currentState !== "live" ? currentState === "loading" ? "Searching assignment titles" : "Assignment search unavailable" : `${count} of ${currentItems.length} loaded ${sourceSearch ? "assignment matches" : "items"} · ${workFilterLabel(filter)}`}
                   onClear={search || status || filter !== "ALL" || dueWindow !== "ALL" ? () => { setSearch(""); setStatus(undefined); setDueWindow("ALL"); setFilter("ALL"); } : undefined}
                 />
-                {filtered.length ? <div className="assigned-workspace__grid" id="attention-list">
+                {sourceSearch && currentState !== "live"
+                  ? <div id="attention-list">{currentState === "loading"
+                    ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Searching assignment titles…</div>
+                    : <EmptyState kind="unavailable" label="Assigned work" title="Assignment search unavailable" description="Retry the search." action="Try again" onAction={searched.retry}/>}</div>
+                  : filtered.length ? <div className="assigned-workspace__grid" id="attention-list">
                   <DataTable ariaLabel="Assigned work" rows={filtered} rowKey={(item) => item.id}
                     rowName={(item) => item.title} columns={workColumns} selectedKey={selected?.id}
                     onSelectionChange={(item) => setSelectedID(item.id)}
