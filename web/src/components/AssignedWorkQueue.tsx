@@ -40,25 +40,31 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const inspecting = items.find((item) => item === inspectingItem);
 
   return <section className={`intervention-brief${presentation === "workspace" ? " assigned-workspace" : ""}`} aria-labelledby="assigned-work-heading">
-    <header className="intervention-heading">
-      <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{presentation === "workspace" && state === "live" ? "Work queue" : title}</Heading>{presentation === "workspace" && state === "live" && <p>{items.length} {items.length === 1 ? "item" : "items"} loaded</p>}{presentation === "workspace" && state === "live" && hasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}</div>
-    </header>
+    {(presentation !== "workspace" || state !== "live") && <header className="intervention-heading">
+      <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{title}</Heading></div>
+    </header>}
     {state === "loading"
       ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
       : state === "unavailable"
         ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry." action="Try again" onAction={onRetry}/>
         : presentation === "workspace"
           ? <>
-            <div className="assigned-workspace__signals" aria-label="Loaded work measures">
-              {workSignals.map(({ key, label, tone }) => <MetricCard
-                key={key} label={label} value={counts[key]} qualityLabel="Loaded work" tone={tone}
-                isSelected={filter === key} ariaControls="attention-list" onPress={() => setFilter(filter === key ? "ALL" : key)}
-              />)}
-            </div>
             <Tabs ariaLabel="Assigned work queues" compactLabel="Work queue" items={workQueues}
               selectedKey={filter === "APPROVALS" ? "APPROVALS" : "ALL"}
               onSelectionChange={(key) => setFilter(key)}>
               {() => <>
+                <div className="assigned-workspace__signals" aria-label="Loaded work measures">
+                  {workSignals.map(({ key, label, tone }) => <MetricCard
+                    key={key} label={label} value={counts[key]} qualityLabel="Loaded work" tone={tone}
+                    isSelected={filter === key} ariaControls="attention-list" onPress={() => setFilter(filter === key ? "ALL" : key)}
+                  />)}
+                </div>
+                <header className="intervention-heading">
+                  <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">Assigned to me</Heading>
+                    <p>{items.length} {items.length === 1 ? "item" : "items"} loaded</p>
+                    {hasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}
+                  </div>
+                </header>
                 <FilterBar label="Filter loaded work"
                   fields={<>
                     <SearchField label="Search loaded work" value={search} onChange={(value) => setSearch(value.slice(0, 120))} placeholder="Search loaded work"/>
