@@ -591,7 +591,7 @@ describe("runtime navigation", () => {
     fireEvent.click((await screen.findAllByRole("button", { name: "Work" }))[0]!);
 
     expect(window.location.hash).toBe("#work");
-    expect(await screen.findByRole("tab", { name: "Assigned", selected: true })).toBeTruthy();
+    expect(await screen.findByRole("tab", { name: "My work", selected: true })).toBeTruthy();
     expect(within(screen.getByRole("table", { name: "Assigned work" })).getByText("Confirm assigned evidence")).toBeTruthy();
     expect(within(screen.getByRole("complementary", { name: "Selected work" })).getByRole("heading", { name: "Confirm assigned evidence" })).toBeTruthy();
     expect(loadEvidenceRequests).not.toHaveBeenCalled();
@@ -1092,7 +1092,8 @@ describe("runtime navigation", () => {
 
     await screen.findAllByRole("button", { name: "Respond to evidence request" });
     fireEvent.click(screen.getAllByRole("button", { name: /Work/ })[0]!);
-    fireEvent.click(await screen.findByRole("tab", { name: "Evidence" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Related work" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Evidence requests" }));
     fireEvent.change(await screen.findByLabelText("Why should it be reassigned?"), { target: { value: "The account owner must respond." } });
     fireEvent.click(screen.getByRole("button", { name: "Return to requester" }));
     await waitFor(() => expect(declareWrongCaptureRecipient).toHaveBeenCalled());

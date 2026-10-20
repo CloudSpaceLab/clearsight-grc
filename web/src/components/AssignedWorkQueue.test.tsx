@@ -24,7 +24,7 @@ describe("AssignedWorkQueue approved Work presentation", () => {
     const onOpenItem = vi.fn();
     const onInspectAuthority = vi.fn();
     render(<AssignedWorkQueue presentation="workspace" state="live" items={[request, approval]} onOpenItem={onOpenItem} onInspectAuthority={onInspectAuthority}/>);
-    expect(screen.getByRole("heading", { name: "Work queue" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Assigned to me" })).toBeTruthy();
     expect(screen.getByText(/2 items loaded/)).toBeTruthy();
     const table = screen.getByRole("table", { name: "Assigned work" });
     const selected = screen.getByRole("complementary", { name: "Selected work" });
