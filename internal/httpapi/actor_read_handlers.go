@@ -128,9 +128,9 @@ func (a *API) actorToday(w http.ResponseWriter, r *http.Request) {
 		snapshot.Items = []today.AttentionItem{}
 	}
 	response := map[string]any{
-		"items": snapshot.Items,
+		"items":        snapshot.Items,
 		"generated_at": time.Now().UTC(),
-		"count_basis": "LOADED",
+		"count_basis":  "LOADED",
 	}
 	if snapshot.WorkflowHasMore != nil {
 		response["workflow_has_more"] = *snapshot.WorkflowHasMore
