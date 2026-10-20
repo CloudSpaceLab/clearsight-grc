@@ -167,10 +167,16 @@ describe("Framework Library workspace", () => {
     expect(details.textContent).toContain("Published SECURITY");
     expect(details.textContent).toContain("Citations only");
     expect(details.textContent).toContain("Select an edition in the list to continue.");
+    const hero = details.querySelector(".cs-framework-library__detail-band");
+    expect(hero?.getAttribute("data-selected")).toBe("false");
+    expect(hero?.textContent).toContain("Edition preview");
+    expect(hero?.textContent).toContain("Published · 2026-10-01");
     expect(first.getAttribute("aria-pressed")).not.toBe("true");
     expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(true);
     expect(onChooseProgram).not.toHaveBeenCalled();
     fireEvent.click(first);
+    expect(hero?.getAttribute("data-selected")).toBe("true");
+    expect(hero?.textContent).toContain("Selected edition");
     expect(screen.getByRole("button", {name: "Choose Program"}).hasAttribute("disabled")).toBe(false);
   });
 

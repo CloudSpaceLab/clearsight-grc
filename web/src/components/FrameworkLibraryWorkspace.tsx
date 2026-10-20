@@ -72,9 +72,12 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
   }
 
   const inspector = preview && <div className="cs-framework-library__sheet">
-    <div className="cs-framework-library__detail-band" aria-hidden="true">
+    <div className="cs-framework-library__detail-band" data-selected={Boolean(selected)} aria-hidden="true">
       <span className="cs-framework-library__publisher-mark">{publisherMark(preview.publisher_code)}</span>
-      <span>Published · {preview.source_published_on}</span>
+      <span className="cs-framework-library__detail-state">
+        <strong>{selected ? "Selected edition" : "Edition preview"}</strong>
+        <small>Published · {preview.source_published_on}</small>
+      </span>
     </div>
     <div className="cs-framework-library__detail-body">
       <span className="eyebrow">Published reference</span>
