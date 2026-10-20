@@ -43,7 +43,7 @@ export function WorkView({ refreshToken, organizationName, actorPrincipalID, evi
   const [relatedOpen, setRelatedOpen] = useState(false);
   const openRelated = (destination: WorkTab) => { setRelatedOpen(false); onTab(destination); };
   return <>
-    <header className="topbar">
+    <header className={`topbar${tab === "assigned" ? " work-topbar" : ""}`}>
       <div><span className="eyebrow">{organizationName}</span><h1>{tab === "assigned" ? "Work & approvals" : "Work"}</h1></div>
       <div className="topbar-actions">
         <PopoverDialog label="Related work" placement="bottom end" triggerLabel="Related work" triggerClassName="cs-button cs-button--secondary cs-button--compact" isOpen={relatedOpen} onOpenChange={setRelatedOpen}>
