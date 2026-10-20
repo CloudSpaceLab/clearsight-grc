@@ -465,20 +465,6 @@
   align-items: end;
   gap: var(--cs-space-inline);
 }
-.program-recent-assessments__actions label {
-  display: grid;
-  gap: var(--cs-space-inline);
-  color: var(--cs-text-muted);
-  font-size: var(--cs-font-size-caption);
-}
-.program-recent-assessments__actions select {
-  min-height: 44px;
-  padding-inline: var(--cs-space-group);
-  background: var(--cs-bg-surface-1);
-  color: var(--cs-text-primary);
-  border: 1px solid var(--cs-border-default);
-  border-radius: var(--cs-primitive-radius-8);
-}
 .program-recent-assessments__list { margin: 0; padding: 0; list-style: none; }
 .program-recent-assessments__row {
   display: grid;
