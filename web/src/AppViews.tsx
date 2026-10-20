@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { EmptyState } from "./components/EmptyState";
 import { AssignedWorkQueue, type AssignedWorkState } from "./components/AssignedWorkQueue";
 import { BankJourneysWorkspace } from "./components/BankJourneysWorkspace";
@@ -38,15 +39,17 @@ export function ReferenceJourneysView({ organizationName }: { organizationName: 
 }
 
 export function WorkView({ refreshToken, organizationName, actorPrincipalID, evidenceScopeToken, tab, onTab, onBackMatter, returnContext, assignedItems, assignedState, assignedAsOf, assignedHasMore, onOpenAssignedItem, onInspectAuthority, sources, requests, evidenceSourceState, evidenceRequestState, onEvidenceRetry, onEvidenceRequestUpdated, matterTargetID, openFirstMatter, evidenceTargetID, openFirstEvidence, onOpenEvidence, onOpenLoss, onOpenIndicator, onAnalyzeDocument }: { refreshToken?: string; organizationName: string; actorPrincipalID?: string; evidenceScopeToken: number; tab: WorkTab; onTab: (value: WorkTab) => void; onBackMatter: () => void; returnContext?: { label: string; onReturn: () => void }; assignedItems: AttentionItem[]; assignedState: AssignedWorkState; assignedAsOf?: string; assignedHasMore?: boolean; onOpenAssignedItem: (item: AttentionItem) => void; onInspectAuthority?: (item: AttentionItem) => void; sources: EvidenceSource[]; requests: EvidenceRequest[]; evidenceSourceState: LoadState; evidenceRequestState: LoadState; onEvidenceRetry: () => void; onEvidenceRequestUpdated: (request: EvidenceRequest, scopeToken: number) => boolean; matterTargetID?: string; openFirstMatter?: boolean; evidenceTargetID?: string; openFirstEvidence?: boolean; onOpenEvidence: (id: string) => void; onOpenLoss?: (lossID: string) => void; onOpenIndicator?: (indicatorID: string, kind?: "KRI" | "KCI") => void; onAnalyzeDocument?: () => void }) {
+  const [relatedOpen, setRelatedOpen] = useState(false);
+  const openRelated = (destination: WorkTab) => { setRelatedOpen(false); onTab(destination); };
   return <>
     <header className="topbar">
       <div><span className="eyebrow">{organizationName}</span><h1>{tab === "assigned" ? "Work & approvals" : "Work"}</h1></div>
       <div className="topbar-actions">
-        <PopoverDialog label="Related work" placement="bottom end" trigger={<Button variant="secondary" size="compact">Related work</Button>}>
+        <PopoverDialog label="Related work" placement="bottom end" triggerLabel="Related work" triggerClassName="cs-button cs-button--secondary cs-button--compact" isOpen={relatedOpen} onOpenChange={setRelatedOpen}>
           <div className="cs-sheet-actions">
-            <Button variant="quiet" onPress={() => onTab("assigned")}>My work</Button>
-            <Button variant="quiet" onPress={() => onTab("matters")}>Issues & changes</Button>
-            <Button variant="quiet" onPress={() => onTab("evidence")}>Evidence requests</Button>
+            <Button variant="quiet" onPress={() => openRelated("assigned")}>My work</Button>
+            <Button variant="quiet" onPress={() => openRelated("matters")}>Issues & changes</Button>
+            <Button variant="quiet" onPress={() => openRelated("evidence")}>Evidence requests</Button>
           </div>
         </PopoverDialog>
         {tab === "matters" && onAnalyzeDocument && <Button variant="secondary" size="compact" aria-label="Analyze document to create an issue or change" onPress={onAnalyzeDocument}>Analyze document</Button>}
