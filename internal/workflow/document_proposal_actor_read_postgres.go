@@ -46,7 +46,7 @@ func (r *PostgresRepository) ListDocumentProposalActorWork(ctx context.Context, 
 		  AND ($8='' OR strpos(lower(wt.title),$8)>0)
 		  AND ($9::timestamptz IS NULL OR wt.due_at >= $9::timestamptz)
 		  AND ($10::timestamptz IS NULL OR wt.due_at < $10::timestamptz)
-		` + postgresWorkPagePredicate(11) + `
+		`+postgresWorkPagePredicate(11)+`
 		ORDER BY wt.due_at IS NULL,wt.due_at ASC NULLS LAST,wt.updated_at DESC,wt.id ASC
 		LIMIT $7`,
 		filter.TenantID, filter.PrincipalID, filter.LegalEntityID, string(filter.Status),
