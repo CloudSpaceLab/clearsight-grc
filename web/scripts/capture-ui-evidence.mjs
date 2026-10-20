@@ -22,7 +22,7 @@ const captures = [
   ...frameworkEvidenceScenarios,
   { name: "150-work-queue-light-1440x900", route: "#work", title: "Work & approvals", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned to me", state: "work-assigned-desktop" },
   { name: "151-work-queue-dark-mobile-390x844", route: "#work", title: "Work & approvals", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Assigned to me", state: "work-assigned-mobile" },
-  { name: "152-work-detail-dark-mobile-390x844", route: "#work", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openAssignedInspection: true, state: "work-inspection-mobile" },
+  { name: "152-work-detail-dark-mobile-390x844", route: "#work", title: "Work & approvals", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openAssignedInspection: true, state: "work-inspection-mobile" },
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
