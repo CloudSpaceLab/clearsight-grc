@@ -63,3 +63,60 @@ func TestWorkflowTaskReadRejectsCrossPrincipalAndUnsupportedWorkButKeepsExactAss
 		t.Fatalf("expected the newest exact supported assignment, got %#v", body.Items)
 	}
 }
+
+func TestWorkflowReadConfinesActorToVerifiedLegalEntity(t *testing.T) {
+	readAt := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
+	service := workflow.NewService(workflow.NewMemoryRepository([]workflow.Task{
+		{ID: "entity-a-only", TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "actor",
+			WorkflowKind: workflow.MatterActionWorkflowKind, MatterID: "matter-a",
+			MatterScope: json.RawMessage(`{"access":"RESTRICTED"}`), Title: "Entity A review", Status: workflow.StatusReady, UpdatedAt: readAt},
+		{ID: "entity-b-only", TenantID: "bank", LegalEntityID: "entity-b", PrincipalID: "actor",
+			WorkflowKind: workflow.MatterActionWorkflowKind, MatterID: "matter-b",
+			MatterScope: json.RawMessage(`{"access":"RESTRICTED"}`), Title: "Entity B review", Status: workflow.StatusReady, UpdatedAt: readAt.Add(time.Hour)},
+	}))
+	api := &API{deps: Dependencies{Workflow: service}}
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity-a", PrincipalID: "actor"}
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/workflow/tasks?tenant_id=bank&limit=1", nil)
+	request = request.WithContext(identity.WithActor(request.Context(), actor))
+	response := httptest.NewRecorder()
+	api.listWorkflowTasks(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected scoped read: %d %s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Items []workflow.Task `json:"items"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Items) != 1 || body.Items[0].ID != "entity-a-only" {
+		t.Fatalf("cross-entity work was visible: %#v", body.Items)
+	}
+
+	request = httptest.NewRequest(http.MethodGet,
+		"/api/v1/workflow/tasks?tenant_id=bank&legal_entity_id=entity-b", nil)
+	request = request.WithContext(identity.WithActor(request.Context(), actor))
+	response = httptest.NewRecorder()
+	api.listWorkflowTasks(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("cross-entity query must be denied: %d %s", response.Code, response.Body.String())
+	}
+
+	request = httptest.NewRequest(http.MethodGet,
+		"/api/v1/workflow/tasks?tenant_id=bank&legal_entity_id=*", nil)
+	request = request.WithContext(identity.WithActor(request.Context(), actor))
+	response = httptest.NewRecorder()
+	api.listWorkflowTasks(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("ordinary actor must not request federation scope: %d %s", response.Code, response.Body.String())
+	}
+
+	actor.LegalEntityID = ""
+	request = httptest.NewRequest(http.MethodGet, "/api/v1/workflow/tasks?tenant_id=bank", nil)
+	request = request.WithContext(identity.WithActor(request.Context(), actor))
+	response = httptest.NewRecorder()
+	api.listWorkflowTasks(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("missing verified legal entity must be denied: %d %s", response.Code, response.Body.String())
+	}
+}

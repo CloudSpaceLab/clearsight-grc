@@ -110,13 +110,27 @@ func (a *API) listWorkflowTasks(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusForbidden, "principal_not_allowed", "This request is outside your signed-in user scope.")
 		return
 	}
+	legalEntityID := strings.TrimSpace(actor.LegalEntityID)
+	if legalEntityID == "" {
+		httpx.WriteError(w, http.StatusForbidden, "legal_entity_not_allowed", "Your legal entity could not be verified.")
+		return
+	}
+	if requested := strings.TrimSpace(r.URL.Query().Get("legal_entity_id")); requested != "" && requested != legalEntityID {
+		httpx.WriteError(w, http.StatusForbidden, "legal_entity_not_allowed", "This request is outside your legal entity.")
+		return
+	}
+	// A verified federation actor may carry wildcard scope. An ordinary
+	// actor's entity is always applied inside the source query before LIMIT.
+	if legalEntityID == "*" {
+		legalEntityID = ""
+	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit <= 0 || limit > maxWorkflowReadLimit {
 		limit = 50
 	}
 	status := workflow.Status(strings.TrimSpace(r.URL.Query().Get("status")))
 	values, err := a.deps.Workflow.List(r.Context(), workflow.ListFilter{
-		TenantID: tenantID, PrincipalID: actor.PrincipalID, Status: status,
+		TenantID: tenantID, LegalEntityID: legalEntityID, PrincipalID: actor.PrincipalID, Status: status,
 		ActiveOnly: status == "", VisibleMatterWorkOnly: true, Limit: limit,
 	})
 	if err != nil {
