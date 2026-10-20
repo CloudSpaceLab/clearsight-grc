@@ -291,6 +291,24 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
               ? <ProgramAttention aggregate={aggregate} onNavigate={selectSection}/>
               : <p>{aggregate.current_state ? "No recorded follow-up reasons." : "Follow-up is unavailable."}</p>}
           </section>
+          <section className="program-overview-setup" aria-labelledby="program-overview-setup-heading">
+            <header>
+              <h2 id="program-overview-setup-heading">Program setup</h2>
+              <button type="button" className="text-button" onClick={() => {
+                document.getElementById("program-details-panel")?.scrollIntoView?.({ block: "start" });
+              }}>View details</button>
+            </header>
+            <dl>
+              <div><dt>Standards</dt><dd>{aggregate.framework_adoptions
+                ? aggregate.framework_adoptions.filter((item) => item.status === "ACTIVE").length
+                  ? aggregate.framework_adoptions.filter((item) => item.status === "ACTIVE").map((item) =>
+                    <span key={item.id}>{item.framework_code} · {item.edition_code}</span>)
+                  : "None adopted"
+                : "Not available"}</dd></div>
+              <div><dt>Jurisdiction</dt><dd>{aggregate.program.jurisdiction || "Not recorded"}</dd></div>
+              <div><dt>Owning function</dt><dd>{aggregate.program.owning_function || "Not recorded"}</dd></div>
+            </dl>
+          </section>
           {positionPanel}
           <ProgramVendorFollowUp programID={aggregate.program.id}/>
         </aside>
