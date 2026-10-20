@@ -119,13 +119,21 @@ func (a *API) actorToday(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "today_unavailable", "Today's work is unavailable.")
 		return
 	}
-	items, err := a.deps.Today.ListFor(r.Context(), actor)
+	snapshot, err := a.deps.Today.SnapshotFor(r.Context(), actor)
 	if err != nil {
 		httpx.WriteError(w, http.StatusInternalServerError, "today_failed", "Today's work could not be loaded.")
 		return
 	}
-	if items == nil {
-		items = []today.AttentionItem{}
+	if snapshot.Items == nil {
+		snapshot.Items = []today.AttentionItem{}
 	}
-	httpx.WriteJSON(w, http.StatusOK, map[string]any{"items": items, "generated_at": time.Now().UTC()})
+	response := map[string]any{
+		"items": snapshot.Items,
+		"generated_at": time.Now().UTC(),
+		"count_basis": "LOADED",
+	}
+	if snapshot.WorkflowHasMore != nil {
+		response["workflow_has_more"] = *snapshot.WorkflowHasMore
+	}
+	httpx.WriteJSON(w, http.StatusOK, response)
 }
