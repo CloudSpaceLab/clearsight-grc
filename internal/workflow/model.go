@@ -50,7 +50,13 @@ type Task struct {
 	DocumentProposalVisible bool            `json:"-"`
 }
 
+// ListFilter applies source-backed work selection before ordering and LIMIT.
+// DueFrom is inclusive; DueBefore is exclusive. Undated work is excluded only
+// when a due boundary is supplied.
 type ListFilter struct {
+	Search                 string
+	DueFrom                *time.Time
+	DueBefore              *time.Time
 	TenantID              string
 	LegalEntityID         string
 	PrincipalID           string
