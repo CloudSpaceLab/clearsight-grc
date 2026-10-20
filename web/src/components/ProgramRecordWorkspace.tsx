@@ -302,13 +302,12 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
     {aggregate && <>
       <header className="program-record-header">
         <div className="program-record-header__identity">
-          <span className="program-kicker">{aggregate.program.code} · {aggregate.program.type.replaceAll("_", " ")}</span>
+          <span className="program-kicker">{aggregate.program.code} · {aggregate.program.type.replaceAll("_", " ")} · <abbr title="Record version">v{aggregate.program.version}</abbr></span>
           <h1>{aggregate.program.name}</h1>
           <p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p>
           <dl className="program-record-header__facts">
             <div><dt>Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
             <div><dt>Owning function</dt><dd>{aggregate.program.owning_function || "Not recorded"}</dd></div>
-            <div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div>
           </dl>
         </div>
         <div className="program-record-header__side">

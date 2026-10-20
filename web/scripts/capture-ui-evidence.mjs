@@ -118,7 +118,11 @@ async function assertApprovedProgramHeading(page, mobile) {
   const back = breadcrumb.getByRole("button", { name: "Back to Programs" });
   await Promise.all([header.waitFor({ state: "visible" }), back.waitFor({ state: "visible" })]);
   await header.getByText("Owning function").waitFor({ state: "visible" });
-  await header.getByText("Record version").waitFor({ state: "visible" });
+  const version = header.locator(".program-kicker abbr[title='Record version']");
+  await version.waitFor({ state: "visible" });
+  if (!/^v[0-9]+$/.test((await version.textContent())?.trim() ?? "")) {
+    throw new Error("Program header has no source-backed record version");
+  }
 
   const [breadcrumbBox, headerBox, actionBox, headingStyle] = await Promise.all([
     breadcrumb.boundingBox(), header.boundingBox(),
