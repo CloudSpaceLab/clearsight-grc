@@ -1296,6 +1296,12 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/work/assignments": {
+      "get": {
+        "operationId": "actorWorkAssignments",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/people/{person_id}": {
       "get": {
         "operationId": "employeeProfile",
