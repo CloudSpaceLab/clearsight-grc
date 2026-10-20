@@ -350,6 +350,7 @@ describe("Program record workspace", () => {
     expect(within(setup).getByText("Nigeria")).toBeTruthy();
     expect(within(setup).getByRole("button", {name: "View details"})).toBeTruthy();
     expect(within(overview).getAllByLabelText("Program follow-up")).toHaveLength(1);
+    expect(within(overview).getByText("Based on the previous Program state")).toBeTruthy();
 
     fireEvent.change(period, {target: {value: "7"}});
     expect(period.value).toBe("7");
@@ -380,6 +381,15 @@ describe("Program record workspace", () => {
     target!.scrollIntoView = scroll;
     fireEvent.click(within(setup).getByRole("button", {name: "View details"}));
     expect(scroll).toHaveBeenCalledWith({block: "start"});
+  });
+
+  it("does not present a nonexistent Program projection as an older calculation", async () => {
+    vi.mocked(loadProgram).mockResolvedValue({...aggregate, current_state: undefined});
+    render(<ProgramRecordWorkspace programID="program-1" onBack={vi.fn()}/>);
+    const attention = await screen.findByRole("heading", {name: "Needs attention"});
+    const panel = attention.closest(".program-overview-attention") as HTMLElement;
+    expect(within(panel).getByText("Current Program state unavailable")).toBeTruthy();
+    expect(within(panel).getByText("Follow-up is unavailable.")).toBeTruthy();
   });
 
   it("places Program section navigation above measures and current position", async () => {
