@@ -205,6 +205,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   const ownerActionIsDominant = dominantAction?.command === "program.assign";
   const [standardLinkReviewID, setStandardLinkReviewID] = useState<string | undefined>();
   const overviewMeasures = useMemo(() => aggregate ? programOverviewMetrics(aggregate) : [], [aggregate]);
+  const adoptedStandards = aggregate?.framework_adoptions?.filter((item) => item.status === "ACTIVE");
 
   function selectSection(next: ProgramSection, reviewAdoptionID?: string) {
     setStandardLinkReviewID(next === "requirements-controls" ? reviewAdoptionID : undefined);
@@ -299,12 +300,10 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
               }}>View details</button>
             </header>
             <dl>
-              <div><dt>Standards</dt><dd>{aggregate.framework_adoptions
-                ? aggregate.framework_adoptions.filter((item) => item.status === "ACTIVE").length
-                  ? aggregate.framework_adoptions.filter((item) => item.status === "ACTIVE").map((item) =>
-                    <span key={item.id}>{item.framework_code} · {item.edition_code}</span>)
-                  : "None adopted"
-                : "Not available"}</dd></div>
+              <div><dt>Standards</dt><dd>{adoptedStandards === undefined ? "Not available"
+                : adoptedStandards.length === 0 ? "None adopted"
+                : adoptedStandards.map((item) =>
+                  <span key={item.id}>{item.framework_code} · {item.edition_code}</span>)}</dd></div>
               <div><dt>Jurisdiction</dt><dd>{aggregate.program.jurisdiction || "Not recorded"}</dd></div>
               <div><dt>Owning function</dt><dd>{aggregate.program.owning_function || "Not recorded"}</dd></div>
             </dl>
