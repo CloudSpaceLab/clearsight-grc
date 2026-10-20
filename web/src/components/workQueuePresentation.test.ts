@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AttentionItem } from "../types";
-import { countLoadedWork, matchesWorkFilter } from "./workQueuePresentation";
+import { countLoadedWork, filterLoadedWork, matchesWorkFilter } from "./workQueuePresentation";
 
 const referenceTime = Date.UTC(2026, 9, 19, 12);
 const base: AttentionItem = {
@@ -37,4 +37,19 @@ describe("bounded assigned work measures", () => {
       ALL: 4, OVERDUE: 0, DUE_SOON: 0, APPROVALS: 1, EVIDENCE: 1,
     });
   });
+  it("searches only loaded records and combines exact status with actor-facing work intent", () => {
+    const rows: AttentionItem[] = [
+      { ...base, id: "owner", title: "Review overdue vendor evidence", scope: "North branch", state: "Blocked", intervention_class: "REVIEW" },
+      { ...base, id: "approval", title: "Authorize vendor evidence", scope: "South branch", state: "Ready", intervention_class: "AUTHORIZATION" },
+      { ...base, id: "hidden", title: "Review payment loss", scope: "North branch", state: "Ready", intervention_class: "REVIEW" },
+    ];
+    expect(filterLoadedWork(rows, "ALL", "VENDOR evidence", undefined, referenceTime).map((item) => item.id))
+      .toEqual(["owner", "approval"]);
+    expect(filterLoadedWork(rows, "ALL", "north", "Blocked", referenceTime).map((item) => item.id))
+      .toEqual(["owner"]);
+    expect(filterLoadedWork(rows, "APPROVALS", "vendor", "Blocked", referenceTime)).toEqual([]);
+    expect(filterLoadedWork(rows, "ALL", "  ", undefined, referenceTime)).toHaveLength(3);
+    expect(rows).toHaveLength(3);
+  });
+
 });
