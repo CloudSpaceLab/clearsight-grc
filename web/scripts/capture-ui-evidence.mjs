@@ -58,6 +58,10 @@ const captures = [
   { name: "219-report-source-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReadyReport: true, state: "report-source-desktop" },
   { name: "220-report-source-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openReadyReport: true, state: "report-source-mobile" },
   { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-library" },
+  { name: "140a-report-overview-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-overview-desktop", openReportOverview: true },
+  { name: "140b-report-overview-light-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-overview-mobile", openReportOverview: true },
+
+
   { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
   { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openFailedReport: true, expectText: "Generation stopped: Row Limit Exceeded", state: "report-run-failed" },
   { name: "143-report-setups-dark-mobile-compact-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, openReportTemplates: true, expectText: "Program health review", state: "report-setups-mobile" },
@@ -345,6 +349,26 @@ async function capturePage(capture) {
     if (capture.state === "report-library") {
       await page.getByRole("table", { name: "Generated reports" }).waitFor({ state: "visible" });
     }
+    if (capture.openReportOverview) {
+      const workspace = page.locator(".reports-workspace");
+      if (capture.viewport.width <= 760) {
+        await workspace.locator(".cs-tabs__compact .cs-select-field__trigger").click();
+        await page.getByRole("option", { name: "Overview", exact: true }).click();
+      } else {
+        await workspace.getByRole("tab", { name: "Overview", exact: true }).click();
+      }
+      const summary = workspace.getByRole("region", { name: "Report library summary" });
+      const recent = workspace.getByRole("heading", { name: "Recent reports", exact: true });
+      await Promise.all([summary.waitFor({ state: "visible" }), recent.waitFor({ state: "visible" })]);
+      await workspace.getByRole("table", { name: "Recent reports" }).waitFor({ state: "visible" });
+      await workspace.getByRole("button", { name: "Explore insights" }).waitFor({ state: "visible" });
+      const [summaryBox, recentBox] = await Promise.all([summary.boundingBox(), recent.boundingBox()]);
+      if (!summaryBox || !recentBox || recentBox.y < summaryBox.y + summaryBox.height - 3) {
+        throw new Error(`${capture.name} does not preserve approved Overview measures before recent reports`);
+      }
+    }
+
+
     if (capture.assertNoConfigureNav) {
       await page.locator("#today-brief").waitFor({ state: "visible" });
     }
