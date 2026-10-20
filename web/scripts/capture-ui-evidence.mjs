@@ -1263,6 +1263,13 @@ async function captureInternalAssessment({ name, viewport, theme }) {
     if (await page.getByRole("dialog", { name: "Evidence request" }).count()) {
       throw new Error(name + " still mounts the authorized Assessment in a modal");
     }
+    const facts = workspace.getByRole("group", { name: "Assessment details" });
+    await facts.getByText("Ready for response", { exact: true }).waitFor({ state: "visible" });
+    if (!await facts.locator("time[datetime]").count() ||
+        !await facts.getByText(/^Due /).count() ||
+        await workspace.getByRole("button", { name: "Save draft" }).count()) {
+      throw new Error(name + " lost verified request facts or exposed a fake draft action");
+    }
     const views = workspace.getByRole("navigation", { name: "Assessment views" });
     await views.waitFor({ state: "visible" });
     if (await views.getByRole("button", { name: "Excel import" }).isEnabled()) {
