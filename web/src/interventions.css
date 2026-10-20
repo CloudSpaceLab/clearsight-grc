@@ -153,3 +153,17 @@
 @container assigned-work (max-width: 310px) {
   .assigned-workspace__signals { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Work prototype search/filters remain within the already-authorized Today feed. */
+.assigned-workspace .cs-filter-bar { margin-block-end: var(--cs-space-inline); }
+.assigned-workspace .cs-filter-bar__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: var(--cs-space-inline);
+  align-items: end;
+  min-inline-size: 0;
+}
+.assigned-workspace .cs-search-field { min-inline-size: 0; width: 100%; }
+@container assigned-work (max-width: 620px) {
+  .assigned-workspace .cs-filter-bar__fields { grid-template-columns: minmax(0, 1fr); }
+}
