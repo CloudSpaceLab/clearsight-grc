@@ -18,7 +18,7 @@ func TestWorkSourceSearchFindsAuthorizedAssignmentsBeyondFirstFifty(t *testing.T
 			MatterID: fmt.Sprintf("matter-%03d", i),
 			MatterScope: json.RawMessage(`{"access":"RESTRICTED"}`),
 			Title: fmt.Sprintf("Routine check %03d", i),
-			Status: StatusReady, UpdatedAt: start.Add(time.Duration(i) * time.Minute),
+			Status: StatusReady, UpdatedAt: start.Add(time.Duration(74-i) * time.Minute),
 		})
 	}
 	items[74].Title = "Review attestation from September"
