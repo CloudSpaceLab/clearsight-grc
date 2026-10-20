@@ -126,6 +126,13 @@
   .assigned-workspace__grid > .assigned-workspace__context { display: none; }
 }
 
+.assigned-workspace .intervention-heading { flex-wrap: wrap; align-items: center; }
+.assigned-workspace__due-window { flex: 0 1 240px; min-inline-size: min(100%, 220px); }
+.assigned-workspace__due-window .cs-select-field { inline-size: 100%; }
+@container assigned-work (max-width: 620px) {
+  .assigned-workspace__due-window { flex: 1 1 100%; }
+}
+
 .assigned-workspace__signals {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
