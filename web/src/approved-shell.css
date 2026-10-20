@@ -182,9 +182,7 @@
   }
   .app-shell > main > .context-bar .context-scope {
     display: block !important;
-    flex: none;
     max-inline-size: none;
-    min-inline-size: 0;
   }
   .app-shell > main > .context-bar .context-identity { gap: 2px; }
   .app-shell > main > .context-bar .context-identity > span { display: block; }
@@ -197,48 +195,39 @@
     border-radius: var(--cs-primitive-radius-10);
     background: var(--cs-bg-surface-1);
     color: var(--cs-text-primary);
-    cursor: pointer;
   }
-  .context-mobile-controls-toggle svg { inline-size: 19px; block-size: 19px; }
   .context-mobile-controls-toggle[aria-expanded="true"] {
     border-color: var(--cs-border-interactive);
     color: var(--cs-action-primary);
   }
   .app-shell > main > .context-bar .context-role,
   .app-shell > main > .context-bar .context-scope-control { display: none !important; }
-  .app-shell > main > .context-bar[data-mobile-controls="open"] > .context-role {
-    display: flex !important;
+  .app-shell > main > .context-bar[data-mobile-controls="open"] :is(.context-role, .context-scope-control) {
     position: absolute;
     inset-inline: 10px;
+    inline-size: calc(100% - 20px);
+    min-inline-size: 0;
+    padding: 10px;
+    border: 1px solid var(--cs-border-default);
+    border-radius: var(--cs-primitive-radius-10);
+    background: var(--cs-bg-surface-1);
+  }
+  .app-shell > main > .context-bar[data-mobile-controls="open"] > .context-role {
+    display: flex !important;
     inset-block-start: calc(100% + 6px);
     z-index: 20;
     flex-wrap: wrap;
     justify-content: flex-start;
     gap: var(--cs-space-inline);
-    padding: 12px;
-    border: 1px solid var(--cs-border-default);
-    border-radius: var(--cs-primitive-radius-10);
-    background: var(--cs-bg-surface-1);
     box-shadow: 0 12px 28px rgb(10 29 67 / 12%);
   }
   .app-shell > main > .context-bar[data-mobile-controls="open"][data-has-scope="true"] .context-scope-control {
     display: flex !important;
-    position: absolute;
-    inset-inline: 10px;
     inset-block-start: calc(100% + 6px);
     z-index: 21;
-    max-inline-size: none;
-    padding: 10px 12px;
-    border: 1px solid var(--cs-border-default);
     border-bottom: 0;
-    border-radius: var(--cs-primitive-radius-10) var(--cs-primitive-radius-10) 0 0;
-    background: var(--cs-bg-surface-1);
   }
   .app-shell > main > .context-bar[data-mobile-controls="open"][data-has-scope="true"] > .context-role {
     inset-block-start: calc(100% + 66px);
-    border-radius: 0 0 var(--cs-primitive-radius-10) var(--cs-primitive-radius-10);
-  }
-  .app-shell > main > .context-bar[data-mobile-controls="open"] .enterprise-scope-trigger {
-    inline-size: 100%;
   }
 }
