@@ -65,8 +65,8 @@ type ListFilter struct {
 	Search                string
 	DueFrom               *time.Time
 	DueBefore             *time.Time
-	UpdatedThrough         *time.Time
-	PageAfter              *WorkPosition
+	UpdatedThrough        *time.Time
+	PageAfter             *WorkPosition
 	TenantID              string
 	LegalEntityID         string
 	PrincipalID           string
