@@ -1012,6 +1012,31 @@ async function captureApprovedVendorMeasures(name, theme, viewport) {
 }
 
 async function assertWorkMeasureLabels(page, capture) {
+  const work = page.locator(".assigned-workspace");
+  const localTabs = work.getByRole("tablist", { name: "Assigned work queues" });
+  if (await page.getByRole("tablist", { name: "Work views" }).count() !== 0 ||
+      await page.getByRole("button", { name: "Work view" }).count() !== 0 ||
+      await work.locator(".cs-tabs").count() !== 1) {
+    throw new Error(`${capture.name}: Work renders duplicate navigation instead of the approved single intent`);
+  }
+  const sourceOrder = await work.evaluate((root) => {
+    const tabs = root.querySelector(".cs-tabs__list");
+    const measures = root.querySelector(".assigned-workspace__signals");
+    const queue = root.querySelector("#assigned-work-heading");
+    const filters = root.querySelector(".cs-filter-bar");
+    const before = (a, b) => a && b && Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    return before(tabs, measures) && before(measures, queue) && before(queue, filters);
+  });
+  if (!sourceOrder) throw new Error(`${capture.name}: Work must render intent → measures → queue → filters`);
+  const [navBox, measuresBox, queueBox] = await Promise.all([
+    (capture.viewport.width <= 760 ? work.locator(".cs-tabs__compact") : localTabs).boundingBox(),
+    work.locator(".assigned-workspace__signals").boundingBox(),
+    work.getByRole("heading", { name: "Assigned to me" }).boundingBox(),
+  ]);
+  if (!navBox || !measuresBox || !queueBox || navBox.y >= measuresBox.y ||
+      measuresBox.y + measuresBox.height > queueBox.y + 8) {
+    throw new Error(`${capture.name}: approved Work intent and measures must precede selected queue`);
+  }
   const cards = page.locator(".assigned-workspace__signals .cs-metric-card");
   await cards.first().waitFor({ state: "visible" });
   if (await cards.count() !== 4) throw new Error(`${capture.name}: expected four scoped Work measures`);
