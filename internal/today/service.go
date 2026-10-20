@@ -62,7 +62,6 @@ func (s *Service) ListFor(ctx context.Context, actor identity.Actor) ([]Attentio
 	return s.List(), nil
 }
 
-
 func (s *Service) SnapshotFor(ctx context.Context, actor identity.Actor) (ActorWorkSnapshot, error) {
 	if s != nil && s.snapshotLoader != nil {
 		value, err := s.snapshotLoader(ctx, actor)
