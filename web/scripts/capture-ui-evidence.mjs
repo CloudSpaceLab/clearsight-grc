@@ -231,6 +231,34 @@ async function capturePage(capture) {
       }
       await page.getByRole("button", {name: "Open data collection"}).waitFor({state:"visible"});
     }
+    if (capture.name === "04-program-light-mobile-390x844" ||
+        capture.name === "04-program-light-1440x900") {
+      const period = page.locator(".program-record-header__period select");
+      await period.waitFor({ state: "visible" });
+      if (await period.inputValue() !== "90") {
+        throw new Error("Program header does not own the real 90-day assessment period");
+      }
+      const coverage = page.getByRole("heading", { name: "Requirement coverage" });
+      const areas = page.getByRole("heading", { name: "By control area" });
+      const recent = page.getByRole("heading", { name: "Recent assessments" });
+      const attention = page.getByRole("heading", { name: "Needs attention" });
+      await Promise.all([coverage.waitFor(), areas.waitFor(), recent.waitFor(), attention.waitFor()]);
+      const ordered = await page.evaluate(() => {
+        const a = document.getElementById("program-overview-coverage-heading");
+        const b = document.getElementById("program-overview-areas-heading");
+        const c = document.getElementById("program-recent-assessments-heading");
+        const d = document.getElementById("program-overview-attention-heading");
+        const rail = document.querySelector(".program-overview-rail");
+        return Boolean(a && b && c && d && rail &&
+          a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          b.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          rail.contains(d));
+      });
+      if (!ordered) throw new Error("Program Overview does not follow approved coverage → control area → recent assessments + attention rail structure");
+      if (await page.getByLabel("Program follow-up").count() > 1) {
+        throw new Error("Program attention is duplicated inside the current-position card");
+      }
+    }
     if (capture.name === "04-program-light-mobile-390x844") {
       const first = page.locator(".program-overview-metrics .cs-metric-card").first();
       await first.waitFor({ state: "visible" });
