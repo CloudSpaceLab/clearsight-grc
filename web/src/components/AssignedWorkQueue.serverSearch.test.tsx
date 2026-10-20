@@ -49,7 +49,7 @@ describe("source-backed Work title search", () => {
     expect(screen.queryByRole("button", { name: "Load more assignments" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
-    expect(within(table).getByRole("row", { name: local.title })).toBeTruthy();
+    expect(within(screen.getByRole("table", { name: "Assigned work" })).getByRole("row", { name: local.title })).toBeTruthy();
     expect(loadActorWorkPage).toHaveBeenCalledTimes(2);
   });
 
