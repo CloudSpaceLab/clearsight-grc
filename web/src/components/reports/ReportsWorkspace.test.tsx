@@ -121,8 +121,8 @@ describe("ReportsWorkspace", () => {
   it("opens on the generated-report library rather than setup management", async () => {
     renderWorkspace();
 
-    expect(await screen.findByRole("heading", { name: "Reports" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Reports" }).closest("header")?.className).toContain("cs-workspace-header");
+    expect(await screen.findByRole("heading", { name: "Reports & insights" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Reports & insights" }).closest("header")?.className).toContain("cs-workspace-header");
 
     const table = await screen.findByRole("table", { name: "Generated reports" });
     expect(within(table).getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();

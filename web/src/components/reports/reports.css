@@ -4,6 +4,51 @@
   min-width: 0;
 }
 
+/* Approved Reports header and mobile local navigation. Keep real report commands
+   in their existing workspace and retain scope from the verified shell. */
+.reports-workspace__header.cs-workspace-header {
+  position: relative;
+  isolation: isolate;
+  min-block-size: 108px;
+  padding: var(--cs-space-group) 0 var(--cs-space-section);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.reports-workspace__header h1 {
+  color: var(--cs-text-strong);
+  font-size: var(--cs-font-size-page-title);
+  line-height: var(--cs-leading-tight);
+  letter-spacing: -0.035em;
+}
+.reports-workspace__header .eyebrow {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  letter-spacing: 0.025em;
+  text-transform: none;
+}
+.reports-workspace > .cs-tabs .cs-tabs__list {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--cs-space-group);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.reports-workspace > .cs-tabs .cs-tabs__tab {
+  inline-size: auto;
+  min-inline-size: max-content;
+  flex: 0 0 auto;
+  min-block-size: 44px;
+}
+@media (max-width: 760px) {
+  .reports-workspace__header.cs-workspace-header {
+    min-block-size: 0;
+    padding: 0 0 var(--cs-space-inline);
+    gap: var(--cs-space-group);
+  }
+  .reports-workspace__header h1 { font-size: var(--cs-primitive-font-size-28); }
+}
+
 .reports-generate__heading p,
 .report-run-details > div:first-child p {
   margin: 0;
