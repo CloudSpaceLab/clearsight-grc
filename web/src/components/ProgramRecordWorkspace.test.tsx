@@ -335,7 +335,7 @@ describe("Program record workspace", () => {
     const period = within(header).getByRole("combobox", {name: "Assessment activity period"}) as HTMLSelectElement;
     expect(period.value).toBe("90");
 
-    const overview = screen.getByRole("region", {name: "Program overview"});
+    const overview = screen.getByRole("tabpanel", {name: "Overview"});
     const coverage = within(overview).getByRole("heading", {name: "Requirement coverage"});
     const areas = within(overview).getByRole("heading", {name: "By control area"});
     const recent = within(overview).getByRole("heading", {name: "Recent assessments"});
