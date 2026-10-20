@@ -13,12 +13,12 @@ func TestActorWorkPagesIncludeEveryAuthorizedAssignmentBeyondFifty(t *testing.T)
 	due := base.Add(72 * time.Hour)
 	tasks := make([]Task, 0, 83)
 	for i := 0; i < 81; i++ {
-		tasks = append(tasks, actorPageTestTask(i, base.Add(time.Duration(i)*time.Minute), due))
+		tasks = append(tasks, actorPageTestTask(i, base.Add(time.Duration(i) * time.Minute), due))
 	}
 	// Higher-priority times in other scopes may not occupy actor page slots.
-	otherEntity := actorPageTestTask(81, base.Add(100*time.Minute), due)
+	otherEntity := actorPageTestTask(81, base.Add(100 * time.Minute), due)
 	otherEntity.LegalEntityID = "other-entity"
-	otherActor := actorPageTestTask(82, base.Add(101*time.Minute), due)
+	otherActor := actorPageTestTask(82, base.Add(101 * time.Minute), due)
 	otherActor.PrincipalID = "other-actor"
 	tasks = append(tasks, otherEntity, otherActor)
 	service := NewService(NewMemoryRepository(tasks))
@@ -99,7 +99,7 @@ func TestActorWorkCursorFencesUpdatedAndRevokedRecords(t *testing.T) {
 	repo := NewMemoryRepository([]Task{
 		actorPageTestTask(0, base, due),
 		actorPageTestTask(1, base.Add(time.Minute), due),
-		actorPageTestTask(2, base.Add(2*time.Minute), due),
+		actorPageTestTask(2, base.Add(2 * time.Minute), due),
 	})
 	service := NewService(repo)
 	query := ActorWorkPageQuery{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "actor", Limit: 1}
@@ -139,10 +139,10 @@ func TestActorWorkCursorRejectsExpiredAndTerminalSelections(t *testing.T) {
 	}
 	query.Status = ""
 	query.Cursor = encodeActorWorkCursor(actorWorkCursor{
-		Version: 1,
-		Scope: actorWorkScopeFingerprint(query),
-		AsOf: time.Now().UTC().Add(-time.Hour),
-		Position: WorkPosition{UpdatedAt: time.Now().UTC().Add(-2*time.Hour), ID: actorPageTestID(0)},
+		Version:  1,
+		Scope:    actorWorkScopeFingerprint(query),
+		AsOf:     time.Now().UTC().Add(-time.Hour),
+		Position: WorkPosition{UpdatedAt: time.Now().UTC().Add(-2 * time.Hour), ID: actorPageTestID(0)},
 	})
 	if _, err := service.ListActorWorkPage(t.Context(), query); !errors.Is(err, ErrInvalidWorkCursor) {
 		t.Fatalf("expired cursor accepted: %v", err)
@@ -157,9 +157,9 @@ func actorPageTestTask(number int, updated, due time.Time) Task {
 	return Task{
 		ID: actorPageTestID(number), TenantID: "bank", LegalEntityID: "entity",
 		PrincipalID: "actor", WorkflowKind: MatterActionWorkflowKind,
-		MatterID: actorPageTestID(number + 200),
+		MatterID:    actorPageTestID(number + 200),
 		MatterScope: json.RawMessage(`{"access":"RESTRICTED"}`),
-		Title: fmt.Sprintf("Review %03d", number),
-		Status: StatusReady, DueAt: &due, UpdatedAt: updated,
+		Title:       fmt.Sprintf("Review %03d", number),
+		Status:      StatusReady, DueAt: &due, UpdatedAt: updated,
 	}
 }
