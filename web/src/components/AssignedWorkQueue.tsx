@@ -12,6 +12,7 @@ export type AssignedWorkQueueProps = {
   items: AttentionItem[];
   state: AssignedWorkState;
   asOf?: string;
+  hasMore?: boolean;
   onOpenItem: (item: AttentionItem) => void;
   onInspectAuthority?: (item: AttentionItem) => void;
   onRetry?: () => void;
@@ -19,7 +20,7 @@ export type AssignedWorkQueueProps = {
   presentation?: "brief" | "workspace";
 };
 
-export function AssignedWorkQueue({ items, state, asOf, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief" }: AssignedWorkQueueProps) {
+export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief" }: AssignedWorkQueueProps) {
   const count = items.length === 1 ? "1 item needs your action" : `${items.length} items need your action`;
   const title = state === "loading" ? "Loading assigned work" : state === "unavailable" ? "Assigned work is unavailable" : count;
   const Heading = headingLevel;
@@ -40,7 +41,7 @@ export function AssignedWorkQueue({ items, state, asOf, onOpenItem, onInspectAut
 
   return <section className={`intervention-brief${presentation === "workspace" ? " assigned-workspace" : ""}`} aria-labelledby="assigned-work-heading">
     <header className="intervention-heading">
-      <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{presentation === "workspace" && state === "live" ? "Work queue" : title}</Heading>{presentation === "workspace" && state === "live" && <p>{items.length} {items.length === 1 ? "item" : "items"} loaded</p>}</div>
+      <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{presentation === "workspace" && state === "live" ? "Work queue" : title}</Heading>{presentation === "workspace" && state === "live" && <p>{items.length} {items.length === 1 ? "item" : "items"} loaded</p>{hasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}}</div>
     </header>
     {state === "loading"
       ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
