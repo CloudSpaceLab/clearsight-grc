@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import "../../ai-governance.css";
 import { loadAIGovernancePolicies, loadAIGovernanceWorkloads } from "../../api";
 import type { AIGovernancePolicy, AIGovernanceWorkload } from "../../types";
 import { AIGovernancePanel } from "../AIGovernancePanel";
