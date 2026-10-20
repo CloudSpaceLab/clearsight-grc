@@ -27,7 +27,7 @@ describe("approved Program recent assessments", () => {
 
   it("shows only bounded Program responses and navigates to the existing Assessments tab", async () => {
     const navigate = vi.fn();
-    render(<ProgramRecentAssessments programID="program-1" onNavigate={navigate}/>);
+    render(<ProgramRecentAssessments period={90} programID="program-1" onNavigate={navigate}/>);
     expect(await screen.findByText("Access review")).toBeTruthy();
     expect(screen.getByRole("heading", {name: "Recent assessments"})).toBeTruthy();
     expect(screen.getByText("Submitted responses · Last 90 days")).toBeTruthy();
@@ -43,32 +43,34 @@ describe("approved Program recent assessments", () => {
 
   it("selects the exact submitted response for existing governed review", async () => {
     const onOpenAssessment = vi.fn();
-    render(<ProgramRecentAssessments programID="program-1" onNavigate={vi.fn()}
+    render(<ProgramRecentAssessments period={90} programID="program-1" onNavigate={vi.fn()}
       onOpenAssessment={onOpenAssessment}/>);
     await screen.findByText("Access review");
     fireEvent.click(screen.getByRole("button", {name: "Review Access review"}));
     expect(onOpenAssessment).toHaveBeenCalledExactlyOnceWith(response);
   });
 
-  it("applies 7 and 30 day periods to submitted activity without changing Program posture", async () => {
-    render(<ProgramRecentAssessments programID="program-1" onNavigate={vi.fn()}/>);
+  it("applies the Program header's selected period to submitted responses without changing posture", async () => {
+    const onNavigate = vi.fn();
+    const view = render(<ProgramRecentAssessments period={90} programID="program-1" onNavigate={onNavigate}/>);
     await screen.findByText("Access review");
-    fireEvent.change(screen.getByRole("combobox", {name: "Assessment activity period"}), {target: {value: "7"}});
+    view.rerender(<ProgramRecentAssessments period={7} programID="program-1" onNavigate={onNavigate}/>);
     await waitFor(() => expect(api.load).toHaveBeenLastCalledWith(expect.objectContaining({
       subject_id: "program-1",
       completed_from: new Date(Date.parse("2026-10-18T08:00:00Z") - 7 * 86_400_000).toISOString(),
       limit: 3,
     })));
-    fireEvent.change(screen.getByRole("combobox", {name: "Assessment activity period"}), {target: {value: "30"}});
+    view.rerender(<ProgramRecentAssessments period={30} programID="program-1" onNavigate={onNavigate}/>);
     await waitFor(() => expect(api.load).toHaveBeenLastCalledWith(expect.objectContaining({
       subject_id: "program-1",
       completed_from: new Date(Date.parse("2026-10-18T08:00:00Z") - 30 * 86_400_000).toISOString(),
     })));
+    expect(onNavigate).not.toHaveBeenCalled();
   });
 
   it("never presents an unrelated Program's submission as a recent assessment", async () => {
     api.load.mockResolvedValueOnce({items: [response, {...response, id: "response-other", subject_id: "program-2"}]});
-    render(<ProgramRecentAssessments programID="program-1" onNavigate={vi.fn()}/>);
+    render(<ProgramRecentAssessments period={90} programID="program-1" onNavigate={vi.fn()}/>);
     expect(await screen.findByText("Recent submitted responses are unavailable.")).toBeTruthy();
     expect(screen.queryByText("Access review")).toBeNull();
     fireEvent.click(screen.getByRole("button", {name: "Retry assessments"}));
@@ -79,8 +81,8 @@ describe("approved Program recent assessments", () => {
     let resolveOld!: (value: unknown) => void;
     api.load.mockImplementationOnce(() => new Promise((resolve) => { resolveOld = resolve; }))
       .mockResolvedValueOnce({items: [{...response, subject_id: "program-2", title: "New Program response"}]});
-    const view = render(<ProgramRecentAssessments programID="program-1" onNavigate={vi.fn()}/>);
-    view.rerender(<ProgramRecentAssessments programID="program-2" onNavigate={vi.fn()}/>);
+    const view = render(<ProgramRecentAssessments period={90} programID="program-1" onNavigate={vi.fn()}/>);
+    view.rerender(<ProgramRecentAssessments period={90} programID="program-2" onNavigate={vi.fn()}/>);
     expect(await screen.findByText("New Program response")).toBeTruthy();
     resolveOld({items: [response]});
     await waitFor(() => expect(screen.queryByText("Access review")).toBeNull());
@@ -88,10 +90,10 @@ describe("approved Program recent assessments", () => {
   it("distinguishes an empty activity period from an unavailable source", async () => {
     api.load.mockResolvedValueOnce({items: []}).mockRejectedValueOnce(new Error("Not authorized"))
       .mockResolvedValueOnce({items: [response]});
-    render(<ProgramRecentAssessments programID="program-1" onNavigate={vi.fn()}/>);
+    const view = render(<ProgramRecentAssessments period={90} programID="program-1" onNavigate={vi.fn()}/>);
     expect(await screen.findByText("No submitted responses in this period.")).toBeTruthy();
     expect(screen.queryByText("Recent submitted responses are unavailable.")).toBeNull();
-    fireEvent.change(screen.getByRole("combobox", {name: "Assessment activity period"}), {target: {value: "30"}});
+    view.rerender(<ProgramRecentAssessments period={30} programID="program-1" onNavigate={vi.fn()}/>);
     expect(await screen.findByText("Recent submitted responses are unavailable.")).toBeTruthy();
     expect(screen.queryByText("No submitted responses in this period.")).toBeNull();
     fireEvent.click(screen.getByRole("button", {name: "Retry assessments"}));
