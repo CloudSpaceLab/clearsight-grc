@@ -5,7 +5,8 @@ import { EvidenceWorkspace } from "./components/EvidenceWorkspace";
 import { MattersWorkspace } from "./components/MattersWorkspace";
 import { ProgramsWorkspace } from "./components/ProgramsWorkspace";
 import { TodayInterventions } from "./components/TodayInterventions";
-import { Button, PopoverDialog } from "./components/ui";
+import { ActionLink, Button, PopoverDialog } from "./components/ui";
+import { countLoadedWork } from "./components/workQueuePresentation";
 import { WorkspaceErrorBoundary } from "./components/WorkspaceErrorBoundary";
 import type { ScopeNode } from "./api";
 import type { AttentionItem, AuthorityResolution, EvidenceRequest, EvidenceSource, Readiness } from "./types";
@@ -42,9 +43,22 @@ export function ReferenceJourneysView({ organizationName }: { organizationName: 
 export function WorkView({ refreshToken, organizationName, actorPrincipalID, evidenceScopeToken, tab, onTab, onBackMatter, returnContext, assignedItems, assignedState, assignedAsOf, assignedHasMore, onOpenAssignedItem, onInspectAuthority, sources, requests, evidenceSourceState, evidenceRequestState, onEvidenceRetry, onEvidenceRequestUpdated, matterTargetID, openFirstMatter, evidenceTargetID, openFirstEvidence, onOpenEvidence, onOpenLoss, onOpenIndicator, onAnalyzeDocument }: { refreshToken?: string; organizationName: string; actorPrincipalID?: string; evidenceScopeToken: number; tab: WorkTab; onTab: (value: WorkTab) => void; onBackMatter: () => void; returnContext?: { label: string; onReturn: () => void }; assignedItems: AttentionItem[]; assignedState: AssignedWorkState; assignedAsOf?: string; assignedHasMore?: boolean; onOpenAssignedItem: (item: AttentionItem) => void; onInspectAuthority?: (item: AttentionItem) => void; sources: EvidenceSource[]; requests: EvidenceRequest[]; evidenceSourceState: LoadState; evidenceRequestState: LoadState; onEvidenceRetry: () => void; onEvidenceRequestUpdated: (request: EvidenceRequest, scopeToken: number) => boolean; matterTargetID?: string; openFirstMatter?: boolean; evidenceTargetID?: string; openFirstEvidence?: boolean; onOpenEvidence: (id: string) => void; onOpenLoss?: (lossID: string) => void; onOpenIndicator?: (indicatorID: string, kind?: "KRI" | "KCI") => void; onAnalyzeDocument?: () => void }) {
   const [relatedOpen, setRelatedOpen] = useState(false);
   const openRelated = (destination: WorkTab) => { setRelatedOpen(false); onTab(destination); };
+  const snapshotTime = Date.parse(assignedAsOf ?? "");
+  const measures = tab === "assigned" && assignedState === "live"
+    ? countLoadedWork(assignedItems, Number.isFinite(snapshotTime) ? snapshotTime : Date.now())
+    : null;
+  const workSummary = measures
+    ? `${measures.ALL} loaded · ${measures.OVERDUE} overdue · ${measures.APPROVALS} approvals`
+    : assignedState === "loading" ? "Loading assigned work" : "Assigned work unavailable";
   return <>
     <header className={`topbar${tab === "assigned" ? " work-topbar" : ""}`}>
-      <div><span className="eyebrow">{organizationName}</span><h1>{tab === "assigned" ? "Work & approvals" : "Work"}</h1></div>
+      <div>
+        {tab === "assigned"
+          ? <nav className="work-breadcrumb" aria-label="Breadcrumb"><ActionLink href="#today">Home</ActionLink><span aria-hidden="true">›</span><span aria-current="page">Work & approvals</span></nav>
+          : <span className="eyebrow">{organizationName}</span>}
+        <h1>{tab === "assigned" ? "Work & approvals" : "Work"}</h1>
+        {tab === "assigned" && <p className="work-topbar__basis">{workSummary}</p>}
+      </div>
       <div className="topbar-actions">
         <PopoverDialog label="Related work" placement="bottom end" triggerLabel="Related work" triggerClassName="cs-button cs-button--secondary cs-button--compact" isOpen={relatedOpen} onOpenChange={setRelatedOpen}>
           <div className="cs-sheet-actions">
