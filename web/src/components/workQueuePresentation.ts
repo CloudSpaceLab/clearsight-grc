@@ -4,6 +4,7 @@ import type { AttentionItem } from "../types";
 // organization-wide count or a historical/completed-work query.
 export type WorkQueueFilter = "ALL" | "OVERDUE" | "DUE_SOON" | "APPROVALS" | "EVIDENCE";
 export type WorkQueueCounts = Record<WorkQueueFilter, number>;
+export type WorkDueWindow = "ALL" | "7" | "30" | "OVERDUE";
 
 const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
 const earliestRealDate = Date.UTC(2000, 0, 1);
@@ -17,6 +18,14 @@ export function matchesWorkFilter(item: AttentionItem, filter: WorkQueueFilter, 
   return filter === "OVERDUE" ? due < now : due >= now && due <= now + sevenDaysMs;
 }
 
+export function matchesDueWindow(item: AttentionItem, window: WorkDueWindow, asOf: number): boolean {
+  if (window === "ALL") return true;
+  const due = Date.parse(item.due_at);
+  if (!Number.isFinite(due) || due < earliestRealDate) return false;
+  if (window === "OVERDUE") return due < asOf;
+  return due <= asOf + Number(window) * 24 * 60 * 60 * 1000;
+}
+
 /** Restrict this search to the already authorized Today response. It is not a
  * server search or a count of all work in the tenant. */
 export function filterLoadedWork(
@@ -25,10 +34,11 @@ export function filterLoadedWork(
   query: string,
   status: string | undefined,
   asOf: number,
+  dueWindow: WorkDueWindow = "ALL",
 ): AttentionItem[] {
   const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   return items.filter((item) => {
-    if (!matchesWorkFilter(item, filter, asOf) || (status && item.state !== status)) return false;
+    if (!matchesWorkFilter(item, filter, asOf) || !matchesDueWindow(item, dueWindow, asOf) || (status && item.state !== status)) return false;
     if (terms.length === 0) return true;
     const searchable = [item.title, item.scope, item.owner, item.state, item.evidence]
       .join(" ").toLocaleLowerCase();
