@@ -978,6 +978,31 @@ async function captureApprovedVendorMeasures(name, theme, viewport) {
                  third.x < fourth.x && third.y >= first.y + first.height - 3)) {
       throw new Error(name + " is not a two-by-two mobile card grid");
     }
+    const panels = page.locator(".vendor-overview-panels");
+    const criticality = panels.getByRole("region", { name: "Service criticality" });
+    const stages = panels.getByRole("region", { name: "Exception stages" });
+    const attention = panels.getByRole("region", { name: "Needs attention" });
+    await Promise.all([criticality.waitFor({ state: "visible" }), stages.waitFor({ state: "visible" }),
+      attention.waitFor({ state: "visible" })]);
+    const [criticalityBox, stagesBox, attentionBox, exceptionsBox] = await Promise.all([
+      criticality.boundingBox(), stages.boundingBox(), attention.boundingBox(),
+      page.locator(".vendor-exceptions").boundingBox(),
+    ]);
+    if (!criticalityBox || !stagesBox || !attentionBox || !exceptionsBox) {
+      throw new Error(name + " has a missing source-aligned Vendor Overview panel");
+    }
+    if (viewport.width >= 1280) {
+      if (!(criticalityBox.x < stagesBox.x && stagesBox.x < attentionBox.x
+          && Math.abs(criticalityBox.y - attentionBox.y) < 3)) {
+        throw new Error(name + " lacks the approved three-column Vendor overview hierarchy");
+      }
+    } else if (!(criticalityBox.y < stagesBox.y && stagesBox.y < attentionBox.y)) {
+      throw new Error(name + " lacks the approved mobile Vendor overview reading order");
+    }
+    if (exceptionsBox.y < Math.max(criticalityBox.y + criticalityBox.height,
+      stagesBox.y + stagesBox.height, attentionBox.y + attentionBox.height) - 2) {
+      throw new Error(name + " puts the exception register ahead of the overview panels");
+    }
     await assertNoHorizontalOverflow(page, name);
     await saveScreenshot(page, name);
     await record(page, capture, viewport.width >= 1280 ? "vendor-approved-measures-desktop" : "vendor-approved-measures-mobile");

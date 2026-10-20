@@ -81,6 +81,26 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
     onOpenMatter?.(id);
   }
 
+  // Only the loaded relationship page is represented here. A partial linked
+  // Matter query cannot establish a bank-wide exception distribution.
+  const criticalities = (["CRITICAL", "IMPORTANT", "STANDARD", "UNSPECIFIED"] as const).map(value => ({
+    label: value === "UNSPECIFIED" ? "Not recorded" : value === "CRITICAL" ? "Critical" : value === "IMPORTANT" ? "Important" : "Standard",
+    value,
+    count: records.filter(item => (item.relationship.criticality ?? "UNSPECIFIED") === value).length,
+  }));
+  const stageLabels = [
+    ["TRIAGE", "Initial review"],
+    ["ASSESSMENT", "Assessment"],
+    ["DECISION_REQUIRED", "Decision needed"],
+    ["ACTION_IN_PROGRESS", "Actions underway"],
+    ["VERIFICATION", "Outcome checks"],
+  ] as const;
+  const openFindings = work?.complete ? work.items.filter(item => !["CLOSED", "CANCELLED"].includes(item.record.matter.status)) : undefined;
+  const stages = stageLabels.map(([status, label]) => ({
+    status, label, count: openFindings?.filter(item => item.record.matter.status === status).length,
+  }));
+  const attention = work?.complete ? presentVendorExceptions(work.items, "ATTENTION", now).slice(0, 3) : undefined;
+
   const summary = [
     { label: `${records.length} vendor ${records.length === 1 ? "service" : "services"}`, value: records.length, filter: "ALL" as const },
     { label: `${totals?.findings ?? "Unknown"} open exceptions`, value: totals?.findings, filter: "OPEN" as const },
@@ -100,6 +120,42 @@ export function VendorPortfolio({ records, hasMore, onOpenMatter, detail = false
         {work && <span>Checked <time dateTime={work.checkedAt}>{formatChecked(work.checkedAt)}</time></span>}
       </div>
     </div>
+
+    {!detail && <div className="vendor-overview-panels">
+      <section aria-labelledby="vendor-criticality-heading">
+        <header><h2 id="vendor-criticality-heading">Service criticality</h2><span>Loaded relationships</span></header>
+        <strong>{records.length} services</strong>
+        <div className="vendor-overview-bars">{criticalities.map(item => <div key={item.value}>
+          <div><span>{item.label}</span><span>{item.count}</span></div>
+          <div className="vendor-overview-track"><span data-criticality={item.value}
+            style={{ width: records.length ? `${item.count / records.length * 100}%` : "0%" }}/></div>
+        </div>)}</div>
+        {hasMore && <p>More relationships are available. Counts cover loaded records.</p>}
+      </section>
+      <section aria-labelledby="vendor-stages-heading">
+        <header><h2 id="vendor-stages-heading">Exception stages</h2><span>Linked issues</span></header>
+        {openFindings ? <>
+          <strong>{openFindings.length} open exceptions</strong>
+          <div className="vendor-overview-bars">{stages.map(item => <div key={item.status}>
+            <div><span>{item.label}</span><span>{item.count}</span></div>
+            <div className="vendor-overview-track"><span
+              style={{ width: openFindings.length ? `${(item.count ?? 0) / openFindings.length * 100}%` : "0%" }}/></div>
+          </div>)}</div>
+        </> : <p>Stage totals unavailable until linked issues are checked.</p>}
+      </section>
+      <section aria-labelledby="vendor-attention-heading">
+        <header><h2 id="vendor-attention-heading">Needs attention</h2><span>Linked exceptions</span></header>
+        {attention === undefined ? <p>Attention items unavailable until linked issues are checked.</p>
+          : attention.length === 0 ? <p>No matching attention items in loaded linked issues.</p>
+          : <ul className="vendor-attention-preview">{attention.map(row => <li key={row.item.record.matter.id}>
+            <div><strong>{row.item.record.matter.title}</strong><span>{bandLabel(row.band)}</span></div>
+            {onOpenMatter && <Button variant="quiet" size="compact"
+              aria-label={`Open attention: ${row.item.record.matter.title}`}
+              onPress={() => openMatter(row.item.record.matter.id)}>Review</Button>}
+          </li>)}</ul>}
+        <Button variant="quiet" onPress={() => select("ATTENTION")}>View exceptions</Button>
+      </section>
+    </div>}
 
     <section className="vendor-exceptions" aria-labelledby="vendor-exceptions-title" ref={list}>
       <header className="vendor-exceptions-header">

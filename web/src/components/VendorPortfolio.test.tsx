@@ -46,12 +46,16 @@ beforeEach(() => {
 describe("vendor exception overview", () => {
   it("shows a compact reconciled summary and an overdue-first operational queue", async () => {
     render(<VendorPortfolio records={records} hasMore={false}/>);
-    const first = await screen.findByText("Contract audit rights missing");
+    const first = await within(document.querySelector(".vendor-exception-list") as HTMLElement).findByText("Contract audit rights missing");
     const summary = screen.getByRole("region", { name: "Vendor overview summary" });
     expect(within(summary).getByRole("button", { name: "2 vendor services" })).toBeTruthy();
     expect(within(summary).getByRole("button", { name: "5 open exceptions" })).toBeTruthy();
     expect(within(summary).getByRole("button", { name: "5 open actions" })).toBeTruthy();
     expect(within(summary).getByRole("button", { name: "5 overdue actions" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Service criticality" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Exception stages" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Needs attention" })).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "Exception stages" })).getByText("5 open exceptions")).toBeTruthy();
     expect(document.querySelector(".vendor-metric")).toBeNull();
     expect(screen.getAllByText("Sample data")).toHaveLength(1);
     expect(first.closest("li")?.nextElementSibling?.textContent).toContain("Independent testing missing");
@@ -64,29 +68,32 @@ describe("vendor exception overview", () => {
 
   it("filters the queue by summary state, vendor, owner and recorded rating", async () => {
     render(<VendorPortfolio records={records} hasMore={false}/>);
-    await screen.findByText("Contract audit rights missing");
+    await within(document.querySelector(".vendor-exception-list") as HTMLElement).findByText("Contract audit rights missing");
+    const queue = within(document.querySelector(".vendor-exception-list") as HTMLElement);
     fireEvent.change(screen.getByLabelText("Vendor"), { target: { value: "v2" } });
-    expect(screen.queryByText("Contract audit rights missing")).toBeNull();
-    expect(screen.getByText("Incident reporting gap")).toBeTruthy();
+    expect(queue.queryByText("Contract audit rights missing")).toBeNull();
+    expect(queue.getByText("Incident reporting gap")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Owner"), { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText("Source rating"), { target: { value: "Low" } });
-    expect(screen.queryByText("Incident reporting gap")).toBeNull();
-    expect(screen.getByText("Recovery evidence missing")).toBeTruthy();
+    expect(queue.queryByText("Incident reporting gap")).toBeNull();
+    expect(queue.getByText("Recovery evidence missing")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "All open" }));
-    expect(screen.queryByText("Closed exception")).toBeNull();
+    expect(queue.queryByText("Closed exception")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "All exceptions" }));
     fireEvent.change(screen.getByLabelText("Vendor"), { target: { value: "v1" } });
     fireEvent.change(screen.getByLabelText("Owner"), { target: { value: "Hakeem" } });
     fireEvent.change(screen.getByLabelText("Source rating"), { target: { value: "Low" } });
-    expect(screen.getByText("Closed exception")).toBeTruthy();
+    expect(queue.getByText("Closed exception")).toBeTruthy();
   });
 
   it("opens the canonical Matter from the single row action", async () => {
     const onOpenMatter = vi.fn();
     render(<VendorPortfolio records={records} hasMore={false} onOpenMatter={onOpenMatter}/>);
-    await screen.findByText("Contract audit rights missing");
+    await within(document.querySelector(".vendor-exception-list") as HTMLElement).findByText("Contract audit rights missing");
     fireEvent.click(screen.getByRole("button", { name: "Review exception: Contract audit rights missing" }));
     expect(onOpenMatter).toHaveBeenCalledWith("finding-1");
+    fireEvent.click(screen.getByRole("button", { name: "Open attention: Contract audit rights missing" }));
+    expect(onOpenMatter).toHaveBeenCalledTimes(2);
   });
 
   it("keeps unavailable and partial aggregate values explicitly unknown", async () => {
@@ -94,10 +101,11 @@ describe("vendor exception overview", () => {
     const { unmount } = render(<VendorPortfolio records={records} hasMore/>);
     expect(await screen.findByText("Vendor exceptions could not be checked.")).toBeTruthy();
     expect(screen.getAllByText("Unknown").length).toBeGreaterThanOrEqual(3);
+    expect(within(screen.getByRole("region", { name: "Exception stages" })).getByText(/Stage totals unavailable/)).toBeTruthy();
     unmount();
     api.loadVendorRiskWork.mockResolvedValue({ ...work, complete: false });
     render(<VendorPortfolio records={records} hasMore/>);
-    await screen.findByText("Contract audit rights missing");
+    await within(document.querySelector(".vendor-exception-list") as HTMLElement).findByText("Contract audit rights missing");
     expect(screen.getByText("Some vendor exceptions could not be checked. Totals unknown.")).toBeTruthy();
     expect(screen.getAllByText("Unknown").length).toBeGreaterThanOrEqual(3);
   });
