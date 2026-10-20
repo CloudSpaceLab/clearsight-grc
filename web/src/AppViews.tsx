@@ -43,7 +43,7 @@ export function WorkView({ refreshToken, organizationName, actorPrincipalID, evi
       <div><span className="eyebrow">{organizationName}</span><h1>{tab === "assigned" ? "Work & approvals" : "Work"}</h1></div>
       <div className="topbar-actions">
         <PopoverDialog label="Related work" placement="bottom end" trigger={<Button variant="secondary" size="compact">Related work</Button>}>
-          <div className="work-related-links">
+          <div className="cs-sheet-actions">
             <Button variant="quiet" onPress={() => onTab("assigned")}>My work</Button>
             <Button variant="quiet" onPress={() => onTab("matters")}>Issues & changes</Button>
             <Button variant="quiet" onPress={() => onTab("evidence")}>Evidence requests</Button>
