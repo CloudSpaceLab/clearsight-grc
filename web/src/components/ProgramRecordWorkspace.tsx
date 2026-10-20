@@ -317,7 +317,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
           <h1>{aggregate.program.name}</h1>
           <p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p>
           <dl className="program-record-header__facts">
-            <div><dt>Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
+            <div><dt className="sr-only">Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
             <div><dt>Owning function</dt><dd>{aggregate.program.owning_function || "Not recorded"}</dd></div>
           </dl>
         </div>
