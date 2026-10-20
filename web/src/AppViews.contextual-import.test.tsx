@@ -94,6 +94,12 @@ describe("contextual document analysis entry", () => {
     };
     const assigned = render(<WorkView {...props} assignedItems={[{ id: "work-1" } as never]} tab="assigned"/>);
     expect(screen.getByText("Assigned work · 1")).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Home" }).getAttribute("href")).toBe("#today");
+    expect(screen.getByText("1 loaded · 0 overdue · 0 approvals")).toBeTruthy();
+    assigned.rerender(<WorkView {...props} assignedItems={[{ id: "work-1" } as never]} assignedState="unavailable" tab="assigned"/>);
+    expect(screen.getByText("Assigned work unavailable")).toBeTruthy();
+    expect(screen.queryByText("1 loaded · 0 overdue · 0 approvals")).toBeNull();
     assigned.unmount();
 
     const { rerender } = render(<WorkView {...props} tab="matters"/>);
