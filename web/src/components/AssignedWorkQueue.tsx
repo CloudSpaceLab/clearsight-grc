@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, DataTable, FilterBar, FocusedSheet, MetricCard, SearchField, SelectField, StatusBadge, Tabs, type DataColumn } from "./ui";
-import { countLoadedWork, filterLoadedWork, type WorkQueueFilter } from "./workQueuePresentation";
+import { countLoadedWork, filterLoadedWork, type WorkDueWindow, type WorkQueueFilter } from "./workQueuePresentation";
 import { EmptyState } from "./EmptyState";
 import { WorkItemIcon } from "./WorkItemIcon";
 import type { AttentionItem, InterventionClass } from "../types";
@@ -27,6 +27,7 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const [filter, setFilter] = useState<WorkQueueFilter>("ALL");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>();
+  const [dueWindow, setDueWindow] = useState<WorkDueWindow>("ALL");
   const [selectedID, setSelectedID] = useState<string>();
   const [inspectingItem, setInspectingItem] = useState<AttentionItem>();
   const snapshotTime = Date.parse(asOf ?? "");
@@ -34,31 +35,42 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const counts = countLoadedWork(items, now);
   const statuses = [...new Set(items.map((item) => item.state).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b)).map((value) => ({ id: value, label: value }));
-  const filtered = filterLoadedWork(items, filter, search, status, now);
+  const filtered = filterLoadedWork(items, filter, search, status, now, dueWindow);
   const selected = filtered.find((item) => item.id === selectedID) ?? filtered[0];
   // A fresh actor/scope feed invalidates an inspection, even if IDs happen to match.
   const inspecting = items.find((item) => item === inspectingItem);
 
   return <section className={`intervention-brief${presentation === "workspace" ? " assigned-workspace" : ""}`} aria-labelledby="assigned-work-heading">
-    <header className="intervention-heading">
-      <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{presentation === "workspace" && state === "live" ? "Work queue" : title}</Heading>{presentation === "workspace" && state === "live" && <p>{items.length} {items.length === 1 ? "item" : "items"} loaded</p>}{presentation === "workspace" && state === "live" && hasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}</div>
-    </header>
+    {(presentation !== "workspace" || state !== "live") && <header className="intervention-heading">
+      <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">{title}</Heading></div>
+    </header>}
     {state === "loading"
       ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading assigned work…</div>
       : state === "unavailable"
         ? <EmptyState kind="unavailable" label="Assigned work" title="Assigned work could not be loaded" description="Retry." action="Try again" onAction={onRetry}/>
         : presentation === "workspace"
           ? <>
-            <div className="assigned-workspace__signals" aria-label="Loaded work measures">
-              {workSignals.map(({ key, label, tone }) => <MetricCard
-                key={key} label={label} value={counts[key]} qualityLabel="Loaded work" tone={tone}
-                isSelected={filter === key} ariaControls="attention-list" onPress={() => setFilter(filter === key ? "ALL" : key)}
-              />)}
-            </div>
             <Tabs ariaLabel="Assigned work queues" compactLabel="Work queue" items={workQueues}
               selectedKey={filter === "APPROVALS" ? "APPROVALS" : "ALL"}
               onSelectionChange={(key) => setFilter(key)}>
               {() => <>
+                <div className="assigned-workspace__signals" aria-label="Loaded work measures">
+                  {workSignals.map(({ key, label, tone }) => <MetricCard
+                    key={key} label={label} value={counts[key]} qualityLabel="Loaded work" tone={tone}
+                    isSelected={filter === key} ariaControls="attention-list" onPress={() => setFilter(filter === key ? "ALL" : key)}
+                  />)}
+                </div>
+                <header className="intervention-heading">
+                  <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">Assigned to me</Heading>
+                    <p>{items.length} {items.length === 1 ? "item" : "items"} loaded</p>
+                    {hasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}
+                  </div>
+                  <div className="assigned-workspace__due-window">
+                    <SelectField label="Due-date window" value={dueWindow} placeholder="All due dates"
+                      options={dueWindows} allowsEmpty={false}
+                      onChange={(value) => setDueWindow(value ?? "ALL")}/>
+                  </div>
+                </header>
                 <FilterBar label="Filter loaded work"
                   fields={<>
                     <SearchField label="Search loaded work" value={search} onChange={(value) => setSearch(value.slice(0, 120))} placeholder="Search loaded work"/>
@@ -66,7 +78,7 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                   </>}
                   resultCount={filtered.length}
                   resultLabel={(count) => `${count} of ${items.length} loaded items · ${workFilterLabel(filter)}`}
-                  onClear={search || status || filter !== "ALL" ? () => { setSearch(""); setStatus(undefined); setFilter("ALL"); } : undefined}
+                  onClear={search || status || filter !== "ALL" || dueWindow !== "ALL" ? () => { setSearch(""); setStatus(undefined); setDueWindow("ALL"); setFilter("ALL"); } : undefined}
                 />
                 {filtered.length ? <div className="assigned-workspace__grid" id="attention-list">
                   <DataTable ariaLabel="Assigned work" rows={filtered} rowKey={(item) => item.id}
@@ -91,6 +103,13 @@ const workQueues = [
   { id: "ALL", label: "My work" },
   { id: "APPROVALS", label: "Approvals" },
 ] as const;
+
+const dueWindows: readonly { id: WorkDueWindow; label: string }[] = [
+  { id: "ALL", label: "All due dates" },
+  { id: "7", label: "Next 7 days + overdue" },
+  { id: "30", label: "Next 30 days + overdue" },
+  { id: "OVERDUE", label: "Overdue only" },
+];
 
 const workSignals = [
   { key: "OVERDUE", label: "Overdue", tone: "warning" },
