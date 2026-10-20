@@ -340,7 +340,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
         </div>
         <div className="program-record-header__side">
           <div className="program-record-header__actions">
-            <label className="program-record-header__period">Activity period
+            <label className="program-record-header__period">Assessment period
               <select aria-label="Assessment activity period" value={activityPeriod}
                 onChange={(event) => setActivityPeriod(Number(event.target.value) as AssessmentPeriodDays)}>
                 <option value={90}>Last 90 days</option>
