@@ -23,8 +23,6 @@ export type AssignedWorkQueueProps = {
 };
 
 export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief", sourceSearchScopeKey }: AssignedWorkQueueProps) {
-  const count = items.length === 1 ? "1 item needs your action" : `${items.length} items need your action`;
-  const title = state === "loading" ? "Loading assigned work" : state === "unavailable" ? "Assigned work is unavailable" : count;
   const Heading = headingLevel;
   const [filter, setFilter] = useState<WorkQueueFilter>("ALL");
   const [search, setSearch] = useState("");
@@ -37,6 +35,8 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const currentItems = sourceSearch ? searched.items : items;
   const currentState = sourceSearch ? searched.state === "idle" ? "loading" : searched.state : state;
   const currentHasMore = sourceSearch ? searched.hasMore : hasMore;
+  const count = currentItems.length === 1 ? "1 item needs your action" : `${currentItems.length} items need your action`;
+  const title = currentState === "loading" ? "Loading assigned work" : currentState === "unavailable" ? "Assigned work is unavailable" : count;
   const snapshotTime = Date.parse((sourceSearch ? searched.asOf : asOf) ?? "");
   const now = Number.isFinite(snapshotTime) ? snapshotTime : Date.now();
   const counts = countLoadedWork(currentItems, now);
@@ -101,7 +101,7 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                 {sourceSearch && currentHasMore && <div className="workspace-recovery-actions">
                   <Button variant="secondary" isDisabled={searched.loadingMore} onPress={searched.loadMore}>{searched.loadingMore ? "Loading assignments…" : "Load more assignments"}</Button>
                 </div>}
-                {sourceSearch && searched.loadMoreFailed && <p role="alert">More assignments could not be loaded. Retry the page.</p>}
+                {sourceSearch && searched.loadMoreFailed && <p role="alert">More assignments could not be loaded. Select Load more assignments to retry.</p>}
               </>}
             </Tabs>
           </>
