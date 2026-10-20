@@ -19,7 +19,6 @@ const captures = [
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "04-program-light-1280x800", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1280, height: 800 } },
   { name: "04-program-light-mobile-390x844", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true },
-  { name: "04-program-mobile-context-open-390x844", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openMobileContext: true },
   ...frameworkEvidenceScenarios,
   { name: "150-work-queue-light-1440x900", route: "#work", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Work queue", state: "work-assigned-desktop" },
   { name: "151-work-queue-dark-mobile-390x844", route: "#work", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Work queue", state: "work-assigned-mobile" },
@@ -194,7 +193,7 @@ async function capturePage(capture) {
          "09-today-dark-tablet-1024x768"].includes(capture.name)) {
       await assertApprovedShell(page, capture.viewport.width);
     }
-    if (capture.name === "04-program-light-mobile-390x844" || capture.openMobileContext) {
+    if (capture.name === "04-program-light-mobile-390x844") {
       const bar = page.locator(".context-bar");
       const menu = page.getByRole("button", { name: "Workspace controls" });
       const controls = page.locator("#workspace-context-controls");
@@ -214,10 +213,9 @@ async function capturePage(capture) {
       if (await scope.count() && !await scope.isVisible()) {
         throw new Error("The verified legal-entity and Group selector is inaccessible on a phone");
       }
-      if (!capture.openMobileContext) {
-        await menu.click();
-        await controls.waitFor({ state: "hidden" });
-      }
+      await assertNoHorizontalOverflow(page, `${capture.name} expanded context`);
+      await menu.click();
+      await controls.waitFor({ state: "hidden" });
     }
     const contextSwitcher = page.locator(".context-bar .context-scope-control");
     if (await contextSwitcher.count()) {
