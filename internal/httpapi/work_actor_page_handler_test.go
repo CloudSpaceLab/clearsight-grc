@@ -20,12 +20,12 @@ func TestActorWorkEndpointPagesOverFiftyWithoutChangingToday(t *testing.T) {
 	tasks := make([]workflow.Task, 0, 74)
 	for i := 0; i < 72; i++ {
 		tasks = append(tasks, workflow.Task{
-			ID: fmt.Sprintf("00000000-0000-4000-8000-%012x", i+1),
+			ID:       fmt.Sprintf("00000000-0000-4000-8000-%012x", i+1),
 			TenantID: "bank", LegalEntityID: "entity", PrincipalID: "actor",
 			WorkflowKind: workflow.MatterActionWorkflowKind,
-			MatterID: fmt.Sprintf("00000000-0000-4000-8000-%012x", i+200),
-			MatterScope: json.RawMessage(`{"access":"RESTRICTED"}`),
-			Title: fmt.Sprintf("Review evidence %03d", i), Status: workflow.StatusReady,
+			MatterID:     fmt.Sprintf("00000000-0000-4000-8000-%012x", i+200),
+			MatterScope:  json.RawMessage(`{"access":"RESTRICTED"}`),
+			Title:        fmt.Sprintf("Review evidence %03d", i), Status: workflow.StatusReady,
 			DueAt: &due, UpdatedAt: base.Add(time.Duration(i) * time.Minute),
 		})
 	}
@@ -50,11 +50,11 @@ func TestActorWorkEndpointPagesOverFiftyWithoutChangingToday(t *testing.T) {
 			t.Fatalf("page HTTP %d: %s", response.Code, response.Body.String())
 		}
 		var page struct {
-			Items []today.AttentionItem `json:"items"`
-			NextCursor string `json:"next_cursor"`
-			HasMore bool `json:"has_more"`
-			Coverage string `json:"coverage"`
-			CountBasis string `json:"count_basis"`
+			Items      []today.AttentionItem `json:"items"`
+			NextCursor string                `json:"next_cursor"`
+			HasMore    bool                  `json:"has_more"`
+			Coverage   string                `json:"coverage"`
+			CountBasis string                `json:"count_basis"`
 		}
 		if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
 			t.Fatal(err)
@@ -85,7 +85,7 @@ func TestActorWorkEndpointRejectsWideningAndUnsupportedFilters(t *testing.T) {
 	api := &API{deps: Dependencies{Workflow: workflow.NewService(workflow.NewMemoryRepository(nil))}}
 	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "actor"}
 	cases := []struct {
-		path string
+		path   string
 		status int
 	}{
 		{"/api/v1/work/assignments?tenant_id=another", http.StatusForbidden},
