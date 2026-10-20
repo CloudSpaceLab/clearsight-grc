@@ -8,6 +8,7 @@ import (
 )
 
 func (r *PostgresRepository) ListDocumentProposalActorWork(ctx context.Context, filter ListFilter) ([]Task, error) {
+	hasCursor, afterDue, afterUpdated, afterID := postgresWorkCursorArgs(filter)
 	rows, err := r.pool.Query(ctx, `
 		SELECT wt.id::text,t.id::text,wt.workflow_id::text,wt.step_key,wt.responsibility,
 		       COALESCE(wt.principal_id::text,''),wt.title,wt.status,wt.due_at,wt.claimed_at,wt.completed_at,
@@ -45,11 +46,13 @@ func (r *PostgresRepository) ListDocumentProposalActorWork(ctx context.Context, 
 		  AND ($8='' OR strpos(lower(wt.title),$8)>0)
 		  AND ($9::timestamptz IS NULL OR wt.due_at >= $9::timestamptz)
 		  AND ($10::timestamptz IS NULL OR wt.due_at < $10::timestamptz)
+		`+postgresWorkPagePredicate(11)+`
 		ORDER BY wt.due_at IS NULL,wt.due_at ASC NULLS LAST,wt.updated_at DESC,wt.id ASC
 		LIMIT $7`,
 		filter.TenantID, filter.PrincipalID, filter.LegalEntityID, string(filter.Status),
 		DocumentProposalWorkflowKind, filter.ActiveOnly, filter.Limit,
 		filter.Search, filter.DueFrom, filter.DueBefore,
+		filter.UpdatedThrough, hasCursor, afterDue, afterUpdated, afterID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list actor document proposal work: %w", err)

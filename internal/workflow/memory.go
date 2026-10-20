@@ -74,6 +74,12 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 		if filter.VisibleActorWorkOnly && !ActorWorkVisibleTo(task, filter.PrincipalID) {
 			continue
 		}
+		if filter.UpdatedThrough != nil && task.UpdatedAt.After(*filter.UpdatedThrough) {
+			continue
+		}
+		if filter.PageAfter != nil && !workFollows(task, *filter.PageAfter) {
+			continue
+		}
 		values = append(values, cloneTask(task))
 	}
 	sort.Slice(values, func(i, j int) bool {

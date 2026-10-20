@@ -50,6 +50,14 @@ type Task struct {
 	DocumentProposalVisible bool            `json:"-"`
 }
 
+// WorkPosition is an internal keyset anchor in active-work order:
+// deadline ascending (undated last), updated time descending, ID ascending.
+type WorkPosition struct {
+	DueAt     *time.Time `json:"due_at,omitempty"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	ID        string     `json:"id"`
+}
+
 // ListFilter applies source-backed work selection before ordering and LIMIT.
 // DueFrom is inclusive; DueBefore is exclusive. Undated work is excluded only
 // when a due boundary is supplied.
@@ -57,6 +65,8 @@ type ListFilter struct {
 	Search                string
 	DueFrom               *time.Time
 	DueBefore             *time.Time
+	UpdatedThrough        *time.Time
+	PageAfter             *WorkPosition
 	TenantID              string
 	LegalEntityID         string
 	PrincipalID           string

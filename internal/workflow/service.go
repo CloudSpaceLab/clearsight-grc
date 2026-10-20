@@ -28,6 +28,12 @@ func (s *Service) List(ctx context.Context, filter ListFilter) ([]Task, error) {
 	if filter.DueFrom != nil && filter.DueBefore != nil && !filter.DueFrom.Before(*filter.DueBefore) {
 		return nil, fmt.Errorf("due window must end after it begins")
 	}
+	if filter.PageAfter != nil && (!filter.ActiveOnly || filter.PageAfter.ID == "" || filter.PageAfter.UpdatedAt.IsZero()) {
+		return nil, fmt.Errorf("invalid active work position")
+	}
+	if filter.UpdatedThrough != nil && filter.UpdatedThrough.IsZero() {
+		return nil, fmt.Errorf("invalid work update fence")
+	}
 	values, err := s.repo.List(ctx, filter)
 	if err != nil {
 		return nil, err
