@@ -49,6 +49,10 @@
   .reports-workspace__header h1 { font-size: var(--cs-primitive-font-size-28); }
 }
 
+.reports-explore { display: grid; gap: var(--cs-space-group); min-width: 0; }
+.reports-explore > header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cs-space-inline); }
+.reports-explore > header h2 { margin: 0; color: var(--cs-text-strong); font-size: var(--cs-primitive-font-size-18); }
+
 .reports-generate__heading p,
 .report-run-details > div:first-child p {
   margin: 0;
