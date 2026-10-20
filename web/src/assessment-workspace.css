@@ -53,6 +53,23 @@
   margin: 0;
   color: var(--cs-text-muted);
 }
+.internal-assessment-workspace__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cs-primitive-space-2) var(--cs-space-group);
+  margin-block-start: var(--cs-space-inline);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.internal-assessment-workspace__state {
+  padding: var(--cs-primitive-space-1) var(--cs-primitive-space-2);
+  border-radius: var(--cs-primitive-radius-10);
+  background: var(--cs-bg-surface-2);
+  color: var(--cs-text-primary);
+  font-weight: 650;
+}
+
 .internal-assessment-workspace > .panel-content {
   padding: 0;
   min-inline-size: 0;

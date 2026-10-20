@@ -921,6 +921,11 @@ describe("runtime navigation", () => {
     fireEvent.click((await screen.findAllByRole("button", { name: "Respond to evidence request" }))[0]!);
     const workspace = await screen.findByRole("region", { name: "Internal assessment workspace" });
     expect(within(workspace).getByRole("heading", { name: assigned.title, level: 1 })).toBeTruthy();
+    const facts = within(workspace).getByRole("group", { name: "Assessment details" });
+    expect(within(facts).getByText("Ready for response")).toBeTruthy();
+    expect(within(facts).getByText("Due 30 Aug 2099")).toBeTruthy();
+    expect(within(facts).getByText("About 3 min")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
     expect(screen.queryByRole("dialog", { name: "Evidence request" })).toBeNull();
     const completion = within(workspace).getByRole("region", { name: "Assessment completion" });
     expect(within(completion).getByText("0 of 3 answered")).toBeTruthy();
