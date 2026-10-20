@@ -1013,6 +1013,18 @@ async function captureApprovedVendorMeasures(name, theme, viewport) {
 
 async function assertWorkMeasureLabels(page, capture) {
   const work = page.locator(".assigned-workspace");
+  const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+  const home = breadcrumb.getByRole("link", { name: "Home" });
+  await home.waitFor({ state: "visible" });
+  if (await home.getAttribute("href") !== "#today") {
+    throw new Error(`${capture.name}: Work breadcrumb does not return to Home`);
+  }
+  const loadedSummary = (await page.locator(".work-topbar__basis").textContent())?.trim() ?? "";
+  const loadedCount = (await work.locator(".intervention-heading p").first().textContent())?.trim().match(/^(\d+) items? loaded$/)?.[1];
+  if (!/^\d+ loaded · \d+ overdue · \d+ approvals$/.test(loadedSummary) ||
+      loadedCount === undefined || !loadedSummary.startsWith(`${loadedCount} loaded ·`)) {
+    throw new Error(`${capture.name}: Work heading does not match authorized loaded work: ${loadedSummary}`);
+  }
   const localTabs = work.getByRole("tablist", { name: "Assigned work queues" });
   if (await page.getByRole("tablist", { name: "Work views" }).count() !== 0 ||
       await page.getByRole("button", { name: "Work view" }).count() !== 0 ||
