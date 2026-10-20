@@ -510,7 +510,7 @@
   }
   .program-record-header h1 {
     margin-block: var(--cs-primitive-space-1);
-    font-size: clamp(var(--cs-primitive-font-size-22), 6vw, var(--cs-primitive-font-size-26));
+    font-size: clamp(var(--cs-primitive-font-size-22), 6vw, 26px);
   }
   .program-record-header p { margin-bottom: var(--cs-primitive-space-1); font-size: var(--cs-font-size-caption); }
   .program-record-header__facts { gap: var(--cs-primitive-space-1) var(--cs-space-inline); }
