@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AttentionItem } from "../types";
-import { countLoadedWork, filterLoadedWork, matchesWorkFilter } from "./workQueuePresentation";
+import { countLoadedWork, filterLoadedWork, matchesDueWindow, matchesWorkFilter } from "./workQueuePresentation";
 
 const referenceTime = Date.UTC(2026, 9, 19, 12);
 const base: AttentionItem = {
@@ -24,6 +24,25 @@ describe("bounded assigned work measures", () => {
     expect(matchesWorkFilter(rows[0]!, "DUE_SOON", referenceTime)).toBe(false);
     expect(matchesWorkFilter(rows[2]!, "DUE_SOON", referenceTime)).toBe(true);
     expect(matchesWorkFilter(rows[3]!, "DUE_SOON", referenceTime)).toBe(false);
+  });
+
+  it("filters 7/30-day windows against the server snapshot and excludes unknown deadlines", () => {
+    const rows: AttentionItem[] = [
+      { ...base, id: "overdue", due_at: new Date(referenceTime - 86400000).toISOString() },
+      { ...base, id: "seventh", due_at: new Date(referenceTime + 7 * 86400000).toISOString() },
+      { ...base, id: "thirtieth", due_at: new Date(referenceTime + 30 * 86400000).toISOString() },
+      { ...base, id: "later", due_at: new Date(referenceTime + 30 * 86400000 + 1).toISOString() },
+      { ...base, id: "unset", due_at: "" },
+    ];
+    expect(filterLoadedWork(rows, "ALL", "", undefined, referenceTime, "7").map((item) => item.id))
+      .toEqual(["overdue", "seventh"]);
+    expect(filterLoadedWork(rows, "ALL", "", undefined, referenceTime, "30").map((item) => item.id))
+      .toEqual(["overdue", "seventh", "thirtieth"]);
+    expect(filterLoadedWork(rows, "ALL", "", undefined, referenceTime, "OVERDUE").map((item) => item.id))
+      .toEqual(["overdue"]);
+    expect(matchesDueWindow(rows[4]!, "7", referenceTime)).toBe(false);
+    expect(filterLoadedWork(rows, "ALL", "", undefined, referenceTime).map((item) => item.id))
+      .toHaveLength(5);
   });
 
   it("counts explicit authorization and evidence exceptions, not inferred approvals", () => {
