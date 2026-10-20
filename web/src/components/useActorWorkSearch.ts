@@ -3,6 +3,7 @@ import { loadActorWorkPage } from "../api";
 import type { AttentionItem } from "../types";
 
 type SearchResult = {
+  queryKey?: string;
   state: "idle" | "loading" | "live" | "unavailable";
   items: AttentionItem[];
   asOf?: string;
@@ -20,6 +21,7 @@ const emptyResult: SearchResult = {
 // approval or administrator-exception query.
 export function useActorWorkSearch(search: string, scopeKey: string, enabled: boolean) {
   const term = enabled ? search.trim() : "";
+  const queryKey = `${scopeKey}\u0000${term}`;
   const generation = useRef(0);
   const [retryToken, setRetryToken] = useState(0);
   const [result, setResult] = useState<SearchResult>(emptyResult);
@@ -30,27 +32,27 @@ export function useActorWorkSearch(search: string, scopeKey: string, enabled: bo
       setResult(emptyResult);
       return;
     }
-    setResult({ ...emptyResult, state: "loading" });
+    setResult({ ...emptyResult, queryKey, state: "loading" });
     const timer = window.setTimeout(() => {
       void loadActorWorkPage(term).then((page) => {
         if (generation.current !== current) return;
         setResult({
-          state: "live", items: page.items, asOf: page.as_of,
+          queryKey, state: "live", items: page.items, asOf: page.as_of,
           cursor: page.next_cursor, hasMore: page.has_more,
           loadingMore: false, loadMoreFailed: false,
         });
       }).catch(() => {
-        if (generation.current === current) setResult({ ...emptyResult, state: "unavailable" });
+        if (generation.current === current) setResult({ ...emptyResult, queryKey, state: "unavailable" });
       });
     }, 220);
     return () => {
       window.clearTimeout(timer);
       generation.current++;
     };
-  }, [term, scopeKey, retryToken]);
+  }, [term, scopeKey, queryKey, retryToken]);
 
   const loadMore = useCallback(() => {
-    if (!term || result.state !== "live" || !result.hasMore ||
+    if (!term || result.queryKey !== queryKey || result.state !== "live" || !result.hasMore ||
         !result.cursor || result.loadingMore) return;
     const current = generation.current;
     const cursor = result.cursor;
@@ -74,7 +76,8 @@ export function useActorWorkSearch(search: string, scopeKey: string, enabled: bo
         setResult((previous) => ({ ...previous, loadingMore: false, loadMoreFailed: true }));
       }
     });
-  }, [result, term]);
+  }, [result, term, queryKey]);
 
-  return { ...result, loadMore, retry: () => setRetryToken((value) => value + 1) };
+  const visible = result.queryKey === queryKey ? result : { ...emptyResult, state: term ? "loading" as const : "idle" as const };
+  return { ...visible, loadMore, retry: () => setRetryToken((value) => value + 1) };
 }
