@@ -31,6 +31,7 @@ import type { CaptureLoadState } from "./components/CapturePanel";
 import { captureContract, effectivePresentationMode, visibleCaptureSections } from "./components/capture/contract";
 import { apiErrorKind } from "./http";
 import { canRespondToEvidenceRequest, isEvidenceRequestAssignedToActor } from "./evidenceAuthorization";
+import { actionDeadlinePresentation } from "./dueDate";
 import { parseRoute, routeHash } from "./appRouting";
 import type { HomeTab, View, WorkspaceTarget, WorkTab } from "./appRouting";
 import type { RuntimePresentation } from "./runtimePresentation";
@@ -621,6 +622,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
 
   const usesAssessmentWorkspace = activePanel === "capture" && captureState === "live" &&
     isAuthorizedWizardAssessment(capture, runtime?.actor.id);
+  const assessmentDue = usesAssessmentWorkspace ? actionDeadlinePresentation(capture?.deadline, false) : null;
 
   return <div className="app-shell">
     <aside className="sidebar" aria-label="Primary navigation">
@@ -687,6 +689,11 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
             <span className="eyebrow">Assessment · Evidence request</span>
             <h1>{capture?.title}</h1>
             {capture?.purpose && <p>{capture.purpose}</p>}
+            <div className="internal-assessment-workspace__meta" role="group" aria-label="Assessment details">
+              <span className="internal-assessment-workspace__state">{capture?.status === "IN_PROGRESS" ? "In progress" : "Ready for response"}</span>
+              {assessmentDue?.dateTime && <time dateTime={assessmentDue.dateTime}>{assessmentDue.label}</time>}
+              {capture && capture.estimated_minutes > 0 && <span>About {capture.estimated_minutes} min</span>}
+            </div>
           </div>
         </header>
         <CapturePanel fullPage request={capture} state={captureState} onReload={() => void reloadCapture()}/>
