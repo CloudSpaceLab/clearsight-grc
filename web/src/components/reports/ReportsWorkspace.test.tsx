@@ -160,12 +160,13 @@ describe("ReportsWorkspace", () => {
     renderWorkspace();
     await screen.findByRole("table", { name: "Generated reports" });
     fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
-    expect(screen.getByRole("region", { name: "Report library summary" })).toBeTruthy();
+    const measures = screen.getByRole("region", { name: "Reporting measures" });
+    expect(within(measures).getAllByText("Reports ready")).toHaveLength(1);
+    expect(within(measures).getAllByText("Requirements assessed")).toHaveLength(1);
     const recent = screen.getByRole("table", { name: "Recent reports" });
     expect(within(recent).getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
     expect(within(recent).getByRole("row", { name: /Program health/ })).toBeTruthy();
-    expect(within(screen.getByRole("region", { name: "Report library summary" }))
-      .getByText("Loaded").nextElementSibling?.textContent).toBe("2");
+    expect(within(measures).getByLabelText(/Reports ready: 1/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Explore insights" }));
     const analysis = await screen.findByRole("region", { name: "Risk and loss analysis" });
     expect(analysis.textContent).toContain("2026-07-01 to 2026-09-28");
@@ -173,7 +174,7 @@ describe("ReportsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Insights workspace" }));
     expect(onOpenInsights).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
-    fireEvent.click(screen.getByRole("button", { name: "View reports" }));
+    fireEvent.click(screen.getByRole("button", { name: "View all" }));
     expect(screen.getByRole("table", { name: "Generated reports" })).toBeTruthy();
   });
 
