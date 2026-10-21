@@ -43,6 +43,8 @@ export type ReportsWorkspaceProps = {
   loadMetricBasis?: typeof loadHomeMetricsRequest;
   onOpenRisk?: (riskID: string) => void;
   onOpenLoss?: (lossID: string) => void;
+  onOpenWork?: () => void;
+  onOpenPrograms?: () => void;
   loadDefinitions?: typeof listReportDefinitionsRequest;
   loadRunPage?: typeof listReportRunPageRequest;
   loadOwners?: typeof listReportOwnerOptionsRequest;
@@ -73,6 +75,8 @@ export function ReportsWorkspace({
   loadMetricBasis = loadHomeMetricsRequest,
   onOpenRisk,
   onOpenLoss,
+  onOpenWork,
+  onOpenPrograms,
   loadDefinitions = listReportDefinitionsRequest,
   loadRunPage = listReportRunPageRequest,
   loadOwners = listReportOwnerOptionsRequest,
@@ -392,6 +396,17 @@ export function ReportsWorkspace({
   // Loaded runs are not a complete tenant-wide historical population.
 
 
+  const statusPanel = <section className="reports-summary" aria-label="Report library summary">
+    <div className="reports-summary__heading">
+      <strong>Loaded report status</strong>
+      <span>{runs.length} loaded{nextCursor ? " · More available" : ""}</span>
+    </div>
+    <ReportSummaryMetric label="Loaded" value={runs.length} />
+    <ReportSummaryMetric label="Available" value={readyCount} />
+    <ReportSummaryMetric label="In progress" value={runningCount} tone={runningCount ? "info" : "neutral"} />
+    <ReportSummaryMetric label="Failed" value={failedCount} tone={failedCount ? "error" : "neutral"} />
+  </section>;
+
   return <section className="reports-workspace" aria-labelledby="reports-heading">
     <header className="reports-workspace__header cs-workspace-header">
       <div>
@@ -422,12 +437,15 @@ export function ReportsWorkspace({
             runs={runs}
             nextCursor={nextCursor}
             definitionsByID={definitionsByID}
+            definitionState={definitionState}
+            definitionCount={definitions.length}
             columns={columns}
             onSelectRun={setSelectedRun}
             onViewReports={() => setTab("library")}
             onOpenExplore={() => setTab("explore")}
             onOpenBuilder={() => setTab("builder")}
             onOpenWork={onOpenWork}
+            onOpenPrograms={onOpenPrograms}
             onOpenRisk={onOpenRisk}
             onOpenLoss={onOpenLoss}
           />
