@@ -93,7 +93,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
     </div>
     <div className="cs-framework-library__detail-body">
       <h2>{preview.title}</h2>
-      <p className="cs-framework-library__detail-subtitle">{preview.framework_code} · {preview.publisher_code}</p>
+      <p className="cs-framework-library__detail-subtitle">{preview.publisher_code} · {preview.framework_code}</p>
       <div className="cs-framework-library__detail-chips" aria-label="Edition classification">
         <StatusBadge tone="info">{preview.jurisdiction}</StatusBadge>
         <StatusBadge tone="neutral">Edition {preview.edition_code}</StatusBadge>
