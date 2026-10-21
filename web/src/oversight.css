@@ -184,3 +184,12 @@
   .oversight-period-control > small { text-align: left; }
   .oversight-period-picker { width: min(300px, calc(100vw - 24px)); }
 }
+
+/* Embedded charts inherit their containing workspace panel. */
+.organization-risk-summary[data-embedded], .loss-movement[data-embedded] {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}

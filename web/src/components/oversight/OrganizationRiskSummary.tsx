@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   loadDomainMetricOrganizationBreakdown,
   type DomainMetricBundle,
@@ -10,6 +10,8 @@ import { EmptyState, Notice, RankedBarList, type RankedBarItem } from "../ui";
 type LoadState = "idle" | "loading" | "live" | "unavailable";
 
 type Props = {
+  embedded?: boolean;
+  action?: ReactNode;
   bundle: DomainMetricBundle | null;
   organizationScopeID?: string;
   loadBreakdown?: typeof loadDomainMetricOrganizationBreakdown;
@@ -18,6 +20,8 @@ type Props = {
 
 export function OrganizationRiskSummary({
   bundle,
+  embedded = false,
+  action,
   organizationScopeID,
   loadBreakdown = loadDomainMetricOrganizationBreakdown,
   onOpenScope,
@@ -62,8 +66,16 @@ export function OrganizationRiskSummary({
     return () => controller.abort();
   }, [bundle, loadBreakdown, metric, organizationScopeID]);
 
-  const displayItems = useMemo(() => compactBuckets(value?.items ?? []), [value?.items]);
+  // A new selection renders before the effect clears the previous breakdown.
+  const currentValue = bundle && metric && value
+    && value.source_id === bundle.source_id
+    && value.metric_id === metric.id
+    && value.definition_revision === metric.definition_revision
+    && value.count === metric.value
+    && (value.scope_id ?? "") === (organizationScopeID ?? "") ? value : null;
+  const displayItems = useMemo(() => compactBuckets(currentValue?.items ?? []), [currentValue?.items]);
   const coverageComplete = metric?.freshness === "CURRENT"
+    && metric.population > 0
     && metric.completeness === "COMPLETE"
     && (metric.excluded ?? 0) === 0
     && (metric.unknown ?? 0) === 0;
@@ -71,30 +83,32 @@ export function OrganizationRiskSummary({
     id: item.key,
     label: item.label,
     value: item.value,
-    meta: bucketMeta(item),
+    meta: item.kind === "ORGANIZATION_SCOPE" && !onOpenScope ? undefined : bucketMeta(item),
     actionLabel: item.scope_id ? `Open ${item.label}` : undefined,
     isDisabled: !item.scope_id,
-  })), [displayItems]);
+  })), [displayItems, onOpenScope]);
 
-  return <section className="organization-risk-summary" aria-labelledby="organization-risk-summary-heading">
+  return <section className="organization-risk-summary" data-embedded={embedded || undefined} aria-labelledby="organization-risk-summary-heading">
     <div className="section-header">
       <div>
         <h2 id="organization-risk-summary-heading">Risk concentration</h2>
         <p>Outside-appetite risks by area.</p>
       </div>
+      {action}
     </div>
 
     {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading risk concentration…</p>}
     {state === "unavailable" && <Notice tone="warning">Risk concentration is unavailable for this scope.</Notice>}
-    {state === "live" && value?.count === 0 && <EmptyState compact
+    {state === "live" && currentValue?.count === 0 && <EmptyState compact
       population={coverageComplete ? "No risks outside appetite" : "No identified appetite breaches"}
       title={coverageComplete ? "No risks outside appetite" : "No identified appetite breaches"}
       description={coverageComplete
         ? "No current risks exceed approved appetite."
         : "Risk coverage is incomplete; some assessments may be missing."}
     />}
-    {state === "live" && value && value.count > 0 && <RankedBarList
+    {state === "live" && currentValue && currentValue.count > 0 && <RankedBarList
       ariaLabel="Outside-appetite risks by organization area"
+      layout={embedded ? "inline" : "stacked"}
       items={rankedItems}
       valueLabel={(count) => `${count}`}
       onAction={onOpenScope ? (item) => {

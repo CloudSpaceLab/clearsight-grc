@@ -129,7 +129,7 @@ button.cs-metric-card {
 .cs-metric-card__heading {
   display: grid;
   min-width: 0;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: var(--cs-metric-card-heading-columns);
   align-items: start;
   gap: var(--cs-primitive-space-2);
 }
@@ -140,9 +140,9 @@ button.cs-metric-card {
   color: var(--cs-text-muted);
   font-size: var(--cs-font-size-caption);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--cs-metric-card-label-spacing);
   line-height: var(--cs-leading-body);
-  text-transform: uppercase;
+  text-transform: var(--cs-metric-card-label-transform);
 }
 
 .cs-metric-card__quality {
@@ -293,7 +293,7 @@ button.cs-ranked-bars__row[data-focus-visible] {
   white-space: nowrap;
 }
 
-.cs-ranked-bars__heading strong {
+.cs-ranked-bars__value {
   flex: none;
   font-variant-numeric: tabular-nums;
 }
@@ -318,6 +318,17 @@ button.cs-ranked-bars__row[data-focus-visible] {
   color: var(--cs-text-muted);
   font-size: var(--cs-font-size-caption);
 }
+
+.cs-ranked-bars[data-layout="inline"] { gap: 0; }
+
+.cs-ranked-bars[data-layout="inline"] .cs-ranked-bars__row {
+  grid-template-columns: minmax(90px, .9fr) minmax(36px, 1fr) minmax(24px, max-content);
+  align-items: center;
+  min-block-size: var(--cs-target-min);
+}
+
+.cs-ranked-bars[data-layout="inline"] .cs-ranked-bars__value { justify-self: end; }
+.cs-ranked-bars[data-layout="inline"] .cs-ranked-bars__row > small { grid-column: 1 / -1; }
 
 @media (prefers-reduced-motion: reduce) {
   .cs-ranked-bars__row {

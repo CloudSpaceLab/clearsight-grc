@@ -15,6 +15,7 @@ import {
   MetricCard,
   Notice,
   PopoverDialog,
+  RankedBarList,
   ScopeBar,
   SearchField,
   SelectableRecord,
@@ -63,6 +64,7 @@ export function UIComponentGallery() {
   const [selectedRequest, setSelectedRequest] = useState("request-1");
   const [openedRequest, setOpenedRequest] = useState<SampleRow>();
   const [requestSort, setRequestSort] = useState<"ascending" | "descending">("ascending");
+  const [openedSampleArea, setOpenedSampleArea] = useState<string>();
 
   return <main className="ui-gallery">
     <header className="ui-gallery__header">
@@ -125,6 +127,13 @@ export function UIComponentGallery() {
     </GalleryGroup>
 
     <GalleryGroup title="Data">
+      <Contract family="RankedBarList" job="Compares named quantities with optional authorized row actions." keyboard="Enter or Space activates an actionable row; static rows do not enter the tab order." prohibited="Do not remove labels or replace unavailable quantities with reassuring values.">
+        <div className="ui-gallery__grid">
+          <RankedBarList ariaLabel="Sample stacked area quantities" items={[{ id: "technology", label: "Sample Technology", value: 3 }, { id: "operations", label: "Sample Operations", value: 2, meta: "Sample recorded population" }]}/>
+          <RankedBarList ariaLabel="Sample inline area quantities" layout="inline" items={[{ id: "technology", label: "Sample Technology", value: 3 }, { id: "unattributed", label: "Sample unattributed", value: 1, meta: "Sample area unavailable", isDisabled: true }]} onAction={(item) => setOpenedSampleArea(item.label)}/>
+        </div>
+        {openedSampleArea && <Notice tone="info">Opened {openedSampleArea} in this sample.</Notice>}
+      </Contract>
       <Contract family="DataTable" job="Orders comparable records by a named column." keyboard="Enter or Space changes the order; the active header announces its direction." prohibited="Do not imply client-only sorting of a server-paginated population."><DataTable ariaLabel="Sample sorted requests" rows={[...sampleRows].sort((a, b) => (requestSort === "ascending" ? 1 : -1) * a.request.localeCompare(b.request))} rowKey={(row) => row.id} rowName={(row) => row.request} columns={sampleColumns.map((column) => column.id === "request" ? { ...column, sortDirection: requestSort, onSort: () => setRequestSort((current) => current === "ascending" ? "descending" : "ascending") } : column)}/></Contract>
       <Contract family="FilterBar" job="Groups filters, result count and reset handling." keyboard="Tab follows the visible field order." prohibited="Do not compress fields below their usable width."><FilterBar label="Sample request filters" fields={<><TextField label="Sample owner" value="" onChange={() => undefined}/><SelectField label="Sample state" placeholder="All sample states" options={selections} onChange={() => undefined}/></>} resultCount={2} onClear={() => undefined}/></Contract>
       <Contract family="FilterChip" job="Names and removes one applied filter or reopens advanced logic." keyboard="Enter or Space runs its named action." prohibited="Do not use a chip for a lifecycle status."><FilterChip label="Status" value="Responses open" onRemove={() => undefined}/></Contract>

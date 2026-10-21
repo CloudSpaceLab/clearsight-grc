@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { LossPeriodBundle } from "../../metricApi";
 import { MetricTrend, Notice } from "../ui";
 import {
@@ -11,23 +11,26 @@ import {
 type LoadState = "loading" | "live" | "unavailable";
 
 type Props = {
+  embedded?: boolean;
+  action?: ReactNode;
   bundle: LossPeriodBundle | null;
   state: LoadState;
 };
 
-export function LossMovement({ bundle, state }: Props) {
+export function LossMovement({ bundle, state, embedded = false, action }: Props) {
   const points = useMemo(() => bundle ? lossMovementPoints(bundle) : [], [bundle]);
   const mode = bundle ? lossPresentationMode(bundle) : "events";
   const gapThresholdMs = bundle?.flow_resolution === "WEEK"
     ? 8 * 24 * 60 * 60 * 1000
     : 36 * 60 * 60 * 1000;
 
-  return <section className="loss-movement" aria-labelledby="loss-movement-heading">
+  return <section className="loss-movement" data-embedded={embedded || undefined} aria-labelledby="loss-movement-heading">
     <div className="section-header">
       <div>
-        <h2 id="loss-movement-heading">Loss trend</h2>
-        <p>{mode === "money" ? "Net Loss flow across the selected period." : "Loss events across the selected period."}</p>
+        <h2 id="loss-movement-heading">{embedded ? "Loss movement" : "Loss trend"}</h2>
+        <p>{mode === "money" ? "Net loss flow across the selected period." : "Loss events across the selected period."}</p>
       </div>
+      {action}
     </div>
 
     {bundle && <div className="risk-movement__summary" aria-live="polite">

@@ -12,6 +12,40 @@ const nativeAlternatives = {
 
 const normalize = (value) => value.replaceAll("\\", "/");
 const lineAt = (source, index) => source.slice(0, index).split("\n").length;
+const controlHeightToken = /^--cs-(?:button|field|tabs|select-item|filter-chip|scope-item)-height$/;
+const controlHeightValue = /^var\(--cs-(?:control-height(?:-comfortable|-compact)?|target-min|(?:button|field|tabs|select-item|filter-chip|scope-item)-height)\)$/;
+const controlSelector = /\.cs-(?:button|field|control|(?:search-)?field__control|tabs?__tab|select-field__(?:option|trigger)|filter-chip|scope-bar__item)(?![\w-])/i;
+const componentLayoutProperties = new Set([
+  "display", "position", "top", "right", "bottom", "left", "inset", "inset-inline", "inset-block",
+  "width", "min-width", "max-width", "height", "min-height", "max-height",
+  "inline-size", "min-inline-size", "max-inline-size", "block-size", "min-block-size", "max-block-size",
+  "grid-template-columns", "grid-template-rows", "grid-column", "grid-row", "grid-area", "grid-auto-flow",
+  "flex", "flex-basis", "flex-grow", "flex-shrink", "flex-direction", "flex-wrap",
+  "align-items", "align-content", "align-self", "justify-items", "justify-content", "justify-self",
+  "place-items", "place-content", "place-self", "gap", "row-gap", "column-gap",
+  "margin", "margin-inline", "margin-block", "margin-inline-start", "margin-inline-end", "margin-block-start", "margin-block-end",
+  "padding", "padding-inline", "padding-block", "padding-inline-start", "padding-inline-end", "padding-block-start", "padding-block-end",
+  "font-size", "font-weight", "line-height", "letter-spacing", "text-align", "white-space", "overflow-wrap", "word-break",
+  "overflow", "overflow-x", "overflow-y", "scrollbar-width", "vertical-align",
+]);
+
+function componentGeometryToken(property, componentTokens) {
+  return componentTokens.has(property)
+    && !/-(?:border|radius|shadow|focus|indicator|disabled|selected|hover|pressed|backdrop|transition|animation|opacity)(?:-|$)/.test(property)
+    && /-(?:padding(?:-inline|-block)?|gap|(?:min-|max-)?height|(?:min-|max-)?width|font-size|heading-size|heading-weight|value-size|icon-size|icon-inset|heading-columns|label-transform|label-spacing)$/.test(property);
+}
+
+function featureLayoutSelectorIssue(selector, sharedComponentsOnly = false) {
+  for (const part of selector.split(",")) {
+    const component = /\.cs-[\w-]+/.exec(part);
+    if (!component && sharedComponentsOnly) continue;
+    const scope = component ? part.slice(0, component.index) : part;
+    if (!/\.(?!cs-)[\w-]+/.test(scope)) return "shared component layout must be scoped by a feature class";
+    const structural = part.replace(/:(?:first|last|only)-(?:child|of-type)\b|:nth-(?:last-)?(?:child|of-type)\([^)]*\)/g, "");
+    if (/[:\[]/.test(structural)) return "shared component focus, interaction and state selectors belong in the component stylesheet";
+  }
+  return undefined;
+}
 
 export function validateTsxSource({ file, source, exceptions = [], scanNative = true, scanAriaImport = true }) {
   const diagnostics = [];
@@ -42,28 +76,45 @@ export function validateTsxSource({ file, source, exceptions = [], scanNative = 
   return diagnostics;
 }
 
-export function validateCssSource({ file, source }) {
+export function validateCssSource({ file, source, componentTokens = new Set() }) {
   const diagnostics = [];
   const normalizedFile = normalize(file);
+  const componentOwner = normalizedFile.startsWith("src/design-system/components/");
+  // Comments are not selectors/declarations; retain their line offsets in diagnostics.
+  const css = source.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "));
   const blocks = /([^{}]+)\{([^{}]*)\}/g;
-  for (const block of source.matchAll(blocks)) {
+  for (const block of css.matchAll(blocks)) {
     const selector = block[1].trim();
     const body = block[2];
     const blockIndex = block.index ?? 0;
-    if (/\.(?!cs-)[\w-]+/.test(selector) && /\.cs-[\w-]+/.test(selector)) {
-      diagnostics.push(`${normalizedFile}:${lineAt(source, blockIndex)} feature selectors must not reach into .cs-* component internals`);
-    }
+    const sharedLayout = !componentOwner && /\.cs-[\w-]+/.test(selector);
+    const sharedSelectorIssue = sharedLayout ? featureLayoutSelectorIssue(selector, true) : undefined;
+    if (sharedSelectorIssue) diagnostics.push(`${normalizedFile}:${lineAt(source, blockIndex)} ${sharedSelectorIssue}`);
     for (const declaration of body.matchAll(/([\w-]+)\s*:\s*([^;]+);?/g)) {
       const property = declaration[1].toLowerCase();
       const value = declaration[2].trim();
       const at = blockIndex + selector.length + 1 + (declaration.index ?? 0);
       const diagnostic = (message) => diagnostics.push(`${normalizedFile}:${lineAt(source, at)} ${message}`);
+      if (!componentOwner && property.startsWith("--cs-")) {
+        if (!componentGeometryToken(property, componentTokens)) diagnostic(`${property} is not an existing component geometry token; palette, focus and state tokens belong in the shared layer`);
+        const issue = featureLayoutSelectorIssue(selector);
+        if (issue && issue !== sharedSelectorIssue) diagnostic(issue);
+        if (controlHeightToken.test(property) && !controlHeightValue.test(value)) diagnostic(`${property} must use a control-height token`);
+      } else if (sharedLayout && !componentLayoutProperties.has(property)) {
+        diagnostic(`${property} is owned by the shared component; feature selectors may configure layout only`);
+      }
+      if (sharedLayout || (!componentOwner && property.startsWith("--cs-"))) {
+        if (/!important/i.test(value)) diagnostic("shared component layout must not override the cascade with !important");
+        if (property === "display" && /^(?:none|contents)$/i.test(value)) diagnostic("feature layout must not hide or remove the shared component's semantic box");
+        if (/^overflow(?:-[xy])?$/.test(property) && /\b(?:hidden|clip)\b/.test(value)) diagnostic("shared component layout must preserve content and focus visibility");
+      }
       if ((property === "color" || property.includes("background") || property.includes("border-color") || property === "fill" || property === "stroke") && /#[\da-f]{3,8}\b|(?:rgb|hsl)a?\(/i.test(value)) diagnostic(`${property} must use a design token`);
       if (property.includes("border-radius") && !tokenOrZero(value)) diagnostic(`${property} must use a radius token`);
       if (property.includes("box-shadow") && !tokenOrZero(value) && value !== "none") diagnostic(`${property} must use a shadow token`);
       if (property === "z-index" && !/^var\(--cs-[^)]+\)$/.test(value) && value !== "auto") diagnostic("z-index must use a z-index token");
       if ((property.includes("transition") || property.includes("animation")) && /\b\d*\.?\d+(?:ms|s)\b/.test(value)) diagnostic(`${property} must use a duration token`);
-      if (/^(?:height|min-height|block-size|min-block-size)$/.test(property) && /\b\d+(?:\.\d+)?px\b/.test(value) && /\.cs-(?:button|field|control|tabs?__tab|select-field__option)\b/i.test(selector)) diagnostic(`${property} must use a control-height token`);
+      if (/^(?:height|min-height|block-size|min-block-size)$/.test(property) && controlSelector.test(selector)
+        && (componentOwner ? /\b\d+(?:\.\d+)?px\b/.test(value) : !controlHeightValue.test(value))) diagnostic(`${property} must use a control-height token`);
     }
   }
   return diagnostics;
@@ -86,6 +137,8 @@ async function sourceFiles(directory) {
 
 export async function validateProject(root) {
   const manifest = JSON.parse(await readFile(path.join(root, "ui-contract-migrations.json"), "utf8"));
+  const componentTokenSource = await readFile(path.join(root, "src/design-system/tokens/components.css"), "utf8");
+  const componentTokens = new Set([...componentTokenSource.matchAll(/(--cs-[\w-]+)\s*:/g)].map((match) => match[1]));
   const diagnostics = [];
   const exceptions = manifest.nativeControlExceptions ?? [];
   for (const file of manifest.migratedTsx) {
@@ -96,7 +149,7 @@ export async function validateProject(root) {
     const source = await readFile(absolute, "utf8");
     if (source.includes("react-aria-components")) diagnostics.push(...validateTsxSource({ file, source, exceptions, scanNative: false }));
   }
-  for (const file of manifest.migratedCss) diagnostics.push(...validateCssSource({ file, source: await readFile(path.join(root, file), "utf8") }));
+  for (const file of manifest.migratedCss) diagnostics.push(...validateCssSource({ file, source: await readFile(path.join(root, file), "utf8"), componentTokens }));
 
   const [barrel, gallery, design] = await Promise.all([
     readFile(path.join(root, "src/components/ui/index.ts"), "utf8"),
