@@ -441,7 +441,7 @@ async function capturePage(capture) {
       const pageHeading = library.getByRole("heading", { name: "Framework Library", exact: true, level: 1 });
       const pageHeader = library.locator(".cs-framework-library__page-heading");
       const filters = library.getByRole("region", { name: "Framework filters" });
-      const rights = library.getByLabel("Content rights");
+      const rights = library.locator(".cs-filter-bar .cs-select-field__trigger").first();
       const listHeading = library.getByRole("heading", { name: "Reference editions" });
       await Promise.all([pageHeading.waitFor({ state: "visible" }),
         pageHeader.waitFor({ state: "visible" }),
