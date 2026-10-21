@@ -1,0 +1,139 @@
+{
+  "generatedAt": "2026-10-21T17:20:50.359Z",
+  "scope": "Reports Explore and Builder only; full site workflow and whole-screen acceptance are not assessed.",
+  "captureCount": 38,
+  "captureFailure": null,
+  "failures": [],
+  "check": {
+    "name": "Reports Explore and Builder source layout",
+    "status": "PASS",
+    "detail": "36/36 paired-layout, state and real-workflow captures; whole-screen acceptance not assessed"
+  },
+  "sourceReference": {
+    "originalFiles": [
+      {
+        "path": "clearsight-reports-insights-designs/reports-workspace-preview.html",
+        "bytes": 96173,
+        "sha256": "97f9d04092fdad07e5081820ad913295dc17d8344a693bd229c52d521c5b8895"
+      },
+      {
+        "path": "clearsight-reports-insights-designs/reports-workspace.html",
+        "bytes": 31526,
+        "sha256": "de2e5fc62e7662127395bf5cdcb2978cf90cafccf0d0519f8d780008e6e32c7e"
+      },
+      {
+        "path": "clearsight-reports-insights-designs/prototype-shared.css",
+        "bytes": 15874,
+        "sha256": "5f6ffa5a8fc3c1c4fffee1848326f309cae02f65b154bd7eeee2a21aa4e2f3f9"
+      },
+      {
+        "path": "clearsight-reports-insights-designs/reports-workspace.css",
+        "bytes": 29139,
+        "sha256": "15bad94b38866fc32cf2d464360ebf769c575c3407f058c0859745fb6a470de7"
+      },
+      {
+        "path": "clearsight-reports-insights-designs/reports-workspace.js",
+        "bytes": 19754,
+        "sha256": "10e7d118dfac2fcd9f00daf05fe36751e6a960b00a8e263b53ed7726e7f95cea"
+      },
+      {
+        "path": "clearsight-reports-insights-designs/reports-workspace-design-notes.md",
+        "bytes": 4335,
+        "sha256": "1ac00ba1e97ef6f574ae24f4a974810fbbe94f15a48c9644b668ba18b37c47a5"
+      }
+    ],
+    "sourceArchiveSHA256": "65dcc0e3f26e9d41e38efd1ae1d571f5db0f0582a2d561f8c942b25817a5f6e5",
+    "sourceViewportCount": 10,
+    "runtimeThemePairCount": 20,
+    "imageHashesVerified": true,
+    "prototypeErrors": 0,
+    "conclusion": "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED"
+  },
+  "accessibility": {
+    "scenarios": 12,
+    "pass": 12,
+    "violations": 0,
+    "undersizedRequiredControls": 0,
+    "unresolvedAxeReasons": [
+      "bgGradient",
+      "nonBmp"
+    ],
+    "timing": "Receipt follows contrast and member-sheet fixes; final tab-reveal-only correction is separately covered by final capture geometry and shared Tabs tests."
+  },
+  "artifactHashes": [
+    {
+      "path": "manifest.json",
+      "bytes": 201620,
+      "sha256": "834b50f9969376e6874cd07bb982c69f71dc0b0ed0024b8838b20e0dac18bd20"
+    },
+    {
+      "path": "accessibility.json",
+      "bytes": 521073,
+      "sha256": "6b7e5cb67b5e2163ac6a80506371093f4eb1b6376a4f9e375f87c60d4751fec3"
+    },
+    {
+      "path": "approved-reference/manifest.json",
+      "bytes": 54167,
+      "sha256": "84ef6183dff0368040a43ccd9763084c365cb20d502f10f13f6e4ff97f15bdaf"
+    }
+  ],
+  "limitations": [
+    "Synthetic command fixtures do not establish production backend authorization or successful generation.",
+    "Prototype values are not runtime data.",
+    "Whole-screen acceptance remains unassessed.",
+    "Gradient contrast readings remain for manual review."
+  ],
+  "implementationRevision": "0ea642b01afd96213827605433d6a00727c8bfab",
+  "reviewer": "ChatGPT /root — AI visual and interaction-evidence review",
+  "independentChecks": [
+    "ChatGPT /root/layout_audit — source, geometry, interactions and artifact hashes",
+    "ChatGPT /root/ci_review — lifecycle, race regressions and code audit"
+  ],
+  "visualReview": {
+    "date": "2026-10-21",
+    "result": "PARTIAL_V2_LAYOUT_ADAPTATION_VERIFIED",
+    "wholeScreenAcceptance": "UNASSESSED_0_OF_19",
+    "runtimeFrames": [
+      "222-report-explore-light-1440x900.png",
+      "222-report-explore-light-1280x800.png",
+      "222-report-explore-light-1024x768.png",
+      "222-report-explore-light-768x900.png",
+      "222-report-explore-light-390x844.png",
+      "222-report-explore-dark-1440x900.png",
+      "222-report-explore-dark-1280x800.png",
+      "222-report-explore-dark-1024x768.png",
+      "222-report-explore-dark-768x900.png",
+      "222-report-explore-dark-390x844.png",
+      "223-report-builder-light-1440x900.png",
+      "223-report-builder-light-1280x800.png",
+      "223-report-builder-light-1024x768.png",
+      "223-report-builder-light-768x900.png",
+      "223-report-builder-light-390x844.png",
+      "223-report-builder-dark-1440x900.png",
+      "223-report-builder-dark-1280x800.png",
+      "223-report-builder-dark-1024x768.png",
+      "223-report-builder-dark-768x900.png",
+      "223-report-builder-dark-390x844.png"
+    ],
+    "sourceFrames": [
+      "approved-reports-explore-1440x900.png",
+      "approved-reports-explore-1280x800.png",
+      "approved-reports-explore-1024x768.png",
+      "approved-reports-explore-768x900.png",
+      "approved-reports-explore-390x844.png",
+      "approved-reports-builder-1440x900.png",
+      "approved-reports-builder-1280x800.png",
+      "approved-reports-builder-1024x768.png",
+      "approved-reports-builder-768x900.png",
+      "approved-reports-builder-390x844.png"
+    ],
+    "baselineArtifactID": 12358294584,
+    "baselineZIPsha256": "92549447578e3900c23ba9ff425f0f05a16e9ec51d8410dc462e20c023a54043",
+    "limitations": [
+      "Local Chromium153 differs from the pinned CI Chromium140 runtime; final-head CI artifact remains a separate PR gate.",
+      "Scoped automated accessibility preceded the final tab-reveal-only change; the latter passed final browser geometry and shared Tabs tests.",
+      "Existing gradient-backed header/tab text and decorative select chevrons retain axe incomplete readings.",
+      "Synthetic commands do not establish actor authority, hosted generation or source-to-report reconciliation."
+    ]
+  }
+}

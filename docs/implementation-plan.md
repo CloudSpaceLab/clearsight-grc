@@ -1,5 +1,11 @@
 # ClearSight implementation ledger
 
+## 21 October Reports Explore and Builder — V2 layout integration
+
+The user authorized the next complete layout tranche and explicitly required matching menus. Continue from #578 (Overview/library) and #579 (shared navigation), replacing Explore's dashboard embed with a Data rail, selected analysis and exact breakdown, and replacing the saved-setup table/form with the source setup/paper/output composition. Build report becomes a contextual local tab entered through New report, with drafts and pending operations retained. Existing definition governance, authorized metric reads and generated-report commands remain the owners.
+
+The [decision and evidence record](design/decisions/2026-10-21-reports-explore-builder-v2.md) pins the original HTML hash, responsive arrangements, API limitations and required same-screen proof. The implementation checkpoint `0ea642b01afd96213827605433d6a00727c8bfab` passed 38 scoped captures, 20 layout/theme frames, ten original pairs and 12 accessibility cases. Final-head CI and retained-artifact review remain PR gates. No merge or deployment is part of this tranche; whole-screen acceptance remains **0/19** until the operational and report-reconciliation gates are separately satisfied.
+
 ## 10 September source-record correction
 
 The user authorized a source-faithful demo correction after the generic vendor questionnaire and request-count metrics proved insufficient. [Decision and focused acceptance](design/2026-09-10-source-register-correction.md): actual IT/vendor/Ops captures, linked issues/actions, real named demo ownership, reversible generic-sample cleanup and findings-based vendor metrics. Source manifests remain private operator inputs because this repository is public; [installation contract](engineering/source-record-demo-installation.md).

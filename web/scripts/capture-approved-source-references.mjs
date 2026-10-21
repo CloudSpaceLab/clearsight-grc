@@ -60,6 +60,18 @@ const references = [
       "390x844": "141b-report-library-light-mobile-390x844.png",
     },
   },
+  ...["explore", "builder"].map((view) => ({
+    id: `reports-${view}`,
+    source: "clearsight-reports-insights-designs/reports-workspace-preview.html",
+    sourceTab: view,
+    ...(view === "builder" ? { sourceEntry: "#new-report" } : {}),
+    runtime: Object.fromEntries([
+      "1440x900", "1280x800", "1024x768", "768x900", "390x844",
+    ].map((size) => [size, `${view === "explore" ? "222" : "223"}-report-${view}-light-${size}.png`])),
+    runtimeDark: Object.fromEntries([
+      "1440x900", "1280x800", "1024x768", "768x900", "390x844",
+    ].map((size) => [size, `${view === "explore" ? "222" : "223"}-report-${view}-dark-${size}.png`])),
+  })),
   { id: "work-approvals", source: "clearsight-work-approvals-designs/work-approvals-preview.html", runtime: {} },
   { id: "controls-policies", source: "clearsight-controls-policies-designs/controls-policies-preview.html", runtime: {} },
   { id: "enterprise-setup", source: "clearsight-enterprise-setup-designs/enterprise-setup-preview.html", runtime: {} },
@@ -91,6 +103,8 @@ const runtimeManifest = await readFile(path.join(outputDir, "..", "manifest.json
 const runtimeByName = new Map((runtimeManifest?.captures ?? []).map((capture) => [`${capture.name}.png`, capture]));
 const requestedReferences = process.env.UI_EVIDENCE_SCOPE === "reports"
   ? references.filter((reference) => reference.id.startsWith("reports-"))
+  : process.env.UI_EVIDENCE_SCOPE === "report-design"
+    ? references.filter((reference) => ["reports-explore", "reports-builder"].includes(reference.id))
   : process.env.UI_EVIDENCE_SCOPE === "navigation"
     ? references.filter((reference) => reference.id === "reports-insights") : references;
 const verified = await Promise.all(requestedReferences.map(async (reference) => {
@@ -127,9 +141,12 @@ try {
         page.on("pageerror", (error) => errors.push(error.message));
         await page.goto(pathToFileURL(reference.absolutePath).href, { waitUntil: "load" });
         await page.evaluate(() => document.fonts?.ready);
+        // Build report is contextual: the original hides its trigger until
+        // the real New report action opens the designer.
+        if (reference.sourceEntry) await page.locator(reference.sourceEntry).click();
         if (reference.sourceTab) {
           const tab = page.locator(`[role="tab"][data-tab="${reference.sourceTab}"]`);
-          await tab.click();
+          if (!reference.sourceEntry) await tab.click();
           const panelID = await tab.getAttribute("aria-controls");
           await page.locator(`[id="${panelID}"]`).waitFor({ state: "visible" });
           if (await tab.getAttribute("aria-selected") !== "true") throw new Error(`Source tab did not activate: ${reference.id}/${reference.sourceTab}`);
@@ -169,6 +186,41 @@ try {
         if (!presentation.heading) throw new Error(`Source screen has no h1: ${reference.source}`);
         const runtimeCapture = runtimeByName.get(reference.runtime[key]);
         const runtimeNavigation = runtimeCapture?.navigation;
+        const reportsLayout = ["reports-explore", "reports-builder"].includes(reference.id)
+          ? await measureReportsSourceLayout(page, reference.sourceTab, viewport) : null;
+        let layoutComparison = null;
+        if (reportsLayout && runtimeManifest) {
+          const runtimePairs = [];
+          for (const runtimeName of [reference.runtime[key], reference.runtimeDark?.[key]].filter(Boolean)) {
+            const capture = runtimeByName.get(runtimeName);
+            const actual = capture?.reportsLayout;
+            if (!actual || actual.kind !== reference.sourceTab
+                || capture.viewport?.width !== viewport.width || capture.viewport?.height !== viewport.height
+                || actual.placement !== reportsLayout.placement
+                || actual.localTabs?.join("|") !== reportsLayout.localTabs.join("|")
+                || actual.selectedTab !== reportsLayout.selectedTab
+                || (actual.kind === "builder" && actual.controlsOrder !== reportsLayout.controlsOrder)
+                || actual.firstUsefulContentVisible !== true
+                || (actual.kind === "explore" && viewport.width > 700 && Math.abs(actual.filterWidth - reportsLayout.filters.width) > 2)
+                || (actual.kind === "builder" && viewport.width > 900 && Math.abs(actual.setupWidth - reportsLayout.setup.width) > 2)) {
+              throw new Error(`${reference.id}/${key}/${capture?.theme ?? "missing"}: runtime local menu or replacement layout differs from the measured original`);
+            }
+            const runtimeBytes = await readFile(path.join(outputDir, "..", runtimeName));
+            runtimePairs.push({ runtime_capture: runtimeName, runtime_theme: capture.theme,
+              runtime_image_sha256: digest(runtimeBytes), runtime_image_bytes: runtimeBytes.length,
+              localTabsMatch: true, selectedTabMatches: true, replacementLayoutMatches: true,
+              ...(actual.kind === "builder" ? { controlsOrderMatches: true, controlsOrder: actual.controlsOrder } : {}),
+              runtimePlacement: actual.placement, runtimeFirstUsefulContentVisible: actual.firstUsefulContentVisible });
+          }
+          layoutComparison = { runtime_capture: reference.runtime[key], runtime_theme: runtimeCapture.theme, runtime_pairs: runtimePairs,
+            localTabsMatch: true, selectedTabMatches: true, replacementLayoutMatches: true,
+            ...(reportsLayout.kind === "builder" ? { controlsOrderMatches: true, controlsOrder: reportsLayout.controlsOrder } : {}),
+            sourcePlacement: reportsLayout.placement, runtimePlacement: runtimeCapture.reportsLayout.placement,
+            sourceFirstUsefulContentVisible: reportsLayout.firstUsefulContentVisible,
+            runtimeFirstUsefulContentVisible: runtimeCapture.reportsLayout.firstUsefulContentVisible,
+            dataComparison: "PROTOTYPE_VALUES_NOT_RUNTIME_DATA",
+            conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
+        }
         let navigationComparison = null;
         if (reference.id.startsWith("reports-")) {
           const sourceNavigation = presentation.navigation;
@@ -202,16 +254,21 @@ try {
         const image = `approved-${reference.id}-${key}.png`;
         await page.mouse.move(0, 0);
         await page.screenshot({ path: path.join(outputDir, image), fullPage: false, animations: "disabled" });
+        const imageBytes = await readFile(path.join(outputDir, image));
         captures.push({
           id: reference.id,
           viewport,
           source: reference.source,
           source_tab: reference.sourceTab ?? null,
+          ...(reference.sourceEntry ? { source_entry: reference.sourceEntry } : {}),
           source_sha256: reference.sha256,
           image,
+          image_sha256: digest(imageBytes), image_bytes: imageBytes.length,
           runtime_capture: reference.runtime[key] ?? null,
+          ...(reference.runtimeDark ? { runtime_dark_capture: reference.runtimeDark[key] } : {}),
           ...presentation,
           navigation_comparison: navigationComparison,
+          ...(reportsLayout ? { reports_layout: reportsLayout, layout_comparison: layoutComparison } : {}),
           prototype_errors: errors,
           visual_parity: "NOT_REVIEWED",
         });
@@ -238,11 +295,12 @@ const lines = [
   "Original HTML references use their approved light theme; paired dark runtime images support layout comparisons only.",
   "Menu metadata records each original rail and item order without changing the source. Some originals use a 55px phone rail; the shared runtime uses 56px to preserve 44px targets. Reports already uses 56px.",
   "Reports menu comparisons retain Work & Approvals as a direct runtime destination and permission-gate Settings. Matching structure does not establish whole-screen visual acceptance.",
+  "Explore and Build report activate their actual source views. Build report enters through New report because its local tab is contextual. Measured layout comparisons cover the controls/chart/table or setup/paper/output replacement, not prototype values or unsupported report capabilities.",
   "",
   "| Screen | Viewport | Approved screenshot | Runtime screenshot |",
   "| --- | --- | --- | --- |",
   ...captures.map((capture) =>
-    `| ${capture.id} | ${capture.viewport.width}×${capture.viewport.height} | ${capture.image} | ${capture.runtime_capture ?? "No matching journey captured"} |`),
+    `| ${capture.id} | ${capture.viewport.width}×${capture.viewport.height} | ${capture.image} | ${[capture.runtime_capture, capture.runtime_dark_capture].filter(Boolean).join("<br>") || "No matching journey captured"} |`),
   "",
   "No standalone Control Tower HTML is indexed in the source archive; verify its missing reference before visual sign-off.",
   "Review navigation, hierarchy, spacing, typography, panels, content density, interaction states, and responsive behavior manually.",
@@ -251,3 +309,56 @@ const lines = [
 ];
 await writeFile(path.join(outputDir, "README.md"), lines.join("\n"));
 process.stdout.write(`Captured ${captures.length} approved source viewports with verified checksums. No parity conclusion.\n`);
+
+async function measureReportsSourceLayout(page, kind, viewport) {
+  const layout = await page.evaluate((kind) => {
+    const visible = (node) => Boolean(node?.getClientRects().length && getComputedStyle(node).visibility !== "hidden");
+    const box = (node) => {
+      const rect = node?.getBoundingClientRect();
+      return rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height, right: rect.right, bottom: rect.bottom } : null;
+    };
+    const tabs = [...document.querySelectorAll('.report-tabs [role="tab"]')].filter(visible);
+    const label = (node) => [...node.childNodes].filter((child) => child.nodeType === Node.TEXT_NODE).map((child) => child.textContent).join("").trim();
+    const panel = document.querySelector(`#panel-${kind}`);
+    const common = { kind, localTabs: tabs.map(label), selectedTab: tabs.filter((node) => node.getAttribute("aria-selected") === "true").map(label).join("|"),
+      heading: box(panel.querySelector(".explore-toolbar")), panel: box(panel),
+      horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    if (kind === "explore") {
+      const firstRow = box(panel.querySelector(".explore-row"));
+      const filters = box(panel.querySelector(".explore-filters"));
+      return { ...common, filters, chart: box(panel.querySelector(".custom-chart")), table: box(panel.querySelector(".explore-table")),
+        firstRow, rowCount: panel.querySelectorAll(".explore-row").length,
+        firstUsefulContentVisible: Boolean(filters && filters.y < innerHeight && firstRow && (innerWidth <= 700 || firstRow.y < innerHeight)),
+        firstChartRowVisible: Boolean(firstRow && firstRow.y < innerHeight && firstRow.bottom > 0) };
+    }
+    const setup = box(panel.querySelector(".builder-settings"));
+    return { ...common, setup, paper: box(panel.querySelector(".builder-canvas")), output: box(panel.querySelector(".builder-delivery")),
+      sectionCount: [...panel.querySelectorAll(".paper-section")].filter(visible).length,
+      firstUsefulContentVisible: Boolean(setup && setup.y < innerHeight && setup.bottom > 0) };
+  }, kind);
+  const expectedTabs = ["Overview", "Explore", "Reports", "Schedules", ...(kind === "builder" ? ["Build report"] : [])];
+  if (layout.localTabs.join("|") !== expectedTabs.join("|") || layout.selectedTab !== (kind === "builder" ? "Build report" : "Explore")
+      || layout.horizontalOverflow > 1 || !layout.firstUsefulContentVisible) {
+    throw new Error(`Original Reports ${kind} has lost its expected local menu or bounded first content at ${viewport.width}px`);
+  }
+  if (kind === "explore") {
+    const { filters, chart, table } = layout;
+    const beside = viewport.width > 700;
+    if (!filters || !chart || !table || !layout.rowCount || chart.bottom > table.y + 1
+        || (beside && (Math.abs(filters.width - (viewport.width <= 900 ? 200 : 240)) > 1 || chart.x < filters.right || Math.abs(chart.y - filters.y) > 2))
+        || (!beside && chart.y < filters.bottom)) {
+      throw new Error(`Original Reports Explore did not render its Data rail → chart → exact breakdown layout at ${viewport.width}px`);
+    }
+    return { ...layout, placement: beside ? "beside" : "above" };
+  }
+  const { setup, paper, output } = layout;
+  const placement = viewport.width > 1380 ? "three-columns" : viewport.width > 900 ? "output-below" : viewport.width > 700 ? "controls-above" : "stacked";
+  if (!setup || !paper || !output || layout.sectionCount !== 4
+      || (placement === "three-columns" && (Math.abs(setup.width - 210) > 1 || paper.x < setup.right || output.x < paper.right || Math.abs(output.y - setup.y) > 2))
+      || (placement === "output-below" && (Math.abs(setup.width - 210) > 1 || paper.x < setup.right || output.y < Math.max(setup.bottom, paper.bottom)))
+      || (placement === "controls-above" && (setup.x < output.right || Math.abs(setup.y - output.y) > 2 || paper.y < Math.max(setup.bottom, output.bottom)))
+      || (placement === "stacked" && (paper.y < setup.bottom || output.y < paper.bottom))) {
+    throw new Error(`Original Reports Builder did not render ${placement} at ${viewport.width}px: ${JSON.stringify({ setup, paper, output })}`);
+  }
+  return { ...layout, placement, controlsOrder: placement === "controls-above" ? "output-setup" : "setup-output" };
+}
