@@ -71,3 +71,25 @@ The retained #579 baseline includes `140c-report-explore-light-1440x900.png`, `1
 | Accessibility receipt | `6b7e5cb67b5e2163ac6a80506371093f4eb1b6376a4f9e375f87c60d4751fec3` |
 
 **Result: partial V2 layout adaptation verified in this scope.** The local Chromium153 review is supplemented by the pinned CI Chromium140 artifact gate. Gradient-backed header/tab text and decorative select chevrons retain manual accessibility readings; automated PASS is not full accessibility conformance. Four-actor execution, backend authorization, hosted generated files and source-to-report reconciliation require their own retained evidence. Whole-screen acceptance remains **0/19**, and the production cutover block remains.
+
+
+## Post-review corrections — 21 October 2026
+
+Runtime follow-up: `c73cece84a90b0fd54fe1cb1e4885be3ca08ad2d`. Reviewer: **ChatGPT `/root`**, with `/root/ci_review` for lifecycle regression, `/root/reports_data_contract` for data and selection semantics, and `/root/layout_audit` for targeted browser evidence. The earlier scoped matrix remains a historical receipt at its recorded revision; its hashes have not been reassigned to this follow-up.
+
+The first PR head `ef697f1b3e8f5ae8ebcaea8f2d81a9345bbad243` failed one existing unmount-cleanup assertion in [CI39645557310](https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/39645557310) and the same component-validation step in [UI39645557122](https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/39645557122). Both checked synthetic merge `b96b6a98d98b4e4ba8f964b85b159fb74490a2e8`; the UI workflow stopped before browser capture. Tabs now cancels its owned animation frame on replacement and unmount, while a previous trigger's ref detach cannot cancel the newly selected trigger's reveal. The original failing assertion is unchanged and passes.
+
+The same review removed implementation commentary from the complete shared record-drill workflow. Explore now labels the backend's entire active-risk population as **risks in scope**, retaining separate unknown/excluded counts; it does not mislabel unknown assessments as assessed. Board brief search changes and failures clear the previous issue selection, and saving requires a live visible issue. A regression proves pending and failed searches cannot save the old hidden target, followed by successful explicit reselection and recovery.
+
+Focused results are **17/17** lifecycle/Tabs/gallery, **29/29** Builder/Reports workspace/copy, **26/26** Explore/copy, and **28/28** shared member/oversight/copy tests. The evidence build, correlated browser/manifest expectations and whitespace checks pass.
+
+All **six** member-sheet cases at 1440/768/390 in both themes and **two** phone Builder entry/return cases pass. `/root` inspected all eight retained PNGs. Corrected count and table labels are visible; source-bound counts, focus containment, Escape restoration, 44px targets, draft retention and contextual selected-tab visibility pass. Maximum horizontal overflow is 0px; phone Builder return leaves vertical page scroll at 0.
+
+Two tablet axe contrast readings remain incomplete because the count paragraph's full-width box overlaps the close-button box by 1px at the far right. The actual count text at x21–224.97/y65–79 intersects neither the heading (bottom53), close button (x704–748/y20–64), nor focus ring. Computed opaque-color contrast is **5.4467:1 light** and **6.6673:1 dark**. Manual screenshot and text-range review pass; these automated incompletes remain explicit and do not establish complete accessibility conformance. There are zero automated violations and zero undersized required controls in the six targeted member cases.
+
+| Follow-up receipt | SHA-256 |
+| --- | --- |
+| Member and phone Builder checks | `9e77901ccd9185d93b865276eaf10c91a5e3a34f53ea8005f9c0f732834cadf1` |
+| Tablet count geometry and contrast | `eebaa5bda128581b33ffa58f2839e7d69d1f5dc24f40db0a1db75d3b976c600e` |
+
+The inaccessible-record notice and Board brief failed-search recovery are unit-tested; this receipt does not claim browser actor/backend acceptance for them. Final-head full CI and its retained artifact remain PR gates. **Partial V2 integration, 0/19 whole screens accepted, and the production cutover block remain unchanged.**

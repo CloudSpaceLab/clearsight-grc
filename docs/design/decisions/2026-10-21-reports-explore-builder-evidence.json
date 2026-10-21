@@ -135,5 +135,151 @@
       "Existing gradient-backed header/tab text and decorative select chevrons retain axe incomplete readings.",
       "Synthetic commands do not establish actor authority, hosted generation or source-to-report reconciliation."
     ]
+  },
+  "postReviewCorrections": {
+    "implementationRevision": "c73cece84a90b0fd54fe1cb1e4885be3ca08ad2d",
+    "reviewer": "ChatGPT /root — AI visual and interaction-evidence review",
+    "independentChecks": [
+      "ChatGPT /root/ci_review — Tabs lifecycle regression",
+      "ChatGPT /root/reports_data_contract — population semantics and issue-selection audit",
+      "ChatGPT /root/layout_audit — targeted browser, accessibility and tablet manual review"
+    ],
+    "previousHeadFailure": {
+      "head": "ef697f1b3e8f5ae8ebcaea8f2d81a9345bbad243",
+      "merge": "b96b6a98d98b4e4ba8f964b85b159fb74490a2e8",
+      "ciRun": 39645557310,
+      "uiRun": 39645557122,
+      "test": "ExactTargetWorkspaces: no delayed target scrolling after dedicated Matter workspace unmount",
+      "result": "2021/2022 tests passed; one pending Tabs animation frame remained. UI stopped before browser capture."
+    },
+    "changes": [
+      "Cancel pending selected-tab reveal on replacement and unmount without allowing old ref detach to cancel the new selection.",
+      "Use business-facing record labels throughout the shared member drill and preserve count/access semantics.",
+      "Label the entire risk population as risks in scope, with unknown and excluded counts separate.",
+      "Clear a Board brief issue selection when its search changes or fails; save requires a live visible issue option."
+    ],
+    "focusedTests": [
+      {
+        "scope": "ExactTargetWorkspaces, Tabs, gallery",
+        "passed": 17
+      },
+      {
+        "scope": "ReportingPage, ReportsWorkspace, copy quality",
+        "passed": 29
+      },
+      {
+        "scope": "ReportsExplore, copy quality",
+        "passed": 26
+      },
+      {
+        "scope": "MetricMemberDrill, DomainPostureSummary, OversightWorkspace, copy quality",
+        "passed": 28
+      }
+    ],
+    "targetedBrowserReview": {
+      "memberCases": 6,
+      "memberPasses": 6,
+      "memberWidths": [
+        1440,
+        768,
+        390
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ],
+      "phoneBuilderEntryReturnCases": 2,
+      "phoneBuilderEntryReturnPasses": 2,
+      "automatedViolations": 0,
+      "undersizedRequiredControls": 0,
+      "maximumHorizontalOverflow": 0,
+      "selectedBuilderTabVisible": true,
+      "builderWindowScrollY": 0,
+      "draftAndKeyboardChecks": "PASS",
+      "allEightImagesInspectedByRoot": true,
+      "imageHashesVerified": true,
+      "images": [
+        {
+          "path": "reports-explore-members-light-1440.png",
+          "bytes": 192751,
+          "sha256": "e92decf8574fa0e30c89f2bb4067a0fb97c3787c58633b44bb0db0be40dcbede"
+        },
+        {
+          "path": "reports-explore-members-light-390.png",
+          "bytes": 51353,
+          "sha256": "271ae4b6ccfd6fe809d9d999cbb8fdc2c50360e78f9f3cdb8b39f97578f59c4c"
+        },
+        {
+          "path": "reports-explore-members-dark-1440.png",
+          "bytes": 148062,
+          "sha256": "b9f87642ad5ee5834c6720023fa161218a147f470629c3f51aac460cda8d5936"
+        },
+        {
+          "path": "reports-explore-members-dark-390.png",
+          "bytes": 52097,
+          "sha256": "fde23227db846bdc7d94ccf1ae22e3ae88326a07a7afb0e0489bb3efdd9a6541"
+        },
+        {
+          "path": "reports-explore-members-light-768.png",
+          "bytes": 45998,
+          "sha256": "3556bb6c4ac321c59138d26b03405f0a60b780806158bf7d63ab3ecf5da56c0e"
+        },
+        {
+          "path": "reports-explore-members-dark-768.png",
+          "bytes": 45813,
+          "sha256": "f8ee6fe30c5ff4de0377f7133a20f3cf217b3ea956be9ac5fa0a746aa1df735d"
+        },
+        {
+          "path": "reports-builder-return-light-390.png",
+          "bytes": 80921,
+          "sha256": "e5b02191e75f46fe4991d1eaaa811a89abd5d62761f9ab3ca2233b39faaa5391"
+        },
+        {
+          "path": "reports-builder-return-dark-390.png",
+          "bytes": 80144,
+          "sha256": "f150cde3ad47d5807126743ffc42553cb18df23c87461481ddb9f6528789cb86"
+        }
+      ]
+    },
+    "manualAccessibility": {
+      "tabletIncompleteCount": 2,
+      "reason": "axe contrast computation reports the full-width count paragraph overlapping another element; the actual text does not overlap any control or heading.",
+      "countTextBounds": {
+        "left": 21,
+        "right": 224.97,
+        "top": 65,
+        "bottom": 79
+      },
+      "headingBottom": 53,
+      "closeButtonBounds": {
+        "left": 704,
+        "right": 748,
+        "top": 20,
+        "bottom": 64
+      },
+      "opaqueColorContrast": {
+        "light": 5.4467,
+        "dark": 6.6673
+      },
+      "status": "Manual reading passed; automated incomplete retained, not claimed as complete accessibility conformance."
+    },
+    "artifactHashes": [
+      {
+        "path": "member-copy-review.json",
+        "bytes": 52301,
+        "sha256": "9e77901ccd9185d93b865276eaf10c91a5e3a34f53ea8005f9c0f732834cadf1"
+      },
+      {
+        "path": "tablet-count-review.json",
+        "bytes": 4162,
+        "sha256": "eebaa5bda128581b33ffa58f2839e7d69d1f5dc24f40db0a1db75d3b976c600e"
+      }
+    ],
+    "limitations": [
+      "The original 38-case matrix remains pinned to its earlier implementation checkpoint; full final-head CI capture is a separate PR gate.",
+      "Targeted browser review uses local Chromium153; pinned CI Chromium140 capture remains required.",
+      "The inaccessible-record notice and Board brief search failure recovery are unit-tested, not claimed as browser actor/backend acceptance.",
+      "Whole-screen acceptance remains 0/19; production cutover remains blocked."
+    ]
   }
 }
