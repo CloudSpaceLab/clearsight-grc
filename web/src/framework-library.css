@@ -64,6 +64,9 @@
 .cs-framework-library__view:disabled { opacity: .58; cursor: not-allowed; }
 .cs-framework-library .cs-filter-bar__fields {
   display: grid;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
   grid-template-columns: minmax(220px, 1.7fr) minmax(160px, .6fr) minmax(220px, 1fr);
   gap: var(--cs-space-group);
   align-items: end;
@@ -414,7 +417,26 @@
 @media (max-width: 767px) {
   .cs-framework-library__page-heading { display: grid; gap: var(--cs-space-group); padding-block: var(--cs-space-group); }
   .cs-framework-library__page-actions { justify-content: space-between; }
-  .cs-framework-library .cs-filter-bar__fields { grid-template-columns: minmax(0, 1fr); }
+  .cs-framework-library .cs-filter-bar { width: 100%; align-items: stretch; }
+  .cs-framework-library .cs-filter-bar__fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--cs-space-inline);
+  }
+  .cs-framework-library__views {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    overflow: visible;
+  }
+  .cs-framework-library__view {
+    min-width: 0;
+    padding-inline: 4px;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .cs-framework-library__results-head { margin-bottom: var(--cs-space-inline); }
   .cs-framework-library__catalog-label { display: none; }
   .cs-framework-library__list .cs-selectable-record { min-height: 90px; }
 }
