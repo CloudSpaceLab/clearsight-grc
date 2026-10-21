@@ -1,5 +1,6 @@
 import type { ReportDefinition, ReportDefinitionRevision, ReportFilterExpression, ReportFilterFieldDefinition, ReportRun } from "./reportingTypes";
 import { reportOverviewEvidence } from "./reportOverviewEvidence";
+import { createReportBuilderEvidence } from "./reportBuilderEvidence";
 
 const tenantID = "bank-demo";
 const legalEntityID = "bank-ng";
@@ -335,13 +336,17 @@ export function installReportingEvidence() {
   const boundedStopVariant = fixture === "report-run-failed";
   const matterWorkspaceVariant = fixture === "matter-workspace-complete";
   window.reportingEvidenceReads = [];
+  window.reportingEvidenceCommands = [];
+  const builder = createReportBuilderEvidence(fixture, { definitions: [...definitions, boardBriefDefinition], runs: [readyRun, failedRun] }, window.reportingEvidenceCommands);
   globalThis.fetch = async (input, init) => {
     const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const url = new URL(raw, window.location.origin);
     const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
-    if (method !== "GET") return previous(input, init);
     const path = url.pathname;
     const recordRead = () => window.reportingEvidenceReads?.push(`${path}${url.search}`);
+    const builderResponse = await builder?.(input, init);
+    if (builderResponse) { if (method === "GET") recordRead(); return builderResponse; }
+    if (method !== "GET") return previous(input, init);
     const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
     const overview = await reportOverviewEvidence(fixture, url, () => previous(input, init));
     if (overview) { recordRead(); return overview; }

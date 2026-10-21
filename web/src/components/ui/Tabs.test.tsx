@@ -17,6 +17,26 @@ function Harness() {
 }
 
 describe("Tabs", () => {
+  it("shows contextual destinations only while selected and retains their hidden draft", () => {
+    const contextual = [...items, { id: "EDITOR", label: "Edit report", isContextual: true }];
+    const child = vi.fn((key: string) => key === "EDITOR" ? <input aria-label="Report title" defaultValue=""/> : <p>{key}</p>);
+    const view = render(<Tabs retainVisitedPanels ariaLabel="Reports views" items={contextual} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{child}</Tabs>);
+    expect(screen.queryByRole("tab", { name: "Edit report" })).toBeNull();
+    expect(child).not.toHaveBeenCalledWith("EDITOR");
+    view.rerender(<Tabs retainVisitedPanels ariaLabel="Reports views" items={contextual} selectedKey="EDITOR" onSelectionChange={() => undefined}>{child}</Tabs>);
+    const editor = screen.getByRole("textbox", { name: "Report title" });
+    fireEvent.change(editor, { target: { value: "Quarterly report" } });
+    const tab = screen.getByRole("tab", { name: "Edit report", selected: true });
+    expect(screen.getByRole("tabpanel").getAttribute("aria-labelledby")).toBe(tab.id);
+    view.rerender(<Tabs retainVisitedPanels ariaLabel="Reports views" items={contextual} selectedKey="SENT" onSelectionChange={() => undefined}>{child}</Tabs>);
+    expect(screen.queryByRole("tab", { name: "Edit report" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Report title" })).toBeNull();
+    expect(editor.closest(".cs-tabs__panel")?.hasAttribute("inert")).toBe(true);
+    view.rerender(<Tabs retainVisitedPanels ariaLabel="Reports views" items={contextual} selectedKey="EDITOR" onSelectionChange={() => undefined}>{child}</Tabs>);
+    expect(screen.getByRole("textbox", { name: "Report title" })).toBe(editor);
+    expect((editor as HTMLInputElement).value).toBe("Quarterly report");
+  });
+
   it("lazily retains visited panels and hides inactive editors from accessibility and focus", () => {
     const child = vi.fn((key: string) => <input aria-label={`${key} draft`} defaultValue=""/>);
     const view = render(<Tabs retainVisitedPanels ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{child}</Tabs>);

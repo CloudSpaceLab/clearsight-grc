@@ -69,6 +69,7 @@ export function MetricMemberDrill({
     </p>
     <DataTable
       ariaLabel={`Exact ${label.toLowerCase()} snapshot members`}
+      responsiveTo="container"
       rows={page.items}
       rowKey={(item) => item.member_id}
       rowName={(item) => `${item.target_title}, ${recordTypeLabel(item.target_type)}`}

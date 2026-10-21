@@ -1,7 +1,7 @@
 import type { ReportDataset, ReportRun } from "../../reportingTypes";
 import type { StatusTone } from "../ui";
 
-export type ReportArea = "ALL" | "VENDORS" | "PROGRAMS" | "WORK";
+export type ReportArea = "ALL" | "VENDORS" | "PROGRAMS" | "WORK" | "PROCESSING";
 
 export function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
   switch (dataset) {
@@ -11,6 +11,7 @@ export function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
     case "WORK":
     case "MATTERS":
     case "MATTER_EXCEPTIONS": return "Work";
+    case "PROCESSING":
     case "PROCESSING_ACTIVITIES":
     case "PROCESSING_ACTIVITY_EXCEPTIONS": return "Processing activities";
     default: return "All reports";
@@ -18,6 +19,7 @@ export function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
 }
 
 export function reportBelongsToArea(dataset: ReportDataset, area: Exclude<ReportArea, "ALL">) {
+  if (area === "PROCESSING") return dataset === "PROCESSING_ACTIVITIES" || dataset === "PROCESSING_ACTIVITY_EXCEPTIONS";
   if (area === "WORK") return dataset === "MATTERS" || dataset === "MATTER_EXCEPTIONS" || dataset === "MATTER_BOARD_BRIEF";
   return dataset === area;
 }

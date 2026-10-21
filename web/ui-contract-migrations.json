@@ -57,7 +57,10 @@
     "src/components/reports/ReportsOverview.tsx",
     "src/components/VendorDueDiligence.tsx",
     "src/components/VendorWorkPanel.tsx",
-    "src/components/EmptyState.tsx"
+    "src/components/EmptyState.tsx",
+    "src/components/ReportingPage.tsx",
+    "src/components/reports/ReportsWorkspace.tsx",
+    "src/components/reports/ReportsExplore.tsx"
   ],
   "migratedCss": [
     "src/design-system/components/actions.css",
@@ -83,7 +86,10 @@
     "src/components/vendor-evidence-checklist.css",
     "src/oversight.css",
     "src/components/reports/reports-library.css",
-    "src/components/reports/reports-overview.css"
+    "src/components/reports/reports-overview.css",
+    "src/components/reports/report-builder.css",
+    "src/components/reports/reports-explore.css",
+    "src/components/reports/reports.css"
   ],
   "nativeControlExceptions": [
     {
@@ -229,7 +235,9 @@
     ],
     "Tabs": [
       "automatic-activation",
-      "wrapped-compact"
+      "wrapped-compact",
+      "contextual-destination",
+      "retain-visited-panels"
     ],
     "WorkspaceSwitcher": [
       "selected",
