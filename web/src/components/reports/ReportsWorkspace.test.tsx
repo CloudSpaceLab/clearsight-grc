@@ -167,7 +167,7 @@ describe("ReportsWorkspace", () => {
     expect(within(recent).getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
     expect(within(recent).getByRole("row", { name: /Program health/ })).toBeTruthy();
     expect(within(measures).getByLabelText(/Reports ready: 1/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Explore insights" }));
+    fireEvent.click(screen.getByRole("button", { name: "Explore analysis" }));
     const analysis = await screen.findByRole("region", { name: "Risk and loss analysis" });
     expect(analysis.textContent).toContain("2026-07-01 to 2026-09-28");
     expect(loadMetricBasis).toHaveBeenCalledWith(undefined, undefined);
@@ -187,7 +187,7 @@ describe("ReportsWorkspace", () => {
   });
 
   it("rejects metric bundles from a different verified legal entity", async () => {
-    loadMetricBasis.mockResolvedValueOnce({
+    loadMetricBasis.mockResolvedValue({
       scope_kind: "LEGAL_ENTITY", scope_id: "entity-other",
       reporting_period: { start_date: "2026-07-01", end_date: "2026-09-28" },
     });
@@ -198,7 +198,7 @@ describe("ReportsWorkspace", () => {
   });
 
   it("uses only the selected group scope and rejects a legal-entity substitute", async () => {
-    loadMetricBasis.mockResolvedValueOnce({
+    loadMetricBasis.mockResolvedValue({
       scope_kind: "LEGAL_ENTITY", scope_id: "entity-1",
       reporting_period: { start_date: "2026-07-01", end_date: "2026-09-28" },
     });
