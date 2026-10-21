@@ -820,7 +820,8 @@ describe("runtime navigation", () => {
     fireEvent.click(await within(primary).findByRole("link", { name: "Settings" }));
 
     expect(window.location.hash).toBe("#configure");
-    expect(await screen.findByRole("heading", { name: "Configuration" })).toBeTruthy();
+    // The real lazy workspace can need more than one second for its first module transform.
+    expect(await screen.findByRole("heading", { name: "Configuration" }, { timeout: 5000 })).toBeTruthy();
     expect(primaryLink("Settings").getAttribute("aria-current")).toBe("page");
   });
 

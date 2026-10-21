@@ -114,10 +114,12 @@
 .app-navigation__actor-name { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--cs-text-muted); }
 .app-navigation-sheet .cs-sheet__close { position: absolute; top: 0; right: 0; }
 .app-navigation-sheet .cs-sheet__content { display: flex; flex-direction: column; inline-size: 100%; block-size: 100dvh; }
+.app-navigation-sheet { --cs-navigation-min-height: var(--cs-target-min); }
+.app-navigation-sheet .app-navigation__workspaces { margin-block-start: 16px; }
 .app-navigation-sheet__heading { flex: 0 0 auto; padding-inline-end: 60px; }
 .app-navigation-sheet__heading h2 { margin: 0; font-size: var(--cs-primitive-font-size-22); }
 .app-navigation-sheet__heading p { margin: 4px 0 0; color: var(--cs-text-muted); font-size: 13px; }
-.app-navigation-sheet .app-navigation__items { gap: 4px; }
+.app-navigation-sheet .app-navigation__items { gap: 3px; }
 
 .app-shell > .sidebar .brand-mark {
   position: relative;
