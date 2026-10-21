@@ -128,6 +128,30 @@ describe("DataTable", () => {
     expect(document.activeElement).toBe(first);
   });
 
+  it("keeps nested disclosure and checkbox-label interaction separate from the row action", () => {
+    const select = vi.fn();
+    const open = vi.fn();
+    render(<DataTable ariaLabel="Vendor services" rows={[rows[0]!]} rowKey={(row) => row.id} rowName={(row) => row.title}
+      columns={[...columns, { id: "work", header: "Form work", accessibleText: () => "2 outstanding", render: () => <>
+        <details><summary>Form work</summary><span>2 outstanding</span></details>
+        <label><input type="checkbox"/>Select service</label>
+      </> }]}
+      onSelectionChange={select} onRowAction={open}/>);
+    const summary = screen.getByText("Form work", { selector: "summary" });
+    summary.focus();
+    fireEvent.click(summary);
+    fireEvent.doubleClick(summary);
+    fireEvent.keyDown(summary, { key: "Enter" });
+    expect(document.activeElement).toBe(summary);
+    const checkbox = screen.getByRole("checkbox", { name: "Select service" });
+    checkbox.focus();
+    fireEvent.click(checkbox.closest("label")!);
+    fireEvent.doubleClick(checkbox.closest("label")!);
+    expect(document.activeElement).toBe(checkbox);
+    expect(select).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+  });
+
   it("renders labelled cells and a complete accessible row name", () => {
     render(<DataTable ariaLabel="Sent-form distributions" rows={rows} rowKey={(row) => row.id} rowName={(row) => `${row.title}, ${row.status}, ${row.recipients} recipients`} columns={columns}/>);
     const row = screen.getByRole("row", { name: "Vendor annual review, Open, 3 recipients" });

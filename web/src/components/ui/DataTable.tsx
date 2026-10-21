@@ -99,5 +99,5 @@ export function DataTable<Row>({ ariaLabel, rows, rowKey, rowName, columns, sele
 }
 
 function isRowSurface(target: EventTarget) {
-  return target instanceof Element && !target.closest("button, a, input, select, textarea, [role=button], [contenteditable=true]");
+  return target instanceof Element && !target.closest("button, a, input, select, textarea, summary, label, [role=button], [contenteditable=true]");
 }
