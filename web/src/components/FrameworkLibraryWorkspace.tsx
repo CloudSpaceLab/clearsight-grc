@@ -147,12 +147,26 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
     </header>
 
     <FilterBar label="Framework filters"
-      onClear={search || rightsFilter !== "ALL" ? () => { setSearch(""); setRightsFilter("ALL"); } : undefined}
+      onClear={search || rightsFilter !== "ALL" || jurisdiction !== "GLOBAL" ? () => {
+        setSearch("");
+        setRightsFilter("ALL");
+        setSelectedID("");
+        setSheetOpen(false);
+        setJurisdiction("GLOBAL");
+        setJurisdictionDraft("GLOBAL");
+        setJurisdictionExpanded(false);
+        setJurisdictionError("");
+      } : undefined}
       fields={<>
         <SearchField label="Search loaded standards" placeholder="Search standards or publishers" value={search}
-          onChange={setSearch} isLoading={catalog.state === "loading"}/>
+          onChange={(value) => { setSearch(value); setSelectedID(""); setSheetOpen(false); }}
+          isLoading={catalog.state === "loading"}/>
         <SelectField label="Content rights" value={rightsFilter} placeholder="All content rights"
-          allowsEmpty={false} options={rightsOptions} onChange={(value) => setRightsFilter(value ?? "ALL")}/>
+          allowsEmpty={false} options={rightsOptions} onChange={(value) => {
+            setRightsFilter(value ?? "ALL");
+            setSelectedID("");
+            setSheetOpen(false);
+          }}/>
         {compact && <Button variant="secondary" size="compact" aria-expanded={jurisdictionExpanded}
           onPress={() => {
             if (jurisdictionExpanded) { setJurisdictionDraft(jurisdiction); setJurisdictionError(""); }
