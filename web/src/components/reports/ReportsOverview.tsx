@@ -50,8 +50,12 @@ export function ReportsOverview({
   const [lossState, setLossState] = useState<LoadState>("loading");
 
   useEffect(() => {
+    // Invalidate both panels with scope/period changes so stale source quality
+    // never follows the next authorized selection.
     setDomain(null);
     setLoss(null);
+    setDomainState(metricState === "loading" ? "loading" : "unavailable");
+    setLossState(metricState === "loading" ? "loading" : "unavailable");
     if (!scopeAuthorized || metricState !== "live" || !metricPeriod) return;
     const controller = new AbortController();
     setDomainState("loading");
