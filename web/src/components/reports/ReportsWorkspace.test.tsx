@@ -116,8 +116,8 @@ describe("ReportsWorkspace", () => {
     });
   });
 
-  function renderWorkspace() {
-    return render(<ReportsWorkspace
+  function renderWorkspace(initialView: "overview" | "library" = "library") {
+    const rendered = render(<ReportsWorkspace
       organizationName="Meridian Trust Bank"
       legalEntityName="Meridian Trust Bank Nigeria"
       legalEntityID="entity-1"
@@ -129,10 +129,17 @@ describe("ReportsWorkspace", () => {
       downloadRun={downloadRun}
       onOpenInsights={onOpenInsights}
     />);
+    if (initialView === "library") fireEvent.click(screen.getByRole("tab", { name: "Reports", exact: true }));
+    return rendered;
   }
 
-  it("opens on the generated-report library rather than setup management", async () => {
-    renderWorkspace();
+  it("opens the V2 Overview, then the governed report library", async () => {
+    renderWorkspace("overview");
+    expect(screen.getByRole("region", { name: "Reports Overview" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Reporting measures" })).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Reporting context" })).toBeTruthy();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Overview", "Explore", "Reports", "Schedules", "Build report"]);
+    fireEvent.click(screen.getByRole("tab", { name: "Reports", exact: true }));
 
     expect(await screen.findByRole("heading", { name: "Reports & insights" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Reports & insights" }).closest("header")?.className).toContain("cs-workspace-header");
@@ -159,7 +166,6 @@ describe("ReportsWorkspace", () => {
     expect(within(recent).getByRole("row", { name: /Program health/ })).toBeTruthy();
     expect(within(screen.getByRole("region", { name: "Report library summary" }))
       .getByText("Loaded").nextElementSibling?.textContent).toBe("2");
-    expect(loadMetricBasis).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Explore insights" }));
     const analysis = await screen.findByRole("region", { name: "Risk and loss analysis" });
     expect(analysis.textContent).toContain("2026-07-01 to 2026-09-28");
@@ -202,11 +208,21 @@ describe("ReportsWorkspace", () => {
     expect(loadMetricBasis).toHaveBeenCalledWith(undefined, "group-1");
   });
 
+  it("keeps the source Schedules destination honest and the Build report workflow operational", async () => {
+    renderWorkspace("overview");
+    fireEvent.click(screen.getByRole("tab", { name: "Schedules" }));
+    expect(screen.getByRole("region", { name: "Report schedules" })).toBeTruthy();
+    expect(screen.getByText(/Recurring report delivery is unavailable/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Build report" }));
+    expect(screen.getByRole("region", { name: "Build report" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Build report" })).toBeTruthy();
+  });
+
   it("generates a vendor report from a ready saved setup", async () => {
     renderWorkspace();
     await screen.findByRole("table", { name: "Generated reports" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
+    fireEvent.click(screen.getByRole("button", { name: "New report" }));
     const dialog = await screen.findByRole("dialog", { name: "Generate report" });
     expect(within(dialog).getAllByText("Vendor portfolio")).not.toHaveLength(0);
     expect(within(dialog).getAllByText("Overview")).not.toHaveLength(0);
@@ -249,7 +265,7 @@ describe("ReportsWorkspace", () => {
     expect(within(table).getByRole("row", { name: /Vendor Portfolio/i })).toBeTruthy();
     expect(screen.getByText(/Saved setups unavailable/i)).toBeTruthy();
     expect(screen.queryByText(/Generated reports could not be loaded/i)).toBeNull();
-    expect(screen.getByRole("button", { name: "Generate report" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "New report" })).toHaveProperty("disabled", true);
   });
 
   it("loads older history pages without duplicating runs already in the library", async () => {
