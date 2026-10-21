@@ -41,7 +41,10 @@ describe("contextual document analysis entry", () => {
     expect(screen.getByText("Programs workspace")).toBeTruthy();
 
     rerender(<ProgramsView organizationName="Meridian Trust Bank" programsPage="library"/>);
-    expect(screen.getByRole("heading", { name: "Framework Library" })).toBeTruthy();
+    // Framework Library owns its complete V2 heading; this wrapper must not
+    // create a second generic Programs/Library hero above that layout.
+    expect(screen.queryByRole("heading", { name: "Framework Library" })).toBeNull();
+    expect(screen.getByText("Programs workspace")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Analyze document/ })).toBeNull();
   });
 
