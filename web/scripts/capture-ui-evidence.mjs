@@ -208,7 +208,7 @@ async function capturePage(capture) {
     }
     if (capture.name === "200-framework-library-light-1440x900" ||
         capture.name === "202-framework-library-light-mobile-390x844") {
-      const heading = page.locator(".cs-framework-library-page-heading");
+      const heading = page.locator(".cs-framework-library__page-heading");
       await heading.waitFor({ state: "visible" });
       await heading.getByText("Review an edition before adding it to a Program.").waitFor({ state: "visible" });
       const title = page.getByRole("heading", { name: "Framework Library", exact: true });
