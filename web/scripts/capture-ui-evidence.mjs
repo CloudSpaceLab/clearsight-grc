@@ -404,6 +404,39 @@ async function openAndVerifyNavigationDrawer(page, capture, expandRisk, requireC
   return { ...reading, focusContained: true, riskExpandedByKeyboard: expandRisk };
 }
 
+async function waitForNavigationViewport(page, capture, viewport, focusCurrent = false) {
+  const expected = { ...viewport, railWidth: viewport.width <= 560 ? 56 : viewport.width <= 1024 ? 72 : 228, focusCurrent };
+  // The global reduced-motion duration can leave one frame at the old rail
+  // width after the sheet closes. Poll the same geometry and focus contract;
+  // a persistent wrong breakpoint must still fail within this bounded wait.
+  await page.waitForFunction(({ width, height, railWidth, focusCurrent }) => {
+    const shell = document.querySelector(".app-shell--navigation");
+    const rail = shell?.querySelector(":scope > .sidebar.app-navigation");
+    const opener = rail?.querySelector('[aria-label="Open navigation"]');
+    if (!shell || !rail || !opener || innerWidth !== width || innerHeight !== height) return false;
+    const compact = width <= 1024;
+    return matchMedia("(max-width: 1024px)").matches === compact
+      && Math.abs(rail.getBoundingClientRect().width - railWidth) <= 1
+      && Math.abs(parseFloat(getComputedStyle(rail).inlineSize) - railWidth) <= 1
+      && Math.abs(parseFloat(getComputedStyle(shell).gridTemplateColumns) - railWidth) <= 1
+      && Boolean(opener.getClientRects().length) === compact
+      && (!focusCurrent || document.activeElement === rail.querySelector('[aria-current="page"]'));
+  }, expected, { timeout: 5000 }).catch(async (error) => {
+    const geometry = await page.evaluate(() => {
+      const shell = document.querySelector(".app-shell--navigation");
+      const rail = shell?.querySelector(":scope > .sidebar.app-navigation");
+      const opener = rail?.querySelector('[aria-label="Open navigation"]');
+      return { innerWidth, innerHeight, compact: matchMedia("(max-width: 1024px)").matches,
+        railWidth: rail?.getBoundingClientRect().width,
+        railInlineSize: rail ? getComputedStyle(rail).inlineSize : null,
+        gridTemplateColumns: shell ? getComputedStyle(shell).gridTemplateColumns : null,
+        activeFocus: document.activeElement?.getAttribute("aria-label"),
+        openerHidden: opener ? !opener.getClientRects().length : null };
+    });
+    throw new Error(`${capture.name}: Navigation did not settle after resize: ${JSON.stringify({ expected, geometry })}; ${error.message}`);
+  });
+}
+
 async function verifyNavigationResizeRecovery(page, capture) {
   const shortViewport = { width: 320, height: 568 };
   const sidebar = page.getByRole("complementary", { name: "Primary navigation", exact: true });
@@ -416,6 +449,7 @@ async function verifyNavigationResizeRecovery(page, capture) {
   });
   try {
     await page.setViewportSize(shortViewport);
+    await waitForNavigationViewport(page, capture, shortViewport);
     await sidebar.getByRole("link", { name: "Home", exact: true }).focus();
     for (const [index, label] of primaryNavigationLabels.entries()) {
       if (index) await page.keyboard.press("Tab");
@@ -449,7 +483,7 @@ async function verifyNavigationResizeRecovery(page, capture) {
     }
     await page.setViewportSize({ width: 1440, height: 900 });
     await dialog.waitFor({ state: "hidden" });
-    await page.waitForFunction(() => document.activeElement === document.querySelector('.sidebar [aria-current="page"]'));
+    await waitForNavigationViewport(page, capture, { width: 1440, height: 900 }, true);
     const desktopRecovery = await sidebar.evaluate((root) => ({
       railWidth: root.getBoundingClientRect().width,
       activeFocus: document.activeElement?.getAttribute("aria-label"),
@@ -459,6 +493,7 @@ async function verifyNavigationResizeRecovery(page, capture) {
       throw new Error(`${capture.name}: widening an open Navigation did not restore the desktop route: ${JSON.stringify(desktopRecovery)}`);
     }
     await page.setViewportSize({ width: 1024, height: 768 });
+    await waitForNavigationViewport(page, capture, { width: 1024, height: 768 });
     await openAndVerifyNavigationDrawer(page, { ...capture, viewport: { width: 1024, height: 768 } }, false, false);
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
@@ -468,6 +503,7 @@ async function verifyNavigationResizeRecovery(page, capture) {
       ...shortGeometry, desktopRecovery, compactRecovery };
   } finally {
     await page.setViewportSize(capture.viewport);
+    await waitForNavigationViewport(page, capture, capture.viewport);
   }
 }
 
