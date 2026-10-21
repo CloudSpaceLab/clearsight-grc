@@ -121,7 +121,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
             onPress={() => { if (selected) onChooseProgram(selected); }}>Choose Program</Button>
         </div>
         {!selected && <p className="cs-framework-library__preview-note">Select an edition in the list to continue.</p>}
-      </section>}
+      </section>
     </div>
   </div>;
 
