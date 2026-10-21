@@ -116,7 +116,7 @@ function exploreCapture(state = "report-explore-light-1440") {
     tableRows: [{ label: "Risk Operations", value: "2" }, { label: "Legal entity", value: "2" }],
     organizationScopeID: null, sourceID: "8f710000-0000-4000-8000-000000000001", definitionRevision: "enterprise-domain-v1",
     sourceConsistent: true, timeBasis: "CURRENT_POSTURE", unsupportedControlsDisabled: true,
-    coverageText: "12 assessed · 0 unknown · 0 excluded.",
+    coverageText: "12 risks in scope · 0 unknown · 0 excluded.",
     interaction: { stableTabs: stableReportTabs, contextualTabs: [...stableReportTabs, "Build report"],
       arrowSequence: ["Explore", "Reports", "Schedules", "Overview", "Explore"], measureKeyboardSelection: true,
       selectedMeasurePreserved: true, hiddenBuilderRemoved: true, baselineRestored: true },

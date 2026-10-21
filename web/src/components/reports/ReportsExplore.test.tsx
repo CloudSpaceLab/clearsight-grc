@@ -71,7 +71,7 @@ it("renders one source-bound risk chart and matching exact rows with the source 
   expect(screen.getByRole("button", { name: /Breakdown$/ })).toHaveProperty("disabled", true);
   expect(screen.getByRole("button", { name: /Comparison$/ })).toHaveProperty("disabled", true);
   expect(screen.getByText(/reporting period does not change it/)).toBeTruthy();
-  expect(screen.getByText(/12 assessed · 0 unknown · 0 excluded/)).toBeTruthy();
+  expect(screen.getByText(/12 risks in scope · 0 unknown · 0 excluded/)).toBeTruthy();
   expect(screen.getByText(/Source revision risk-v1 · Definition domain-v1/)).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.queryByRole("button", { name: /Save view|Add to report/ })).toBeNull();
@@ -198,7 +198,11 @@ it.each([
     expect(screen.getByText("Source stale")).toBeTruthy();
     expect(screen.getByText(/Unknown count unavailable/)).toBeTruthy();
     expect(input.loadBreakdown).not.toHaveBeenCalled();
-  } else expect(screen.getByText(/Risk coverage is partial/)).toBeTruthy();
+  } else {
+    expect(screen.getByText(/12 risks in scope · 2 unknown · 0 excluded/)).toBeTruthy();
+    expect(screen.getByText(/Risk coverage is partial/)).toBeTruthy();
+    expect(screen.queryByText(/\b12 assessed\b/)).toBeNull();
+  }
 });
 
 it("keeps valid zero activity distinct from unavailable monetary data", async () => {
@@ -271,7 +275,7 @@ it("rejects a different retained member source and retries the same snapshot", a
   await screen.findByRole("list", { name: "Risks outside appetite by organization area" });
   fireEvent.click(screen.getByRole("button", { name: "Review underlying records" }));
   const sheet = await screen.findByRole("dialog", { name: "Risks outside appetite records" });
-  expect(await within(sheet).findByText(/snapshot detail is unavailable/)).toBeTruthy();
+  expect(await within(sheet).findByText("Records for this metric snapshot are unavailable.")).toBeTruthy();
   expect(within(sheet).queryByText("Settlement risk")).toBeNull();
   fireEvent.click(within(sheet).getByRole("button", { name: "Try again" }));
   await within(sheet).findByText("Settlement risk");

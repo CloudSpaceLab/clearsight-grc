@@ -113,7 +113,7 @@ function renderPage(props: Partial<ReportingPageProps> = {}) {
 }
 
 async function choose(field: string, option: string | RegExp) {
-  const trigger = screen.getByRole("button", { name: new RegExp(field) });
+  const trigger = await screen.findByRole("button", { name: new RegExp(field) });
   await waitFor(() => expect(trigger).toHaveProperty("disabled", false));
   fireEvent.click(trigger);
   fireEvent.click(await screen.findByRole("option", { name: option }));
@@ -193,6 +193,34 @@ describe("ReportingPage builder", () => {
       format: "PDF",
       filter: { kind: "group", operator: "and", children: [] },
     });
+  });
+
+  it("cannot save a hidden previous Issue while a new search is pending or has failed", async () => {
+    const pending = deferred<Awaited<ReturnType<NonNullable<ReportingPageProps["loadMatters"]>>>>();
+    renderPage();
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Settlement board brief" } });
+    await choose("Area", /^Board brief/);
+    await choose("Choose an issue", "MAT-82BF — Settlement exception");
+
+    api.loadMatters.mockReturnValueOnce(pending.promise);
+    fireEvent.change(screen.getByLabelText("Find issue"), { target: { value: "Different issue" } });
+    await waitFor(() => expect(api.loadMatters).toHaveBeenLastCalledWith({ q: "Different issue", limit: 20 }));
+    const save = screen.getByRole("button", { name: "Save setup" });
+    expect(save).toHaveProperty("disabled", true);
+    fireEvent.click(save);
+    expect(api.createDefinition).not.toHaveBeenCalled();
+
+    await act(async () => pending.reject(new Error("Issue search unavailable")));
+    expect(await screen.findByText("Issues could not be loaded. Retry the search.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Choose an issue/ })).toBeTruthy();
+    fireEvent.click(save);
+    expect(await screen.findByText("Choose an issue for the board brief.")).toBeTruthy();
+    expect(api.createDefinition).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Find issue"), { target: { value: "Settlement" } });
+    await choose("Choose an issue", "MAT-82BF — Settlement exception");
+    fireEvent.click(save);
+    await waitFor(() => expect(api.createDefinition).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ scope_ref: "matter-82bf" })));
   });
 
   it("uses each returned version and checksum through review and activation before generating", async () => {

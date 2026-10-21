@@ -418,8 +418,8 @@ it("drills a retained v3 metric to the exact snapshot population with typed reco
     metricFilter="routing-gaps"
   />);
 
-  expect(await screen.findByText("2 exact records in this metric snapshot.")).toBeTruthy();
-  expect(screen.getByRole("table", { name: "Exact routing gaps snapshot members" })).toBeTruthy();
+  expect(await screen.findByText("2 records in this metric snapshot.")).toBeTruthy();
+  expect(screen.getByRole("table", { name: "Routing gaps records" })).toBeTruthy();
   expect(screen.getByText("Assign control gap")).toBeTruthy();
   expect(screen.getByText("Assign Program review")).toBeTruthy();
   expect(metricApi.loadHomeMetricMembers).toHaveBeenCalledWith(
@@ -455,8 +455,8 @@ it("fails closed when retained membership count disagrees with the selected card
     metricFilter="overdue"
   />);
 
-  expect(await screen.findByText("Exact snapshot detail is unavailable. The card value is unchanged.")).toBeTruthy();
-  expect(screen.queryByText(/exact records in this metric snapshot/i)).toBeNull();
+  expect(await screen.findByText("Records for this metric snapshot are unavailable.")).toBeTruthy();
+  expect(screen.queryByText(/records in this metric snapshot/i)).toBeNull();
 });
 
 it("keeps v2 current-state metric drills on the existing bounded intervention path", async () => {

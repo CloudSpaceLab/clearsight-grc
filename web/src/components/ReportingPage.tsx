@@ -91,6 +91,7 @@ export function ReportingPage({
     }).catch(() => {
       if (!active) return;
       setMatterOptions([]);
+      setMatterID("");
       setMatterState("error");
     });
     return () => { active = false; };
@@ -126,7 +127,9 @@ export function ReportingPage({
   async function saveSetup() {
     if (commandPending.current || state !== "live") return;
     if (name.trim().length < 3) { setError("Enter a setup name of at least 3 characters."); return; }
-    if (area === "BOARD_BRIEF" && !matterID) { setError("Choose an issue for the board brief."); return; }
+    if (area === "BOARD_BRIEF" && (matterState !== "live" || !matterOptions.some((item) => item.matter.id === matterID))) {
+      setError("Choose an issue for the board brief."); return;
+    }
     commandPending.current = true;
     setCommand("saving"); setError(undefined); setMessage(undefined);
     try {
@@ -166,7 +169,7 @@ export function ReportingPage({
       <div className="report-builder__actions">
         <Button variant="secondary" isDisabled={busy} onPress={beginCreate}>New setup</Button>
         {showCreate
-          ? <Button variant="primary" isLoading={command === "saving"} isDisabled={state !== "live"} onPress={() => void saveSetup()}>Save setup</Button>
+          ? <Button variant="primary" isLoading={command === "saving"} isDisabled={state !== "live" || (area === "BOARD_BRIEF" && matterState === "loading")} onPress={() => void saveSetup()}>Save setup</Button>
           : nextAction
             ? <Button variant="primary" isLoading={command === "transitioning"} isDisabled={state !== "live"} onPress={() => void transition(nextAction.action)}>{nextAction.label}</Button>
             : selected?.status === "ACTIVE" && onGenerate
@@ -203,7 +206,7 @@ export function ReportingPage({
               setArea(value); setFocus("OVERVIEW"); setMatterSearch(""); setMatterID(""); setMatterOptions([]); setError(undefined);
             }}/>
           {area === "BOARD_BRIEF" ? <>
-            <SearchField label="Find issue" value={matterSearch} onChange={setMatterSearch}
+            <SearchField label="Find issue" value={matterSearch} onChange={(value) => { setMatterSearch(value); setMatterID(""); setError(undefined); }}
               placeholder="Search reference or title" isLoading={matterState === "loading"} isDisabled={busy}/>
             <SelectField label="Issue" value={matterID || undefined} isRequired isDisabled={busy || matterState === "loading"}
               placeholder={matterState === "loading" ? "Loading issues" : "Choose an issue"}

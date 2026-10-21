@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type Key, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Key, type ReactNode } from "react";
 import { Tab, TabList, TabPanel, Tabs as AriaTabs } from "react-aria-components";
 import { SelectField } from "./SelectField";
 
@@ -23,11 +23,24 @@ export function Tabs<T extends string>({ ariaLabel, compactLabel, retainVisitedP
   useEffect(() => {
     if (retainVisitedPanels && !visited.includes(selectedKey)) setVisited((current) => current.includes(selectedKey) ? current : [...current, selectedKey]);
   }, [retainVisitedPanels, selectedKey, visited]);
+  const selectedTabFrame = useRef<{ view: Window; id: number } | null>(null);
+  const cancelSelectedTabReveal = useCallback(() => {
+    if (!selectedTabFrame.current) return;
+    selectedTabFrame.current.view.cancelAnimationFrame(selectedTabFrame.current.id);
+    selectedTabFrame.current = null;
+  }, []);
+  useEffect(() => cancelSelectedTabReveal, [cancelSelectedTabReveal]);
   const revealSelectedTab = useCallback((selected: HTMLDivElement | null) => {
+    // A previous tab's ref can detach after the new selected tab attaches.
+    // Replacement and component cleanup own cancellation, not that detach.
     if (!selected) return;
+    cancelSelectedTabReveal();
+    const view = selected.ownerDocument.defaultView;
+    if (!view) return;
     // React Aria may mount a contextual trigger after the parent's layout
     // effects. Reveal it from its own ref without moving the page vertically.
-    selected.ownerDocument.defaultView?.requestAnimationFrame(() => {
+    const id = view.requestAnimationFrame(() => {
+      selectedTabFrame.current = null;
       const list = selected.closest<HTMLElement>('[role="tablist"]');
       if (!selected.isConnected || !list || selected.getAttribute("aria-selected") !== "true") return;
       const bounds = list.getBoundingClientRect();
@@ -35,7 +48,8 @@ export function Tabs<T extends string>({ ariaLabel, compactLabel, retainVisitedP
       if (destination.left < bounds.left) list.scrollLeft += destination.left - bounds.left;
       else if (destination.right > bounds.right) list.scrollLeft += destination.right - bounds.right;
     });
-  }, []);
+    selectedTabFrame.current = { view, id };
+  }, [cancelSelectedTabReveal]);
   function select(key: Key) {
     if (typeof key === "string" && key !== selectedKey) onSelectionChange(key as T);
   }

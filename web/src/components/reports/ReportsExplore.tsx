@@ -152,7 +152,7 @@ export function ReportsExplore({
                 {periodState === "live" && <Button variant="secondary" onPress={() => setRetry((value) => value + 1)}>Try again</Button>}</Notice>
                 : <>
                   {measure === "risk" && metric && <p className="reports-explore__coverage">
-                    {metric.population} assessed · {metric.unknown === undefined ? "Unknown count unavailable" : `${metric.unknown} unknown`} · {metric.excluded === undefined ? "Excluded count unavailable" : `${metric.excluded} excluded`}.
+                    {metric.population} risks in scope · {metric.unknown === undefined ? "Unknown count unavailable" : `${metric.unknown} unknown`} · {metric.excluded === undefined ? "Excluded count unavailable" : `${metric.excluded} excluded`}.
                     {metric.completeness !== "COMPLETE" && ` ${metric.completeness === "PARTIAL" ? "Risk coverage is partial." : "Risk coverage is unknown."}`}
                   </p>}
                   {measure === "net-loss" && checkedLoss?.mixed_currencies && <p className="reports-explore__coverage">Showing {currency ?? "separate currency amounts"} only. Amounts are not converted or combined.</p>}

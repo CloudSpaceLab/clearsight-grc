@@ -45,11 +45,11 @@ export function MetricMemberDrill({
   ];
 
   if (state === "loading" && !page) {
-    return <p className="oversight-result-count" role="status">Loading exact snapshot members…</p>;
+    return <p className="oversight-result-count" role="status">Loading records…</p>;
   }
   if (state === "unavailable") {
     return <Notice tone="warning">
-      <span>Exact snapshot detail is unavailable. The card value is unchanged.</span>{" "}
+      <span>Records for this metric snapshot are unavailable.</span>{" "}
       <Button variant="secondary" size="compact" onPress={onRetry}>Try again</Button>
     </Notice>;
   }
@@ -57,18 +57,18 @@ export function MetricMemberDrill({
 
   if (page.count === 0) {
     return <EmptyState
-      population={`Exact retained members for ${label.toLowerCase()}`}
+      population={`Records for ${label.toLowerCase()}`}
       title="No records were counted in this snapshot"
-      description="No records counted in this metric revision."
+      description="There are no underlying records to open."
     />;
   }
 
   return <>
     <p className="oversight-result-count" aria-live="polite">
-      {page.count} exact {page.count === 1 ? "record" : "records"} in this metric snapshot.
+      {page.count} {page.count === 1 ? "record" : "records"} in this metric snapshot.
     </p>
     <DataTable
-      ariaLabel={`Exact ${label.toLowerCase()} snapshot members`}
+      ariaLabel={`${label} records`}
       responsiveTo="container"
       rows={page.items}
       rowKey={(item) => item.member_id}
@@ -85,7 +85,7 @@ export function MetricMemberDrill({
       rowActionLabel="Open record"
       isLoading={state === "loading"}
       pagination={(hasPrevious || page.next_cursor) ? {
-        label: `${label} member pages`,
+        label: `${label} record pages`,
         previousLabel: "Previous page",
         nextLabel: "Next page",
         onPrevious: hasPrevious ? onPrevious : undefined,
@@ -94,7 +94,7 @@ export function MetricMemberDrill({
       } : undefined}
     />
     {page.items.some((item) => !item.accessible) &&
-      <Notice tone="info">Some records are still part of this historical count but their current access has changed.</Notice>}
+      <Notice tone="info">Some records are included in this snapshot but are no longer accessible.</Notice>}
     {page.items.some((item) => item.accessible && !hasOpenAction(item.target_type, { onOpenMatter, onOpenProgram, onOpenRisk, onOpenLoss })) &&
       <Notice tone="warning">Some records cannot be opened here.</Notice>}
   </>;

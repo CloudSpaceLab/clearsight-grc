@@ -127,7 +127,7 @@ it("fails closed when exact membership does not match the card value", async () 
   render(<DomainPostureSummary bundle={bundle()} state="live" loadMembers={loadMembers}/>);
 
   fireEvent.click(screen.getByRole("button", { name: /Outside appetite: 1/ }));
-  expect(await screen.findByText(/Exact snapshot detail is unavailable/)).toBeTruthy();
+  expect(await screen.findByText(/Records for this metric snapshot are unavailable/)).toBeTruthy();
 });
 
 function mixedLossBundle(): LossPeriodBundle {
@@ -229,6 +229,6 @@ it("keeps mixed-currency recovery contributors drillable even with zero new even
     50,
     expect.any(AbortSignal),
   ));
-  expect(await screen.findByText("2 exact records in this metric snapshot.")).toBeTruthy();
+  expect(await screen.findByText("2 records in this metric snapshot.")).toBeTruthy();
 });
 

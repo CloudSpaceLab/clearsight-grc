@@ -67,7 +67,7 @@ try {
         if (scenario.reportView === "explore-members") {
           await page.locator(".reports-explore").getByRole("button", { name: "Review underlying records", exact: true }).click();
           await page.getByRole("dialog", { name: "Risks outside appetite records", exact: true })
-            .getByRole("table", { name: "Exact risks outside appetite snapshot members", exact: true }).waitFor({ state: "visible" });
+            .getByRole("table", { name: "Risks outside appetite records", exact: true }).waitFor({ state: "visible" });
         }
       }
       await page.evaluate(() => document.fonts?.ready);

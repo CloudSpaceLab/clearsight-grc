@@ -171,7 +171,7 @@ export async function assertReportsExploreLayout(page, capture) {
       await root.getByRole("table", { name: "Explore measure breakdown", exact: true }).waitFor({ state: "visible" });
     }
     if (isRisk && (layout.dataQuality !== (capture.fixture === "report-overview-partial" ? "partial" : "complete")
-        || !layout.coverageText?.includes(`${scopeID ? 5 : 12} assessed`)
+        || !layout.coverageText?.includes(`${scopeID ? 5 : 12} risks in scope`)
         || !layout.coverageText.includes(`${capture.fixture === "report-overview-partial" ? 2 : 0} unknown`)
         || !layout.coverageText.includes("0 excluded")
         || (capture.fixture === "report-overview-partial" && !layout.coverageText.includes("Risk coverage is partial."))
@@ -348,9 +348,9 @@ export async function verifyReportExploreMembers(page, capture, layout) {
   const opener = root.getByRole("button", { name: "Review underlying records", exact: true });
   const dialog = page.getByRole("dialog", { name: "Risks outside appetite records", exact: true });
   await opener.click();
-  const table = dialog.getByRole("table", { name: "Exact risks outside appetite snapshot members", exact: true });
+  const table = dialog.getByRole("table", { name: "Risks outside appetite records", exact: true });
   await table.waitFor({ state: "visible" });
-  await dialog.getByText("4 exact records in this metric snapshot.", { exact: true }).waitFor({ state: "visible" });
+  await dialog.getByText("4 records in this metric snapshot.", { exact: true }).waitFor({ state: "visible" });
   await dialog.getByText("Sample settlement processing risk", { exact: true }).waitFor({ state: "visible" });
   const rowCount = await table.locator("tbody tr").count();
   const reads = await page.evaluate(() => window.reportingEvidenceReads ?? []);

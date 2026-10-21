@@ -124,9 +124,9 @@ export function reviewReportsDesignCaptures(captures) {
         failures.push(`${scenario.name}: Explore chosen measure, exact values, source or unavailable semantics are missing or inconsistent`);
       }
       if (!unavailable && isRisk && (layout.dataQuality !== (scenario.fixture === "report-overview-partial" ? "partial" : "complete")
-          || !layout.coverageText?.includes(`${scope ? 5 : 12} assessed`)
+          || !layout.coverageText?.includes(`${scope ? 5 : 12} risks in scope`)
           || (scenario.fixture === "report-overview-partial" && !layout.coverageText.includes("Risk coverage is partial.")))) {
-        failures.push(`${scenario.name}: Explore assessed population and coverage disclosure are missing`);
+        failures.push(`${scenario.name}: Explore population in scope and coverage disclosure are missing`);
       }
       if (empty && (layout.emptyStateConfirmed !== true || layout.emptyHeading !== (isRisk ? "No risks outside appetite" : measure === "Loss events" ? "No new loss events" : "No monetary loss flow"))) {
         failures.push(`${scenario.name}: a real empty measure must be distinguished from unavailable data`);

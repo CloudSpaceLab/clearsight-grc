@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Tabs, type TabItem } from "./index";
@@ -17,6 +17,33 @@ function Harness() {
 }
 
 describe("Tabs", () => {
+  it("reveals a newly selected contextual tab horizontally and cancels pending reveals on unmount", () => {
+    vi.useFakeTimers();
+    try {
+      const contextual = [...items, { id: "EDITOR", label: "Edit report", isContextual: true }];
+      const panel = (key: string) => <p>{key}</p>;
+      const view = render(<Tabs ariaLabel="Reports views" items={contextual} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      view.rerender(<Tabs ariaLabel="Reports views" items={contextual} selectedKey="EDITOR" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      const list = screen.getByRole("tablist");
+      const editor = screen.getByRole("tab", { name: "Edit report", selected: true });
+      vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 44));
+      vi.spyOn(editor, "getBoundingClientRect").mockReturnValue(new DOMRect(330, 0, 100, 44));
+      list.scrollTop = 37;
+
+      act(() => vi.advanceTimersToNextFrame());
+      expect(list.scrollLeft).toBe(130);
+      expect(list.scrollTop).toBe(37);
+
+      view.rerender(<Tabs ariaLabel="Reports views" items={contextual} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      view.rerender(<Tabs ariaLabel="Reports views" items={contextual} selectedKey="EDITOR" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      view.unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("shows contextual destinations only while selected and retains their hidden draft", () => {
     const contextual = [...items, { id: "EDITOR", label: "Edit report", isContextual: true }];
     const child = vi.fn((key: string) => key === "EDITOR" ? <input aria-label="Report title" defaultValue=""/> : <p>{key}</p>);
