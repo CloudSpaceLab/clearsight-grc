@@ -161,7 +161,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
         <SearchField label="Search loaded standards" placeholder="Search standards or publishers" value={search}
           onChange={(value) => { setSearch(value); setSelectedID(""); setSheetOpen(false); }}
           isLoading={catalog.state === "loading"}/>
-        <SelectField label="Content rights" value={rightsFilter} placeholder="All content rights"
+        <SelectField label="Content rights" value={rightsFilter} placeholder="All content rights" isLabelHidden={compact}
           allowsEmpty={false} options={rightsOptions} onChange={(value) => {
             setRightsFilter(value ?? "ALL");
             setSelectedID("");
