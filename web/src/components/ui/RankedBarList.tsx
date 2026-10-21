@@ -51,7 +51,7 @@ export function RankedBarList({
             aria-label={item.actionLabel || `${item.label}: ${renderedValue}`}
             onPress={() => onAction?.(item)}
           >{content}</AriaButton>
-          : <div className="cs-ranked-bars__row" aria-label={`${item.label}: ${renderedValue}`}>{content}</div>}
+          : <div className="cs-ranked-bars__row" role="group" aria-label={`${item.label}: ${renderedValue}`}>{content}</div>}
       </li>;
     })}
   </ol>;

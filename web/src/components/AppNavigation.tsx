@@ -121,7 +121,7 @@ export function AppNavigation({ activeView, target, configureEnabled, actorName,
           onClick={(event) => activate(event, { id: "settings", label: "Settings", view: "configure" })}>
           <NavigationIcon view="configure"/><span className="app-navigation__label">Settings</span>
         </ActionLink>}
-        <div className="app-navigation__actor" title={actorName} aria-label={`Signed in as ${actorName}`}>
+        <div className="app-navigation__actor" role="group" title={actorName} aria-label={`Signed in as ${actorName}`}>
           <Monogram name={actorName} className="avatar" decorative/>
           <span className="app-navigation__actor-name">{actorName}</span>
         </div>
@@ -131,7 +131,7 @@ export function AppNavigation({ activeView, target, configureEnabled, actorName,
 
   return <>
     <aside ref={sidebarRef} className="sidebar app-navigation" aria-label="Primary navigation">
-      <div className="sidebar-brand" aria-label="ClearSight">
+      <div className="sidebar-brand" role="img" aria-label="ClearSight">
         <span className="brand-mark" aria-hidden="true"/>
         <span className="sidebar-brand__name"><strong>ClearSight</strong><small>Governance, risk &amp; compliance</small></span>
       </div>
