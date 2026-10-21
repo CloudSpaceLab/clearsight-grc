@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { StrictMode } from "react";
+import { StrictMode, type ComponentProps } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { RuntimeContext } from "./api";
@@ -8,7 +8,7 @@ import type { AttentionItem, EvidenceRequest } from "./types";
 import { declareWrongCaptureRecipient, reassignCaptureRecipient } from "./captureApi";
 import { ApiError } from "./http";
 import { loadFormTemplatePage } from "./formsApi";
-import { loadNotifications } from "./notificationApi";
+import { loadNotifications, type InAppNotification, type NotificationPage } from "./notificationApi";
 import { loadGroupOversight, type GroupOversightSnapshot } from "./groupOversightApi";
 import type { ReportingPeriodQuery } from "./reportingPeriod";
 
@@ -80,6 +80,27 @@ vi.mock("./components/reports/ReportsWorkspace", () => ({
     <button onClick={() => onOpenInsights?.({ start_date: "2026-09-08", end_date: "2026-10-07" })}>Open Insights workspace</button>
   </section>,
 }));
+vi.mock("./components/notifications/NotificationsWorkspace", async () => {
+  const React = await import("react");
+  return { NotificationsWorkspace: ({ inbox, tab, onTab, legalEntityID, legalEntityName, actorName, canReadActivity, onOpenWork }: ComponentProps<typeof import("./components/notifications/NotificationsWorkspace")["NotificationsWorkspace"]>) => {
+    const [draft, setDraft] = React.useState("");
+    return <section aria-label="Notifications workspace">
+      <h1>Notifications</h1>
+      <output data-testid="notification-tab">{tab}</output>
+      <output data-testid="notification-entity">{legalEntityID}:{legalEntityName}</output>
+      <output data-testid="notification-actor">{actorName}</output>
+      <output data-testid="notification-activity-permission">{String(canReadActivity)}</output>
+      <output data-testid="notification-inbox-state">{inbox.state}</output>
+      <output data-testid="notification-items">{inbox.items.map((item) => item.title).join(" | ")}</output>
+      <label>Notification local draft<input value={draft} onChange={(event) => setDraft(event.target.value)}/></label>
+      <button type="button" onClick={() => onTab("inbox")}>Show inbox</button>
+      <button type="button" onClick={() => onTab("activity")}>Show activity</button>
+      <button type="button" onClick={() => onTab("preferences")}>Show preferences</button>
+      <button type="button" onClick={inbox.refresh}>Refresh shared inbox</button>
+      <button type="button" onClick={onOpenWork}>Return to Work</button>
+    </section>;
+  } };
+});
 vi.mock("./components/insights/InsightsWorkspace", () => ({
   InsightsWorkspace: ({ organizationScopeID, riskLossPeriod, scopeAuthorized, onOpenReports }: {
     organizationScopeID?: string; riskLossPeriod?: ReportingPeriodQuery; scopeAuthorized?: boolean; onOpenReports?: () => void;
@@ -124,7 +145,7 @@ vi.mock("./evidenceRequestAdminApi", async (importOriginal) => ({
 
 type RuntimeWithCapabilities = RuntimeContext & {
   demo_mode: boolean;
-  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean; scope_switch?: boolean; identity_read?: boolean };
+  capabilities: { document_import: boolean; reference_journeys: boolean; oversight_read?: boolean; scope_switch?: boolean; identity_read?: boolean; platform_operations_read?: boolean };
   actor: RuntimeContext["actor"] & { role_codes: string[] };
 };
 
@@ -243,6 +264,14 @@ function secondScope() {
   };
 }
 
+function notification(id: string, title: string): InAppNotification {
+  return {
+    id, title, kind: "ASSIGNMENT", summary: "Review the assigned issue.",
+    subject_type: "MATTER", subject_id: "matter-1", action_path: "#work/matters/matter-1",
+    occurred_at: "2026-10-21T09:00:00Z",
+  };
+}
+
 beforeAll(() => {
   Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
 });
@@ -307,6 +336,169 @@ describe("notification shell integration", () => {
     await screen.findAllByText("Second Bank");
     await waitFor(() => expect(loadNotifications).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("button", { name: "Notifications" })).toBeTruthy();
+  });
+
+  it("opens the full Notifications route from the bell and shares one inbox owner across local tabs", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    vi.mocked(loadNotifications)
+      .mockResolvedValueOnce({ items: [notification("notice-1", "Assigned issue review")], unread_count: 2, as_of: "2026-10-21T09:00:00Z" })
+      .mockResolvedValueOnce({ items: [notification("notice-2", "New review assignment")], unread_count: 1, as_of: "2026-10-21T09:01:00Z" });
+    render(<App/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Notifications, 2 unread" }));
+    await screen.findByRole("heading", { name: "Notifications" });
+    expect(window.location.hash).toBe("#notifications");
+    expect(primaryLink("Work & Approvals").getAttribute("aria-current")).toBe("page");
+    expect(primaryLink("Home").getAttribute("aria-current")).toBeNull();
+    expect(screen.queryByRole("dialog", { name: /notifications/i })).toBeNull();
+    expect(screen.getByTestId("notification-items").textContent).toBe("Assigned issue review");
+    expect(loadNotifications).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(screen.getByLabelText("Notification local draft"), { target: { value: "retained local selection" } });
+    for (const tab of ["preferences", "activity", "inbox"] as const) {
+      fireEvent.click(screen.getByRole("button", { name: `Show ${tab}` }));
+      expect(window.location.hash).toBe(tab === "inbox" ? "#notifications" : `#notifications/${tab}`);
+      expect(screen.getByTestId("notification-tab").textContent).toBe(tab);
+      expect((screen.getByLabelText("Notification local draft") as HTMLInputElement).value).toBe("retained local selection");
+      expect(loadNotifications).toHaveBeenCalledTimes(1);
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh shared inbox" }));
+    await screen.findByRole("button", { name: "Notifications, 1 unread" });
+    expect(screen.getByTestId("notification-items").textContent).toBe("New review assignment");
+    expect(loadNotifications).toHaveBeenCalledTimes(2);
+    expect(loadNotifications).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 25, unreadOnly: false }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Return to Work" }));
+    expect(window.location.hash).toBe("#work");
+    expect(screen.queryByRole("region", { name: "Notifications workspace" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 1 unread" }));
+    await screen.findByRole("heading", { name: "Notifications" });
+    expect(screen.getByTestId("notification-items").textContent).toBe("New review assignment");
+    expect(loadNotifications).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["preferences", "activity"] as const)("restores the %s local tab from its URL and follows browser navigation", async (tab) => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    window.history.replaceState(null, "", `#notifications/${tab}`);
+    render(<App/>);
+
+    await screen.findByRole("heading", { name: "Notifications" });
+    expect(screen.getByTestId("notification-tab").textContent).toBe(tab);
+    expect(primaryLink("Work & Approvals").getAttribute("aria-current")).toBe("page");
+    await waitFor(() => expect(loadNotifications).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      window.history.replaceState(null, "", "#notifications");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(screen.getByTestId("notification-tab").textContent).toBe("inbox");
+    expect(loadNotifications).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for verified context and does not infer Activity permission from an administrator role", async () => {
+    const context = deferred<RuntimeWithCapabilities>();
+    vi.mocked(loadContext).mockReturnValue(context.promise);
+    window.history.replaceState(null, "", "#notifications/activity");
+    render(<App/>);
+
+    expect(screen.getByText("Loading your notification access…")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Notifications workspace" })).toBeNull();
+    expect(loadNotifications).not.toHaveBeenCalled();
+    const verified = runtime(false);
+    verified.actor.role_codes = ["ADMIN"];
+    await act(async () => { context.resolve(verified); });
+
+    await screen.findByRole("heading", { name: "Notifications" });
+    expect(screen.getByTestId("notification-activity-permission").textContent).toBe("false");
+    expect(screen.getByTestId("notification-entity").textContent).toBe("bank-ng:Clear Bank Nigeria");
+    expect(screen.getByTestId("notification-actor").textContent).toBe("Chief Risk Officer");
+    await waitFor(() => expect(loadNotifications).toHaveBeenCalledTimes(1));
+  });
+
+  it("passes granted Activity access and immediately removes it when the same verified actor loses the capability", async () => {
+    const granted = runtime(false);
+    granted.capabilities.platform_operations_read = true;
+    const revoked = runtime(false);
+    revoked.capabilities.platform_operations_read = false;
+    vi.mocked(loadContext).mockResolvedValueOnce(granted).mockResolvedValueOnce(revoked);
+    window.history.replaceState(null, "", "#notifications/activity");
+    const view = render(<App presentation="demo"/>);
+
+    await screen.findByRole("heading", { name: "Notifications" });
+    expect(screen.getByTestId("notification-activity-permission").textContent).toBe("true");
+    await waitFor(() => expect(loadNotifications).toHaveBeenCalledTimes(1));
+    fireEvent.change(screen.getByLabelText("Notification local draft"), { target: { value: "same actor draft" } });
+    view.rerender(<App presentation="live-preview"/>);
+
+    await waitFor(() => expect(screen.getByTestId("notification-activity-permission").textContent).toBe("false"));
+    expect(window.location.hash).toBe("#notifications/activity");
+    expect((screen.getByLabelText("Notification local draft") as HTMLInputElement).value).toBe("same actor draft");
+    expect(loadNotifications).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not restore a former scope or Activity permission when an older context request finishes last", async () => {
+    const oldContext = deferred<RuntimeWithCapabilities>();
+    const older = runtime(false);
+    older.capabilities.platform_operations_read = true;
+    const current = { ...runtime(false), ...secondScope(), actor: { id: "current-reviewer", name: "Current Reviewer", role_codes: ["REVIEWER"] } };
+    current.capabilities.platform_operations_read = false;
+    vi.mocked(loadContext).mockReturnValueOnce(oldContext.promise).mockResolvedValueOnce(current);
+    vi.mocked(loadNotifications).mockResolvedValue({ items: [notification("current", "Current account update")], unread_count: 1, as_of: "2026-10-21T09:02:00Z" });
+    window.history.replaceState(null, "", "#notifications/activity");
+    const view = render(<App presentation="demo"/>);
+    expect(loadNotifications).not.toHaveBeenCalled();
+    view.rerender(<App presentation="live-preview"/>);
+
+    await screen.findByRole("button", { name: "Notifications, 1 unread" });
+    expect(screen.getByTestId("notification-entity").textContent).toBe("bank-second-ng:Second Bank Nigeria");
+    expect(screen.getByTestId("notification-activity-permission").textContent).toBe("false");
+    await act(async () => { oldContext.resolve(older); });
+
+    expect(screen.getByTestId("notification-entity").textContent).toBe("bank-second-ng:Second Bank Nigeria");
+    expect(screen.getByTestId("notification-actor").textContent).toBe("Current Reviewer");
+    expect(screen.getByTestId("notification-activity-permission").textContent).toBe("false");
+    expect(loadNotifications).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["tenant", "legal entity", "actor"] as const)("replaces the shared inbox and local workspace state when the verified %s changes", async (dimension) => {
+    const initial = runtime(false);
+    initial.capabilities.platform_operations_read = true;
+    const next = runtime(false);
+    next.capabilities.platform_operations_read = false;
+    if (dimension === "tenant") next.tenant = { id: "bank-second", name: "Second Bank" };
+    if (dimension === "legal entity") next.legal_entity = { id: "bank-gh", name: "Clear Bank Ghana" };
+    if (dimension === "actor") next.actor = { id: "role-reviewer", name: "Operations Reviewer", role_codes: ["REVIEWER"] };
+    const oldInbox = deferred<NotificationPage>();
+    const currentInbox = deferred<NotificationPage>();
+    vi.mocked(loadContext).mockResolvedValueOnce(initial).mockResolvedValueOnce(next);
+    vi.mocked(loadNotifications).mockReturnValueOnce(oldInbox.promise).mockReturnValueOnce(currentInbox.promise);
+    window.history.replaceState(null, "", "#notifications/preferences");
+    const view = render(<App presentation="demo"/>);
+
+    await screen.findByRole("heading", { name: "Notifications" });
+    await waitFor(() => expect(loadNotifications).toHaveBeenCalledTimes(1));
+    const oldSignal = vi.mocked(loadNotifications).mock.calls[0]?.[0]?.signal;
+    fireEvent.change(screen.getByLabelText("Notification local draft"), { target: { value: "former scope state" } });
+    view.rerender(<App presentation="live-preview"/>);
+    await waitFor(() => expect(loadNotifications).toHaveBeenCalledTimes(2));
+
+    expect(oldSignal?.aborted).toBe(true);
+    expect((screen.getByLabelText("Notification local draft") as HTMLInputElement).value).toBe("");
+    expect(screen.getByTestId("notification-activity-permission").textContent).toBe("false");
+    expect(screen.getByTestId("notification-entity").textContent).toBe(`${next.legal_entity.id}:${next.legal_entity.name}`);
+    expect(screen.getByTestId("notification-actor").textContent).toBe(next.actor.name);
+    expect(screen.getByTestId("notification-inbox-state").textContent).toBe("loading");
+    expect(window.location.hash).toBe("#notifications/preferences");
+
+    await act(async () => { currentInbox.resolve({ items: [notification("current", "Current account update")], unread_count: 1, as_of: "2026-10-21T09:02:00Z" }); });
+    await screen.findByRole("button", { name: "Notifications, 1 unread" });
+    await act(async () => { oldInbox.resolve({ items: [notification("old", "Former account update")], unread_count: 9, as_of: "2026-10-21T09:00:00Z" }); });
+
+    expect(screen.getByTestId("notification-items").textContent).toBe("Current account update");
+    expect(screen.queryByText("Former account update")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Notifications, 9 unread" })).toBeNull();
+    expect(loadNotifications).toHaveBeenCalledTimes(2);
   });
 });
 

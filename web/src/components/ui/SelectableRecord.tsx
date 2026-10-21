@@ -8,12 +8,13 @@ export type SelectableRecordProps = Omit<ButtonProps, "children" | "className" |
   startContent?: ReactNode;
   endContent?: ReactNode;
   isSelected?: boolean;
+  variant?: "card" | "list";
 };
 
-export function SelectableRecord({ title, metadata, description, startContent, endContent, isSelected = false, ...props }: SelectableRecordProps) {
+export function SelectableRecord({ title, metadata, description, startContent, endContent, isSelected = false, variant = "card", ...props }: SelectableRecordProps) {
   return <Button
     {...props}
-    className="cs-selectable-record"
+    className={`cs-selectable-record${variant === "list" ? " cs-selectable-record--list" : ""}`}
     aria-pressed={isSelected}
     data-selected={isSelected || undefined}
     data-has-start-content={startContent == null ? undefined : "true"}

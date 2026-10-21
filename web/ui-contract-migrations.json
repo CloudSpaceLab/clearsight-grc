@@ -60,7 +60,11 @@
     "src/components/EmptyState.tsx",
     "src/components/ReportingPage.tsx",
     "src/components/reports/ReportsWorkspace.tsx",
-    "src/components/reports/ReportsExplore.tsx"
+    "src/components/reports/ReportsExplore.tsx",
+    "src/components/NotificationCenter.tsx",
+    "src/components/NotificationPreferences.tsx",
+    "src/components/notifications/NotificationsWorkspace.tsx",
+    "src/components/notifications/NotificationActivity.tsx"
   ],
   "migratedCss": [
     "src/design-system/components/actions.css",
@@ -89,7 +93,9 @@
     "src/components/reports/reports-overview.css",
     "src/components/reports/report-builder.css",
     "src/components/reports/reports-explore.css",
-    "src/components/reports/reports.css"
+    "src/components/reports/reports.css",
+    "src/notification-center.css",
+    "src/components/notifications/notifications-workspace.css"
   ],
   "nativeControlExceptions": [
     {

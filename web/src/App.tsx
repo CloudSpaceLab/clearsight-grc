@@ -25,6 +25,7 @@ import { FocusedSheet } from "./components/FocusedSheet";
 import { NavigationIcon } from "./components/NavigationIcon";
 import { EnterpriseScopeSwitcher } from "./components/EnterpriseScopeSwitcher";
 import { NotificationCenter } from "./components/NotificationCenter";
+import { useNotificationInbox } from "./components/useNotificationInbox";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { captureContract, effectivePresentationMode, visibleCaptureSections } from "./components/capture/contract";
@@ -49,6 +50,7 @@ const LossesWorkspace = lazy(() => import("./components/losses/LossesWorkspace")
 const RCSAWorkspace = lazy(() => import("./components/rcsa/RCSAWorkspace").then((module) => ({ default: module.RCSAWorkspace })));
 const RopaActivityPage = lazy(() => import("./components/RopaActivityPage").then((module) => ({ default: module.RopaActivityPage })));
 const ReportsWorkspace = lazy(() => import("./components/reports/ReportsWorkspace").then((module) => ({ default: module.ReportsWorkspace })));
+const NotificationsWorkspace = lazy(() => import("./components/notifications/NotificationsWorkspace").then((module) => ({ default: module.NotificationsWorkspace })));
 const InsightsWorkspace = lazy(() => import("./components/insights/InsightsWorkspace").then((module) => ({ default: module.InsightsWorkspace })));
 const EmployeeProfileWorkspace = lazy(() => import("./components/EmployeeProfileWorkspace").then((module) => ({ default: module.EmployeeProfileWorkspace })));
 
@@ -90,6 +92,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const [mobileContextOpen, setMobileContextOpen] = useState(false);
   const initialRoute = parseRoute(window.location.hash);
   const [runtime, setRuntime] = useState<ProductRuntime | null>(null);
+  const notifications = useNotificationInbox({ scopeKey: runtime ? notificationScopeKey(runtime) : undefined });
   const [scopeSwitchState, setScopeSwitchState] = useState<"idle" | "changing">("idle");
   const [scopeSwitchError, setScopeSwitchError] = useState("");
   const [organizationScope, setOrganizationScope] = useState<ScopeNode>();
@@ -141,7 +144,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const oversightEnabled = runtime?.capabilities?.oversight_read === true;
 
   useEffect(() => {
+    let active = true;
     void Promise.allSettled([loadContext(), loadToday(), loadReadiness()]).then(([contextResult, todayResult, readinessResult]) => {
+      if (!active) return;
       const currentRuntime = contextResult.status === "fulfilled" ? contextResult.value as ProductRuntime : null;
       applyVerifiedRuntime(currentRuntime);
       if (todayResult.status === "fulfilled") {
@@ -163,6 +168,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         setReadinessState("unavailable");
       }
     });
+    return () => { active = false; };
   }, [presentation]);
 
   useEffect(() => {
@@ -629,7 +635,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
           </div>}
         </div>
         <div className="context-top-actions">
-          {runtime && <NotificationCenter key={notificationScopeKey(runtime)}/>}
+          {runtime && <NotificationCenter inbox={notifications} onOpen={() => navigate("notifications")} isCurrent={activeView === "notifications"}/>}
           <button type="button" className="context-mobile-controls-toggle" aria-label="Workspace controls"
             aria-controls="workspace-context-controls" aria-expanded={mobileContextOpen}
             onClick={() => setMobileContextOpen((open) => !open)}>
@@ -714,6 +720,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         onOpenReports={() => navigate("reports")}
       /></Suspense>}
       {activeView === "reports" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading reports…</div>}><ReportsWorkspace scopeAuthorized={Boolean(runtime)} organizationName={organizationName} legalEntityName={legalEntityName} legalEntityID={runtime?.legal_entity.id} organizationScopeID={activeOrganizationScope?.id} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenLoss={(lossID) => navigate("losses", { lossID })} onOpenWork={() => navigate("work")} onOpenPrograms={() => navigate("programs")} onOpenInsights={(period) => navigate("insights", period ? { insightsView: "risk-loss", insightsPeriod: period, insightsLegalEntityID: runtime?.legal_entity.id, ...(activeOrganizationScope?.id ? { insightsOrganizationScopeID: activeOrganizationScope.id } : {}) } : {})}/></Suspense>}
+      {activeView === "notifications" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading notifications…</div>}>{runtime ? <NotificationsWorkspace key={notificationScopeKey(runtime)} inbox={notifications} tab={target.notificationTab ?? "inbox"} onTab={(notificationTab) => navigate("notifications", notificationTab === "inbox" ? {} : { notificationTab })} legalEntityID={runtime.legal_entity.id} legalEntityName={legalEntityName} actorName={actorName} canReadActivity={runtime.capabilities?.platform_operations_read === true} onOpenWork={() => navigate("work")}/> : <div className="workspace-loading" role="status">Loading your notification access…</div>}</Suspense>}
       {activeView === "ropa" && target.ropaPage !== "reports" && target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity…</div>}><RopaActivityPage activityID={target.ropaActivityID} organizationName={organizationName} legalEntityName={legalEntityName} onBack={() => navigate("ropa")}/></Suspense>}
       {activeView === "ropa" && target.ropaPage !== "reports" && !target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity register…</div>}><RopaRegisterPage organizationName={organizationName} legalEntityName={legalEntityName} onOpenActivity={(id) => navigate("ropa", { ropaPage: "register", ropaActivityID: id })} onOpenReports={() => navigate("ropa", { ropaPage: "reports" })}/></Suspense>}
       {activeView === "work" && <WorkView refreshToken={invalidationRevision} organizationName={organizationName} actorPrincipalID={runtime?.actor.id} evidenceScopeToken={evidenceScopeEpoch.current} tab={workTab} onTab={(tab) => navigate("work", target.returnRCSACycleID ? { returnRCSACycleID: target.returnRCSACycleID } : {}, tab)} onBackMatter={() => target.returnRCSACycleID ? navigate("rcsa", { rcsaCycleID: target.returnRCSACycleID }) : navigate("work", {}, "matters")} returnContext={target.returnRCSACycleID ? { label: "Back to RCSA cycle", onReturn: () => navigate("rcsa", { rcsaCycleID: target.returnRCSACycleID }) } : undefined} assignedItems={items} assignedState={connection} assignedAsOf={todayGeneratedAt} assignedHasMore={todayWorkflowHasMore} onOpenAssignedItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)} sources={sources} requests={evidenceRequests} evidenceSourceState={evidenceSourceState === "idle" ? "loading" : evidenceSourceState} evidenceRequestState={evidenceRequestState === "idle" ? "loading" : evidenceRequestState} onEvidenceRetry={() => void loadEvidenceWorkspace(target.evidenceID)} onEvidenceRequestUpdated={updateEvidenceEntity} matterTargetID={target.matterID} openFirstMatter={target.openFirstMatter} evidenceTargetID={target.evidenceID} openFirstEvidence={target.openFirstEvidence} onOpenEvidence={(id) => void openCapture(id)} onOpenLoss={(lossID) => navigate("losses", { lossID })} onOpenIndicator={(indicatorID, indicatorKind) => navigate("insights", { indicatorID, indicatorKind })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}

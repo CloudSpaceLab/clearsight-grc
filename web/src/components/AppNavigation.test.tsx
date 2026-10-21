@@ -63,6 +63,7 @@ describe("AppNavigation interactions", () => {
     { activeView: "programs", target: { programID: "program-1", programSection: "monitoring" }, label: "Programs", destination: "programs", tab: undefined },
     { activeView: "losses", target: { lossID: "loss-1" }, label: "Risk & Losses", destination: "risks", tab: undefined },
     { activeView: "work", target: { matterID: "matter-1" }, label: "Work & Approvals", destination: "work", tab: "assigned" },
+    { activeView: "notifications", target: { notificationTab: "preferences" }, label: "Work & Approvals", destination: "work", tab: "assigned" },
   ] satisfies Array<{ activeView: NavigationProps["activeView"]; target: NavigationProps["target"]; label: string; destination: string; tab: string | undefined }>)
   ("opens $label from an active detail instead of preserving the old target", ({ activeView, target, label, destination, tab }) => {
     const { props } = renderNavigation({ activeView, target });

@@ -90,6 +90,18 @@
 .cs-tabs__panel { padding-block-start: var(--cs-tabs-panel-gap); outline: none; }
 .cs-tabs__panel[data-focus-visible] { box-shadow: 0 0 0 var(--cs-focus-width) var(--cs-focus-ring); }
 
+.cs-tabs--surface > .cs-tabs__list {
+  padding: var(--cs-primitive-space-1) var(--cs-primitive-space-2);
+  border: var(--cs-primitive-border-1) solid var(--cs-border-default);
+  border-radius: var(--cs-primitive-radius-14);
+  background: var(--cs-bg-surface-1);
+}
+
+.cs-tabs--surface > .cs-tabs__list > .cs-tabs__tab[data-selected] {
+  border-radius: var(--cs-primitive-radius-10);
+  background: var(--cs-bg-surface-hover);
+}
+
 .cs-scope-bar {
   display: flex;
   min-inline-size: 0;
