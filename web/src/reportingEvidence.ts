@@ -1,4 +1,5 @@
 import type { ReportDefinition, ReportDefinitionRevision, ReportFilterExpression, ReportFilterFieldDefinition, ReportRun } from "./reportingTypes";
+import { reportOverviewEvidence } from "./reportOverviewEvidence";
 
 const tenantID = "bank-demo";
 const legalEntityID = "bank-ng";
@@ -342,6 +343,8 @@ export function installReportingEvidence() {
     const path = url.pathname;
     const recordRead = () => window.reportingEvidenceReads?.push(`${path}${url.search}`);
     const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
+    const overview = await reportOverviewEvidence(fixture, url, () => previous(input, init));
+    if (overview) { recordRead(); return overview; }
 
     if (path === "/api/v1/reports/matter-board-brief") {
       recordRead();

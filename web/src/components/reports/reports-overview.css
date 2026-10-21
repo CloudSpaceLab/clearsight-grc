@@ -26,6 +26,7 @@
   --cs-metric-card-value-size: var(--cs-primitive-font-size-28);
 }
 .reports-v2-stats .cs-metric-card { min-width: 0; }
+.reports-v2-stats .cs-metric-card__measure strong { min-width: 0; overflow-wrap: anywhere; }
 .reports-v2-analysis { display: grid; gap: var(--cs-primitive-space-3); min-width: 0; }
 .reports-v2-analysis--primary { grid-template-columns: minmax(0, 1.23fr) minmax(0, .87fr); }
 .reports-v2-analysis--secondary { grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); }
@@ -101,7 +102,7 @@
   .reports-v2-analysis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 700px) {
-  .reports-v2-stats { gap: var(--cs-space-inline); --cs-metric-card-value-size: var(--cs-primitive-font-size-24); }
+  .reports-v2-stats { gap: var(--cs-space-inline); --cs-metric-card-value-size: var(--cs-primitive-font-size-22); }
   .reports-v2-analysis, .reports-v2-rail { grid-template-columns: minmax(0, 1fr); }
   .reports-v2-panel { padding: var(--cs-primitive-space-3); }
 }

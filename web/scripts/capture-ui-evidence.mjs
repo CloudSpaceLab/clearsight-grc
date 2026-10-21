@@ -58,15 +58,40 @@ const captures = [
   { name: "219-report-source-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReadyReport: true, state: "report-source-desktop" },
   { name: "220-report-source-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openReadyReport: true, state: "report-source-mobile" },
   { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-library" },
-  { name: "140a-report-overview-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-overview-desktop", openReportOverview: true },
-  { name: "140b-report-overview-light-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-overview-mobile", openReportOverview: true },
-  { name: "140f-report-overview-light-1024x768", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1024, height: 768 }, state: "report-overview-tablet", openReportOverview: true },
-  { name: "140g-report-overview-dark-768x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 768, height: 900 }, state: "report-overview-narrow", openReportOverview: true },
+  // Loaded Overview is compared with the approved source at every exact width.
+  // Unavailable, partial and denied reads remain separate evidence states below.
+  ...[
+    { name: "140a-report-overview-light-1440x900", theme: "light", viewport: { width: 1440, height: 900 }, state: "report-overview-desktop" },
+    { name: "140b-report-overview-light-mobile-390x844", theme: "light", viewport: { width: 390, height: 844 }, state: "report-overview-mobile" },
+    { name: "140f-report-overview-light-1024x768", theme: "light", viewport: { width: 1024, height: 768 }, state: "report-overview-tablet" },
+    { name: "140g-report-overview-dark-768x900", theme: "dark", viewport: { width: 768, height: 900 }, state: "report-overview-narrow" },
+    { name: "140h-report-overview-light-1280x800", theme: "light", viewport: { width: 1280, height: 800 }, state: "report-overview-medium" },
+    { name: "140i-report-overview-light-768x900", theme: "light", viewport: { width: 768, height: 900 }, state: "report-overview-narrow-light" },
+    { name: "140j-report-overview-dark-1440x900", theme: "dark", viewport: { width: 1440, height: 900 }, state: "report-overview-desktop-dark" },
+    { name: "140k-report-overview-dark-1280x800", theme: "dark", viewport: { width: 1280, height: 800 }, state: "report-overview-medium-dark" },
+    { name: "140l-report-overview-dark-1024x768", theme: "dark", viewport: { width: 1024, height: 768 }, state: "report-overview-tablet-dark" },
+    { name: "140m-report-overview-dark-mobile-390x844", theme: "dark", viewport: { width: 390, height: 844 }, state: "report-overview-mobile-dark" },
+    { name: "140n-report-overview-unavailable-light-1440x900", fixture: "report-definitions", theme: "light", viewport: { width: 1440, height: 900 }, state: "report-overview-unavailable" },
+    { name: "140o-report-overview-partial-dark-1440x900", fixture: "report-overview-partial", theme: "dark", viewport: { width: 1440, height: 900 }, state: "report-overview-partial" },
+    { name: "140p-report-overview-denied-light-mobile-390x844", fixture: "report-overview-denied", theme: "light", viewport: { width: 390, height: 844 }, state: "report-overview-denied" },
+    { name: "140q-report-overview-area-light-1440x900", theme: "light", viewport: { width: 1440, height: 900 }, state: "report-overview-selected-area", reportOrganizationScope: "sample-scope-risk-ops" },
+  ].map((scenario) => ({ route: "#reports", title: "Reports & insights", fixture: "report-overview-loaded", density: "comfortable", openReportOverview: true, touch: scenario.viewport.width <= 1024, ...scenario })),
   { name: "140c-report-explore-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-explore-desktop", openReportExplore: true },
   { name: "140d-report-explore-light-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-explore-mobile", openReportExplore: true },
 
 
   { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
+  { name: "141a-report-library-records-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, scrollToReportRecords: true, state: "report-library-records-mobile" },
+  { name: "141b-report-library-light-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-library-mobile-light" },
+  ...[
+    { name: "141c-report-library-dark-1440x900", theme: "dark", viewport: { width: 1440, height: 900 }, state: "report-library-desktop-dark" },
+    { name: "141d-report-library-light-1280x800", theme: "light", viewport: { width: 1280, height: 800 }, state: "report-library-medium-light" },
+    { name: "141e-report-library-dark-1280x800", theme: "dark", viewport: { width: 1280, height: 800 }, state: "report-library-medium-dark" },
+    { name: "141f-report-library-light-1024x768", theme: "light", viewport: { width: 1024, height: 768 }, state: "report-library-tablet-light" },
+    { name: "141g-report-library-dark-1024x768", theme: "dark", viewport: { width: 1024, height: 768 }, state: "report-library-tablet-dark" },
+    { name: "141h-report-library-light-768x900", theme: "light", viewport: { width: 768, height: 900 }, state: "report-library-narrow-light" },
+    { name: "141i-report-library-dark-768x900", theme: "dark", viewport: { width: 768, height: 900 }, state: "report-library-narrow-dark" },
+  ].map((scenario) => ({ route: "#reports", title: "Reports & insights", fixture: "report-definitions", density: "comfortable", touch: scenario.viewport.width <= 1024, ...scenario })),
   { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openFailedReport: true, expectText: "Generation stopped: Row Limit Exceeded", state: "report-run-failed" },
   { name: "143-report-setups-dark-mobile-compact-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, openReportTemplates: true, expectText: "Program health review", state: "report-setups-mobile" },
   { name: "144-report-generate-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReportGenerate: true, expectText: "No ready vendors setup", state: "report-generate" },
@@ -86,6 +111,8 @@ try {
     await captureVendorActivationRecovery();
   } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-workflows") {
     await captureVendorWorkflows();
+  } else if (process.env.UI_EVIDENCE_SCOPE === "reports") {
+    for (const capture of captures.filter((item) => item.route === "#reports")) await capturePage(capture);
   } else {
   for (const capture of captures) await capturePage(capture);
   for (const scenario of [
@@ -196,6 +223,7 @@ async function assertApprovedShell(page, width) {
 
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
+  let reportsLayout;
   try {
     if (["04-program-light-1440x900", "04-program-light-1280x800",
          "09-today-dark-tablet-1024x768"].includes(capture.name)) {
@@ -352,9 +380,7 @@ async function capturePage(capture) {
     }
     if (capture.route === "#reports" && !capture.openReportOverview && !capture.openReportExplore && !capture.openReportTemplates) {
       await page.getByRole("tab", { name: "Reports", exact: true }).click();
-    }
-    if (capture.state === "report-library") {
-      await page.getByRole("table", { name: "Generated reports" }).waitFor({ state: "visible" });
+      reportsLayout = await assertReportsLibraryLayout(page, capture);
     }
     if (capture.openReportExplore) {
       const workspace = page.locator(".reports-workspace");
@@ -373,41 +399,13 @@ async function capturePage(capture) {
     }
 
     if (capture.openReportOverview) {
-      const workspace = page.locator(".reports-workspace");
-      const views = workspace.getByRole("tablist", { name: "Reports workspace" });
-      await Promise.all([
-        workspace.getByRole("heading", { name: "Reports & insights" }).waitFor({ state: "visible" }),
-        views.waitFor({ state: "visible" }),
-        workspace.getByRole("region", { name: "Reports Overview" }).waitFor({ state: "visible" }),
-      ]);
-      const labels = await views.getByRole("tab").allTextContents();
-      if (labels.map((value) => value.trim()).join("|") !== "Overview|Explore|Reports|Schedules|Build report") {
-        throw new Error(`${capture.name}: V2 Reports local views do not match the approved five-view hierarchy: ${labels.join("|")}`);
+      if (capture.reportOrganizationScope) {
+        await page.getByRole("button", { name: /^Organization scope,/ }).click();
+        await page.getByRole("dialog", { name: "Change organization scope" })
+          .getByRole("button", { name: /^Risk Operations/ }).click();
+        await page.getByRole("button", { name: /^Organization scope,.*Risk Operations/ }).waitFor({ state: "visible" });
       }
-      if (await workspace.locator(".cs-tabs__compact").count()) {
-        throw new Error(`${capture.name}: Reports has a duplicate compact-select view control`);
-      }
-      const measures = workspace.getByRole("region", { name: "Reporting measures" });
-      const risk = workspace.getByRole("region", { name: "Risk concentration panel" });
-      const coverage = workspace.getByRole("heading", { name: "Assessment coverage" });
-      const losses = workspace.getByRole("region", { name: "Loss movement panel" });
-      const findings = workspace.getByRole("heading", { name: "Priority findings" });
-      const recent = workspace.getByRole("heading", { name: "Recent reports" });
-      const rail = workspace.getByRole("complementary", { name: "Reporting context" });
-      await Promise.all([measures, risk, coverage, losses, findings, recent, rail].map((item) => item.waitFor({ state: "visible" })));
-      if (await measures.locator(".cs-metric-card").count() !== 4) {
-        throw new Error(`${capture.name}: V2 Reports Overview must display exactly four source measures`);
-      }
-      const [metricBox, riskBox, coverageBox, lossBox, findingsBox, recentBox, railBox] = await Promise.all(
-        [measures, risk, coverage, losses, findings, recent, rail].map((item) => item.boundingBox()),
-      );
-      if ([metricBox, riskBox, coverageBox, lossBox, findingsBox, recentBox, railBox].some((box) => !box)
-          || metricBox.y >= riskBox.y || riskBox.y >= lossBox.y
-          || coverageBox.y >= findingsBox.y || findingsBox.y >= recentBox.y
-          || (capture.viewport.width >= 1350 && railBox.x <= riskBox.x + riskBox.width - 4)
-          || (capture.viewport.width <= 390 && metricBox.y >= 440)) {
-        throw new Error(`${capture.name}: V2 Reports source Overview composition has regressed`);
-      }
+      reportsLayout = await assertReportsOverviewLayout(page, capture);
     }
 
     if (capture.assertNoConfigureNav) {
@@ -431,20 +429,22 @@ async function capturePage(capture) {
       await page.getByRole("dialog", { name: /^Selected work: / }).waitFor({ state: "visible" });
     }
     if (capture.openReadyReport) {
-      const table = page.getByRole("table", { name: "Generated reports" });
+      const records = page.getByRole("list", { name: "Generated report records" });
       // The ready fixture is deliberately expired. Inspection remains valid,
       // but download is not permitted, so do not select by a Download action.
-      const row = table.getByRole("row", { name: /Processing activities with open exceptions/ }).first();
-      await row.waitFor({ state: "visible" });
-      await row.getByRole("button", { name: /^View for / }).click();
+      await records.getByRole("button", { name: /^Select Processing activities with open exceptions, (Ready|Expired),/ }).click();
+      const inspector = page.getByRole("complementary", { name: "Selected report" });
+      await inspector.getByRole("heading", { name: "Processing activities with open exceptions", exact: true }).waitFor({ state: "visible" });
+      await inspector.getByRole("button", { name: "View report details", exact: true }).click();
       const source = page.getByRole("dialog", { name: "Report details" }).getByRole("region", { name: "Source snapshot" });
       await source.waitFor({ state: "visible" });
       await source.getByText(/Population (complete|incomplete)|Coverage unknown/).waitFor({ state: "visible" });
     }
     if (capture.openFailedReport) {
-      const failedRow = page.getByRole("table", { name: "Generated reports" }).getByRole("row").filter({ hasText: "Failed" }).first();
-      await failedRow.waitFor({ state: "visible" });
-      await failedRow.getByRole("button", { name: /View for/ }).click();
+      await page.getByRole("list", { name: "Generated report records" }).getByRole("button", { name: /, Failed,/ }).first().click();
+      const inspector = page.getByRole("complementary", { name: "Selected report" });
+      await inspector.getByText("Generation stopped: Row Limit Exceeded", { exact: true }).waitFor({ state: "visible" });
+      await inspector.getByRole("button", { name: "View report details", exact: true }).click();
       await page.getByRole("dialog", { name: "Report details" }).waitFor({ state: "visible" });
     }
     if (capture.openReportGenerate) {
@@ -641,8 +641,10 @@ async function capturePage(capture) {
       await action.scrollIntoViewIfNeeded();
     }
     if (capture.state === "work-assigned-desktop" || capture.state === "work-assigned-mobile") await assertWorkMeasureLabels(page, capture);
+    if (capture.scrollToReportRecords) await page.getByRole("list", { name: "Generated report records" }).scrollIntoViewIfNeeded();
     await saveScreenshot(page, capture.name);
-    const recordedCapture = capture.openRopaActivity ? { ...capture, route: new URL(page.url()).hash } : capture;
+    const recordedCapture = { ...capture, ...(reportsLayout ? { reportsLayout } : {}),
+      ...(capture.openRopaActivity ? { route: new URL(page.url()).hash } : {}) };
     await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
     if (capture.name.startsWith("report-")) await assertReportLayout(page, capture.name);
@@ -658,15 +660,6 @@ async function capturePage(capture) {
     if (capture.state === "issue-workspace-activity-mobile") {
       if (await page.getByLabel("Issue activity").count() !== 1) throw new Error(`${capture.name} does not render exactly one narrow Activity instance`);
       if (await page.getByLabel("Add internal comment").count() !== 1) throw new Error(`${capture.name} duplicates the Activity composer`);
-    }
-    if (capture.state === "report-library-mobile") {
-      const replacement = await page.evaluate(() => {
-        const table = document.querySelector('[aria-label="Generated reports"]');
-        const row = table?.querySelector("tbody tr");
-        const head = table?.querySelector("thead");
-        return { rowDisplay: row ? getComputedStyle(row).display : "", headPosition: head ? getComputedStyle(head).position : "" };
-      });
-      if (replacement.rowDisplay !== "grid" || replacement.headPosition !== "absolute") throw new Error(`${capture.name} did not replace the generated-report table with stacked mobile records`);
     }
     await assertGuideLauncherDoesNotBlockNavigation(page, capture.name, capture.viewport.width);
     if (capture.assertFirstActionVisible) await assertFirstActionVisible(page, capture.viewport.height, capture.name, capture.touch === true);
@@ -692,6 +685,167 @@ async function openMatterWorkspaceTab(page, label) {
   await compact.waitFor({ state: "visible" });
   await compact.click();
   await page.getByRole("option", { name: label, exact: true }).click();
+}
+
+async function assertReportsOverviewLayout(page, capture) {
+  const workspace = page.locator(".reports-workspace");
+  const views = workspace.getByRole("tablist", { name: "Reports workspace" });
+  const measures = workspace.getByRole("region", { name: "Reporting measures" });
+  await Promise.all([views, measures, workspace.getByRole("region", { name: "Reports Overview" })]
+    .map((item) => item.waitFor({ state: "visible" })));
+  const labels = (await views.getByRole("tab").allTextContents()).map((value) => value.trim());
+  if (labels.join("|") !== "Overview|Explore|Reports|Schedules|Build report" || await workspace.locator(".cs-tabs__compact").count()) {
+    throw new Error(`${capture.name}: Reports must retain its five approved local views without a duplicate compact selector`);
+  }
+  const hasRisk = ["report-overview-loaded", "report-overview-partial"].includes(capture.fixture);
+  const hasLoss = capture.fixture === "report-overview-loaded";
+  const expectedRisk = hasRisk ? capture.reportOrganizationScope ? "2" : "4" : "—";
+  await page.waitForFunction((riskValue) => {
+    const cards = [...document.querySelectorAll('.reports-v2-stats .cs-metric-card')];
+    return cards.length === 4 && cards.every((card) => !card.querySelector('.cs-metric-card__quality')?.textContent?.includes("Loading"))
+      && cards[0].querySelector('.cs-metric-card__measure strong')?.textContent === riskValue;
+  }, expectedRisk, { timeout: 12000 });
+  if (hasRisk) await workspace.getByRole("list", { name: "Outside-appetite risks by organization area" }).waitFor({ state: "visible" });
+  if (hasLoss) await workspace.getByRole("img", { name: "Net operational loss trend" }).waitFor({ state: "visible" });
+  else await workspace.getByText("Loss trend is unavailable for this period.", { exact: true }).waitFor({ state: "visible" });
+  await workspace.getByRole("table", { name: "Recent reports" }).waitFor({ state: "visible" });
+
+  const layout = await workspace.evaluate((root) => {
+    const box = (node) => {
+      const value = node?.getBoundingClientRect();
+      return value ? { x: value.x, y: value.y, right: value.right, bottom: value.bottom, width: value.width, height: value.height } : null;
+    };
+    const textLines = (node) => {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      return [...range.getClientRects()].filter((line) => line.width > 0 && line.height > 0);
+    };
+    const cards = [...root.querySelectorAll(".cs-metric-card")].map((card) => {
+      const outer = box(card);
+      const label = card.querySelector(".cs-metric-card__label");
+      const value = card.querySelector(".cs-metric-card__measure strong");
+      const content = [...card.querySelectorAll(".cs-metric-card__label, .cs-metric-card__quality, .cs-metric-card__measure strong, .cs-metric-card__detail")];
+      return { ...outer, label: label.textContent, value: value?.textContent,
+        valueFontSize: value ? parseFloat(getComputedStyle(value).fontSize) : 0,
+        quality: card.getAttribute("data-quality"), detail: card.querySelector(".cs-metric-card__detail")?.textContent,
+        labelLines: new Set(textLines(label).map((line) => Math.round(line.y))).size,
+        containsText: content.flatMap(textLines).every((line) => line.x >= outer.x - 1 && line.right <= outer.right + 1
+          && line.y >= outer.y - 1 && line.bottom <= outer.bottom + 1) };
+    });
+    const embedded = [...root.querySelectorAll(".organization-risk-summary, .loss-movement")].map((node) => {
+      const style = getComputedStyle(node);
+      return { embedded: node.hasAttribute("data-embedded"),
+        noFrame: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth,
+          style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft].every((value) => parseFloat(value) === 0)
+          && style.boxShadow === "none",
+        parentFrame: node.parentElement?.classList.contains("reports-v2-panel")
+          && parseFloat(getComputedStyle(node.parentElement).borderTopWidth) > 0 };
+    });
+    return { cards, embedded, primary: box(root.querySelector(".reports-v2-primary")),
+      measures: box(root.querySelector(".reports-v2-stats")), rail: box(root.querySelector(".reports-v2-rail")),
+      risk: box(root.querySelector('[aria-label="Risk concentration panel"]')),
+      coverage: box(root.querySelector(".reports-v2-coverage")), loss: box(root.querySelector('[aria-label="Loss movement panel"]')),
+      findings: box(root.querySelector(".reports-v2-findings")), recent: box(root.querySelector(".reports-overview__recent")),
+      recentActions: [...root.querySelectorAll(".reports-overview__recent .cs-data-table__action")]
+        .map((cell) => ({ cell: box(cell), button: box(cell.querySelector("button")) })),
+      riskBuckets: [...root.querySelectorAll(".organization-risk-summary .cs-ranked-bars__value")].map((node) => Number(node.textContent)),
+      lossSummary: root.querySelector(".loss-movement .risk-movement__summary strong")?.textContent ?? null,
+      expectedLoss: new Intl.NumberFormat(undefined, { style: "currency", currency: "NGN", currencyDisplay: "narrowSymbol" }).format(10400000),
+      expectedCompactLoss: new Intl.NumberFormat(undefined, { style: "currency", currency: "NGN", currencyDisplay: "narrowSymbol", notation: "compact", maximumFractionDigits: 1 }).format(10400000),
+      reads: window.reportingEvidenceReads ?? [] };
+  });
+  const boxes = [layout.primary, layout.measures, layout.rail, layout.risk, layout.coverage, layout.loss, layout.findings, layout.recent];
+  if (boxes.some((value) => !value)) throw new Error(`${capture.name}: Reports is missing an approved Overview section`);
+  const columns = capture.viewport.width >= 1440 ? 4 : 2;
+  const firstRow = layout.cards.filter((card) => Math.abs(card.y - layout.cards[0].y) <= 2);
+  const secondRow = layout.cards.slice(2);
+  if (firstRow.length !== columns || (columns === 2 && (Math.abs(secondRow[0].y - secondRow[1].y) > 2
+      || secondRow[0].y < Math.max(...firstRow.map((card) => card.bottom))))) {
+    throw new Error(`${capture.name}: Reporting measures must form ${columns} columns at ${capture.viewport.width}px`);
+  }
+  if (layout.cards.some((card) => card.height > 190 || card.labelLines > 3 || !card.containsText)) {
+    throw new Error(`${capture.name}: Reporting metric labels or values are wrapping excessively or leaving their cards: ${JSON.stringify(layout.cards)}`);
+  }
+  const minimumValueFontSize = capture.viewport.width <= 700 ? 22 : 28;
+  if (layout.cards.some((card) => !(card.valueFontSize >= minimumValueFontSize))) {
+    throw new Error(`${capture.name}: Reporting metric values must render at least ${minimumValueFontSize}px; computed sizes: ${layout.cards.map((card) => `${card.label} ${card.valueFontSize}px`).join(", ")}`);
+  }
+  const railPlacement = capture.viewport.width >= 1280 ? "beside" : "below";
+  if ((railPlacement === "beside" && (layout.rail.x < layout.primary.right + 1 || Math.abs(layout.rail.y - layout.measures.y) > 3))
+      || (railPlacement === "below" && layout.rail.y < layout.primary.bottom + 1)) {
+    throw new Error(`${capture.name}: Reporting context must sit ${railPlacement} the main analysis at ${capture.viewport.width}px`);
+  }
+  if (layout.measures.bottom > layout.risk.y || layout.risk.bottom > layout.loss.y
+      || layout.coverage.bottom > layout.findings.y || layout.findings.bottom > layout.recent.y
+      || (capture.viewport.width <= 390 && layout.measures.y >= 440)) {
+    throw new Error(`${capture.name}: Reports has lost the approved measures → analysis → recent-reports order`);
+  }
+  if (layout.embedded.length !== 2 || layout.embedded.some((panel) => !panel.embedded || !panel.noFrame || !panel.parentFrame)) {
+    throw new Error(`${capture.name}: Risk and loss charts must each use one containing panel without a nested frame`);
+  }
+  if (capture.viewport.width <= 700 && (!layout.recentActions.length || layout.recentActions.some(({ cell, button }) =>
+    !cell || !button || cell.width < 44 || button.width < 44 || button.height < 44
+      || Math.abs(button.width - cell.width) > 2))) {
+    throw new Error(`${capture.name}: Recent-report actions must fill their stacked action cell and provide at least a 44×44px touch target`);
+  }
+  const [risk, requirements, net, ready] = layout.cards;
+  if (risk.value !== expectedRisk || requirements.value !== "—" || ready.value !== "0"
+      || (hasRisk && (risk.detail !== `${capture.reportOrganizationScope ? 5 : 12} in scope`
+        || layout.riskBuckets.reduce((sum, value) => sum + value, 0) !== Number(expectedRisk)
+        || risk.quality !== (capture.fixture === "report-overview-partial" ? "partial" : "current")))
+      || (!hasRisk && layout.riskBuckets.length)
+      || (hasLoss ? net.value !== layout.expectedCompactLoss || layout.lossSummary !== layout.expectedLoss : net.value !== "—" || layout.lossSummary !== null)) {
+    throw new Error(`${capture.name}: Reports values no longer agree with the scoped evidence source or unavailable state`);
+  }
+  const sourceScope = capture.reportOrganizationScope ?? "";
+  if (hasRisk) {
+    const reads = layout.reads.map((value) => new URL(value, "https://evidence.invalid"));
+    const latest = (pathname) => reads.filter((url) => url.pathname === pathname).at(-1);
+    const paths = ["/api/v1/metrics/home", "/api/v1/metrics/domain", "/api/v1/metrics/domain/risks_outside_appetite/organization-breakdown", "/api/v1/metrics/losses/period"];
+    if (paths.some((pathname) => !latest(pathname) || (latest(pathname).searchParams.get("organization_scope_id") ?? "") !== sourceScope)
+        || latest(paths[2]).searchParams.get("source_id") !== `8f710000-0000-4000-8000-00000000000${sourceScope ? 2 : 1}`
+        || latest(paths[3]).searchParams.get("start_date") !== "2026-09-08" || latest(paths[3]).searchParams.get("end_date") !== "2026-10-07") {
+      throw new Error(`${capture.name}: Home, risk concentration and loss reads do not share the selected scope and source period`);
+    }
+  }
+  return { kind: "overview", metricColumns: columns, railPlacement,
+    maxMetricHeight: Math.max(...layout.cards.map((card) => card.height)), maxLabelLines: Math.max(...layout.cards.map((card) => card.labelLines)),
+    minMetricValueFontSize: Math.min(...layout.cards.map((card) => card.valueFontSize)),
+    minRecentActionCellWidth: Math.min(...layout.recentActions.map(({ cell }) => cell?.width ?? 0)),
+    minRecentActionButtonWidth: Math.min(...layout.recentActions.map(({ button }) => button?.width ?? 0)),
+    minRecentActionButtonHeight: Math.min(...layout.recentActions.map(({ button }) => button?.height ?? 0)),
+    embeddedPanels: layout.embedded.length, riskValue: risk.value, riskQuality: risk.quality,
+    lossAvailable: hasLoss, organizationScopeID: sourceScope || null };
+}
+
+async function assertReportsLibraryLayout(page, capture) {
+  const records = page.getByRole("list", { name: "Generated report records" });
+  const inspector = page.getByRole("complementary", { name: "Selected report" });
+  await Promise.all([records, inspector, inspector.getByRole("button", { name: "View report details", exact: true })]
+    .map((item) => item.waitFor({ state: "visible" })));
+  if (await records.getByRole("button", { pressed: true }).count() !== 1 || await inspector.count() !== 1
+      || await page.getByRole("table", { name: "Generated reports" }).count()) {
+    throw new Error(`${capture.name}: Reports must use one selected record and one persistent inspector`);
+  }
+  const title = await records.getByRole("button", { pressed: true }).locator(".cs-selectable-record__title").textContent();
+  await inspector.getByRole("heading", { name: title, exact: true }).waitFor({ state: "visible" });
+  const [registerBox, inspectorBox, listBox] = await Promise.all([
+    page.locator(".reports-v2-library__register"), inspector, records,
+  ].map((item) => item.boundingBox()));
+  const beside = capture.viewport.width > 700;
+  if (!registerBox || !inspectorBox || !listBox
+      || (beside && (inspectorBox.x < registerBox.x + registerBox.width + 1 || Math.abs(inspectorBox.y - registerBox.y) > 3))
+      || (!beside && (inspectorBox.y + inspectorBox.height > registerBox.y || Math.abs(inspectorBox.x - registerBox.x) > 3))) {
+    throw new Error(`${capture.name}: Selected report inspector must sit ${beside ? "beside" : "above"} the generated-record register`);
+  }
+  const rows = await records.getByRole("button").evaluateAll((items) => items.map((item) => {
+    const outer = item.getBoundingClientRect();
+    return { height: outer.height, width: outer.width, contentWidth: item.scrollWidth, clientWidth: item.clientWidth };
+  }));
+  if (!rows.length || rows.some((row) => row.height < 44 || row.width > listBox.width + 1 || row.contentWidth > row.clientWidth + 1)) {
+    throw new Error(`${capture.name}: Generated-report records must be readable, full-width selection targets`);
+  }
+  return { kind: "library", recordCount: rows.length, selectedCount: 1, inspectorPlacement: beside ? "beside" : "above" };
 }
 
 async function assertGuideLauncherDoesNotBlockNavigation(page, name, viewportWidth) {
@@ -836,6 +990,7 @@ async function record(page, capture, state) {
       frameworkCatalog: capture.frameworkCatalog,
       frameworkDetailSheet: Boolean(capture.frameworkDetailSheet),
     } : {}),
+    ...(capture.reportsLayout ? { reportsLayout: capture.reportsLayout } : {}),
     metrics: await layoutMetrics(page),
   });
   await writeManifest();

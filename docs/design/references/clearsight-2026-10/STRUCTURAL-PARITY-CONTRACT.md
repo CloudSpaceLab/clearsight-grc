@@ -1,6 +1,6 @@
 # Approved HTML — structural parity contract
 
-Tracking: #462. Source authority: `source/MANIFEST.json` (SHA-256-pinned original HTML and design notes). Updated: 2026-10-19.
+Tracking: #462. Source authority: `source/MANIFEST.json` (SHA-256-pinned original HTML and design notes). Updated: 2026-10-19; Reports integration entry updated 2026-10-21.
 
 **A screen is not migrated merely because its colors, cards, or typography resemble the source.** A release reviewer must verify the unified **global shell → approved page heading/actions → local tabs → filters → content sections → selected-detail/review panel** with the correct ordering, desktop/mobile layout, authorization and real operations. Do not count individual component merges as an accepted screen.
 
@@ -24,7 +24,7 @@ All tab names below refer to **original HTML menu/section order**, not a claim t
 | Vendors / `clearsight-vendor-management-designs` | **Overview · Register · Onboarding · Assessments · Documents**; detail: Overview / Due diligence / Evidence / Issues & actions / Activity | Domain workflows exist; card repair #544 does not reconstruct full overview or tab navigation |
 | Operational Risk / `clearsight-operational-risk-designs` | **Overview · KRIs · RCSA · Losses · Actions** | Preserve separate flow vs as-of semantics and actual record routes |
 | Privacy / `clearsight-privacy-data-designs` | **Overview · ROPA · DPIAs · Breaches · Vendor reviews · Requests** | Existing ROPA detail alone is not equivalent to Privacy overview |
-| Reports / `clearsight-reports-insights-designs` | **Overview · Explore · Reports · Schedules · Build report** | Reports library and saved run detail do not substitute for source overview/explore compositions |
+| Reports / `clearsight-reports-insights-designs` | **Overview · Explore · Reports · Schedules · Build report** | #578 adapts the full Overview and selectable report library/inspector at all five widths. [Review receipt](../../decisions/2026-10-21-reports-v2-layout-review.md). Explore/Build report source composition and named operational acceptance remain open; partial integration does not advance 0/19 |
 | Work / `clearsight-work-approvals-designs` | **My work · Approvals · Team queue · Completed** → selected work and scoped action | Existing actor queue is genuine but Team/Completed cannot display unbacked counts |
 | Controls / `clearsight-controls-policies-designs` | **Overview · Control library · Policies · Reviews · Certifications** | Need policy, review and certificate contracts |
 | Enterprise Setup / `clearsight-enterprise-setup-designs` | **Organization · Groups · People & access · Jurisdictions · Frameworks · Data imports** | Existing Configuration sections need matched hierarchy and access decisions |

@@ -79,13 +79,13 @@ export function ReportsOverview({
         <div className="reports-v2-analysis reports-v2-analysis--primary">
           <section className="reports-v2-panel" aria-label="Risk concentration panel">
             <OrganizationRiskSummary bundle={domain} organizationScopeID={organizationScopeID} embedded
-              action={<Button variant="quiet" onPress={onOpenExplore}>Explore risks</Button>}/>
+              action={<Button variant="quiet" size="compact" aria-label="Explore risks" onPress={onOpenExplore}>Explore</Button>}/>
             {domainState === "loading" && <p role="status">Loading risk concentration…</p>}
             {(domainState === "unavailable" || (domainState === "live" && !risk)) && <Notice tone="warning">Risk concentration unavailable.</Notice>}
           </section>
           <section className="reports-v2-panel reports-v2-coverage" aria-labelledby="reports-v2-coverage-heading">
             <div className="reports-v2-panel-heading"><h2 id="reports-v2-coverage-heading">Assessment coverage</h2>
-              <Button variant="quiet" onPress={onOpenPrograms} isDisabled={!onOpenPrograms}>View Programs</Button></div>
+              <Button variant="quiet" size="compact" onPress={onOpenPrograms} isDisabled={!onOpenPrograms}>View Programs</Button></div>
             <p>Assessed requirements / applicable requirements</p>
             <div className="reports-v2-empty-measure">—</div>
             <Notice tone="warning">Assessment totals unavailable for this scope.</Notice>
@@ -94,11 +94,11 @@ export function ReportsOverview({
         <div className="reports-v2-analysis reports-v2-analysis--secondary">
           <section className="reports-v2-panel" aria-label="Loss movement panel">
             <LossMovement bundle={loss} state={lossState} embedded
-              action={<Button variant="quiet" onPress={onOpenExplore}>Explore losses</Button>}/>
+              action={<Button variant="quiet" size="compact" aria-label="Explore losses" onPress={onOpenExplore}>Explore</Button>}/>
           </section>
           <section className="reports-v2-panel reports-v2-findings" aria-labelledby="reports-v2-findings-heading">
             <div className="reports-v2-panel-heading"><h2 id="reports-v2-findings-heading">Priority findings</h2>
-              {onOpenWork && <Button variant="quiet" onPress={onOpenWork}>Review all</Button>}</div>
+              {onOpenWork && <Button variant="quiet" size="compact" onPress={onOpenWork}>Review all</Button>}</div>
             <p>Assigned review and remediation</p>
             <Notice tone="info">Open Work to review assigned findings.</Notice>
           </section>
@@ -107,13 +107,13 @@ export function ReportsOverview({
           <header>
             <div><h2 id="reports-recent-heading">Recent reports</h2>
               <p>{runState === "live" ? recentRuns.length : "—"} recent {recentRuns.length === 1 ? "report" : "reports"}{nextCursor ? " · More available" : ""}</p></div>
-            <Button variant="quiet" onPress={onViewReports}>View all</Button>
+            <Button variant="quiet" size="compact" onPress={onViewReports}>View all</Button>
           </header>
           {runState === "loading" && <p role="status">Loading reports…</p>}
           {runState === "error" && <Notice tone="warning">Recent reports are unavailable.</Notice>}
           {runState === "live" && recentRuns.length === 0 && <EmptyState
             population="generated reports" title="No reports yet" description="Generate a report to get started."/>}
-          {runState === "live" && recentRuns.length > 0 && <DataTable ariaLabel="Recent reports" rows={recentRuns}
+          {runState === "live" && recentRuns.length > 0 && <DataTable ariaLabel="Recent reports" rows={recentRuns} responsiveTo="container"
             rowKey={(run) => run.id}
             rowName={(run) => definitionsByID.get(run.definition_id)?.name || run.definition_code}
             columns={columns} onRowAction={onSelectRun} rowActionLabel="View"/>}

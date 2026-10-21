@@ -135,9 +135,28 @@ const expectedNames = [
   "140b-report-overview-light-mobile-390x844",
   "140f-report-overview-light-1024x768",
   "140g-report-overview-dark-768x900",
+  "140h-report-overview-light-1280x800",
+  "140i-report-overview-light-768x900",
+  "140j-report-overview-dark-1440x900",
+  "140k-report-overview-dark-1280x800",
+  "140l-report-overview-dark-1024x768",
+  "140m-report-overview-dark-mobile-390x844",
+  "140n-report-overview-unavailable-light-1440x900",
+  "140o-report-overview-partial-dark-1440x900",
+  "140p-report-overview-denied-light-mobile-390x844",
+  "140q-report-overview-area-light-1440x900",
   "140c-report-explore-light-1440x900",
   "140d-report-explore-light-mobile-390x844",
   "141-report-library-dark-mobile-390x844",
+  "141a-report-library-records-dark-mobile-390x844",
+  "141b-report-library-light-mobile-390x844",
+  "141c-report-library-dark-1440x900",
+  "141d-report-library-light-1280x800",
+  "141e-report-library-dark-1280x800",
+  "141f-report-library-light-1024x768",
+  "141g-report-library-dark-1024x768",
+  "141h-report-library-light-768x900",
+  "141i-report-library-dark-768x900",
   "142-report-run-failed-light-1440x900",
   "143-report-setups-dark-mobile-compact-390x844",
   "144-report-generate-light-1440x900",
@@ -272,9 +291,28 @@ const requiredStates = [
   "report-overview-mobile",
   "report-overview-tablet",
   "report-overview-narrow",
+  "report-overview-medium",
+  "report-overview-narrow-light",
+  "report-overview-desktop-dark",
+  "report-overview-medium-dark",
+  "report-overview-tablet-dark",
+  "report-overview-mobile-dark",
+  "report-overview-unavailable",
+  "report-overview-partial",
+  "report-overview-denied",
+  "report-overview-selected-area",
   "report-explore-desktop",
   "report-explore-mobile",
   "report-library-mobile",
+  "report-library-records-mobile",
+  "report-library-mobile-light",
+  "report-library-desktop-dark",
+  "report-library-medium-light",
+  "report-library-medium-dark",
+  "report-library-tablet-light",
+  "report-library-tablet-dark",
+  "report-library-narrow-light",
+  "report-library-narrow-dark",
   "report-setups-mobile",
   "report-generate",
   "report-run-failed",
@@ -364,6 +402,55 @@ if (manifest) {
     if (actual.viewport?.width !== scenario.viewport.width || actual.viewport?.height !== scenario.viewport.height) mismatches.push("viewport");
     if (Boolean(actual.frameworkDetailSheet) !== Boolean(scenario.frameworkDetailSheet)) mismatches.push("detail sheet");
     if (mismatches.length) failures.push(`${scenario.name} evidence metadata mismatch: ${mismatches.join(", ")}`);
+  }
+  const reportOverviews = manifest.captures.filter((capture) => capture.state?.startsWith("report-overview-"));
+  const loadedReportVariants = reportOverviews.filter((capture) => capture.fixture === "report-overview-loaded"
+    && capture.state !== "report-overview-selected-area");
+  const reportSizes = ["1440x900", "1280x800", "1024x768", "768x900", "390x844"];
+  const expectedReportVariants = ["light", "dark"].flatMap((theme) => reportSizes.map((size) => `${theme}-${size}`));
+  const actualReportVariants = loadedReportVariants.map((capture) => `${capture.theme}-${capture.viewport?.width}x${capture.viewport?.height}`);
+  if (actualReportVariants.length !== expectedReportVariants.length || new Set(actualReportVariants).size !== expectedReportVariants.length
+      || expectedReportVariants.some((variant) => !actualReportVariants.includes(variant))) {
+    failures.push("Reports loaded Overview must cover both themes at 1440, 1280, 1024, 768 and 390px");
+  }
+  for (const capture of reportOverviews) {
+    const layout = capture.reportsLayout;
+    const selectedArea = capture.state === "report-overview-selected-area";
+    const expectedFixture = capture.state === "report-overview-unavailable" ? "report-definitions"
+      : capture.state === "report-overview-partial" ? "report-overview-partial"
+      : capture.state === "report-overview-denied" ? "report-overview-denied" : "report-overview-loaded";
+    const namedViewport = /-(light|dark)-(?:mobile-)?(\d+)x(\d+)$/.exec(capture.name);
+    const hasRisk = ["report-overview-loaded", "report-overview-partial"].includes(expectedFixture);
+    if (capture.route !== "#reports" || capture.fixture !== expectedFixture || !namedViewport
+        || capture.theme !== namedViewport[1] || capture.viewport?.width !== Number(namedViewport[2]) || capture.viewport?.height !== Number(namedViewport[3])
+        || layout?.kind !== "overview" || layout.metricColumns !== (capture.viewport?.width >= 1440 ? 4 : 2)
+        || layout.railPlacement !== (capture.viewport?.width >= 1280 ? "beside" : "below")
+        || !(layout.maxMetricHeight > 0 && layout.maxMetricHeight <= 190) || !(layout.maxLabelLines > 0 && layout.maxLabelLines <= 3)
+        || !(layout.minMetricValueFontSize >= (capture.viewport.width <= 700 ? 22 : 28))
+        || (capture.viewport.width <= 700 && (!(layout.minRecentActionCellWidth >= 44)
+          || !(layout.minRecentActionButtonWidth >= 44) || !(layout.minRecentActionButtonHeight >= 44)))
+        || layout.embeddedPanels !== 2 || layout.riskValue !== (hasRisk ? selectedArea ? "2" : "4" : "—")
+        || layout.riskQuality !== (hasRisk ? expectedFixture === "report-overview-partial" ? "partial" : "current" : "unknown")
+        || layout.lossAvailable !== (expectedFixture === "report-overview-loaded")
+        || layout.organizationScopeID !== (selectedArea ? "sample-scope-risk-ops" : null)) {
+      failures.push(`${capture.name}: Reports Overview source, scope or measured layout contract is missing or inconsistent`);
+    }
+  }
+  const reportLibraries = manifest.captures.filter((capture) => capture.state === "report-library" || capture.state?.startsWith("report-library-"));
+  const libraryVariants = reportLibraries.filter((capture) => capture.state !== "report-library-records-mobile")
+    .map((capture) => `${capture.theme}-${capture.viewport?.width}x${capture.viewport?.height}`);
+  if (libraryVariants.length !== expectedReportVariants.length || new Set(libraryVariants).size !== expectedReportVariants.length
+      || expectedReportVariants.some((variant) => !libraryVariants.includes(variant))) {
+    failures.push("Reports Library must cover both themes at 1440, 1280, 1024, 768 and 390px");
+  }
+  for (const capture of reportLibraries) {
+    const namedViewport = /-(light|dark)-(?:mobile-)?(\d+)x(\d+)$/.exec(capture.name);
+    if (capture.route !== "#reports" || capture.fixture !== "report-definitions" || !namedViewport
+        || capture.theme !== namedViewport[1] || capture.viewport?.width !== Number(namedViewport[2]) || capture.viewport?.height !== Number(namedViewport[3])
+        || capture.reportsLayout?.kind !== "library" || capture.reportsLayout.selectedCount !== 1 || !(capture.reportsLayout.recordCount >= 1)
+        || capture.reportsLayout.inspectorPlacement !== (capture.viewport?.width > 700 ? "beside" : "above")) {
+      failures.push(`${capture.name}: Generated report records and the selected-report inspector lack measured layout evidence`);
+    }
   }
   const formsByName = new Map(manifest.captures.filter((capture) => capture.name.includes("-forms-")).map((capture) => [capture.name, capture]));
   const formsCapabilities = new Set([...formsByName.values()].flatMap((capture) => capture.capabilities ?? []));
