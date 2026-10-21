@@ -1,5 +1,13 @@
 # ClearSight implementation ledger
 
+## 21 October Notifications — V2 workspace and local menu
+
+Continue from the reviewed Reports stack at `e6449c5149c52cdafa8e4c99140c3763ef980aee` with the original Notifications heading, Inbox / Activity / Preferences menu, selectable inbox/context layout and responsive replacement views. The header bell opens the full workspace through existing routing; Work & Approvals remains its shared-menu parent. This tranche does not change the Work queue/search behavior owned by #574.
+
+One scope-keyed inbox owner serves the bell and workspace using existing paged notification reads and read receipts. Activity uses the existing authorized system-activity reader for one legal entity, with a separate permission gate. Email preferences keep their versioned daily-digest, timezone and quiet-hours contract; valid time edits and conflict recovery are included. Unsupported source-prototype capabilities are not presented as live actions. The [decision record](design/decisions/2026-10-21-notifications-workspace-v2.md) pins the immutable source and records the local review boundary.
+
+Status: **locally implemented and reviewed; publication pending**. The [evidence receipt](design/decisions/2026-10-21-notifications-workspace-evidence.json) records the local source/runtime, interaction and contract checks. Remote CI and authorized-result acceptance remain open; no Notifications PR, merge, deployment or operational acceptance is claimed. The October whole-screen acceptance register remains **0/19**.
+
 ## 21 October Reports Explore and Builder — V2 layout integration
 
 The user authorized the next complete layout tranche and explicitly required matching menus. Continue from #578 (Overview/library) and #579 (shared navigation), replacing Explore's dashboard embed with a Data rail, selected analysis and exact breakdown, and replacing the saved-setup table/form with the source setup/paper/output composition. Build report becomes a contextual local tab entered through New report, with drafts and pending operations retained. Existing definition governance, authorized metric reads and generated-report commands remain the owners.

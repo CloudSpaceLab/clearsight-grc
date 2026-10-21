@@ -3,6 +3,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 import { reportsDesignEvidenceScenarios } from "./reports-design-evidence-scenarios.mjs";
+import { notificationsEvidenceScenarios } from "./notifications-evidence-scenarios.mjs";
+import { prepareNotifications, assertNotificationsLayout, verifyNotificationScenario } from "./notifications-evidence.mjs";
 import { assertReportBuilderLayout, assertReportsExploreLayout, chooseReportExploreMeasure, chooseReportField,
   selectReportOrganizationScope, verifyReportBuilderNavigation, verifyReportExploreNavigation,
   verifyReportBuilderFlow, verifyReportExploreCurrency, verifyReportExploreMembers } from "./reports-design-evidence.mjs";
@@ -88,6 +90,7 @@ const captures = [
     { name: "140q-report-overview-area-light-1440x900", theme: "light", viewport: { width: 1440, height: 900 }, state: "report-overview-selected-area", reportOrganizationScope: "sample-scope-risk-ops" },
   ].map((scenario) => ({ route: "#reports", title: "Reports & insights", fixture: "report-overview-loaded", density: "comfortable", openReportOverview: true, touch: scenario.viewport.width <= 1024, ...scenario })),
   ...reportsDesignEvidenceScenarios,
+  ...notificationsEvidenceScenarios,
 
   { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
   { name: "141a-report-library-records-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, scrollToReportRecords: true, state: "report-library-records-mobile" },
@@ -124,6 +127,8 @@ try {
     for (const capture of captures.filter((item) => item.route === "#reports")) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "report-design") {
     for (const capture of captures.filter((item) => item.openReportExplore || item.openReportBuilder || item.openReportTemplates || item.openReportGenerate)) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "notifications") {
+    for (const capture of captures.filter((item) => item.notificationView)) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "reports-expectations") {
     for (const capture of captures.filter((item) => item.route === "#reports" && !item.openReportOverview && !item.openReportExplore && !item.openReportBuilder)) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "navigation") {
@@ -250,7 +255,7 @@ function expectedPrimaryDestination(hash, deniedSettings = false) {
   if (route === "#insights" && new URLSearchParams(hash.split("?")[1]).get("view") === "risk-loss") return "Reports";
   if (/^#(?:risks|rcsa|losses|insights)(?:\/|$)/.test(route)) return "Risk & Losses";
   if (route.startsWith("#ropa")) return "Privacy";
-  if (route.startsWith("#work")) return "Work & Approvals";
+  if (route.startsWith("#work") || route.startsWith("#notifications")) return "Work & Approvals";
   if (route.startsWith("#reports")) return "Reports";
   if (/^#(?:configure|imports)(?:\/|$)/.test(route)) return "Settings";
   if (!route || /^#(?:today|oversight)(?:\/|$)/.test(route)) return "Home";
@@ -580,10 +585,20 @@ async function verifyPrimaryNavigationKeyboard(page, capture) {
 async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   let reportsLayout;
+  let notificationsLayout;
   try {
     // evidenceMain mounts this named fixture outside SessionGate/App. All
     // authenticated captures must still render and verify AppNavigation.
     let navigation = capture.fixture === "oversight" ? undefined : await assertPrimaryNavigation(page, capture);
+    if (capture.notificationView) {
+      await prepareNotifications(page, capture);
+      notificationsLayout = await assertNotificationsLayout(page, capture);
+      const interaction = await verifyNotificationScenario(page, capture);
+      if (capture.notificationMatrix && interaction) notificationsLayout = await assertNotificationsLayout(page, capture);
+      if (interaction) notificationsLayout.interaction = interaction;
+      notificationsLayout.apiReads = await page.evaluate(() => window.notificationEvidenceReads ?? []);
+      notificationsLayout.commands = await page.evaluate(() => window.notificationEvidenceCommands ?? []);
+    }
     if (isNavigationMatrixCapture(capture) && capture.theme === "light" && [1440, 390].includes(capture.viewport.width)) {
       const keyboard = await verifyPrimaryNavigationKeyboard(page, capture);
       navigation = { ...await assertPrimaryNavigation(page, capture), keyboard };
@@ -1041,7 +1056,7 @@ async function capturePage(capture) {
       if (!await opener.evaluate((element) => element === document.activeElement)) throw new Error(`${capture.name}: closing Navigation did not restore opener focus`);
       navigation.drawer.dismissalRestoredFocus = true;
     }
-    const recordedCapture = { ...capture, navigation, ...(reportsLayout ? { reportsLayout } : {}),
+    const recordedCapture = { ...capture, navigation, ...(reportsLayout ? { reportsLayout } : {}), ...(notificationsLayout ? { notificationsLayout } : {}),
       ...(capture.openRopaActivity ? { route: new URL(page.url()).hash } : {}) };
     await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
@@ -1410,6 +1425,7 @@ async function record(page, capture, state) {
       frameworkDetailSheet: Boolean(capture.frameworkDetailSheet),
     } : {}),
     ...(capture.reportsLayout ? { reportsLayout: capture.reportsLayout } : {}),
+    ...(capture.notificationsLayout ? { notificationsLayout: capture.notificationsLayout } : {}),
     ...(capture.navigation ? { navigation: capture.navigation } : {}),
     metrics: await layoutMetrics(page),
   });

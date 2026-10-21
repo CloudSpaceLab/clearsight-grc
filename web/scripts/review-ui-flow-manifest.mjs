@@ -6,6 +6,8 @@ import { formsEvidenceScenarios, requiredFormsCapabilities } from "./forms-evide
 import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 import { reportsDesignAccessibilityScenarios, reportsDesignEvidenceScenarios } from "./reports-design-evidence-scenarios.mjs";
 import { reviewReportsDesignCaptures } from "./reports-design-evidence-contract.mjs";
+import { notificationsAccessibilityScenarios, notificationsEvidenceScenarios } from "./notifications-evidence-scenarios.mjs";
+import { reviewNotificationsCaptures } from "./notifications-evidence-contract.mjs";
 
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const homeT7ScenarioNames = [
@@ -151,6 +153,7 @@ const expectedNames = [
   "140p-report-overview-denied-light-mobile-390x844",
   "140q-report-overview-area-light-1440x900",
   ...reportsDesignEvidenceScenarios.map(({ name }) => name),
+  ...notificationsEvidenceScenarios.map(({ name }) => name),
   "141-report-library-dark-mobile-390x844",
   "141a-report-library-records-dark-mobile-390x844",
   "141b-report-library-light-mobile-390x844",
@@ -309,6 +312,7 @@ const requiredStates = [
   "report-overview-denied",
   "report-overview-selected-area",
   ...reportsDesignEvidenceScenarios.map(({ state }) => state),
+  ...notificationsEvidenceScenarios.map(({ state }) => state),
   "report-library-mobile",
   "report-library-records-mobile",
   "report-library-mobile-light",
@@ -413,6 +417,9 @@ if (manifest) {
   const reportsDesignReview = reviewReportsDesignCaptures(manifest.captures);
   failures.push(...reportsDesignReview.failures);
   checks.push(reportsDesignReview.check);
+  const notificationsReview = reviewNotificationsCaptures(manifest.captures);
+  failures.push(...notificationsReview.failures);
+  checks.push(notificationsReview.check);
   const loadedReportVariants = reportOverviews.filter((capture) => capture.fixture === "report-overview-loaded"
     && capture.state !== "report-overview-selected-area");
   const reportSizes = ["1440x900", "1280x800", "1024x768", "768x900", "390x844"];
@@ -614,7 +621,11 @@ if (accessibility) {
     && actual.theme === scenario.theme && actual.viewport?.width === scenario.viewport.width && actual.viewport?.height === scenario.viewport.height
     && actual.scopeSelector === scenario.scopeSelector && actual.touchTargetMinimum === 44));
   if (missingReports.length) failures.push(`Reports scoped accessibility and touch evidence is missing: ${missingReports.map(({ name }) => name).join(", ")}`);
-  checks.push({ name: "accessibility and touch", status: failed.length || missingReports.length ? "FAIL" : "PASS", detail: `${accessibility.scenarios.length} rendered route states` });
+  const missingNotifications = notificationsAccessibilityScenarios.filter((scenario) => !accessibility.scenarios.some((actual) => actual.name === scenario.name
+    && actual.theme === scenario.theme && actual.viewport?.width === scenario.viewport.width && actual.viewport?.height === scenario.viewport.height
+    && actual.scopeSelector === scenario.scopeSelector && actual.touchTargetMinimum === 44));
+  if (missingNotifications.length) failures.push(`Notifications scoped accessibility and touch evidence is missing: ${missingNotifications.map(({ name }) => name).join(", ")}`);
+  checks.push({ name: "accessibility and touch", status: failed.length || missingReports.length || missingNotifications.length ? "FAIL" : "PASS", detail: `${accessibility.scenarios.length} rendered route states` });
 }
 
 let bundle = { javascript: { raw: 0, gzip: 0, initial_gzip: 0, largest_raw_chunk: 0 }, css: { raw: 0, gzip: 0, initial_gzip: 0 } };

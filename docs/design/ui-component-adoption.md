@@ -24,12 +24,15 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Vendors and vendor relationship record | — | — | — | — | — | — | — | — |
 | Work · Issues and changes | — | — | — | — | — | — | — | — |
 | Work · Evidence | — | — | — | — | — | — | — | — |
+| Notifications · Inbox, Activity and Preferences | M | M | M | M | — | M | — | — |
 | Imports · regulatory document comparison | — | — | — | — | — | — | — | — |
 | Explore · reference journeys | — | — | — | — | — | — | — | — |
 | Configure · policy, routing and integrity | — | — | — | — | — | — | — | — |
 | Shared shell, primary/mobile navigation and account context | — | — | — | — | — | — | — | — |
 
 ## Implemented boundary
+
+The October 21 Notifications adaptation registers the header launcher, email preferences, full workspace and Activity composition in the executable migration manifest. Inbox selection uses `SelectableRecord`; local views, read filters, search, period selection, preference fields, actions and feedback use shared contracts. The actor inbox remains distinct from permission-gated audit history. Status: **locally implemented and reviewed; publication pending**. The [layout decision](decisions/2026-10-21-notifications-workspace-v2.md) and [evidence receipt](decisions/2026-10-21-notifications-workspace-evidence.json) record the contract and local full-host render review. Remote CI and authorized-result acceptance remain open; component adoption does not establish whole-screen visual or operational acceptance.
 
 The October 21 Reports adaptation registers the workspace and setup builder alongside Overview/library and the new Explore composition. Actions, fields, data tables, exact member sheets, statuses and local navigation use the public contracts; feature CSS owns the source-specific chart and document geometry. Tabs gains a contextual item whose trigger appears only while selected without dropping its retained panel. This component boundary does not establish whole-screen visual or operational acceptance; see the [layout decision and evidence](decisions/2026-10-21-reports-explore-builder-v2.md).
 

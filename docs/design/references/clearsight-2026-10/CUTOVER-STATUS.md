@@ -17,6 +17,12 @@ The [implementation review](../../decisions/2026-10-21-v2-navigation-adaptation.
 
 The [next Reports tranche](../../decisions/2026-10-21-reports-explore-builder-v2.md) adapts both remaining source layouts and their local menu: a selected-measure Data rail/chart/table in Explore, and setup/paper/output in Builder with the original responsive rearrangements. Build report is contextual and its draft survives local navigation. Existing saved-definition governance and generation commands remain in use. Exact source/runtime pairs, named visual review and final CI are tracked in that decision. **Partial V2 layout integration; 0/19 remains unchanged.** This does not establish hosted actor execution or source-to-report reconciliation.
 
+## 21 October — Notifications workspace composition
+
+The [Notifications tranche](../../decisions/2026-10-21-notifications-workspace-v2.md) replaces the bell sheet with Inbox / Activity / Preferences on the existing router. Inbox places selectable updates beside persistent record context, then stacks context below the list at 900px or less; mobile filters disclose at 600px or less. Activity retains its history/context layout and separate `platform_operations_read` permission. Preferences uses the existing versioned digest, timezone and quiet-hours contract. The bell and workspace share one actor/entity-scoped inbox owner; read receipts do not complete or approve work.
+
+This tranche is **locally implemented and reviewed; publication pending**. The [evidence receipt](../../decisions/2026-10-21-notifications-workspace-evidence.json) records the local source/runtime and interaction review; remote CI and authorized-result acceptance remain open. It adds no unsupported category, needs-action, snooze or mark-unread capability. The shared menu remains the approved common menu, with Notifications entered through the bell under Work & Approvals. **Partial V2 layout integration; 0/19 remains unchanged.**
+
 ## Design fidelity register — 18 October 2026
 
 The reference artifact, **not the existing React screen**, defines each view's approved
@@ -49,7 +55,7 @@ A green screenshot job without a **side-by-side reference review** is *not* visu
 | Enterprise Setup — `clearsight-enterprise-setup-designs/enterprise-setup.html` | Real hierarchy, branches/departments/group scope | Foundation only |
 | Integrations — `clearsight-integrations-designs/integrations-workspace-preview.html` | Source connections, reviewable mappings and run health | Foundation only |
 | Search — `clearsight-search-command-center-designs/search-command-center-preview.html` | Authorized indexed/bounded query and exact result inspector | Blocked on authoritative federated search contract |
-| Notifications — `clearsight-notifications-activity-designs/notifications-activity-preview.html` | Actor-safe inbox, state and receipts | Foundation only |
+| Notifications — `clearsight-notifications-activity-designs/notifications-activity-preview.html` | Inbox / Activity / Preferences, selectable inbox/context and existing read/preference commands | Partial V2 layout integration; local visual/interaction review recorded in the [evidence receipt](../../decisions/2026-10-21-notifications-workspace-evidence.json); publication, remote CI and authorized-result acceptance remain open |
 | Audit/Assurance — `clearsight-audit-assurance-designs/audit-assurance.html` | Plans, fieldwork and evidence lineage | Foundation only |
 | People/Access — `clearsight-people-access-designs/people-access-preview.html` | Identity, positions, delegations and effective authority | Foundation only |
 | Automation — `clearsight-automation-governance-designs/automation-governance.html` | Draft, simulate, review, approve, activate and rollback | Foundation only |
@@ -104,7 +110,7 @@ These merges establish a tested partial runtime migration, **not complete approv
 | Controls & policies | Program controls/evidence, policy and authority components | Governed policy revision, control test denominators, certification renewal independent of substantive assurance |
 | Enterprise setup | `ConfigureWorkspace`, organization scope, role-aware onboarding, imports | Real group hierarchy and permissions, source import lineage, setup readiness separate from compliance posture |
 | Integrations & sources | `DataIntegrationsSection`, `DocumentImportWorkspace`, existing source/connection/binding contracts | Source health vs mapping review, credential/activation gate and sync-history provenance |
-| Notifications & activity | `NotificationCenter`, `NotificationPreferences`, `SystemActivityPanel` | Bounded actor inbox, delivery/receipt states, exact event source and authorization-safe filters |
+| Notifications & activity | `NotificationCenter`, `useNotificationInbox`, `NotificationsWorkspace`, `NotificationPreferences`, `NotificationActivity`; existing notification and system-activity APIs | Shared actor/entity inbox ownership, stable paging/read receipts, permission-gated entity Activity and versioned preferences; local source/runtime review recorded, with publication, remote CI and authorized-result acceptance still open. `SystemActivityPanel` remains the Settings history owner |
 | Search & command center | Existing search fields, `App` route targets and `Explore` capabilities | Verify one authorized indexed search contract and common shortcut before any UI exposure; no broad client-side aggregation |
 | People & access | `PeopleAccessSection`, `EscalationRoutesWorkspace`, existing identity/routing | Distinguish role membership from approval authority; invitation/delegation receipts and fail-closed routing |
 | Audit & assurance | Program/issue/evidence/review/report foundations | Decide exact audit-plan source and reviewed evidence denominators before presenting an audit overview; don't synthesize an audit record container |

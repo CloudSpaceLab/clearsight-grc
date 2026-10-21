@@ -8,6 +8,8 @@ import test from "node:test";
 import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 import { reportsDesignEvidenceScenarios } from "./reports-design-evidence-scenarios.mjs";
 import { reviewReportsDesignCaptures } from "./reports-design-evidence-contract.mjs";
+import { notificationsEvidenceScenarios } from "./notifications-evidence-scenarios.mjs";
+import { reviewNotificationsCaptures } from "./notifications-evidence-contract.mjs";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -209,4 +211,136 @@ test("builder workflow claims require retained request and response versions, in
   const overclaim = structuredClone(capture);
   overclaim.reportsLayout.flow.evidenceMode = "BACKEND_AUTHORIZED";
   assert.ok(reviewReportsDesignCaptures([overclaim]).failures.includes(diagnostic));
+});
+
+function notificationReceipt(scenario) {
+  const box = (x, y, width, height) => ({ x, y, width, height, right: x + width, bottom: y + height });
+  return { ...scenario, navigation: { activePage: ["Work & Approvals"] }, notificationsLayout: {
+    kind: scenario.notificationView, evidenceKind: "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+    headingText: "Notifications", heading: box(252, 110, 1160, 120), tablist: box(252, 250, 1160, 50),
+    localTabs: ["Inbox", "Activity", "Preferences"], selectedTab: "Inbox", selectedTabBounds: box(260, 252, 90, 44), selectedTabVisible: true,
+    firstUsefulContent: box(268, 480, 640, 100), firstUsefulContentVisible: true,
+    documentWidth: 1440, scrollWidth: 1440, unsupportedControls: 0, minTargetWidth: 44, minTargetHeight: 44, undersizedTargets: [],
+    main: box(252, 370, 700, 700), aside: box(968, 370, 440, 700), placement: "beside",
+    recordCount: 5, recordHeights: [100, 100, 100, 100, 100], selectedCount: 1,
+    selectedRecord: "Review the Sample annual-return evidence change", detailTitle: "Review the Sample annual-return evidence change",
+    unreadHeader: "Notifications, 7 unread", readFilter: [{ label: "All", selected: true }, { label: "Unread (7)", selected: false }],
+    searchVisible: true, filtersToggleVisible: false, commands: [], apiReads: [{ path: "/api/v1/notifications", query: "?limit=25&unread_only=false", status: 200 }],
+  } };
+}
+function notificationFindings(capture) { return reviewNotificationsCaptures([capture]).failures.filter((failure) => failure.startsWith(`${capture.name}:`)); }
+
+test("all three Notifications views require source-width/theme evidence and focused states", () => {
+  assert.equal(notificationsEvidenceScenarios.length, 42);
+  assert.equal(new Set(notificationsEvidenceScenarios.map((scenario) => scenario.name)).size, 42);
+  assert.equal(notificationsEvidenceScenarios.filter((scenario) => scenario.notificationMatrix).length, 30);
+  for (const view of ["inbox", "activity", "preferences"]) {
+    const matrix = notificationsEvidenceScenarios.filter((scenario) => scenario.notificationMatrix && scenario.notificationView === view);
+    assert.equal(matrix.length, 10);
+    assert.deepEqual(new Set(matrix.map((scenario) => scenario.viewport.width)), new Set([1440, 1280, 1024, 768, 390]));
+  }
+  assert.equal(reviewNotificationsCaptures([]).failures.length, 42);
+});
+
+test("Notifications rejects clipped selected tabs, reversed context and inferred unread counts", () => {
+  const scenario = notificationsEvidenceScenarios.find((item) => item.notificationView === "inbox" && item.notificationMatrix && item.theme === "dark" && item.viewport.width === 1440);
+  const valid = notificationReceipt(scenario);
+  assert.deepEqual(notificationFindings(valid), []);
+  const clipped = structuredClone(valid);
+  clipped.notificationsLayout.selectedTabBounds.x = 1400;
+  clipped.notificationsLayout.selectedTabBounds.right = 1490;
+  assert.ok(notificationFindings(clipped).some((failure) => failure.includes("local menu")));
+  const reversed = structuredClone(valid);
+  [reversed.notificationsLayout.main, reversed.notificationsLayout.aside] = [reversed.notificationsLayout.aside, reversed.notificationsLayout.main];
+  assert.ok(notificationFindings(reversed).some((failure) => failure.includes("replacement geometry")));
+  const inferred = structuredClone(valid);
+  inferred.notificationsLayout.unreadHeader = "Notifications, 3 unread";
+  assert.ok(notificationFindings(inferred).some((failure) => failure.includes("server unread total")));
+  const viewportClaim = structuredClone(valid);
+  viewportClaim.notificationsLayout.firstUsefulContent.y = 910;
+  viewportClaim.notificationsLayout.firstUsefulContent.bottom = 1010;
+  assert.ok(notificationFindings(viewportClaim).some((failure) => failure.includes("first useful content")));
+});
+
+test("Activity denial evidence cannot hide a protected query or claim backend authorization", () => {
+  const scenario = notificationsEvidenceScenarios.find((item) => item.notificationCheck === "denied");
+  const valid = notificationReceipt(scenario);
+  Object.assign(valid.notificationsLayout, { selectedTab: "Activity", main: null, aside: null, placement: "restricted", recordCount: 0,
+    interaction: { restricted: true, protectedRequests: 0, inboxAvailable: true, permission: "platform_operations_read",
+      stateCapture: { visible: true, bounds: structuredClone(valid.notificationsLayout.firstUsefulContent) } } });
+  assert.deepEqual(notificationFindings(valid), []);
+  const request = structuredClone(valid);
+  request.notificationsLayout.apiReads.push({ path: "/api/v1/system-activity", query: "?legal_entity_id=bank-ng&limit=25&from=2026-09-21T12%3A00%3A00Z&to=2026-10-21T12%3A00%3A00Z", status: 403 });
+  assert.ok(notificationFindings(request).some((failure) => failure.includes("Activity permission")));
+  const overclaim = structuredClone(valid);
+  overclaim.notificationsLayout.evidenceKind = "BACKEND_AUTHORIZED";
+  assert.ok(notificationFindings(overclaim).some((failure) => failure.includes("fixture identity")));
+  const hidden = structuredClone(valid);
+  hidden.notificationsLayout.interaction.stateCapture.bounds.y = 910;
+  hidden.notificationsLayout.interaction.stateCapture.bounds.bottom = 1010;
+  assert.ok(notificationFindings(hidden).some((failure) => failure.includes("asserted state must be visible")));
+});
+
+test("Activity evidence preserves returned facts and discloses version limits once in context", () => {
+  const scenario = notificationsEvidenceScenarios.find((item) => item.notificationMatrix && item.notificationView === "activity" && item.theme === "dark" && item.viewport.width === 1440);
+  const valid = notificationReceipt(scenario);
+  Object.assign(valid.notificationsLayout, { selectedTab: "Activity", recordCount: 3,
+    activityVersionLimitation: "Record versions are not recorded in this history. Check the related record for its current version and available actions.",
+    activityEvents: [
+      { id: "sample-activity-event-1", action: "Assigned Sample annual-return evidence review", actor: "Sample Amina Yusuf", outcome: "Succeeded", fields: ["Record"], text: "Record matter-gaid-change · Workflow" },
+      { id: "sample-activity-event-2", action: "Recorded Sample Program review", actor: "Sample Emeka Okoro", outcome: "Succeeded", fields: ["Record"], text: "Record program-ndpa · Programs" },
+      { id: "sample-activity-event-3", action: "Denied Sample approval request", actor: "Sample Ruth Mensah", outcome: "Denied", fields: ["Record"], text: "Record sample-restricted-change · Authority" },
+    ] });
+  valid.notificationsLayout.apiReads.push({ path: "/api/v1/system-activity", query: "?legal_entity_id=bank-ng&limit=25&from=2026-09-21T12%3A00%3A00Z&to=2026-10-21T12%3A00%3A00Z", status: 200 });
+  assert.deepEqual(notificationFindings(valid), []);
+  for (const field of ["Scope", "Version"]) {
+    const duplicated = structuredClone(valid);
+    duplicated.notificationsLayout.activityEvents[0].fields.push(field);
+    assert.ok(notificationFindings(duplicated).some((failure) => failure.includes("context-only version limitation")));
+  }
+  const absent = structuredClone(valid);
+  delete absent.notificationsLayout.activityVersionLimitation;
+  assert.ok(notificationFindings(absent).some((failure) => failure.includes("context-only version limitation")));
+  const inferred = structuredClone(valid);
+  inferred.notificationsLayout.activityEvents[2].outcome = "Succeeded";
+  assert.ok(notificationFindings(inferred).some((failure) => failure.includes("Activity returned record")));
+});
+
+test("Notifications older-page failure evidence requires the notice inside the captured viewport", () => {
+  const scenario = notificationsEvidenceScenarios.find((item) => item.notificationCheck === "more-failed");
+  const valid = notificationReceipt(scenario);
+  valid.notificationsLayout.interaction = { retainedRows: 5, olderPageFailure: true,
+    cursor: "sample-notifications/older?batch=2&recipient=sample", failureVisible: true,
+    failureBounds: { x: 268, y: 600, width: 640, height: 60, right: 908, bottom: 660 } };
+  assert.deepEqual(notificationFindings(valid), []);
+  const hidden = structuredClone(valid);
+  hidden.notificationsLayout.interaction.failureBounds.y = 910;
+  hidden.notificationsLayout.interaction.failureBounds.bottom = 970;
+  assert.ok(notificationFindings(hidden).some((failure) => failure.includes("show its failure notice")));
+  const unmeasured = structuredClone(valid);
+  delete unmeasured.notificationsLayout.interaction.failureBounds;
+  assert.ok(notificationFindings(unmeasured).some((failure) => failure.includes("show its failure notice")));
+});
+
+test("Notifications preference evidence requires minutes, draft retention and expected version", () => {
+  const scenario = notificationsEvidenceScenarios.find((item) => item.notificationMatrix && item.notificationView === "preferences" && item.theme === "light" && item.viewport.width === 1440);
+  const valid = notificationReceipt(scenario);
+  const command = { method: "PUT", path: "/api/v1/preferences/notifications", status: 200,
+    body: { daily_digest_enabled: true, digest_minute: 585, time_zone: "Africa/Lagos", quiet_hours_enabled: true, quiet_start_minute: 1330, quiet_end_minute: 380, expected_version: 3 },
+    result: { version: 4, critical_email_required: true } };
+  Object.assign(valid.notificationsLayout, { selectedTab: "Preferences", preferences: { criticalRequired: true, inAppHeading: "In-app notifications", emailHeading: "Email delivery" },
+    commands: [command], interaction: { navigation: { arrowSequence: ["Activity", "Preferences", "Inbox"], routesMatched: true, count: 3 }, baselineRestored: true,
+      draftRetained: true, saved: true, conflictRetainedDraft: false, criticalRequired: true, inputMinutes: [585, 1330, 380], command } });
+  assert.deepEqual(notificationFindings(valid), []);
+  for (const value of [undefined, 2]) {
+    const stale = structuredClone(valid);
+    stale.notificationsLayout.commands[0].body.expected_version = value;
+    assert.ok(notificationFindings(stale).some((failure) => failure.includes("versioned command")));
+  }
+  const lostDraft = structuredClone(valid);
+  lostDraft.notificationsLayout.interaction.draftRetained = false;
+  assert.ok(notificationFindings(lostDraft).some((failure) => failure.includes("versioned command")));
+  const identity = structuredClone(valid);
+  identity.notificationsLayout.commands[0].body.actor_id = "supplied-actor";
+  assert.ok(notificationFindings(identity).some((failure) => failure.includes("versioned command")));
 });
