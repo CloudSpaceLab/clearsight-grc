@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { loadHomeMetrics as loadHomeMetricsRequest } from "../../metricApi";
+import { loadHomeMetrics as loadHomeMetricsRequest, type HomeMetricBundle } from "../../metricApi";
+import { ReportsOverview } from "./ReportsOverview";
 import type { ReportingPeriodQuery } from "../../reportingPeriod";
 import {
   createReportRun as createReportRunRequest,
@@ -29,7 +30,7 @@ import "./reports.css";
 
 const RiskLossInsights = lazy(() => import("../insights/RiskLossInsights").then(({ RiskLossInsights }) => ({ default: RiskLossInsights })));
 
-type WorkspaceTab = "overview" | "explore" | "library" | "templates";
+type WorkspaceTab = "overview" | "explore" | "library" | "schedules" | "builder";
 type ReportArea = "ALL" | "VENDORS" | "PROGRAMS" | "WORK";
 type LoadState = "loading" | "live" | "error";
 
@@ -79,7 +80,8 @@ export function ReportsWorkspace({
   downloadRun = downloadReportRunRequest,
   onOpenInsights,
 }: ReportsWorkspaceProps) {
-  const [tab, setTab] = useState<WorkspaceTab>("library");
+  const [tab, setTab] = useState<WorkspaceTab>("overview");
+  const [metricBundle, setMetricBundle] = useState<HomeMetricBundle>();
   const [metricPeriod, setMetricPeriod] = useState<ReportingPeriodQuery>();
   const [metricPeriodState, setMetricPeriodState] = useState<"idle" | "loading" | "live" | "unavailable">("idle");
   const [definitions, setDefinitions] = useState<ReportDefinition[]>([]);
@@ -142,7 +144,8 @@ export function ReportsWorkspace({
   useEffect(() => {
     let current = true;
     setMetricPeriod(undefined);
-    if (tab !== "explore" || !scopeAuthorized) {
+    setMetricBundle(undefined);
+    if ((tab !== "explore" && tab !== "overview") || !scopeAuthorized) {
       setMetricPeriodState("idle");
       return;
     }
@@ -160,6 +163,7 @@ export function ReportsWorkspace({
         return;
       }
       setMetricPeriod({ start_date, end_date });
+      setMetricBundle(bundle);
       setMetricPeriodState("live");
     }).catch(() => {
       if (current) setMetricPeriodState("unavailable");
@@ -288,7 +292,7 @@ export function ReportsWorkspace({
 
   function openTemplates() {
     setGenerateOpen(false);
-    setTab("templates");
+    setTab("builder");
   }
 
   async function generateReport() {
@@ -386,17 +390,7 @@ export function ReportsWorkspace({
   ];
 
   // Loaded runs are not a complete tenant-wide historical population.
-  const recentRuns = [...runs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 5);
-  const statusPanel = <section className="reports-summary" aria-label="Report library summary">
-    <div className="reports-summary__heading">
-      <strong>Loaded report status</strong>
-      <span>{runs.length} loaded{nextCursor ? " · More available" : ""}</span>
-    </div>
-    <ReportSummaryMetric label="Loaded" value={runs.length} />
-    <ReportSummaryMetric label="Available" value={readyCount} />
-    <ReportSummaryMetric label="In progress" value={runningCount} tone={runningCount ? "info" : "neutral"} />
-    <ReportSummaryMetric label="Failed" value={failedCount} tone={failedCount ? "error" : "neutral"} />
-  </section>;
+
 
   return <section className="reports-workspace" aria-labelledby="reports-heading">
     <header className="reports-workspace__header cs-workspace-header">
@@ -404,41 +398,39 @@ export function ReportsWorkspace({
         <span className="eyebrow">Reporting · {legalEntityName || organizationName || "Current legal entity"}</span>
         <h1 id="reports-heading">Reports &amp; insights</h1>
       </div>
-      {tab !== "templates" && <div className="reports-workspace__actions">
+      <div className="reports-workspace__actions">
         <Button variant="secondary" onPress={refresh} isLoading={runState === "loading" || definitionState === "loading"}>Refresh</Button>
-        <Button variant="primary" isDisabled={definitionState === "error"} onPress={openGenerate}>Generate report</Button>
-      </div>}
+        <Button variant="primary" isDisabled={definitionState === "error"} onPress={openGenerate}>New report</Button>
+      </div>
     </header>
 
     <Tabs
       ariaLabel="Reports workspace"
-      items={[{ id: "overview", label: "Overview" }, { id: "explore", label: "Explore" }, { id: "library", label: "Reports" }, { id: "templates", label: "Saved setups" }]}
+      items={[{ id: "overview", label: "Overview" }, { id: "explore", label: "Explore" }, { id: "library", label: "Reports" }, { id: "schedules", label: "Schedules" }, { id: "builder", label: "Build report" }]}
       selectedKey={tab}
       onSelectionChange={setTab}
     >
       {(activeTab) => activeTab === "overview"
-        ? <div className="reports-overview">
-          {runState === "live" ? statusPanel : <Notice tone="warning">Report status totals unavailable until report runs load.</Notice>}
-          {runState === "error" && <Notice tone="error"><span>{runError}</span><Button variant="secondary" size="compact" onPress={refresh}>Retry reports</Button></Notice>}
-          <section className="reports-overview__recent" aria-labelledby="reports-recent-heading">
-            <header>
-              <div><h2 id="reports-recent-heading">Recent reports</h2>
-                <p>Latest {recentRuns.length} loaded reports{nextCursor ? " · More available" : ""}</p>
-              </div>
-              <div className="reports-overview__actions">
-                <Button variant="quiet" onPress={() => setTab("explore")}>Explore insights</Button>
-                <Button variant="secondary" onPress={() => setTab("library")}>View reports</Button>
-              </div>
-            </header>
-            {runState === "loading" && <p role="status">Loading recent reports…</p>}
-            {runState === "live" && recentRuns.length === 0 && <EmptyState
-              population="generated reports" title="No reports yet" description="Generate a report to get started."/>}
-            {recentRuns.length > 0 && <DataTable ariaLabel="Recent reports" rows={recentRuns}
-              rowKey={(run) => run.id}
-              rowName={(run) => definitionsByID.get(run.definition_id)?.name || humanizeCode(run.definition_code)}
-              columns={columns} onRowAction={setSelectedRun} rowActionLabel="View" isLoading={runState === "loading"}/>}
-          </section>
-        </div>
+        ? <ReportsOverview
+            metricBundle={metricBundle}
+            metricPeriod={metricPeriod}
+            metricState={metricPeriodState}
+            scopeAuthorized={scopeAuthorized}
+            organizationScopeID={organizationScopeID}
+            legalEntityID={legalEntityID}
+            runState={runState}
+            runs={runs}
+            nextCursor={nextCursor}
+            definitionsByID={definitionsByID}
+            columns={columns}
+            onSelectRun={setSelectedRun}
+            onViewReports={() => setTab("library")}
+            onOpenExplore={() => setTab("explore")}
+            onOpenBuilder={() => setTab("builder")}
+            onOpenWork={onOpenWork}
+            onOpenRisk={onOpenRisk}
+            onOpenLoss={onOpenLoss}
+          />
         : activeTab === "explore"
         ? <section className="reports-explore" aria-label="Risk and loss reporting">
           <header className="reports-overview__recent">
@@ -453,6 +445,12 @@ export function ReportsWorkspace({
               onOpenRisk={onOpenRisk} onOpenLoss={onOpenLoss}/>
           </Suspense>}
         </section>
+        : activeTab === "schedules"
+        ? <section className="reports-v2-unavailable" aria-label="Report schedules">
+            <h2>Schedules</h2>
+            <Notice tone="warning">Recurring report delivery is unavailable. Generated reports remain accessible in Reports.</Notice>
+            <Button variant="secondary" onPress={() => setTab("library")}>View reports</Button>
+          </section>
         : activeTab === "library"
         ? <div className="reports-library">
           {runState === "live" ? statusPanel : <Notice tone="warning">Report status totals unavailable until report runs load.</Notice>}
@@ -487,14 +485,15 @@ export function ReportsWorkspace({
             <Button variant="secondary" isLoading={loadingOlder} onPress={() => void loadOlderReports()}>Load older reports</Button>
           </div>}
         </div>
-        : <div className="reports-templates">
+        : <section className="reports-v2-builder" aria-label="Build report">
+          <header><h2>Build report</h2><p>Prepare a governed report setup, then generate a report from its approved version.</p></header>
           <ReportingPage
             embedded
             organizationName={organizationName}
             legalEntityName={legalEntityName}
             onBack={() => setTab("library")}
           />
-        </div>
+        </section>
       }
     </Tabs>
 
