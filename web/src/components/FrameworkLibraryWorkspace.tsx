@@ -8,6 +8,14 @@ import { FrameworkEditionProvenance, frameworkEditionHasVerifiableSource, framew
 import "../framework-library.css";
 import "../program-standards.css";
 
+type RightsFilter = "ALL" | "CITATIONS_ONLY" | "SUMMARIES_PERMITTED" | "UNVERIFIED";
+const rightsOptions: readonly {id: RightsFilter; label: string}[] = [
+  { id: "ALL", label: "All content rights" },
+  { id: "CITATIONS_ONLY", label: "Citations only" },
+  { id: "SUMMARIES_PERMITTED", label: "Summaries permitted" },
+  { id: "UNVERIFIED", label: "Not verified" },
+];
+
 type Props = {
   onBack: () => void;
   onChooseProgram: (edition: FrameworkEditionOption) => void;
@@ -27,7 +35,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
   const [jurisdiction, setJurisdiction] = useState("GLOBAL");
   const [jurisdictionError, setJurisdictionError] = useState("");
   const [search, setSearch] = useState("");
-  const [rightsFilter, setRightsFilter] = useState<"ALL" | "CITATIONS_ONLY" | "SUMMARIES_PERMITTED" | "UNVERIFIED">("ALL");
+  const [rightsFilter, setRightsFilter] = useState<RightsFilter>("ALL");
   const [selectedID, setSelectedID] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [jurisdictionExpanded, setJurisdictionExpanded] = useState(false);
@@ -143,13 +151,8 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
       fields={<>
         <SearchField label="Search loaded standards" placeholder="Search standards or publishers" value={search}
           onChange={setSearch} isLoading={catalog.state === "loading"}/>
-        <SelectField label="Content rights" value={rightsFilter} allowsEmpty={false}
-          options={[
-            { id: "ALL", label: "All content rights" },
-            { id: "CITATIONS_ONLY", label: "Citations only" },
-            { id: "SUMMARIES_PERMITTED", label: "Summaries permitted" },
-            { id: "UNVERIFIED", label: "Not verified" },
-          ]} onChange={(value) => setRightsFilter(value ?? "ALL")}/>
+        <SelectField label="Content rights" value={rightsFilter} placeholder="All content rights"
+          allowsEmpty={false} options={rightsOptions} onChange={(value) => setRightsFilter(value ?? "ALL")}/>
         {compact && <Button variant="secondary" size="compact" aria-expanded={jurisdictionExpanded}
           onPress={() => {
             if (jurisdictionExpanded) { setJurisdictionDraft(jurisdiction); setJurisdictionError(""); }
