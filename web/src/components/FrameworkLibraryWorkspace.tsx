@@ -130,7 +130,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
       <div className="cs-framework-library__page-copy">
         <span className="eyebrow">Compliance / Reference library</span>
         <h1>Framework Library</h1>
-        <p>Review published editions and content rights before adding a standard to a Program.</p>
+        <p>Review an edition before adding it to a Program.</p>
       </div>
       <div className="cs-framework-library__page-actions">
         <span className="cs-framework-library__catalog-label">Published reference catalog</span>
