@@ -484,9 +484,16 @@ async function capturePage(capture) {
       if (capture.viewport.width <= 390) {
         const record = await inspect.boundingBox();
         const rail = await page.locator(".app-shell > .sidebar").boundingBox();
-        if (!record || !rail || record.x < rail.x + rail.width - 2 ||
-            record.y >= capture.viewport.height - 44) {
-          throw new Error(`${capture.name} hides framework records behind the compact source-aligned rail or below the first viewport.`);
+        const searchInput = await search.boundingBox();
+        const localTabs = await views.locator(".cs-framework-library__view").all();
+        const tabBoxes = await Promise.all(localTabs.map((tab) => tab.boundingBox()));
+        if (!record || !rail || !searchInput || tabBoxes.length !== 3 || tabBoxes.some((box) => !box) ||
+            record.x < rail.x + rail.width - 2 ||
+            Math.abs(record.x - searchInput.x) > 8 ||
+            tabBoxes[2].x + tabBoxes[2].width > capture.viewport.width - 4 ||
+            tabBoxes[2].x <= tabBoxes[1].x ||
+            record.y > 590) {
+          throw new Error(`${capture.name} diverges from the V2 mobile full-width filters, visible three-tab row or first-record position: ${JSON.stringify({ record, searchInput, tabBoxes })}`);
         }
       }
       if (capture.viewport.width > 900 || capture.frameworkDetailSheet) await inspect.click();
