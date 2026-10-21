@@ -65,6 +65,7 @@
     "src/design-system/components/feedback.css",
     "src/design-system/components/fields.css",
     "src/design-system/components/navigation.css",
+    "src/design-system/components/workspace-switcher.css",
     "src/design-system/components/overlays.css",
     "src/design-system/components/surfaces.css",
     "src/app-navigation.css",

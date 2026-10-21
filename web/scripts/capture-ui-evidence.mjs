@@ -252,6 +252,11 @@ function expectedPrimaryDestination(hash, deniedSettings = false) {
 }
 
 async function assertPrimaryNavigation(page, capture) {
+  // App applies verified context after the initial Home reads settle. The
+  // intentional loading fixture has pending capabilities, not a denied grant.
+  const settingsCapabilityState = capture.fixture === "today-loading" ? "pending"
+    : capture.assertNoConfigureNav ? "denied" : "available";
+  if (settingsCapabilityState === "pending") await page.getByText("Loading assigned work…", { exact: true }).waitFor({ state: "visible" });
   const sidebar = page.getByRole("complementary", { name: "Primary navigation", exact: true });
   await sidebar.waitFor({ state: "visible" });
   const reading = await sidebar.evaluate((root) => {
@@ -309,7 +314,7 @@ async function assertPrimaryNavigation(page, capture) {
   const compact = capture.viewport.width <= 1024;
   const expectedWidth = capture.viewport.width <= 560 ? 56 : compact ? 72 : 228;
   const expectedActive = expectedPrimaryDestination(new URL(page.url()).hash, capture.assertNoConfigureNav);
-  const expectedSettings = !capture.assertNoConfigureNav;
+  const expectedSettings = settingsCapabilityState === "available";
   if (reading.labels.join("|") !== primaryNavigationLabels.join("|") || reading.hrefs.join("|") !== primaryNavigationHrefs.join("|")
       || reading.activePage.join("|") !== (expectedActive ?? "")
       || Math.abs(reading.railWidth - expectedWidth) > 1 || reading.railX !== 0
@@ -320,7 +325,7 @@ async function assertPrimaryNavigation(page, capture) {
       || (expectedActive && (!reading.activeMarkerVisible || reading.activeMarkerWidth < 3 || reading.activeMarkerHeight < 20))) {
     throw new Error(`${capture.name}: source menu identity, selection or responsive geometry failed: ${JSON.stringify({ expectedActive, expectedWidth, ...reading })}`);
   }
-  return reading;
+  return { ...reading, settingsCapabilityState };
 }
 
 async function openAndVerifyNavigationDrawer(page, capture, expandRisk, requireCurrentVisible = true) {

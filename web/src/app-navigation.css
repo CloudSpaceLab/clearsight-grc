@@ -6,12 +6,12 @@
   --cs-navigation-font-size: 13px;
   --cs-navigation-min-height: 49px;
 }
-.app-shell.app-shell {
+.app-shell.app-shell--navigation {
   display: grid;
   grid-template-columns: 228px minmax(0, 1fr);
   min-inline-size: 0;
 }
-.app-shell > .sidebar.app-navigation {
+.app-shell--navigation > .sidebar.app-navigation {
   position: sticky;
   inset-block-start: 0;
   inset-block-end: auto;
@@ -121,7 +121,7 @@
 .app-navigation-sheet__heading p { margin: 4px 0 0; color: var(--cs-text-muted); font-size: 13px; }
 .app-navigation-sheet .app-navigation__items { gap: 3px; }
 
-.app-shell > .sidebar .brand-mark {
+.app-shell--navigation > .sidebar .brand-mark {
   position: relative;
   display: block;
   flex: 0 0 38px;
@@ -131,22 +131,22 @@
   border: 0;
   box-shadow: none;
 }
-.app-shell > .sidebar .brand-mark::before,
-.app-shell > .sidebar .brand-mark::after {
+.app-shell--navigation > .sidebar .brand-mark::before,
+.app-shell--navigation > .sidebar .brand-mark::after {
   content: "";
   position: absolute;
   display: block;
   border-radius: var(--cs-primitive-radius-full);
   transform: rotate(32deg);
 }
-.app-shell > .sidebar .brand-mark::before {
+.app-shell--navigation > .sidebar .brand-mark::before {
   inline-size: 15px;
   block-size: 29px;
   inset-block-start: 5px;
   inset-inline-start: 8px;
   background: linear-gradient(170deg, var(--cs-action-primary), var(--cs-accent-cyan));
 }
-.app-shell > .sidebar .brand-mark::after {
+.app-shell--navigation > .sidebar .brand-mark::after {
   inline-size: 13px;
   block-size: 23px;
   inset-block-start: 11px;
@@ -154,9 +154,9 @@
   background: linear-gradient(165deg, var(--cs-accent-cyan), var(--cs-accent-violet));
 }
 @media (max-width: 1024px) {
-  body { padding-bottom: 0; }
-  .app-shell.app-shell { grid-template-columns: 72px minmax(0, 1fr); }
-  .app-shell > .sidebar.app-navigation { inline-size: 72px; padding: 12px 9px; }
+  body:has(.app-shell--navigation) { padding-bottom: 0; }
+  .app-shell.app-shell--navigation { grid-template-columns: 72px minmax(0, 1fr); }
+  .app-shell--navigation > .sidebar.app-navigation { inline-size: 72px; padding: 12px 9px; }
   .app-navigation .sidebar-brand { justify-content: center; gap: 0; padding-block-end: 10px; border: 0; }
   .app-navigation .sidebar-brand__name,
   .app-navigation .app-navigation__label,
@@ -171,8 +171,7 @@
   .app-navigation .app-navigation__actor { justify-content: center; padding: 0; }
 }
 @media (max-width: 560px) {
-  .app-shell.app-shell { grid-template-columns: 56px minmax(0, 1fr); }
-  .app-shell > .sidebar.app-navigation { inline-size: 56px; padding: 10px 5px; }
+  .app-shell.app-shell--navigation { grid-template-columns: 56px minmax(0, 1fr); }
+  .app-shell--navigation > .sidebar.app-navigation { inline-size: 56px; padding: 10px 5px; }
   .app-navigation .sidebar-brand { padding-block-end: 4px; }
 }
-

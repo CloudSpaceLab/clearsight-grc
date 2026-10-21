@@ -3,6 +3,7 @@ import { routeHash, type View, type WorkspaceTarget, type WorkTab } from "../app
 import { NavigationIcon } from "./NavigationIcon";
 import { Monogram } from "./Monogram";
 import { ActionLink, FocusedSheet, IconButton } from "./ui";
+import "../app-navigation.css";
 
 type Destination = {
   id: string;

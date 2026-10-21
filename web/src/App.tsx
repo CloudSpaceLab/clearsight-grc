@@ -598,7 +598,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     isAuthorizedWizardAssessment(capture, runtime?.actor.id);
   const assessmentDue = usesAssessmentWorkspace ? actionDeadlinePresentation(capture?.deadline, false) : null;
 
-  return <div className="app-shell">
+  return <div className="app-shell app-shell--navigation">
     <AppNavigation activeView={activeView} target={target} configureEnabled={configureEnabled}
       actorName={actorName} onNavigate={navigate}/>
     <main>
