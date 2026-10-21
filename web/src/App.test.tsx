@@ -65,7 +65,7 @@ vi.mock("./components/VendorsWorkspace", () => ({
   VendorsWorkspace: ({ onOpenRequest, guideIntent, targetID }: { onOpenRequest?: (requestID: string) => void; guideIntent?: { type: string }; targetID?: string }) => <><output data-testid="vendor-guide-intent">{guideIntent?.type}</output><output data-testid="vendor-target">{targetID}</output><button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button></>,
 }));
 vi.mock("./components/risks/RisksWorkspace", () => ({
-  RisksWorkspace: ({ targetID }: { targetID?: string }) => <section><h1>Risks</h1><output data-testid="risk-target">{targetID}</output></section>,
+  RisksWorkspace: ({ targetID, organizationScopeID }: { targetID?: string; organizationScopeID?: string }) => <section><h1>Risks</h1><output data-testid="risk-target">{targetID}</output><output data-testid="risk-scope">{organizationScopeID}</output></section>,
 }));
 vi.mock("./components/oversight/GroupOversightWorkspace", () => ({
   GroupOversightWorkspace: ({ onOpenLegalEntity }: { onOpenLegalEntity: (legalEntityID: string) => void }) => <section><h1>Group posture</h1><button type="button" onClick={() => onOpenLegalEntity("entity-ng-uuid")}>Open current OpCo</button></section>,
@@ -137,6 +137,11 @@ function runtime(demoMode: boolean): RuntimeWithCapabilities {
     demo_mode: demoMode,
     capabilities: { document_import: true, reference_journeys: demoMode },
   };
+}
+
+function primaryLink(label: string) {
+  return within(screen.getByRole("complementary", { name: "Primary navigation" }))
+    .getByRole("link", { name: label });
 }
 
 function switchableRuntime(): RuntimeWithCapabilities {
@@ -449,8 +454,8 @@ describe("legal entity scope selector", () => {
   });
 });
 
-describe("scope and Portfolio integration", () => {
-  it("keeps verified legal-entity switching available while navigating the Risk Portfolio lens", async () => {
+describe("scope and direct navigation integration", () => {
+  it("keeps verified legal-entity switching available while navigating Risk and Loss destinations", async () => {
     vi.mocked(loadContext).mockResolvedValue(switchableRuntime());
     window.history.replaceState(null, "", "#programs");
     render(<App/>);
@@ -458,14 +463,13 @@ describe("scope and Portfolio integration", () => {
     const scopeTrigger = await screen.findByRole("button", { name: /Organization scope/ });
     expect(scopeTrigger.textContent).toContain("Clear Bank Nigeria");
 
-    const portfolio = screen.getByRole("navigation", { name: "Portfolio lenses" });
-    fireEvent.click(within(portfolio).getByRole("button", { name: "Risks" }));
+    fireEvent.click(primaryLink("Risk & Losses"));
 
     expect(await screen.findByRole("heading", { name: "Risks" })).toBeTruthy();
     expect(window.location.hash).toBe("#risks");
     expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria");
 
-    fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Losses" }));
+    fireEvent.click(primaryLink("Loss events"));
     expect(await screen.findByRole("heading", { name: "Losses" })).toBeTruthy();
     expect(window.location.hash).toBe("#losses");
     expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria");
@@ -476,8 +480,8 @@ describe("scope and Portfolio integration", () => {
   });
 });
 
-describe("organization scope Portfolio persistence", () => {
-  it("keeps an authoritative area across Programs, Risks and Losses and clears it on unsupported lenses", async () => {
+describe("organization scope navigation persistence", () => {
+  it("keeps an authoritative area across Programs, Risks and Losses and clears it on unsupported destinations", async () => {
     const scoped = switchableRuntime();
     scoped.scope_hierarchy!.organization_scopes = [
       { id: "scope-bank", code: "BANK", name: "BANK", kind: "ORGANIZATION_UNIT", parent_id: scoped.scope_hierarchy!.current.id, department_path: ["BANK"] },
@@ -493,17 +497,17 @@ describe("organization scope Portfolio persistence", () => {
     expect(window.location.hash).toBe("#programs");
     await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Risk"));
 
-    const portfolio = screen.getByRole("navigation", { name: "Portfolio lenses" });
-    fireEvent.click(within(portfolio).getByRole("button", { name: "Risks" }));
+    fireEvent.click(primaryLink("Risk & Losses"));
     expect(await screen.findByRole("heading", { name: "Risks" })).toBeTruthy();
     await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Risk"));
+    expect(screen.getByTestId("risk-scope").textContent).toBe("scope-risk");
 
-    fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Losses" }));
+    fireEvent.click(primaryLink("Loss events"));
     expect(await screen.findByRole("heading", { name: "Losses" })).toBeTruthy();
     await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Risk"));
     expect(screen.getByTestId("loss-scope").textContent).toBe("scope-risk:BANK / RISK");
 
-    fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Vendors" }));
+    fireEvent.click(primaryLink("Vendors"));
     await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria"));
     expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).not.toContain("Risk");
   });
@@ -519,12 +523,12 @@ describe("Reports organization scope", () => {
     vi.mocked(loadContext).mockResolvedValue(scoped);
   });
 
-  it("preserves the verified organization area when opening Reports from Portfolio", async () => {
+  it("preserves the verified organization area when opening Reports from Programs", async () => {
     window.history.replaceState(null, "", "#programs");
     render(<App/>);
     fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
     fireEvent.click(within(await screen.findByRole("dialog", { name: "Change organization scope" })).getByRole("button", { name: /Risk/ }));
-    fireEvent.click(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Reports" }));
+    fireEvent.click(primaryLink("Reports"));
 
     expect(await screen.findByRole("heading", { name: "Reports & insights" })).toBeTruthy();
     expect(window.location.hash).toBe("#reports");
@@ -532,7 +536,7 @@ describe("Reports organization scope", () => {
     expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Risk");
   });
 
-  it("keeps Reports open when changing its area and retains that selection through Insights", async () => {
+  it("keeps Reports open when changing its area and retains that selection through Key indicators", async () => {
     window.history.replaceState(null, "", "#reports");
     render(<App/>);
     await screen.findByRole("heading", { name: "Reports & insights" });
@@ -541,8 +545,12 @@ describe("Reports organization scope", () => {
 
     expect(window.location.hash).toBe("#reports");
     expect(screen.getByTestId("report-scope").textContent).toBe(`bank-ng:${areaID}`);
-    fireEvent.click(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Insights" }));
+    fireEvent.click(primaryLink("Risk & Losses"));
+    expect(await screen.findByRole("heading", { name: "Risks" })).toBeTruthy();
+    fireEvent.click(primaryLink("Key indicators"));
     expect(await screen.findByTestId("insights-scope")).toHaveProperty("textContent", areaID);
+    expect(window.location.hash).toBe("#insights");
+    expect(primaryLink("Risk & Losses").getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getByRole("button", { name: "View reports" }));
     expect(await screen.findByTestId("report-scope")).toHaveProperty("textContent", `bank-ng:${areaID}`);
     expect(window.location.hash).toBe("#reports");
@@ -566,17 +574,20 @@ describe("Reports organization scope", () => {
     expect(screen.getByTestId("insights-scope").textContent).toBe(areaID);
     expect(screen.getByTestId("insights-scope-authorized").textContent).toBe("true");
     expect(window.location.hash).toBe(`#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&legal_entity_id=bank-ng&organization_scope_id=${areaID}`);
+    expect(primaryLink("Reports").getAttribute("aria-current")).toBe("page");
+    expect(primaryLink("Risk & Losses").getAttribute("aria-current")).toBeNull();
 
     act(() => window.dispatchEvent(new HashChangeEvent("hashchange")));
     expect(screen.getByTestId("insights-period").textContent).toBe("2026-09-08:2026-10-07");
     expect(screen.getByTestId("insights-scope-authorized").textContent).toBe("true");
+    expect(primaryLink("Reports").getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getByRole("button", { name: "View reports" }));
     expect(await screen.findByTestId("report-scope")).toHaveProperty("textContent", `bank-ng:${areaID}`);
   });
 });
 
 describe("runtime navigation", () => {
-  it("opens Templates from the Portfolio Forms lens after a section-only change", async () => {
+  it("opens Templates from the direct Forms link after a section-only change", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     window.history.replaceState(null, "", "#forms");
     const app = render(<App/>);
@@ -587,11 +598,11 @@ describe("runtime navigation", () => {
       expect(screen.getByRole("tabpanel", { name: "Documents" })).toBeTruthy();
       expect(window.location.hash).toBe("#forms?section=documents");
 
-      fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Programs" }));
+      fireEvent.click(primaryLink("Programs"));
       await screen.findByRole("heading", { name: "Programs" });
       expect(window.location.hash).toBe("#programs");
 
-      fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Forms" }));
+      fireEvent.click(primaryLink("Forms"));
       expect(window.location.hash).toBe("#forms");
       expect(await screen.findByRole("tab", { name: "Templates", selected: true })).toBeTruthy();
       expect(screen.getByRole("tabpanel", { name: "Templates" })).toBeTruthy();
@@ -608,7 +619,7 @@ describe("runtime navigation", () => {
     render(<App/>);
     await screen.findByRole("tab", { name: "Templates", selected: true }, { timeout: 5000 });
     fireEvent.click(screen.getByRole("tab", { name: "Documents" }));
-    fireEvent.click(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Home" }));
+    fireEvent.click(primaryLink("Home"));
     expect(screen.queryByRole("tab", { name: "Documents" })).toBeNull();
 
     window.history.replaceState(null, "", "#forms?section=documents");
@@ -616,6 +627,7 @@ describe("runtime navigation", () => {
     fireEvent(window, new Event("hashchange"));
     expect(await screen.findByRole("tab", { name: "Documents", selected: true })).toBeTruthy();
     expect(screen.getByRole("tabpanel", { name: "Documents" })).toBeTruthy();
+    expect(primaryLink("Forms").getAttribute("aria-current")).toBe("page");
   });
 
   it("preserves template filters when app target navigation opens and closes form detail", async () => {
@@ -654,12 +666,9 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
-    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
-    fireEvent.click(within(primaryNavigation).getByRole("button", { name: "Portfolio" }));
-    const portfolio = await screen.findByRole("navigation", { name: "Portfolio lenses" });
-    expect(within(portfolio).getByRole("button", { name: "Forms" })).toBeTruthy();
+    expect(primaryLink("Forms")).toBeTruthy();
     await waitFor(() => expect(document.documentElement.dataset.clearsightDemo).toBe("off"));
-    expect(screen.getByLabelText("Administration")).toBeTruthy();
+    expect(await screen.findByLabelText("Administration")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Imports/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Explore/ })).toBeNull();
     expect(screen.queryByText("Demo environment")).toBeNull();
@@ -671,7 +680,7 @@ describe("runtime navigation", () => {
     vi.mocked(loadEvidenceRequests).mockClear();
     render(<App />);
 
-    fireEvent.click((await screen.findAllByRole("button", { name: "Work" }))[0]!);
+    fireEvent.click(primaryLink("Work & Approvals"));
 
     expect(window.location.hash).toBe("#work");
     expect(await screen.findByRole("tab", { name: "My work", selected: true })).toBeTruthy();
@@ -684,7 +693,8 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue({ ...runtime(false), capabilities: { ...runtime(false).capabilities, oversight_read: true } });
     render(<App />);
 
-    expect((await screen.findAllByRole("button", { name: "Home" })).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("tab", { name: "Oversight" })).toBeTruthy();
+    expect(primaryLink("Home")).toBeTruthy();
   });
 
   it("keeps legacy Today work under the explicit My work Home intent", async () => {
@@ -699,8 +709,8 @@ describe("runtime navigation", () => {
     expect(window.location.hash).toBe("#oversight?tab=my-work");
     expect(await screen.findByText("Confirm assigned evidence")).toBeTruthy();
     const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
-    expect(within(primaryNavigation).queryByRole("button", { name: "Today" })).toBeNull();
-    expect(within(primaryNavigation).getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBe("page");
+    expect(within(primaryNavigation).queryByRole("link", { name: "Today" })).toBeNull();
+    expect(primaryLink("Home").getAttribute("aria-current")).toBe("page");
   });
 
   it("keeps the Home destination scoped to assigned work without organization oversight access", async () => {
@@ -712,59 +722,120 @@ describe("runtime navigation", () => {
     render(<App />);
 
     await screen.findByText("Nothing needs your action right now");
-    expect(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Home" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "Oversight" })).toBeNull();
+    expect(primaryLink("Home")).toBeTruthy();
   });
 
-  it("collapses governed records into one primary Portfolio destination", async () => {
+  it("exposes the source menu as direct destinations without duplicate Portfolio navigation", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     window.history.replaceState(null, "", "#forms");
     render(<App />);
 
     const primary = screen.getByRole("complementary", { name: "Primary navigation" });
-    expect(within(primary).getByRole("button", { name: "Portfolio" }).getAttribute("aria-current")).toBe("page");
-    expect(within(primary).queryByRole("button", { name: "Programs" })).toBeNull();
-    expect(within(primary).queryByRole("button", { name: "Vendors" })).toBeNull();
-    expect(within(primary).queryByRole("button", { name: "Processing activities" })).toBeNull();
-    expect(within(primary).queryByRole("button", { name: "Forms" })).toBeNull();
-
-    const portfolio = screen.getByRole("navigation", { name: "Portfolio lenses" });
-    expect(within(portfolio).getByRole("button", { name: "Forms" }).getAttribute("aria-current")).toBe("page");
+    expect(primaryLink("Forms").getAttribute("aria-current")).toBe("page");
+    await within(primary).findByRole("link", { name: "Settings" });
+    expect(within(primary).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
+      "#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#work", "#reports", "#configure",
+    ]);
+    expect(within(primary).queryByRole("link", { name: "Portfolio" })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Portfolio lenses" })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Mobile navigation" })).toBeNull();
   });
 
-  it("shows Reports in primary navigation after workspace approval", async () => {
+  it("keeps Reports directly available in primary navigation", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
     const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
-    expect(await within(primaryNavigation).findByRole("button", { name: "Reports" })).toBeTruthy();
+    expect(await within(primaryNavigation).findByRole("link", { name: "Reports" })).toBeTruthy();
   });
 
-  it("opens Portfolio on Programs", async () => {
+  it("navigates between Frameworks and Programs even though they share one route family", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     window.history.replaceState(null, "", "#oversight");
     render(<App />);
 
-    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
-    fireEvent.click(await within(primaryNavigation).findByRole("button", { name: "Portfolio" }));
+    fireEvent.click(primaryLink("Frameworks"));
+    expect(window.location.hash).toBe("#programs/library");
+    expect(await screen.findByRole("heading", { name: "Framework Library" })).toBeTruthy();
+    expect(primaryLink("Frameworks").getAttribute("aria-current")).toBe("page");
+    expect(primaryLink("Programs").getAttribute("aria-current")).toBeNull();
+
+    fireEvent.click(primaryLink("Programs"));
 
     expect(window.location.hash).toBe("#programs");
     expect(await screen.findByRole("heading", { name: "Programs" })).toBeTruthy();
+    expect(primaryLink("Programs").getAttribute("aria-current")).toBe("page");
+    expect(primaryLink("Frameworks").getAttribute("aria-current")).toBeNull();
+
+    fireEvent.click(primaryLink("Frameworks"));
+    expect(window.location.hash).toBe("#programs/library");
+    expect(await screen.findByRole("heading", { name: "Framework Library" })).toBeTruthy();
   });
 
-  it("provides Vendors as a Portfolio lens while keeping its route stable", async () => {
+  it("opens Vendors directly while keeping its route stable", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
-    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
-    const portfolioButton = await within(primaryNavigation).findByRole("button", { name: "Portfolio" });
-    fireEvent.click(portfolioButton);
-    const portfolio = await screen.findByRole("navigation", { name: "Portfolio lenses" });
-    const vendorButton = within(portfolio).getByRole("button", { name: "Vendors" });
-    fireEvent.click(vendorButton);
+    fireEvent.click(primaryLink("Vendors"));
 
     expect(window.location.hash).toBe("#vendors");
-    expect(portfolioButton.getAttribute("aria-current")).toBe("page");
-    expect(vendorButton.getAttribute("aria-current")).toBe("page");
+    expect(primaryLink("Vendors").getAttribute("aria-current")).toBe("page");
+  });
+
+  it("restores exact risk and loss targets and menu selection on browser history events", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    window.history.replaceState(null, "", "#risks/risk%2F1");
+    render(<App/>);
+
+    expect(await screen.findByTestId("risk-target")).toHaveProperty("textContent", "risk/1");
+    expect(primaryLink("Risk & Losses").getAttribute("aria-current")).toBe("page");
+    expect(primaryLink("Risks").getAttribute("aria-current")).toBe("location");
+
+    act(() => {
+      window.history.replaceState(null, "", "#losses/loss%2F1");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(await screen.findByTestId("loss-target")).toHaveProperty("textContent", "loss/1");
+    expect(primaryLink("Loss events").getAttribute("aria-current")).toBe("location");
+    expect(primaryLink("Risks").getAttribute("aria-current")).toBeNull();
+
+    act(() => {
+      window.history.replaceState(null, "", "#risks/risk%2F1");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    expect(await screen.findByTestId("risk-target")).toHaveProperty("textContent", "risk/1");
+    expect(primaryLink("Risks").getAttribute("aria-current")).toBe("location");
+    expect(primaryLink("Loss events").getAttribute("aria-current")).toBeNull();
+  });
+
+  it("shows Settings only after runtime verification and opens the existing configuration route", async () => {
+    const context = deferred<RuntimeContext>();
+    vi.mocked(loadContext).mockReturnValueOnce(context.promise);
+    render(<App/>);
+    const primary = screen.getByRole("complementary", { name: "Primary navigation" });
+    expect(within(primary).queryByRole("link", { name: "Settings" })).toBeNull();
+
+    await act(async () => { context.resolve(runtime(false)); });
+    fireEvent.click(await within(primary).findByRole("link", { name: "Settings" }));
+
+    expect(window.location.hash).toBe("#configure");
+    expect(await screen.findByRole("heading", { name: "Configuration" })).toBeTruthy();
+    expect(primaryLink("Settings").getAttribute("aria-current")).toBe("page");
+  });
+
+  it("keeps Settings hidden and rejects its direct route when configuration is denied", async () => {
+    const context = runtime(false);
+    vi.mocked(loadContext).mockResolvedValue({ ...context, capabilities: { ...context.capabilities, config_read: false } });
+    window.history.replaceState(null, "", "#configure");
+    render(<App/>);
+
+    await waitFor(() => expect(window.location.hash).toBe("#oversight"));
+    const primary = screen.getByRole("complementary", { name: "Primary navigation" });
+    expect(within(primary).queryByRole("link", { name: "Settings" })).toBeNull();
+    expect(screen.queryByLabelText("Administration")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Configuration" })).toBeNull();
+    expect(primaryLink("Home").getAttribute("aria-current")).toBe("page");
   });
 
   it("does not advance an empty attention or routing guide destination", async () => {
@@ -861,10 +932,7 @@ describe("runtime navigation", () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App />);
 
-    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
-    fireEvent.click(within(primaryNavigation).getByRole("button", { name: "Portfolio" }));
-    const portfolio = await screen.findByRole("navigation", { name: "Portfolio lenses" });
-    fireEvent.click(within(portfolio).getByRole("button", { name: "Vendors" }));
+    fireEvent.click(primaryLink("Vendors"));
 
     expect((await screen.findByTestId("onboarding-surface")).textContent).toBe("VENDORS");
     expect(screen.getByRole("complementary", { name: "Vendor guide" })).toBeTruthy();
@@ -887,9 +955,7 @@ describe("runtime navigation", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Review due diligence" }));
     await screen.findByTestId("vendor-guide-intent");
-    const oversightButton = (await screen.findAllByRole("button", { name: "Home" }))[0];
-    if (!oversightButton) throw new Error("Home navigation is missing");
-    fireEvent.click(oversightButton);
+    fireEvent.click(primaryLink("Home"));
 
     await waitFor(() => expect((screen.getByRole("button", { name: "Review due diligence" }) as HTMLButtonElement).disabled).toBe(false));
     expect(screen.getByRole("alert").textContent).toContain("This guide step could not be opened. Try again.");
@@ -907,10 +973,7 @@ describe("runtime navigation", () => {
     vi.mocked(loadEvidenceRequest).mockResolvedValue(request);
     render(<App />);
 
-    const primaryNavigation = screen.getByRole("complementary", { name: "Primary navigation" });
-    fireEvent.click(within(primaryNavigation).getByRole("button", { name: "Portfolio" }));
-    const portfolio = await screen.findByRole("navigation", { name: "Portfolio lenses" });
-    fireEvent.click(within(portfolio).getByRole("button", { name: "Vendors" }));
+    fireEvent.click(primaryLink("Vendors"));
     fireEvent.click(await screen.findByRole("button", { name: "Review vendor request" }));
 
     expect(window.location.hash).toBe("#work/evidence/request-vendor-1");
@@ -1179,13 +1242,13 @@ describe("runtime navigation", () => {
     render(<App />);
 
     await screen.findAllByRole("button", { name: "Respond to evidence request" });
-    fireEvent.click(screen.getAllByRole("button", { name: /Work/ })[0]!);
+    fireEvent.click(primaryLink("Work & Approvals"));
     fireEvent.click(await screen.findByRole("button", { name: "Related work" }));
     fireEvent.click(await screen.findByRole("button", { name: "Evidence requests" }));
     fireEvent.change(await screen.findByLabelText("Why should it be reassigned?"), { target: { value: "The account owner must respond." } });
     fireEvent.click(screen.getByRole("button", { name: "Return to requester" }));
     await waitFor(() => expect(declareWrongCaptureRecipient).toHaveBeenCalled());
-    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
+    fireEvent.click(primaryLink("Home"));
 
     await waitFor(() => expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0));
   });
@@ -1252,7 +1315,7 @@ describe("runtime navigation", () => {
     });
     await act(async () => { exact.resolve(evidenceRequest()); });
     await act(async () => { list.reject(new Error("Workspace list unavailable")); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
+    fireEvent.click(primaryLink("Home"));
 
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
@@ -1273,7 +1336,7 @@ describe("runtime navigation", () => {
     });
     await act(async () => { list.reject(new Error("Workspace list unavailable")); });
     await act(async () => { exact.resolve(evidenceRequest()); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
+    fireEvent.click(primaryLink("Home"));
 
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
@@ -1297,7 +1360,7 @@ describe("runtime navigation", () => {
 
     expect(await screen.findByRole("heading", { name: "No evidence requests in this scope" })).toBeTruthy();
     expect(screen.queryByText("Confirm assigned evidence")).toBeNull();
-    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
+    fireEvent.click(primaryLink("Home"));
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
 
@@ -1347,7 +1410,7 @@ describe("runtime navigation", () => {
     await screen.findAllByText("Second Bank");
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(currentSecond.id, "eligibility_preload"));
     await act(async () => { command.resolve(staleReturned); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
+    fireEvent.click(primaryLink("Home"));
 
     expect(await screen.findAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(2);
   });
@@ -1390,7 +1453,7 @@ describe("runtime navigation", () => {
     await screen.findAllByText("Second Bank");
     await waitFor(() => expect(loadEvidenceRequest).toHaveBeenCalledWith(currentSecond.id, "eligibility_preload"));
     await act(async () => { command.resolve(staleReassigned); });
-    fireEvent.click(screen.getAllByRole("button", { name: /Home/ })[0]!);
+    fireEvent.click(primaryLink("Home"));
 
     expect(screen.queryAllByRole("button", { name: "Respond to evidence request" })).toHaveLength(0);
   });

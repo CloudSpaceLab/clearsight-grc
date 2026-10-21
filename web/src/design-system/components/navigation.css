@@ -1,3 +1,56 @@
+.cs-action-link--navigation {
+  position: relative;
+  inline-size: 100%;
+  min-inline-size: var(--cs-target-min);
+  min-block-size: max(var(--cs-target-min), var(--cs-navigation-min-height));
+  justify-content: flex-start;
+  gap: var(--cs-navigation-gap);
+  padding: var(--cs-navigation-padding-block) var(--cs-navigation-padding-inline);
+  border-color: transparent;
+  border-radius: var(--cs-navigation-radius);
+  background: var(--cs-navigation-bg);
+  color: var(--cs-navigation-text);
+  font-size: var(--cs-navigation-font-size);
+  font-weight: 600;
+  line-height: var(--cs-leading-body);
+  text-align: start;
+}
+
+.cs-action-link--navigation[data-hovered],
+.cs-action-link--navigation[data-pressed] {
+  background: var(--cs-navigation-hover-bg);
+}
+
+.cs-action-link--navigation[aria-current="page"],
+.cs-action-link--navigation[aria-current="location"] {
+  background: var(--cs-navigation-current-bg);
+  color: var(--cs-navigation-current-text);
+  font-weight: 700;
+}
+
+.cs-action-link--navigation[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 50%;
+  inline-size: var(--cs-navigation-indicator-width);
+  block-size: var(--cs-navigation-indicator-height);
+  border-radius: 0 var(--cs-primitive-radius-full) var(--cs-primitive-radius-full) 0;
+  background: var(--cs-navigation-indicator);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.cs-action-link--navigation[data-focus-visible] {
+  outline: var(--cs-focus-width) solid var(--cs-navigation-focus);
+  outline-offset: var(--cs-focus-offset);
+}
+
+.cs-action-link--navigation[data-disabled] {
+  opacity: var(--cs-button-disabled-opacity);
+  cursor: not-allowed;
+}
+
 .cs-tabs { min-inline-size: 0; }
 .cs-tabs__compact { display: none; }
 
@@ -90,6 +143,10 @@
 }
 
 @media (forced-colors: active) {
+  .cs-action-link--navigation { border-color: ButtonText; }
+  .cs-action-link--navigation[aria-current="page"],
+  .cs-action-link--navigation[aria-current="location"] { color: LinkText; border-color: Highlight; }
+  .cs-action-link--navigation[aria-current="page"]::before { background: Highlight; }
   .cs-tabs__indicator { background: Highlight; }
   .cs-scope-bar__item { border-color: ButtonText; }
 }

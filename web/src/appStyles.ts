@@ -15,3 +15,4 @@ import "./demo-login.css";
 import "./defect-review-fixes.css";
 import "./enterprise-shell.css";
 import "./approved-shell.css";
+import "./app-navigation.css";

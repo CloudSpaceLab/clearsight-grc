@@ -59,6 +59,7 @@ export function UIComponentGallery() {
   const [retainedTab, setRetainedTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
   const [workspace, setWorkspace] = useState<"PROGRAMS" | "VENDORS" | "PRIVACY">("PROGRAMS");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [busySheetOpen, setBusySheetOpen] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState("request-1");
@@ -79,6 +80,14 @@ export function UIComponentGallery() {
       </Contract>
       <Contract family="ActionCard" job="Offers one consequential route with concise supporting context." keyboard="Enter or Space activates it." prohibited="Do not rebuild a card-shaped button in a feature."><ActionCard title="Create sample request" description="Start a governed sample evidence request" icon={<span aria-hidden="true">+</span>}/></Contract>
       <Contract family="ActionLink" job="Navigates to another location." keyboard="Enter follows the link." prohibited="Do not use it for an in-place command."><ActionLink href="#sample-destination">Open sample destination</ActionLink></Contract>
+      <Contract family="ActionLink" job="Names the current page and contextual location in a navigation list." keyboard="Tab reaches each available destination; Enter follows its link." prohibited="Do not replace a destination with an in-place command or a private selected style.">
+        <nav aria-label="Sample workspace navigation">
+          <ActionLink variant="navigation" href="#gallery-actions" aria-current="page"><span aria-hidden="true">◫</span>Sample actions</ActionLink>
+          <ActionLink variant="navigation" href="#gallery-fields" aria-current="location">Sample fields</ActionLink>
+          <ActionLink variant="navigation" href="#gallery-navigation">Sample navigation</ActionLink>
+          <ActionLink variant="navigation" href="#sample-settings" isDisabled>Sample unavailable settings</ActionLink>
+        </nav>
+      </Contract>
       <Contract family="IconButton" job="Runs a compact, named icon action." keyboard="Enter or Space activates it." prohibited="Do not omit its accessible business name."><IconButton aria-label="Close sample panel"><span aria-hidden="true">×</span></IconButton></Contract>
     </GalleryGroup>
 
@@ -148,10 +157,17 @@ export function UIComponentGallery() {
     </GalleryGroup>
 
     <GalleryGroup title="Overlays">
-      <Contract family="FocusedSheet" job="Keeps one focused detail or decision above its source view." keyboard="Tab remains inside; Escape closes unless consequential submission is in flight." prohibited="Do not customize the backdrop in a feature."><div className="ui-gallery__row"><Button onPress={() => setSheetOpen(true)}>Open sample sheet</Button><Button variant="secondary" onPress={() => setBusySheetOpen(true)}>Open in-flight sample</Button></div></Contract>
+      <Contract family="FocusedSheet" job="Keeps one focused detail or decision above its source view." keyboard="Tab remains inside; Escape closes unless consequential submission is in flight." prohibited="Do not customize the backdrop in a feature."><div className="ui-gallery__row"><Button onPress={() => setSheetOpen(true)}>Open sample sheet</Button><Button variant="secondary" onPress={() => setNavigationOpen(true)}>Open sample navigation</Button><Button variant="secondary" onPress={() => setBusySheetOpen(true)}>Open in-flight sample</Button></div></Contract>
       <Contract family="PopoverDialog" job="Keeps short contextual work anchored to its trigger." keyboard="Escape closes and focus returns to the trigger." prohibited="Do not use it for long or consequential workflows."><PopoverDialog label="Sample filter" isOpen={popoverOpen} onOpenChange={setPopoverOpen} trigger={<Button>Open sample filter</Button>}><p>Choose a bounded sample filter.</p><Button onPress={() => setPopoverOpen(false)}>Finish sample filter</Button></PopoverDialog></Contract>
     </GalleryGroup>
     {sheetOpen && <FocusedSheet label="Sample evidence detail" onClose={() => setSheetOpen(false)}><h2>Sample evidence detail</h2><p>This overlay contains labelled sample component data only.</p><Button onPress={() => setSheetOpen(false)}>Finish sample review</Button></FocusedSheet>}
+    {navigationOpen && <FocusedSheet label="Sample navigation" placement="start" closeLabel="Close sample navigation" onClose={() => setNavigationOpen(false)}>
+      <div className="cs-sheet-heading"><h2>Sample navigation</h2><p>Choose a section of this component gallery.</p></div>
+      <nav aria-label="Sample gallery destinations">
+        <ActionLink variant="navigation" href="#gallery-actions" onPress={() => setNavigationOpen(false)}>Sample actions</ActionLink>
+        <ActionLink variant="navigation" href="#gallery-fields" onPress={() => setNavigationOpen(false)}>Sample fields</ActionLink>
+      </nav>
+    </FocusedSheet>}
     {busySheetOpen && <FocusedSheet label="Sample request delivery" closeLabel="Sample request is being sent" isDismissable={false} onClose={() => setBusySheetOpen(false)}><h2>Sample request delivery</h2><Notice tone="info">The sample request is being sent. This sheet remains open until delivery finishes.</Notice><Button isLoading>Sending sample request</Button><Button variant="secondary" onPress={() => setBusySheetOpen(false)}>Finish sample delivery</Button></FocusedSheet>}
   </main>;
 }

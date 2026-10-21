@@ -1,6 +1,3 @@
-.sidebar-secondary { width: 100%; margin-top: auto; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent); }
-.sidebar-secondary .nav-item { width: 100%; }
-.sidebar > .avatar { margin-top: 14px; }
 /* Scope belongs with the active entity, not alongside notification/actions. */
 .context-bar > .context-scope {
   display: flex;
@@ -114,12 +111,8 @@
   .context-scope-control .enterprise-scope-trigger { width: 100%; }
 }
 
-/* Approved desktop navigation anatomy. Retain compact/mobile routes unchanged. */
-.sidebar-brand { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; }
-.sidebar-brand__name { display: none; }
-
+/* Desktop workspace context. Navigation geometry lives in approved-shell.css. */
 @media (min-width: 1025px) {
-  .app-shell { grid-template-columns: 220px minmax(0, 1fr); }
   .app-shell > main {
     width: 100%;
     max-width: 1940px;
@@ -141,83 +134,4 @@
   }
   .app-shell > main > .context-bar .enterprise-scope-trigger { min-height: 40px; }
 
-  .app-shell > .sidebar {
-    align-items: stretch;
-    padding: 24px 15px 18px;
-    background: var(--cs-bg-surface-1);
-    border-color: var(--cs-border-default);
-    box-shadow: none;
-    backdrop-filter: none;
-  }
-  .app-shell > .sidebar .sidebar-brand {
-    justify-content: flex-start;
-    gap: 11px;
-    padding: 2px 6px 18px;
-    border-bottom: 1px solid var(--cs-border-default);
-  }
-  .app-shell > .sidebar .brand-mark {
-    flex: 0 0 38px;
-    width: 38px;
-    height: 38px;
-    border-color: var(--cs-border-interactive);
-    border-radius: var(--cs-primitive-radius-10);
-    box-shadow: none;
-  }
-  .app-shell > .sidebar .sidebar-brand__name { display: grid; gap: 3px; min-width: 0; }
-  .sidebar-brand__name strong {
-    color: var(--cs-text-strong);
-    font-size: var(--cs-primitive-font-size-16);
-    font-weight: 750;
-    letter-spacing: -0.02em;
-  }
-  .sidebar-brand__name small {
-    color: var(--cs-text-muted);
-    font-size: var(--cs-font-size-caption);
-    line-height: 1.25;
-    white-space: nowrap;
-  }
-  .app-shell > .sidebar nav {
-    gap: 4px;
-    margin-top: 20px;
-  }
-  .app-shell > .sidebar .nav-item {
-    display: grid;
-    grid-template-columns: 24px minmax(0, 1fr);
-    justify-items: start;
-    align-items: center;
-    gap: 10px;
-    min-height: 44px;
-    width: 100%;
-    padding: 9px 12px;
-    text-align: left;
-    color: var(--cs-text-primary);
-    border-radius: var(--cs-primitive-radius-10);
-  }
-  .app-shell > .sidebar .nav-item svg {
-    width: 20px;
-    height: 20px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: inherit;
-  }
-  .app-shell > .sidebar .nav-item b {
-    font-size: var(--cs-font-size-body);
-    font-weight: 600;
-    line-height: 1.35;
-  }
-  .app-shell > .sidebar .nav-item:hover,
-  .app-shell > .sidebar .nav-item.active {
-    color: var(--cs-action-primary);
-    background: var(--cs-bg-surface-hover);
-  }
-  .app-shell > .sidebar .nav-item:focus-visible {
-    outline: var(--cs-focus-width) solid var(--cs-focus-ring);
-    outline-offset: var(--cs-focus-offset);
-  }
-  .app-shell > .sidebar .sidebar-secondary {
-    border-color: var(--cs-border-default);
-    padding-top: 10px;
-  }
-  .app-shell > .sidebar > .avatar { align-self: center; }
 }
