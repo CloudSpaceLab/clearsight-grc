@@ -539,7 +539,9 @@ async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   let reportsLayout;
   try {
-    let navigation = await assertPrimaryNavigation(page, capture);
+    // evidenceMain mounts this named fixture outside SessionGate/App. All
+    // authenticated captures must still render and verify AppNavigation.
+    let navigation = capture.fixture === "oversight" ? undefined : await assertPrimaryNavigation(page, capture);
     if (isNavigationMatrixCapture(capture) && capture.theme === "light" && [1440, 390].includes(capture.viewport.width)) {
       const keyboard = await verifyPrimaryNavigationKeyboard(page, capture);
       navigation = { ...await assertPrimaryNavigation(page, capture), keyboard };
@@ -968,7 +970,7 @@ async function capturePage(capture) {
     // hovered in a canonical source comparison or expanded-menu capture.
     await page.mouse.move(0, 0);
     await saveScreenshot(page, capture.name);
-    if (navigation.drawer) {
+    if (navigation?.drawer) {
       await page.keyboard.press("Escape");
       await page.getByRole("dialog", { name: "Navigation", exact: true }).waitFor({ state: "hidden" });
       const opener = page.getByRole("button", { name: "Open navigation", exact: true });
