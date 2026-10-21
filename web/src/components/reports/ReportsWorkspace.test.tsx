@@ -129,7 +129,7 @@ describe("ReportsWorkspace", () => {
       downloadRun={downloadRun}
       onOpenInsights={onOpenInsights}
     />);
-    if (initialView === "library") fireEvent.click(screen.getByRole("tab", { name: "Reports", exact: true }));
+    if (initialView === "library") fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
     return rendered;
   }
 
@@ -139,7 +139,7 @@ describe("ReportsWorkspace", () => {
     expect(screen.getByRole("region", { name: "Reporting measures" })).toBeTruthy();
     expect(screen.getByRole("complementary", { name: "Reporting context" })).toBeTruthy();
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Overview", "Explore", "Reports", "Schedules", "Build report"]);
-    fireEvent.click(screen.getByRole("tab", { name: "Reports", exact: true }));
+    fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
 
     expect(await screen.findByRole("heading", { name: "Reports & insights" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Reports & insights" }).closest("header")?.className).toContain("cs-workspace-header");
