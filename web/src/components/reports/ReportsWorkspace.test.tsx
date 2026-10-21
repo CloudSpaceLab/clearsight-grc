@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReportDefinition, ReportRun } from "../../reportingTypes";
 import { ReportsWorkspace } from "./ReportsWorkspace";
 
+vi.mock("../insights/RiskLossInsights", () => ({
+  RiskLossInsights: ({ period, organizationScopeID }: {
+    period: { start_date: string; end_date: string }; organizationScopeID?: string;
+  }) => <section aria-label="Risk and loss analysis">{period.start_date} to {period.end_date} · {organizationScopeID ?? "Legal entity"}</section>,
+}));
+
 const vendorDefinition: ReportDefinition = {
   id: "vendor-template",
   tenant_id: "tenant-1",
@@ -85,6 +91,7 @@ describe("ReportsWorkspace", () => {
   const createRun = vi.fn();
   const downloadRun = vi.fn();
   const onOpenInsights = vi.fn();
+  const loadMetricBasis = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -103,12 +110,18 @@ describe("ReportsWorkspace", () => {
       created_at: "2026-09-25T09:00:00Z",
     });
     downloadRun.mockResolvedValue({ blob: new Blob(["report"]), filename: "vendor-portfolio.xlsx" });
+    loadMetricBasis.mockResolvedValue({
+      scope_kind: "LEGAL_ENTITY", scope_id: "entity-1",
+      reporting_period: { start_date: "2026-07-01", end_date: "2026-09-28" },
+    });
   });
 
   function renderWorkspace() {
     return render(<ReportsWorkspace
       organizationName="Meridian Trust Bank"
       legalEntityName="Meridian Trust Bank Nigeria"
+      legalEntityID="entity-1"
+      loadMetricBasis={loadMetricBasis}
       loadDefinitions={loadDefinitions}
       loadRunPage={loadRunPage}
       loadOwners={loadOwners}
@@ -146,8 +159,14 @@ describe("ReportsWorkspace", () => {
     expect(within(recent).getByRole("row", { name: /Program health/ })).toBeTruthy();
     expect(within(screen.getByRole("region", { name: "Report library summary" }))
       .getByText("Loaded").nextElementSibling?.textContent).toBe("2");
+    expect(loadMetricBasis).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Explore insights" }));
+    const analysis = await screen.findByRole("region", { name: "Risk and loss analysis" });
+    expect(analysis.textContent).toContain("2026-07-01 to 2026-09-28");
+    expect(loadMetricBasis).toHaveBeenCalledWith(undefined, undefined);
+    fireEvent.click(screen.getByRole("button", { name: "Open Insights workspace" }));
     expect(onOpenInsights).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
     fireEvent.click(screen.getByRole("button", { name: "View reports" }));
     expect(screen.getByRole("table", { name: "Generated reports" })).toBeTruthy();
   });
@@ -158,6 +177,29 @@ describe("ReportsWorkspace", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
     expect(await screen.findByText("Report status totals unavailable until report runs load.")).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Report library summary" })).toBeNull();
+  });
+
+  it("rejects metric bundles from a different verified legal entity", async () => {
+    loadMetricBasis.mockResolvedValueOnce({
+      scope_kind: "LEGAL_ENTITY", scope_id: "entity-other",
+      reporting_period: { start_date: "2026-07-01", end_date: "2026-09-28" },
+    });
+    renderWorkspace();
+    fireEvent.click(screen.getByRole("tab", { name: "Explore" }));
+    expect(await screen.findByText("Reporting metrics are unavailable for the selected scope.")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Risk and loss analysis" })).toBeNull();
+  });
+
+  it("uses only the selected group scope and rejects a legal-entity substitute", async () => {
+    loadMetricBasis.mockResolvedValueOnce({
+      scope_kind: "LEGAL_ENTITY", scope_id: "entity-1",
+      reporting_period: { start_date: "2026-07-01", end_date: "2026-09-28" },
+    });
+    render(<ReportsWorkspace legalEntityID="entity-1" organizationScopeID="group-1"
+      loadMetricBasis={loadMetricBasis} loadDefinitions={loadDefinitions} loadRunPage={loadRunPage}/>);
+    fireEvent.click(screen.getByRole("tab", { name: "Explore" }));
+    expect(await screen.findByText("Reporting metrics are unavailable for the selected scope.")).toBeTruthy();
+    expect(loadMetricBasis).toHaveBeenCalledWith(undefined, "group-1");
   });
 
   it("generates a vendor report from a ready saved setup", async () => {
