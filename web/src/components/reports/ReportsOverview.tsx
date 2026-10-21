@@ -11,7 +11,6 @@ import type { ReportDefinition, ReportRun } from "../../reportingTypes";
 import { formatLossMoneyExact } from "../losses/lossPresentation";
 import { LossMovement } from "../oversight/LossMovement";
 import { OrganizationRiskSummary } from "../oversight/OrganizationRiskSummary";
-import { RiskMovement } from "../oversight/RiskMovement";
 import { Button, DataTable, EmptyState, MetricCard, Notice, type DataColumn } from "../ui";
 
 type LoadState = "loading" | "live" | "unavailable";
@@ -94,7 +93,7 @@ export function ReportsOverview({
     ? formatLossMoneyExact(loss.net_loss.minor_units, loss.net_loss.currency) : null;
   const recentRuns = [...runs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 5);
 
-  return <div className="reports-v2-overview" aria-label="Reports Overview">
+  return <div className="reports-v2-overview" role="region" aria-label="Reports Overview">
     <div className="reports-v2-columns">
       <div className="reports-v2-primary">
         <section className="reports-v2-stats" aria-label="Reporting measures">
