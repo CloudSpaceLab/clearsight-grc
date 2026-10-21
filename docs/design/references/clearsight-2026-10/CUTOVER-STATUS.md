@@ -2,16 +2,24 @@
 
 > **VISUAL PARITY RESET · 2026-10-19** — **0 of 19 original HTML screens accepted**. This file's historical "Partial" entries refer to feature/contract integration only, not an approved redesign. The 1440px Program, Framework Library and Assessment source/runtime captures have material structural differences; the 390px Program view also diverges. See [verified side-by-side review](VISUAL-PARITY-RESET-2026-10-19.md). Successful CI and 226/226 screenshots prove flow execution and artifact completeness, **not source parity**. Stop counting cosmetic or data-quality fixes as UI cutover. Full cutover is BLOCKED until named screen-by-screen comparison approval.
 
-Updated: 2026-10-18. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
-Authority: the immutable [approved source archive](./source/README.md), its [manifest](./source/MANIFEST.json), the [implementation mapping](./IMPLEMENTATION-MAPPING.md) and the unified design specification. Source HTML is a **visual/interaction benchmark, not a data or permission contract**. No source-example totals, statuses, suggestions or approvals may ship as runtime facts.
+Updated: 2026-10-21. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
+Authority: the immutable [approved source archive](./source/README.md), its [manifest](./source/MANIFEST.json), the [implementation mapping](./IMPLEMENTATION-MAPPING.md), the unified design specification and the [21 October navigation adaptation decision](../../decisions/2026-10-21-v2-navigation-adaptation.md). The newer user instruction supersedes the archived specification's prohibition on adapting the global menu. Source HTML is a **visual/interaction benchmark, not a data or permission contract**. No source-example totals, statuses, suggestions or approvals may ship as runtime facts.
+
+## 21 October — shared V2 menu adaptation
+
+**Status: partial V2 layout integration; 0/19 whole screens accepted.** The implementation adapts the menu itself to the common source order: Home, Frameworks, Programs, Forms, Vendors, Risk & Losses, Privacy, Work & Approvals, Reports, with permission-gated Settings in the footer. It uses existing routes, separates Frameworks from Programs selection, replaces the generic Portfolio lens, and provides Risk & Losses contextual destinations without a second risk or reporting engine.
+
+The shared rail target is 228px above 1024px, 72px at 561–1024px and 56px at 560px or below. A labelled compact-menu trigger reuses `FocusedSheet`; there is no duplicate mobile bar. The decision records the exact source paths/hashes, source label and breakpoint conflicts, current-route mappings and required verification. The archived source files and manifest remain unchanged.
+
+The [implementation review](../../decisions/2026-10-21-v2-navigation-adaptation.md#implementation-review--21-october-2026) records the named AI review and exact implementation checkpoint `32ac98ce80f21424904b38a57ef5e31443cac2cd`: 14 passing menu states, five source pairs, short-height/boundary/resize checks and six scoped axe runs with zero violations. This verifies the recorded shared-menu adaptation, not complete specialist screens. Final-head CI and artifact review remain PR gates; four-actor execution, backend authorization and source-to-report receipts remain separate release gates. The [Reports #578 receipt](../../decisions/2026-10-21-reports-v2-layout-review.md) remains a partial Overview/library adaptation, not full-screen acceptance.
 
 ## Design fidelity register — 18 October 2026
 
 The reference artifact, **not the existing React screen**, defines each view's approved
 information hierarchy, actions, responsive anatomy and interaction states.
 The [source manifest](./source/MANIFEST.json) pins SHA-256 for all 96 original files.
-The [unified specification](./source/clearsight-unified-design-system-v1/clearsight-design-system/clearsight-design-system-spec.md)
-resolves conflicting prototype navigation variants. Sample records, scores and HTML-only
+The [21 October navigation decision](../../decisions/2026-10-21-v2-navigation-adaptation.md)
+now resolves conflicting prototype menu variants; the archived unified specification remains unchanged. Sample records, scores and HTML-only
 actions are *fixtures* and may not be promoted into production data or authority.
 
 **Cutover means exact UI composition and real workflows, not incremental beautification.**
@@ -75,11 +83,11 @@ These merges establish a tested partial runtime migration, **not complete approv
 
 ## Screen-by-screen reconciliation
 
-“Foundation” means existing domain/UI owners were identified; it does **not** mean approved visual parity or the journey has passed. Prioritize existing shared components and backed routes; do not add a second work queue, audit engine, scoring engine, form library, approval service, or global navigation destination.
+“Foundation” means existing domain/UI owners were identified; it does **not** mean approved visual parity or the journey has passed. Prioritize existing shared components and backed routes; do not add a second work queue, audit engine, scoring engine, form library or approval service. Exposing an existing route in the shared V2 menu is required by the current navigation decision and does not authorize a parallel workspace or unsupported capability.
 
 | Approved source area | Current runtime owner or contract | Remaining specific cutover gate |
 | --- | --- | --- |
-| Unified visual shell | Existing `App.tsx`, `AppViews.tsx`, enterprise shell and shared design-system tokens | Compare navigation, blue wave/header, scope/period controls, density, both themes and all approved widths before shared-token release |
+| Unified visual shell | Existing `App.tsx`, `AppViews.tsx`, enterprise shell and shared design-system tokens | Shared V2 menu adaptation verified in the 21 October review: order, real routes, active state, responsive rail, compact-menu focus and denied Settings. Specialist local menus, full screen composition and operational acceptance remain open |
 | Framework Library | `FrameworkLibraryWorkspace`, `useFrameworkEditionCatalog`, #437 | Authenticated server-side edition search/direct lookup and rights/provenance; approved catalog screenshots against current desktop/mobile |
 | Framework adoption | `ProgramStandardsPanel`, `ProgramRequirementsPanel`, Program maker/checker commands | Program/scope → clause links → **existing** Form → governed review journey; versioned source and actor acceptance; never adopt from a catalog selection alone |
 | Program workspace | `ProgramRecordWorkspace`, `ProgramCurrentPosition`, `programOverviewMetrics` and #433 | Approved first-viewport proportions, original tab/action hierarchy, source-backed assessed/support/gap populations when available; no invented counts |

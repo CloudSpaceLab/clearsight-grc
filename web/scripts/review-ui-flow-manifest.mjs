@@ -53,6 +53,9 @@ const expectedNames = [
   "20-evidence-partial-light-1440x900",
   "21-configure-partial-dark-1440x900",
   "22-no-config-access-light-1440x900",
+  "22a-no-config-access-dark-mobile-390x844",
+  "221-navigation-menu-light-mobile-390x844",
+  "221-navigation-menu-dark-mobile-390x844",
   "23-authority-forbidden-light-1440x900",
   "24-capture-not-found-dark-1440x900",
   "25-capture-expired-light-1440x900",
@@ -188,6 +191,9 @@ const expectedNames = [
   ...formsEvidenceScenarios.map((scenario) => scenario.name),
 ];
 const requiredStates = [
+  "navigation-settings-denied-mobile",
+  "navigation-menu-light-mobile",
+  "navigation-menu-dark-mobile",
   "baseline",
   "fixture:today-empty",
   "fixture:today-loading",
@@ -413,6 +419,67 @@ if (manifest) {
       || expectedReportVariants.some((variant) => !actualReportVariants.includes(variant))) {
     failures.push("Reports loaded Overview must cover both themes at 1440, 1280, 1024, 768 and 390px");
   }
+  // Reuse the existing Reports viewport matrix for the shared source menu.
+  // Dedicated captures add only the compact disclosure and denied Settings.
+  const navigationFailuresBefore = failures.length;
+  const navigationLabels = ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Work & Approvals", "Reports"];
+  const navigationHrefs = ["#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#work", "#reports"];
+  const navigationCaptures = [...loadedReportVariants, ...manifest.captures.filter((capture) =>
+    capture.fixture === "no-config-access" || capture.state?.startsWith("navigation-menu-"))];
+  if (navigationCaptures.length !== 14) failures.push("source menu adaptation requires ten viewport states plus four compact-menu and permission states");
+  for (const capture of navigationCaptures) {
+    const navigation = capture.navigation;
+    const compact = capture.viewport?.width <= 1024;
+    const denied = capture.fixture === "no-config-access";
+    const railWidth = capture.viewport?.width <= 560 ? 56 : compact ? 72 : 228;
+    if (!navigation || navigation.labels?.join("|") !== navigationLabels.join("|") || navigation.hrefs?.join("|") !== navigationHrefs.join("|")
+        || navigation.activePage?.join("|") !== (denied ? "Home" : "Reports")
+        || !(Math.abs(navigation.railWidth - railWidth) <= 1) || navigation.railX !== 0
+        || navigation.labelMode !== (compact ? "icons" : "expanded") || navigation.maxLabelLines !== (compact ? 0 : 1) || navigation.labelsContained !== true
+        || !(navigation.minTargetWidth >= 44) || !(navigation.minTargetHeight >= 44) || navigation.targetsContained !== true || navigation.primaryReachable !== true
+        || navigation.settingsPresent !== !denied || (!denied && (navigation.settingsFooter !== true || navigation.footerReachable !== true))
+        || navigation.compactMenuAvailable !== compact || navigation.duplicateMobileNavigation !== false || navigation.legacyPortfolioNavigation !== false
+        || navigation.activeMarkerVisible !== true || !(navigation.activeMarkerWidth >= 3) || !(navigation.activeMarkerHeight >= 20)) {
+      failures.push(`${capture.name}: primary navigation source, permission or measured geometry evidence is missing or inconsistent`);
+    }
+    if (capture.state?.startsWith("navigation-menu-") || (denied && compact)) {
+      const drawer = navigation?.drawer;
+      if (!drawer || drawer.labels?.join("|") !== navigationLabels.join("|")
+          || drawer.activePage?.join("|") !== (denied ? "Home" : "Reports") || drawer.settingsPresent !== !denied
+          || (!denied && (drawer.riskChildren?.join("|") !== "Risks|RCSA|Key indicators|Loss events" || drawer.riskExpandedByKeyboard !== true))
+          || drawer.labelsVisible !== true || drawer.maxLabelLines !== 1 || drawer.targetsContained !== true || drawer.bounded !== true
+          || drawer.currentPageVisible !== true || !(drawer.currentPageBounds?.top >= drawer.currentPageBounds?.clipTop - 1)
+          || !(drawer.currentPageBounds?.bottom <= drawer.currentPageBounds?.clipBottom + 1)
+          || drawer.contentFillsDialog !== true || drawer.navigationFillsContent !== true
+          || !(drawer.contentWidth > 0 && Math.abs(drawer.contentWidth - drawer.dialogWidth) <= 1)
+          || !(drawer.navigationWidth > 0 && Math.abs(drawer.navigationWidth - drawer.expectedNavigationWidth) <= 1)
+          || !(drawer.minTargetWidth >= 44) || !(drawer.minTargetHeight >= 44)
+          || drawer.focusContained !== true || drawer.dismissalRestoredFocus !== true) {
+        failures.push(`${capture.name}: compact Navigation lacks labelled destinations, permission checks or keyboard dismissal evidence`);
+      }
+    }
+  }
+  for (const width of [1440, 390]) {
+    const capture = loadedReportVariants.find((item) => item.theme === "light" && item.viewport?.width === width);
+    const keyboard = capture?.navigation?.keyboard;
+    if (!keyboard || keyboard.focusVisible !== true || keyboard.directDestination !== "Frameworks" || keyboard.browserBack !== "Reports"
+        || keyboard.riskDestination !== "Loss events" || keyboard.primaryCurrent !== "Risk & Losses" || keyboard.childCurrent !== "location"
+        || keyboard.compactDrawer !== (width <= 1024) || keyboard.baselineRestored !== true) {
+      failures.push(`primary navigation ${width}px is missing keyboard, history or risk-family selection evidence`);
+    }
+    if (width === 390) {
+      const recovery = keyboard?.resizeRecovery;
+      if (!recovery || recovery.viewport?.width !== 320 || recovery.viewport?.height !== 568
+          || recovery.primaryKeyboardReachable !== true || recovery.expandedRiskKeyboardReachable !== true || recovery.footerReachable !== true
+          || !(Math.abs(recovery.railWidth - 56) <= 1) || !(recovery.horizontalOverflow <= 1) || recovery.primaryScrolls !== true
+          || !(Math.abs(recovery.desktopRecovery?.railWidth - 228) <= 1) || recovery.desktopRecovery?.activeFocus !== "Reports"
+          || recovery.desktopRecovery?.openerHidden !== true || recovery.compactRecovery !== true) {
+        failures.push("primary navigation is missing short-height scrolling or open-sheet resize recovery evidence");
+      }
+    }
+  }
+  checks.push({ name: "source menu adaptation", status: failures.length === navigationFailuresBefore && loadedReportVariants.length === 10 && navigationCaptures.length === 14 ? "PASS" : "FAIL",
+    detail: `${loadedReportVariants.length}/10 shared menu viewport states; ${navigationCaptures.length - loadedReportVariants.length}/4 disclosure and permission states` });
   for (const capture of reportOverviews) {
     const layout = capture.reportsLayout;
     const selectedArea = capture.state === "report-overview-selected-area";
