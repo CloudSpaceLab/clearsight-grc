@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useFrameworkEditionCatalog } from "../hooks/useFrameworkEditionCatalog";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import type { FrameworkEditionOption } from "../programOperationsApi";
-import { Button, EmptyState, FilterBar, FocusedSheet, Notice, SearchField, SelectableRecord, StatusBadge, TextField } from "./ui";
+import { Button, EmptyState, FilterBar, FocusedSheet, Notice, SearchField, SelectableRecord, StatusBadge, TextField, SelectField } from "./ui";
 import { FrameworkEditionProvenance, frameworkEditionHasVerifiableSource, frameworkEditionRightsLabel } from "./FrameworkEditionProvenance";
 import "../framework-library.css";
 import "../program-standards.css";
@@ -27,6 +27,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
   const [jurisdiction, setJurisdiction] = useState("GLOBAL");
   const [jurisdictionError, setJurisdictionError] = useState("");
   const [search, setSearch] = useState("");
+  const [rightsFilter, setRightsFilter] = useState<"ALL" | "CITATIONS_ONLY" | "SUMMARIES_PERMITTED" | "UNVERIFIED">("ALL");
   const [selectedID, setSelectedID] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [jurisdictionExpanded, setJurisdictionExpanded] = useState(false);
@@ -35,11 +36,13 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
 
   const visible = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
-    if (!query) return catalog.items;
     return catalog.items.filter((item) =>
-      [item.title, item.publisher_code, item.framework_code, item.edition_code, item.jurisdiction]
-        .some((value) => value.toLocaleLowerCase().includes(query)));
-  }, [catalog.items, search]);
+      (rightsFilter === "ALL" || (rightsFilter === "UNVERIFIED"
+        ? !["CITATIONS_ONLY", "SUMMARIES_PERMITTED"].includes(item.license_basis)
+        : item.license_basis === rightsFilter)) &&
+      (!query || [item.title, item.publisher_code, item.framework_code, item.edition_code, item.jurisdiction]
+        .some((value) => value.toLocaleLowerCase().includes(query))));
+  }, [catalog.items, search, rightsFilter]);
 
   // Source inspection requires an explicit record selection. Filtering out the
   // selected edition also removes its action until that record is selected again.
@@ -59,6 +62,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
     }
     setJurisdictionError("");
     setSearch("");
+    setRightsFilter("ALL");
     setSelectedID("");
     setSheetOpen(false);
     setJurisdictionDraft(code);
@@ -80,24 +84,51 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
       </span>
     </div>
     <div className="cs-framework-library__detail-body">
-      <span className="eyebrow">Published reference</span>
       <h2>{preview.title}</h2>
-      <p className="cs-framework-library__detail-subtitle">{preview.publisher_code} · {preview.framework_code}</p>
-      <StatusBadge tone="info">Edition {preview.edition_code}</StatusBadge>
-      <FrameworkEditionProvenance edition={preview}/>
-      <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
+      <p className="cs-framework-library__detail-subtitle">{preview.framework_code} · {preview.publisher_code}</p>
+      <div className="cs-framework-library__detail-chips" aria-label="Edition classification">
+        <StatusBadge tone="info">{preview.jurisdiction}</StatusBadge>
+        <StatusBadge tone="neutral">Edition {preview.edition_code}</StatusBadge>
+        <StatusBadge tone={frameworkEditionHasVerifiableSource(preview) ? "neutral" : "unknown"}>
+          {frameworkEditionRightsLabel(preview.license_basis)}
+        </StatusBadge>
+      </div>
+      <section className="cs-framework-library__detail-section" aria-labelledby="cs-framework-library-facts-heading">
+        <h3 id="cs-framework-library-facts-heading">Edition details</h3>
+        <FrameworkEditionProvenance edition={preview}/>
+        <p className="cs-framework-library__disclaimer">Publication does not establish Program adoption or compliance.</p>
+      </section>
       {!frameworkEditionHasVerifiableSource(preview) && <Notice tone="warning">
         Source or reuse rights are unverified. This edition cannot be selected for a Program.
       </Notice>}
-      <div className="cs-program-standards__actions">
-        <Button variant="primary" isDisabled={!selected || catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction || !frameworkEditionHasVerifiableSource(preview)}
-          onPress={() => { if (selected) onChooseProgram(selected); }}>Choose Program</Button>
-      </div>
-      {!selected && <p className="cs-framework-library__preview-note">Select an edition in the list to continue.</p>}
+      <section className="cs-framework-library__detail-section cs-framework-library__adoption" aria-labelledby="cs-framework-adoption-heading">
+        <h3 id="cs-framework-adoption-heading">Use in a Program</h3>
+        <ol className="cs-framework-library__steps">
+          <li>Select a Program</li>
+          <li>Confirm applicable requirements</li>
+          <li>Review control and evidence links</li>
+        </ol>
+        <div className="cs-program-standards__actions">
+          <Button variant="primary" isDisabled={!selected || catalog.state !== "ready" || catalog.loadedJurisdiction !== jurisdiction || !frameworkEditionHasVerifiableSource(preview)}
+            onPress={() => { if (selected) onChooseProgram(selected); }}>Choose Program</Button>
+        </div>
+        {!selected && <p className="cs-framework-library__preview-note">Select an edition in the list to continue.</p>}
+      </section>}
     </div>
   </div>;
 
   return <section className="cs-framework-library portfolio-workspace" aria-label="Framework Library workspace" id="framework-library-workspace">
+    <header className="cs-framework-library__page-heading" aria-label="Framework Library heading">
+      <div className="cs-framework-library__page-copy">
+        <span className="eyebrow">Compliance / Reference library</span>
+        <h1>Framework Library</h1>
+        <p>Review published editions and content rights before adding a standard to a Program.</p>
+      </div>
+      <div className="cs-framework-library__page-actions">
+        <span className="cs-framework-library__catalog-label">Published reference catalog</span>
+        <Button variant="secondary" onPress={onBack}>View Programs</Button>
+      </div>
+    </header>
     <header className="cs-framework-library__header">
       <nav className="cs-framework-library__views" aria-label="Library views">
         <span aria-current="page" className="cs-framework-library__view cs-framework-library__view--active">Explore</span>
@@ -108,10 +139,17 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
     </header>
 
     <FilterBar label="Framework filters"
-      onClear={search ? () => setSearch("") : undefined}
+      onClear={search || rightsFilter !== "ALL" ? () => { setSearch(""); setRightsFilter("ALL"); } : undefined}
       fields={<>
-        <SearchField label="Search loaded standards" placeholder="Search loaded standards" value={search}
+        <SearchField label="Search loaded standards" placeholder="Search standards or publishers" value={search}
           onChange={setSearch} isLoading={catalog.state === "loading"}/>
+        <SelectField label="Content rights" value={rightsFilter} allowsEmpty={false}
+          options={[
+            { id: "ALL", label: "All content rights" },
+            { id: "CITATIONS_ONLY", label: "Citations only" },
+            { id: "SUMMARIES_PERMITTED", label: "Summaries permitted" },
+            { id: "UNVERIFIED", label: "Not verified" },
+          ]} onChange={(value) => setRightsFilter(value ?? "ALL")}/>
         {compact && <Button variant="secondary" size="compact" aria-expanded={jurisdictionExpanded}
           onPress={() => {
             if (jurisdictionExpanded) { setJurisdictionDraft(jurisdiction); setJurisdictionError(""); }
@@ -148,7 +186,7 @@ export function FrameworkLibraryWorkspace({ onBack, onChooseProgram }: Props) {
 
         {catalog.items.length > 0 && catalog.state !== "denied" && <section aria-label="Published framework editions">
           <div className="cs-framework-library__results-head">
-            <h3>Reference editions</h3>
+            <h2>Reference editions</h2>
             <span role="status">{visible.length} matching loaded · {catalog.items.length} loaded editions · {jurisdiction}{catalog.nextAfterID ? " · More available" : ""}</span>
           </div>
           <ul className="cs-framework-library__list" aria-label="Published framework editions">
