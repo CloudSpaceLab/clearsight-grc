@@ -27,7 +27,10 @@ describe("Framework Library workspace", () => {
     render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={onChooseProgram}/>);
     expect(await screen.findByRole("button", {name: "Inspect edition for Published SECURITY 2026"})).toBeTruthy();
     expect(screen.getByText("1 matching loaded · 1 loaded editions · GLOBAL")).toBeTruthy();
-    expect(screen.queryByRole("heading", {name: "Framework Library"})).toBeNull();
+    expect(screen.getByRole("heading", {name: "Framework Library", level: 1})).toBeTruthy();
+    expect(screen.getByRole("region", {name: "Framework filters"})).toBeTruthy();
+    expect(screen.getByRole("heading", {name: "Edition details"})).toBeTruthy();
+    expect(screen.getByRole("heading", {name: "Use in a Program"})).toBeTruthy();
     fireEvent.click(screen.getByRole("button", {name: "Inspect edition for Published SECURITY 2026"}));
     const details = await screen.findByRole("complementary", {name: "Framework edition details"});
     expect(screen.getByRole("list", {name: "Published framework editions"})).toBeTruthy();
@@ -52,7 +55,13 @@ describe("Framework Library workspace", () => {
     });
     render(<FrameworkLibraryWorkspace onBack={onBack} onChooseProgram={vi.fn()}/>);
     await screen.findByRole("button", { name: "Inspect edition for Published SECURITY 2026" });
+    const heading = screen.getByRole("heading", { name: "Framework Library", level: 1 });
+    const header = heading.closest(".cs-framework-library__page-heading");
+    expect(header).toBeTruthy();
     const views = screen.getByRole("navigation", { name: "Library views" });
+    expect(Boolean(header!.compareDocumentPosition(views) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    const rights = screen.getByRole("button", { name: /Content rights/ });
+    expect(rights).toBeTruthy();
     expect(within(views).getByText("Explore").getAttribute("aria-current")).toBe("page");
     expect(within(views).getByRole("button", { name: "Edition updates" }).hasAttribute("disabled")).toBe(true);
     const filter = screen.getByRole("searchbox", { name: "Search loaded standards" });
@@ -66,6 +75,26 @@ describe("Framework Library workspace", () => {
     expect(filterBar?.nextElementSibling).toBe(layout);
     fireEvent.click(within(views).getByRole("button", { name: "In my Programs" }));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("switches content-rights filters over the loaded edition population without inventing catalog entries", async () => {
+    vi.mocked(loadFrameworkEditionPage).mockResolvedValue({
+      items: [
+        edition("citations", "SECURITY"),
+        {...edition("summary", "PRIVACY"), license_basis: "SUMMARIES_PERMITTED"},
+        {...edition("unknown", "RESILIENCE"), license_basis: "UNVERIFIED"},
+      ], next_after_id: "",
+    });
+    render(<FrameworkLibraryWorkspace onBack={vi.fn()} onChooseProgram={vi.fn()}/>);
+    await screen.findByRole("button", { name: "Inspect edition for Published SECURITY 2026" });
+    fireEvent.click(screen.getByRole("button", { name: /Content rights/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "Summaries permitted" }));
+    expect(screen.getAllByRole("button", { name: /Inspect edition for/ })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Inspect edition for Published PRIVACY 2026" })).toBeTruthy();
+    expect(screen.getByText("1 matching loaded · 3 loaded editions · GLOBAL")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(screen.getAllByRole("button", { name: /Inspect edition for/ })).toHaveLength(3);
+    expect(loadFrameworkEditionPage).toHaveBeenCalledTimes(1);
   });
 
   it("uses an accessible detail sheet on compact viewports", async () => {

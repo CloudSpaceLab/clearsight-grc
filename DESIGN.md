@@ -6,6 +6,14 @@ This is the fast, implementation-ready design contract for people and coding age
 
 **Status: 0/19 screens accepted as of 19 October 2026.** See [source-vs-runtime audit](docs/design/references/clearsight-2026-10/VISUAL-PARITY-RESET-2026-10-19.md). A component migration, route/permission repair or green screenshot CI is **not** a visual redesign. Code and layout must be reviewed side by side with the exact SHA-256-pinned original HTML at 1440/1280/1024/768/390 and relevant interaction states. Do not claim a screen is cut over until a named reviewer accepts its **global shell + page composition + navigation + visuals + functionality** together. Sample prototype data remain prohibited; backend gaps render honest states in the approved layout. All 19 areas remain unaccepted until proven.
 
+## V2 full-page layout contract
+
+The hash-pinned original October HTML is the authoritative **specialist-page blueprint**. Reproduce its page heading/action proportions, local tab set and ordering, filter placement, full list/card/inspector layout, content density, selected/error states and 1440/1280/1024/768/390 replacement behavior. The authorized unified global rail, identity, organization scope and routing remain shared even when an archived screenshot used a different global sidebar.
+
+Use semantic and component tokens for theme/accessibility, but those tokens **do not override the approved V2 layout geometry**. Feature-scoped layout rules may position shared components to match the source. Do not preserve the previous page's DOM hierarchy for component convenience, and do not use a generic `cs-workspace-header`, `FilterBar` or mobile tab variant where it materially changes the approved page composition. Reuse/extend the existing shared components instead of creating replicas.
+
+When a source requires an unimplemented operation, retain the supported visual region with verified record context, disclose only truthful available controls and do not invent a success state. Functional completion and source-level visual acceptance are independently gated. Every V2 screen PR includes source-hash and paired screenshots, an anatomy/geometry test, and an explicit acceptance verdict; passing CI is not an acceptance decision. See `AGENTS.md` and `docs/design/references/clearsight-2026-10/STRUCTURAL-PARITY-CONTRACT.md`.
+
 ## Product and users
 
 Program follow-up groups assessment expiry, missing assessments, source updates and open issues into compact rows. Each row names the affected population, expands its supporting reasons and links to the relevant Program section. Desktop actions align beside the reason; below 560px they stack below it with a 44px minimum target. Supporting information status does not establish vendor document or response freshness. Submitted-response tables combine score and concern under Assessment result; scoring coverage remains in response detail. Existing theme and focus tokens apply.

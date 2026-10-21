@@ -208,7 +208,7 @@ async function capturePage(capture) {
     }
     if (capture.name === "200-framework-library-light-1440x900" ||
         capture.name === "202-framework-library-light-mobile-390x844") {
-      const heading = page.locator(".cs-framework-library-page-heading");
+      const heading = page.locator(".cs-framework-library__page-heading");
       await heading.waitFor({ state: "visible" });
       await heading.getByText("Review an edition before adding it to a Program.").waitFor({ state: "visible" });
       const title = page.getByRole("heading", { name: "Framework Library", exact: true });
@@ -435,8 +435,44 @@ async function capturePage(capture) {
           searchBox.y + searchBox.height > listBox.y + 5) {
         throw new Error("Framework Library must preserve approved views → filters → edition-list content order.");
       }
+      // V2 acceptance checks the whole specialist screen, not just a tab/list
+      // fragment that can pass while the heading and right-hand composition are missing.
+      const library = page.getByRole("region", { name: "Framework Library workspace" });
+      const pageHeading = library.getByRole("heading", { name: "Framework Library", exact: true, level: 1 });
+      const pageHeader = library.locator(".cs-framework-library__page-heading");
+      const filters = library.getByRole("region", { name: "Framework filters" });
+      const rights = library.locator(".cs-filter-bar .cs-select-field__trigger").first();
+      const listHeading = library.getByRole("heading", { name: "Reference editions" });
+      await Promise.all([pageHeading.waitFor({ state: "visible" }),
+        pageHeader.waitFor({ state: "visible" }),
+        rights.waitFor({ state: "visible" }),
+        listHeading.waitFor({ state: "visible" })]);
+      const [headerBox, filterBox, resultHeadingBox] = await Promise.all([
+        pageHeader.boundingBox(), filters.boundingBox(), listHeading.boundingBox(),
+      ]);
+      if (!headerBox || !filterBox || !resultHeadingBox ||
+          headerBox.y + headerBox.height > viewsBox.y + 4 ||
+          viewsBox.y + viewsBox.height > filterBox.y + 4 ||
+          filterBox.y + filterBox.height > resultHeadingBox.y + 14) {
+        throw new Error(`${capture.name}: V2 must compose heading → local navigation → filters → reference editions`);
+      }
       const inspect = page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" });
       await inspect.waitFor({ state: "visible" });
+      const rowBox = await inspect.boundingBox();
+      if (!rowBox || rowBox.height < 85 || rowBox.y < resultHeadingBox.y + resultHeadingBox.height - 3 ||
+          (capture.viewport.width <= 900 && rowBox.y >= capture.viewport.height - 30)) {
+        throw new Error(`${capture.name}: V2 list rows must be source-sized and initially visible: ${JSON.stringify(rowBox)}`);
+      }
+      if (capture.viewport.width > 900) {
+        const inspector = library.getByRole("complementary", { name: "Framework edition details" });
+        const panel = await inspector.boundingBox();
+        if (!panel || panel.x < rowBox.x + rowBox.width - 6 || Math.abs(panel.y - resultHeadingBox.y) > 75 ||
+            !(await inspector.getByRole("heading", { name: "Edition details" }).count()) ||
+            !(await inspector.getByRole("heading", { name: "Use in a Program" }).count()) ||
+            !(await inspector.getByRole("list").count())) {
+          throw new Error(`${capture.name}: V2 is missing the side-by-side edition inspector, metadata and adoption workflow`);
+        }
+      }
       const sidebar = page.locator(".app-shell > .sidebar");
       if (capture.viewport.width >= 1440) {
         const bounds = await sidebar.boundingBox();
@@ -448,9 +484,16 @@ async function capturePage(capture) {
       if (capture.viewport.width <= 390) {
         const record = await inspect.boundingBox();
         const rail = await page.locator(".app-shell > .sidebar").boundingBox();
-        if (!record || !rail || record.x < rail.x + rail.width - 2 ||
-            record.y >= capture.viewport.height - 44) {
-          throw new Error(`${capture.name} hides framework records behind the compact source-aligned rail or below the first viewport.`);
+        const searchInput = await search.boundingBox();
+        const localTabs = await views.locator(".cs-framework-library__view").all();
+        const tabBoxes = await Promise.all(localTabs.map((tab) => tab.boundingBox()));
+        if (!record || !rail || !searchInput || tabBoxes.length !== 3 || tabBoxes.some((box) => !box) ||
+            record.x < rail.x + rail.width - 2 ||
+            Math.abs(record.x - searchInput.x) > 8 ||
+            tabBoxes[2].x + tabBoxes[2].width > capture.viewport.width - 4 ||
+            tabBoxes[2].x <= tabBoxes[1].x ||
+            record.y > 590) {
+          throw new Error(`${capture.name} diverges from the V2 mobile full-width filters, visible three-tab row or first-record position: ${JSON.stringify({ record, searchInput, tabBoxes })}`);
         }
       }
       if (capture.viewport.width > 900 || capture.frameworkDetailSheet) await inspect.click();
