@@ -281,5 +281,125 @@
       "The inaccessible-record notice and Board brief search failure recovery are unit-tested, not claimed as browser actor/backend acceptance.",
       "Whole-screen acceptance remains 0/19; production cutover remains blocked."
     ]
+  },
+  "fullCiCaptureFollowup": {
+    "reviewers": [
+      "ChatGPT /root",
+      "/root/layout_audit",
+      "/root/reports_data_contract",
+      "/root/ci_review"
+    ],
+    "runtimeRevision": "c73cece84a90b0fd54fe1cb1e4885be3ca08ad2d",
+    "testedHead": "ec313b08522b30592bd478526d7b2420649a0edd",
+    "syntheticMerge": "e781db64e3fd1029f1a5cc2bd0cb1549f41443fb",
+    "base": "8ee6b43d1ef03d2072dee6fbab02387942643814",
+    "headAndMergeTree": "16441c1182d5fedbbb461f7d3e67c7497c8aa001",
+    "ci": {
+      "runID": 39648103177,
+      "status": "SUCCESS",
+      "webFiles": 258,
+      "webTests": 2024,
+      "backend": "SUCCESS"
+    },
+    "ui": {
+      "runID": 39648103187,
+      "status": "FAIL",
+      "reason": "Legacy expected-text locator selected retained inactive panel; main capture stopped.",
+      "reportsCasesPassed": 36,
+      "menuViewportCasesPassed": 10,
+      "menuDisclosureAndPermissionCasesPassed": 4,
+      "accessibilityCasesPassed": 40,
+      "behavioralCasesPassed": 9,
+      "homeT7CasesPassed": 8,
+      "bundleBudget": "PASS",
+      "flowRecords": 242,
+      "requiredFlowRecords": 284,
+      "runtimeImages": 250,
+      "requiredRuntimeImages": 292,
+      "approvedSourceCapture": "SKIPPED",
+      "fullUiGate": "INCOMPLETE"
+    },
+    "artifact": {
+      "id": 12368722100,
+      "bytes": 37806180,
+      "sha256": "728a47e87521adf2c516394b37aad9e57212959c599e6f8e40aab27dbd82ac57",
+      "all250RuntimeImageHashesVerified": true,
+      "rootInspectedMatrixFrames": 20,
+      "rootInspectedAdditionalStateAndCommandFrames": 8
+    },
+    "evidenceOnlyCorrection": {
+      "path": "web/scripts/capture-ui-evidence.mjs",
+      "description": "Scope Reports record, inspector and expected-content assertions to the active tabpanel/region, selected record, setup-preview heading or named dialog.",
+      "runtimeChanged": false,
+      "assertionsRemovedOrSkipped": false,
+      "scope": "reports-expectations",
+      "status": "PASS",
+      "captureCount": 18,
+      "requiredReportCaseIDs": [
+        "219",
+        "220",
+        "140",
+        "141",
+        "141a",
+        "141b",
+        "141c",
+        "141d",
+        "141e",
+        "141f",
+        "141g",
+        "141h",
+        "141i",
+        "142",
+        "143",
+        "144"
+      ],
+      "additionalMenuCaptures": [
+        "221-navigation-menu-light-mobile-390x844",
+        "221-navigation-menu-dark-mobile-390x844"
+      ],
+      "expectationCoverage": [
+        {
+          "state": "report-library-mobile",
+          "target": "Selected record in active Reports tabpanel / Generated reports region",
+          "text": "Processing activities with open exceptions",
+          "capture": "141-report-library-dark-mobile-390x844",
+          "proof": "Capture completed its required visible-target assertion."
+        },
+        {
+          "state": "report-run-failed",
+          "target": "Report details dialog",
+          "text": "Generation stopped: Row Limit Exceeded",
+          "capture": "142-report-run-failed-light-1440x900",
+          "proof": "Capture completed its required visible-target assertion."
+        },
+        {
+          "state": "report-setups-mobile",
+          "target": "Heading in active Build report tabpanel / Setup preview article",
+          "text": "Program health review",
+          "capture": "143-report-setups-dark-mobile-compact-390x844",
+          "proof": "Capture completed its required visible-target assertion."
+        },
+        {
+          "state": "report-generate",
+          "target": "Generate report dialog",
+          "text": "No ready vendors setup",
+          "capture": "144-report-generate-light-1440x900",
+          "proof": "Capture completed its required visible-target assertion."
+        }
+      ],
+      "all18ImageHashesVerified": true,
+      "receipt": {
+        "path": "reports-selector-review.json",
+        "bytes": 11724,
+        "sha256": "91e0ba6d66545d314a4340bb2b6f95ce9d788ba4683142c795f0206ac853941b"
+      },
+      "manifest": {
+        "path": "manifest.json",
+        "bytes": 37387,
+        "sha256": "b7ffe16ecac0c22a45acb75719327bbd5db30ca6c9a9fd8ff1ad4dca337ce0b5"
+      }
+    },
+    "finalGate": "Both workflows and complete retained-artifact review on the corrected head; record final receipt in PR #580 before marking ready.",
+    "acceptance": "Partial V2 integration; whole-screen acceptance remains 0/19 and production cutover remains blocked."
   }
 }
