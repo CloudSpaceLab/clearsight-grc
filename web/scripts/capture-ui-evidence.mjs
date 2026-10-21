@@ -60,6 +60,8 @@ const captures = [
   { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-library" },
   { name: "140a-report-overview-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-overview-desktop", openReportOverview: true },
   { name: "140b-report-overview-light-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-overview-mobile", openReportOverview: true },
+  { name: "140f-report-overview-light-1024x768", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1024, height: 768 }, state: "report-overview-tablet", openReportOverview: true },
+  { name: "140g-report-overview-dark-768x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 768, height: 900 }, state: "report-overview-narrow", openReportOverview: true },
   { name: "140c-report-explore-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-explore-desktop", openReportExplore: true },
   { name: "140d-report-explore-light-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-explore-mobile", openReportExplore: true },
 
@@ -348,6 +350,9 @@ async function capturePage(capture) {
         throw new Error("Program Overview did not render exactly four grounded measures");
       }
     }
+    if (capture.route === "#reports" && !capture.openReportOverview && !capture.openReportExplore && !capture.openReportTemplates) {
+      await page.getByRole("tab", { name: "Reports", exact: true }).click();
+    }
     if (capture.state === "report-library") {
       await page.getByRole("table", { name: "Generated reports" }).waitFor({ state: "visible" });
     }
@@ -369,26 +374,41 @@ async function capturePage(capture) {
 
     if (capture.openReportOverview) {
       const workspace = page.locator(".reports-workspace");
+      const views = workspace.getByRole("tablist", { name: "Reports workspace" });
+      await Promise.all([
+        workspace.getByRole("heading", { name: "Reports & insights" }).waitFor({ state: "visible" }),
+        views.waitFor({ state: "visible" }),
+        workspace.getByRole("region", { name: "Reports Overview" }).waitFor({ state: "visible" }),
+      ]);
+      const labels = await views.getByRole("tab").allTextContents();
+      if (labels.map((value) => value.trim()).join("|") !== "Overview|Explore|Reports|Schedules|Build report") {
+        throw new Error(`${capture.name}: V2 Reports local views do not match the approved five-view hierarchy: ${labels.join("|")}`);
+      }
       if (await workspace.locator(".cs-tabs__compact").count()) {
-        throw new Error(`${capture.name}: Reports uses a redundant compact selector instead of the approved view tabs`);
+        throw new Error(`${capture.name}: Reports has a duplicate compact-select view control`);
       }
-      await workspace.getByRole("tab", { name: "Overview", exact: true }).click();
-      const summary = workspace.getByRole("region", { name: "Report library summary" });
-      const recent = workspace.getByRole("heading", { name: "Recent reports", exact: true });
-      await Promise.all([summary.waitFor({ state: "visible" }), recent.waitFor({ state: "visible" })]);
-      await workspace.getByRole("table", { name: "Recent reports" }).waitFor({ state: "visible" });
-      await workspace.getByRole("button", { name: "Explore insights" }).waitFor({ state: "visible" });
-      const [summaryBox, recentBox] = await Promise.all([summary.boundingBox(), recent.boundingBox()]);
-      if (!summaryBox || !recentBox || recentBox.y < summaryBox.y + summaryBox.height - 3) {
-        throw new Error(`${capture.name} does not preserve approved Overview measures before recent reports`);
+      const measures = workspace.getByRole("region", { name: "Reporting measures" });
+      const risk = workspace.getByRole("region", { name: "Risk concentration panel" });
+      const coverage = workspace.getByRole("heading", { name: "Assessment coverage" });
+      const losses = workspace.getByRole("region", { name: "Loss movement panel" });
+      const findings = workspace.getByRole("heading", { name: "Priority findings" });
+      const recent = workspace.getByRole("heading", { name: "Recent reports" });
+      const rail = workspace.getByRole("complementary", { name: "Reporting context" });
+      await Promise.all([measures, risk, coverage, losses, findings, recent, rail].map((item) => item.waitFor({ state: "visible" })));
+      if (await measures.locator(".cs-metric-card").count() !== 4) {
+        throw new Error(`${capture.name}: V2 Reports Overview must display exactly four source measures`);
       }
-      const heading = workspace.getByRole("heading", { name: "Reports & insights", exact: true });
-      const headingBox = await heading.boundingBox();
-      if (!headingBox || (capture.viewport.width <= 390 ? summaryBox.y > 375 : summaryBox.y > 340)) {
-        throw new Error(`${capture.name}: approved Reports heading/tabs push overview measures too far down`);
+      const [metricBox, riskBox, coverageBox, lossBox, findingsBox, recentBox, railBox] = await Promise.all(
+        [measures, risk, coverage, losses, findings, recent, rail].map((item) => item.boundingBox()),
+      );
+      if ([metricBox, riskBox, coverageBox, lossBox, findingsBox, recentBox, railBox].some((box) => !box)
+          || metricBox.y >= riskBox.y || riskBox.y >= lossBox.y
+          || coverageBox.y >= findingsBox.y || findingsBox.y >= recentBox.y
+          || (capture.viewport.width >= 1350 && railBox.x <= riskBox.x + riskBox.width - 4)
+          || (capture.viewport.width <= 390 && metricBox.y >= 440)) {
+        throw new Error(`${capture.name}: V2 Reports source Overview composition has regressed`);
       }
     }
-
 
     if (capture.assertNoConfigureNav) {
       await page.locator("#today-brief").waitFor({ state: "visible" });
@@ -401,14 +421,7 @@ async function capturePage(capture) {
       await page.getByRole("heading", { name: "Customer account opening", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openReportTemplates) {
-      const templatesTab = page.getByRole("tab", { name: "Saved setups", exact: true });
-      if (await templatesTab.isVisible()) {
-        await templatesTab.click();
-      } else {
-        const compactReportsView = page.locator(".cs-tabs__compact .cs-select-field__trigger");
-        await compactReportsView.click();
-        await page.getByRole("option", { name: "Saved setups", exact: true }).click();
-      }
+      await page.getByRole("tab", { name: "Build report", exact: true }).click();
       await page.getByRole("heading", { name: "Saved setups", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openAssignedInspection) {
@@ -435,7 +448,7 @@ async function capturePage(capture) {
       await page.getByRole("dialog", { name: "Report details" }).waitFor({ state: "visible" });
     }
     if (capture.openReportGenerate) {
-      await page.getByRole("button", { name: "Generate report", exact: true }).click();
+      await page.getByRole("button", { name: "New report", exact: true }).click();
       await page.getByRole("dialog", { name: "Generate report" }).waitFor({ state: "visible" });
     }
     if (capture.matterTab) await openMatterWorkspaceTab(page, capture.matterTab);
