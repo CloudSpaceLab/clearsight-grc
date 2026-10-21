@@ -94,6 +94,7 @@ export function ReportsOverview({
   const recentRuns = [...runs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 5);
 
   return <div className="reports-v2-overview" role="region" aria-label="Reports Overview">
+    {runState === "error" && <Notice tone="warning">Report status totals unavailable until report runs load.</Notice>}
     <div className="reports-v2-columns">
       <div className="reports-v2-primary">
         <section className="reports-v2-stats" aria-label="Reporting measures">
