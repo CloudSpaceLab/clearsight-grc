@@ -440,7 +440,7 @@ async function capturePage(capture) {
       const library = page.getByRole("region", { name: "Framework Library workspace" });
       const pageHeading = library.getByRole("heading", { name: "Framework Library", exact: true, level: 1 });
       const pageHeader = library.locator(".cs-framework-library__page-heading");
-      const filters = library.getByRole("group", { name: "Framework filters" });
+      const filters = library.getByRole("region", { name: "Framework filters" });
       const rights = library.getByLabel("Content rights");
       const listHeading = library.getByRole("heading", { name: "Reference editions" });
       await Promise.all([pageHeading.waitFor({ state: "visible" }),
@@ -451,22 +451,22 @@ async function capturePage(capture) {
         pageHeader.boundingBox(), filters.boundingBox(), listHeading.boundingBox(),
       ]);
       if (!headerBox || !filterBox || !resultHeadingBox ||
-          headerBox.bottom > viewsBox.y + 4 ||
-          viewsBox.bottom > filterBox.y + 4 ||
-          filterBox.bottom > resultHeadingBox.y + 14) {
+          headerBox.y + headerBox.height > viewsBox.y + 4 ||
+          viewsBox.y + viewsBox.height > filterBox.y + 4 ||
+          filterBox.y + filterBox.height > resultHeadingBox.y + 14) {
         throw new Error(`${capture.name}: V2 must compose heading → local navigation → filters → reference editions`);
       }
       const inspect = page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" });
       await inspect.waitFor({ state: "visible" });
       const rowBox = await inspect.boundingBox();
-      if (!rowBox || rowBox.height < 85 || rowBox.y < resultHeadingBox.bottom - 3 ||
+      if (!rowBox || rowBox.height < 85 || rowBox.y < resultHeadingBox.y + resultHeadingBox.height - 3 ||
           (capture.viewport.width <= 900 && rowBox.y >= capture.viewport.height - 30)) {
         throw new Error(`${capture.name}: V2 list rows must be source-sized and initially visible: ${JSON.stringify(rowBox)}`);
       }
       if (capture.viewport.width > 900) {
         const inspector = library.getByRole("complementary", { name: "Framework edition details" });
         const panel = await inspector.boundingBox();
-        if (!panel || panel.x < rowBox.right - 6 || Math.abs(panel.y - resultHeadingBox.y) > 75 ||
+        if (!panel || panel.x < rowBox.x + rowBox.width - 6 || Math.abs(panel.y - resultHeadingBox.y) > 75 ||
             !(await inspector.getByRole("heading", { name: "Edition details" }).count()) ||
             !(await inspector.getByRole("heading", { name: "Use in a Program" }).count()) ||
             !(await inspector.getByRole("list").count())) {
