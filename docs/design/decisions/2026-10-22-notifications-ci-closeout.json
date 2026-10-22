@@ -1,0 +1,900 @@
+{
+  "reviewedAt": "2026-10-22T06:32:22.798444+00:00",
+  "title": "Notifications PR #581 exact-head CI visual closeout",
+  "pullRequest": "https://github.com/CloudSpaceLab/clearsight-grc/pull/581",
+  "head": "8495506ef034718c897611991abb9e2a48f8bb87",
+  "base": "e6449c5149c52cdafa8e4c99140c3763ef980aee",
+  "merge": "8880d5c99228f8cfec030322b95008716aadb296",
+  "tree": "800a642e2f719d3b7f54ddd02f5c6facff53d214",
+  "mergeTreeMatchesHead": true,
+  "runtimeRecovery": {
+    "originalCommit": "c2d3593ceaebb509e8e3d1659b80000f6a88c5c6",
+    "remoteCommit": "424fa0f0791af8896d7f2751a667b14f1550ce3c",
+    "tree": "ccdac16dbda7173a671fbebdabd6a6974b84837e"
+  },
+  "evidenceRecovery": {
+    "originalCommit": "f8b87c1531e79cf791881482353ecdfc33e0d1a2",
+    "remoteCommit": "8495506ef034718c897611991abb9e2a48f8bb87",
+    "tree": "800a642e2f719d3b7f54ddd02f5c6facff53d214"
+  },
+  "artifact": {
+    "id": 12390713137,
+    "run": 39695461230,
+    "name": "ui-ux-flow-review-8880d5c99228f8cfec030322b95008716aadb296",
+    "bytes": 68738590,
+    "sha256": "b614f80882e2af00b2c8ac17e684f5b0b2d489b06974282807bd312a09f1c2fe",
+    "url": "https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/39695461230/artifacts/12390713137"
+  },
+  "browser": "Pinned CI Chromium 140.0.7339.16 / Playwright build 1187",
+  "reviewers": [
+    {
+      "name": "ChatGPT /root",
+      "coverage": "10 Inbox runtime frames and 5 original source frames",
+      "confirmation": "Direct named review reported to /root/current_pr_review by collaboration message on 2026-10-22; no new blocker."
+    },
+    {
+      "name": "ChatGPT /root/current_pr_review",
+      "coverage": "20 Activity/Preferences runtime frames, 10 original source frames and all 12 supplemental state frames",
+      "confirmation": "Direct view_image inspection of each exact artifact image; no new blocker."
+    }
+  ],
+  "reviewCounts": {
+    "runtimeMatrix": 30,
+    "supplementalStates": 12,
+    "originalSources": 15,
+    "totalFrames": 57,
+    "runtimeThemeSourcePairs": 30
+  },
+  "result": "SCOPED_V2_ADAPTATION_REVIEW_COMPLETE",
+  "blockingVisualFindings": [],
+  "documentedAdaptations": [
+    "Shared typography, color tokens, menu labels/routes and larger accessible controls differ from the static source while retaining its full-page anatomy.",
+    "Activity context precedes history at 768/390; four actual context facts and the version limitation increase height. At 768 the first event is below the initial viewport.",
+    "Preferences exposes supported versioned email settings and explains fixed in-app behavior instead of rendering prototype-only category switches.",
+    "Supplemental frames are intentionally scrolled to put their notice, focused detail or disabled action in the viewport.",
+    "The shared 768 header abbreviates the role text; no new Notifications-specific overflow was observed."
+  ],
+  "ci": {
+    "ciRun": 39695461119,
+    "ciWebJob": 119551614566,
+    "ciBackendJob": 119551614684,
+    "uiRun": 39695461230,
+    "uiReviewJob": 119551615626,
+    "conclusions": "success",
+    "unitTestFiles": 262,
+    "unitTests": 2096,
+    "runners": 14,
+    "flowRecords": 326,
+    "runtimeImages": 334,
+    "sourceImages": 115,
+    "notificationsContract": "42/42 PASS",
+    "reportsContract": "36/36 PASS"
+  },
+  "hashVerification": {
+    "runtimeImages": 334,
+    "sourceImages": 115,
+    "immutableSourceFiles": 96,
+    "failures": []
+  },
+  "accessibility": {
+    "scenarioCount": 12,
+    "statuses": {
+      "PASS": 12
+    },
+    "violations": 0,
+    "incompleteAxeNodes": 80,
+    "incompleteRules": {
+      "color-contrast": 12
+    },
+    "undersizedPrimaryControls": 0,
+    "browserErrors": 0,
+    "supplementalContrastOutcomes": {
+      "PASS": 544,
+      "INCOMPLETE": 148,
+      "REVIEW": 38
+    },
+    "note": "Supplemental contrast INCOMPLETE and REVIEW results remain manual follow-ups; UI review explicitly reports approved HTML visual parity NOT_ASSESSED."
+  },
+  "sourceAuthority": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-notifications-activity-designs/notifications-activity-preview.html",
+    "sha256": "18a5fa9e4ef0b306da152444e3c2223fc6fe8ffe359c00e0002c5098609a03bc"
+  },
+  "limitations": [
+    "This is a named scoped AI visual review, not representative bank-user or operational acceptance.",
+    "The automated review.json field approved_html_visual_parity remains NOT_ASSESSED; this receipt records a separate direct visual review and does not rewrite that report.",
+    "Axe reports no violations in the 12 Notifications scenarios, but 80 incomplete color-contrast nodes and supplemental 148 INCOMPLETE / 38 REVIEW readings remain declared limitations.",
+    "Synthetic fixtures do not establish live backend authorization, actual email delivery, production readiness or four-actor execution.",
+    "The whole-screen acceptance register remains 0/19; this tranche is a partial v2 layout adaptation."
+  ],
+  "publicationScope": "No remote write, new test run, merge or deployment was performed by this reviewer. Ready for normal code review once root publishes this closeout.",
+  "frames": [
+    {
+      "image": "226-notifications-inbox-light-1440x900.png",
+      "bytes": 234587,
+      "sha256": "9d7694e6b642d1835bb092b5d47a1ac5047e5f0654a5c61dcdc2e05017aba32c",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "226-notifications-inbox-light-1280x800.png",
+      "bytes": 202206,
+      "sha256": "5b988fc26cb823e0cf92f3eb28fe7e0c969289999067b20bfbe9842590f02fcf",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "226-notifications-inbox-light-1024x768.png",
+      "bytes": 167818,
+      "sha256": "449c09d6e8f00678faa0ce6872c279b4028e9c22d9de9665df4a8a01b0a1e5c6",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "226-notifications-inbox-light-768x900.png",
+      "bytes": 144058,
+      "sha256": "ca679aebcbf97f11c75a1702944888c8db6a88c7d0213efa443e02ceede04272",
+      "dimensions": [
+        768,
+        900
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "226-notifications-inbox-light-390x844.png",
+      "bytes": 90883,
+      "sha256": "02bffe98a2b1203ddd402be15beda2c749ae4b6b914dbf8f496d9bd1eae7ea50",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "226-notifications-inbox-dark-1440x900.png",
+      "bytes": 231493,
+      "sha256": "bbbef1a911a2e0e14d0e37b884797c7a0dd9c4a8360615ee5f6ed9ade43811a0",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "226-notifications-inbox-dark-1280x800.png",
+      "bytes": 207828,
+      "sha256": "0aef822a73c3183b8965a712136c7c167414e0a02cff09bcb78e1ec24ad7cde0",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "226-notifications-inbox-dark-1024x768.png",
+      "bytes": 172291,
+      "sha256": "5435cae179dbfb1a780f0886accfea385d262606bb03681167e5e8c1fedd84cb",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "226-notifications-inbox-dark-768x900.png",
+      "bytes": 149351,
+      "sha256": "ce469c8e7c7bd3cd7eab3faebeb72156defe316e34cf528938cdbad77f4f7665",
+      "dimensions": [
+        768,
+        900
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "226-notifications-inbox-dark-390x844.png",
+      "bytes": 93620,
+      "sha256": "ce4cd3ada276e8b2ea401d96980b365db8cdd84236d17bdea56c83fdb4f0f693",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Root confirmed direct inspection: paired list/detail at 1440/1280/1024; stacked list/detail with selection focus at 768/390; shared token density remains a documented adaptation, readable wrapped real content, no horizontal overflow and first mobile record visible."
+    },
+    {
+      "image": "227-notifications-activity-light-1440x900.png",
+      "bytes": 231014,
+      "sha256": "ed019bc9fd84b0246619f222662fb191e40d5a790377ff17f437a9f396f5d9c9",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "227-notifications-activity-light-1280x800.png",
+      "bytes": 202131,
+      "sha256": "d52531a70820d4b09061c53b6160f51a29d1bbfbd0cb647fee5dcc468629eae1",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "227-notifications-activity-light-1024x768.png",
+      "bytes": 166483,
+      "sha256": "fe4b4f72fb439e66344a49549d5f3961f45bdba57ede6384fa4f5c3a7e473ae0",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "227-notifications-activity-light-768x900.png",
+      "bytes": 134172,
+      "sha256": "401c2ff093460099619e7c5ed31a81cd8ce95e49a716084f8bf89d7d0e43e404",
+      "dimensions": [
+        768,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "227-notifications-activity-light-390x844.png",
+      "bytes": 94587,
+      "sha256": "ac8a9a6d02b4337691ede5e0c6e71cdaaa3fa207560e7309399562963869996b",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "227-notifications-activity-dark-1440x900.png",
+      "bytes": 234169,
+      "sha256": "ff83b04620cd0c9927e5f58338c73f3ed9a545aacb33c1fb17fe0a10d56adbd0",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "227-notifications-activity-dark-1280x800.png",
+      "bytes": 204680,
+      "sha256": "3b1811d8acbed20fe60b46c9e16a2d4f3ed29796e6069b1361671be5dc912abc",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "227-notifications-activity-dark-1024x768.png",
+      "bytes": 162564,
+      "sha256": "586b50cad7e576febebad3a25b32cf70d9f79edbd07d6711e9df204d0ea56b70",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "227-notifications-activity-dark-768x900.png",
+      "bytes": 133275,
+      "sha256": "1547693c5a58301bde52000e21a86d4d8fa30b4a2fb03f4fb9382afbc2921ec0",
+      "dimensions": [
+        768,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "227-notifications-activity-dark-390x844.png",
+      "bytes": 95069,
+      "sha256": "8a9455b58735f42db1a3f95cd099f6c7fbcbb77bcfc012db1e6881a14ea238d4",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: heading, three local tabs, selected Work parent, supported period/refresh controls and dated history/context anatomy are coherent in this theme. Context precedes history at 768/390; actual scope/time/version information increases height and places event rows below the initial viewport. No new clipping, overlap or Chrome 140 layout regression is visible."
+    },
+    {
+      "image": "228-notifications-preferences-light-1440x900.png",
+      "bytes": 195874,
+      "sha256": "9eb0608f6977ee4ca53c26ae219993ba8de59b7d8dd9b50d8b7847e3bac0f201",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "228-notifications-preferences-light-1280x800.png",
+      "bytes": 179678,
+      "sha256": "5081d44e314c7c367acb941e55476d236093b1e71297d3cf3adf18740d5b1ad4",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "228-notifications-preferences-light-1024x768.png",
+      "bytes": 148205,
+      "sha256": "8db139e780074299c126a540d79159ff38c55670b20b0e10499805b0fdf420fd",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "228-notifications-preferences-light-768x900.png",
+      "bytes": 121407,
+      "sha256": "0c0a31c23d46953391b535a506bb91de8225b2aef660b2cb68d4281d12653ad4",
+      "dimensions": [
+        768,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "228-notifications-preferences-light-390x844.png",
+      "bytes": 93498,
+      "sha256": "1206484da0c6e50c2eaf2feb72a915c237b9d21dd41fb7bb63ee7711129abfca",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "228-notifications-preferences-dark-1440x900.png",
+      "bytes": 191021,
+      "sha256": "c912a758f55cc4f23d922dd9a5e1ba986e392f660100cb10cdd8442ca4b524c6",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "228-notifications-preferences-dark-1280x800.png",
+      "bytes": 183625,
+      "sha256": "2c11cbbdbba079e73381b553cfdb99bf38743ef31153e6bbab5ca923ff988763",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "228-notifications-preferences-dark-1024x768.png",
+      "bytes": 143697,
+      "sha256": "6145f39c0f6dd3d4f1ff769f36f12c75a9892699d3b81d274eef4319012ea5f8",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "228-notifications-preferences-dark-768x900.png",
+      "bytes": 119983,
+      "sha256": "242f8658ff58d20fc876d37bb08a3a17a9c039a37ef78cdc0cc7beabae2a8c38",
+      "dimensions": [
+        768,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "228-notifications-preferences-dark-390x844.png",
+      "bytes": 96653,
+      "sha256": "5cbae40b0a5c120da638002dc688a42700e3ba8ce42dbed7b7c185e5039731aa",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences matrix",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Direct inspection: in-app information and email settings occupy adjacent desktop columns and stack in source order at 768/390. Unsupported category toggles are replaced by explicit information; actual digest, timezone, quiet hours and critical-delivery constraints are presented. Inputs/labels wrap within panels. The light 1440 values reflect the successful synthetic save interaction, not a theme difference."
+    },
+    {
+      "image": "229-notifications-inbox-empty-light-1440.png",
+      "bytes": 171956,
+      "sha256": "715b2b9456585c44294aa2118c136a7eb3a7f298228d992c37a468458f291c10",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Empty inbox notice and zero count are distinct from the invitation to select context; supported search and assigned-work handoff remain visible."
+    },
+    {
+      "image": "229a-notifications-inbox-unavailable-dark-390.png",
+      "bytes": 65437,
+      "sha256": "13c6aa842e817ee81a65c0806d78642a23df10e806cf5e7028b6da2ac663abd4",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Unavailable notice and Retry notifications are visible in the scrolled phone frame; unread count is not invented and context remains separate."
+    },
+    {
+      "image": "229b-notifications-inbox-read-failed-dark-390.png",
+      "bytes": 62934,
+      "sha256": "cccb487acc0a292209f1721a9322c1e24fad21ae0ed3526565d406a735a312e0",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Failed-read notice is visible beside retained Unread status and the enabled retry action; detail text wraps within the panel."
+    },
+    {
+      "image": "229c-notifications-inbox-more-failed-light-1440.png",
+      "bytes": 190316,
+      "sha256": "acbf510a9b219111395541810a4d2eb0869de379f87ea7497ad4a1b008004b6d",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Older-page failure notice is visible while all five current rows, selection, detail and Load more action remain present."
+    },
+    {
+      "image": "229d-notifications-inbox-selected-dark-390.png",
+      "bytes": 61336,
+      "sha256": "adc206be3d98b5b1dc540d8c3e908bcc7f0f4f483fb10f639edbb34e40ca401c",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Selected mobile detail has a visible focus outline, return action, unread status, actual record metadata and readable wrapped heading."
+    },
+    {
+      "image": "229e-notifications-inbox-read-light-1440.png",
+      "bytes": 234543,
+      "sha256": "2462351658546965f2611602941448c0000acfcc1ec61e2ee66a65869950219a",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Successful receipt displays Read in row and detail, a disabled Marked as read action, and the fresh server unread count of six."
+    },
+    {
+      "image": "229f-notifications-preferences-preferences-conflict-dark-390.png",
+      "bytes": 62605,
+      "sha256": "4ee02f9fdc57acbd23d1323ca05aa02442f139169ab4616076c22ebc631500a0",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Conflict notice is visible below retained draft time/timezone/quiet-hour inputs. Values 09:45, 22:10 and 06:20 remain present; recovery controls continue below the viewport."
+    },
+    {
+      "image": "229g-notifications-activity-denied-light-1440.png",
+      "bytes": 143190,
+      "sha256": "993d4b129cc41181d79918b7d6bcf29b4a9732e4ff9cff3faa1a4d16014dce8d",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Permission denial uses an explicit restricted-history message, preserves Inbox navigation and does not expose event rows."
+    },
+    {
+      "image": "229h-notifications-activity-unavailable-dark-390.png",
+      "bytes": 58436,
+      "sha256": "78d3abe12cc34606225f1558a474774b6ddd237d0003b3b991d68c974e55ccae",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Unavailable history notice and Retry activity are visible with selected scope and unavailable last-checked context; no empty-success message is shown."
+    },
+    {
+      "image": "229i-notifications-activity-foreign-light-1440.png",
+      "bytes": 154021,
+      "sha256": "a76b170c78c912aa753e592d6be61a59668479da7e0c71897c655d15e15db9f6",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Foreign-entity response is rejected into an explicit cannot-confirm-selected-entity error with retry and scope context; no event rows are displayed."
+    },
+    {
+      "image": "229j-notifications-activity-empty-light-390.png",
+      "bytes": 63346,
+      "sha256": "56d2e70478e334b51124c5c675a8acd16047165d7d2cb48eff3f45bcf1f2e083",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Zero-event state states the selected entity and period and suggests changing period or refreshing; it is visually distinct from failure and permission denial."
+    },
+    {
+      "image": "229k-notifications-inbox-unsafe-light-390.png",
+      "bytes": 63487,
+      "sha256": "9b6df3e99749f530934c8a0f20b6ebeecc5238772eccfd59d9993d5a70eaf553",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "supplemental state",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Unsupported destination displays a disabled Open record action and explanatory text, with actual reference metadata and the read-versus-work boundary visible."
+    },
+    {
+      "image": "approved-reference/approved-notifications-inbox-1440x900.png",
+      "bytes": 242943,
+      "sha256": "dacaefa20040de93edf3c84e1ded5cdff4b159943a9f432490b00875d5acec1e",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-inbox-1280x800.png",
+      "bytes": 208564,
+      "sha256": "bc764463ff5d63130cf0f4943d69c88419995d9cf38e453d56bf4e765917a8aa",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-inbox-1024x768.png",
+      "bytes": 171758,
+      "sha256": "2eb7cb96e643e70faf4d88d5e5822b9340b8ee087413d2837116178836c8aad6",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-inbox-768x900.png",
+      "bytes": 153285,
+      "sha256": "33665dc1d923d0dab2ffba796c6d339789a2599fced83bda636a5efad4981f88",
+      "dimensions": [
+        768,
+        900
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-inbox-390x844.png",
+      "bytes": 110632,
+      "sha256": "ffbae0035a25610937b6ea63c2989d17ed71567f04cdd769db49a976a1a7b716",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root",
+      "scope": "inbox original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-activity-1440x900.png",
+      "bytes": 215572,
+      "sha256": "85d975ec563831959df6ca36a4109a59ce7ce26ea25674dac4e7176e2291f94e",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-activity-1280x800.png",
+      "bytes": 192547,
+      "sha256": "6752fff60a57c977510fc025501e8c7f8100f4d7408accbaa82950f9ba9a711e",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-activity-1024x768.png",
+      "bytes": 158086,
+      "sha256": "fb175e2e1f748f26850f4eb55392331fe226a45ef305b9a31b1cde91de9ba3aa",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-activity-768x900.png",
+      "bytes": 129154,
+      "sha256": "fca13e53458311de8db08febb9cd0dba245515bcd1490627d2b15e08a3170696",
+      "dimensions": [
+        768,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-activity-390x844.png",
+      "bytes": 88613,
+      "sha256": "0559e699d548828ad9f45e7aad26f50f2919f78d245d09f565f9eec04f4fa2df",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "activity original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-preferences-1440x900.png",
+      "bytes": 216167,
+      "sha256": "6784e7e3f54dcde4bcba8083195b5c1def688516ae4dd14d65ac82eb620690e4",
+      "dimensions": [
+        1440,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-preferences-1280x800.png",
+      "bytes": 192010,
+      "sha256": "3bddab8f46c6fa69ebd416a2df1758e218127c2e5061823cf8f3a02012c6ed15",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-preferences-1024x768.png",
+      "bytes": 155309,
+      "sha256": "76a21e84ffd21aac61d3636a5d01c110446b1e92cb29cdae488b93b84a739933",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-preferences-768x900.png",
+      "bytes": 123156,
+      "sha256": "f63f6780148fa1d55eceffcc54e6cbe654294d6da0c4a0e261e2f062327a4c36",
+      "dimensions": [
+        768,
+        900
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    },
+    {
+      "image": "approved-reference/approved-notifications-preferences-390x844.png",
+      "bytes": 91031,
+      "sha256": "7ce63a2fbdf066ea0ade6cf225f5d1a939460dbda62f6ef6816ed68efafcc65f",
+      "dimensions": [
+        390,
+        844
+      ],
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "scope": "preferences original source",
+      "result": "PASS_WITH_DOCUMENTED_ADAPTATION",
+      "observations": "Original source frame inspected against both corresponding runtime themes; source anatomy and responsive ordering are retained with the documented supported-capability and shared-token adaptations."
+    }
+  ],
+  "supportingManifests": [
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-ci-8495506/manifest.json",
+      "bytes": 743706,
+      "sha256": "90559222b7198e8c107d4e283bd1f5274a98dc0acf6003b824650deb9a24e4b5"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-ci-8495506/review.json",
+      "bytes": 64194,
+      "sha256": "56e2c74140a26fadf3f9234e566f046a3dcdc9ea310bc73e3fb6109843f87551"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-ci-8495506/approved-reference/manifest.json",
+      "bytes": 344155,
+      "sha256": "b729a617ce111ed3a16fa4c3f891fb95c01d13479a6b50eedb4c09f1ecc0a301"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-ci-8495506/accessibility.json",
+      "bytes": 2907038,
+      "sha256": "6a942b35daf91bcc769b7375a3e1f74be86ec85b62a053a848a301848c2676a8"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-ci-8495506/runner.json",
+      "bytes": 2221,
+      "sha256": "760f41381661e8c7becd13ffb461ff52f75e549eb64402fabc568ea2250119e3"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-ci-8495506/notifications-contract.json",
+      "bytes": 271,
+      "sha256": "b4278416d866310ef694d450f3309b290e94c47ba0cde79032d7d472e6e4c433"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-ci-8495506/ci-provenance.json",
+      "bytes": 12970,
+      "sha256": "783f897b2dd90f219235552a0df2b84bc46c0813939d00f6d5e081bbe3bf2fac"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-ci-8495506/ui-job.log",
+      "bytes": 185797,
+      "sha256": "f4dde949fde00ec01b810200ee924176d0ec2650898eba0f23be17f1632cb8ff"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-ci-8495506/web-job.log",
+      "bytes": 120693,
+      "sha256": "a4bc19598a70e8647ee79ee7f6fb1b039d2e6a2af1f5480445e4b9c948b636ff"
+    }
+  ]
+}

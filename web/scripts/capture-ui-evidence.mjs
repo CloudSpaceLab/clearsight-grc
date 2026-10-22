@@ -5,6 +5,8 @@ import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 import { reportsDesignEvidenceScenarios } from "./reports-design-evidence-scenarios.mjs";
 import { notificationsEvidenceScenarios } from "./notifications-evidence-scenarios.mjs";
 import { prepareNotifications, assertNotificationsLayout, verifyNotificationScenario } from "./notifications-evidence.mjs";
+import { vendorRelationshipEvidenceScenarios } from "./vendor-relationship-evidence-scenarios.mjs";
+import { prepareVendorRelationship, assertVendorRelationshipLayout, verifyVendorRelationshipScenario } from "./vendor-relationship-evidence.mjs";
 import { assertReportBuilderLayout, assertReportsExploreLayout, chooseReportExploreMeasure, chooseReportField,
   selectReportOrganizationScope, verifyReportBuilderNavigation, verifyReportExploreNavigation,
   verifyReportBuilderFlow, verifyReportExploreCurrency, verifyReportExploreMembers } from "./reports-design-evidence.mjs";
@@ -24,6 +26,7 @@ const riskNavigationLabels = ["Risks", "RCSA", "Key indicators", "Loss events"];
 await mkdir(outputDir, { recursive: true });
 
 const captures = [
+  ...vendorRelationshipEvidenceScenarios,
   { name: "01-today-dark-comfortable-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "03-today-dark-compact-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
@@ -123,6 +126,8 @@ try {
     await captureVendorActivationRecovery();
   } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-workflows") {
     await captureVendorWorkflows();
+  } else if (["vendor-relationship", "vendor-relationship-states"].includes(process.env.UI_EVIDENCE_SCOPE)) {
+    for (const capture of captures.filter((item) => item.vendorRelationshipView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-relationship-states" || item.vendorRelationshipCheck))) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "reports") {
     for (const capture of captures.filter((item) => item.route === "#reports")) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "report-design") {
@@ -586,10 +591,20 @@ async function capturePage(capture) {
   const { context, page } = await openPage(capture);
   let reportsLayout;
   let notificationsLayout;
+  let vendorRelationshipLayout;
   try {
     // evidenceMain mounts this named fixture outside SessionGate/App. All
     // authenticated captures must still render and verify AppNavigation.
     let navigation = capture.fixture === "oversight" ? undefined : await assertPrimaryNavigation(page, capture);
+    if (capture.vendorRelationshipView) {
+      await prepareVendorRelationship(page, capture);
+      vendorRelationshipLayout = await assertVendorRelationshipLayout(page, capture);
+      const interaction = await verifyVendorRelationshipScenario(page, capture);
+      if (interaction) vendorRelationshipLayout = await assertVendorRelationshipLayout(page, capture);
+      if (interaction) vendorRelationshipLayout.interaction = interaction;
+      vendorRelationshipLayout.apiReads = await page.evaluate(() => window.vendorRelationshipEvidence?.reads ?? []);
+      vendorRelationshipLayout.commands = await page.evaluate(() => window.vendorRelationshipEvidence?.commands ?? []);
+    }
     if (capture.notificationView) {
       await prepareNotifications(page, capture);
       notificationsLayout = await assertNotificationsLayout(page, capture);
@@ -1057,6 +1072,7 @@ async function capturePage(capture) {
       navigation.drawer.dismissalRestoredFocus = true;
     }
     const recordedCapture = { ...capture, navigation, ...(reportsLayout ? { reportsLayout } : {}), ...(notificationsLayout ? { notificationsLayout } : {}),
+      ...(vendorRelationshipLayout ? { vendorRelationshipLayout } : {}),
       ...(capture.openRopaActivity ? { route: new URL(page.url()).hash } : {}) };
     await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
@@ -1300,13 +1316,14 @@ async function assertGuideLauncherDoesNotBlockNavigation(page, name, viewportWid
   }
 }
 
-async function openPage({ route, title, theme, density, viewport, touch = false, fixture, frameworkCatalog }) {
+async function openPage({ route, title, theme, density, viewport, touch = false, fixture, frameworkCatalog, fixtureTime }) {
   const context = await browser.newContext({ viewport, colorScheme: theme, hasTouch: touch, reducedMotion: "reduce", locale: "en-NG", timezoneId: "Africa/Lagos" });
   await context.addInitScript(({ theme, density }) => {
     localStorage.setItem("clearsight.theme", theme);
     localStorage.setItem("clearsight.density", density);
   }, { theme, density });
   const page = await context.newPage();
+  if (fixtureTime) await page.clock.setFixedTime(new Date(fixtureTime));
   const browserErrors = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
@@ -1416,6 +1433,7 @@ async function record(page, capture, state) {
     name: capture.name,
     route: capture.route,
     fixture: capture.fixture ?? null,
+    ...(capture.fixtureTime ? { fixtureTime: capture.fixtureTime } : {}),
     state,
     viewport: capture.viewport,
     theme: capture.theme,
@@ -1426,6 +1444,7 @@ async function record(page, capture, state) {
     } : {}),
     ...(capture.reportsLayout ? { reportsLayout: capture.reportsLayout } : {}),
     ...(capture.notificationsLayout ? { notificationsLayout: capture.notificationsLayout } : {}),
+    ...(capture.vendorRelationshipLayout ? { vendorRelationshipLayout: capture.vendorRelationshipLayout } : {}),
     ...(capture.navigation ? { navigation: capture.navigation } : {}),
     metrics: await layoutMetrics(page),
   });
@@ -2187,7 +2206,7 @@ async function captureVendorWorkflows() {
     }
   }
 
-  const partial = { name: "45-vendor-delivery-partial-light-1440x900", fixture: "vendor-partial-delivery", state: "vendor-delivery-partial", route: "#vendors/register", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const partial = { name: "45-vendor-delivery-partial-light-1440x900", fixture: "vendor-partial-delivery", fixtureTime: "2026-09-08T12:00:00.000Z", state: "vendor-delivery-partial", route: "#vendors/register", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(partial);
   try {
     await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
@@ -2285,7 +2304,7 @@ async function captureVendorActivationRecovery() {
       await page.waitForFunction(() => typeof window.__vendorActivationRecovery.releaseCommand === "function");
       const commands = await page.evaluate(() => window.__vendorActivationRecovery.commands);
       if (commands.length !== 2 || commands[0].expected_version !== 4 || commands[1].expected_version !== 6) throw new Error("Activation did not use the refreshed relationship version.");
-      if (width < 800) await page.getByRole("button", { name: "Back to vendor register", exact: true }).click();
+      await page.getByRole("button", { name: "Back to vendor register", exact: true }).click();
       await page.getByRole("button", { name: /Sample · Meridian Technology Limited/ }).click();
       await openVendorSection(page, "Due diligence");
       await panel.getByText("Policy 9, version 3 applies from", { exact: false }).waitFor();

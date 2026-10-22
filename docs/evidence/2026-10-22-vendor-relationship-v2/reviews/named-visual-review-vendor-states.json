@@ -1,0 +1,312 @@
+{
+  "schema": "clearsight.named-visual-review.v1",
+  "reviewedAt": "2026-10-22T07:57:28.366555+00:00",
+  "reviewer": "ChatGPT /root/current_pr_review",
+  "reviewerType": "AI assistant; not human sign-off",
+  "runtimeCommit": "44c26f6ed8289fad97ffbd6fc01afca1f30f46d8",
+  "runtimeTree": "08f9d72cd1d94a00daab4108aada415b4762a91b",
+  "runtimeFiles": [
+    {
+      "path": "web/src/components/VendorRelationshipWorkspace.tsx",
+      "sha256": "2935e14b2044afed608290a3fb6faabc5c696dc60b6bed9501f911c75dd7b1b5",
+      "bytes": 19963,
+      "matchesFrozenCommit": true
+    },
+    {
+      "path": "web/src/components/vendor-relationship-workspace.css",
+      "sha256": "d90b72c88971ac390979a94a0333117642af3955c0dcb8a0824417c28a1d3645",
+      "bytes": 7626,
+      "matchesFrozenCommit": true
+    },
+    {
+      "path": "web/src/components/VendorsWorkspace.tsx",
+      "sha256": "b4ef25a7584083f1238303ba0e6023bded2e9fb4ddfaf37dae26b6dba4703501",
+      "bytes": 56299,
+      "matchesFrozenCommit": true
+    },
+    {
+      "path": "web/src/components/VendorComplianceOverview.tsx",
+      "sha256": "734728cf8a2256b1c1e4b600330c017f256afc77f2ad44c1c14a7987cb3e98c8",
+      "bytes": 14543,
+      "matchesFrozenCommit": true
+    },
+    {
+      "path": "web/src/components/vendor-compliance-overview.css",
+      "sha256": "583fdf5cbd9bfcfad54cd90d759a8c02545e8f2416f527854555844ca5eed9ea",
+      "bytes": 3363,
+      "matchesFrozenCommit": true
+    },
+    {
+      "path": "web/src/vendors.css",
+      "sha256": "f1bbd78f89fdbc6a20881ea549224720eff38863e26c72cc239c2fad7e9c1440",
+      "bytes": 12828,
+      "matchesFrozenCommit": true
+    }
+  ],
+  "sourceAuthority": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-vendor-management-designs/vendor-workspace-preview.html",
+    "sha256": "c37f35161878d2035335241fc104c41fb4c8f6176cfe81d8a2f0d7fbdba728fd",
+    "archive_sha256": "65dcc0e3f26e9d41e38efd1ae1d571f5db0f0582a2d561f8c942b25817a5f6e5"
+  },
+  "primaryReview": {
+    "path": "/tmp/clearsight-vendor-layout-evidence/named-visual-review-evidence-activity.json",
+    "sha256": "162a319dc3618ec882702d2f139160a4091dc4fb893b5b2aca8e58fda210bae8",
+    "runtimeImages": 20,
+    "sourceImages": 10
+  },
+  "scope": {
+    "supplementalFrames": 8,
+    "states": [
+      "loading",
+      "unavailable",
+      "long-labels",
+      "documents",
+      "activation-denied",
+      "assessment-unavailable",
+      "empty",
+      "partial"
+    ]
+  },
+  "conclusion": "All eight final supplemental viewport frames were directly inspected. No P1/P2 rendering blocker was found in this bounded scope. Together with the referenced primary receipt, this reviewer inspected 28 runtime frames and 10 immutable source frames.",
+  "provenance": {
+    "reviewedCombinedManifest": "/tmp/clearsight-vendor-layout-evidence/after/manifest.json",
+    "reviewedCombinedManifestSha256": "2b996afbbe7f4aee4ed368922085849462aa5c776c4d6b9f4ba6ce3d63cc2da5",
+    "focusedManifest": "/tmp/clearsight-vendor-layout-evidence/focused/manifest.json",
+    "focusedManifestSha256": "73fb2cf4f788f475bb04292ad2e4a005f4c6998e09833f5aa5b6b749e6709424",
+    "captureRuns": [
+      {
+        "scope": "vendor-relationship primary matrix",
+        "manifest": "matrix-run.json",
+        "sha256": "4daeb0498ad6e12705949d2d1e7c029e6eeee409c83199faa697af65f6021b9c",
+        "captures": 50,
+        "subsequentFocusedPreparationFailure": "235-vendor-relationship-loading-dark-390: a scoped reader escaped the selected relationship: /api/v1/vendors/sample-relationship-hosting/links?limit=50"
+      },
+      {
+        "scope": "vendor-relationship-states",
+        "manifest": "../focused/manifest.json",
+        "sha256": "73fb2cf4f788f475bb04292ad2e4a005f4c6998e09833f5aa5b6b749e6709424",
+        "captures": 8,
+        "failure": null
+      }
+    ],
+    "runtimeFilesMatchFrozenCommit": true
+  },
+  "observerReview": "Read-only code review confirmed a one-way PREPARING to SELECTED_RELATIONSHIP transition on the selected row capture-phase pointerdown. Request phase is assigned at initiation. Preparatory reads are retained separately; no selected reads are cleared or reclassified. Every API command remains globally observed, apart from the explicitly modelled read-only Authority.Resolve POST query.",
+  "limitations": [
+    "This named AI visual review does not establish human design acceptance, regulated operational readiness or production permissions.",
+    "Denied/unavailable/empty/partial/loading states are synthetic UI fixture behavior. Observed scoped reads and absent material commands do not prove backend authorization or tenant isolation.",
+    "The images are viewport crops, and the partial-state crop intentionally scrolls to the combined unavailable-plus-partial content. Content outside each image boundary is not independently visually reviewed here.",
+    "The Documents frame verifies the visible scoped navigation and controls; file rows below its viewport boundary are not included in this visual inspection.",
+    "Automated visual-parity status is not overridden. Shared typography, color, density and runtime capability adaptations remain distinct from source pixel identity."
+  ],
+  "runtimeImages": [
+    {
+      "name": "235-vendor-relationship-loading-dark-390",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/235-vendor-relationship-loading-dark-390.png",
+      "sha256": "d8b8ceff50ea48be771d4d9afffbbd28e604d5e37710ebfcae29f7372ba772eb",
+      "bytes": 91389,
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "selectedTab": "Overview",
+      "menuMode": "select",
+      "scrollY": 0,
+      "status": "REVIEWED_NO_P1_P2_VISUAL_BLOCKER_IN_SCOPE",
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "reviewMethod": "Direct final viewport image inspection",
+      "observations": "Loading form totals, Due diligence Loading, Submitted forms Loading and Awaiting review Loading remain visibly distinct from zero or a completed review; compact Overview menu and controls fit.",
+      "selectedRelationshipID": "vendor-relationship-payments",
+      "selectionBoundary": {
+        "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+        "relationshipID": "vendor-relationship-payments",
+        "at": 1107.4000000059605,
+        "observedAt": "2026-10-22T07:53:50.362Z"
+      },
+      "preparationReadCount": 4,
+      "selectedReadCount": 5,
+      "observedMaterialCommands": 0
+    },
+    {
+      "name": "235a-vendor-relationship-unavailable-light-1440",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/235a-vendor-relationship-unavailable-light-1440.png",
+      "sha256": "79ccc5396949aa17814d436b7a2d0eb1d93dbd2edd5c56ecc267f6cb9c587f6c",
+      "bytes": 197033,
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "selectedTab": "Overview",
+      "menuMode": "tabs",
+      "scrollY": 0,
+      "status": "REVIEWED_NO_P1_P2_VISUAL_BLOCKER_IN_SCOPE",
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "reviewMethod": "Direct final viewport image inspection",
+      "observations": "Form totals and review requirements explicitly report unavailable; the compliance failure and Retry action are visible while the known Not started assessment state remains separate.",
+      "selectedRelationshipID": "vendor-relationship-payments",
+      "selectionBoundary": {
+        "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+        "relationshipID": "vendor-relationship-payments",
+        "at": 1097.7000000029802,
+        "observedAt": "2026-10-22T07:53:51.757Z"
+      },
+      "preparationReadCount": 4,
+      "selectedReadCount": 8,
+      "observedMaterialCommands": 0
+    },
+    {
+      "name": "235b-vendor-relationship-long-labels-light-390",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/235b-vendor-relationship-long-labels-light-390.png",
+      "sha256": "c90d8a1ac84831763a48568e1ca231fefd74180046c454be403eebe8dc29e968",
+      "bytes": 104045,
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "selectedTab": "Overview",
+      "menuMode": "select",
+      "scrollY": 0,
+      "status": "REVIEWED_NO_P1_P2_VISUAL_BLOCKER_IN_SCOPE",
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "reviewMethod": "Direct final viewport image inspection",
+      "observations": "Long synthetic legal and service names wrap within the mobile content column; the section selector and review-status card remain visible without horizontal clipping.",
+      "selectedRelationshipID": "vendor-relationship-payments",
+      "selectionBoundary": {
+        "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+        "relationshipID": "vendor-relationship-payments",
+        "at": 1080.4000000059605,
+        "observedAt": "2026-10-22T07:53:53.290Z"
+      },
+      "preparationReadCount": 4,
+      "selectedReadCount": 5,
+      "observedMaterialCommands": 0
+    },
+    {
+      "name": "235c-vendor-relationship-documents-dark-390",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/235c-vendor-relationship-documents-dark-390.png",
+      "sha256": "750da1955a4488ad0959cf6029ca5c4133546cff492e06809944c50d37b5b87a",
+      "bytes": 85617,
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "selectedTab": "Evidence",
+      "menuMode": "select",
+      "scrollY": 0,
+      "status": "REVIEWED_NO_P1_P2_VISUAL_BLOCKER_IN_SCOPE",
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "reviewMethod": "Direct final viewport image inspection",
+      "observations": "Evidence compact selection and active Documents subtab are consistent. The selected relationship/service caption, Refresh files and file-type controls fit the viewport. File rows below the image boundary are outside direct visual review.",
+      "selectedRelationshipID": "vendor-relationship-payments",
+      "selectionBoundary": {
+        "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+        "relationshipID": "vendor-relationship-payments",
+        "at": 749.9000000059605,
+        "observedAt": "2026-10-22T07:53:54.374Z"
+      },
+      "preparationReadCount": 0,
+      "selectedReadCount": 10,
+      "observedMaterialCommands": 0
+    },
+    {
+      "name": "235d-vendor-relationship-activation-denied-light-1440",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/235d-vendor-relationship-activation-denied-light-1440.png",
+      "sha256": "bd0d7fe4834157b2f4a002b866d416b43d326c4c834e60718b08e02329e01289",
+      "bytes": 209895,
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "selectedTab": "Due diligence",
+      "menuMode": "tabs",
+      "scrollY": 0,
+      "status": "REVIEWED_NO_P1_P2_VISUAL_BLOCKER_IN_SCOPE",
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "reviewMethod": "Direct final viewport image inspection",
+      "observations": "The fixture-denied activation read renders the existing unavailable-checks message and Reload activation checks; no Activate vendor relationship decision button is visible. The separate Start due diligence action remains correctly distinct.",
+      "selectedRelationshipID": "vendor-relationship-payments",
+      "selectionBoundary": {
+        "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+        "relationshipID": "vendor-relationship-payments",
+        "at": 782.7999999970198,
+        "observedAt": "2026-10-22T07:53:55.774Z"
+      },
+      "preparationReadCount": 0,
+      "selectedReadCount": 6,
+      "observedMaterialCommands": 0
+    },
+    {
+      "name": "235e-vendor-relationship-assessment-unavailable-dark-390",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/235e-vendor-relationship-assessment-unavailable-dark-390.png",
+      "sha256": "2ba7ae96baab6cd6f56e8e30bb2aaf9a1e6370d0e5ddc99a811e3ac2ed54de34",
+      "bytes": 88097,
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "selectedTab": "Due diligence",
+      "menuMode": "select",
+      "scrollY": 0,
+      "status": "REVIEWED_NO_P1_P2_VISUAL_BLOCKER_IN_SCOPE",
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "reviewMethod": "Direct final viewport image inspection",
+      "observations": "Due diligence unavailable state and Try again control fit the mobile column, with wording that asks the user to retry before starting or changing the review.",
+      "selectedRelationshipID": "vendor-relationship-payments",
+      "selectionBoundary": {
+        "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+        "relationshipID": "vendor-relationship-payments",
+        "at": 1040.2000000029802,
+        "observedAt": "2026-10-22T07:53:57.291Z"
+      },
+      "preparationReadCount": 4,
+      "selectedReadCount": 6,
+      "observedMaterialCommands": 0
+    },
+    {
+      "name": "235f-vendor-relationship-empty-light-1440",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/235f-vendor-relationship-empty-light-1440.png",
+      "sha256": "a6ebb50bcf4d9c8ef313309fd9867590915636ed9905f88df7123f1a07bd2c8b",
+      "bytes": 202946,
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "selectedTab": "Overview",
+      "menuMode": "tabs",
+      "scrollY": 0,
+      "status": "REVIEWED_NO_P1_P2_VISUAL_BLOCKER_IN_SCOPE",
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "reviewMethod": "Direct final viewport image inspection",
+      "observations": "Zero form counts accompany Not assessed, No forms requested and Request form; the empty record is not presented as completed or compliant.",
+      "selectedRelationshipID": "vendor-relationship-payments",
+      "selectionBoundary": {
+        "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+        "relationshipID": "vendor-relationship-payments",
+        "at": 1152.5,
+        "observedAt": "2026-10-22T07:53:58.857Z"
+      },
+      "preparationReadCount": 4,
+      "selectedReadCount": 5,
+      "observedMaterialCommands": 0
+    },
+    {
+      "name": "235g-vendor-relationship-partial-dark-390",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/235g-vendor-relationship-partial-dark-390.png",
+      "sha256": "5c25a05e7f41dfb5f0179463ed16101efac63310025138e60f18d9da5cbb4a48",
+      "bytes": 61179,
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "selectedTab": "Overview",
+      "menuMode": "select",
+      "scrollY": 647,
+      "status": "REVIEWED_NO_P1_P2_VISUAL_BLOCKER_IN_SCOPE",
+      "reviewer": "ChatGPT /root/current_pr_review",
+      "reviewMethod": "Direct final viewport image inspection",
+      "observations": "The intentionally scrolled capture shows Unavailable status alongside one actual form row, 1 forms shown and Load more forms; aggregate compliance totals are absent from that panel and the Relationship context stacks below it.",
+      "selectedRelationshipID": "vendor-relationship-payments",
+      "selectionBoundary": {
+        "event": "RELATIONSHIP_SELECTION_POINTERDOWN",
+        "relationshipID": "vendor-relationship-payments",
+        "at": 1018,
+        "observedAt": "2026-10-22T07:54:00.223Z"
+      },
+      "preparationReadCount": 4,
+      "selectedReadCount": 5,
+      "observedMaterialCommands": 0
+    }
+  ]
+}

@@ -1,12 +1,18 @@
 # ClearSight implementation ledger
 
+## 22 October Vendor relationship — V2 page and local menu
+
+Continue from Notifications head `8495506ef034718c897611991abb9e2a48f8bb87` with the complete selected relationship anatomy: record identity/actions, Overview / Due diligence / Evidence / Issues & actions / Activity, primary review content and a 316px context rail with the source's stacked replacement at 840px. The portfolio page remains a separate tranche. Existing assessment, forms, protected documents, canonical exceptions and activation owners retain their scope/version contracts. The [decision](design/decisions/2026-10-22-vendor-relationship-v2.md) pins the source and responsive/authority adaptations.
+
+Runtime `44c26f6ed8289fad97ffbd6fc01afca1f30f46d8` is implemented and locally reviewed. The [retained receipt](design/decisions/2026-10-22-vendor-relationship-evidence.json) covers 58 runtime captures, 25 original-source captures, 50 same-screen pairs, 20 accessibility scenarios and three named AI reviewers. The customer build, typecheck, 51 UI contracts and final 99 affected workflow/copy tests pass; the earlier full web run passed 2,100 tests. All 45 affected legacy activation/due-diligence/first-run captures pass. The review PR records subsequent exact-head CI and artifact evidence. Whole-screen acceptance remains **0/19**, pending separate authorized-result and operational acceptance.
+
 ## 21 October Notifications — V2 workspace and local menu
 
 Continue from the reviewed Reports stack at `e6449c5149c52cdafa8e4c99140c3763ef980aee` with the original Notifications heading, Inbox / Activity / Preferences menu, selectable inbox/context layout and responsive replacement views. The header bell opens the full workspace through existing routing; Work & Approvals remains its shared-menu parent. This tranche does not change the Work queue/search behavior owned by #574.
 
 One scope-keyed inbox owner serves the bell and workspace using existing paged notification reads and read receipts. Activity uses the existing authorized system-activity reader for one legal entity, with a separate permission gate. Email preferences keep their versioned daily-digest, timezone and quiet-hours contract; valid time edits and conflict recovery are included. Unsupported source-prototype capabilities are not presented as live actions. The [decision record](design/decisions/2026-10-21-notifications-workspace-v2.md) pins the immutable source and records the local review boundary.
 
-Status: **locally implemented and reviewed; publication pending**. The [evidence receipt](design/decisions/2026-10-21-notifications-workspace-evidence.json) records the local source/runtime, interaction and contract checks. Remote CI and authorized-result acceptance remain open; no Notifications PR, merge, deployment or operational acceptance is claimed. The October whole-screen acceptance register remains **0/19**.
+Status: **published and exact-head CI/visual review complete** in [PR #581](https://github.com/CloudSpaceLab/clearsight-grc/pull/581). The recovered head `8495506ef034718c897611991abb9e2a48f8bb87` preserves the original reviewed tree. CI `39695461119` and UI `39695461230` passed on the identical merge tree: 2,096 web tests and all 42 Notifications cases. Named review covers all 57 final Notifications runtime/source/state images; retained artifact `12390713137` and its exact hashes are recorded in the PR. The [local evidence receipt](design/decisions/2026-10-21-notifications-workspace-evidence.json) remains historical evidence. Live authorized-result acceptance remains open; no merge, deployment or operational acceptance is claimed. The October whole-screen acceptance register remains **0/19**.
 
 ## 21 October Reports Explore and Builder — V2 layout integration
 

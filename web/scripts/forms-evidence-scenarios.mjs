@@ -1,3 +1,5 @@
+import { selectVendorRelationshipView } from "./vendor-relationship-evidence.mjs";
+
 export const requiredFormsCapabilities = Object.freeze([
   "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",
   "library-filter-picker", "library-advanced-filter", "library-status-scopes",
@@ -51,17 +53,17 @@ async function selectFormsSection(page, name) {
 }
 
 async function selectVendorSection(page, name) {
-  const tab = page.getByRole("tab", { name, exact: true });
-  if (await tab.isVisible()) {
-    await tab.click();
-    return;
+  const view = { "Due diligence": "due-diligence", Documents: "evidence" }[name];
+  if (!view) throw new Error(`Unsupported Vendor evidence destination: ${name}`);
+  await page.locator(".vendor-relationship-workspace").waitFor({ state: "visible" });
+  const relationshipRoute = new URL(page.url()).hash;
+  await selectVendorRelationshipView(page, view);
+  if (name === "Documents") {
+    const evidence = page.getByRole("region", { name: "Vendor evidence", exact: true });
+    await evidence.getByRole("tablist", { name: "Evidence views", exact: true }).getByRole("tab", { name, exact: true }).click();
+    await evidence.locator(".document-browser").waitFor({ state: "visible" });
   }
-  const compact = page.getByRole("button", { name: / Vendor section$/ });
-  await compact.scrollIntoViewIfNeeded();
-  await compact.click();
-  const listbox = page.getByRole("listbox");
-  await listbox.waitFor({ state: "visible" });
-  await listbox.getByRole("option", { name, exact: true }).click();
+  if (new URL(page.url()).hash !== relationshipRoute) throw new Error("Vendor navigation must retain the selected relationship.");
 }
 
 async function assertFormsSectionSelected(page, name) {

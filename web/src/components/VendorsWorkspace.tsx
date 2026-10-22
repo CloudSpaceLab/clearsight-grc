@@ -7,22 +7,17 @@ import { apiErrorKind } from "../http";
 import { loadFormTemplates } from "../monitoringApi";
 import { prepareVendorCollection, type PrepareVendorCollectionInput, type PrepareVendorCollectionResult } from "../vendorCollectionApi";
 import type { FormTemplate } from "../monitoringTypes";
-import { applyVendorAssessmentResponse, cancelVendorAssessment, completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview, vendorAssessmentDocumentURL } from "../vendorAssessmentApi";
+import { applyVendorAssessmentResponse, cancelVendorAssessment, completeVendorAssessment, createVendorAssessmentDeficiency, loadCurrentVendorAssessment, loadVendorAssessment, reissueVendorAssessmentRequest, requestVendorAssessmentClarification, retryVendorAssessmentSetup, reviewVendorAssessmentDocument, sendVendorAssessmentRequest, startVendorAssessment, startVendorAssessmentReview } from "../vendorAssessmentApi";
 import type { ApplyVendorAssessmentResponseInput, CompleteVendorAssessmentInput, CreateVendorAssessmentDeficiencyInput, CurrentVendorAssessment, ReviewVendorAssessmentDocumentInput, StartVendorAssessmentInput, VendorAssessment, VendorAssessmentApplicationResult, VendorAssessmentClarificationInput, VendorAssessmentFormOption, VendorAssessmentReviewView, VendorAssessmentSendOutcome, VendorAssessmentSetupRetryOutcome } from "../vendorAssessmentTypes";
 import { createVendorRelationship, loadVendorRelationship, loadVendorRelationships, updateVendorRelationship } from "../vendorApi";
 import { normalizeRegisteredAddress, normalizeWebsiteDomain, validateWebsiteDomain, vendorIdentityLimits } from "../vendorIdentity";
 import type { CreateVendorRelationshipInput, VendorCriticality, VendorIdentityPresentation, VendorPrivacyRole, VendorRelationshipAggregate } from "../vendorTypes";
-import { VendorDueDiligence } from "./VendorDueDiligence";
-import { VendorWorkPanel } from "./VendorWorkPanel";
-import { VendorBrandIcon, vendorBrandLabel } from "./VendorBrandIcon";
-import { VendorActivationPanel } from "./VendorActivationPanel";
+import { VendorBrandIcon } from "./VendorBrandIcon";
+import { VendorRelationshipWorkspace, type VendorSection } from "./VendorRelationshipWorkspace";
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
 import { VendorFormReadiness } from "./VendorFormReadiness";
-import { VendorComplianceOverview } from "./VendorComplianceOverview";
 import { VendorPortfolio } from "./VendorPortfolio";
-import { ActionLink, Button, Notice, SelectField, StatusBadge, TextField, TextArea, Tabs } from "./ui";
-import { DocumentBrowser } from "./documents/DocumentBrowser";
-import { VendorFormsPanel, VendorResponseHistory } from "./VendorFormsPanel";
+import { ActionLink, Button, Notice, SelectField, StatusBadge, TextField, TextArea } from "./ui";
 import { VendorFormRequest, type VendorRequestTarget } from "./VendorFormRequest";
 import { loadVendorFormSummaries, type VendorFormSummary, type VendorFormsFilter } from "../vendorFormsApi";
 import "./vendor-forms.css";
@@ -43,8 +38,6 @@ type Props = {
 };
 
 type LoadState = "loading" | "live" | "unavailable";
-type VendorSection = "OVERVIEW" | "FORMS" | "DOCUMENTS" | "DUE_DILIGENCE" | "HISTORY";
-const vendorSections = [{ id: "OVERVIEW", label: "Overview" }, { id: "FORMS", label: "Forms" }, { id: "DOCUMENTS", label: "Documents" }, { id: "DUE_DILIGENCE", label: "Due diligence" }, { id: "HISTORY", label: "History" }] satisfies Array<{ id: VendorSection; label: string }>;
 
 type FormValues = {
   legalName: string;
@@ -134,12 +127,18 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
   const navigationFocus = useRef<"detail" | "register" | undefined>(undefined);
   useEffect(() => {
     if (state !== "live" || !navigationFocus.current) return;
-    const target = document.getElementById(navigationFocus.current === "detail" ? "vendor-detail-focus" : "vendor-portfolio-register");
-    if (!target) return;
-    target.focus({ preventScroll: true });
-    target.scrollIntoView?.({ block: "start" });
-    navigationFocus.current = undefined;
-  }, [selected?.relationship.id, state]);
+    const destination = navigationFocus.current;
+    // Route changes refresh the register in this same effect pass. Restore
+    // focus after that render settles, retaining the intent during loading.
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById(destination === "detail" ? "vendor-detail-focus" : "vendor-portfolio-register");
+      if (!target || !isGuideTargetAvailable(target) || navigationFocus.current !== destination) return;
+      target.focus({ preventScroll: true });
+      target.scrollIntoView?.({ block: "start" });
+      if (document.activeElement === target) navigationFocus.current = undefined;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selected?.relationship.id, state, targetID]);
 
   const recordIDs = records.map((record) => record.relationship.id).join(",");
   useEffect(() => {
@@ -658,7 +657,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
   function requestForms(values: VendorRelationshipAggregate[]) { setRequestTargets(values.map((value) => ({ relationshipID: value.relationship.id, vendorName: value.vendor.legal_name, serviceName: value.relationship.service_name }))); }
   function openFormWork(record: VendorRelationshipAggregate, filter?: VendorFormsFilter) { choose(record); setVendorSection("FORMS"); setFormsFocus({ relationshipID: record.relationship.id, filter }); }
   return <div className={workspaceClass} tabIndex={-1}>
-    <header className="topbar vendors-topbar cs-workspace-header">
+    {(!selected || registerLocked) && <><header className="topbar vendors-topbar cs-workspace-header">
       <div>{!selected && <span className="eyebrow">{organizationName} · {legalEntityName}</span>}<h1>Vendors</h1></div>
       {mode === "browse" && <Button id="vendor-add-action" type="button" variant={selected ? "secondary" : "primary"} onPress={() => { onPage?.("register"); startCreate(); }} isDisabled={state !== "live"}>Add vendor</Button>}
     </header>
@@ -666,14 +665,14 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
     <nav className="vendor-subnav" aria-label="Vendor sections">
       <Button variant={activePage === "overview" ? "secondary" : "quiet"} aria-current={activePage === "overview" ? "page" : undefined} isDisabled={registerLocked} onPress={() => onPage?.("overview")}>Overview</Button>
       <Button variant={activePage === "register" ? "secondary" : "quiet"} aria-current={activePage === "register" ? "page" : undefined} isDisabled={registerLocked} onPress={() => onPage?.("register")}>Register</Button>
-    </nav>
+    </nav></>}
 
     {notice && <Notice tone="success">{notice}</Notice>}
     {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
     {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><Button  type="button" onPress={() => void refresh(targetID, "")}>Try again</Button></section>}
     {state === "live" && activePage === "overview" && !selected && !registerLocked && <VendorPortfolio records={records} hasMore={!!nextCursor} onOpenMatter={onOpenMatter} refreshKey={formsRefreshKey}/>}
     {state === "live" && activePage === "register" && <div className="vendor-layout">
-      <section id="vendor-portfolio-register" tabIndex={-1} className="vendor-register" aria-label={`Vendor relationships for ${legalEntityName}`} aria-describedby={registerLocked ? "vendor-register-lock-note" : undefined}>
+      <section id="vendor-portfolio-register" tabIndex={-1} className="vendor-register" hidden={!!selected || registerLocked} aria-label={`Vendor relationships for ${legalEntityName}`} aria-describedby={registerLocked ? "vendor-register-lock-note" : undefined}>
         <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>
         {registerLocked && <p id="vendor-register-lock-note" className="vendor-register-lock-note">{registerLockMessage}</p>}
         <form className="vendor-search" onSubmit={searchRelationships}><TextField label="Search vendors and services" type="search" value={query} onChange={setQuery} placeholder="Name, service or reference" isDisabled={registerLocked}/><Button type="submit"  isDisabled={registerLocked}>Search vendors</Button></form>
@@ -689,8 +688,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
         {loadMoreError && <p role="alert" className="inline-error">More vendor relationships could not be loaded. The current results remain available.</p>}
       </section>
 
-      <section id="vendor-detail-focus" tabIndex={-1} className="vendor-focus" aria-label="Selected vendor relationship">
-        {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)} onPresentationReloaded={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorDetail
+      <section id="vendor-detail-focus" tabIndex={-1} className={selected && !registerLocked ? "vendor-relationship-focus" : "vendor-focus"} aria-label="Selected vendor relationship">
+        {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)} onPresentationReloaded={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorRelationshipWorkspace
           record={selected}
           formSummary={formSummaries.get(selected.relationship.id)}
           summaryState={summaryState}
@@ -751,125 +750,6 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
   </div>;
 }
 
-function VendorDetail({ record, formSummary, summaryState, section, onSectionChange, assessment, assessmentSetup, assessmentState, review, reviewState, form, forms, formState, requestOutcome, requestOutcomeKind, onBack, onEdit, onEditIdentity, onRefreshAssessment, onRefreshForms, onSetUpForm, onOpenForms, onStartAssessment, onPrepareAssessmentRequest, onSendAssessmentRequest, onReissueAssessmentRequest, onRetryAssessmentSetup, onRefreshReview, onStartAssessmentReview, onRequestAssessmentClarification, onCreateAssessmentDeficiency, onReviewAssessmentDocument, onCompleteAssessmentReview, onCancelAssessment, onApplyAssessmentResponse, onOpenRequest, onOpenMatter, accountableOwnerLabel, onActivated, onRefreshed, onRequestForm, onFormWorkUpdated, formsRefreshKey, formsFilter }: {
-  record: VendorRelationshipAggregate;
-  formSummary?: VendorFormSummary;
-  summaryState: LoadState;
-  section: VendorSection;
-  onSectionChange: (section: VendorSection) => void;
-  assessment: VendorAssessment | null;
-  assessmentSetup?: CurrentVendorAssessment["setup"];
-  assessmentState: LoadState;
-  review?: VendorAssessmentReviewView;
-  reviewState: LoadState;
-  form?: VendorAssessmentFormOption;
-  forms: VendorAssessmentFormOption[];
-  formState: LoadState;
-  requestOutcome?: VendorAssessmentSendOutcome;
-  requestOutcomeKind: "initial" | "replacement";
-  onBack: () => void;
-  onEdit: () => void;
-  onEditIdentity: () => void;
-  onRefreshAssessment: () => Promise<void>;
-  onRefreshForms: () => Promise<void>;
-  onSetUpForm: () => void;
-  onOpenForms?: () => void;
-  onRequestForm: () => void;
-  onFormWorkUpdated: () => void;
-  formsRefreshKey: number;
-  formsFilter?: VendorFormsFilter;
-  onStartAssessment: (input: StartVendorAssessmentInput) => Promise<VendorAssessment | void>;
-  onSendAssessmentRequest: (input: Parameters<typeof sendVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
-  onPrepareAssessmentRequest: (input: PrepareVendorCollectionInput) => Promise<PrepareVendorCollectionResult>;
-  onReissueAssessmentRequest: (input: Parameters<typeof reissueVendorAssessmentRequest>[1]) => Promise<VendorAssessmentSendOutcome>;
-  onRetryAssessmentSetup: (assessmentID: string, expectedVersion: number) => Promise<VendorAssessmentSetupRetryOutcome>;
-  onRefreshReview: (assessmentID: string) => Promise<void>;
-  onStartAssessmentReview: (assessmentID: string, expectedVersion: number) => Promise<VendorAssessment>;
-  onRequestAssessmentClarification: typeof requestVendorAssessmentClarification;
-  onCreateAssessmentDeficiency: typeof createVendorAssessmentDeficiency;
-  onReviewAssessmentDocument: typeof reviewVendorAssessmentDocument;
-  onCompleteAssessmentReview: (assessmentID: string, input: CompleteVendorAssessmentInput) => Promise<VendorAssessment>;
-  onCancelAssessment: (assessmentID: string, input: Parameters<typeof cancelVendorAssessment>[1]) => Promise<VendorAssessment>;
-  onApplyAssessmentResponse: (assessmentID: string, revisionID: string, input: ApplyVendorAssessmentResponseInput) => Promise<VendorAssessmentApplicationResult>;
-  onOpenRequest?: (requestID: string) => void;
-  onOpenMatter?: (matterID: string) => void;
-  accountableOwnerLabel: string;
-  onActivated: (relationship: VendorRelationshipAggregate["relationship"]) => void;
-  onRefreshed: (relationship: VendorRelationshipAggregate["relationship"]) => void;
-}) {
-  const { vendor, relationship } = record;
-  const effectiveAssessmentState = assessmentState === "live" && !assessment && formState === "loading" ? "loading" : assessmentState;
-  const setupFailure = assessmentSetup?.state === "FAILED" ? setupFailureText(assessmentSetup.failure_code) : undefined;
-  return <>
-  <article className="vendor-detail">
-    <div className="vendor-mobile-back"><Button variant="quiet" onPress={onBack}>Back to vendor register</Button></div>
-    <div className="vendor-detail-heading"><div className="vendor-detail-identity"><VendorBrandIcon vendorID={vendor.id} legalName={vendor.legal_name} brand={record.brand} size="detail"/><div><span className="eyebrow">{humanize(relationship.status)} relationship</span><h2>{vendor.legal_name}</h2></div></div></div>
-    <div className="vendor-service-summary"><strong>{relationship.service_name}</strong><span>{humanize(relationship.criticality)} criticality · {privacyLabel(relationship.privacy_role)}</span></div>
-    <p className="vendor-current-owner"><span>Accountable owner</span><strong>{accountableOwnerLabel}</strong></p>
-  </article>
-  <Tabs ariaLabel="Vendor sections" compactLabel="Vendor section" retainVisitedPanels items={vendorSections} selectedKey={section} onSelectionChange={onSectionChange}>{(current) => <>
-  {current === "OVERVIEW" && <section className="vendor-detail" aria-label="Vendor overview">
-    <VendorPortfolio records={[record]} hasMore={false} onOpenMatter={onOpenMatter} detail refreshKey={formsRefreshKey}/>
-    <VendorComplianceOverview relationshipID={relationship.id} serviceName={relationship.service_name} summary={formSummary} summaryState={summaryState} assessment={assessment} assessmentState={assessmentState} refreshKey={formsRefreshKey} onOpenForms={() => onSectionChange("FORMS")} onOpenDueDiligence={() => onSectionChange("DUE_DILIGENCE")} onRequestForm={onRequestForm} onUpdated={onFormWorkUpdated} onOpenRequest={onOpenRequest}/>
-    <details className="vendor-record-details"><summary>Vendor details and record history</summary>
-    <div className="vendor-detail-actions"><Button onPress={onEditIdentity}>Edit vendor details</Button><Button onPress={onEdit}>Edit vendor relationship</Button></div>
-    {vendor.trading_name && <p>Trading as {vendor.trading_name}</p>}
-    <dl className="vendor-facts">
-      <Fact label="Renewal date" value={formatDate(relationship.renewal_at)}/>
-      <Fact label="Logo" value={vendorBrandLabel(record.brand)}/>
-      <Fact label="Jurisdiction" value={vendor.jurisdiction || "Not recorded"}/>
-      <Fact label="Registration reference" value={vendor.registration_ref || "Not recorded"}/><Fact label="Website domain" value={vendor.website_domain || "Not recorded"}/><Fact label="Registered address" value={vendor.registered_address || "Not recorded"}/><Fact label="Effective date" value={formatDate(relationship.effective_from)}/>
-      <Fact label="Source" value={vendor.source_id && vendor.external_ref ? `${vendor.source_id} · ${vendor.external_ref}` : "Entered directly"}/>
-      <Fact label="Relationship updated" value={formatDateTime(relationship.updated_at)}/><Fact label="Relationship version" value={`Version ${relationship.version}`}/><Fact label="Vendor details version" value={`Vendor version ${vendor.version}`}/>
-    </dl>
-    </details>
-  </section>}
-  {current === "FORMS" && <><VendorFormsPanel relationshipID={relationship.id} serviceName={relationship.service_name} onRequestForm={onRequestForm} onUpdated={onFormWorkUpdated} onOpenHistory={() => onSectionChange("HISTORY")} onOpenDueDiligence={() => onSectionChange("DUE_DILIGENCE")} refreshKey={formsRefreshKey} initialFilter={formsFilter} onOpenRequest={onOpenRequest}/><details className="vendor-linked-work"><summary>Linked vendor work</summary><VendorWorkPanel relationshipID={relationship.id} onOpenRequest={onOpenRequest}/></details></>}
-  {current === "DOCUMENTS" && <DocumentBrowser scopeLabel={`${vendor.legal_name} · ${relationship.service_name}`} relationshipID={relationship.id}/>}
-  {current === "HISTORY" && <VendorResponseHistory relationshipID={relationship.id} serviceName={relationship.service_name} onUpdated={onFormWorkUpdated} active={section === "HISTORY"} refreshKey={formsRefreshKey}/>}
-  {current === "DUE_DILIGENCE" && <>
-  {assessmentState === "live" && !assessment && formState === "unavailable" ? <section className="vdd-workspace" aria-label="Due diligence" tabIndex={-1}><div className="vdd-state vdd-state-error" role="alert"><h2>Due-diligence forms are unavailable</h2><p>Approved collection forms could not be loaded for {relationship.service_name}. Try again before starting the assessment.</p><Button onPress={() => void onRefreshForms()}>Reload forms</Button></div></section> : <VendorDueDiligence
-    relationship={record}
-    accountableOwnerLabel={accountableOwnerLabel}
-    assessment={assessment}
-    review={review}
-    reviewState={reviewState}
-    form={form}
-    forms={forms}
-    requestOutcome={requestOutcome}
-    requestOutcomeKind={requestOutcomeKind}
-    viewState={effectiveAssessmentState}
-    defaultReviewDueDate={recommendedReviewDate()}
-    setupFailure={setupFailure}
-    onRefresh={onRefreshAssessment}
-    onSetUpForm={onSetUpForm}
-    onOpenForms={onOpenForms}
-    onStart={onStartAssessment}
-    onSend={onSendAssessmentRequest}
-    onPrepare={onPrepareAssessmentRequest}
-    onReissue={onReissueAssessmentRequest}
-    onRetrySetup={onRetryAssessmentSetup}
-    onRefreshReview={onRefreshReview}
-    onStartReview={onStartAssessmentReview}
-    clarificationFields={review?.answers.filter((answer) => answer.visibility === "VISIBLE").map((answer) => ({ id: answer.field_id, label: answer.label }))}
-    onRequestClarification={onRequestAssessmentClarification}
-    onCreateDeficiency={onCreateAssessmentDeficiency}
-    onOpenDocument={(assessmentID, requestID, artifactID) => window.open(vendorAssessmentDocumentURL(assessmentID, requestID, artifactID), "_blank", "noopener,noreferrer")}
-    onReviewDocument={onReviewAssessmentDocument}
-    onComplete={onCompleteAssessmentReview}
-    onCancelAssessment={onCancelAssessment}
-    onApplyResponse={onApplyAssessmentResponse}
-    onOpenRequest={onOpenRequest}
-    onOpenMatter={onOpenMatter}
-  />}
-  <VendorActivationPanel relationship={relationship} reviewVersion={assessment?.version} onActivated={onActivated} onRefreshed={onRefreshed}/>
-  </>}
-  </>}</Tabs>
-  </>;
-}
-
-function Fact({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
-
 function VendorRegisterFormSummary({ summary, label, loading, disabled, onOpen }: { summary?: VendorFormSummary; label: string; loading: boolean; disabled: boolean; onOpen: (filter?: VendorFormsFilter) => void }) {
   if (!summary) return <div className="vendor-form-summary">{loading ? "Loading form work…" : "Form work counts unavailable"}</div>;
   return <div className="vendor-form-summary">
@@ -899,24 +779,6 @@ function selectActiveVendorForms(forms: FormTemplate[]): VendorAssessmentFormOpt
   return forms.filter((form) => form.status === "ACTIVE" && form.is_current)
     .sort((left, right) => Number(right.code.trim().toUpperCase() === "VENDOR-DUE-DILIGENCE") - Number(left.code.trim().toUpperCase() === "VENDOR-DUE-DILIGENCE") || right.version - left.version)
     .map((current) => ({ id: current.id, version: current.version, name: current.name, presentation: current.presentation?.default_mode ?? "AUTOMATIC", fields: current.fields.map((field) => ({ id: field.id, label: field.label, collection_intent: field.collection_intent, target_key: field.record_target?.key })) }));
-}
-
-function setupFailureText(code?: string) {
-  switch (code) {
-    case "ASSESSMENT_READ_FAILED": return "The assessment could not be reopened for setup. Retry setup from the current assessment version.";
-    case "RELATIONSHIP_READ_FAILED": return "The vendor relationship could not be read during setup. Confirm that the relationship is still available, then retry setup.";
-    case "MATTER_CREATE_FAILED": return "The review work item could not be created. Retry assessment setup; no duplicate review will be created.";
-    case "ASSESSMENT_SETUP_FAILED": return "The review work item exists, but assessment setup could not be completed. Retry setup to continue the same review.";
-    case "ATTEMPTS_EXHAUSTED": return "Assessment setup stopped after repeated attempts. Retry setup to queue another controlled attempt.";
-    case "AUTHORITY_ROUTE_UNAVAILABLE": return "No current accountable owner can authorize assessment setup. Correct the relationship authority route, then retry setup.";
-    default: return "Assessment setup could not be completed. Retry setup from the current assessment version.";
-  }
-}
-
-function recommendedReviewDate() {
-  const value = new Date();
-  value.setUTCDate(value.getUTCDate() + 30);
-  return value.toISOString().slice(0, 10);
 }
 
 function VendorForm({ mode, form, errors, formError, saving, existingVendor, candidates, candidateState, onFindExisting, onUseExisting, onUseDifferent, onChange, onCancel, onSubmit }: {
@@ -977,6 +839,4 @@ function optional(value: string) { return value.trim() || undefined; }
 function apiDate(value: string) { return value ? `${value}T00:00:00Z` : undefined; }
 function dateInput(value?: string) { return value?.slice(0, 10) ?? ""; }
 function humanize(value: string) { return value.toLowerCase().replaceAll("_", " ").replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()); }
-function privacyLabel(value: VendorPrivacyRole) { return value === "NONE" ? "No processing role" : humanize(value); }
-function formatDate(value?: string) { if (!value) return "Not recorded"; const parsed = Date.parse(value); return Number.isFinite(parsed) ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(parsed)) : "Not recorded"; }
 function formatDateTime(value: string) { const parsed = Date.parse(value); return Number.isFinite(parsed) ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(parsed)) : "Update time unavailable"; }

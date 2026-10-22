@@ -1,0 +1,427 @@
+{
+  "reviewer": "ChatGPT /root (AI reviewer)",
+  "reviewed_at": "2026-10-22T07:52:51.723998+00:00",
+  "method": "Direct inspection of every listed viewport image with view_image; source-to-runtime anatomy review, plus independent DOM/read/focus measurements retained separately. No thumbnail-only or hash-only review.",
+  "runtime_commit": "44c26f6ed8289fad97ffbd6fc01afca1f30f46d8",
+  "runtime_tree": "08f9d72cd1d94a00daab4108aada415b4762a91b",
+  "source_sha256": "c37f35161878d2035335241fc104c41fb4c8f6176cfe81d8a2f0d7fbdba728fd",
+  "runtime_images": 20,
+  "source_images": 10,
+  "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+  "blockers": [],
+  "observations": [
+    "Complete selected relationship identity/actions and five-destination local menu replace the old register inspector. Parent portfolio heading/menu are absent.",
+    "Overview preserves source status-card/requirements/relationship-rail composition with literal recorded facts; unavailable data is not invented progress. First useful status content and real review content are visible at the narrow fold.",
+    "Due diligence preserves the actual assessment workflow and independent activation owner rather than displaying prototype completion. Real metadata is readable without clipping; first useful due-diligence content is visible at every viewport.",
+    "Primary column and 316px context rail remain beside each other at 1440/1280/1024; the rail stacks after primary content at768/390. The shared collapsed global navigation remains consistent across sections.",
+    "At390 the shared labelled section selector exposes all five destinations and the selected destination. Two real edit paths fit the two-column action group; names wrap; 50px identity mark and 22px name preserve hierarchy.",
+    "Light/dark shared tokens retain readable emphasis and selected-state affordances in all listed screenshots. No observed unintended horizontal scroll, overlap, clipping, or inaccessible material action."
+  ],
+  "documented_adaptations": [
+    "Shared approved global navigation and teal theme replace the prototype topbar, blue theme, and phone-only navigation. This review does not reaccept all global shell screens.",
+    "The production UI has two distinct edit commands and a compact labelled mobile selector; the source has one edit control and a horizontally scrolling local tab strip.",
+    "Source progress stages and risk labels are replaced with supported recorded status facts. Due diligence is longer than the prototype summary because existing review and activation controls remain available.",
+    "Prototype department/branch/risk/DPO progress and document-completion metrics are not fabricated. Relationship metadata uses only actual authorized read models."
+  ],
+  "limitations": [
+    "Synthetic frontend fixtures do not establish live bank authorization, four-actor execution, delivery, performance under production volume, or production cutover.",
+    "Automated contrast incomplete/review findings remain separately disclosed; visual inspection is not a universal accessibility certification.",
+    "Whole-screen acceptance remains 0/19. Portfolio/register layout is outside this selected-relationship tranche."
+  ],
+  "images": [
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "image": "230-vendor-relationship-overview-light-1440x900.png",
+      "sha256": "284a33e91899afae45cd20513e476c3492de9f87e0410e8a4fef61b35870abbb",
+      "bytes": 236361,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "image": "230-vendor-relationship-overview-dark-1440x900.png",
+      "sha256": "cb6be4991aae6009814dd80e07da20f09ca4c8129d2043c25ed1ea38e1c54414",
+      "bytes": 233301,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "image": "approved-vendor-relationship-overview-1440x900.png",
+      "sha256": "1720f3de7242c65eeefbba95eb9ac57f12d4caa47f88a6c0a06edc051261a363",
+      "bytes": 171883,
+      "verdict": "SOURCE_INSPECTED"
+    },
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "image": "230-vendor-relationship-overview-light-1280x800.png",
+      "sha256": "bd05650835a2780c9edaa3b8e7a9a1398b71947dbef333ec0a230d532b306a75",
+      "bytes": 210103,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "image": "230-vendor-relationship-overview-dark-1280x800.png",
+      "sha256": "30531b79e464b8eacfa9ac48a07252447b6114783eac5f75b33e8c4ef7eb3a5c",
+      "bytes": 207737,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "image": "approved-vendor-relationship-overview-1280x800.png",
+      "sha256": "186bf1c89a74d0345710b9837a866a12032535062f26ef824feef18015cf6745",
+      "bytes": 160619,
+      "verdict": "SOURCE_INSPECTED"
+    },
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "image": "230-vendor-relationship-overview-light-1024x768.png",
+      "sha256": "152d91f40213f1aaf8aaa98c7a56b80cf52ffb04b4550dcdbff71db869e3d3b7",
+      "bytes": 171416,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "dark",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "image": "230-vendor-relationship-overview-dark-1024x768.png",
+      "sha256": "fa5a2a6c464568213c000c2fa386700140eedf3e54d7be7b60b72072ca695f6c",
+      "bytes": 168919,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "image": "approved-vendor-relationship-overview-1024x768.png",
+      "sha256": "eb36d2d26b1cd4c461aa6cacd6bcd61209a2ce9be09ac280f2269fd72b7d914b",
+      "bytes": 131878,
+      "verdict": "SOURCE_INSPECTED"
+    },
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "image": "230-vendor-relationship-overview-light-768x900.png",
+      "sha256": "30192cd18e70fcea2fafb14a38032df046dee16cb02868380e82070c18e8bce5",
+      "bytes": 156268,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "image": "230-vendor-relationship-overview-dark-768x900.png",
+      "sha256": "27f3e65497230714506a4661771e379c8475d5fc5f42c8a320d307d1e2aee702",
+      "bytes": 165332,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "image": "approved-vendor-relationship-overview-768x900.png",
+      "sha256": "15580c81f70a031108cf8061199345cfdd74011da50014af3587bc7627ba5a82",
+      "bytes": 99876,
+      "verdict": "SOURCE_INSPECTED"
+    },
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "image": "230-vendor-relationship-overview-light-390x844.png",
+      "sha256": "861485f8401b08337b786b8fb10492d0621da1699ef9cd12cbb946dfa7b53b85",
+      "bytes": 90333,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "overview",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "image": "230-vendor-relationship-overview-dark-390x844.png",
+      "sha256": "d727e0ab710e3d886b26ceb515bbc1448eca972c67ddf477724a0435c115c9c7",
+      "bytes": 94464,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "image": "approved-vendor-relationship-overview-390x844.png",
+      "sha256": "604cadfe60fadda63c57636639d85332291c6520be70b5586740b62830eb6942",
+      "bytes": 69826,
+      "verdict": "SOURCE_INSPECTED"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "image": "231-vendor-relationship-due-diligence-light-1440x900.png",
+      "sha256": "6d5ba364c4a28e4076f4db9cf36279c078ed5727d4cb4e7c80a45019aca3c178",
+      "bytes": 219252,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "image": "231-vendor-relationship-due-diligence-dark-1440x900.png",
+      "sha256": "7451ac077b0de678690ea3af7919872a3381cb160a1f1110e458b91cd7a8d841",
+      "bytes": 223828,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "image": "approved-vendor-relationship-due-diligence-1440x900.png",
+      "sha256": "9932beda1304a054f78b4cbda24b73611c148d62b99034da49b3f21e3f5d35b3",
+      "bytes": 171549,
+      "verdict": "SOURCE_INSPECTED"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "image": "231-vendor-relationship-due-diligence-light-1280x800.png",
+      "sha256": "2d263faf2168a89f3f5025271487026bf65d83ea27df33db2b546588cff70a14",
+      "bytes": 198208,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "image": "231-vendor-relationship-due-diligence-dark-1280x800.png",
+      "sha256": "51a03a7bf21b895db0bfbf80e3532a1f94b1cc726827e1003f59067bcab2b2fc",
+      "bytes": 195569,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "image": "approved-vendor-relationship-due-diligence-1280x800.png",
+      "sha256": "4570b5220aeca76d0738c574d3b499ad1a2a430fa95d42ecb333d71505412ebf",
+      "bytes": 160331,
+      "verdict": "SOURCE_INSPECTED"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "image": "231-vendor-relationship-due-diligence-light-1024x768.png",
+      "sha256": "49dbb8b327ffac72b0f1131ecc39ea1e54dabed0e409e5701b69da6d2a5948e4",
+      "bytes": 155331,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "dark",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "image": "231-vendor-relationship-due-diligence-dark-1024x768.png",
+      "sha256": "b56b5ae48039c223679acfbbb96f5c8a7fc4de5f09c983f30952c7502917556f",
+      "bytes": 157129,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "image": "approved-vendor-relationship-due-diligence-1024x768.png",
+      "sha256": "6a31b60089934d45d2caf6129672a3e076e98d37744ec5b405b0beb1c850e271",
+      "bytes": 131619,
+      "verdict": "SOURCE_INSPECTED"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "image": "231-vendor-relationship-due-diligence-light-768x900.png",
+      "sha256": "e0424d25b6ae1b40368ce439cf5881ea1054939ff1ce8f84f055164df8a301f6",
+      "bytes": 136349,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "image": "231-vendor-relationship-due-diligence-dark-768x900.png",
+      "sha256": "14380c885064d992b784e36fec1de51d284ee7b28441c0f5e681a7a90ad824b8",
+      "bytes": 142366,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "image": "approved-vendor-relationship-due-diligence-768x900.png",
+      "sha256": "eb59de1310004ad1d5c78a3aaf148aa36603ffeb912ed80dab75ee433d6ded6c",
+      "bytes": 100434,
+      "verdict": "SOURCE_INSPECTED"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "image": "231-vendor-relationship-due-diligence-light-390x844.png",
+      "sha256": "49aa664c570df60777fae58cf4c826373c59af5ea76e8b0d605a6aaf554e9215",
+      "bytes": 88953,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "runtime",
+      "section": "due-diligence",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "image": "231-vendor-relationship-due-diligence-dark-390x844.png",
+      "sha256": "a5613a341f8c39431cdf1db293898d115cb5779cc7b158548136785517730dfd",
+      "bytes": 92327,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS"
+    },
+    {
+      "role": "source",
+      "section": "due-diligence",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "image": "approved-vendor-relationship-due-diligence-390x844.png",
+      "sha256": "2911948ab5e7803ce161a24134c91d08fd43060adf9f646d10915eb12985f0e5",
+      "bytes": 70675,
+      "verdict": "SOURCE_INSPECTED"
+    }
+  ],
+  "final_source_copy_verification": {
+    "path": "/tmp/clearsight-vendor-layout-evidence/after/approved-reference",
+    "all_25_source_images_byte_identical_to_inspected_source_only": true
+  }
+}

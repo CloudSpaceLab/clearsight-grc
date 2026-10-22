@@ -1,0 +1,78 @@
+/* Selected relationship anatomy from the immutable October vendor source.
+   Shared controls retain their theme, focus and selection contracts. */
+.vendors-workspace.has-selection > .vendor-layout { margin-block-start:0; }
+.vendor-relationship-focus, .vendor-relationship-workspace, .vendor-relationship-navigation { min-inline-size:0; }
+.vendor-relationship-workspace { display:grid; gap:var(--cs-primitive-space-4); }
+.vendor-relationship-back { justify-self:start; }
+.vendor-relationship-header { display:flex; align-items:center; justify-content:space-between; gap:var(--cs-primitive-space-4); min-inline-size:0; }
+.vendor-relationship-identity { display:flex; align-items:center; gap:var(--cs-primitive-space-4); min-inline-size:0; flex:1 1 28rem; }
+.vendor-relationship-identity .vendor-brand-icon-detail { inline-size:65px; block-size:65px; font-size:var(--cs-primitive-font-size-22); }
+.vendor-relationship-title { min-inline-size:0; }
+.vendor-relationship-title h1 { margin:var(--cs-primitive-space-1) 0; font-size:var(--cs-font-size-page-title); font-weight:650; line-height:1.15; overflow-wrap:anywhere; }
+.vendor-relationship-title p { margin:0; font-size:var(--cs-font-size-caption); color:var(--cs-text-muted); overflow-wrap:anywhere; }
+.vendor-relationship-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:var(--cs-primitive-space-2); flex:0 1 32rem; }
+.vendor-relationship-actions > .cs-button { flex:none; }
+.vendor-relationship-navigation > .cs-tabs > .cs-tabs__panel { padding-block-start:var(--cs-primitive-space-4); }
+.vendor-relationship-grid { display:grid; grid-template-columns:minmax(0,1fr) 316px; gap:var(--cs-primitive-space-4); align-items:start; min-inline-size:0; }
+.vendor-relationship-primary, .vendor-relationship-context, .vendor-relationship-overview, .vendor-relationship-diligence { display:grid; align-content:start; gap:var(--cs-primitive-space-4); min-inline-size:0; }
+.vendor-relationship-card { min-inline-size:0; padding:var(--cs-primitive-space-4); border:1px solid var(--cs-border-default); border-radius:var(--cs-surface-radius); background:var(--cs-bg-surface-1); }
+.vendor-relationship-card :is(h2,h3,p) { margin:0; overflow-wrap:anywhere; }
+.vendor-relationship-card h2 { font-size:var(--cs-primitive-font-size-18); font-weight:650; line-height:1.35; }
+.vendor-relationship-card header { min-inline-size:0; }
+.vendor-relationship-status > header { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:var(--cs-primitive-space-2); }
+.vendor-relationship-status > header p, .vendor-relationship-caption, .vendor-relationship-activity > header p { margin-block-start:var(--cs-primitive-space-1); color:var(--cs-text-muted); font-size:var(--cs-font-size-caption); }
+.vendor-relationship-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--cs-primitive-space-3); margin:var(--cs-primitive-space-4) 0 0; }
+.vendor-relationship-steps > div { min-inline-size:0; border-block-start:2px solid var(--cs-border-default); padding-block-start:var(--cs-primitive-space-2); }
+.vendor-relationship-card dt { color:var(--cs-text-muted); font-size:var(--cs-font-size-caption); overflow-wrap:anywhere; }
+.vendor-relationship-card dd { margin:var(--cs-primitive-space-1) 0 0; color:var(--cs-text-primary); font-size:var(--cs-font-size-control); overflow-wrap:anywhere; white-space:pre-line; }
+.vendor-relationship-steps dd { font-weight:650; text-align:start; }
+.vendor-relationship-facts dl, .vendor-relationship-record-details dl { display:grid; gap:var(--cs-primitive-space-3); margin:var(--cs-primitive-space-4) 0 0; }
+.vendor-relationship-facts dl > div { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:var(--cs-primitive-space-3); align-items:baseline; }
+.vendor-relationship-facts dd { margin:0; text-align:end; }
+.vendor-relationship-next { display:grid; gap:var(--cs-primitive-space-3); }
+.vendor-relationship-next p { color:var(--cs-text-muted); font-size:var(--cs-font-size-caption); line-height:1.5; }
+.vendor-relationship-next > .cs-button { justify-self:start; }
+.vendor-relationship-record-details > summary { min-block-size:44px; display:list-item; align-content:center; font-size:var(--cs-font-size-caption); font-weight:650; color:var(--cs-text-primary); cursor:pointer; }
+.vendor-relationship-record-details > summary:focus-visible { outline:2px solid var(--cs-focus-ring); outline-offset:4px; }
+.vendor-relationship-record-details > p { margin-block-start:var(--cs-primitive-space-3); font-size:var(--cs-font-size-caption); }
+.vendor-relationship-evidence { padding-block-start:var(--cs-primitive-space-2); }
+.vendor-relationship-evidence > .cs-tabs > .cs-tabs__panel { padding-block-start:var(--cs-primitive-space-3); }
+.vendor-relationship-activity { display:grid; gap:var(--cs-primitive-space-4); }
+.vendor-relationship-diligence > .vdd-workspace { margin:0; min-inline-size:0; }
+.vendor-relationship-diligence > .vendor-activation-panel { margin:0; }
+.vendor-relationship-issues { min-inline-size:0; container-type:inline-size; container-name:vendor-relationship-issues; }
+.vendor-relationship-issues > .vendor-portfolio { margin:0; }
+.vendor-relationship-workspace :is(button, [role="tab"], select, summary) { min-block-size:44px; }
+/* The exception owner now occupies the source primary column. Replace its
+   viewport-wide rows at the available content width, without changing data. */
+@container vendor-relationship-issues (max-width:1000px) {
+  .vendor-exceptions-header { grid-template-columns:minmax(0,1fr); }
+  .vendor-attention-filters { justify-content:flex-start; flex-wrap:wrap; }
+  .vendor-facet-filters { grid-column:auto; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .vendor-facet-filters select { inline-size:100%; max-inline-size:100%; }
+  .vendor-exception-row { grid-template-columns:minmax(0,1fr) auto; gap:var(--cs-primitive-space-3); }
+  .vendor-exception-identity { grid-column:1 / -1; }
+  .vendor-exception-facts { grid-column:1; grid-row:2; }
+  .vendor-exception-state { grid-column:2; grid-row:2; justify-items:end; text-align:end; }
+  .vendor-exception-next { grid-column:1 / -1; grid-row:3; }
+  .vendor-exception-review { grid-column:1 / -1; grid-row:4; display:flex; align-items:center; justify-content:space-between; }
+  .vendor-exception-review > .cs-status-badge { display:inline-flex; }
+  .vendor-summary-counts { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:840px) {
+  .vendor-relationship-header { flex-wrap:wrap; align-items:flex-start; }
+  .vendor-relationship-identity { flex-basis:100%; }
+  .vendor-relationship-actions { flex:1 1 100%; justify-content:flex-start; }
+  .vendor-relationship-grid { grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width:600px) {
+  .vendor-relationship-workspace { gap:var(--cs-primitive-space-3); }
+  .vendor-relationship-identity { gap:var(--cs-primitive-space-3); }
+  .vendor-relationship-identity .vendor-brand-icon-detail { inline-size:50px; block-size:50px; font-size:var(--cs-font-size-control); }
+  .vendor-relationship-title h1 { font-size:var(--cs-primitive-font-size-22); }
+  .vendor-relationship-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--cs-primitive-space-2); }
+  .vendor-relationship-actions > .cs-button { min-inline-size:0; white-space:normal; }
+  .vendor-relationship-actions > .cs-status-badge { justify-self:start; }
+  .vendor-relationship-steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .vendor-relationship-card { padding:var(--cs-primitive-space-3); }
+}
