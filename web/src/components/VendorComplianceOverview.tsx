@@ -6,6 +6,7 @@ import { ResponseAssessment } from "./forms/ResponseAssessment";
 import "./vendor-compliance-overview.css";
 
 type Props = {
+  heading?: string;
   relationshipID: string; serviceName: string; summary?: VendorFormSummary;
   summaryState: "loading" | "live" | "unavailable";
   assessment: VendorAssessment | null; assessmentState: "loading" | "live" | "unavailable";
@@ -18,7 +19,7 @@ export function VendorComplianceOverview(props: Props) {
   return <ComplianceOverview key={props.relationshipID} {...props}/>;
 }
 
-function ComplianceOverview({ relationshipID, serviceName, summary, summaryState, assessment, assessmentState, refreshKey, onOpenForms, onOpenDueDiligence, onRequestForm, onUpdated, onOpenRequest }: Props) {
+function ComplianceOverview({ heading = "Compliance", relationshipID, serviceName, summary, summaryState, assessment, assessmentState, refreshKey, onOpenForms, onOpenDueDiligence, onRequestForm, onUpdated, onOpenRequest }: Props) {
   const [page, setPage] = useState<VendorFormsPage>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -61,11 +62,11 @@ function ComplianceOverview({ relationshipID, serviceName, summary, summaryState
   const nextResponse = rows.find((row) => row.current && row.response_id && (itemsFor(row).length > 0 || row.required_reviews > row.completed_reviews));
   function updated() { void load(); onUpdated(); }
   return <section className="vendor-compliance" aria-label="Vendor compliance">
-    <header className="vendor-compliance__heading"><div><h3>Compliance</h3><StatusBadge tone={tone}>{status}</StatusBadge></div><Button variant="primary" onPress={empty ? onRequestForm : nextResponse ? () => setResponse(nextResponse) : assessment ? onOpenDueDiligence : onOpenForms}>{empty ? "Request form" : nextResponse ? "Review response" : assessment ? "Review compliance" : "Manage forms"}</Button></header>
+    <header className="vendor-compliance__heading"><div><h3>{heading}</h3><StatusBadge tone={tone}>{status}</StatusBadge></div><Button variant="primary" onPress={empty ? onRequestForm : nextResponse ? () => setResponse(nextResponse) : assessment ? onOpenDueDiligence : onOpenForms}>{empty ? "Request form" : nextResponse ? "Review response" : assessment ? "Review compliance" : "Manage forms"}</Button></header>
     {available && <dl className="vendor-compliance__counts">
-      <div><dt>Incomplete</dt><dd>{summary.outstanding_forms}</dd>{summary.overdue_forms > 0 && <small>{summary.overdue_forms} overdue</small>}</div>
+      <div><dt>Incomplete</dt><dd>{summary.outstanding_forms}</dd>{summary.overdue_forms > 0 && <dd className="vendor-compliance__count-note"><small>{summary.overdue_forms} overdue</small></dd>}</div>
       <div><dt>Awaiting review</dt><dd>{summary.awaiting_review}</dd></div>
-      <div><dt>Outdated</dt><dd>{outdated ?? "—"}</dd>{outdated === undefined ? <small>Not checked</small> : (summary.freshness_unknown_forms ?? 0) > 0 && <small>{summary.freshness_unknown_forms} not checked</small>}</div>
+      <div><dt>Outdated</dt><dd>{outdated ?? "—"}</dd>{outdated === undefined ? <dd className="vendor-compliance__count-note"><small>Not checked</small></dd> : (summary.freshness_unknown_forms ?? 0) > 0 && <dd className="vendor-compliance__count-note"><small>{summary.freshness_unknown_forms} not checked</small></dd>}</div>
       {summary.submitted_forms > 0 && <div><dt>Assessed</dt><dd>{summary.assessed_forms}/{summary.submitted_forms}</dd></div>}
     </dl>}
     {available && followUp && <p className="vendor-compliance__follow-up"><strong>Follow-up required</strong><span>{followUp}</span></p>}

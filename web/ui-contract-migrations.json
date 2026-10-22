@@ -27,6 +27,7 @@
     "src/components/AppNavigation.tsx",
     "src/components/FormsWorkspace.tsx",
     "src/components/VendorPortfolio.tsx",
+    "src/components/VendorRelationshipWorkspace.tsx",
     "src/components/VendorEvidenceChecklist.tsx",
     "src/components/documents/DocumentBrowser.tsx",
     "src/components/documents/DocumentPreview.tsx",
@@ -67,6 +68,7 @@
     "src/components/notifications/NotificationActivity.tsx"
   ],
   "migratedCss": [
+    "src/components/vendor-relationship-workspace.css",
     "src/design-system/components/actions.css",
     "src/design-system/components/data-display.css",
     "src/design-system/components/feedback.css",

@@ -21,7 +21,8 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Reports · workspace, Overview/library, Explore and setup builder | M | M | M | M | M | M | — | M |
 | Programs and dedicated Program record | — | — | — | — | — | — | — | — |
 | Program · Submitted data list and query controls | M | M | M | — | M | M | — | M |
-| Vendors and vendor relationship record | — | — | — | — | — | — | — | — |
+| Vendors portfolio/register | — | — | — | — | — | — | — | — |
+| Vendor relationship · heading and section composition | M | — | — | M | — | M | — | — |
 | Work · Issues and changes | — | — | — | — | — | — | — | — |
 | Work · Evidence | — | — | — | — | — | — | — | — |
 | Notifications · Inbox, Activity and Preferences | M | M | M | M | — | M | — | — |
@@ -32,7 +33,9 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 
 ## Implemented boundary
 
-The October 21 Notifications adaptation registers the header launcher, email preferences, full workspace and Activity composition in the executable migration manifest. Inbox selection uses `SelectableRecord`; local views, read filters, search, period selection, preference fields, actions and feedback use shared contracts. The actor inbox remains distinct from permission-gated audit history. Status: **locally implemented and reviewed; publication pending**. The [layout decision](decisions/2026-10-21-notifications-workspace-v2.md) and [evidence receipt](decisions/2026-10-21-notifications-workspace-evidence.json) record the contract and local full-host render review. Remote CI and authorized-result acceptance remain open; component adoption does not establish whole-screen visual or operational acceptance.
+The October 22 vendor relationship adaptation registers the extracted record composition and its scoped layout CSS. Its heading actions, five-item local navigation, nested Evidence views and recorded-status feedback use shared contracts. Existing Forms, due diligence, activation, document and exception components keep their individual boundaries; this does not claim every legacy child or the portfolio/register is migrated. The [relationship decision](decisions/2026-10-22-vendor-relationship-v2.md) records the complete selected-page anatomy and responsive proof requirements.
+
+The October 21 Notifications adaptation registers the header launcher, email preferences, full workspace and Activity composition in the executable migration manifest. Inbox selection uses `SelectableRecord`; local views, read filters, search, period selection, preference fields, actions and feedback use shared contracts. The actor inbox remains distinct from permission-gated audit history. Status: **published in PR #581 with exact-head CI and named visual closeout**. The [layout decision](decisions/2026-10-21-notifications-workspace-v2.md) and [evidence receipt](decisions/2026-10-21-notifications-workspace-evidence.json) record the contract and historical local full-host render review; the PR records the final CI artifact. Authorized-result acceptance remains open; component adoption does not establish whole-screen visual or operational acceptance.
 
 The October 21 Reports adaptation registers the workspace and setup builder alongside Overview/library and the new Explore composition. Actions, fields, data tables, exact member sheets, statuses and local navigation use the public contracts; feature CSS owns the source-specific chart and document geometry. Tabs gains a contextual item whose trigger appears only while selected without dropping its retained panel. This component boundary does not establish whole-screen visual or operational acceptance; see the [layout decision and evidence](decisions/2026-10-21-reports-explore-builder-v2.md).
 
