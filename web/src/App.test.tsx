@@ -1028,7 +1028,7 @@ describe("runtime navigation", () => {
     expect(within(primary).queryByRole("link", { name: "Settings" })).toBeNull();
     expect(screen.queryByLabelText("Administration")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Configuration" })).toBeNull();
-    expect(primaryLink("Home").getAttribute("aria-current")).toBe("page");
+    await waitFor(() => expect(primaryLink("Home").getAttribute("aria-current")).toBe("page"));
   });
 
   it("does not advance an empty attention or routing guide destination", async () => {
