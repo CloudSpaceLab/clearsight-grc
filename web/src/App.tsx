@@ -17,6 +17,7 @@ import {
 import type { RuntimeContext, ScopeNode } from "./api";
 import { CapturePanel, ProgramsView, ReferenceJourneysView, RoutingPanel, TodayView, WorkView, type RoutingLoadState } from "./AppViews";
 import { AdministrationMenu } from "./components/AdministrationMenu";
+import { AppNavigation } from "./components/AppNavigation";
 import { DemoEnvironmentMenu } from "./components/DemoEnvironmentMenu";
 import { DisplayPreferencesMenu, useDisplayPreferences } from "./components/DisplayPreferences";
 import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
@@ -24,9 +25,7 @@ import { FocusedSheet } from "./components/FocusedSheet";
 import { NavigationIcon } from "./components/NavigationIcon";
 import { EnterpriseScopeSwitcher } from "./components/EnterpriseScopeSwitcher";
 import { NotificationCenter } from "./components/NotificationCenter";
-import { initials } from "./components/Monogram";
 import { RoleAwareOnboarding } from "./components/RoleAwareOnboarding";
-import { Button, WorkspaceSwitcher } from "./components/ui";
 import type { CaptureLoadState } from "./components/CapturePanel";
 import { captureContract, effectivePresentationMode, visibleCaptureSections } from "./components/capture/contract";
 import { apiErrorKind } from "./http";
@@ -57,22 +56,6 @@ type LoadState = "idle" | "loading" | "live" | "unavailable";
 type ConnectionState = "loading" | "live" | "unavailable";
 type PrimaryEvidenceLoad = { targetID?: string; state: "idle" | "loading" | "live" | "unavailable" };
 type VendorGuideIntent = { id: number; type: "open-vendor-due-diligence" | "open-vendor-work" | "open-vendor-next-action" };
-const portfolioViews = ["programs", "risks", "rcsa", "losses", "vendors", "ropa", "forms"] as const;
-type PortfolioView = (typeof portfolioViews)[number];
-const portfolioLenses: ReadonlyArray<{ id: PortfolioView; label: string }> = [
-  { id: "programs", label: "Programs" },
-  { id: "risks", label: "Risks" },
-  { id: "rcsa", label: "RCSA" },
-  { id: "losses", label: "Losses" },
-  { id: "vendors", label: "Vendors" },
-  { id: "ropa", label: "Processing activities" },
-  { id: "forms", label: "Forms" },
-];
-
-function isPortfolioView(view: View): view is PortfolioView {
-  return (portfolioViews as readonly View[]).includes(view);
-}
-
 type ProductRuntime = RuntimeContext & {
   demo_mode?: boolean;
   capabilities?: {
@@ -363,15 +346,6 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
   const homeFocus = displayPreferences?.presentation?.effective_home_focus ?? "POSTURE";
   const defaultHomeTab: HomeTab = homeFocus === "MY_WORK" ? "my-work" : "oversight";
   const homeTab: HomeTab = target.oversightMetric ? "attention" : target.homeTab ?? defaultHomeTab;
-  const operatingNavigation: Array<{ label: string; view: View; activeViews: readonly View[] }> = [
-    { label: "Home", view: "oversight", activeViews: ["oversight"] },
-    { label: "Work", view: "work", activeViews: ["work"] },
-    { label: "Portfolio", view: "programs", activeViews: portfolioViews },
-    { label: "Insights", view: "insights", activeViews: ["insights"] },
-    { label: "Reports", view: "reports", activeViews: ["reports"] },
-  ];
-  const activePortfolioView = isPortfolioView(activeView) ? activeView : undefined;
-
   useEffect(() => {
     if (!runtime || !scopeHierarchy || scopeHierarchy.legal_entities.length < 2) {
       setGroupSnapshot(undefined);
@@ -624,19 +598,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     isAuthorizedWizardAssessment(capture, runtime?.actor.id);
   const assessmentDue = usesAssessmentWorkspace ? actionDeadlinePresentation(capture?.deadline, false) : null;
 
-  return <div className="app-shell">
-    <aside className="sidebar" aria-label="Primary navigation">
-      <div className="sidebar-brand">
-        <div className="brand-mark" aria-label="ClearSight">C</div>
-        <div className="sidebar-brand__name" aria-hidden="true"><strong>ClearSight</strong><small>Governance · Risk · Compliance</small></div>
-      </div>
-      <nav>{operatingNavigation.map(({ label, view, activeViews }) => {
-        const active = activeViews.includes(activeView);
-        return <button className={active ? "nav-item active" : "nav-item"} key={label} type="button" aria-label={label} title={label} aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><b>{label}</b></button>;
-      })}</nav>
-      {configureEnabled && <div className="sidebar-secondary"><button className={activeView === "configure" ? "nav-item active" : "nav-item"} type="button" aria-label="Configure" title="Configure" aria-current={activeView === "configure" ? "page" : undefined} onClick={() => navigate("configure")}><NavigationIcon view="configure"/><b>Configure</b></button></div>}
-      <div className="avatar" aria-label={`Signed in as ${actorName}`}>{initials(actorName)}</div>
-    </aside>
+  return <div className="app-shell app-shell--navigation">
+    <AppNavigation activeView={activeView} target={target} configureEnabled={configureEnabled}
+      actorName={actorName} onNavigate={navigate}/>
     <main>
       <div className="context-bar" aria-label="Active workspace context"
         data-mobile-controls={mobileContextOpen ? "open" : "closed"}
@@ -698,7 +662,6 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         </header>
         <CapturePanel fullPage request={capture} state={captureState} onReload={() => void reloadCapture()}/>
       </section> : <>
-      {activePortfolioView && !(activeView === "programs" && (target.programID || target.programsPage === "library")) && <WorkspaceSwitcher ariaLabel="Portfolio lenses" compactLabel="Portfolio lens" items={portfolioLenses} selectedKey={activePortfolioView} onSelectionChange={(view) => navigate(view)}/>}
       {((activeView === "oversight" && !groupScopeRequested) || activeView === "vendors") && <RoleAwareOnboarding runtime={runtime} surface={activeView === "vendors" ? "VENDORS" : "TODAY"} onStep={executeGuideStep}/>} 
       {activeView === "oversight" && !groupScopeRequested && !oversightEnabled && <TodayView organizationName={organizationName} items={items} connection={connection} generatedAt={todayGeneratedAt} readiness={readiness} readinessState={readinessState === "idle" ? "loading" : readinessState} onCapture={canOpenEvidence ? () => void openPrimaryEvidence() : undefined} onOpenItem={openAttention} onInspectAuthority={(item) => void inspectRouting(item)}/>}
       {activeView === "oversight" && groupScopePending && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Group posture…</div>}
@@ -763,10 +726,6 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
       </>}
       <div id="cs-overlay-root" className="cs-overlay-root" aria-live="off"/>
     </main>
-    <nav className="mobile-nav" aria-label="Mobile navigation">{operatingNavigation.map(({ label, view, activeViews }) => {
-      const active = activeViews.includes(activeView);
-      return <button key={label} type="button" aria-current={active ? "page" : undefined} onClick={() => { if (!active) navigate(view); }}><NavigationIcon view={view}/><span>{label}</span></button>;
-    })}</nav>
     {activePanel !== "none" && !usesAssessmentWorkspace && <FocusedSheet label={activePanel === "routing" ? "Authority for selected work" : "Evidence request"} onClose={closePanel}
       size="default">
       {activePanel === "routing" ? <RoutingPanel resolution={resolution} item={routingItem} legalEntityName={legalEntityName} state={routingState}/> : <CapturePanel request={capture} state={captureState} onReload={() => void reloadCapture()}/>}

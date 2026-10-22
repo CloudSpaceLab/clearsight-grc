@@ -1,3 +1,5 @@
+@import "../../design-system/components/workspace-switcher.css" layer(components);
+
 @layer features {
   .insights-workspace {
     display: grid;

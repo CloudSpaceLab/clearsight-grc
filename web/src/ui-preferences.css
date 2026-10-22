@@ -196,8 +196,7 @@ dd {
 }
 
 .sidebar,
-.context-bar,
-.mobile-nav {
+.context-bar {
   background: var(--surface-translucent);
   border-color: var(--border);
   box-shadow: var(--shadow-soft);
@@ -207,18 +206,6 @@ dd {
   color: var(--cyan);
   border-color: color-mix(in srgb, var(--cyan) 48%, var(--border));
   box-shadow: 0 0 24px color-mix(in srgb, var(--cyan) 12%, transparent);
-}
-
-.nav-item.active {
-  color: var(--text-strong);
-  background: var(--cyan-soft);
-}
-
-.nav-item.active span,
-.sidebar .nav-item.active svg {
-  color: var(--cyan);
-  border-color: color-mix(in srgb, var(--cyan) 52%, var(--border));
-  background: var(--cyan-soft);
 }
 
 .avatar {

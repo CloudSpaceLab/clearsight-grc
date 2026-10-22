@@ -1,10 +1,10 @@
 # ClearSight approved 2026 UI — implementation and acceptance plan
 
-Date: 2026-10-17 · Source archive: [complete designs.zip](https://drive.google.com/file/d/1y1Ij8zyfZKUKfcxp68T9FmJHabyWREZ_/view?usp=drivesdk) · Tracking: #462 · Domain ownership: #437/#433.
+Date: 2026-10-17 · Navigation amendment: 2026-10-21 · Source archive: [complete designs.zip](https://drive.google.com/file/d/1y1Ij8zyfZKUKfcxp68T9FmJHabyWREZ_/view?usp=drivesdk) · Tracking: #462 · Domain ownership: #437/#433.
 
 ## 1. Verified design inputs and precedence
 
-The source archive contains 18 nested ZIPs. The canonical unified design-system document is `clearsight-unified-design-system-v1.zip/clearsight-design-system/clearsight-design-system-spec.md` (12,643 bytes). Other source packages include working HTML prototypes, associated CSS/JavaScript, mock data and design notes. Treat their content/layout as visual and interaction references, **not runtime data models**. Some packages share older/different global sidebars: the unified design spec §1 takes precedence.
+The source archive contains 18 nested ZIPs. The canonical unified design-system document is `clearsight-unified-design-system-v1.zip/clearsight-design-system/clearsight-design-system-spec.md` (12,643 bytes). Other source packages include working HTML prototypes, associated CSS/JavaScript, mock data and design notes. Treat their content/layout as visual and interaction references, **not runtime data models**. The user's 21 October instruction requires menu conformity as well as page layout. The [navigation adaptation decision](../../design/decisions/2026-10-21-v2-navigation-adaptation.md) therefore supersedes the archived unified design spec §1 prohibition on adapting global navigation and the old Portfolio hierarchy. Original source files and hashes remain immutable; route ownership, identity, scope and authority contracts remain in force.
 
 Detailed reference inventory (screens are numbered according to the unified spec):
 
@@ -46,6 +46,8 @@ Use original `*-design-notes.md` as semantic authority over illustrative mock la
 
 **ADR-06 Operational copy.** Functional headings, objects, states, exact dates, next actions. Remove decorative “AI” narratives and reassurance phrases. Update `copyQuality.test.ts` for known regressions.
 
+**ADR-07 One source-conforming menu.** The shared flat order is Home, Frameworks, Programs, Forms, Vendors, Risk & Losses, Privacy, Work & Approvals, Reports; authorized Settings stays in the footer. Use existing routes, distinguish Framework Library from Programs selection, and remove the generic Portfolio lens and duplicate mobile bar. Risk & Losses opens the existing Risks surface with contextual Risks / RCSA / Key indicators / Loss events. Reports retains the governed risk/loss analysis deep link. The labelled compact menu reuses `FocusedSheet`. No independent navigation or domain store is introduced.
+
 ## 3. Dependency-ordered delivery
 
 Each tranche is independently reviewable, requires targeted tests plus rendered proof and must not duplicate work already owned by open PRs. Review current head/overlap immediately before development.
@@ -62,9 +64,11 @@ Each tranche is independently reviewable, requires targeted tests plus rendered 
 ### T1 — Shared shell, tokens and interaction primitives
 
 - Compare prototype anatomy against existing Button/SearchField/FilterBar/Tabs/DataTable/FocusedSheet/MetricCard/StatusBadge.
+- Apply the 21 October shared-menu decision to global order, direct destinations, active states and compact-menu behavior, using the same route configuration at every width. Keep source local menus in the same page hierarchy and remove the generic Portfolio lens.
+- Match the 228px desktop rail, 72px rail at 561–1024px and 56px rail at 560px or below. Record the 55→56px normalization and Reports' differing phone cascade; preserve 44px targets, short-height scrolling and the existing sheet focus contract.
 - Change shared tokens/layout rather than overwriting each page's component states.
 - Real global search, scope hierarchy, notification state, date semantics and one navigation hierarchy; responsive 390/768/1024/1280/1440.
-- Exit: zero duplicated navigation endpoints, light/dark, focus, keyboard and reduced-motion screenshots; no presentation regressions in existing routes.
+- Exit: exact source/runtime menu comparison and route/selection checks; no duplicated navigation hierarchy; light/dark, focus, keyboard, touch and reduced-motion screenshots; no scope, permission, deep-link or history regression. A named AI visual review is scoped evidence, not backend or production acceptance. The register remains 0/19 until whole-screen gates pass.
 
 ### T2 — Framework Library (after #437 contract)
 
@@ -97,7 +101,7 @@ Each tranche is independently reviewable, requires targeted tests plus rendered 
 ### T6 — Governance wave
 
 - Controls/Policies, Organization Setup, Integrations, Search, Notifications, People/Access, Audit/Assurance and Automation.
-- No extra global route proliferation or duplicated capabilities.
+- Add no unsupported route or duplicated capability. The existing routes required by the shared V2 menu are direct destinations under ADR-07.
 - Exit: each enabled action mapped to permitted endpoint, loaded/empty/error/denied/stale cases and rollback path.
 
 ### T7 — Contextual Copilot, performance and final cutover

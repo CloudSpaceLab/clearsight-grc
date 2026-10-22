@@ -97,12 +97,13 @@ async function assertAccessLive(page, name) {
 async function assertMobileShell(page, name) {
   const sidebar = page.getByRole("complementary", { name: "Primary navigation" });
   await sidebar.waitFor({ state: "visible" });
-  const daily = sidebar.getByRole("navigation");
-  if (await daily.getByRole("button", { name: /Configure/i }).count()) {
-    throw new Error(`${name} mixes Configuration with daily destinations`);
-  }
-  if (await sidebar.getByRole("button", { name: "Configure" }).count() !== 1) {
+  const settings = sidebar.getByRole("link", { name: "Settings", exact: true });
+  if (await settings.count() !== 1 || await settings.getAttribute("href") !== "#configure"
+      || await settings.getAttribute("aria-current") !== "page") {
     throw new Error(`${name} does not retain the permitted Configuration route`);
+  }
+  if (await sidebar.locator(".sidebar-secondary").getByRole("link", { name: "Settings", exact: true }).count() !== 1) {
+    throw new Error(`${name} does not separate Settings from the primary destinations`);
   }
 }
 

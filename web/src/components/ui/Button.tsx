@@ -50,12 +50,19 @@ export function IconButton({ children, variant = "secondary", ...props }: IconBu
   return <AriaButton {...props} className={`cs-icon-button cs-button--${variant}`}>{children}</AriaButton>;
 }
 
-export type ActionLinkProps = Omit<AriaLinkProps, "children" | "className" | "style"> & {
+export type ActionLinkProps = Omit<AriaLinkProps, "children" | "className" | "style" | "render"> & {
+  title?: string;
+  variant?: "default" | "navigation";
   children: ReactNode;
 };
 
-export function ActionLink({ children, ...props }: ActionLinkProps) {
-  return <AriaLink {...props} className="cs-action-link">{children}</AriaLink>;
+export function ActionLink({ children, variant = "default", title, ...props }: ActionLinkProps) {
+  // React Aria filters native title attributes; its DOM hook preserves the link's
+  // supplied events, semantics and ref while exposing the shared title contract.
+  const render: AriaLinkProps["render"] = title === undefined ? undefined : (linkProps, { isDisabled }) => !isDisabled && "href" in linkProps && linkProps.href
+    ? <a {...linkProps} title={title}/>
+    : <span {...linkProps} title={title}/>;
+  return <AriaLink {...props} render={render} className={`cs-action-link${variant === "navigation" ? " cs-action-link--navigation" : ""}`}>{children}</AriaLink>;
 }
 
 function textLabel(children: ReactNode) {

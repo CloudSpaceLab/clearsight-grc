@@ -13,11 +13,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 .sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
 
-.app-shell { grid-template-columns: 92px minmax(0, 1fr); }
-.sidebar { padding-inline: 14px; }
-.sidebar .nav-item svg { width: 25px; height: 25px; padding: 3px; border: 1px solid transparent; border-radius: 9px; }
-.sidebar .nav-item.active svg { color: var(--cyan); border-color: rgba(91,198,214,.42); background: rgba(91,198,214,.07); }
-.sidebar .nav-item b { font-size: 10px; letter-spacing: .01em; }
 .avatar { display: grid; place-items: center; }
 
 main { padding-top: 24px; }
@@ -37,7 +32,6 @@ main { padding-top: 24px; }
 .topbar { align-items: center; }
 .topbar > div:first-child { max-width: 760px; }
 .topbar p { max-width: 680px; }
-.mobile-nav { display: none; }
 
 .primary-button, .secondary-button { min-height: 42px; }
 .text-button { min-height: 38px; }

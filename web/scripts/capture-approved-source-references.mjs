@@ -86,8 +86,13 @@ function digest(value) {
 
 const manifest = JSON.parse(await readFile(path.join(sourceRoot, "MANIFEST.json"), "utf8"));
 const byPath = new Map(manifest.files.map((entry) => [entry.path, entry]));
+const runtimeManifest = await readFile(path.join(outputDir, "..", "manifest.json"), "utf8")
+  .then(JSON.parse).catch((error) => { if (error.code === "ENOENT") return null; throw error; });
+const runtimeByName = new Map((runtimeManifest?.captures ?? []).map((capture) => [`${capture.name}.png`, capture]));
 const requestedReferences = process.env.UI_EVIDENCE_SCOPE === "reports"
-  ? references.filter((reference) => reference.id.startsWith("reports-")) : references;
+  ? references.filter((reference) => reference.id.startsWith("reports-"))
+  : process.env.UI_EVIDENCE_SCOPE === "navigation"
+    ? references.filter((reference) => reference.id === "reports-insights") : references;
 const verified = await Promise.all(requestedReferences.map(async (reference) => {
   const expected = byPath.get(reference.source);
   if (!expected) throw new Error(`Approved source not indexed: ${reference.source}`);
@@ -129,14 +134,73 @@ try {
           await page.locator(`[id="${panelID}"]`).waitFor({ state: "visible" });
           if (await tab.getAttribute("aria-selected") !== "true") throw new Error(`Source tab did not activate: ${reference.id}/${reference.sourceTab}`);
         }
-        const presentation = await page.evaluate(() => ({
-          title: document.title,
-          heading: document.querySelector("h1")?.textContent?.trim() ?? "",
-          clientWidth: document.documentElement.clientWidth,
-          scrollWidth: document.documentElement.scrollWidth,
-        }));
+        const presentation = await page.evaluate(() => {
+          const sidebar = document.querySelector(".sidebar");
+          const links = [...(sidebar?.querySelectorAll("a.nav-item") ?? [])];
+          const visible = (node) => Boolean(node?.getClientRects().length && getComputedStyle(node).visibility !== "hidden");
+          const name = (node) => (node.getAttribute("aria-label") ?? node.textContent).trim().replace(/\s+/g, " ");
+          const labelVisibility = links.map((node) => visible(node.querySelector("span")));
+          const labelLineCounts = links.map((node, index) => {
+            if (!labelVisibility[index]) return 0;
+            const range = document.createRange();
+            range.selectNodeContents(node.querySelector("span"));
+            return new Set([...range.getClientRects()].filter((box) => box.width > 3 && box.height > 3).map((box) => Math.round(box.top))).size;
+          });
+          const active = links.filter((node) => node.classList.contains("active") || node.getAttribute("aria-current") === "page");
+          const marker = active[0] ? getComputedStyle(active[0], "::before") : null;
+          return {
+            title: document.title,
+            heading: document.querySelector("h1")?.textContent?.trim() ?? "",
+            clientWidth: document.documentElement.clientWidth,
+            scrollWidth: document.documentElement.scrollWidth,
+            navigation: sidebar && links.length ? {
+              labels: links.map(name), hrefs: links.map((node) => node.getAttribute("href")),
+              activePage: active.map(name), railWidth: sidebar.getBoundingClientRect().width,
+              labelMode: labelVisibility.every(Boolean) ? "expanded" : labelVisibility.every((value) => !value) ? "icons" : "mixed",
+              maxLabelLines: Math.max(...labelLineCounts),
+              footerLabels: [...sidebar.querySelectorAll(".side-bottom button, .side-bottom a")].map(name),
+              minTargetWidth: Math.min(...links.map((node) => node.getBoundingClientRect().width)),
+              minTargetHeight: Math.min(...links.map((node) => node.getBoundingClientRect().height)),
+              activeMarkerWidth: marker ? parseFloat(marker.width) || 0 : 0,
+              activeMarkerHeight: marker ? parseFloat(marker.height) || 0 : 0,
+            } : null,
+          };
+        });
         if (!presentation.heading) throw new Error(`Source screen has no h1: ${reference.source}`);
+        const runtimeCapture = runtimeByName.get(reference.runtime[key]);
+        const runtimeNavigation = runtimeCapture?.navigation;
+        let navigationComparison = null;
+        if (reference.id.startsWith("reports-")) {
+          const sourceNavigation = presentation.navigation;
+          const sourceLabels = ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Reports"];
+          const sourceRail = viewport.width <= 480 ? 56 : viewport.width <= 1024 ? 72 : 228;
+          if (!sourceNavigation || sourceNavigation.labels.join("|") !== sourceLabels.join("|")
+              || sourceNavigation.activePage.join("|") !== "Reports" || Math.abs(sourceNavigation.railWidth - sourceRail) > 1
+              || sourceNavigation.labelMode !== (viewport.width <= 1024 ? "icons" : "expanded")
+              || sourceNavigation.maxLabelLines !== (viewport.width <= 1024 ? 0 : 1)
+              || !sourceNavigation.footerLabels.includes("Settings")) {
+            throw new Error(`Hash-verified Reports source menu did not render its expected anatomy at ${key}`);
+          }
+          if (runtimeManifest) {
+            if (!runtimeNavigation || runtimeCapture.viewport?.width !== viewport.width || runtimeCapture.viewport?.height !== viewport.height
+                || runtimeNavigation.labels.filter((label) => label !== "Work & Approvals").join("|") !== sourceNavigation.labels.join("|")
+                || runtimeNavigation.activePage.join("|") !== sourceNavigation.activePage.join("|")
+                || runtimeNavigation.labelMode !== sourceNavigation.labelMode || runtimeNavigation.maxLabelLines !== sourceNavigation.maxLabelLines
+                || Math.abs(runtimeNavigation.railWidth - sourceNavigation.railWidth) > 1) {
+              throw new Error(`${reference.id}/${key}: matching runtime menu evidence is missing or differs from the approved source structure`);
+            }
+            navigationComparison = {
+              runtime_capture: reference.runtime[key], runtime_theme: runtimeCapture.theme,
+              commonDestinationsInSourceOrder: true, activeDestinationMatches: true, labelModeMatches: true,
+              primaryLabelLinesMatch: true,
+              sourceRailWidth: sourceNavigation.railWidth, runtimeRailWidth: runtimeNavigation.railWidth,
+              retainedRuntimeDestination: "Work & Approvals", settingsPermission: "config_read",
+              conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED",
+            };
+          }
+        }
         const image = `approved-${reference.id}-${key}.png`;
+        await page.mouse.move(0, 0);
         await page.screenshot({ path: path.join(outputDir, image), fullPage: false, animations: "disabled" });
         captures.push({
           id: reference.id,
@@ -147,6 +211,7 @@ try {
           image,
           runtime_capture: reference.runtime[key] ?? null,
           ...presentation,
+          navigation_comparison: navigationComparison,
           prototype_errors: errors,
           visual_parity: "NOT_REVIEWED",
         });
@@ -171,6 +236,8 @@ const lines = [
   "Runtime captures have separate files in the parent UI evidence artifact.",
   "Different source/demo data prevents meaningful pixel-diff scoring. Visual parity remains unreviewed.",
   "Original HTML references use their approved light theme; paired dark runtime images support layout comparisons only.",
+  "Menu metadata records each original rail and item order without changing the source. Some originals use a 55px phone rail; the shared runtime uses 56px to preserve 44px targets. Reports already uses 56px.",
+  "Reports menu comparisons retain Work & Approvals as a direct runtime destination and permission-gate Settings. Matching structure does not establish whole-screen visual acceptance.",
   "",
   "| Screen | Viewport | Approved screenshot | Runtime screenshot |",
   "| --- | --- | --- | --- |",

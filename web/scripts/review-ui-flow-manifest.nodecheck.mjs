@@ -44,3 +44,49 @@ test("framework evidence names are required and may not silently disappear", asy
   for (const scenario of frameworkEvidenceScenarios) assert.ok(missing.includes(scenario.name), scenario.name);
   assert.equal(new Set(frameworkEvidenceScenarios.map((scenario) => scenario.name)).size, frameworkEvidenceScenarios.length);
 });
+
+test("a Reports screenshot cannot substitute for measured source-menu evidence", async () => {
+  const capture = { name: "140a-report-overview-light-1440x900", route: "#reports", fixture: "report-overview-loaded",
+    state: "report-overview-desktop", theme: "light", viewport: { width: 1440, height: 900 } };
+  const { failures } = await review([capture]);
+  assert.ok(failures.includes(`${capture.name}: primary navigation source, permission or measured geometry evidence is missing or inconsistent`));
+  assert.ok(failures.includes("primary navigation 1440px is missing keyboard, history or risk-family selection evidence"));
+});
+
+test("the menu receipt rejects undersized controls and wrapped primary labels", async () => {
+  const navigation = {
+    labels: ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Work & Approvals", "Reports"],
+    hrefs: ["#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#work", "#reports"],
+    activePage: ["Reports"], railWidth: 228, railX: 0, labelMode: "expanded", maxLabelLines: 1, labelsContained: true,
+    minTargetWidth: 44, minTargetHeight: 49, targetsContained: true, primaryReachable: true,
+    settingsPresent: true, settingsFooter: true, footerReachable: true, compactMenuAvailable: false,
+    duplicateMobileNavigation: false, legacyPortfolioNavigation: false,
+    activeMarkerVisible: true, activeMarkerWidth: 4, activeMarkerHeight: 30,
+  };
+  const capture = { name: "140a-report-overview-light-1440x900", route: "#reports", fixture: "report-overview-loaded",
+    state: "report-overview-desktop", theme: "light", viewport: { width: 1440, height: 900 }, navigation };
+  const diagnostic = `${capture.name}: primary navigation source, permission or measured geometry evidence is missing or inconsistent`;
+  assert.ok(!(await review([capture])).failures.includes(diagnostic));
+  assert.ok((await review([{ ...capture, navigation: { ...navigation, minTargetWidth: 43 } }])).failures.includes(diagnostic));
+  assert.ok((await review([{ ...capture, navigation: { ...navigation, maxLabelLines: 2 } }])).failures.includes(diagnostic));
+});
+
+test("compact Navigation cannot pass with a float-narrowed content column", async () => {
+  const drawer = {
+    labels: ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Work & Approvals", "Reports"],
+    activePage: ["Reports"], settingsPresent: true,
+    riskChildren: ["Risks", "RCSA", "Key indicators", "Loss events"], riskExpandedByKeyboard: true,
+    labelsVisible: true, maxLabelLines: 1, targetsContained: true, bounded: true,
+    currentPageVisible: true, currentPageBounds: { top: 665, bottom: 709, clipTop: 104, clipBottom: 713 },
+    contentFillsDialog: true, navigationFillsContent: true,
+    dialogWidth: 389, contentWidth: 389, navigationWidth: 341, expectedNavigationWidth: 341,
+    minTargetWidth: 44, minTargetHeight: 49, focusContained: true, dismissalRestoredFocus: true,
+  };
+  const capture = { name: "221-navigation-menu-light-mobile-390x844", state: "navigation-menu-light-mobile",
+    fixture: "report-overview-loaded", theme: "light", viewport: { width: 390, height: 844 }, navigation: { drawer } };
+  const diagnostic = `${capture.name}: compact Navigation lacks labelled destinations, permission checks or keyboard dismissal evidence`;
+  assert.ok(!(await review([capture])).failures.includes(diagnostic));
+  assert.ok((await review([{ ...capture, navigation: { drawer: { ...drawer, contentWidth: 285 } } }])).failures.includes(diagnostic));
+  assert.ok((await review([{ ...capture, navigation: { drawer: { ...drawer,
+    currentPageBounds: { ...drawer.currentPageBounds, bottom: 735 } } } }])).failures.includes(diagnostic));
+});

@@ -175,22 +175,6 @@
   }
   .today-mobile-actions .secondary-button { width: 100%; text-align: left; }
 
-  /* All seven operating destinations must remain reachable at the 320px breakpoint. */
-  .mobile-nav {
-    grid-auto-columns: minmax(36px, 1fr);
-    overflow-x: hidden;
-    gap: 3px;
-    padding-inline: 6px;
-  }
-  .mobile-nav button { min-width: 34px; padding-inline: 1px; }
-  .mobile-nav span {
-    max-width: 46px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 8px;
-  }
-
   /* Keep resume/restart in document flow so it stays reachable without covering mobile field work. */
   .guide-launcher {
     position: static;

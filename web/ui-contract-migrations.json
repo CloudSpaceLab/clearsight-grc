@@ -24,6 +24,7 @@
     "src/components/ui/TextField.tsx",
     "src/components/ui/WorkspaceSwitcher.tsx",
     "src/components/ui-gallery/UIComponentGallery.tsx",
+    "src/components/AppNavigation.tsx",
     "src/components/FormsWorkspace.tsx",
     "src/components/VendorPortfolio.tsx",
     "src/components/VendorEvidenceChecklist.tsx",
@@ -64,8 +65,10 @@
     "src/design-system/components/feedback.css",
     "src/design-system/components/fields.css",
     "src/design-system/components/navigation.css",
+    "src/design-system/components/workspace-switcher.css",
     "src/design-system/components/overlays.css",
     "src/design-system/components/surfaces.css",
+    "src/app-navigation.css",
     "src/ui-gallery.css",
     "src/forms-sent.css",
     "src/forms-dashboard-shell.css",
@@ -153,7 +156,11 @@
       "loading"
     ],
     "ActionLink": [
-      "navigation"
+      "default",
+      "navigation",
+      "current-page",
+      "current-location",
+      "disabled"
     ],
     "IconButton": [
       "primary",
@@ -284,6 +291,8 @@
       "focus-contained",
       "default",
       "wide",
+      "start",
+      "end",
       "full-height-mobile"
     ],
     "FocusedDialog": [
