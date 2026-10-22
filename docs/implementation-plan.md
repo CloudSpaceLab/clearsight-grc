@@ -1,5 +1,11 @@
 # ClearSight implementation ledger
 
+## 22 October Vendor collection history correction
+
+PR [#584](https://github.com/CloudSpaceLab/clearsight-grc/pull/584) released the five Vendor portfolio views as `cb07cc747c2bee7d19413ed398bb1c111f51c99f` after successful PR/main CI, UI review and demo deployment. Root's subsequent hosted review confirmed all five layouts and entry paths, then reproduced browser Back retaining selected relationship detail at the Onboarding, Assessments and Documents collection URLs. The previous evidence used the explicit Register-return button, which cleared selection and missed the mounted-workspace history transition.
+
+The [correction decision](design/decisions/2026-10-22-vendor-collection-return-fix.md) records the selection-lifecycle fix, preserved edit/version guards and stronger browser contract. The [retained evidence](design/decisions/2026-10-22-vendor-collection-return-evidence/receipt.json) contains three old-runtime failures and three corrected Back/Forward/direct-root/reload passes. All 134 focused tests and three UI-contract files pass; named independent review passes. The follow-up PR owns final full CI/UI, merge, demo deployment and hosted re-verification. The original layout evidence remains historical and unchanged; partial v2 integration and the 0/19 operational-acceptance boundary remain explicit.
+
 ## 22 October Vendor portfolio — five v2 collection views
 
 Continue from released main `cf2710b60a02354b9258cb73014249b696b8f94d` with the remaining Vendor portfolio pages. The [decision brief](design/decisions/2026-10-22-vendor-portfolio-v2.md) covers **Overview / Register / Onboarding / Assessments / Documents**, the source heading and menu, four existing exception/workload measures, two insight panels, inline relationship register and bounded attention/renewal context. Existing selected-relationship layouts and command owners remain in use.

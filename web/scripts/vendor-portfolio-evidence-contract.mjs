@@ -5,6 +5,13 @@ const rect = (value) => value && ["x", "y", "width", "height", "right", "bottom"
   && value.width > 0 && value.height > 0 && Math.abs(value.x + value.width - value.right) <= 1 && Math.abs(value.y + value.height - value.bottom) <= 1;
 const labels = vendorPortfolioViews.map((view) => view.label);
 const relationshipID = "vendor-relationship-payments";
+const collectionRouteMatches = (state, view, titles, action, observed = true) => Boolean(state
+  && state.action === action && state.route === `#vendors/${view}` && state.view === view
+  && state.heading === "Vendors" && state.selectedTab === vendorPortfolioViews.find((item) => item.id === view)?.label
+  && state.portfolioVisible === true && state.collectionVisible === true && state.selectedPanelVisible === true
+  && state.selectedRelationshipVisible === false && state.loadingVisible === false && state.complete === true
+  && Array.isArray(titles) && titles.length > 0 && state.recordCount === titles.length && same(state.recordTitles, titles)
+  && (observed ? state.pendingAPIRequests === 0 && state.observedReadsSettled === true && state.sameDocument === true : state.newDocument === true));
 
 export function reviewVendorPortfolioCaptures(captures) {
   const byName = new Map(captures.map((capture) => [capture.name, capture]));
@@ -118,6 +125,16 @@ export function reviewVendorPortfolioCaptures(captures) {
         || check !== "onboarding-drill" && interaction.refresh.evidenceView !== (check === "documents-drill" ? "Documents" : "Forms")
         || !reads.some((read) => read.path === endpoint && (read.status === 200 || check === "onboarding-drill" && read.status === 404))) {
         failures.push(`${scenario.name}: collection drill must reach its exact existing relationship reader and return`);
+      }
+      const titles = interaction?.initialCollection?.recordTitles;
+      if (!collectionRouteMatches(interaction?.browserBack, scenario.vendorPortfolioView, titles, "HISTORY_BACK")
+        || interaction?.browserForward?.action !== "HISTORY_FORWARD" || interaction.browserForward.route !== `#vendors/register/${relationshipID}`
+        || interaction.browserForward.selectedRelationshipVisible !== true || interaction.browserForward.portfolioVisible !== false
+        || interaction.browserForward.relationshipTitle !== "Acme Processing Limited" || interaction.browserForward.sameDocument !== true || interaction.browserForward.observedReadsSettled !== true
+        || !collectionRouteMatches(interaction?.refresh?.directHashRoot, scenario.vendorPortfolioView, titles, "DIRECT_HASH_ROOT")
+        || !collectionRouteMatches(interaction?.refresh?.reloadedCollection, scenario.vendorPortfolioView, titles, "RELOAD_COLLECTION", false)
+        || !collectionRouteMatches(interaction?.explicitRegisterReturn, "register", titles, "IN_APP_REGISTER_RETURN")) {
+        failures.push(`${scenario.name}: browser Back and direct collection routes must restore settled collection DOM without a selected relationship`);
       }
     }
   }

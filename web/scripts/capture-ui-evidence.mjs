@@ -132,6 +132,8 @@ try {
   } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-measures") {
     await captureApprovedVendorMeasures("217-vendor-approved-measures-light-1440x900", "light", { width: 1440, height: 900 });
     await captureApprovedVendorMeasures("218-vendor-approved-measures-dark-mobile-390x844", "dark", { width: 390, height: 844 });
+  } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-portfolio-returns") {
+    for (const capture of captures.filter((item) => ["onboarding-drill", "assessments-drill", "documents-drill"].includes(item.vendorPortfolioCheck))) await capturePage(capture);
   } else if (["vendor-portfolio", "vendor-portfolio-states"].includes(process.env.UI_EVIDENCE_SCOPE)) {
     for (const capture of captures.filter((item) => item.vendorPortfolioView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-portfolio-states" || item.vendorPortfolioCheck))) await capturePage(capture);
   } else if (["vendor-relationship", "vendor-relationship-states"].includes(process.env.UI_EVIDENCE_SCOPE)) {
