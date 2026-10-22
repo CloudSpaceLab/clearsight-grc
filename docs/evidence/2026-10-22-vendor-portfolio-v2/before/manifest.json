@@ -1,0 +1,435 @@
+{
+  "revision": "cf2710b60a02354b9258cb73014249b696b8f94d",
+  "tree": "7e7d8cfe05677958562daaec3f80284a34324aad",
+  "browser": "140.0.7339.16",
+  "fixture": "vendor-form-assessment",
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "unimplementedViews": [
+    "onboarding",
+    "assessments",
+    "documents"
+  ],
+  "captures": [
+    {
+      "name": "before-vendor-overview-light-1440",
+      "view": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Overview"
+        ],
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "images": [
+        {
+          "file": "before-vendor-overview-light-1440.png",
+          "fullPage": false,
+          "sha256": "098e745ce917db336922dd1b94fc4611f88eaa3ca562489d28a17d2ffea17285",
+          "bytes": 244336
+        },
+        {
+          "file": "before-vendor-overview-light-1440-full.png",
+          "fullPage": true,
+          "sha256": "d62796b0fb99ff69e919d9fc0f02ed861a97cf6961b49af8ebf4a3a7be39154c",
+          "bytes": 392292
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-register-light-1440",
+      "view": "register",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Register"
+        ],
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "images": [
+        {
+          "file": "before-vendor-register-light-1440.png",
+          "fullPage": false,
+          "sha256": "86bef2a2b23976afb879edbf3960bae2f81169f1d3384389fb7e774e9a8bc1b4",
+          "bytes": 246038
+        },
+        {
+          "file": "before-vendor-register-light-1440-full.png",
+          "fullPage": true,
+          "sha256": "76e1e7577ea6cfff40ed8de765cddcbb3fb6b6cb3efac238dfb681492f5fa871",
+          "bytes": 246155
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-overview-light-768",
+      "view": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Overview"
+        ],
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "images": [
+        {
+          "file": "before-vendor-overview-light-768.png",
+          "fullPage": false,
+          "sha256": "fe9c027be78bebac464ddcf11a887d8bc7194b1ebfa60a2282fcd1d1162c52c7",
+          "bytes": 142661
+        },
+        {
+          "file": "before-vendor-overview-light-768-full.png",
+          "fullPage": true,
+          "sha256": "58b8e5e8b3347b3dfb74ea7ab75096e3a8ca4d4eef4ec715c5ffa6c84b90a5cb",
+          "bytes": 334990
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-register-light-768",
+      "view": "register",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Register"
+        ],
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "images": [
+        {
+          "file": "before-vendor-register-light-768.png",
+          "fullPage": false,
+          "sha256": "56fbab295b19419a3b64b95448bad8edc0937f1988cf1d510cb5f343a3efe3df",
+          "bytes": 168675
+        },
+        {
+          "file": "before-vendor-register-light-768-full.png",
+          "fullPage": true,
+          "sha256": "28a4f5e6f65f13229597080a8155901c7393bb01455bd3431157958560b46655",
+          "bytes": 196572
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-overview-light-390",
+      "view": "overview",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Overview"
+        ],
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "images": [
+        {
+          "file": "before-vendor-overview-light-390.png",
+          "fullPage": false,
+          "sha256": "147f1d98549a8947ed120391343ee797106a7a3c1550315d1a2736c7cbedd572",
+          "bytes": 96671
+        },
+        {
+          "file": "before-vendor-overview-light-390-full.png",
+          "fullPage": true,
+          "sha256": "d11cf5ec2889199cfb24b28f5bda0f13443b472ea6881bb182b346270dd0f1f0",
+          "bytes": 308436
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-register-light-390",
+      "view": "register",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Register"
+        ],
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "images": [
+        {
+          "file": "before-vendor-register-light-390.png",
+          "fullPage": false,
+          "sha256": "13a0734d327863aa0705bb04eea9d02e12c46dc03c0bbaa7460e0f943f123ae6",
+          "bytes": 111243
+        },
+        {
+          "file": "before-vendor-register-light-390-full.png",
+          "fullPage": true,
+          "sha256": "09141c16b07231cd00f251ed8f9f8db73b6e98ec9c87b3b7f4ed499020e44b75",
+          "bytes": 151124
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-overview-dark-1440",
+      "view": "overview",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Overview"
+        ],
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "images": [
+        {
+          "file": "before-vendor-overview-dark-1440.png",
+          "fullPage": false,
+          "sha256": "b013f148d56404e2fed13e3535e41badb030dc4c68d7d1b9e01278287a028a6e",
+          "bytes": 226410
+        },
+        {
+          "file": "before-vendor-overview-dark-1440-full.png",
+          "fullPage": true,
+          "sha256": "1dee7e4a23536fa535a3c02c183100cf8c5430780d7057151602dd23de77b919",
+          "bytes": 370515
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-register-dark-1440",
+      "view": "register",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Register"
+        ],
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "images": [
+        {
+          "file": "before-vendor-register-dark-1440.png",
+          "fullPage": false,
+          "sha256": "d1aa74d15c04fa879801245550b2f573603bc5611f38223529f3b1ed6627db61",
+          "bytes": 226197
+        },
+        {
+          "file": "before-vendor-register-dark-1440-full.png",
+          "fullPage": true,
+          "sha256": "55202a29bcb8ef34bdeda8fc2f3b1c65319dad113ccd61731a7589c6ef7a2bdb",
+          "bytes": 226334
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-overview-dark-768",
+      "view": "overview",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Overview"
+        ],
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "images": [
+        {
+          "file": "before-vendor-overview-dark-768.png",
+          "fullPage": false,
+          "sha256": "c0178ac5cf0b6bc3a6b8c3b2342d3beb68a05cf37d31523faab28b718bc679f0",
+          "bytes": 135759
+        },
+        {
+          "file": "before-vendor-overview-dark-768-full.png",
+          "fullPage": true,
+          "sha256": "1822938dc9c653b9d5be06a5b4c9126355ccb465f23c9eab84e599ae1edcbbca",
+          "bytes": 320939
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-register-dark-768",
+      "view": "register",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Register"
+        ],
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "images": [
+        {
+          "file": "before-vendor-register-dark-768.png",
+          "fullPage": false,
+          "sha256": "4aff64b89609dbad4d2bf517d1989a6bc569c3f2a4e75d868ec5a2ae4ccc4014",
+          "bytes": 157631
+        },
+        {
+          "file": "before-vendor-register-dark-768-full.png",
+          "fullPage": true,
+          "sha256": "33b316b1381d1867ee648ec4baabd7c904ef828b95a3bfcab4b76b7faff91562",
+          "bytes": 184950
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-overview-dark-390",
+      "view": "overview",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Overview"
+        ],
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "images": [
+        {
+          "file": "before-vendor-overview-dark-390.png",
+          "fullPage": false,
+          "sha256": "be3e233415651393462bcff40b370224ee5b33295d01a2df459fee271a36aea5",
+          "bytes": 90963
+        },
+        {
+          "file": "before-vendor-overview-dark-390-full.png",
+          "fullPage": true,
+          "sha256": "1f59a1aa4dfb07666ffedb2bb561c58a0d1eeadc73ba4d15699a81043ed22b2c",
+          "bytes": 293863
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "before-vendor-register-dark-390",
+      "view": "register",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "layout": {
+        "tabs": [
+          "Overview",
+          "Register"
+        ],
+        "active": [
+          "Register"
+        ],
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "images": [
+        {
+          "file": "before-vendor-register-dark-390.png",
+          "fullPage": false,
+          "sha256": "3424c0e2e608772eb7450a5a119ce882e4e1f0feb27a814c4a8d37076ffaf5cb",
+          "bytes": 102221
+        },
+        {
+          "file": "before-vendor-register-dark-390-full.png",
+          "fullPage": true,
+          "sha256": "743a2ac9819e9cd99a057636e4e88f1e896f8e47c2e7df40a912226c4c25fbd9",
+          "bytes": 142133
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "failure": null
+}

@@ -4,6 +4,8 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { measureNotificationsSourceLayout } from "./notifications-evidence.mjs";
+import { vendorPortfolioViews } from "./vendor-portfolio-evidence-scenarios.mjs";
+import { measureVendorPortfolioSourceLayout } from "./vendor-portfolio-evidence.mjs";
 import { vendorRelationshipViews } from "./vendor-relationship-evidence-scenarios.mjs";
 import { measureVendorRelationshipSourceLayout } from "./vendor-relationship-evidence.mjs";
 
@@ -36,7 +38,13 @@ const references = [
     source: "clearsight-designs-01-05/assessment-workspace-preview.html",
     runtime: { "1440x900": "211-internal-assessment-light-1440x900.png", "1280x800": "212-internal-assessment-dark-1280x800.png", "1024x768": "215-internal-assessment-light-1024x768.png", "768x900": "216-internal-assessment-dark-768x900.png", "390x844": "213-internal-assessment-light-mobile-390x844.png" },
   },
-  { id: "vendor-management", source: "clearsight-vendor-management-designs/vendor-workspace-preview.html", runtime: {} },
+  ...vendorPortfolioViews.map((view, index) => ({
+    id: `vendor-portfolio-${view.id}`, source: "clearsight-vendor-management-designs/vendor-workspace-preview.html",
+    pinnedSHA256: "c37f35161878d2035335241fc104c41fb4c8f6176cfe81d8a2f0d7fbdba728fd",
+    sourcePortfolioView: view.id, sourceTab: view.id,
+    runtime: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${240 + index}-vendor-portfolio-${view.id}-light-${size}.png`])),
+    runtimeDark: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${240 + index}-vendor-portfolio-${view.id}-dark-${size}.png`])),
+  })),
   ...vendorRelationshipViews.map((view, index) => ({
     id: `vendor-relationship-${view.id}`,
     source: "clearsight-vendor-management-designs/vendor-workspace-preview.html",
@@ -126,7 +134,9 @@ const requestedReferences = process.env.UI_EVIDENCE_SCOPE === "reports"
   : process.env.UI_EVIDENCE_SCOPE === "notifications"
     ? references.filter((reference) => reference.id.startsWith("notifications-"))
   : process.env.UI_EVIDENCE_SCOPE === "vendor-relationship"
-    ? references.filter((reference) => reference.id.startsWith("vendor-relationship-")) : references;
+    ? references.filter((reference) => reference.id.startsWith("vendor-relationship-"))
+  : process.env.UI_EVIDENCE_SCOPE === "vendor-portfolio"
+    ? references.filter((reference) => reference.id.startsWith("vendor-portfolio-")) : references;
 const verified = await Promise.all(requestedReferences.map(async (reference) => {
   const expected = byPath.get(reference.source);
   if (!expected) throw new Error(`Approved source not indexed: ${reference.source}`);
@@ -224,7 +234,34 @@ try {
           ? await measureReportsSourceLayout(page, reference.sourceTab, viewport) : null;
         const notificationsLayout = reference.sourceView ? await measureNotificationsSourceLayout(page, reference.sourceView) : null;
         const vendorRelationshipLayout = reference.sourceVendorView ? await measureVendorRelationshipSourceLayout(page, reference.sourceVendorView) : null;
+        const vendorPortfolioLayout = reference.sourcePortfolioView ? await measureVendorPortfolioSourceLayout(page, reference.sourcePortfolioView) : null;
         let layoutComparison = null;
+        if (vendorPortfolioLayout && runtimeManifest) {
+          const runtimePairs = [];
+          for (const runtimeName of [reference.runtime[key], reference.runtimeDark[key]]) {
+            const capture = runtimeByName.get(runtimeName); const actual = capture?.vendorPortfolioLayout;
+            if (!actual || actual.kind !== reference.sourcePortfolioView || capture.viewport?.width !== viewport.width || capture.viewport?.height !== viewport.height
+              || actual.localTabs?.join("|") !== vendorPortfolioLayout.localTabs.join("|") || actual.selectedTab !== vendorPortfolioLayout.selectedTab
+              || actual.firstUsefulContentVisible !== true || actual.selectedTabVisible !== true || actual.scrollWidth > actual.documentWidth + 1
+              || actual.selectedRelationshipVisible !== false || capture.navigation?.activePage?.join("|") !== "Vendors"
+              || reference.sourcePortfolioView === "overview" && (actual.placement !== vendorPortfolioLayout.placement || actual.metrics?.length !== 4 || actual.insights?.length !== 2 || !actual.register
+                || actual.placement === "beside" && Math.abs(actual.aside?.width - vendorPortfolioLayout.aside?.width) > 2)) {
+              throw new Error(`${reference.id}/${key}/${capture?.theme ?? "missing"}: Vendor portfolio source menu, inline register or responsive layout has no matching runtime evidence`);
+            }
+            const bytes = await readFile(path.join(outputDir, "..", runtimeName));
+            runtimePairs.push({ runtime_capture: runtimeName, runtime_theme: capture.theme, runtime_image_sha256: digest(bytes), runtime_image_bytes: bytes.length,
+              localTabsMatch: true, selectedTabMatches: true, runtimeFirstUsefulContentVisible: true,
+              sourceFirstRecord: vendorPortfolioLayout.firstRecord, runtimeFirstRecord: actual.firstRecord,
+              sourcePlacement: vendorPortfolioLayout.placement, runtimePlacement: actual.placement,
+              sourceMain: vendorPortfolioLayout.main, runtimeMain: actual.main, sourceAside: vendorPortfolioLayout.aside, runtimeAside: actual.aside,
+              runtimeMenuMode: actual.menuMode });
+          }
+          layoutComparison = { runtime_pairs: runtimePairs, localTabsMatch: true, selectedTabMatches: true,
+            sourceFirstUsefulContentVisible: vendorPortfolioLayout.firstUsefulContentVisible, runtimeFirstUsefulContentVisible: true,
+            dataComparison: "PROTOTYPE_VALUES_NOT_RUNTIME_DATA",
+            adaptation: "Stored service criticality and linked exception stages retain the source's two insight regions. Service renewal dates do not claim assessment review deadlines. Collection tabs use bounded authorized relationship summaries and exact existing detail readers; prototype scores, document completeness and Copilot suggestions are not copied.",
+            conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
+        }
         if (vendorRelationshipLayout && runtimeManifest) {
           const runtimePairs = [];
           for (const runtimeName of [reference.runtime[key], reference.runtimeDark[key]]) {
@@ -356,7 +393,7 @@ try {
             adaptation: "The source's Assessments, Controls & policies and Setup menu variant is retained only in the immutable original. Runtime uses the approved shared Forms/Work/Settings routes and permission-gated Settings footer.",
             conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
         }
-        if (reference.sourceVendorView && runtimeManifest) {
+        if ((reference.sourceVendorView || reference.sourcePortfolioView) && runtimeManifest) {
           navigationComparison = { runtime_capture: reference.runtime[key], runtime_theme: runtimeCapture.theme,
             sourceLabels: presentation.navigation?.labels ?? [], runtimeLabels: runtimeNavigation?.labels ?? [],
             activeVendorDestinationMatches: runtimeNavigation?.activePage?.join("|") === "Vendors",
@@ -374,6 +411,7 @@ try {
           source: reference.source,
           source_tab: reference.sourceTab ?? null,
           ...(reference.sourceView ? { source_view: reference.sourceView, source_inbox_filter: reference.sourceInboxFilter ?? null } : {}),
+          ...(reference.sourcePortfolioView ? { source_portfolio_view: reference.sourcePortfolioView } : {}),
           ...(reference.sourceVendorView ? { source_vendor_view: reference.sourceVendorView, source_vendor_tab: reference.sourceVendorTab } : {}),
           ...(reference.sourceEntry ? { source_entry: reference.sourceEntry } : {}),
           source_sha256: reference.sha256,
@@ -386,6 +424,7 @@ try {
           ...(reportsLayout ? { reports_layout: reportsLayout, layout_comparison: layoutComparison } : {}),
           ...(notificationsLayout ? { notifications_layout: notificationsLayout, layout_comparison: layoutComparison } : {}),
           ...(vendorRelationshipLayout ? { vendor_relationship_layout: vendorRelationshipLayout, layout_comparison: layoutComparison } : {}),
+          ...(vendorPortfolioLayout ? { vendor_portfolio_layout: vendorPortfolioLayout, layout_comparison: layoutComparison } : {}),
           prototype_errors: errors,
           visual_parity: "NOT_REVIEWED",
         });
