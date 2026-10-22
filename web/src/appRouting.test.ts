@@ -31,6 +31,16 @@ describe("workspace routes", () => {
     expect(routeHash("reports", {}, "matters")).toBe("#reports");
   });
 
+  it("round-trips Notification local views without changing canonical work routes", () => {
+    expect(parseRoute("#notifications")).toEqual({ view: "notifications", target: {} });
+    for (const notificationTab of ["activity", "preferences"] as const) {
+      expect(parseRoute(`#notifications/${notificationTab}`)).toEqual({ view: "notifications", target: { notificationTab } });
+      expect(routeHash("notifications", { notificationTab }, "matters")).toBe(`#notifications/${notificationTab}`);
+    }
+    expect(parseRoute("#notifications/unknown")).toEqual({ view: "notifications", target: {} });
+    expect(routeHash("notifications", { notificationTab: "inbox" }, "evidence")).toBe("#notifications");
+  });
+
   it("opens legacy Today links as Oversight", () => {
     expect(parseRoute("#today")).toEqual({ view: "oversight", target: {} });
   });

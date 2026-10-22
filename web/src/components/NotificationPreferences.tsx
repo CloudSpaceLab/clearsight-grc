@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { apiErrorKind } from "../http";
 import {
   loadNotificationPreferences,
   saveNotificationPreferences,
@@ -19,9 +20,19 @@ export function NotificationPreferences({
   const [value, setValue] = useState<NotificationPreferencesValue>();
   const [draft, setDraft] = useState<NotificationPreferencesValue>();
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const activeLoad = useRef<AbortController | undefined>(undefined);
+  const savingFor = useRef<AbortController | undefined>(undefined);
 
   useEffect(() => {
     const controller = new AbortController();
+    activeLoad.current = controller;
+    setState("loading");
+    setValue(undefined);
+    setDraft(undefined);
+    setError("");
+    setSaved(false);
     void load(controller.signal).then((loaded) => {
       if (controller.signal.aborted) return;
       const normalized = loaded.version === 0 && loaded.time_zone === "UTC"
@@ -34,30 +45,38 @@ export function NotificationPreferences({
       if (!controller.signal.aborted) setState("unavailable");
     });
     return () => controller.abort();
-  }, [load]);
+  }, [load, reloadKey]);
 
   function patch(change: Partial<NotificationPreferencesValue>) {
     setDraft((current) => current ? { ...current, ...change } : current);
     setError("");
+    setSaved(false);
   }
 
   async function persist() {
-    if (!draft || !value || state === "saving") return;
+    const controller = activeLoad.current;
+    if (!draft || !value || !controller || controller.signal.aborted || savingFor.current === controller) return;
+    savingFor.current = controller;
     setState("saving");
     setError("");
+    setSaved(false);
     try {
       const saved = await save({ ...draft, version: value.version });
+      if (controller.signal.aborted || activeLoad.current !== controller) return;
       setValue(saved);
       setDraft(saved);
       setState("live");
-    } catch {
+      setSaved(true);
+    } catch (error) {
+      if (controller.signal.aborted || activeLoad.current !== controller) return;
       setState("live");
-      setError("Could not save email preferences. Reload and try again.");
+      setError(apiErrorKind(error) === "conflict"
+        ? "Email preferences changed. Reload them before saving again."
+        : "Could not save email preferences. Your changes have not been saved. Try again.");
+    } finally {
+      if (savingFor.current === controller) savingFor.current = undefined;
     }
   }
-
-  if (state === "loading") return <div className="notification-preferences" aria-busy="true">Loading email preferences…</div>;
-  if (state === "unavailable" || !draft) return <Notice tone="warning">Email preferences are unavailable.</Notice>;
 
   return <section className="notification-preferences" aria-labelledby="notification-email-heading">
     <div className="notification-preferences__heading">
@@ -65,9 +84,15 @@ export function NotificationPreferences({
         <strong id="notification-email-heading">Email delivery</strong>
         <span>Critical changes and daily summary.</span>
       </div>
-      {draft.critical_email_required && <StatusBadge tone="warning">Critical required</StatusBadge>}
+      {draft?.critical_email_required && <StatusBadge tone="warning">Critical required</StatusBadge>}
     </div>
 
+    {state === "loading" && <div role="status" aria-busy="true">Loading email preferences…</div>}
+    {state === "unavailable" && <>
+      <Notice tone="warning">Email preferences are unavailable. Try again to load your settings.</Notice>
+      <div className="notification-preferences__actions"><Button onPress={() => setReloadKey((current) => current + 1)}>Try again</Button></div>
+    </>}
+    {draft && (state === "live" || state === "saving") && <>
     <CheckboxField
       label="Daily digest"
       description="One email with material changes and assigned work."
@@ -128,9 +153,12 @@ export function NotificationPreferences({
     </div>}
 
     {error && <Notice tone="warning">{error}</Notice>}
+    {saved && <Notice tone="success">Email preferences saved.</Notice>}
     <div className="notification-preferences__actions">
+      {error && <Button size="compact" onPress={() => setReloadKey((current) => current + 1)}>Reload preferences</Button>}
       <Button size="compact" onPress={() => void persist()} isLoading={state === "saving"}>Save email preferences</Button>
     </div>
+    </>}
   </section>;
 }
 
@@ -140,7 +168,7 @@ function minuteToTime(value: number) {
 }
 
 function timeToMinute(value: string) {
-  const match = /^(\\d{2}):(\\d{2})$/.exec(value);
+  const match = /^(\d{2}):(\d{2})$/.exec(value);
   if (!match) return undefined;
   const hour = Number(match[1]);
   const minute = Number(match[2]);

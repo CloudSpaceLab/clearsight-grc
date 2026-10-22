@@ -38,6 +38,7 @@ function selectedDestination(view: View, target: WorkspaceTarget) {
   if (view === "insights" && target.insightsView === "risk-loss") return "reports";
   if (view === "risks" || view === "rcsa" || view === "losses" || view === "insights") return "risk";
   if (view === "configure" || view === "imports") return "settings";
+  if (view === "notifications") return "work";
   if (view === "today") return "home";
   return destinations.find((item) => item.view === view)?.id;
 }

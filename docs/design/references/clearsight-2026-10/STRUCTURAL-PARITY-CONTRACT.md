@@ -1,6 +1,6 @@
 # Approved HTML — structural parity contract
 
-Tracking: #462. Source authority: `source/MANIFEST.json` (SHA-256-pinned original HTML and design notes). Updated: 2026-10-21 for Reports integration and the shared-menu adaptation decision.
+Tracking: #462. Source authority: `source/MANIFEST.json` (SHA-256-pinned original HTML and design notes). Updated: 2026-10-21 for Reports integration, shared-menu adaptation and Notifications workspace review.
 
 **A screen is not migrated merely because its colors, cards, or typography resemble the source.** A release reviewer must verify the unified **global shell → approved page heading/actions → local tabs → filters → content sections → selected-detail/review panel** with the correct ordering, desktop/mobile layout, authorization and real operations. Do not count individual component merges as an accepted screen.
 
@@ -34,7 +34,7 @@ All tab names below refer to **original HTML menu/section order**, not a claim t
 | Enterprise Setup / `clearsight-enterprise-setup-designs` | **Organization · Groups · People & access · Jurisdictions · Frameworks · Data imports** | Existing Configuration sections need matched hierarchy and access decisions |
 | Integrations / `clearsight-integrations-designs` | **Sources · Field mapping · Sync history** | Need source-backed mapping and health state |
 | Search / `clearsight-search-command-center-designs` | Query → filters → scoped results → inspector | No global search until authorized backend query exists |
-| Notifications / `clearsight-notifications-activity-designs` | **Inbox · Activity · Preferences** | Actor inbox and delivery receipts must be integrated |
+| Notifications / `clearsight-notifications-activity-designs` | **Inbox · Activity · Preferences** | The [workspace tranche](../../decisions/2026-10-21-notifications-workspace-v2.md) composes a selectable inbox/context pair, a permission-gated Activity history/context pair and in-app/email preferences. Inbox context follows the list at 900px or less; Activity context moves above history; filters disclose at 600px or less. Existing actor read receipts and versioned preference commands remain distinct from work completion. Status: locally implemented and reviewed; publication pending. The [evidence receipt](../../decisions/2026-10-21-notifications-workspace-evidence.json) records local source/runtime checks; remote CI and authorized-result acceptance remain open, and 0/19 is unchanged |
 | Audit / `clearsight-audit-assurance-designs` | **Overview · Audit plan · Evidence requests · Findings** | Must distinguish audit work from generic Matters |
 | People / `clearsight-people-access-designs` | **People · Roles · Approval routes · Delegations** | Separate role membership, delegated authority and review status |
 | Automation / `clearsight-automation-governance-designs` | **Automations · Schedules · Escalations · Activity** | Actual simulation, approval, activation and rollback required |

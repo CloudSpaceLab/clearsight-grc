@@ -156,6 +156,18 @@
   background: var(--cs-bg-surface-hover);
 }
 
+.cs-selectable-record--list {
+  border-color: transparent;
+  border-block-end-color: var(--cs-border-default);
+  background: var(--cs-bg-surface-1);
+}
+
+.cs-selectable-record--list[data-selected] {
+  border-color: var(--cs-border-interactive);
+  background: var(--cs-bg-surface-hover);
+  box-shadow: inset var(--cs-primitive-border-2) 0 0 var(--cs-border-interactive);
+}
+
 .cs-selectable-record[data-focus-visible] {
   outline: var(--cs-focus-width) solid var(--cs-focus-ring);
 }

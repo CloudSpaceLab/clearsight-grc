@@ -10,6 +10,7 @@ Date: 2026-10-17. Source: [complete designs.zip](https://drive.google.com/file/d
 - `clearsight-unified-design-system-v1.zip/clearsight-design-system/clearsight-design-system-spec.md` (12,643 bytes), `system.css`, `system.js`, HTML preview and component gallery.
 - Headings, action labels, markup and embedded scripts of the 18 extracted design folders inspected. The designs include overlapping framework/program files and inconsistent historical sidebar drafts. Unified spec §1 explicitly identifies sidebar divergence and keeps existing routes authoritative.
 - Current `web/src/components/ProgramsWorkspace.tsx`, `ProgramSetupWorkspace.tsx`, `ProgramRequirementsPanel.tsx`, `web/src/programFrameworkCandidatesApi.ts`, `DESIGN.md` inspected on current main.
+- **21 October Notifications:** `source/clearsight-notifications-activity-designs/notifications-activity-preview.html` (79,068 bytes; SHA-256 `18a5fa9e4ef0b306da152444e3c2223fc6fe8ffe359c00e0002c5098609a03bc`) and companion HTML/CSS/JS inspected for full Inbox, Activity and Preferences composition. The [decision record](../../decisions/2026-10-21-notifications-workspace-v2.md) maps that structure to the existing scoped notification, preference and system-activity APIs. Status: **locally implemented and reviewed; publication pending**. The [evidence receipt](../../decisions/2026-10-21-notifications-workspace-evidence.json) records the scoped local review; remote CI and authorized-result acceptance remain open.
 
 ## Grounded conclusions
 

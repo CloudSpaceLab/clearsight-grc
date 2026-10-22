@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { measureNotificationsSourceLayout } from "./notifications-evidence.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -77,7 +78,12 @@ const references = [
   { id: "enterprise-setup", source: "clearsight-enterprise-setup-designs/enterprise-setup-preview.html", runtime: {} },
   { id: "integrations", source: "clearsight-integrations-designs/integrations-workspace-preview.html", runtime: {} },
   { id: "search-command-center", source: "clearsight-search-command-center-designs/search-command-center-preview.html", runtime: {} },
-  { id: "notifications-activity", source: "clearsight-notifications-activity-designs/notifications-activity-preview.html", runtime: {} },
+  ...["inbox", "activity", "preferences"].map((view, index) => ({
+    id: `notifications-${view}`, source: "clearsight-notifications-activity-designs/notifications-activity-preview.html",
+    sourceView: view, ...(view === "inbox" ? { sourceInboxFilter: "all" } : {}),
+    runtime: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${226 + index}-notifications-${view}-light-${size}.png`])),
+    runtimeDark: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${226 + index}-notifications-${view}-dark-${size}.png`])),
+  })),
   { id: "audit-assurance", source: "clearsight-audit-assurance-designs/audit-assurance-preview.html", runtime: {} },
   { id: "people-access", source: "clearsight-people-access-designs/people-access-preview.html", runtime: {} },
   { id: "automation-governance", source: "clearsight-automation-governance-designs/automation-governance-preview.html", runtime: {} },
@@ -106,7 +112,9 @@ const requestedReferences = process.env.UI_EVIDENCE_SCOPE === "reports"
   : process.env.UI_EVIDENCE_SCOPE === "report-design"
     ? references.filter((reference) => ["reports-explore", "reports-builder"].includes(reference.id))
   : process.env.UI_EVIDENCE_SCOPE === "navigation"
-    ? references.filter((reference) => reference.id === "reports-insights") : references;
+    ? references.filter((reference) => reference.id === "reports-insights")
+  : process.env.UI_EVIDENCE_SCOPE === "notifications"
+    ? references.filter((reference) => reference.id.startsWith("notifications-")) : references;
 const verified = await Promise.all(requestedReferences.map(async (reference) => {
   const expected = byPath.get(reference.source);
   if (!expected) throw new Error(`Approved source not indexed: ${reference.source}`);
@@ -151,6 +159,13 @@ try {
           await page.locator(`[id="${panelID}"]`).waitFor({ state: "visible" });
           if (await tab.getAttribute("aria-selected") !== "true") throw new Error(`Source tab did not activate: ${reference.id}/${reference.sourceTab}`);
         }
+        if (reference.sourceView) {
+          const tab = page.locator(`[role="tab"][data-view="${reference.sourceView}"]`);
+          await tab.click();
+          await page.locator(`#${reference.sourceView}-pane`).waitFor({ state: "visible" });
+          if (await tab.getAttribute("aria-selected") !== "true") throw new Error(`Source view did not activate: ${reference.id}`);
+          if (reference.sourceInboxFilter) await page.locator(`[data-inbox-filter="${reference.sourceInboxFilter}"]`).click();
+        }
         const presentation = await page.evaluate(() => {
           const sidebar = document.querySelector(".sidebar");
           const links = [...(sidebar?.querySelectorAll("a.nav-item") ?? [])];
@@ -188,6 +203,7 @@ try {
         const runtimeNavigation = runtimeCapture?.navigation;
         const reportsLayout = ["reports-explore", "reports-builder"].includes(reference.id)
           ? await measureReportsSourceLayout(page, reference.sourceTab, viewport) : null;
+        const notificationsLayout = reference.sourceView ? await measureNotificationsSourceLayout(page, reference.sourceView) : null;
         let layoutComparison = null;
         if (reportsLayout && runtimeManifest) {
           const runtimePairs = [];
@@ -221,6 +237,35 @@ try {
             dataComparison: "PROTOTYPE_VALUES_NOT_RUNTIME_DATA",
             conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
         }
+        if (notificationsLayout && runtimeManifest) {
+          const runtimePairs = [];
+          for (const runtimeName of [reference.runtime[key], reference.runtimeDark[key]]) {
+            const capture = runtimeByName.get(runtimeName);
+            const actual = capture?.notificationsLayout;
+            if (!actual || actual.kind !== reference.sourceView || capture.viewport?.width !== viewport.width || capture.viewport?.height !== viewport.height
+              || actual.localTabs?.join("|") !== notificationsLayout.localTabs.join("|") || actual.selectedTab !== notificationsLayout.selectedTab
+              || actual.placement !== notificationsLayout.placement || actual.firstUsefulContentVisible !== true || actual.selectedTabVisible !== true
+              || actual.scrollWidth > actual.documentWidth + 1 || capture.navigation?.activePage?.join("|") !== "Work & Approvals") {
+              throw new Error(`${reference.id}/${key}/${capture?.theme ?? "missing"}: Notifications source menu, first useful content or replacement layout has no matching runtime evidence`);
+            }
+            const bytes = await readFile(path.join(outputDir, "..", runtimeName));
+            runtimePairs.push({ runtime_capture: runtimeName, runtime_theme: capture.theme, runtime_image_sha256: digest(bytes), runtime_image_bytes: bytes.length,
+              localTabsMatch: true, selectedTabMatches: true, replacementLayoutMatches: true, runtimePlacement: actual.placement,
+              runtimeFirstUsefulContentVisible: true, runtimeSelectedTabVisible: true,
+              sourceMainWidth: notificationsLayout.main.width, runtimeMainWidth: actual.main.width,
+              sourceAsideWidth: notificationsLayout.aside.width, runtimeAsideWidth: actual.aside.width,
+              sourceFirstRecordVisible: notificationsLayout.firstRecordVisible, runtimeFirstRecordVisible: actual.firstRecordVisible,
+              sourceFirstRecord: notificationsLayout.firstRecord, runtimeFirstRecord: actual.firstRecord,
+              sourceRecordHeights: notificationsLayout.recordHeights, runtimeRecordHeights: actual.recordHeights });
+          }
+          layoutComparison = { runtime_capture: reference.runtime[key], runtime_pairs: runtimePairs,
+            sourcePlacement: notificationsLayout.placement, runtimePlacement: runtimeCapture.notificationsLayout.placement,
+            localTabsMatch: true, selectedTabMatches: true, replacementLayoutMatches: true,
+            sourceFirstUsefulContentVisible: notificationsLayout.firstUsefulContentVisible, runtimeFirstUsefulContentVisible: true,
+            dataComparison: "PROTOTYPE_VALUES_NOT_RUNTIME_DATA",
+            adaptation: "All and Unread use the actor inbox; loaded search, a stored read receipt, authorized record handoff, entity activity and versioned daily email preferences replace unsupported prototype controls.",
+            conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
+        }
         let navigationComparison = null;
         if (reference.id.startsWith("reports-")) {
           const sourceNavigation = presentation.navigation;
@@ -251,6 +296,17 @@ try {
             };
           }
         }
+        if (reference.sourceView && runtimeManifest) {
+          if (presentation.navigation?.activePage?.join("|") !== "Work & approvals" || runtimeNavigation?.activePage?.join("|") !== "Work & Approvals") {
+            throw new Error(`${reference.id}/${key}: Notifications must retain its Work navigation owner`);
+          }
+          navigationComparison = { runtime_capture: reference.runtime[key], runtime_theme: runtimeCapture.theme,
+            sourceLabels: presentation.navigation.labels, runtimeLabels: runtimeNavigation.labels,
+            activeWorkDestinationMatches: true, sourceRailWidth: presentation.navigation.railWidth, runtimeRailWidth: runtimeNavigation.railWidth,
+            canonicalRuntimeMenu: "2026-10-21-v2-navigation-adaptation",
+            adaptation: "The source's Assessments, Controls & policies and Setup menu variant is retained only in the immutable original. Runtime uses the approved shared Forms/Work/Settings routes and permission-gated Settings footer.",
+            conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
+        }
         const image = `approved-${reference.id}-${key}.png`;
         await page.mouse.move(0, 0);
         await page.screenshot({ path: path.join(outputDir, image), fullPage: false, animations: "disabled" });
@@ -260,6 +316,7 @@ try {
           viewport,
           source: reference.source,
           source_tab: reference.sourceTab ?? null,
+          ...(reference.sourceView ? { source_view: reference.sourceView, source_inbox_filter: reference.sourceInboxFilter ?? null } : {}),
           ...(reference.sourceEntry ? { source_entry: reference.sourceEntry } : {}),
           source_sha256: reference.sha256,
           image,
@@ -269,6 +326,7 @@ try {
           ...presentation,
           navigation_comparison: navigationComparison,
           ...(reportsLayout ? { reports_layout: reportsLayout, layout_comparison: layoutComparison } : {}),
+          ...(notificationsLayout ? { notifications_layout: notificationsLayout, layout_comparison: layoutComparison } : {}),
           prototype_errors: errors,
           visual_parity: "NOT_REVIEWED",
         });
@@ -296,6 +354,7 @@ const lines = [
   "Menu metadata records each original rail and item order without changing the source. Some originals use a 55px phone rail; the shared runtime uses 56px to preserve 44px targets. Reports already uses 56px.",
   "Reports menu comparisons retain Work & Approvals as a direct runtime destination and permission-gate Settings. Matching structure does not establish whole-screen visual acceptance.",
   "Explore and Build report activate their actual source views. Build report enters through New report because its local tab is contextual. Measured layout comparisons cover the controls/chart/table or setup/paper/output replacement, not prototype values or unsupported report capabilities.",
+  "Notifications activates Inbox with the original All filter, Activity and Preferences. Comparisons retain desktop list/context or main/aside placement; narrow Activity context moves above the feed, while Inbox and Preferences stack in content order. Runtime uses the canonical shared menu and only supported inbox, scoped activity and versioned email settings capabilities. Row heights and panel widths are recorded for named visual review; prototype counts and unsupported category/weekly/snooze actions are not runtime requirements.",
   "",
   "| Screen | Viewport | Approved screenshot | Runtime screenshot |",
   "| --- | --- | --- | --- |",

@@ -1,0 +1,5181 @@
+{
+  "verifiedAt": "2026-10-21T21:17:10.162Z",
+  "runtimeRevision": "c2d3593ceaebb509e8e3d1659b80000f6a88c5c6",
+  "evidenceScope": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "contract": {
+    "failures": [],
+    "check": {
+      "name": "Notifications source layout and supported workflows",
+      "status": "PASS",
+      "detail": "42/42 captures; three views at five widths in two themes plus independent read-state, paging, permission and preference states"
+    }
+  },
+  "captureCount": 42,
+  "runtimeFailure": null,
+  "captureManifestSha256": "919895f8618611023704cbbb713153286c0acaa375086888e8e62393e14f8506",
+  "immutableSources": {
+    "count": 96,
+    "failures": []
+  },
+  "source": {
+    "views": 15,
+    "runtimePairs": 30,
+    "hashFailures": [],
+    "manifestSha256": "bc441cc764cd4d79fc417e456d8d698718cda14e0a8a6f2c24b4055f696f5441"
+  },
+  "accessibility": {
+    "scenarios": 12,
+    "statuses": {
+      "PASS": 12
+    },
+    "failure": null,
+    "violations": 0,
+    "undersizedControls": 0,
+    "browserErrors": 0,
+    "axeIncompleteNodes": 80,
+    "contrastOutcomes": {
+      "PASS": 544,
+      "INCOMPLETE": 148,
+      "REVIEW": 38
+    },
+    "manifestSha256": "6fc870c85e2a2cca4db5d66d105cfc99029ef3edef365a1e26e2f52666058b1c"
+  },
+  "evidenceScripts": [
+    {
+      "file": "scripts/notifications-evidence.mjs",
+      "bytes": 34257,
+      "sha256": "d3ff9c9ce15a5d29c6d18c7dee69d1f216db8c0f6ec3d086c88ea98da171e404"
+    },
+    {
+      "file": "scripts/notifications-evidence-scenarios.mjs",
+      "bytes": 3436,
+      "sha256": "21e32c89100edac3f2684d6007c5af2bb6fbe8ce5c457fb8a547600790c5185f"
+    },
+    {
+      "file": "scripts/notifications-evidence-contract.mjs",
+      "bytes": 13943,
+      "sha256": "34466a1d5ab5fad5b700be737c77275d2ca012a04d3556eb13892334d062ecd2"
+    },
+    {
+      "file": "scripts/capture-ui-evidence.mjs",
+      "bytes": 180333,
+      "sha256": "fd8cc5ce7c8f8d08b61fe5727ce9e007a316548a1e05d58224b2b1d450f5e0f7"
+    },
+    {
+      "file": "scripts/capture-approved-source-references.mjs",
+      "bytes": 30169,
+      "sha256": "28e0eba02dec1c6836e39ca7bd7925fb818f92f04d25d316f6749bdf4e0ed289"
+    },
+    {
+      "file": "scripts/review-ui-accessibility.mjs",
+      "bytes": 9877,
+      "sha256": "912b2eacf5cc1adc08bf0551da8c0cc14e166f424075c3216ddbd9b16b2432db"
+    },
+    {
+      "file": "scripts/review-ui-flow-manifest.mjs",
+      "bytes": 40121,
+      "sha256": "efbba7087a393340794ac74fc58c02aa452c7261ca597d3633c162645e5150dc"
+    },
+    {
+      "file": "scripts/review-ui-flow-manifest.nodecheck.mjs",
+      "bytes": 26623,
+      "sha256": "e7fa2d0486aa41714945d66b767133846cf93fc5483a86294a9adb8f7a0d14c3"
+    },
+    {
+      "file": "scripts/runtime-fixture-boundary.nodecheck.mjs",
+      "bytes": 2006,
+      "sha256": "5c32d5c15cfa4d501f0e2c111a7730c9823ed01a906af115e9c160b7aa41a3a6"
+    }
+  ],
+  "fixtureModules": [
+    {
+      "file": "src/evidenceMain.tsx",
+      "bytes": 4389,
+      "sha256": "87b26209ce603cd4578636d80a102f9407bb37475374c8210523250ab19c47f2"
+    },
+    {
+      "file": "src/notificationWorkspaceEvidence.ts",
+      "bytes": 14367,
+      "sha256": "44b4404bcf4f556792705ea7f4a88b6b8bc671415c560f4bcee9c5280077c908"
+    },
+    {
+      "file": "src/notificationWorkspaceEvidence.test.ts",
+      "bytes": 8828,
+      "sha256": "b1ca3672b53c8aa81155c38abaa834649a50b82da6d83ad54dc43524f8b73194"
+    }
+  ],
+  "buildAssets": {
+    "dist": [
+      {
+        "file": "dist/index.html",
+        "bytes": 1022,
+        "sha256": "96fbba6e08bb1195339ac14a791300776000ce64742e441cdbef9306491248ee"
+      },
+      {
+        "file": "dist/assets/App-Cwccobsl.js",
+        "bytes": 564731,
+        "sha256": "4db64737e01db50cc4b3eeabe7aca8edc389142a659ee699637583df791cc251"
+      },
+      {
+        "file": "dist/assets/App-DNuChz2K.css",
+        "bytes": 125055,
+        "sha256": "5366c68ba9cf5cec4bd2cc81ee97316a8770b8e39f40f0b90e419270257d2667"
+      },
+      {
+        "file": "dist/assets/BankJourneysWorkspace-2AgH9f2G.css",
+        "bytes": 4931,
+        "sha256": "e58abe5444c09ecdecdda458acbeda1e610d27f9b81626eb722d6a8883a48353"
+      },
+      {
+        "file": "dist/assets/BankJourneysWorkspace-DsiQwGbf.js",
+        "bytes": 13321,
+        "sha256": "7099a2feebe53cf3c38dcec9d1b7ff484eb5fe31564a48a62389b8b5d4d94e0a"
+      },
+      {
+        "file": "dist/assets/CommunicationsView-BBMgnE43.js",
+        "bytes": 266786,
+        "sha256": "831a96b4ebe606dfb3b6a9a8578cf208941f790194aba96368a29ccfae027055"
+      },
+      {
+        "file": "dist/assets/ConfigureWorkspace-COYlClQh.css",
+        "bytes": 42438,
+        "sha256": "f801fbf4157506cacb6e1957d37e89cf1daa29ada38223b3b89e966333a5703d"
+      },
+      {
+        "file": "dist/assets/ConfigureWorkspace-Dhsabk-G.js",
+        "bytes": 167052,
+        "sha256": "f2ac24001c91b823b9309e5bdce562fba4a05a5ea477fc0ffc6bf99044a02c89"
+      },
+      {
+        "file": "dist/assets/EmployeeProfileWorkspace-C5qyEn_O.js",
+        "bytes": 3919,
+        "sha256": "1fa70f8ce48458743cd7505381e304feb705109da41f6d5671adf44091f4a96c"
+      },
+      {
+        "file": "dist/assets/FocusedSheet-Bq6cEyux.js",
+        "bytes": 35,
+        "sha256": "495c8c791abe7ca39acf49bbaa069614c2056f671760188dcde0760b094aade7"
+      },
+      {
+        "file": "dist/assets/FocusedSheet-CuvWcGu7.js",
+        "bytes": 100422,
+        "sha256": "60662da65cf1049bc61f8d67b768fa7ddf62e601932627ef253e4550b514cb3b"
+      },
+      {
+        "file": "dist/assets/FormBuilder-C6wNnEuy.js",
+        "bytes": 84351,
+        "sha256": "e6fd35d951148527253864d7d804d7e72a5a9e493fcad468109dc89f9e41dec7"
+      },
+      {
+        "file": "dist/assets/FormBuilder-DkNz5EQ_.css",
+        "bytes": 24472,
+        "sha256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1"
+      },
+      {
+        "file": "dist/assets/FormPoliciesView-Dx0QOPF7.js",
+        "bytes": 28258,
+        "sha256": "0816e3e638f1a2979b628a064595aa3c267a530c19e9d198d25ec8b03716f2a4"
+      },
+      {
+        "file": "dist/assets/FormPoliciesView-d4RnLy_e.css",
+        "bytes": 5595,
+        "sha256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2"
+      },
+      {
+        "file": "dist/assets/FormPreview-CrVBx9gJ.js",
+        "bytes": 1703,
+        "sha256": "b820a141d47c8e2334d43d5a4d3d56393b01cea68913410c1b88f1a91cc830e7"
+      },
+      {
+        "file": "dist/assets/FormProposalReview-RE_LPe9x.js",
+        "bytes": 24602,
+        "sha256": "8cb2f7171bbc119a9366c811766b5dcd675033cbd6fdaaa373f5ff307bdb60ff"
+      },
+      {
+        "file": "dist/assets/FormsWorkspace-CVZ-MNBu.css",
+        "bytes": 49494,
+        "sha256": "6c6726852d9342de034b28a74856d25dde1bc110d74035d5d5718db7d61252e1"
+      },
+      {
+        "file": "dist/assets/FormsWorkspace-Duese946.js",
+        "bytes": 64975,
+        "sha256": "7d8ad41927ea39c2106f20655b5513fc19289f161e9cbebadfd4138f94903872"
+      },
+      {
+        "file": "dist/assets/GroupOversightWorkspace-FAWTwerR.css",
+        "bytes": 1428,
+        "sha256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242"
+      },
+      {
+        "file": "dist/assets/GroupOversightWorkspace-OoRlq169.js",
+        "bytes": 16863,
+        "sha256": "00eebef1e17d83561be4b317efb43f54cb0ccd2d9df05b86e48c9e4465c6aec1"
+      },
+      {
+        "file": "dist/assets/IndicatorDetail-Dmwr63hG.js",
+        "bytes": 9600,
+        "sha256": "47c84a7e592f8eb5cd6a0728550c01c2a7a43012c8330329d1be4ff01c8aabac"
+      },
+      {
+        "file": "dist/assets/InsightsWorkspace-C8bXp6zj.js",
+        "bytes": 10606,
+        "sha256": "869762b780680b57c2a2ffcdf1e5da030cc5acab4ad2d7f489cf33a6dbe80bbf"
+      },
+      {
+        "file": "dist/assets/InsightsWorkspace-DgLLVYjj.css",
+        "bytes": 3139,
+        "sha256": "a5344e7614a330a2f2a1f67b8bbc4ddeef2d01e6c738263cfe09d4215d60baa2"
+      },
+      {
+        "file": "dist/assets/LossesWorkspace-DQPhU1Nj.css",
+        "bytes": 3510,
+        "sha256": "21108564fadc1803036f6fd7dc9678973cce0826aaeba94e71f134b36b8dc376"
+      },
+      {
+        "file": "dist/assets/LossesWorkspace-DY6cakVJ.js",
+        "bytes": 21600,
+        "sha256": "2ae170fb16ee1a122fe5513b1a1ffc806ec3765c3818eecb09c204782d58f75f"
+      },
+      {
+        "file": "dist/assets/MetricMemberDrill-DARoKBCd.js",
+        "bytes": 2894,
+        "sha256": "4a3ea6c4a57dfd79e64c351585b87c0a9db26884505f009ec71f7d0560531246"
+      },
+      {
+        "file": "dist/assets/NavigationIcon-C-0wHvHC.js",
+        "bytes": 3372,
+        "sha256": "2235a4015efd8485181e120e5c6d2f60fb9253d3ea8c8e90be823e44c46630a5"
+      },
+      {
+        "file": "dist/assets/NotificationCenter-BNAv9KzK.js",
+        "bytes": 1258,
+        "sha256": "570e529b694867dfa3555b2071a060a570c4556b00a395730907ebf2607cd370"
+      },
+      {
+        "file": "dist/assets/NotificationCenter-y8gwOkyW.css",
+        "bytes": 1555,
+        "sha256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5"
+      },
+      {
+        "file": "dist/assets/NotificationDeliveryHistory-DC2GJtDz.js",
+        "bytes": 2719,
+        "sha256": "793fd5fe09a0e84f05b40782d312a6e7cd12acf743549858cae007c05a4f9140"
+      },
+      {
+        "file": "dist/assets/NotificationsWorkspace-BAmZg4MJ.css",
+        "bytes": 14887,
+        "sha256": "e988de36e966535d55a0d8b6677e22792ce5e22015eee29227a194d036817d83"
+      },
+      {
+        "file": "dist/assets/NotificationsWorkspace-DyGtdEqJ.js",
+        "bytes": 26072,
+        "sha256": "67c23bf0aabc5b192c05a657270611b39a09c4179f151263e404161854381871"
+      },
+      {
+        "file": "dist/assets/OversightPeriodPicker-BT7O1dM0.js",
+        "bytes": 2951,
+        "sha256": "df2183fbba5558db7aead5bdde54560665be458d7ccbbf6565c1f3b418078d79"
+      },
+      {
+        "file": "dist/assets/OversightWorkspace-CFEI8LwC.js",
+        "bytes": 22652,
+        "sha256": "d8f4ac1000e845a71f5324902f57b79e55c69143e2640f25cd2fcd04c276cc71"
+      },
+      {
+        "file": "dist/assets/RCSAWorkspace-Dt3yMK3R.css",
+        "bytes": 3825,
+        "sha256": "9ef3d8fbdd9ad90b69d42749173c0273ff7a65f55a5a36581f51f684ffacde0c"
+      },
+      {
+        "file": "dist/assets/RCSAWorkspace-ftujPF3G.js",
+        "bytes": 14974,
+        "sha256": "15d6902805718ec1d41209af384fdeb6397dc2cb94263542657c413cf2007b83"
+      },
+      {
+        "file": "dist/assets/ReportsExplore-CrQCOEzE.js",
+        "bytes": 14795,
+        "sha256": "a22a5c7376c69a85febbd51f78339d64d65cbc3e4d37c84e10db9168759412db"
+      },
+      {
+        "file": "dist/assets/ReportsExplore-DWws9bfr.css",
+        "bytes": 4179,
+        "sha256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85"
+      },
+      {
+        "file": "dist/assets/ReportsWorkspace-BE7QasEr.css",
+        "bytes": 18729,
+        "sha256": "5f19f164d10680e24761be28f0c87c2aebead00448cc67c52ed22825cbcc03dc"
+      },
+      {
+        "file": "dist/assets/ReportsWorkspace-DfBBT7kJ.js",
+        "bytes": 50461,
+        "sha256": "b9a59b22ef15967048e64ed716aefbc1b69b7888b8837ced955ce1de14acfd0e"
+      },
+      {
+        "file": "dist/assets/ResponseAssessment-BIsVnafJ.js",
+        "bytes": 50796,
+        "sha256": "f87ccd1d0c7453833ad2791b1e757bbe366f5a78a4f5fdfeb615f9940a19e6de"
+      },
+      {
+        "file": "dist/assets/ResponseAssessment-bcDrGtWP.css",
+        "bytes": 15351,
+        "sha256": "16495126a24d7df4b80a6d4bf4512615ccac1d0517e92f222b3627550bf85cf5"
+      },
+      {
+        "file": "dist/assets/RiskMovement-D-yHXy-d.js",
+        "bytes": 13263,
+        "sha256": "230c3c54b1153e8224725fd10fb0364144500bc7d74013d7ade295391a36f2d5"
+      },
+      {
+        "file": "dist/assets/RisksWorkspace--cO9x4e9.js",
+        "bytes": 29690,
+        "sha256": "7f3149d3247dfb6070fd1e2deb9d989f6a781e495b551fefa0d706ab31c1ab18"
+      },
+      {
+        "file": "dist/assets/RisksWorkspace-TeRd9HM3.css",
+        "bytes": 2999,
+        "sha256": "59e0acddc2874e4eaeebb18f859720d3c1c2c96f2654590f83c8b48707d55509"
+      },
+      {
+        "file": "dist/assets/RopaActivityPage-C3mLNWRn.js",
+        "bytes": 13417,
+        "sha256": "a06c29a1bad210920bd71468d90275585dffebf85b494015f16d2cebe5ded25f"
+      },
+      {
+        "file": "dist/assets/RopaRegisterPage-DBuw1kR0.js",
+        "bytes": 10411,
+        "sha256": "b0298006423a9011381c8668adb640d0ee4cc408fa13c3fa989c96ace00dd030"
+      },
+      {
+        "file": "dist/assets/SentFormDetail-BC18sDF3.js",
+        "bytes": 14017,
+        "sha256": "ba532223a508deb74658c819aa64fca977edbcc175d9f59fd03ac36f37a75e57"
+      },
+      {
+        "file": "dist/assets/SentFormDetail-DFR_kdL0.css",
+        "bytes": 488,
+        "sha256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a"
+      },
+      {
+        "file": "dist/assets/VendorsWorkspace-CWqf5phF.css",
+        "bytes": 43171,
+        "sha256": "90fc8e36366433be889a0c5a648d8ab5d0f6d0ccccb1c2854fb8c2e6998f6dbf"
+      },
+      {
+        "file": "dist/assets/VendorsWorkspace-CZyCh_QZ.js",
+        "bytes": 176537,
+        "sha256": "2753727dcefb9a7901e7aeb46f80f5e785d1dc8169025ce3ec5b5647d5b1c0c6"
+      },
+      {
+        "file": "dist/assets/WorkItemIcon-CAGgOKo6.js",
+        "bytes": 1338,
+        "sha256": "d1e2f2266d1daeb94d1b9a51099da5ce8d8358bed320c9b961ced6fe98fb8a84"
+      },
+      {
+        "file": "dist/assets/WorkspaceErrorBoundary-CCSvEnQI.js",
+        "bytes": 783,
+        "sha256": "11955de81c8db67d8911dd98a1ab4800b741809fe316ac80fdbd19873150c241"
+      },
+      {
+        "file": "dist/assets/api-BiEFmJxx.js",
+        "bytes": 5268,
+        "sha256": "b263d78af67e05e158b69d3e03cbd7f07082fd595fe47471e9e0c91f9f2384d7"
+      },
+      {
+        "file": "dist/assets/assessmentFieldResults-DawmlD0t.js",
+        "bytes": 8337,
+        "sha256": "20ee18e5faccab45b4d340c2ec5dc85317b1d52a46db0cf643b64cc9e802fe3e"
+      },
+      {
+        "file": "dist/assets/controlCatalogApi-CofBdce6.js",
+        "bytes": 513,
+        "sha256": "4999cd3346c170b91c42438641e50ee927d1a17c1db18145155d3c702e8162e8"
+      },
+      {
+        "file": "dist/assets/field-assessment-03_zSjZO.js",
+        "bytes": 1492,
+        "sha256": "49dc44d9e2eefd84418fca87f289288b22df277a734905d942abcd93d2d7ca7e"
+      },
+      {
+        "file": "dist/assets/field-assessment-CYtGdiIt.css",
+        "bytes": 7259,
+        "sha256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326"
+      },
+      {
+        "file": "dist/assets/formPoliciesApi-uXzPs3VL.js",
+        "bytes": 1548,
+        "sha256": "5f79f7ab5ad967c037e2b406b1858a09da2637efadff424c92f2bba84eccd392"
+      },
+      {
+        "file": "dist/assets/formsApi-DDaGBFhU.js",
+        "bytes": 3086,
+        "sha256": "07d7217734f61401acecac945774a30b2e7e32e0f275a32ce63b6a7d96a4219a"
+      },
+      {
+        "file": "dist/assets/groupOversightApi-CBs83eqd.js",
+        "bytes": 197,
+        "sha256": "1d32a0c62d7ba2d2a30b3a978f1421267a482dc55a5a8c572e2074ea4e03ad56"
+      },
+      {
+        "file": "dist/assets/homeMetricPresentation-DRPLOH6L.js",
+        "bytes": 1127,
+        "sha256": "7bedd8148b1e9f464074877ca81b91f17074f9eb039fc69e491cb87b719e84bc"
+      },
+      {
+        "file": "dist/assets/identityAccessApi-BJB-j_5v.js",
+        "bytes": 4647,
+        "sha256": "9fcf0066181493bac0caabb15781634052b35bf5c0368a98b1a228261b4aa111"
+      },
+      {
+        "file": "dist/assets/index-4GnWgtd4.css",
+        "bytes": 183465,
+        "sha256": "17489fe6dfcf3ecc5fad5c650ae4fcea0fcc82e4efd4803651ed19438cd83d69"
+      },
+      {
+        "file": "dist/assets/index-C1r1Js-_.js",
+        "bytes": 283163,
+        "sha256": "aab78bfd8ae92f8a8802b4824ee055b456c4e87924ec81eb7413b9e79b5aa235"
+      },
+      {
+        "file": "dist/assets/indicatorApi-BkOVQKla.js",
+        "bytes": 527,
+        "sha256": "2c7a74214e6aa29516389e6426b768904269af8e48e55381e647e50ce1cbd69c"
+      },
+      {
+        "file": "dist/assets/indicatorPresentation-BlWNy-gy.js",
+        "bytes": 4060,
+        "sha256": "449f805c7df51f0c2c6f72d48b1c6f0e53aa5aae8ff2fdb70c3a4518fe8a3175"
+      },
+      {
+        "file": "dist/assets/indicatorPresentation-CjxE_j0H.css",
+        "bytes": 3102,
+        "sha256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973"
+      },
+      {
+        "file": "dist/assets/jsx-runtime-C6SpOmys.js",
+        "bytes": 10898,
+        "sha256": "ab298db4c711fba56877950ec4643a863810b3abb8c2f09a715659b85cb2cacd"
+      },
+      {
+        "file": "dist/assets/lossApi-DaXOQROQ.js",
+        "bytes": 1225,
+        "sha256": "efbe3344ac5d399c3e406e806eb8102bd19cc31d3e2f8e1aaffd78af3c6b6ae6"
+      },
+      {
+        "file": "dist/assets/lossOverviewPresentation-3C3a1K_7.js",
+        "bytes": 3955,
+        "sha256": "597ae5944d92e01f9de7c00c837a9dc76446cdb601169850c92919852982b22f"
+      },
+      {
+        "file": "dist/assets/lossPresentation-KsK1xNN3.js",
+        "bytes": 2845,
+        "sha256": "2cd7cf274af520c4d765c78226f7b33b60c66a39790e4ebb62d8e3086d115e10"
+      },
+      {
+        "file": "dist/assets/monitoringApi-BlKX7m7D.js",
+        "bytes": 3068,
+        "sha256": "a1d1e0007bf19d8c7a763e3b5d8f434fcc06ffdb23399f39b3a4045a1feb41a1"
+      },
+      {
+        "file": "dist/assets/oversight-B7GD29gG.css",
+        "bytes": 13482,
+        "sha256": "2584bffc3a1cba9861263f45ba9b0a0f7ed08ac5f849fb1ca1d21fba9d047292"
+      },
+      {
+        "file": "dist/assets/oversight-D6_CqAPb.js",
+        "bytes": 4804,
+        "sha256": "32487391ca313e1cb155f7fec5958e957a3dc634aaaa0bd20ac74fa2da501266"
+      },
+      {
+        "file": "dist/assets/reportingApi-Co5Anktc.js",
+        "bytes": 2589,
+        "sha256": "857a8a2357a3d7b5a5d4ae33d0d423edc658174ed32aee5e35c28379bc25bc41"
+      },
+      {
+        "file": "dist/assets/reportingPeriod-ChMy94oa.js",
+        "bytes": 833,
+        "sha256": "500d55e6ef0648551211513ec03c2d27bdef5de9f2db8c31aa607ce570d5adc6"
+      },
+      {
+        "file": "dist/assets/ropa-BZkz5VZm.css",
+        "bytes": 12275,
+        "sha256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587"
+      },
+      {
+        "file": "dist/assets/ropa-BiNXOxj7.js",
+        "bytes": 1549,
+        "sha256": "e2173aeee17f248666a9d0ecba3821d094917d2c843bda91e8a497782f05d6b2"
+      },
+      {
+        "file": "dist/assets/systemActivityApi-CHFfVyLs.js",
+        "bytes": 1192,
+        "sha256": "e78af3501f4c535937de90b902064bf2011c036d35b55686c69640cafc9f8d1a"
+      },
+      {
+        "file": "dist/assets/ui-BqQkgK9q.css",
+        "bytes": 1624,
+        "sha256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050"
+      },
+      {
+        "file": "dist/assets/ui-Jca7nYrz.js",
+        "bytes": 122792,
+        "sha256": "70e616fad6148ea879657f20e4191ad8b8b5d8f783334284274a76c5427d9ede"
+      },
+      {
+        "file": "dist/assets/useRiskLossMetrics-DMf--3tn.js",
+        "bytes": 3242,
+        "sha256": "67af06e3432ffe486c8d801c8f8a44c11d7d2068249f622e962ff39624fbf4cb"
+      },
+      {
+        "file": "dist/assets/vendorFormsApi-CU0uMlLg.css",
+        "bytes": 4790,
+        "sha256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8"
+      },
+      {
+        "file": "dist/assets/vendorFormsApi-Cfljpv-P.js",
+        "bytes": 31361,
+        "sha256": "518f388b04b5f9a5f044df92e2a26292904de662246ad548a73c22b6f66ee23f"
+      }
+    ],
+    "dist-evidence": [
+      {
+        "file": "dist-evidence/index.html",
+        "bytes": 4558,
+        "sha256": "100ded34e41fb4cad86845747938dac23fc60a637ff43e54749e6ae59aad3b3a"
+      },
+      {
+        "file": "dist-evidence/assets/App-CW5O0mXf.js",
+        "bytes": 438839,
+        "sha256": "3e94545b3f284ebc2e0f0e6e45b921c6ecf5af6aa212f9cd9b47730ea0e598f2"
+      },
+      {
+        "file": "dist-evidence/assets/App-CjVdDs1T.css",
+        "bytes": 69316,
+        "sha256": "87e94f66679ac4d0f8b209a40d85c059dbd05c801a826f65f12b6fee724cbabc"
+      },
+      {
+        "file": "dist-evidence/assets/App-DNhNvjPR.js",
+        "bytes": 438839,
+        "sha256": "5cfa5d34238195cf67d3bad9777413a0a5f8120b85d5ebbc21cc2226dc1d0dbc"
+      },
+      {
+        "file": "dist-evidence/assets/BankJourneysWorkspace-2AgH9f2G.css",
+        "bytes": 4931,
+        "sha256": "e58abe5444c09ecdecdda458acbeda1e610d27f9b81626eb722d6a8883a48353"
+      },
+      {
+        "file": "dist-evidence/assets/BankJourneysWorkspace-DVFk_eGZ.js",
+        "bytes": 13326,
+        "sha256": "3f9d39ec608ba1cb53352e5bf909ac6ea489aa6432781d66b6637b42bfa3f651"
+      },
+      {
+        "file": "dist-evidence/assets/CommunicationsView-BTcKg5YN.js",
+        "bytes": 266823,
+        "sha256": "dfdfe327ba6e523afb5ed79241dd9094b82aa8a0a85073c6d593fba71aada23a"
+      },
+      {
+        "file": "dist-evidence/assets/ConfigureWorkspace-BjXtRVNK.js",
+        "bytes": 167103,
+        "sha256": "3dd3081e1f855596d9f705ff98a3417a6772508b525ec1a60f2bb175d80b98ea"
+      },
+      {
+        "file": "dist-evidence/assets/ConfigureWorkspace-COYlClQh.css",
+        "bytes": 42438,
+        "sha256": "f801fbf4157506cacb6e1957d37e89cf1daa29ada38223b3b89e966333a5703d"
+      },
+      {
+        "file": "dist-evidence/assets/DistributionComposer-BIbKG7Q5.js",
+        "bytes": 17731,
+        "sha256": "ec232567e5fe1f936213c28f3faedabb1149251d42599ec0db2cb34f33582a2b"
+      },
+      {
+        "file": "dist-evidence/assets/DistributionComposer-DLeZxbLt.css",
+        "bytes": 9375,
+        "sha256": "350b092b7f33a1a03f35e3d8610fb2acdaaa71fcb48dcaf6e67293c13c62132d"
+      },
+      {
+        "file": "dist-evidence/assets/EmployeeProfileWorkspace-DrJEN7Y_.js",
+        "bytes": 3946,
+        "sha256": "36306f50e96636f8be954a043d94e775cdf858d3fdd8fe6cc1b7114e228680a3"
+      },
+      {
+        "file": "dist-evidence/assets/EmptyState-BhTs_6Db.js",
+        "bytes": 439,
+        "sha256": "e99e69dbd688eafc222bbd91fc8810ef0be2a495dfd642f5b370da99defdc23c"
+      },
+      {
+        "file": "dist-evidence/assets/FocusedSheet-BR3anp65.js",
+        "bytes": 35,
+        "sha256": "1215e9d48e56ad3d535f5ff0f70ec85ffc150a9f253086ad64eaee288598349a"
+      },
+      {
+        "file": "dist-evidence/assets/FocusedSheet-DrnLjgsp.js",
+        "bytes": 100422,
+        "sha256": "7849d4e15b79dc68e0710ffb37ccfc218a5e8978d645cc1db8e6d55fb9ca5ac5"
+      },
+      {
+        "file": "dist-evidence/assets/FormBuilder-DJS_CSRN.js",
+        "bytes": 71,
+        "sha256": "24512f7407c6ab981b2335e5fb8fc721e4a4b55f8dd79a4767fd052e4e26c0d1"
+      },
+      {
+        "file": "dist-evidence/assets/FormBuilder-DkNz5EQ_.css",
+        "bytes": 24472,
+        "sha256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1"
+      },
+      {
+        "file": "dist-evidence/assets/FormBuilder-XRrW7aQe.js",
+        "bytes": 84302,
+        "sha256": "6fd74f900a9500f1df499c4a5c9df24b5295cab8dae7042ceafc865999458c25"
+      },
+      {
+        "file": "dist-evidence/assets/FormPoliciesView-Cg_AyJ2r.js",
+        "bytes": 15763,
+        "sha256": "953614e0689022c1ab64a8f610a699f730402b819c391084f31cdc84dc94eff7"
+      },
+      {
+        "file": "dist-evidence/assets/FormPreview-CvbhFbBW.js",
+        "bytes": 29583,
+        "sha256": "7b522d3db878192d64eacd0e8b83ab0bd0b6055fc93c153e02b3f0888067a98b"
+      },
+      {
+        "file": "dist-evidence/assets/FormProposalReview-DbSCJA0V.js",
+        "bytes": 15937,
+        "sha256": "8cddfc2cb80ce6961b96e552434259bcebf87fac9299e7f4d5b34e31a967900a"
+      },
+      {
+        "file": "dist-evidence/assets/FormsWorkspace-CanuAxZI.js",
+        "bytes": 65191,
+        "sha256": "9141fabb61115a9ad23487ca4df08a0543e05619f548051eba4eb1357518c407"
+      },
+      {
+        "file": "dist-evidence/assets/GroupOversightWorkspace-C_G15Trr.js",
+        "bytes": 16878,
+        "sha256": "efc1753541ca1b29c5eb0e5ee962af50b7bd7cc1baacf41e26445bdffa466e51"
+      },
+      {
+        "file": "dist-evidence/assets/GroupOversightWorkspace-FAWTwerR.css",
+        "bytes": 1428,
+        "sha256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242"
+      },
+      {
+        "file": "dist-evidence/assets/GroupOversightWorkspace-Ij__ODTl.js",
+        "bytes": 95,
+        "sha256": "74baac6ac5404a22e81bd1af205335db247fd8c230ea4a658fe97d22ef41b775"
+      },
+      {
+        "file": "dist-evidence/assets/IndicatorDetail-CJX6nosf.js",
+        "bytes": 9605,
+        "sha256": "a8a455d36a781e16a7d32537dec59b4000587d9887ec25b454f5fe5950fe252b"
+      },
+      {
+        "file": "dist-evidence/assets/InsightsWorkspace-DgLLVYjj.css",
+        "bytes": 3139,
+        "sha256": "a5344e7614a330a2f2a1f67b8bbc4ddeef2d01e6c738263cfe09d4215d60baa2"
+      },
+      {
+        "file": "dist-evidence/assets/InsightsWorkspace-wAeyaOhg.js",
+        "bytes": 10622,
+        "sha256": "e0408ea1dd5721fcb8a40a629e6e612a248d8c2a579d459029afbefc95c0b39e"
+      },
+      {
+        "file": "dist-evidence/assets/LossesWorkspace-D4hDCZjA.js",
+        "bytes": 21642,
+        "sha256": "4cdc97d32fb698aae6575f353ff36bea546503bef90db1f0df2a190449110fe0"
+      },
+      {
+        "file": "dist-evidence/assets/LossesWorkspace-DQPhU1Nj.css",
+        "bytes": 3510,
+        "sha256": "21108564fadc1803036f6fd7dc9678973cce0826aaeba94e71f134b36b8dc376"
+      },
+      {
+        "file": "dist-evidence/assets/MetricMemberDrill-CR3Iszf7.js",
+        "bytes": 2894,
+        "sha256": "3c72a26988327418fd2319bdfb76486e6b34991841836b8b0845ecd450b234d1"
+      },
+      {
+        "file": "dist-evidence/assets/NavigationIcon-Cw28lXWO.js",
+        "bytes": 3372,
+        "sha256": "1ecfa7f3b854438575d1b465610ebef73a21e9ab1dba4e7872fded00aef1574d"
+      },
+      {
+        "file": "dist-evidence/assets/NotificationCenter-Bw_PmaFl.js",
+        "bytes": 1258,
+        "sha256": "b47230caa4626cce5323cc27282e4db7d7111cf7c99e080efff3e1cca8a17952"
+      },
+      {
+        "file": "dist-evidence/assets/NotificationCenter-y8gwOkyW.css",
+        "bytes": 1555,
+        "sha256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5"
+      },
+      {
+        "file": "dist-evidence/assets/NotificationDeliveryHistory-DwbFDcun.js",
+        "bytes": 2756,
+        "sha256": "eb1cc2dc7181adf5a52ca934d13eefec5a52373a92060ffbe5f2605163570588"
+      },
+      {
+        "file": "dist-evidence/assets/NotificationsWorkspace-BAmZg4MJ.css",
+        "bytes": 14887,
+        "sha256": "e988de36e966535d55a0d8b6677e22792ce5e22015eee29227a194d036817d83"
+      },
+      {
+        "file": "dist-evidence/assets/NotificationsWorkspace-BWiVHTp-.css",
+        "bytes": 14520,
+        "sha256": "650eb590310ee3f1a626e1f877d7324a4ed33804c2d66b89392747d6b449dd2b"
+      },
+      {
+        "file": "dist-evidence/assets/NotificationsWorkspace-SQ83kY9d.js",
+        "bytes": 26099,
+        "sha256": "6070c34ca679e5bfe1b03f594248cf7c8737beb8e4dd655eaea21f5cb6f59042"
+      },
+      {
+        "file": "dist-evidence/assets/NotificationsWorkspace-_DCQMgBl.js",
+        "bytes": 26068,
+        "sha256": "73c33f9b9e5233865b895c0ee1cdc4052caff1072d48873cebb0cfa0167a749f"
+      },
+      {
+        "file": "dist-evidence/assets/OrganizationLossSummary-CpTzz5tz.js",
+        "bytes": 13311,
+        "sha256": "a68d752cce32bf0926189bb4698e58fa8eda85cb35eb6dfc72d41a467279fdd9"
+      },
+      {
+        "file": "dist-evidence/assets/OversightPeriodPicker-Dto4vXys.js",
+        "bytes": 2951,
+        "sha256": "5285f9f4895fd001646a3156c34b42289309b962d6d01d69628305a1fe43719d"
+      },
+      {
+        "file": "dist-evidence/assets/OversightWorkspace-BInO32bQ.js",
+        "bytes": 85,
+        "sha256": "e6c54fd5657ebe2e0a76ec895376bb30b2da7c3d4a6c15237a9c9f94d258cf91"
+      },
+      {
+        "file": "dist-evidence/assets/OversightWorkspace-CUtqXtOi.js",
+        "bytes": 22683,
+        "sha256": "08bae9261c6f67158d64a063dfc56087246efad747960c16697181d9ab0a8a2e"
+      },
+      {
+        "file": "dist-evidence/assets/RCSAWorkspace-Dt3yMK3R.css",
+        "bytes": 3825,
+        "sha256": "9ef3d8fbdd9ad90b69d42749173c0273ff7a65f55a5a36581f51f684ffacde0c"
+      },
+      {
+        "file": "dist-evidence/assets/RCSAWorkspace-tTtdlsFq.js",
+        "bytes": 15011,
+        "sha256": "b7cb1f47acb8056c8df2f7e7b4665acb9e6d0f85bac868da06475a764efa97aa"
+      },
+      {
+        "file": "dist-evidence/assets/ReportsExplore-BZWkRCPK.js",
+        "bytes": 14795,
+        "sha256": "58f305ebf64958fa7f91676f3eecef8241d5bcf3b32f73feff346bb488f5affe"
+      },
+      {
+        "file": "dist-evidence/assets/ReportsExplore-DWws9bfr.css",
+        "bytes": 4179,
+        "sha256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85"
+      },
+      {
+        "file": "dist-evidence/assets/ReportsWorkspace-BE7QasEr.css",
+        "bytes": 18729,
+        "sha256": "5f19f164d10680e24761be28f0c87c2aebead00448cc67c52ed22825cbcc03dc"
+      },
+      {
+        "file": "dist-evidence/assets/ReportsWorkspace-DnL47C4Z.js",
+        "bytes": 50501,
+        "sha256": "cbe16b9f37859f341da8413249ad4fee1589238389071a119c24e97b5b4d85dd"
+      },
+      {
+        "file": "dist-evidence/assets/ResponseAssessment-DX8u-t2_.js",
+        "bytes": 40662,
+        "sha256": "f452cd81e2ad8a2a6cd2ec811b4895d9fdd7cafb916ad2fa90e9ca38953f1943"
+      },
+      {
+        "file": "dist-evidence/assets/ResponseAssessment-DYFP7xBk.css",
+        "bytes": 9312,
+        "sha256": "5c7d80d3beacc486aaa186cf58269b2818e23da389f14d02f35413813a2b486e"
+      },
+      {
+        "file": "dist-evidence/assets/ResponseBrowser-C52TBRy8.js",
+        "bytes": 8904,
+        "sha256": "67879c76854e763719ffe040f251f3694c28e9820525a68bbf7d8bf8ae79fd72"
+      },
+      {
+        "file": "dist-evidence/assets/RisksWorkspace-DpZu8O6v.js",
+        "bytes": 29731,
+        "sha256": "098fcea488889873ce5c61685cf55be546bf7b59f79d8e9bf393267939daa13c"
+      },
+      {
+        "file": "dist-evidence/assets/RisksWorkspace-TeRd9HM3.css",
+        "bytes": 2999,
+        "sha256": "59e0acddc2874e4eaeebb18f859720d3c1c2c96f2654590f83c8b48707d55509"
+      },
+      {
+        "file": "dist-evidence/assets/RopaActivityPage-B9U0Yq6k.js",
+        "bytes": 13417,
+        "sha256": "0ac39d820e0b189c87eddc991eb9ab8fc7e3472c3749906cc3cbb648445e6ddc"
+      },
+      {
+        "file": "dist-evidence/assets/RopaRegisterPage-R1do15lJ.js",
+        "bytes": 10411,
+        "sha256": "d7c2e633c1f198b1c2b8a6479fd17dc7a654ec7c696e745332d78a0b677ebb5c"
+      },
+      {
+        "file": "dist-evidence/assets/SentFormDetail-CQA52hhv.js",
+        "bytes": 14019,
+        "sha256": "2d833dc2258841e78936ba9e16482690ffcb9d7884167887a04366b47f970c0e"
+      },
+      {
+        "file": "dist-evidence/assets/SentFormDetail-DFR_kdL0.css",
+        "bytes": 488,
+        "sha256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a"
+      },
+      {
+        "file": "dist-evidence/assets/SessionGate-D5eDL8UU.js",
+        "bytes": 159634,
+        "sha256": "4bc04c0fd0c878aab0f1290ff93d37eb64a02caa024408f5ea1ac6209ecf8bdd"
+      },
+      {
+        "file": "dist-evidence/assets/SessionGate-DQGLgUmf.css",
+        "bytes": 55740,
+        "sha256": "1c80efd8569e632eab1275e25f88abf4f64a9bca5576af345aabd9081ad1f3d7"
+      },
+      {
+        "file": "dist-evidence/assets/UIComponentGallery-BPfInqDu.css",
+        "bytes": 3267,
+        "sha256": "71cb8b148364a624690cd9beed8c98a909ae03606a8c20157f8c48d77974aa72"
+      },
+      {
+        "file": "dist-evidence/assets/UIComponentGallery-C2ckcZ5L.js",
+        "bytes": 20712,
+        "sha256": "c2b13464002c36991cb73b1e7bdd6229b903bfe119e84db13f48884e2a5b0744"
+      },
+      {
+        "file": "dist-evidence/assets/VendorComplianceOverview-CP2L-5qW.css",
+        "bytes": 2920,
+        "sha256": "29a1271a3a1713ebbff81ba6118479a060b20a07a3887ed5b52d259fde5d5a13"
+      },
+      {
+        "file": "dist-evidence/assets/VendorComplianceOverview-Df5GHirF.js",
+        "bytes": 14417,
+        "sha256": "f2c643a1569509e739847dba3f5f57a5a21dfbe33d931a70d8af166d43ba601b"
+      },
+      {
+        "file": "dist-evidence/assets/VendorWorkPanel-CN9VMHg0.js",
+        "bytes": 30940,
+        "sha256": "a1ca6ca41288ca7da4702d3b01c94d7168fbf72415bd5d80e485f52536107135"
+      },
+      {
+        "file": "dist-evidence/assets/VendorWorkPanel-CU0uMlLg.css",
+        "bytes": 4790,
+        "sha256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8"
+      },
+      {
+        "file": "dist-evidence/assets/VendorsWorkspace-BLanX0wj.css",
+        "bytes": 40252,
+        "sha256": "237e61e465b709dde60eff169bfb54e9efbca017a58cb3e7416a7b58dfe76aa3"
+      },
+      {
+        "file": "dist-evidence/assets/VendorsWorkspace-DwCEiz8T.js",
+        "bytes": 162653,
+        "sha256": "784cead960a6b1af7f66601aa9bb3a7fa1969495b0a7a86ab25e3f3f46b8b543"
+      },
+      {
+        "file": "dist-evidence/assets/WorkItemIcon-kUXpzmct.js",
+        "bytes": 1338,
+        "sha256": "7054836cce24f37280c5decc5a418257edf25211a8ba7e93bc999609bd175f87"
+      },
+      {
+        "file": "dist-evidence/assets/WorkspaceErrorBoundary-D6Uj8R6Z.js",
+        "bytes": 783,
+        "sha256": "3b33a594b6a935593f5a12f59451dd89eef7f9b98e9c129184f9d57a8e192e94"
+      },
+      {
+        "file": "dist-evidence/assets/api-C98UCreH.js",
+        "bytes": 5261,
+        "sha256": "6303325e498bcd58406be478f8fa1536a82077bfa12336a10b31f3aea986fb87"
+      },
+      {
+        "file": "dist-evidence/assets/assessmentFieldResults-CYtGdiIt.css",
+        "bytes": 7259,
+        "sha256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326"
+      },
+      {
+        "file": "dist-evidence/assets/assessmentFieldResults-JN5KNzXT.js",
+        "bytes": 9772,
+        "sha256": "3f27c7ff8105ff0be4ddae479738841bb100af106344489d39d2203d28aa6397"
+      },
+      {
+        "file": "dist-evidence/assets/controlCatalogApi-Ce1062jj.js",
+        "bytes": 506,
+        "sha256": "8ffa2afaf3a8b5d6a03a13c23413da5e06b59eb51890f0b0dd9b2c096418dc55"
+      },
+      {
+        "file": "dist-evidence/assets/form-policies-BQ_oewte.js",
+        "bytes": 12815,
+        "sha256": "d3c2081fc32c63c342f9426b872266c1262d36887959c8c0bc69acb1e5b099a3"
+      },
+      {
+        "file": "dist-evidence/assets/form-policies-d4RnLy_e.css",
+        "bytes": 5595,
+        "sha256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2"
+      },
+      {
+        "file": "dist-evidence/assets/formPoliciesApi-CW2ZHZyP.js",
+        "bytes": 1541,
+        "sha256": "892a5303cf6cee2f07499ff56b0ce543a4ca85006029f545a46477fcf9093cce"
+      },
+      {
+        "file": "dist-evidence/assets/forms-foundation-CINn4wyp.css",
+        "bytes": 49494,
+        "sha256": "ab82ca4d68089ebd1a8d9d62746cb6d191b3fd673d3de9ac62af0673fbc8f282"
+      },
+      {
+        "file": "dist-evidence/assets/formsApi-Bu51RPL0.js",
+        "bytes": 3079,
+        "sha256": "f836b23a8b5dcce759ffe6c2e3b1c155160ea15b3759a79ef36ee2ff0757b0dd"
+      },
+      {
+        "file": "dist-evidence/assets/groupOversightApi-CM8Hxwyf.js",
+        "bytes": 190,
+        "sha256": "c417d1bcd3726fca2518410ce0517105ac967efbedfdb10b7d7916d9f0d31553"
+      },
+      {
+        "file": "dist-evidence/assets/homeMetricPresentation-DRPLOH6L.js",
+        "bytes": 1127,
+        "sha256": "7bedd8148b1e9f464074877ca81b91f17074f9eb039fc69e491cb87b719e84bc"
+      },
+      {
+        "file": "dist-evidence/assets/http-NFAQrmHm.js",
+        "bytes": 2481,
+        "sha256": "628b0ffe1e2a6e36f44bd8c29bb19e46defc50e45c188a5ebf5fed9ef01b4052"
+      },
+      {
+        "file": "dist-evidence/assets/identityAccessApi-3W5ysg-Y.js",
+        "bytes": 4640,
+        "sha256": "2eb180d3a1a0e61930e67c523fa06a93e5d0538c2bac9fb2b695396cf4364408"
+      },
+      {
+        "file": "dist-evidence/assets/index-BUJ_0Ap0.css",
+        "bytes": 178312,
+        "sha256": "555786f9390e746d429de31cd53a10ccbe15df0fd0ec38b151ed3eb3748a1698"
+      },
+      {
+        "file": "dist-evidence/assets/index-iqs3OuRb.js",
+        "bytes": 468888,
+        "sha256": "b406c0ad3e6c009cecd4c6d5ebd093e74a2edf2f55e7c440cb48f56707a84f2d"
+      },
+      {
+        "file": "dist-evidence/assets/index-lo-KKv1Q.js",
+        "bytes": 468888,
+        "sha256": "513a93608dbbcf6df0ed07b8ce4f95fb25dca3ff5f8d1dc7285adda139bf2af4"
+      },
+      {
+        "file": "dist-evidence/assets/indicatorApi-D0EDXQnA.js",
+        "bytes": 520,
+        "sha256": "7c17543016aac54a922c736d68b7c64ccf95d8f67d144759fd7b12b420ab3227"
+      },
+      {
+        "file": "dist-evidence/assets/indicatorPresentation-CikXSk_C.js",
+        "bytes": 4060,
+        "sha256": "d1635c9c6e6903eba8d8caa31b97ce9794c5f3d66827194d2b69d117356c456d"
+      },
+      {
+        "file": "dist-evidence/assets/indicatorPresentation-CjxE_j0H.css",
+        "bytes": 3102,
+        "sha256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973"
+      },
+      {
+        "file": "dist-evidence/assets/jsx-runtime-BKllkxft.js",
+        "bytes": 8457,
+        "sha256": "d570da413d217278b5e77a876b290849a78fccff86b5136bb55d83463eac3c5c"
+      },
+      {
+        "file": "dist-evidence/assets/lossApi-B_TcBYnM.js",
+        "bytes": 1218,
+        "sha256": "88755028d2985d4fa607730c42a75535070744c5ccda9119e5a388c703055879"
+      },
+      {
+        "file": "dist-evidence/assets/lossOverviewPresentation-CJwijbXQ.js",
+        "bytes": 3948,
+        "sha256": "5eedc70cf1c7a9833eb5940ff4f3b3b1dca1d2405f2ddc39c44c7f5aaf8e36f6"
+      },
+      {
+        "file": "dist-evidence/assets/lossPresentation-KsK1xNN3.js",
+        "bytes": 2845,
+        "sha256": "2cd7cf274af520c4d765c78226f7b33b60c66a39790e4ebb62d8e3086d115e10"
+      },
+      {
+        "file": "dist-evidence/assets/monitoringApi-CRENqx4k.js",
+        "bytes": 3061,
+        "sha256": "9cc94314a84aa2f99caa942ad163aa39482b03dd6aaf0d93aaed38c0cadba479"
+      },
+      {
+        "file": "dist-evidence/assets/oversight-B7GD29gG.css",
+        "bytes": 13482,
+        "sha256": "2584bffc3a1cba9861263f45ba9b0a0f7ed08ac5f849fb1ca1d21fba9d047292"
+      },
+      {
+        "file": "dist-evidence/assets/oversight-CY4fGfhs.js",
+        "bytes": 4804,
+        "sha256": "6b985ec5ab08bce154a0370a356e5a164efa01001061b41b8fbf1274bfc110ac"
+      },
+      {
+        "file": "dist-evidence/assets/preload-helper-Czpn1I53.js",
+        "bytes": 1196,
+        "sha256": "aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152"
+      },
+      {
+        "file": "dist-evidence/assets/reportingApi-DY6dpKIv.js",
+        "bytes": 2582,
+        "sha256": "8081cf4b87876e1a705817225ca810bf23ccff5f5a675a9ed341ad383333609e"
+      },
+      {
+        "file": "dist-evidence/assets/reportingPeriod-ChMy94oa.js",
+        "bytes": 833,
+        "sha256": "500d55e6ef0648551211513ec03c2d27bdef5de9f2db8c31aa607ce570d5adc6"
+      },
+      {
+        "file": "dist-evidence/assets/ropa-BZkz5VZm.css",
+        "bytes": 12275,
+        "sha256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587"
+      },
+      {
+        "file": "dist-evidence/assets/ropa-TDXpe7CB.js",
+        "bytes": 1542,
+        "sha256": "1520252bc56533ce4e71222d948f30ad1a15efdc8e694151bc92444e95dd0c6d"
+      },
+      {
+        "file": "dist-evidence/assets/staticDemoFixtures-B_3l5bJf.json",
+        "bytes": 23043,
+        "sha256": "e9f86a878e9904635d67ef06997def27091245a672092f5f94b83613779545d2"
+      },
+      {
+        "file": "dist-evidence/assets/staticDemoWorkflowRuntime-BhTozA-3.js",
+        "bytes": 41434,
+        "sha256": "bdb4b5cb54a492007b548cc82a17817de56f937b2ff98575e65585257552d0b5"
+      },
+      {
+        "file": "dist-evidence/assets/systemActivityApi-Dix3I6gG.js",
+        "bytes": 1185,
+        "sha256": "221047906ba654f99101ad55d4cc5f5375e89e43fd0957483b5e29c1bf3c716b"
+      },
+      {
+        "file": "dist-evidence/assets/ui-BqQkgK9q.css",
+        "bytes": 1624,
+        "sha256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050"
+      },
+      {
+        "file": "dist-evidence/assets/ui-CnNf69dw.js",
+        "bytes": 122800,
+        "sha256": "41478a4fdef6a7914c37399508ca0214acc8a04ae739b55cf1cc36d73dbafa19"
+      },
+      {
+        "file": "dist-evidence/assets/useRiskLossMetrics-NFVaRUVj.js",
+        "bytes": 3242,
+        "sha256": "28bfea592da21b346c8d8cbc4fd3300f7f246011862bee385d631cb7dfee40d2"
+      },
+      {
+        "file": "dist-evidence/assets/vendorFormsApi-DBEyKbo7.js",
+        "bytes": 598,
+        "sha256": "797205efb31c8b6b245b7d83cff834bf2710d0c6fa954c0aa7442dafef1a801c"
+      }
+    ]
+  },
+  "images": [
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-light-1440x900.png",
+      "bytes": 223084,
+      "sha256": "265ffaa4b6775987c78ea65bdf8f4c10494ef1fdf22c357d097ff691000cf8fc",
+      "view": "inbox",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-light-1280x800.png",
+      "bytes": 195699,
+      "sha256": "4fdc44fcd2ca5aabc71f0e23ecd72a3aa77b9cd2d2c13c8ad130feb6a537dff8",
+      "view": "inbox",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-light-1024x768.png",
+      "bytes": 161891,
+      "sha256": "728a98a626ebbccbebd778ac9058c7a1acf7db30d78323aa5881572a8fdb75bd",
+      "view": "inbox",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-light-768x900.png",
+      "bytes": 138480,
+      "sha256": "98c03074e6f3942183c493b5d0d427db8645755c746cebef4ed5cb6b3ce13ed4",
+      "view": "inbox",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-light-390x844.png",
+      "bytes": 87442,
+      "sha256": "f8b641c922792afe483995c441182c892977ca096f4b8771c9e50d177341b16d",
+      "view": "inbox",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-dark-1440x900.png",
+      "bytes": 220591,
+      "sha256": "cffaaa2e78d50896d5063d09192da49e3329632193e67956229327408c06ca5f",
+      "view": "inbox",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-dark-1280x800.png",
+      "bytes": 196499,
+      "sha256": "76f06aba8c8c7f71be9a6eb0ea9f15ce29054d7735865c8843bd9fabcbb8d50a",
+      "view": "inbox",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-dark-1024x768.png",
+      "bytes": 160429,
+      "sha256": "b05af7ee13ae17fdcdf384f7ffb00aea96bcbe2b48b8f7d759f2143fe026d630",
+      "view": "inbox",
+      "theme": "dark",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-dark-768x900.png",
+      "bytes": 142062,
+      "sha256": "3f5e97fbe5f2f44ceab6dd3eb3d95d33267fa5cbbd83025dc82b96f0c7a2f1a2",
+      "view": "inbox",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/226-notifications-inbox-dark-390x844.png",
+      "bytes": 89142,
+      "sha256": "3cfd5c211714da5bba6a8cd24a49fd3a6ae5ff33b164d3e345327430e042f032",
+      "view": "inbox",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-light-1440x900.png",
+      "bytes": 225032,
+      "sha256": "a30d6f4d2c8847f440c67d72c35a7530b4a4212607bb3e4afb9febcd6ab70fe9",
+      "view": "activity",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-light-1280x800.png",
+      "bytes": 197173,
+      "sha256": "07570a2fa314ce61e0a0734d6a4ee1e1b12a69ddc17158bb51c3e1d8068231be",
+      "view": "activity",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-light-1024x768.png",
+      "bytes": 158890,
+      "sha256": "b660ac62ea50b383555f718412b4e647e80fee6105dba10ef796cb3abd32b1e1",
+      "view": "activity",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-light-768x900.png",
+      "bytes": 128385,
+      "sha256": "19e38d66301e7cac300f27170e1633860dfdb5a1e7218bb798310c7bb6b9f9ff",
+      "view": "activity",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-light-390x844.png",
+      "bytes": 90352,
+      "sha256": "3b05057768f8fd3d04aa83fb13089dd1b64173d65f60f53010f4e6066f8e0e6d",
+      "view": "activity",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-dark-1440x900.png",
+      "bytes": 224503,
+      "sha256": "27373fe5ec8d7820300df32a7ff035d70c38fd1bedf1a5535a9f06a0e8c58667",
+      "view": "activity",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-dark-1280x800.png",
+      "bytes": 196673,
+      "sha256": "facd15cf95ee4504d13451120139b228d06807bcfb8da0003ab5ad8a4b4d785b",
+      "view": "activity",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-dark-1024x768.png",
+      "bytes": 154445,
+      "sha256": "8630f4b135be9efd1ca296ea0d3f5b9a516cacfa96625fa13ccd056c0eb6efe7",
+      "view": "activity",
+      "theme": "dark",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-dark-768x900.png",
+      "bytes": 124955,
+      "sha256": "bdabfcdd20368de3ba152ab87c0b48ed81bd60dc02bec0b4ad21139206212fc8",
+      "view": "activity",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/227-notifications-activity-dark-390x844.png",
+      "bytes": 88957,
+      "sha256": "dbd5585e27da097a58d50b030493f4aed44fb0b6948ea6bc0d8bd43805eb5bb8",
+      "view": "activity",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-light-1440x900.png",
+      "bytes": 184487,
+      "sha256": "a2ef2be607200008ad0b0675718a3ce5cd6a9970d9f7314dc7b23a8f139a45f1",
+      "view": "preferences",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-light-1280x800.png",
+      "bytes": 175394,
+      "sha256": "ab3524507d79efd28cac1b510049c8ed959e9bb3ee7f39e2d5fc2d393818e3f5",
+      "view": "preferences",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-light-1024x768.png",
+      "bytes": 139667,
+      "sha256": "5abcc24f1b1b3d967429ae338e9b9cdd0d4fcc43fc0b412133f26b7d00f03c4c",
+      "view": "preferences",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-light-768x900.png",
+      "bytes": 116533,
+      "sha256": "c7dd9bdd324c04e4e87f6f577b0c2d14d7c3c6ef7390b25c7b809c070ba4cfa7",
+      "view": "preferences",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-light-390x844.png",
+      "bytes": 91130,
+      "sha256": "1f842c7bc5ce6cad16b8d25fafd9ea01f16981d50984f7754602497f358e172f",
+      "view": "preferences",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-dark-1440x900.png",
+      "bytes": 180172,
+      "sha256": "4cfb76483011645edf891c7c340240c2158890d10cb33020d10fa7642b4f9f7e",
+      "view": "preferences",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-dark-1280x800.png",
+      "bytes": 175239,
+      "sha256": "71646bea1edc5eedb1c9bd31a33193d7d1f3f272ada89781e6f1fa20f7a8807d",
+      "view": "preferences",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-dark-1024x768.png",
+      "bytes": 135860,
+      "sha256": "5620e05f02c06e3733d812850a46b7d9398b7c82e72ee90bd9e80d7d5402d6d0",
+      "view": "preferences",
+      "theme": "dark",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-dark-768x900.png",
+      "bytes": 112954,
+      "sha256": "b68a47b7bc92a066e9adca0ae502de513d586de95ad8191eb82ca1e993fe772d",
+      "view": "preferences",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/228-notifications-preferences-dark-390x844.png",
+      "bytes": 91854,
+      "sha256": "f9f2c0d1f850fc1528fe8e336e87cbaf2f27cb3f541004138d5c41d31cf17ce2",
+      "view": "preferences",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229-notifications-inbox-empty-light-1440.png",
+      "bytes": 163559,
+      "sha256": "0d2a0c6b35838e164fd680723b4b98f990948e0969a013d55e4a04befaf8bcdc",
+      "view": "inbox",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229a-notifications-inbox-unavailable-dark-390.png",
+      "bytes": 62410,
+      "sha256": "a095d3e504569deaf76f266673612e1f243861ab659a870bafc878a56311192a",
+      "view": "inbox",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229b-notifications-inbox-read-failed-dark-390.png",
+      "bytes": 60736,
+      "sha256": "bae7e4b0d1a026ab0cadaa84344bb36df6ef75b169bfda7ed5ac6cd1282922e2",
+      "view": "inbox",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229c-notifications-inbox-more-failed-light-1440.png",
+      "bytes": 191544,
+      "sha256": "69099c70235278811e86b318208a155d96356c7acb546d1481977b5fc710d78b",
+      "view": "inbox",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229d-notifications-inbox-selected-dark-390.png",
+      "bytes": 58971,
+      "sha256": "19e5fa4cfad39c0bc02594f1a122850fb8f1b85ea3c3578e9573afe1824a78c0",
+      "view": "inbox",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229e-notifications-inbox-read-light-1440.png",
+      "bytes": 228182,
+      "sha256": "f37b9d5e190031c679eb61b194a2e353245cdddd4c4f3c2de6b26c963fe5940f",
+      "view": "inbox",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229f-notifications-preferences-preferences-conflict-dark-390.png",
+      "bytes": 59587,
+      "sha256": "1fe6d0083782d8f6f932ef9d99540541b21d9ca73889d47a52f72f9d8e6856ad",
+      "view": "preferences",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229g-notifications-activity-denied-light-1440.png",
+      "bytes": 133912,
+      "sha256": "3b406d870aa616c242fdf514dfe6735b31c1957ec2d155f95cdb4807f61a80b3",
+      "view": "activity",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229h-notifications-activity-unavailable-dark-390.png",
+      "bytes": 55883,
+      "sha256": "0483d0e37a446a7021428e9170ab64faa601dfa52ecaa87f68c58193cb30fa83",
+      "view": "activity",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229i-notifications-activity-foreign-light-1440.png",
+      "bytes": 151347,
+      "sha256": "f49784858ffb003b62b2b5c8c82b78935dcf050097b22aa5c85362900dcdc12c",
+      "view": "activity",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229j-notifications-activity-empty-light-390.png",
+      "bytes": 61254,
+      "sha256": "1a7066259d5ab3100788c04e5835cdaad480f04379ee8481586f96b32a52e2b4",
+      "view": "activity",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/229k-notifications-inbox-unsafe-light-390.png",
+      "bytes": 61739,
+      "sha256": "561a369b0898e98cba038e461a33823d8c6c977a39110bce1ef540056fe5ba34",
+      "view": "inbox",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    }
+  ],
+  "geometry": [
+    {
+      "view": "inbox",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "placement": "beside",
+      "main": {
+        "x": 260,
+        "y": 374.875,
+        "width": 696.609375,
+        "height": 785.1875,
+        "right": 956.609375,
+        "bottom": 1160.0625
+      },
+      "aside": {
+        "x": 972.609375,
+        "y": 374.875,
+        "width": 435.390625,
+        "height": 779.75,
+        "right": 1408,
+        "bottom": 1154.625
+      },
+      "firstUsefulContent": {
+        "x": 269,
+        "y": 558.0625,
+        "width": 678.609375,
+        "height": 100,
+        "right": 947.609375,
+        "bottom": 658.0625
+      },
+      "firstRecord": {
+        "x": 269,
+        "y": 558.0625,
+        "width": 678.609375,
+        "height": 100,
+        "right": 947.609375,
+        "bottom": 658.0625
+      },
+      "sourceFirstRecord": {
+        "x": 267,
+        "y": 541,
+        "width": 678.609375,
+        "height": 91,
+        "right": 945.609375,
+        "bottom": 632
+      },
+      "recordHeights": [
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "sourceRecordHeights": [
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "inbox",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "placement": "beside",
+      "main": {
+        "x": 260,
+        "y": 374.6875,
+        "width": 598.140625,
+        "height": 794.1875,
+        "right": 858.140625,
+        "bottom": 1168.875
+      },
+      "aside": {
+        "x": 874.140625,
+        "y": 374.6875,
+        "width": 373.859375,
+        "height": 842.734375,
+        "right": 1248,
+        "bottom": 1217.421875
+      },
+      "firstUsefulContent": {
+        "x": 269,
+        "y": 557.875,
+        "width": 580.140625,
+        "height": 109,
+        "right": 849.140625,
+        "bottom": 666.875
+      },
+      "firstRecord": {
+        "x": 269,
+        "y": 557.875,
+        "width": 580.140625,
+        "height": 109,
+        "right": 849.140625,
+        "bottom": 666.875
+      },
+      "sourceFirstRecord": {
+        "x": 267,
+        "y": 541,
+        "width": 580.140625,
+        "height": 91,
+        "right": 847.140625,
+        "bottom": 632
+      },
+      "recordHeights": [
+        109,
+        100,
+        100,
+        100,
+        100
+      ],
+      "sourceRecordHeights": [
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "inbox",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "placement": "beside",
+      "main": {
+        "x": 112.953125,
+        "y": 398.09375,
+        "width": 490.84375,
+        "height": 963.78125,
+        "right": 603.796875,
+        "bottom": 1361.875
+      },
+      "aside": {
+        "x": 619.796875,
+        "y": 398.09375,
+        "width": 363.234375,
+        "height": 834.734375,
+        "right": 983.03125,
+        "bottom": 1232.828125
+      },
+      "firstUsefulContent": {
+        "x": 121.953125,
+        "y": 599.875,
+        "width": 472.84375,
+        "height": 130,
+        "right": 594.796875,
+        "bottom": 729.875
+      },
+      "firstRecord": {
+        "x": 121.953125,
+        "y": 599.875,
+        "width": 472.84375,
+        "height": 130,
+        "right": 594.796875,
+        "bottom": 729.875
+      },
+      "sourceFirstRecord": {
+        "x": 109,
+        "y": 540,
+        "width": 484.90625,
+        "height": 91,
+        "right": 593.90625,
+        "bottom": 631
+      },
+      "recordHeights": [
+        130,
+        109,
+        109,
+        130,
+        130
+      ],
+      "sourceRecordHeights": [
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "inbox",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "placement": "stacked",
+      "main": {
+        "x": 80,
+        "y": 361.28125,
+        "width": 680,
+        "height": 794.1875,
+        "right": 760,
+        "bottom": 1155.46875
+      },
+      "aside": {
+        "x": 80,
+        "y": 1171.46875,
+        "width": 680,
+        "height": 784.15625,
+        "right": 760,
+        "bottom": 1955.625
+      },
+      "firstUsefulContent": {
+        "x": 89,
+        "y": 544.46875,
+        "width": 662,
+        "height": 109,
+        "right": 751,
+        "bottom": 653.46875
+      },
+      "firstRecord": {
+        "x": 89,
+        "y": 544.46875,
+        "width": 662,
+        "height": 109,
+        "right": 751,
+        "bottom": 653.46875
+      },
+      "sourceFirstRecord": {
+        "x": 109,
+        "y": 533,
+        "width": 622,
+        "height": 91,
+        "right": 731,
+        "bottom": 624
+      },
+      "recordHeights": [
+        109,
+        100,
+        100,
+        100,
+        100
+      ],
+      "sourceRecordHeights": [
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91,
+        91
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "inbox",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "placement": "stacked",
+      "main": {
+        "x": 64,
+        "y": 361.28125,
+        "width": 318,
+        "height": 1070.1875,
+        "right": 382,
+        "bottom": 1431.46875
+      },
+      "aside": {
+        "x": 64,
+        "y": 1447.46875,
+        "width": 318,
+        "height": 1001.734375,
+        "right": 382,
+        "bottom": 2449.203125
+      },
+      "firstUsefulContent": {
+        "x": 73,
+        "y": 459.46875,
+        "width": 300,
+        "height": 178,
+        "right": 373,
+        "bottom": 637.46875
+      },
+      "firstRecord": {
+        "x": 73,
+        "y": 459.46875,
+        "width": 300,
+        "height": 178,
+        "right": 373,
+        "bottom": 637.46875
+      },
+      "sourceFirstRecord": {
+        "x": 77,
+        "y": 420,
+        "width": 292,
+        "height": 98.84375,
+        "right": 369,
+        "bottom": 518.84375
+      },
+      "recordHeights": [
+        178,
+        160,
+        160,
+        160,
+        160
+      ],
+      "sourceRecordHeights": [
+        98.84375,
+        98.84375,
+        98.84375,
+        102.84375,
+        113.6875,
+        98.84375,
+        98.84375,
+        98.84375,
+        98.84375,
+        98.84375,
+        98.84375,
+        102.84375,
+        98.84375
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "activity",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "placement": "beside",
+      "main": {
+        "x": 260,
+        "y": 389.5625,
+        "width": 732.46875,
+        "height": 593.5625,
+        "right": 992.46875,
+        "bottom": 983.125
+      },
+      "aside": {
+        "x": 1008.46875,
+        "y": 389.5625,
+        "width": 399.53125,
+        "height": 575,
+        "right": 1408,
+        "bottom": 964.5625
+      },
+      "firstUsefulContent": {
+        "x": 281,
+        "y": 495.5625,
+        "width": 690.46875,
+        "height": 114.1875,
+        "right": 971.46875,
+        "bottom": 609.75
+      },
+      "firstRecord": {
+        "x": 281,
+        "y": 495.5625,
+        "width": 690.46875,
+        "height": 114.1875,
+        "right": 971.46875,
+        "bottom": 609.75
+      },
+      "sourceFirstRecord": {
+        "x": 279,
+        "y": 475,
+        "width": 690.875,
+        "height": 94,
+        "right": 969.875,
+        "bottom": 569
+      },
+      "recordHeights": [
+        114.1875,
+        114.1875,
+        114.1875
+      ],
+      "sourceRecordHeights": [
+        94,
+        94,
+        94,
+        94,
+        94,
+        94,
+        94,
+        94
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "activity",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "placement": "beside",
+      "main": {
+        "x": 260,
+        "y": 389.375,
+        "width": 628.9375,
+        "height": 593.5625,
+        "right": 888.9375,
+        "bottom": 982.9375
+      },
+      "aside": {
+        "x": 904.9375,
+        "y": 389.375,
+        "width": 343.0625,
+        "height": 596,
+        "right": 1248,
+        "bottom": 985.375
+      },
+      "firstUsefulContent": {
+        "x": 281,
+        "y": 495.375,
+        "width": 586.9375,
+        "height": 114.1875,
+        "right": 867.9375,
+        "bottom": 609.5625
+      },
+      "firstRecord": {
+        "x": 281,
+        "y": 495.375,
+        "width": 586.9375,
+        "height": 114.1875,
+        "right": 867.9375,
+        "bottom": 609.5625
+      },
+      "sourceFirstRecord": {
+        "x": 279,
+        "y": 475,
+        "width": 587.34375,
+        "height": 94,
+        "right": 866.34375,
+        "bottom": 569
+      },
+      "recordHeights": [
+        114.1875,
+        114.1875,
+        114.1875
+      ],
+      "sourceRecordHeights": [
+        94,
+        94,
+        94,
+        94,
+        94,
+        94,
+        94,
+        94
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "activity",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "placement": "beside",
+      "main": {
+        "x": 112.953125,
+        "y": 412.78125,
+        "width": 552.640625,
+        "height": 622.5625,
+        "right": 665.59375,
+        "bottom": 1035.34375
+      },
+      "aside": {
+        "x": 681.59375,
+        "y": 412.78125,
+        "width": 301.453125,
+        "height": 635,
+        "right": 983.046875,
+        "bottom": 1047.78125
+      },
+      "firstUsefulContent": {
+        "x": 133.953125,
+        "y": 518.78125,
+        "width": 510.640625,
+        "height": 143.1875,
+        "right": 644.59375,
+        "bottom": 661.96875
+      },
+      "firstRecord": {
+        "x": 133.953125,
+        "y": 518.78125,
+        "width": 510.640625,
+        "height": 143.1875,
+        "right": 644.59375,
+        "bottom": 661.96875
+      },
+      "sourceFirstRecord": {
+        "x": 121,
+        "y": 474,
+        "width": 525.234375,
+        "height": 94,
+        "right": 646.234375,
+        "bottom": 568
+      },
+      "recordHeights": [
+        143.1875,
+        114.1875,
+        114.1875
+      ],
+      "sourceRecordHeights": [
+        94,
+        94,
+        94,
+        94,
+        94,
+        94,
+        94,
+        94
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "activity",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "placement": "context-above",
+      "main": {
+        "x": 80,
+        "y": 848.96875,
+        "width": 680,
+        "height": 593.5625,
+        "right": 760,
+        "bottom": 1442.53125
+      },
+      "aside": {
+        "x": 80,
+        "y": 427.96875,
+        "width": 680,
+        "height": 405,
+        "right": 760,
+        "bottom": 832.96875
+      },
+      "firstUsefulContent": {
+        "x": 122,
+        "y": 578.96875,
+        "width": 188,
+        "height": 72,
+        "right": 310,
+        "bottom": 650.96875
+      },
+      "firstRecord": {
+        "x": 101,
+        "y": 954.96875,
+        "width": 638,
+        "height": 114.1875,
+        "right": 739,
+        "bottom": 1069.15625
+      },
+      "sourceFirstRecord": {
+        "x": 121,
+        "y": 793.375,
+        "width": 598,
+        "height": 94,
+        "right": 719,
+        "bottom": 887.375
+      },
+      "recordHeights": [
+        114.1875,
+        114.1875,
+        114.1875
+      ],
+      "sourceRecordHeights": [
+        94,
+        94,
+        94,
+        94,
+        94,
+        94,
+        94,
+        94
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "activity",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "placement": "context-above",
+      "main": {
+        "x": 64,
+        "y": 1044.65625,
+        "width": 318,
+        "height": 909.125,
+        "right": 382,
+        "bottom": 1953.78125
+      },
+      "aside": {
+        "x": 64,
+        "y": 449.65625,
+        "width": 318,
+        "height": 579,
+        "right": 382,
+        "bottom": 1028.65625
+      },
+      "firstUsefulContent": {
+        "x": 98,
+        "y": 634.65625,
+        "width": 250,
+        "height": 72,
+        "right": 348,
+        "bottom": 706.65625
+      },
+      "firstRecord": {
+        "x": 81,
+        "y": 1146.65625,
+        "width": 284,
+        "height": 223.375,
+        "right": 365,
+        "bottom": 1370.03125
+      },
+      "sourceFirstRecord": {
+        "x": 84,
+        "y": 952.34375,
+        "width": 278,
+        "height": 97.09375,
+        "right": 362,
+        "bottom": 1049.4375
+      },
+      "recordHeights": [
+        223.375,
+        201.375,
+        241.375
+      ],
+      "sourceRecordHeights": [
+        97.09375,
+        114.140625,
+        113.09375,
+        97.09375,
+        97.09375,
+        97.09375,
+        97.09375,
+        127.09375
+      ],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "preferences",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "placement": "beside",
+      "main": {
+        "x": 260,
+        "y": 389.5625,
+        "width": 732.46875,
+        "height": 398.6875,
+        "right": 992.46875,
+        "bottom": 788.25
+      },
+      "aside": {
+        "x": 1008.46875,
+        "y": 389.5625,
+        "width": 399.53125,
+        "height": 719,
+        "right": 1408,
+        "bottom": 1108.5625
+      },
+      "firstUsefulContent": {
+        "x": 285,
+        "y": 481.25,
+        "width": 682.46875,
+        "height": 73,
+        "right": 967.46875,
+        "bottom": 554.25
+      },
+      "firstRecord": null,
+      "sourceFirstRecord": null,
+      "recordHeights": [],
+      "sourceRecordHeights": [],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "preferences",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "placement": "beside",
+      "main": {
+        "x": 260,
+        "y": 389.375,
+        "width": 628.9375,
+        "height": 398.6875,
+        "right": 888.9375,
+        "bottom": 788.0625
+      },
+      "aside": {
+        "x": 904.9375,
+        "y": 389.375,
+        "width": 343.0625,
+        "height": 673,
+        "right": 1248,
+        "bottom": 1062.375
+      },
+      "firstUsefulContent": {
+        "x": 285,
+        "y": 481.0625,
+        "width": 578.9375,
+        "height": 73,
+        "right": 863.9375,
+        "bottom": 554.0625
+      },
+      "firstRecord": null,
+      "sourceFirstRecord": null,
+      "recordHeights": [],
+      "sourceRecordHeights": [],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "preferences",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "placement": "beside",
+      "main": {
+        "x": 112.953125,
+        "y": 412.78125,
+        "width": 552.640625,
+        "height": 419.6875,
+        "right": 665.59375,
+        "bottom": 832.46875
+      },
+      "aside": {
+        "x": 681.59375,
+        "y": 412.78125,
+        "width": 301.453125,
+        "height": 673,
+        "right": 983.046875,
+        "bottom": 1085.78125
+      },
+      "firstUsefulContent": {
+        "x": 137.953125,
+        "y": 504.46875,
+        "width": 502.640625,
+        "height": 73,
+        "right": 640.59375,
+        "bottom": 577.46875
+      },
+      "firstRecord": null,
+      "sourceFirstRecord": null,
+      "recordHeights": [],
+      "sourceRecordHeights": [],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "preferences",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "placement": "stacked",
+      "main": {
+        "x": 80,
+        "y": 375.96875,
+        "width": 680,
+        "height": 398.6875,
+        "right": 760,
+        "bottom": 774.65625
+      },
+      "aside": {
+        "x": 80,
+        "y": 790.65625,
+        "width": 680,
+        "height": 451,
+        "right": 760,
+        "bottom": 1241.65625
+      },
+      "firstUsefulContent": {
+        "x": 105,
+        "y": 467.65625,
+        "width": 630,
+        "height": 73,
+        "right": 735,
+        "bottom": 540.65625
+      },
+      "firstRecord": null,
+      "sourceFirstRecord": null,
+      "recordHeights": [],
+      "sourceRecordHeights": [],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    },
+    {
+      "view": "preferences",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "placement": "stacked",
+      "main": {
+        "x": 64,
+        "y": 375.96875,
+        "width": 318,
+        "height": 464.375,
+        "right": 382,
+        "bottom": 840.34375
+      },
+      "aside": {
+        "x": 64,
+        "y": 856.34375,
+        "width": 318,
+        "height": 720,
+        "right": 382,
+        "bottom": 1576.34375
+      },
+      "firstUsefulContent": {
+        "x": 81,
+        "y": 481.34375,
+        "width": 284,
+        "height": 73,
+        "right": 365,
+        "bottom": 554.34375
+      },
+      "firstRecord": null,
+      "sourceFirstRecord": null,
+      "recordHeights": [],
+      "sourceRecordHeights": [],
+      "minTargetWidth": 44,
+      "minTargetHeight": 44
+    }
+  ],
+  "beforeBaselineManifest": {
+    "file": "/workspace/scratch/52b859deca91/visual-review/notifications-before-e644/manifest.json",
+    "bytes": 11704,
+    "sha256": "e1ff460dfaac46faefbcabe2dfe607c13dcb9f2de2e5d58d73a32a34571cf1ad"
+  },
+  "implementationRevision": "c2d3593ceaebb509e8e3d1659b80000f6a88c5c6",
+  "baseRevision": "e6449c5149c52cdafa8e4c99140c3763ef980aee",
+  "branch": "agent/462-notifications-workspace-v2-20261021",
+  "status": "PARTIAL_V2_LAYOUT_ADAPTATION_VERIFIED_LOCALLY_PUBLICATION_PENDING",
+  "wholeScreenAcceptance": "0_OF_19_UNCHANGED",
+  "reviewers": [
+    "ChatGPT /root \u2014 integration and final representative renders",
+    "ChatGPT /root/notifications_review \u2014 full visual matrix, supplemental states and race review",
+    "ChatGPT /root/notifications_evidence \u2014 browser contracts and artifact hashes",
+    "ChatGPT /root/notifications_provenance \u2014 source, baseline and ownership"
+  ],
+  "sourceAuthority": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-notifications-activity-designs/notifications-activity-preview.html",
+    "bytes": 79068,
+    "sha256": "18a5fa9e4ef0b306da152444e3c2223fc6fe8ffe359c00e0002c5098609a03bc",
+    "manifestSha256": "4b9df107b35662e2b1c6b8975fd75e0478a58a72e1221c074ac61bcf351abf73"
+  },
+  "localVerification": {
+    "unitTests": {
+      "files": 262,
+      "tests": 2096,
+      "status": "PASS"
+    },
+    "customerBuild": "PASS",
+    "evidenceBuild": "PASS",
+    "typescript": "PASS",
+    "uiContracts": "PASS",
+    "runtimeFixtureBoundary": "PASS",
+    "bundleBudget": {
+      "metrics": {
+        "javascript": {
+          "raw": 2335542,
+          "gzip": 648226,
+          "initial_gzip": 161862,
+          "largest_raw_chunk": 564731
+        },
+        "css": {
+          "raw": 591243,
+          "gzip": 102628,
+          "initial_gzip": 31970
+        }
+      },
+      "budget": {
+        "javascript": {
+          "initialGzip": 196608,
+          "largestRawChunk": 614400
+        },
+        "css": {
+          "initialGzip": 32768
+        }
+      },
+      "failures": []
+    }
+  },
+  "logs": [
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/unit-tests.log",
+      "bytes": 400,
+      "sha256": "1a994c0f38b46d064df53e18e0c0c932f9b27dcc633cbdfea82e419eb6abda5a"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/customer-build.log",
+      "bytes": 9076,
+      "sha256": "1cf87a0bb0e28d71d24ef24bccb50348b05fa653c5b94d33a55de8deced3f3ff"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/evidence-build.log",
+      "bytes": 11322,
+      "sha256": "4e6568d54797760b1975f041f74ab2c00148d09841bcc05b61e749a5d59f9578"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/ui-contracts.log",
+      "bytes": 586,
+      "sha256": "bda72dba93da4d4330507602e38051df6e45f68348a44cd00f018f350f0b7248"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/runtime-boundary.log",
+      "bytes": 387,
+      "sha256": "3f85d73ead6fa0520267aa8ff64cb442e1fcf4f4b739094f4810b37ea30392da"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/capture.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/source.log",
+      "bytes": 85,
+      "sha256": "77ae96d6bee8a91f4e232f18f39d1f2cc679f71b158de7d67fa4ed63214ef0e0"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/accessibility.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/evidence-contract-nodecheck.log",
+      "bytes": 182,
+      "sha256": "e2531a725e17127bb508245b20883f6d01fe548b5b9671ca2d310a6eef3180d2"
+    }
+  ],
+  "artifactHashes": [
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/verification.json",
+      "bytes": 73867,
+      "sha256": "6fc1b7152ba06a5fe6f290d1a774bf2ded03ed914c2bceee768d9cc15342bd69"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/manifest.json",
+      "bytes": 246690,
+      "sha256": "919895f8618611023704cbbb713153286c0acaa375086888e8e62393e14f8506"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/approved-reference/manifest.json",
+      "bytes": 129104,
+      "sha256": "bc441cc764cd4d79fc417e456d8d698718cda14e0a8a6f2c24b4055f696f5441"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/accessibility.json",
+      "bytes": 569636,
+      "sha256": "6fc870c85e2a2cca4db5d66d105cfc99029ef3edef365a1e26e2f52666058b1c"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/bundle-budget.json",
+      "bytes": 419,
+      "sha256": "a7c1deafc57539caa1e2780c6d1608ff7fa0dac7144a65f2f39a561151f18d78"
+    },
+    {
+      "file": "/workspace/scratch/52b859deca91/visual-review/notifications-local/independent-visual-review.json",
+      "bytes": 74055,
+      "sha256": "404b1d0b9b4394a5c17cdf29c89fa4dae7d6e66624415fe0bf70c818829e4bee"
+    }
+  ],
+  "beforeBaseline": {
+    "purpose": "Pre-tranche Notifications drawer anatomy, reconstructed from an unchanged e644 Git archive.",
+    "revision": "e6449c5149c52cdafa8e4c99140c3763ef980aee",
+    "archive": "/tmp/clearsight-notifications-before-e644-eeonbk82",
+    "capturedAt": "2026-10-21T21:07:35.200Z",
+    "sourceFiles": [
+      {
+        "path": "web/src/components/NotificationCenter.tsx",
+        "bytes": 6734,
+        "sha256": "c7fea99f1521b9b88f4be80e6c65212f2eab837e9681b7fc040b3c89352135fa",
+        "matchesRevision": true
+      },
+      {
+        "path": "web/src/components/NotificationPreferences.tsx",
+        "bytes": 5393,
+        "sha256": "d99822c3ec4aa4ab2410fd0ac344349937425f4931fad5d3dd0397ac9d2af75b",
+        "matchesRevision": true
+      },
+      {
+        "path": "web/src/components/ui/FocusedSheet.tsx",
+        "bytes": 1748,
+        "sha256": "4562a4e4b6d841fe10241881dba7c9066591c6750cb624e5f6e391dcad10813d",
+        "matchesRevision": true
+      },
+      {
+        "path": "web/src/notification-center.css",
+        "bytes": 3362,
+        "sha256": "13475ca0f6808ab4a7bdab6bbc87b49e90e2289b4f1c9baba1946187689456a9",
+        "matchesRevision": true
+      },
+      {
+        "path": "web/src/notificationApi.ts",
+        "bytes": 1074,
+        "sha256": "9f2265cb39a499b5bb92e1073146b1f1161be32babe900af26bed6e18d60b938",
+        "matchesRevision": true
+      },
+      {
+        "path": "web/src/notificationPreferencesApi.ts",
+        "bytes": 1496,
+        "sha256": "93d4f47360464aed48d0380ac6cf279ba359e87df1d5871ddaa895bd28ee19b7",
+        "matchesRevision": true
+      }
+    ],
+    "fixture": {
+      "synthetic": true,
+      "description": "Browser-only read fixture reused from the current Notifications evidence harness. Archived UI and build assets are unchanged. Five first-page Sample notifications, seven total unread, three unread on the first page, and persisted email preferences; no command is performed.",
+      "source": "web/src/notificationWorkspaceEvidence.ts",
+      "sourceSha256": "44b4404bcf4f556792705ea7f4a88b6b8bc671415c560f4bcee9c5280077c908",
+      "compiledSnapshot": "synthetic-notification-fixture.js",
+      "compiledSnapshotSha256": "053b8c7af251b3c5bec7a7322a322d8711d9296434423f2be12ffdaee3fd397c",
+      "interception": "A browser init script wraps fetch assignments with closures and handles only GET notifications and notification preferences. All other requests delegate unchanged to the archived evidence runtime."
+    },
+    "acceptance": "Baseline evidence only; no visual or operational acceptance claim.",
+    "records": [
+      {
+        "file": "before-notifications-drawer-1440x900-light.png",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "light",
+        "sha256": "7f56919bdc0b32bfeeb7c4527f70fcfb15d38c4a359fe9861417ae56dd7fd563",
+        "observed": {
+          "route": "#work",
+          "theme": "light",
+          "documentWidth": 1440,
+          "viewportWidth": 1440,
+          "drawer": {
+            "x": 880,
+            "y": 0,
+            "width": 560,
+            "height": 900,
+            "scrollHeight": 1415,
+            "clientHeight": 900
+          },
+          "preferencePanel": {
+            "x": 901,
+            "y": 97.5,
+            "width": 455,
+            "height": 433,
+            "scrollHeight": 431,
+            "clientHeight": 431
+          },
+          "list": {
+            "x": 901,
+            "y": 550.5,
+            "width": 455,
+            "height": 780,
+            "scrollHeight": 780,
+            "clientHeight": 780
+          },
+          "loadedRows": 5,
+          "firstPageUnreadRows": 3,
+          "localTabCount": 0,
+          "selectedContextCount": 0,
+          "reads": [
+            {
+              "path": "/api/v1/notifications",
+              "query": "?limit=25&unread_only=false",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/preferences/notifications",
+              "query": "",
+              "status": 200
+            }
+          ],
+          "commands": []
+        },
+        "pageErrors": []
+      },
+      {
+        "file": "before-notifications-drawer-768x900-light.png",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "light",
+        "sha256": "4c2801be47f0037788e3828aa66db9834cb48731ea403704f28fbd465da88689",
+        "observed": {
+          "route": "#work",
+          "theme": "light",
+          "documentWidth": 768,
+          "viewportWidth": 768,
+          "drawer": {
+            "x": 208,
+            "y": 0,
+            "width": 560,
+            "height": 900,
+            "scrollHeight": 1415,
+            "clientHeight": 900
+          },
+          "preferencePanel": {
+            "x": 229,
+            "y": 97.5,
+            "width": 455,
+            "height": 433,
+            "scrollHeight": 431,
+            "clientHeight": 431
+          },
+          "list": {
+            "x": 229,
+            "y": 550.5,
+            "width": 455,
+            "height": 780,
+            "scrollHeight": 780,
+            "clientHeight": 780
+          },
+          "loadedRows": 5,
+          "firstPageUnreadRows": 3,
+          "localTabCount": 0,
+          "selectedContextCount": 0,
+          "reads": [
+            {
+              "path": "/api/v1/notifications",
+              "query": "?limit=25&unread_only=false",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/preferences/notifications",
+              "query": "",
+              "status": 200
+            }
+          ],
+          "commands": []
+        },
+        "pageErrors": []
+      },
+      {
+        "file": "before-notifications-drawer-390x844-light.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "light",
+        "sha256": "a0ce2cdcaef747b147f33fc7837541b112b3d9f1bec3b4ee3a72bd1d55cc3b2d",
+        "observed": {
+          "route": "#work",
+          "theme": "light",
+          "documentWidth": 390,
+          "viewportWidth": 390,
+          "drawer": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844,
+            "scrollHeight": 2041,
+            "clientHeight": 844
+          },
+          "preferencePanel": {
+            "x": 20,
+            "y": 97.5,
+            "width": 286,
+            "height": 657,
+            "scrollHeight": 655,
+            "clientHeight": 655
+          },
+          "list": {
+            "x": 20,
+            "y": 774.5,
+            "width": 286,
+            "height": 1182,
+            "scrollHeight": 1182,
+            "clientHeight": 1182
+          },
+          "loadedRows": 5,
+          "firstPageUnreadRows": 3,
+          "localTabCount": 0,
+          "selectedContextCount": 0,
+          "reads": [
+            {
+              "path": "/api/v1/notifications",
+              "query": "?limit=25&unread_only=false",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/preferences/notifications",
+              "query": "",
+              "status": 200
+            }
+          ],
+          "commands": []
+        },
+        "pageErrors": []
+      },
+      {
+        "file": "before-notifications-drawer-1440x900-dark.png",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "dark",
+        "sha256": "9600303694989c009618b90ae9cc6028af343927e119559f8385382a157a02b0",
+        "observed": {
+          "route": "#work",
+          "theme": "dark",
+          "documentWidth": 1440,
+          "viewportWidth": 1440,
+          "drawer": {
+            "x": 880,
+            "y": 0,
+            "width": 560,
+            "height": 900,
+            "scrollHeight": 1415,
+            "clientHeight": 900
+          },
+          "preferencePanel": {
+            "x": 901,
+            "y": 97.5,
+            "width": 455,
+            "height": 433,
+            "scrollHeight": 431,
+            "clientHeight": 431
+          },
+          "list": {
+            "x": 901,
+            "y": 550.5,
+            "width": 455,
+            "height": 780,
+            "scrollHeight": 780,
+            "clientHeight": 780
+          },
+          "loadedRows": 5,
+          "firstPageUnreadRows": 3,
+          "localTabCount": 0,
+          "selectedContextCount": 0,
+          "reads": [
+            {
+              "path": "/api/v1/notifications",
+              "query": "?limit=25&unread_only=false",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/preferences/notifications",
+              "query": "",
+              "status": 200
+            }
+          ],
+          "commands": []
+        },
+        "pageErrors": []
+      },
+      {
+        "file": "before-notifications-drawer-768x900-dark.png",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "dark",
+        "sha256": "42f566a20fd3ca09c728e75fc308f14ee08bca4010563a75d844fdfacc442d05",
+        "observed": {
+          "route": "#work",
+          "theme": "dark",
+          "documentWidth": 768,
+          "viewportWidth": 768,
+          "drawer": {
+            "x": 208,
+            "y": 0,
+            "width": 560,
+            "height": 900,
+            "scrollHeight": 1415,
+            "clientHeight": 900
+          },
+          "preferencePanel": {
+            "x": 229,
+            "y": 97.5,
+            "width": 455,
+            "height": 433,
+            "scrollHeight": 431,
+            "clientHeight": 431
+          },
+          "list": {
+            "x": 229,
+            "y": 550.5,
+            "width": 455,
+            "height": 780,
+            "scrollHeight": 780,
+            "clientHeight": 780
+          },
+          "loadedRows": 5,
+          "firstPageUnreadRows": 3,
+          "localTabCount": 0,
+          "selectedContextCount": 0,
+          "reads": [
+            {
+              "path": "/api/v1/notifications",
+              "query": "?limit=25&unread_only=false",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/preferences/notifications",
+              "query": "",
+              "status": 200
+            }
+          ],
+          "commands": []
+        },
+        "pageErrors": []
+      },
+      {
+        "file": "before-notifications-drawer-390x844-dark.png",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "dark",
+        "sha256": "fc0e6bebe812e58cbfc6bbd98b6e2ec26fa7eb815ba1ec50d2e49b3b7c2b8965",
+        "observed": {
+          "route": "#work",
+          "theme": "dark",
+          "documentWidth": 390,
+          "viewportWidth": 390,
+          "drawer": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844,
+            "scrollHeight": 2041,
+            "clientHeight": 844
+          },
+          "preferencePanel": {
+            "x": 20,
+            "y": 97.5,
+            "width": 286,
+            "height": 657,
+            "scrollHeight": 655,
+            "clientHeight": 655
+          },
+          "list": {
+            "x": 20,
+            "y": 774.5,
+            "width": 286,
+            "height": 1182,
+            "scrollHeight": 1182,
+            "clientHeight": 1182
+          },
+          "loadedRows": 5,
+          "firstPageUnreadRows": 3,
+          "localTabCount": 0,
+          "selectedContextCount": 0,
+          "reads": [
+            {
+              "path": "/api/v1/notifications",
+              "query": "?limit=25&unread_only=false",
+              "status": 200
+            },
+            {
+              "path": "/api/v1/preferences/notifications",
+              "query": "",
+              "status": 200
+            }
+          ],
+          "commands": []
+        },
+        "pageErrors": []
+      }
+    ],
+    "browser": "153.0.8010.0",
+    "visualInspection": {
+      "reviewer": "/root/notifications_provenance",
+      "framesReviewed": 6,
+      "observations": [
+        "The archived drawer is 560px wide at 1440px and 768px and occupies the viewport width at 390px.",
+        "Email preferences precede notifications; at 390px the first notification begins near the lower viewport edge.",
+        "No Inbox / Activity / Preferences local menu or selectable context pane exists in this baseline.",
+        "Light and dark frames show the same archived anatomy with Sample fixture data."
+      ],
+      "scope": "Baseline structure inspection only, not design acceptance."
+    }
+  },
+  "publication": {
+    "state": "PENDING",
+    "remoteBranchVerifiedAbsent": true,
+    "notificationsPR": null,
+    "remoteCI": "NOT_RUN_FOR_THIS_TRANCHE",
+    "merge": "NOT_PERFORMED",
+    "deployment": "NOT_PERFORMED",
+    "reason": "Two connected branch-creation calls returned no result before user interruption; later read-only checks found no branch or Notifications PR."
+  },
+  "limitations": [
+    "Synthetic browser fixtures verify UI contracts and request/receipt behavior, not live backend authorization, email delivery or bank outcomes.",
+    "Local Chromium153 differs from pinned CI Chromium140; full remote workflow remains pending.",
+    "Eighty axe contrast nodes remain incomplete; supplemental contrast has 148 INCOMPLETE and 38 REVIEW readings. No blanket WCAG conformance is claimed.",
+    "Mobile Inbox retains readable summaries and 44px controls; its first row is y459.5 versus source420.",
+    "Tablet Activity retains four real context facts; history starts below the first 900px viewport while context remains visible.",
+    "Whole-screen operational acceptance remains 0/19 and production cutover remains blocked."
+  ],
+  "independentVisualReview": {
+    "title": "Independent Notifications workspace v2 visual review",
+    "reviewer": {
+      "name": "GPT-6 Astra Pro",
+      "agent": "/root/notifications_review",
+      "type": "AI visual and runtime reviewer; not human acceptance sign-off"
+    },
+    "recordedAt": "2026-10-21T21:20:46.810645+00:00",
+    "runtimeRevision": "c2d3593ceaebb509e8e3d1659b80000f6a88c5c6",
+    "branch": "agent/462-notifications-workspace-v2-20261021",
+    "decision": "PASS_SCOPED_ADAPTATION",
+    "summary": "All 30 runtime matrix views, 12 supplemental states and 15 original source renders were directly inspected. The corrected implementation preserves the approved workspace and canonical menu anatomy. All three concrete visual defects are resolved. No remaining visual blocker was found in this scope; density and automation limitations remain explicit.",
+    "coverage": {
+      "runtimeMatrix": 30,
+      "supplementalStates": 12,
+      "originalSourceViews": 15,
+      "sourceRuntimePairs": 30,
+      "widths": [
+        1440,
+        1280,
+        1024,
+        768,
+        390
+      ],
+      "runtimeThemes": [
+        "light",
+        "dark"
+      ],
+      "sourceTheme": "Original light prototype",
+      "method": "Opened individual PNGs through view_image and compared whole-screen anatomy and state frames. Independently matched all reviewed final images to SHA256. Six Inbox matrix images and one conflict image are byte-identical to previously inspected images; every changed runtime image was reopened."
+    },
+    "sourceAuthority": {
+      "file": "docs/design/references/clearsight-2026-10/source/clearsight-notifications-activity-designs/notifications-activity-preview.html",
+      "bytes": 79068,
+      "sha256": "18a5fa9e4ef0b306da152444e3c2223fc6fe8ffe359c00e0002c5098609a03bc",
+      "archiveSha256": "65dcc0e3f26e9d41e38efd1ae1d571f5db0f0582a2d561f8c942b25817a5f6e5",
+      "immutableSourceInventory": {
+        "count": 96,
+        "failures": []
+      }
+    },
+    "evidenceBindings": [
+      {
+        "file": "manifest.json",
+        "sha256": "919895f8618611023704cbbb713153286c0acaa375086888e8e62393e14f8506"
+      },
+      {
+        "file": "approved-reference/manifest.json",
+        "sha256": "bc441cc764cd4d79fc417e456d8d698718cda14e0a8a6f2c24b4055f696f5441"
+      },
+      {
+        "file": "verification.json",
+        "sha256": "6fc1b7152ba06a5fe6f290d1a774bf2ded03ed914c2bceee768d9cc15342bd69"
+      },
+      {
+        "file": "accessibility.json",
+        "sha256": "6fc870c85e2a2cca4db5d66d105cfc99029ef3edef365a1e26e2f52666058b1c"
+      },
+      {
+        "file": "independent-visual-review-pre-adjustment.json",
+        "sha256": "b264277273b9afdd559a5e44ef0990eff6df85eb9069f146b261110eeed514b3"
+      }
+    ],
+    "implementationBinding": "verification.json binds the committed runtime revision to production/evidence build assets, fixture modules and nine evidence-script hashes. This review does not claim later documentation commits were part of the runtime build.",
+    "resolvedFindings": [
+      {
+        "id": "NV-01",
+        "issue": "Activity header controls stacked and every event repeated scope plus absent Version data, reducing useful source density.",
+        "before": "At 1440px, feed began around 449px and rows were around 180px high.",
+        "resolution": "Compact period/refresh row; event actor, UTC time, outcome, record and event/source retained. Scope and version limitation remain in context.",
+        "after": "At 1440px, feed begins at 389.5625px, first event at 495.5625px and rows are 114.1875px high. Three fixture events fit the 900px viewport. Source feed begins at 362px and first event at 475px.",
+        "status": "RESOLVED"
+      },
+      {
+        "id": "NV-02",
+        "issue": "Stacked descriptions inherited right alignment, separating values from labels.",
+        "resolution": "Inbox facts, Preferences explanations and Activity context values align with their labels; loaded and selected phone states re-inspected.",
+        "status": "RESOLVED"
+      },
+      {
+        "id": "NV-03",
+        "issue": "Unselected Inbox context lacked internal padding.",
+        "resolution": "Empty/unavailable Inbox now shows padded placeholder text; loaded segmented detail spacing is preserved.",
+        "status": "RESOLVED"
+      },
+      {
+        "id": "NV-E01",
+        "issue": "Some supplemental screenshots did not frame the named result.",
+        "resolution": "Final paging failure, Activity unavailable/empty and unsupported-destination captures show the actual warning, retry, empty result or disabled handoff.",
+        "status": "RESOLVED_EVIDENCE_FRAMING"
+      }
+    ],
+    "observations": {
+      "wholeWorkspace": "Work breadcrumb, Notifications heading/wave, local tabs and view-specific regions follow source anatomy. Current selection is visible in both themes. No horizontal clipping or overlap was observed in reviewed viewports.",
+      "menu": "Expanded navigation at 1440/1280 and compact rails at 1024/768/390 retain canonical Home, Frameworks, Programs, Forms, Vendors, Risk & Losses, Privacy, Work & Approvals and Reports, with Work & Approvals active and Settings in the footer. Source legacy Assessments/Controls & policies/Setup variants are intentionally adapted to shared routes.",
+      "inbox": "Desktop list/detail proportions and persistent selected context follow the source. At 768/390, detail follows the list and selection brings it into view with Back to notifications. Phone filters begin closed behind the named disclosure. All, Unread, refresh and filters fit one toolbar. Search is explicitly limited to loaded rows; receipt and selected detail remain consistent.",
+      "activity": "Desktop timeline/context split follows source hierarchy. Compact events preserve actual actor/outcome/record/event-source facts. Context precedes feed at 768/390, as in source. Action success is distinguished from completion; absent record versions are disclosed once in context.",
+      "preferences": "Source information/email split is retained at 1440/1280/1024, with information-first stacking at 768/390. Supported digest, time zone and quiet hours replace unsupported prototype category switches. Email controls below the initial phone fold follow the source order. Conflict text remains visible with edited values.",
+      "states": "State frames distinguish empty, unavailable, read-command failure, pagination failure, confirmed read, selection, preference conflict, permission denial, foreign-scope rejection and unsupported navigation. Shared menu/active destination stay coherent while body content scrolls."
+    },
+    "acceptedDifferencesAndLimits": [
+      "This is a source-informed layout adaptation using actual API contracts and shared tokens, not pixel parity. Prototype sample values, unsupported controls and route variants are not fabricated in runtime.",
+      "The 15 original reference renders are light. Both runtime themes were compared against that source anatomy; no original dark-reference color parity is claimed.",
+      "Inbox uses larger, less-truncated text. At 390px its first row begins around 459px versus source 420px; full summaries and metadata produce taller rows. The first two records are visible and useful in the initial viewport.",
+      "At 768px, four actual Activity context facts wrap to a second row. Runtime first event is at 954.96875px, below the 900px initial viewport; source first event is visible. At 390px both versions put history after context; runtime first event is at 1146.65625px versus source around 952px. Context order and scrolling are coherent, but density differs.",
+      "Matrix screenshots establish the initial viewport. Named supplemental states cover selected scrolled results. This does not exhaust every scroll position, content length, device or browser.",
+      "Accessibility has 12 automated PASS scenarios, zero reported violations, undersized controls or browser errors. There remain 80 incomplete axe nodes, plus 148 INCOMPLETE and 38 REVIEW supplemental contrast readings. Visual readability does not resolve those measurements or replace a complete manual contrast audit.",
+      "Synthetic fixtures and AI review do not establish backend authorization, real-data reconciliation, production completion or human design acceptance. The separate required acceptance register remains 0/19 and is not advanced by this review.",
+      "Evidence and tests here are local. No remote CI, PR, merge, deployment or production cutover is implied."
+    ],
+    "automation": {
+      "scenarios": 12,
+      "statuses": {
+        "PASS": 12
+      },
+      "failure": null,
+      "violations": 0,
+      "undersizedControls": 0,
+      "browserErrors": 0,
+      "axeIncompleteNodes": 80,
+      "contrastOutcomes": {
+        "PASS": 544,
+        "INCOMPLETE": 148,
+        "REVIEW": 38
+      },
+      "manifestSha256": "6fc870c85e2a2cca4db5d66d105cfc99029ef3edef365a1e26e2f52666058b1c"
+    },
+    "focusedRegressionVerification": {
+      "file": "web/src/components/notifications/NotificationActivity.test.tsx",
+      "result": "13/13 passed after the compact-event data-truth assertion update.",
+      "coverage": "Exact scoped/period query, stale-response and permission guards, foreign-scope rejection, opaque cursor/retry, actual actor/time/outcome/record/event source, explicit context version limitation and no repeated/fabricated per-event scope/version fields."
+    },
+    "runtimeImages": [
+      {
+        "file": "226-notifications-inbox-light-1440x900.png",
+        "sha256": "265ffaa4b6775987c78ea65bdf8f4c10494ef1fdf22c357d097ff691000cf8fc",
+        "bytes": 223084,
+        "view": "inbox",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "226-notifications-inbox-light-1280x800.png",
+        "sha256": "4fdc44fcd2ca5aabc71f0e23ecd72a3aa77b9cd2d2c13c8ad130feb6a537dff8",
+        "bytes": 195699,
+        "view": "inbox",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "226-notifications-inbox-light-1024x768.png",
+        "sha256": "728a98a626ebbccbebd778ac9058c7a1acf7db30d78323aa5881572a8fdb75bd",
+        "bytes": 161891,
+        "view": "inbox",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "Direct visual inspection; final bytes identical to previously inspected image.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "226-notifications-inbox-light-768x900.png",
+        "sha256": "98c03074e6f3942183c493b5d0d427db8645755c746cebef4ed5cb6b3ce13ed4",
+        "bytes": 138480,
+        "view": "inbox",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection; final bytes identical to previously inspected image.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "226-notifications-inbox-light-390x844.png",
+        "sha256": "f8b641c922792afe483995c441182c892977ca096f4b8771c9e50d177341b16d",
+        "bytes": 87442,
+        "view": "inbox",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection; final bytes identical to previously inspected image.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "226-notifications-inbox-dark-1440x900.png",
+        "sha256": "cffaaa2e78d50896d5063d09192da49e3329632193e67956229327408c06ca5f",
+        "bytes": 220591,
+        "view": "inbox",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "226-notifications-inbox-dark-1280x800.png",
+        "sha256": "76f06aba8c8c7f71be9a6eb0ea9f15ce29054d7735865c8843bd9fabcbb8d50a",
+        "bytes": 196499,
+        "view": "inbox",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "226-notifications-inbox-dark-1024x768.png",
+        "sha256": "b05af7ee13ae17fdcdf384f7ffb00aea96bcbe2b48b8f7d759f2143fe026d630",
+        "bytes": 160429,
+        "view": "inbox",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "Direct visual inspection; final bytes identical to previously inspected image.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "226-notifications-inbox-dark-768x900.png",
+        "sha256": "3f5e97fbe5f2f44ceab6dd3eb3d95d33267fa5cbbd83025dc82b96f0c7a2f1a2",
+        "bytes": 142062,
+        "view": "inbox",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection; final bytes identical to previously inspected image.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "226-notifications-inbox-dark-390x844.png",
+        "sha256": "3cfd5c211714da5bba6a8cd24a49fd3a6ae5ff33b164d3e345327430e042f032",
+        "bytes": 89142,
+        "view": "inbox",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection; final bytes identical to previously inspected image.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-light-1440x900.png",
+        "sha256": "a30d6f4d2c8847f440c67d72c35a7530b4a4212607bb3e4afb9febcd6ab70fe9",
+        "bytes": 225032,
+        "view": "activity",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-light-1280x800.png",
+        "sha256": "07570a2fa314ce61e0a0734d6a4ee1e1b12a69ddc17158bb51c3e1d8068231be",
+        "bytes": 197173,
+        "view": "activity",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-light-1024x768.png",
+        "sha256": "b660ac62ea50b383555f718412b4e647e80fee6105dba10ef796cb3abd32b1e1",
+        "bytes": 158890,
+        "view": "activity",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-light-768x900.png",
+        "sha256": "19e38d66301e7cac300f27170e1633860dfdb5a1e7218bb798310c7bb6b9f9ff",
+        "bytes": 128385,
+        "view": "activity",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-light-390x844.png",
+        "sha256": "3b05057768f8fd3d04aa83fb13089dd1b64173d65f60f53010f4e6066f8e0e6d",
+        "bytes": 90352,
+        "view": "activity",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-dark-1440x900.png",
+        "sha256": "27373fe5ec8d7820300df32a7ff035d70c38fd1bedf1a5535a9f06a0e8c58667",
+        "bytes": 224503,
+        "view": "activity",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-dark-1280x800.png",
+        "sha256": "facd15cf95ee4504d13451120139b228d06807bcfb8da0003ab5ad8a4b4d785b",
+        "bytes": 196673,
+        "view": "activity",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-dark-1024x768.png",
+        "sha256": "8630f4b135be9efd1ca296ea0d3f5b9a516cacfa96625fa13ccd056c0eb6efe7",
+        "bytes": 154445,
+        "view": "activity",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-dark-768x900.png",
+        "sha256": "bdabfcdd20368de3ba152ab87c0b48ed81bd60dc02bec0b4ad21139206212fc8",
+        "bytes": 124955,
+        "view": "activity",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "227-notifications-activity-dark-390x844.png",
+        "sha256": "dbd5585e27da097a58d50b030493f4aed44fb0b6948ea6bc0d8bd43805eb5bb8",
+        "bytes": 88957,
+        "view": "activity",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-light-1440x900.png",
+        "sha256": "a2ef2be607200008ad0b0675718a3ce5cd6a9970d9f7314dc7b23a8f139a45f1",
+        "bytes": 184487,
+        "view": "preferences",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-light-1280x800.png",
+        "sha256": "ab3524507d79efd28cac1b510049c8ed959e9bb3ee7f39e2d5fc2d393818e3f5",
+        "bytes": 175394,
+        "view": "preferences",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-light-1024x768.png",
+        "sha256": "5abcc24f1b1b3d967429ae338e9b9cdd0d4fcc43fc0b412133f26b7d00f03c4c",
+        "bytes": 139667,
+        "view": "preferences",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-light-768x900.png",
+        "sha256": "c7dd9bdd324c04e4e87f6f577b0c2d14d7c3c6ef7390b25c7b809c070ba4cfa7",
+        "bytes": 116533,
+        "view": "preferences",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-light-390x844.png",
+        "sha256": "1f842c7bc5ce6cad16b8d25fafd9ea01f16981d50984f7754602497f358e172f",
+        "bytes": 91130,
+        "view": "preferences",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-dark-1440x900.png",
+        "sha256": "4cfb76483011645edf891c7c340240c2158890d10cb33020d10fa7642b4f9f7e",
+        "bytes": 180172,
+        "view": "preferences",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-dark-1280x800.png",
+        "sha256": "71646bea1edc5eedb1c9bd31a33193d7d1f3f272ada89781e6f1fa20f7a8807d",
+        "bytes": 175239,
+        "view": "preferences",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-dark-1024x768.png",
+        "sha256": "5620e05f02c06e3733d812850a46b7d9398b7c82e72ee90bd9e80d7d5402d6d0",
+        "bytes": 135860,
+        "view": "preferences",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-dark-768x900.png",
+        "sha256": "b68a47b7bc92a066e9adca0ae502de513d586de95ad8191eb82ca1e993fe772d",
+        "bytes": 112954,
+        "view": "preferences",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "228-notifications-preferences-dark-390x844.png",
+        "sha256": "f9f2c0d1f850fc1528fe8e336e87cbaf2f27cb3f541004138d5c41d31cf17ce2",
+        "bytes": 91854,
+        "view": "preferences",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Compared with named original source view for whole anatomy, menu, selection, density, content placement and wrapping."
+      },
+      {
+        "file": "229-notifications-inbox-empty-light-1440.png",
+        "sha256": "0d2a0c6b35838e164fd680723b4b98f990948e0969a013d55e4a04befaf8bcdc",
+        "bytes": 163559,
+        "view": "inbox",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Successful empty inbox shows zero loaded/unread, padded unselected context and assigned-work handoff."
+      },
+      {
+        "file": "229a-notifications-inbox-unavailable-dark-390.png",
+        "sha256": "a095d3e504569deaf76f266673612e1f243861ab659a870bafc878a56311192a",
+        "bytes": 62410,
+        "view": "inbox",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Unavailable inbox shows no invented zero count, a clear retry action and padded context placeholder."
+      },
+      {
+        "file": "229b-notifications-inbox-read-failed-dark-390.png",
+        "sha256": "bae7e4b0d1a026ab0cadaa84344bb36df6ef75b169bfda7ed5ac6cd1282922e2",
+        "bytes": 60736,
+        "view": "inbox",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Read failure is visible beside retained unread receipt and selected detail; facts align with labels."
+      },
+      {
+        "file": "229c-notifications-inbox-more-failed-light-1440.png",
+        "sha256": "69099c70235278811e86b318208a155d96356c7acb546d1481977b5fc710d78b",
+        "bytes": 191544,
+        "view": "inbox",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Paging failure and Load more retry are visible with the five existing rows and selected detail preserved."
+      },
+      {
+        "file": "229d-notifications-inbox-selected-dark-390.png",
+        "sha256": "19e5fa4cfad39c0bc02594f1a122850fb8f1b85ea3c3578e9573afe1824a78c0",
+        "bytes": 58971,
+        "view": "inbox",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Selected inline detail has visible focus and Back to notifications; unread receipt remains separate from selection."
+      },
+      {
+        "file": "229e-notifications-inbox-read-light-1440.png",
+        "sha256": "f37b9d5e190031c679eb61b194a2e353245cdddd4c4f3c2de6b26c963fe5940f",
+        "bytes": 228182,
+        "view": "inbox",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Confirmed read changes receipt/count while preserving selected row and detail."
+      },
+      {
+        "file": "229f-notifications-preferences-preferences-conflict-dark-390.png",
+        "sha256": "1fe6d0083782d8f6f932ef9d99540541b21d9ca73889d47a52f72f9d8e6856ad",
+        "bytes": 59587,
+        "view": "preferences",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection; final bytes identical to previously inspected image.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Conflict notice is visible with retained edited email values and reload-before-save guidance."
+      },
+      {
+        "file": "229g-notifications-activity-denied-light-1440.png",
+        "sha256": "3b406d870aa616c242fdf514dfe6735b31c1957ec2d155f95cdb4807f61a80b3",
+        "bytes": 133912,
+        "view": "activity",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Permission denial explains restricted history while Inbox remains available in local navigation."
+      },
+      {
+        "file": "229h-notifications-activity-unavailable-dark-390.png",
+        "sha256": "0483d0e37a446a7021428e9170ab64faa601dfa52ecaa87f68c58193cb30fa83",
+        "bytes": 55883,
+        "view": "activity",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Actual unavailable state and Retry activity are visible; Last checked is unavailable."
+      },
+      {
+        "file": "229i-notifications-activity-foreign-light-1440.png",
+        "sha256": "f49784858ffb003b62b2b5c8c82b78935dcf050097b22aa5c85362900dcdc12c",
+        "bytes": 151347,
+        "view": "activity",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Scope mismatch has clear unavailable explanation and retry without returned foreign records."
+      },
+      {
+        "file": "229j-notifications-activity-empty-light-390.png",
+        "sha256": "1a7066259d5ab3100788c04e5835cdaad480f04379ee8481586f96b32a52e2b4",
+        "bytes": 61254,
+        "view": "activity",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Successful-empty state and zero events are visible after context, distinct from unavailable history."
+      },
+      {
+        "file": "229k-notifications-inbox-unsafe-light-390.png",
+        "sha256": "561a369b0898e98cba038e461a33823d8c6c977a39110bce1ef540056fe5ba34",
+        "bytes": 61739,
+        "view": "inbox",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "Direct visual inspection of final corrected capture.",
+        "verdict": "PASS_SCOPED_VISUAL_REVIEW",
+        "observation": "Unsupported-destination explanation and disabled Open record are visible, with read/work-state distinction below."
+      }
+    ],
+    "sourceImages": [
+      {
+        "file": "approved-reference/approved-notifications-inbox-1440x900.png",
+        "sha256": "50b8d45ceebe9e81697ba8e36f442a8d2f322e43931baf2a7ef58a0822c4b35b",
+        "bytes": 229443,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "view": "inbox",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-inbox-1280x800.png",
+        "sha256": "5f54e2637de4c0f7b1b5e0af57534f6b3f6ec850fb1f096543f904b2129c103b",
+        "bytes": 196933,
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "view": "inbox",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-inbox-1024x768.png",
+        "sha256": "9afdc1e901b59b863c4008fed4859a8dc84085dec6a7ebb515ada2feba1ebf3e",
+        "bytes": 159957,
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "view": "inbox",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-inbox-768x900.png",
+        "sha256": "0367ee713b23e8ca86865e68528c6ededd04c49c48ef41cac9e96d91bc720132",
+        "bytes": 143053,
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "view": "inbox",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-inbox-390x844.png",
+        "sha256": "2dae02ffe604f46fbdcac92d6894245c471c549c6136f41d3e17859345051193",
+        "bytes": 104700,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "view": "inbox",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-activity-1440x900.png",
+        "sha256": "9a900072bcfb03774608edc2d99ef35e72c3ccf55f690d434ffbb1ebd90e6c66",
+        "bytes": 203514,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "view": "activity",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-activity-1280x800.png",
+        "sha256": "ea83b224536a9407e0cf1839e9f76116bdeafbbe473fa45831d8cc5ac1d7a518",
+        "bytes": 180498,
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "view": "activity",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-activity-1024x768.png",
+        "sha256": "4dcda13b580fb7445547d46aae2be9b3d6ea141fe13a40193564071f5eef747d",
+        "bytes": 147277,
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "view": "activity",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-activity-768x900.png",
+        "sha256": "83deebdf73b0428cf89cb6cd68cc08ad33984f386ee373eed3f9938aac0e3b66",
+        "bytes": 120186,
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "view": "activity",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-activity-390x844.png",
+        "sha256": "28d4c4b52a91ba56007c53a97ef577a9ffcb1547b5ddcbeed586bc20640bcf38",
+        "bytes": 81221,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "view": "activity",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-preferences-1440x900.png",
+        "sha256": "29af5eb9f6f534eec91a29cdf55e3c204415384016906168953a156e3085646c",
+        "bytes": 206355,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "view": "preferences",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-preferences-1280x800.png",
+        "sha256": "a1f6ef8a1de7870fee5f37e0e1cbe91398875d5f90c670faec5bae73448b0732",
+        "bytes": 180086,
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "view": "preferences",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-preferences-1024x768.png",
+        "sha256": "6c284cd3afb004eca2f46fc62258592307879ae253af85789135dac78b48c83d",
+        "bytes": 143472,
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "view": "preferences",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-preferences-768x900.png",
+        "sha256": "f58fb1eea844abff87d7890c5ce61320e5eec5c15d1a85363ce36c1633b6ec25",
+        "bytes": 113896,
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "view": "preferences",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      },
+      {
+        "file": "approved-reference/approved-notifications-preferences-390x844.png",
+        "sha256": "db308e57dc1222473caaeb55f3f346a814adde418b0bdc1a09a922084e93c8cc",
+        "bytes": 87045,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "view": "preferences",
+        "inspection": "Direct visual inspection; final bytes match the inspected source image."
+      }
+    ],
+    "sourceRuntimePairs": [
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-1440x900.png",
+        "sourceSha256": "50b8d45ceebe9e81697ba8e36f442a8d2f322e43931baf2a7ef58a0822c4b35b",
+        "runtimeFile": "226-notifications-inbox-light-1440x900.png",
+        "runtimeSha256": "265ffaa4b6775987c78ea65bdf8f4c10494ef1fdf22c357d097ff691000cf8fc",
+        "view": "inbox",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 267,
+          "y": 541,
+          "width": 678.609375,
+          "height": 91,
+          "right": 945.609375,
+          "bottom": 632
+        },
+        "runtimeFirstRecord": {
+          "x": 269,
+          "y": 558.0625,
+          "width": 678.609375,
+          "height": 100,
+          "right": 947.609375,
+          "bottom": 658.0625
+        },
+        "sourceRecordHeights": [
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91
+        ],
+        "runtimeRecordHeights": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-1440x900.png",
+        "sourceSha256": "50b8d45ceebe9e81697ba8e36f442a8d2f322e43931baf2a7ef58a0822c4b35b",
+        "runtimeFile": "226-notifications-inbox-dark-1440x900.png",
+        "runtimeSha256": "cffaaa2e78d50896d5063d09192da49e3329632193e67956229327408c06ca5f",
+        "view": "inbox",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 267,
+          "y": 541,
+          "width": 678.609375,
+          "height": 91,
+          "right": 945.609375,
+          "bottom": 632
+        },
+        "runtimeFirstRecord": {
+          "x": 269,
+          "y": 558.0625,
+          "width": 678.609375,
+          "height": 100,
+          "right": 947.609375,
+          "bottom": 658.0625
+        },
+        "sourceRecordHeights": [
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91
+        ],
+        "runtimeRecordHeights": [
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-1280x800.png",
+        "sourceSha256": "5f54e2637de4c0f7b1b5e0af57534f6b3f6ec850fb1f096543f904b2129c103b",
+        "runtimeFile": "226-notifications-inbox-light-1280x800.png",
+        "runtimeSha256": "4fdc44fcd2ca5aabc71f0e23ecd72a3aa77b9cd2d2c13c8ad130feb6a537dff8",
+        "view": "inbox",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 267,
+          "y": 541,
+          "width": 580.140625,
+          "height": 91,
+          "right": 847.140625,
+          "bottom": 632
+        },
+        "runtimeFirstRecord": {
+          "x": 269,
+          "y": 557.875,
+          "width": 580.140625,
+          "height": 109,
+          "right": 849.140625,
+          "bottom": 666.875
+        },
+        "sourceRecordHeights": [
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91
+        ],
+        "runtimeRecordHeights": [
+          109,
+          100,
+          100,
+          100,
+          100
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-1280x800.png",
+        "sourceSha256": "5f54e2637de4c0f7b1b5e0af57534f6b3f6ec850fb1f096543f904b2129c103b",
+        "runtimeFile": "226-notifications-inbox-dark-1280x800.png",
+        "runtimeSha256": "76f06aba8c8c7f71be9a6eb0ea9f15ce29054d7735865c8843bd9fabcbb8d50a",
+        "view": "inbox",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 267,
+          "y": 541,
+          "width": 580.140625,
+          "height": 91,
+          "right": 847.140625,
+          "bottom": 632
+        },
+        "runtimeFirstRecord": {
+          "x": 269,
+          "y": 557.875,
+          "width": 580.140625,
+          "height": 109,
+          "right": 849.140625,
+          "bottom": 666.875
+        },
+        "sourceRecordHeights": [
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91
+        ],
+        "runtimeRecordHeights": [
+          109,
+          100,
+          100,
+          100,
+          100
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-1024x768.png",
+        "sourceSha256": "9afdc1e901b59b863c4008fed4859a8dc84085dec6a7ebb515ada2feba1ebf3e",
+        "runtimeFile": "226-notifications-inbox-light-1024x768.png",
+        "runtimeSha256": "728a98a626ebbccbebd778ac9058c7a1acf7db30d78323aa5881572a8fdb75bd",
+        "view": "inbox",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 109,
+          "y": 540,
+          "width": 484.90625,
+          "height": 91,
+          "right": 593.90625,
+          "bottom": 631
+        },
+        "runtimeFirstRecord": {
+          "x": 121.953125,
+          "y": 599.875,
+          "width": 472.84375,
+          "height": 130,
+          "right": 594.796875,
+          "bottom": 729.875
+        },
+        "sourceRecordHeights": [
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91
+        ],
+        "runtimeRecordHeights": [
+          130,
+          109,
+          109,
+          130,
+          130
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-1024x768.png",
+        "sourceSha256": "9afdc1e901b59b863c4008fed4859a8dc84085dec6a7ebb515ada2feba1ebf3e",
+        "runtimeFile": "226-notifications-inbox-dark-1024x768.png",
+        "runtimeSha256": "b05af7ee13ae17fdcdf384f7ffb00aea96bcbe2b48b8f7d759f2143fe026d630",
+        "view": "inbox",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 109,
+          "y": 540,
+          "width": 484.90625,
+          "height": 91,
+          "right": 593.90625,
+          "bottom": 631
+        },
+        "runtimeFirstRecord": {
+          "x": 121.953125,
+          "y": 599.875,
+          "width": 472.84375,
+          "height": 130,
+          "right": 594.796875,
+          "bottom": 729.875
+        },
+        "sourceRecordHeights": [
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91
+        ],
+        "runtimeRecordHeights": [
+          130,
+          109,
+          109,
+          130,
+          130
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-768x900.png",
+        "sourceSha256": "0367ee713b23e8ca86865e68528c6ededd04c49c48ef41cac9e96d91bc720132",
+        "runtimeFile": "226-notifications-inbox-light-768x900.png",
+        "runtimeSha256": "98c03074e6f3942183c493b5d0d427db8645755c746cebef4ed5cb6b3ce13ed4",
+        "view": "inbox",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "stacked",
+        "runtimePlacement": "stacked",
+        "sourceFirstRecord": {
+          "x": 109,
+          "y": 533,
+          "width": 622,
+          "height": 91,
+          "right": 731,
+          "bottom": 624
+        },
+        "runtimeFirstRecord": {
+          "x": 89,
+          "y": 544.46875,
+          "width": 662,
+          "height": 109,
+          "right": 751,
+          "bottom": 653.46875
+        },
+        "sourceRecordHeights": [
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91
+        ],
+        "runtimeRecordHeights": [
+          109,
+          100,
+          100,
+          100,
+          100
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-768x900.png",
+        "sourceSha256": "0367ee713b23e8ca86865e68528c6ededd04c49c48ef41cac9e96d91bc720132",
+        "runtimeFile": "226-notifications-inbox-dark-768x900.png",
+        "runtimeSha256": "3f5e97fbe5f2f44ceab6dd3eb3d95d33267fa5cbbd83025dc82b96f0c7a2f1a2",
+        "view": "inbox",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "stacked",
+        "runtimePlacement": "stacked",
+        "sourceFirstRecord": {
+          "x": 109,
+          "y": 533,
+          "width": 622,
+          "height": 91,
+          "right": 731,
+          "bottom": 624
+        },
+        "runtimeFirstRecord": {
+          "x": 89,
+          "y": 544.46875,
+          "width": 662,
+          "height": 109,
+          "right": 751,
+          "bottom": 653.46875
+        },
+        "sourceRecordHeights": [
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91,
+          91
+        ],
+        "runtimeRecordHeights": [
+          109,
+          100,
+          100,
+          100,
+          100
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-390x844.png",
+        "sourceSha256": "2dae02ffe604f46fbdcac92d6894245c471c549c6136f41d3e17859345051193",
+        "runtimeFile": "226-notifications-inbox-light-390x844.png",
+        "runtimeSha256": "f8b641c922792afe483995c441182c892977ca096f4b8771c9e50d177341b16d",
+        "view": "inbox",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "stacked",
+        "runtimePlacement": "stacked",
+        "sourceFirstRecord": {
+          "x": 77,
+          "y": 420,
+          "width": 292,
+          "height": 98.84375,
+          "right": 369,
+          "bottom": 518.84375
+        },
+        "runtimeFirstRecord": {
+          "x": 73,
+          "y": 459.46875,
+          "width": 300,
+          "height": 178,
+          "right": 373,
+          "bottom": 637.46875
+        },
+        "sourceRecordHeights": [
+          98.84375,
+          98.84375,
+          98.84375,
+          102.84375,
+          113.6875,
+          98.84375,
+          98.84375,
+          98.84375,
+          98.84375,
+          98.84375,
+          98.84375,
+          102.84375,
+          98.84375
+        ],
+        "runtimeRecordHeights": [
+          178,
+          160,
+          160,
+          160,
+          160
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-inbox-390x844.png",
+        "sourceSha256": "2dae02ffe604f46fbdcac92d6894245c471c549c6136f41d3e17859345051193",
+        "runtimeFile": "226-notifications-inbox-dark-390x844.png",
+        "runtimeSha256": "3cfd5c211714da5bba6a8cd24a49fd3a6ae5ff33b164d3e345327430e042f032",
+        "view": "inbox",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "stacked",
+        "runtimePlacement": "stacked",
+        "sourceFirstRecord": {
+          "x": 77,
+          "y": 420,
+          "width": 292,
+          "height": 98.84375,
+          "right": 369,
+          "bottom": 518.84375
+        },
+        "runtimeFirstRecord": {
+          "x": 73,
+          "y": 459.46875,
+          "width": 300,
+          "height": 178,
+          "right": 373,
+          "bottom": 637.46875
+        },
+        "sourceRecordHeights": [
+          98.84375,
+          98.84375,
+          98.84375,
+          102.84375,
+          113.6875,
+          98.84375,
+          98.84375,
+          98.84375,
+          98.84375,
+          98.84375,
+          98.84375,
+          102.84375,
+          98.84375
+        ],
+        "runtimeRecordHeights": [
+          178,
+          160,
+          160,
+          160,
+          160
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-1440x900.png",
+        "sourceSha256": "9a900072bcfb03774608edc2d99ef35e72c3ccf55f690d434ffbb1ebd90e6c66",
+        "runtimeFile": "227-notifications-activity-light-1440x900.png",
+        "runtimeSha256": "a30d6f4d2c8847f440c67d72c35a7530b4a4212607bb3e4afb9febcd6ab70fe9",
+        "view": "activity",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 279,
+          "y": 475,
+          "width": 690.875,
+          "height": 94,
+          "right": 969.875,
+          "bottom": 569
+        },
+        "runtimeFirstRecord": {
+          "x": 281,
+          "y": 495.5625,
+          "width": 690.46875,
+          "height": 114.1875,
+          "right": 971.46875,
+          "bottom": 609.75
+        },
+        "sourceRecordHeights": [
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94
+        ],
+        "runtimeRecordHeights": [
+          114.1875,
+          114.1875,
+          114.1875
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-1440x900.png",
+        "sourceSha256": "9a900072bcfb03774608edc2d99ef35e72c3ccf55f690d434ffbb1ebd90e6c66",
+        "runtimeFile": "227-notifications-activity-dark-1440x900.png",
+        "runtimeSha256": "27373fe5ec8d7820300df32a7ff035d70c38fd1bedf1a5535a9f06a0e8c58667",
+        "view": "activity",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 279,
+          "y": 475,
+          "width": 690.875,
+          "height": 94,
+          "right": 969.875,
+          "bottom": 569
+        },
+        "runtimeFirstRecord": {
+          "x": 281,
+          "y": 495.5625,
+          "width": 690.46875,
+          "height": 114.1875,
+          "right": 971.46875,
+          "bottom": 609.75
+        },
+        "sourceRecordHeights": [
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94
+        ],
+        "runtimeRecordHeights": [
+          114.1875,
+          114.1875,
+          114.1875
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-1280x800.png",
+        "sourceSha256": "ea83b224536a9407e0cf1839e9f76116bdeafbbe473fa45831d8cc5ac1d7a518",
+        "runtimeFile": "227-notifications-activity-light-1280x800.png",
+        "runtimeSha256": "07570a2fa314ce61e0a0734d6a4ee1e1b12a69ddc17158bb51c3e1d8068231be",
+        "view": "activity",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 279,
+          "y": 475,
+          "width": 587.34375,
+          "height": 94,
+          "right": 866.34375,
+          "bottom": 569
+        },
+        "runtimeFirstRecord": {
+          "x": 281,
+          "y": 495.375,
+          "width": 586.9375,
+          "height": 114.1875,
+          "right": 867.9375,
+          "bottom": 609.5625
+        },
+        "sourceRecordHeights": [
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94
+        ],
+        "runtimeRecordHeights": [
+          114.1875,
+          114.1875,
+          114.1875
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-1280x800.png",
+        "sourceSha256": "ea83b224536a9407e0cf1839e9f76116bdeafbbe473fa45831d8cc5ac1d7a518",
+        "runtimeFile": "227-notifications-activity-dark-1280x800.png",
+        "runtimeSha256": "facd15cf95ee4504d13451120139b228d06807bcfb8da0003ab5ad8a4b4d785b",
+        "view": "activity",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 279,
+          "y": 475,
+          "width": 587.34375,
+          "height": 94,
+          "right": 866.34375,
+          "bottom": 569
+        },
+        "runtimeFirstRecord": {
+          "x": 281,
+          "y": 495.375,
+          "width": 586.9375,
+          "height": 114.1875,
+          "right": 867.9375,
+          "bottom": 609.5625
+        },
+        "sourceRecordHeights": [
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94
+        ],
+        "runtimeRecordHeights": [
+          114.1875,
+          114.1875,
+          114.1875
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-1024x768.png",
+        "sourceSha256": "4dcda13b580fb7445547d46aae2be9b3d6ea141fe13a40193564071f5eef747d",
+        "runtimeFile": "227-notifications-activity-light-1024x768.png",
+        "runtimeSha256": "b660ac62ea50b383555f718412b4e647e80fee6105dba10ef796cb3abd32b1e1",
+        "view": "activity",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 121,
+          "y": 474,
+          "width": 525.234375,
+          "height": 94,
+          "right": 646.234375,
+          "bottom": 568
+        },
+        "runtimeFirstRecord": {
+          "x": 133.953125,
+          "y": 518.78125,
+          "width": 510.640625,
+          "height": 143.1875,
+          "right": 644.59375,
+          "bottom": 661.96875
+        },
+        "sourceRecordHeights": [
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94
+        ],
+        "runtimeRecordHeights": [
+          143.1875,
+          114.1875,
+          114.1875
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-1024x768.png",
+        "sourceSha256": "4dcda13b580fb7445547d46aae2be9b3d6ea141fe13a40193564071f5eef747d",
+        "runtimeFile": "227-notifications-activity-dark-1024x768.png",
+        "runtimeSha256": "8630f4b135be9efd1ca296ea0d3f5b9a516cacfa96625fa13ccd056c0eb6efe7",
+        "view": "activity",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": {
+          "x": 121,
+          "y": 474,
+          "width": 525.234375,
+          "height": 94,
+          "right": 646.234375,
+          "bottom": 568
+        },
+        "runtimeFirstRecord": {
+          "x": 133.953125,
+          "y": 518.78125,
+          "width": 510.640625,
+          "height": 143.1875,
+          "right": 644.59375,
+          "bottom": 661.96875
+        },
+        "sourceRecordHeights": [
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94
+        ],
+        "runtimeRecordHeights": [
+          143.1875,
+          114.1875,
+          114.1875
+        ],
+        "runtimeFirstRecordVisible": true,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-768x900.png",
+        "sourceSha256": "83deebdf73b0428cf89cb6cd68cc08ad33984f386ee373eed3f9938aac0e3b66",
+        "runtimeFile": "227-notifications-activity-light-768x900.png",
+        "runtimeSha256": "19e38d66301e7cac300f27170e1633860dfdb5a1e7218bb798310c7bb6b9f9ff",
+        "view": "activity",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "context-above",
+        "runtimePlacement": "context-above",
+        "sourceFirstRecord": {
+          "x": 121,
+          "y": 793.375,
+          "width": 598,
+          "height": 94,
+          "right": 719,
+          "bottom": 887.375
+        },
+        "runtimeFirstRecord": {
+          "x": 101,
+          "y": 954.96875,
+          "width": 638,
+          "height": 114.1875,
+          "right": 739,
+          "bottom": 1069.15625
+        },
+        "sourceRecordHeights": [
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94
+        ],
+        "runtimeRecordHeights": [
+          114.1875,
+          114.1875,
+          114.1875
+        ],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-768x900.png",
+        "sourceSha256": "83deebdf73b0428cf89cb6cd68cc08ad33984f386ee373eed3f9938aac0e3b66",
+        "runtimeFile": "227-notifications-activity-dark-768x900.png",
+        "runtimeSha256": "bdabfcdd20368de3ba152ab87c0b48ed81bd60dc02bec0b4ad21139206212fc8",
+        "view": "activity",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "context-above",
+        "runtimePlacement": "context-above",
+        "sourceFirstRecord": {
+          "x": 121,
+          "y": 793.375,
+          "width": 598,
+          "height": 94,
+          "right": 719,
+          "bottom": 887.375
+        },
+        "runtimeFirstRecord": {
+          "x": 101,
+          "y": 954.96875,
+          "width": 638,
+          "height": 114.1875,
+          "right": 739,
+          "bottom": 1069.15625
+        },
+        "sourceRecordHeights": [
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94,
+          94
+        ],
+        "runtimeRecordHeights": [
+          114.1875,
+          114.1875,
+          114.1875
+        ],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-390x844.png",
+        "sourceSha256": "28d4c4b52a91ba56007c53a97ef577a9ffcb1547b5ddcbeed586bc20640bcf38",
+        "runtimeFile": "227-notifications-activity-light-390x844.png",
+        "runtimeSha256": "3b05057768f8fd3d04aa83fb13089dd1b64173d65f60f53010f4e6066f8e0e6d",
+        "view": "activity",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "context-above",
+        "runtimePlacement": "context-above",
+        "sourceFirstRecord": {
+          "x": 84,
+          "y": 952.34375,
+          "width": 278,
+          "height": 97.09375,
+          "right": 362,
+          "bottom": 1049.4375
+        },
+        "runtimeFirstRecord": {
+          "x": 81,
+          "y": 1146.65625,
+          "width": 284,
+          "height": 223.375,
+          "right": 365,
+          "bottom": 1370.03125
+        },
+        "sourceRecordHeights": [
+          97.09375,
+          114.140625,
+          113.09375,
+          97.09375,
+          97.09375,
+          97.09375,
+          97.09375,
+          127.09375
+        ],
+        "runtimeRecordHeights": [
+          223.375,
+          201.375,
+          241.375
+        ],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-activity-390x844.png",
+        "sourceSha256": "28d4c4b52a91ba56007c53a97ef577a9ffcb1547b5ddcbeed586bc20640bcf38",
+        "runtimeFile": "227-notifications-activity-dark-390x844.png",
+        "runtimeSha256": "dbd5585e27da097a58d50b030493f4aed44fb0b6948ea6bc0d8bd43805eb5bb8",
+        "view": "activity",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "context-above",
+        "runtimePlacement": "context-above",
+        "sourceFirstRecord": {
+          "x": 84,
+          "y": 952.34375,
+          "width": 278,
+          "height": 97.09375,
+          "right": 362,
+          "bottom": 1049.4375
+        },
+        "runtimeFirstRecord": {
+          "x": 81,
+          "y": 1146.65625,
+          "width": 284,
+          "height": 223.375,
+          "right": 365,
+          "bottom": 1370.03125
+        },
+        "sourceRecordHeights": [
+          97.09375,
+          114.140625,
+          113.09375,
+          97.09375,
+          97.09375,
+          97.09375,
+          97.09375,
+          127.09375
+        ],
+        "runtimeRecordHeights": [
+          223.375,
+          201.375,
+          241.375
+        ],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-1440x900.png",
+        "sourceSha256": "29af5eb9f6f534eec91a29cdf55e3c204415384016906168953a156e3085646c",
+        "runtimeFile": "228-notifications-preferences-light-1440x900.png",
+        "runtimeSha256": "a2ef2be607200008ad0b0675718a3ce5cd6a9970d9f7314dc7b23a8f139a45f1",
+        "view": "preferences",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-1440x900.png",
+        "sourceSha256": "29af5eb9f6f534eec91a29cdf55e3c204415384016906168953a156e3085646c",
+        "runtimeFile": "228-notifications-preferences-dark-1440x900.png",
+        "runtimeSha256": "4cfb76483011645edf891c7c340240c2158890d10cb33020d10fa7642b4f9f7e",
+        "view": "preferences",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-1280x800.png",
+        "sourceSha256": "a1f6ef8a1de7870fee5f37e0e1cbe91398875d5f90c670faec5bae73448b0732",
+        "runtimeFile": "228-notifications-preferences-light-1280x800.png",
+        "runtimeSha256": "ab3524507d79efd28cac1b510049c8ed959e9bb3ee7f39e2d5fc2d393818e3f5",
+        "view": "preferences",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-1280x800.png",
+        "sourceSha256": "a1f6ef8a1de7870fee5f37e0e1cbe91398875d5f90c670faec5bae73448b0732",
+        "runtimeFile": "228-notifications-preferences-dark-1280x800.png",
+        "runtimeSha256": "71646bea1edc5eedb1c9bd31a33193d7d1f3f272ada89781e6f1fa20f7a8807d",
+        "view": "preferences",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-1024x768.png",
+        "sourceSha256": "6c284cd3afb004eca2f46fc62258592307879ae253af85789135dac78b48c83d",
+        "runtimeFile": "228-notifications-preferences-light-1024x768.png",
+        "runtimeSha256": "5abcc24f1b1b3d967429ae338e9b9cdd0d4fcc43fc0b412133f26b7d00f03c4c",
+        "view": "preferences",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-1024x768.png",
+        "sourceSha256": "6c284cd3afb004eca2f46fc62258592307879ae253af85789135dac78b48c83d",
+        "runtimeFile": "228-notifications-preferences-dark-1024x768.png",
+        "runtimeSha256": "5620e05f02c06e3733d812850a46b7d9398b7c82e72ee90bd9e80d7d5402d6d0",
+        "view": "preferences",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "beside",
+        "runtimePlacement": "beside",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-768x900.png",
+        "sourceSha256": "f58fb1eea844abff87d7890c5ce61320e5eec5c15d1a85363ce36c1633b6ec25",
+        "runtimeFile": "228-notifications-preferences-light-768x900.png",
+        "runtimeSha256": "c7dd9bdd324c04e4e87f6f577b0c2d14d7c3c6ef7390b25c7b809c070ba4cfa7",
+        "view": "preferences",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "stacked",
+        "runtimePlacement": "stacked",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-768x900.png",
+        "sourceSha256": "f58fb1eea844abff87d7890c5ce61320e5eec5c15d1a85363ce36c1633b6ec25",
+        "runtimeFile": "228-notifications-preferences-dark-768x900.png",
+        "runtimeSha256": "b68a47b7bc92a066e9adca0ae502de513d586de95ad8191eb82ca1e993fe772d",
+        "view": "preferences",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "stacked",
+        "runtimePlacement": "stacked",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-390x844.png",
+        "sourceSha256": "db308e57dc1222473caaeb55f3f346a814adde418b0bdc1a09a922084e93c8cc",
+        "runtimeFile": "228-notifications-preferences-light-390x844.png",
+        "runtimeSha256": "1f842c7bc5ce6cad16b8d25fafd9ea01f16981d50984f7754602497f358e172f",
+        "view": "preferences",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "light",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "stacked",
+        "runtimePlacement": "stacked",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      },
+      {
+        "sourceFile": "approved-reference/approved-notifications-preferences-390x844.png",
+        "sourceSha256": "db308e57dc1222473caaeb55f3f346a814adde418b0bdc1a09a922084e93c8cc",
+        "runtimeFile": "228-notifications-preferences-dark-390x844.png",
+        "runtimeSha256": "f9f2c0d1f850fc1528fe8e336e87cbaf2f27cb3f541004138d5c41d31cf17ce2",
+        "view": "preferences",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "dark",
+        "verdict": "PASS_SCOPED_ADAPTATION",
+        "sourcePlacement": "stacked",
+        "runtimePlacement": "stacked",
+        "sourceFirstRecord": null,
+        "runtimeFirstRecord": null,
+        "sourceRecordHeights": [],
+        "runtimeRecordHeights": [],
+        "runtimeFirstRecordVisible": false,
+        "activeMenuDestination": [
+          "Work & Approvals"
+        ]
+      }
+    ]
+  }
+}
