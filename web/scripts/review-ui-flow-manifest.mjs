@@ -8,6 +8,8 @@ import { reportsDesignAccessibilityScenarios, reportsDesignEvidenceScenarios } f
 import { reviewReportsDesignCaptures } from "./reports-design-evidence-contract.mjs";
 import { notificationsAccessibilityScenarios, notificationsEvidenceScenarios } from "./notifications-evidence-scenarios.mjs";
 import { reviewNotificationsCaptures } from "./notifications-evidence-contract.mjs";
+import { vendorPortfolioAccessibilityScenarios, vendorPortfolioEvidenceScenarios } from "./vendor-portfolio-evidence-scenarios.mjs";
+import { reviewVendorPortfolioCaptures } from "./vendor-portfolio-evidence-contract.mjs";
 import { vendorRelationshipAccessibilityScenarios, vendorRelationshipEvidenceScenarios } from "./vendor-relationship-evidence-scenarios.mjs";
 import { reviewVendorRelationshipCaptures } from "./vendor-relationship-evidence-contract.mjs";
 
@@ -26,6 +28,7 @@ const homeT7ScreenshotNames = homeT7ScenarioNames.map((name) => `home-t7-${name}
 
 const expectedNames = [
   ...vendorRelationshipEvidenceScenarios.map(({ name }) => name),
+  ...vendorPortfolioEvidenceScenarios.map(({ name }) => name),
   "01-today-dark-comfortable-1440x900",
   "02-today-light-comfortable-1440x900",
   "03-today-dark-compact-1440x900",
@@ -199,6 +202,7 @@ const expectedNames = [
 ];
 const requiredStates = [
   ...vendorRelationshipEvidenceScenarios.map(({ state }) => state),
+  ...vendorPortfolioEvidenceScenarios.map(({ state }) => state),
   "navigation-settings-denied-mobile",
   "navigation-menu-light-mobile",
   "navigation-menu-dark-mobile",
@@ -427,6 +431,9 @@ if (manifest) {
   const vendorRelationshipReview = reviewVendorRelationshipCaptures(manifest.captures);
   failures.push(...vendorRelationshipReview.failures);
   checks.push(vendorRelationshipReview.check);
+  const vendorPortfolioReview = reviewVendorPortfolioCaptures(manifest.captures);
+  failures.push(...vendorPortfolioReview.failures);
+  checks.push(vendorPortfolioReview.check);
   const loadedReportVariants = reportOverviews.filter((capture) => capture.fixture === "report-overview-loaded"
     && capture.state !== "report-overview-selected-area");
   const reportSizes = ["1440x900", "1280x800", "1024x768", "768x900", "390x844"];
@@ -636,7 +643,11 @@ if (accessibility) {
     && actual.theme === scenario.theme && actual.viewport?.width === scenario.viewport.width && actual.viewport?.height === scenario.viewport.height
     && actual.scopeSelector === scenario.scopeSelector && actual.touchTargetMinimum === 44));
   if (missingVendorRelationships.length) failures.push(`Vendor relationship scoped accessibility and touch evidence is missing: ${missingVendorRelationships.map(({ name }) => name).join(", ")}`);
-  checks.push({ name: "accessibility and touch", status: failed.length || missingReports.length || missingNotifications.length || missingVendorRelationships.length ? "FAIL" : "PASS", detail: `${accessibility.scenarios.length} rendered route states` });
+  const missingVendorPortfolios = vendorPortfolioAccessibilityScenarios.filter((scenario) => !accessibility.scenarios.some((actual) => actual.name === scenario.name
+    && actual.theme === scenario.theme && actual.viewport?.width === scenario.viewport.width && actual.viewport?.height === scenario.viewport.height
+    && actual.scopeSelector === scenario.scopeSelector && actual.touchTargetMinimum === 44));
+  if (missingVendorPortfolios.length) failures.push(`Vendor portfolio scoped accessibility and touch evidence is missing: ${missingVendorPortfolios.map(({ name }) => name).join(", ")}`);
+  checks.push({ name: "accessibility and touch", status: failed.length || missingReports.length || missingNotifications.length || missingVendorRelationships.length || missingVendorPortfolios.length ? "FAIL" : "PASS", detail: `${accessibility.scenarios.length} rendered route states` });
 }
 
 let bundle = { javascript: { raw: 0, gzip: 0, initial_gzip: 0, largest_raw_chunk: 0 }, css: { raw: 0, gzip: 0, initial_gzip: 0 } };

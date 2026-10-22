@@ -1,10 +1,11 @@
 import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { prepareVendorPortfolio, selectVendorPortfolioView } from "./vendor-portfolio-evidence.mjs";
 import { selectVendorRelationshipView } from './vendor-relationship-evidence.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
-const out = path.resolve('../docs/evidence/2026-09-10-vendor-findings');
+const out = path.resolve(process.env.UI_EVIDENCE_DIR ?? '../docs/evidence/2026-09-10-vendor-findings');
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const results = [];
@@ -14,8 +15,9 @@ try {
     await context.addInitScript(value => localStorage.setItem('clearsight.theme', value), theme);
     const page = await context.newPage();
     for (const state of ['live', 'unavailable']) {
-      const fixture = state === 'live' ? 'vendor-form-assessment' : 'vendor-form-assessment-error';
+      const fixture = 'vendor-form-assessment';
       await page.goto(`${process.env.PAGE_URL ?? 'http://127.0.0.1:18080'}/?tour=off&fixture=${fixture}#vendors/overview`, { waitUntil: 'networkidle' });
+      if (state === 'unavailable') await prepareVendorPortfolio(page, { vendorPortfolioView: 'overview', vendorPortfolioCheck: 'exceptions-unavailable' });
       await page.getByRole('region', { name: 'Vendor overview summary' }).waitFor();
       if (state === 'live') await page.getByRole('button', { name: '5 open exceptions', exact: true }).waitFor();
       else await page.getByText('Some vendor exceptions could not be checked. Totals unknown.', { exact: false }).waitFor();
@@ -43,8 +45,11 @@ try {
       }
       results.push({ file, state, theme, width, overflow });
       if (state === 'live') {
-        if (await page.getByRole('heading', { name: 'Vendor register', exact: true }).count() !== 0) throw new Error('Register leaked into vendor overview');
-        await page.getByRole('navigation', { name: 'Vendor sections' }).getByRole('button', { name: 'Register', exact: true }).click();
+        if (await page.getByRole('heading', { name: 'Vendor register', exact: true }).count() !== 1
+            || !await page.locator('.vendor-portfolio-body .vendor-portfolio-main > .vendor-register--inline').isVisible()
+            || await page.locator('.vendor-portfolio-body .vendor-overview-insights > section').count() !== 2
+            || !await page.locator('.vendor-portfolio-body > .vendor-portfolio-rail').isVisible()) throw new Error('Vendor Overview lost its source inline register, two insights or context rail');
+        await selectVendorPortfolioView(page, 'register');
         await page.getByRole('heading', { name: 'Vendor register', exact: true }).waitFor();
         if (await page.getByRole('region', { name: 'Vendor overview summary' }).count() !== 0) throw new Error('Portfolio leaked into vendor register');
         if (!page.url().endsWith('#vendors/register')) throw new Error(`Register route not reflected in URL: ${page.url()}`);
@@ -53,7 +58,7 @@ try {
         const registerOverflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
         if (registerOverflow) throw new Error(`Horizontal overflow: ${registerFile}`);
         results.push({ file: registerFile, state: 'register', theme, width, overflow: registerOverflow });
-        await page.locator('.vendor-row').first().click();
+        await page.locator('.vendor-register .cs-selectable-record').first().click();
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).waitFor();
         if (await page.locator('.vendor-register').isVisible()) throw new Error('Vendor register did not yield to full-width detail');
         await page.getByText('Superseded', { exact: true }).waitFor();
@@ -63,7 +68,7 @@ try {
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).click();
         await page.getByRole('heading', { name: 'Vendor register', exact: true }).waitFor();
         if (await page.getByRole('region', { name: 'Vendor overview summary' }).count() !== 0) throw new Error('Back navigation left the register route');
-        await page.getByRole('navigation', { name: 'Vendor sections' }).getByRole('button', { name: 'Overview', exact: true }).click();
+        await selectVendorPortfolioView(page, 'overview');
         await page.getByRole('region', { name: 'Vendor overview summary' }).waitFor();
         if (!page.url().endsWith('#vendors/overview')) throw new Error(`Overview route not reflected in URL: ${page.url()}`);
       }

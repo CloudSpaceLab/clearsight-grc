@@ -1,0 +1,3299 @@
+{
+  "schema": "clearsight.vendor-portfolio-evidence-provenance.v1",
+  "generatedAt": "2026-10-22T13:08:10.906Z",
+  "producer": "ChatGPT /root/vendor_portfolio_evidence",
+  "scope": "Vendor portfolio Overview, Register, Onboarding, Assessments and Documents; existing selected-relationship detail compatibility retained.",
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "automatedStatus": "PASS",
+  "visualReviewStatus": "PASS",
+  "runtime": {
+    "publishedCommit": "766d2bb3890c85906efc9661bab98824503faf09",
+    "capturedLocalCommit": "85817bf9f00d99cd168ab2b3eb312f85b07f7ba1",
+    "tree": "4b722a081326b5cbb2504a9564fab3956621c4c6",
+    "equivalence": {
+      "status": "SAME_TREE",
+      "verifiedBy": "/root",
+      "note": "Root published the corrected runtime under766d2bb and confirmed exact tree4b722a matches captured local85817bf; no file or build changes occurred."
+    },
+    "files": [
+      {
+        "path": "web/src/appRouting.ts",
+        "sha256": "01f8d383ee557a9d273e4f30caba359d16af6f7afdaf3b4b6e9e92f32a27dbb5",
+        "bytes": 13489
+      },
+      {
+        "path": "web/src/components/VendorPortfolio.tsx",
+        "sha256": "6cdaca128d2539b7938b1de9dfad96930f62633a1fdd7251a4596dd842b17a3b",
+        "bytes": 22907
+      },
+      {
+        "path": "web/src/components/VendorPortfolioCollection.tsx",
+        "sha256": "685dcb8a6efda1b911c3a9dc8103d90c20c0481024e35b887747e8584f2f4d81",
+        "bytes": 4810
+      },
+      {
+        "path": "web/src/components/VendorsWorkspace.tsx",
+        "sha256": "144cc7fd1fd393edb00f6cbda7371fc824ae7eeb911c0b382343c619a3f1ed24",
+        "bytes": 62702
+      },
+      {
+        "path": "web/src/components/vendor-portfolio-workspace.css",
+        "sha256": "fada9e3361066487de979b9de545f7d3f8b0df55057342f6f6f6b6606f1a565d",
+        "bytes": 13466
+      },
+      {
+        "path": "web/src/vendors.css",
+        "sha256": "ad7490a2cfde527a6f2f554f8094e619adb3cc4272eb83ca5e24f1cb8b3d83e7",
+        "bytes": 12400
+      }
+    ],
+    "checkpoint": {
+      "path": "after/runtime-checkpoint.json",
+      "sha256": "fe323c4a6c48626ace8cddd996abbdc12848b8a6e6d79d92fa4355ce1f09aa25",
+      "bytes": 37932
+    },
+    "workingTreeCleanAtCapture": false,
+    "provenanceNote": "Runtime was committed and frozen. Evidence scripts and documentation were intentionally uncommitted and are bound by the exact hashes below."
+  },
+  "evidenceScripts": [
+    {
+      "path": "web/scripts/capture-approved-source-references.mjs",
+      "sha256": "9133f5d9db6757940f5c081be783597c52f960b8d0029bc3183e978c69a3ddae",
+      "bytes": 40635
+    },
+    {
+      "path": "web/scripts/capture-ui-evidence.mjs",
+      "sha256": "786a3de46ae543b280ffa05d027d1aaefdf64ca69da12967a7348175205f2888",
+      "bytes": 182548
+    },
+    {
+      "path": "web/scripts/capture-vendor-portfolio-evidence.mjs",
+      "sha256": "e409796947d4b3ecda310822234707c56c6a4e6bdc5e2876612dd7085e7e3c58",
+      "bytes": 6354
+    },
+    {
+      "path": "web/scripts/review-ui-accessibility.mjs",
+      "sha256": "df10f16080d0910e0383c12f60ba4720cd957e0f2699e457c90b6663fe4a9c45",
+      "bytes": 11103
+    },
+    {
+      "path": "web/scripts/review-ui-flow-manifest.mjs",
+      "sha256": "6ca15fb191c1dbcd5d6c702ac786945f7dfd6ae2e304dd87ca4db3fc9dceb618",
+      "bytes": 42488
+    },
+    {
+      "path": "web/scripts/review-ui-flow-manifest.nodecheck.mjs",
+      "sha256": "6cfe0f06678245d8a922cdced9f205a00bc7f52b358b7ef0355aa2416df8c217",
+      "bytes": 47361
+    },
+    {
+      "path": "web/scripts/vendor-relationship-evidence.mjs",
+      "sha256": "837504bd8f053eab8c9de4a566bc8493d8f345fe26a19cc85f9b70287fef6cd7",
+      "bytes": 36687
+    },
+    {
+      "path": "web/scripts/vendor-portfolio-evidence.mjs",
+      "sha256": "2464b1b3a7a8d57ffab7007007395b4247c48d139645a4566a9c8f004c5396a6",
+      "bytes": 33351
+    },
+    {
+      "path": "web/scripts/vendor-portfolio-evidence-scenarios.mjs",
+      "sha256": "92b01df144e9c33cfa9d8970efdd7111dd524dc6839c604c314d33318f5ec37d",
+      "bytes": 3534
+    },
+    {
+      "path": "web/scripts/vendor-portfolio-evidence-contract.mjs",
+      "sha256": "b86a9bdec526d8adbaab525bb7712e128d4f5b9ce144f8577b6f85de7a36f6b9",
+      "bytes": 13285
+    }
+  ],
+  "build": {
+    "command": "npm run build:evidence -- --base=/",
+    "sha256": "787c2616b314575dd9149872f2e758602df8ec8cddce088b7703ba2f5b45b377",
+    "digestDefinition": "SHA256 of JSON.stringify of the path-sorted original [{file,sha256,bytes}] records in runtime-checkpoint.json",
+    "fileCount": 171,
+    "files": {
+      "web/dist-evidence/assets/App-CjVdDs1T.css": {
+        "sha256": "87e94f66679ac4d0f8b209a40d85c059dbd05c801a826f65f12b6fee724cbabc",
+        "bytes": 69316
+      },
+      "web/dist-evidence/assets/App-DA6g161s.js": {
+        "sha256": "08b732c5977f8ebf8d4c88a3a31a3c13594bec236858b397c697d6ab26d4679d",
+        "bytes": 438935
+      },
+      "web/dist-evidence/assets/App-DA6g161s.js.map": {
+        "sha256": "a6690f8a7e0899bfbd3029931d051ef59da5ef46396028294c6179647c6cc2b4",
+        "bytes": 1050674
+      },
+      "web/dist-evidence/assets/BankJourneysWorkspace-2AgH9f2G.css": {
+        "sha256": "e58abe5444c09ecdecdda458acbeda1e610d27f9b81626eb722d6a8883a48353",
+        "bytes": 4931
+      },
+      "web/dist-evidence/assets/BankJourneysWorkspace-DVFk_eGZ.js": {
+        "sha256": "3f9d39ec608ba1cb53352e5bf909ac6ea489aa6432781d66b6637b42bfa3f651",
+        "bytes": 13326
+      },
+      "web/dist-evidence/assets/BankJourneysWorkspace-DVFk_eGZ.js.map": {
+        "sha256": "ba3686b3ed9079b68930acbfe1e553ce43aab2b170586a193929127bb13f86ce",
+        "bytes": 35457
+      },
+      "web/dist-evidence/assets/CommunicationsView-BTcKg5YN.js": {
+        "sha256": "dfdfe327ba6e523afb5ed79241dd9094b82aa8a0a85073c6d593fba71aada23a",
+        "bytes": 266823
+      },
+      "web/dist-evidence/assets/CommunicationsView-BTcKg5YN.js.map": {
+        "sha256": "5cf8e0f278f3ced2c989d1eaf18d1d05d598e00e40cd082c00dd3adbea02d359",
+        "bytes": 756691
+      },
+      "web/dist-evidence/assets/ConfigureWorkspace-BjXtRVNK.js": {
+        "sha256": "3dd3081e1f855596d9f705ff98a3417a6772508b525ec1a60f2bb175d80b98ea",
+        "bytes": 167103
+      },
+      "web/dist-evidence/assets/ConfigureWorkspace-BjXtRVNK.js.map": {
+        "sha256": "63c58b039bde49a07c961f389f4a684a9ebb8792ee8e73a81c36cbd58ff961d1",
+        "bytes": 448676
+      },
+      "web/dist-evidence/assets/ConfigureWorkspace-COYlClQh.css": {
+        "sha256": "f801fbf4157506cacb6e1957d37e89cf1daa29ada38223b3b89e966333a5703d",
+        "bytes": 42438
+      },
+      "web/dist-evidence/assets/DistributionComposer-BIbKG7Q5.js": {
+        "sha256": "ec232567e5fe1f936213c28f3faedabb1149251d42599ec0db2cb34f33582a2b",
+        "bytes": 17731
+      },
+      "web/dist-evidence/assets/DistributionComposer-BIbKG7Q5.js.map": {
+        "sha256": "de3994e31258bdaa626cd413b01ca5041ff8dff58f17305bd3e717e7db6e7130",
+        "bytes": 57430
+      },
+      "web/dist-evidence/assets/DistributionComposer-DLeZxbLt.css": {
+        "sha256": "350b092b7f33a1a03f35e3d8610fb2acdaaa71fcb48dcaf6e67293c13c62132d",
+        "bytes": 9375
+      },
+      "web/dist-evidence/assets/EmployeeProfileWorkspace-DrJEN7Y_.js": {
+        "sha256": "36306f50e96636f8be954a043d94e775cdf858d3fdd8fe6cc1b7114e228680a3",
+        "bytes": 3946
+      },
+      "web/dist-evidence/assets/EmployeeProfileWorkspace-DrJEN7Y_.js.map": {
+        "sha256": "4b96c63e377a8aed3c4e4283dc4cd3969cbc97c5ffc7d573bbf57937f2fd6785",
+        "bytes": 8365
+      },
+      "web/dist-evidence/assets/EmptyState-BhTs_6Db.js": {
+        "sha256": "e99e69dbd688eafc222bbd91fc8810ef0be2a495dfd642f5b370da99defdc23c",
+        "bytes": 439
+      },
+      "web/dist-evidence/assets/EmptyState-BhTs_6Db.js.map": {
+        "sha256": "4bac315fe897c625976abfcb342295335f45f7bc22f6451a67f8d3c49974062d",
+        "bytes": 1198
+      },
+      "web/dist-evidence/assets/FocusedSheet-BR3anp65.js": {
+        "sha256": "1215e9d48e56ad3d535f5ff0f70ec85ffc150a9f253086ad64eaee288598349a",
+        "bytes": 35
+      },
+      "web/dist-evidence/assets/FocusedSheet-DrnLjgsp.js": {
+        "sha256": "7849d4e15b79dc68e0710ffb37ccfc218a5e8978d645cc1db8e6d55fb9ca5ac5",
+        "bytes": 100422
+      },
+      "web/dist-evidence/assets/FocusedSheet-DrnLjgsp.js.map": {
+        "sha256": "9831281ab94929237dc338b4e7297e5b6cc49cf41cd978beec5127f9afe84c35",
+        "bytes": 666254
+      },
+      "web/dist-evidence/assets/FormBuilder-DJS_CSRN.js": {
+        "sha256": "24512f7407c6ab981b2335e5fb8fc721e4a4b55f8dd79a4767fd052e4e26c0d1",
+        "bytes": 71
+      },
+      "web/dist-evidence/assets/FormBuilder-DkNz5EQ_.css": {
+        "sha256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1",
+        "bytes": 24472
+      },
+      "web/dist-evidence/assets/FormBuilder-XRrW7aQe.js": {
+        "sha256": "6fd74f900a9500f1df499c4a5c9df24b5295cab8dae7042ceafc865999458c25",
+        "bytes": 84302
+      },
+      "web/dist-evidence/assets/FormBuilder-XRrW7aQe.js.map": {
+        "sha256": "e55b234b6ee9923665ebb2e0d7aa38e9e367049fdafa92dfb3fee3711b07c111",
+        "bytes": 233207
+      },
+      "web/dist-evidence/assets/FormPoliciesView-Cg_AyJ2r.js": {
+        "sha256": "953614e0689022c1ab64a8f610a699f730402b819c391084f31cdc84dc94eff7",
+        "bytes": 15763
+      },
+      "web/dist-evidence/assets/FormPoliciesView-Cg_AyJ2r.js.map": {
+        "sha256": "d65b499b2951c3112a92457a5f770db0add2179175de272bdd6564c5ffbcf3ad",
+        "bytes": 37109
+      },
+      "web/dist-evidence/assets/FormPreview-CvbhFbBW.js": {
+        "sha256": "7b522d3db878192d64eacd0e8b83ab0bd0b6055fc93c153e02b3f0888067a98b",
+        "bytes": 29583
+      },
+      "web/dist-evidence/assets/FormPreview-CvbhFbBW.js.map": {
+        "sha256": "cfca7fe13b086126dbac4a1b346d3f0e594128e2eca77cb76f610c0e4300d639",
+        "bytes": 77593
+      },
+      "web/dist-evidence/assets/FormProposalReview-DbSCJA0V.js": {
+        "sha256": "8cddfc2cb80ce6961b96e552434259bcebf87fac9299e7f4d5b34e31a967900a",
+        "bytes": 15937
+      },
+      "web/dist-evidence/assets/FormProposalReview-DbSCJA0V.js.map": {
+        "sha256": "be42d1860d0c068f949ad3e87029fad3d95b8a8cb058d53d722ea66b83cea0f8",
+        "bytes": 40544
+      },
+      "web/dist-evidence/assets/FormsWorkspace-CanuAxZI.js": {
+        "sha256": "9141fabb61115a9ad23487ca4df08a0543e05619f548051eba4eb1357518c407",
+        "bytes": 65191
+      },
+      "web/dist-evidence/assets/FormsWorkspace-CanuAxZI.js.map": {
+        "sha256": "a7b03fe4f5877bbdfcf57b8e5bb7ce96738902627825f7a04e9dd849dbd7a813",
+        "bytes": 180795
+      },
+      "web/dist-evidence/assets/GroupOversightWorkspace-C_G15Trr.js": {
+        "sha256": "efc1753541ca1b29c5eb0e5ee962af50b7bd7cc1baacf41e26445bdffa466e51",
+        "bytes": 16878
+      },
+      "web/dist-evidence/assets/GroupOversightWorkspace-C_G15Trr.js.map": {
+        "sha256": "94c723f2384784b679b7231fccd0853b1083b9ddf21d92403c3124d38d93a001",
+        "bytes": 49151
+      },
+      "web/dist-evidence/assets/GroupOversightWorkspace-FAWTwerR.css": {
+        "sha256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242",
+        "bytes": 1428
+      },
+      "web/dist-evidence/assets/GroupOversightWorkspace-Ij__ODTl.js": {
+        "sha256": "74baac6ac5404a22e81bd1af205335db247fd8c230ea4a658fe97d22ef41b775",
+        "bytes": 95
+      },
+      "web/dist-evidence/assets/IndicatorDetail-CJX6nosf.js": {
+        "sha256": "a8a455d36a781e16a7d32537dec59b4000587d9887ec25b454f5fe5950fe252b",
+        "bytes": 9605
+      },
+      "web/dist-evidence/assets/IndicatorDetail-CJX6nosf.js.map": {
+        "sha256": "c7db12e8d161b167064e3746d648cf4fe621ffa5a44ebc266d72b980bf13a374",
+        "bytes": 24697
+      },
+      "web/dist-evidence/assets/InsightsWorkspace-DgLLVYjj.css": {
+        "sha256": "a5344e7614a330a2f2a1f67b8bbc4ddeef2d01e6c738263cfe09d4215d60baa2",
+        "bytes": 3139
+      },
+      "web/dist-evidence/assets/InsightsWorkspace-wAeyaOhg.js": {
+        "sha256": "e0408ea1dd5721fcb8a40a629e6e612a248d8c2a579d459029afbefc95c0b39e",
+        "bytes": 10622
+      },
+      "web/dist-evidence/assets/InsightsWorkspace-wAeyaOhg.js.map": {
+        "sha256": "50cc11aa1c5e15d169beba75cb2296e7c733164d3df639a0d91231f7e8c185e4",
+        "bytes": 28959
+      },
+      "web/dist-evidence/assets/LossesWorkspace-D4hDCZjA.js": {
+        "sha256": "4cdc97d32fb698aae6575f353ff36bea546503bef90db1f0df2a190449110fe0",
+        "bytes": 21642
+      },
+      "web/dist-evidence/assets/LossesWorkspace-D4hDCZjA.js.map": {
+        "sha256": "1fda1b10c033f77dddc14045aca89483ba7be17e4ca5a854befe4946a377b461",
+        "bytes": 59892
+      },
+      "web/dist-evidence/assets/LossesWorkspace-DQPhU1Nj.css": {
+        "sha256": "21108564fadc1803036f6fd7dc9678973cce0826aaeba94e71f134b36b8dc376",
+        "bytes": 3510
+      },
+      "web/dist-evidence/assets/MetricMemberDrill-CR3Iszf7.js": {
+        "sha256": "3c72a26988327418fd2319bdfb76486e6b34991841836b8b0845ecd450b234d1",
+        "bytes": 2894
+      },
+      "web/dist-evidence/assets/MetricMemberDrill-CR3Iszf7.js.map": {
+        "sha256": "345587bbfad594a8c587727a55e16cee269c0d1367573de6d116faed228ecd49",
+        "bytes": 7226
+      },
+      "web/dist-evidence/assets/NavigationIcon-Cw28lXWO.js": {
+        "sha256": "1ecfa7f3b854438575d1b465610ebef73a21e9ab1dba4e7872fded00aef1574d",
+        "bytes": 3372
+      },
+      "web/dist-evidence/assets/NavigationIcon-Cw28lXWO.js.map": {
+        "sha256": "ef0680a628b276ccb362ad7ee6f5cde9cb9342729bb6428c9b516aceafc7b15c",
+        "bytes": 6861
+      },
+      "web/dist-evidence/assets/NotificationCenter-Bw_PmaFl.js": {
+        "sha256": "b47230caa4626cce5323cc27282e4db7d7111cf7c99e080efff3e1cca8a17952",
+        "bytes": 1258
+      },
+      "web/dist-evidence/assets/NotificationCenter-Bw_PmaFl.js.map": {
+        "sha256": "770f9e3b86e875ccd632284264d6de1ff61814f98144886a87962b73d75b563b",
+        "bytes": 2637
+      },
+      "web/dist-evidence/assets/NotificationCenter-y8gwOkyW.css": {
+        "sha256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5",
+        "bytes": 1555
+      },
+      "web/dist-evidence/assets/NotificationDeliveryHistory-DwbFDcun.js": {
+        "sha256": "eb1cc2dc7181adf5a52ca934d13eefec5a52373a92060ffbe5f2605163570588",
+        "bytes": 2756
+      },
+      "web/dist-evidence/assets/NotificationDeliveryHistory-DwbFDcun.js.map": {
+        "sha256": "5a5582c34e5d4176962b5b8299ee5dd61a88eb3e536d2c7d0c018c8d24903967",
+        "bytes": 8189
+      },
+      "web/dist-evidence/assets/NotificationsWorkspace-BAmZg4MJ.css": {
+        "sha256": "e988de36e966535d55a0d8b6677e22792ce5e22015eee29227a194d036817d83",
+        "bytes": 14887
+      },
+      "web/dist-evidence/assets/NotificationsWorkspace-SQ83kY9d.js": {
+        "sha256": "6070c34ca679e5bfe1b03f594248cf7c8737beb8e4dd655eaea21f5cb6f59042",
+        "bytes": 26099
+      },
+      "web/dist-evidence/assets/NotificationsWorkspace-SQ83kY9d.js.map": {
+        "sha256": "88b269131dfae2bf4f446db5d234fa03afc08ca60f2927f334e5f880fd2fd71d",
+        "bytes": 62746
+      },
+      "web/dist-evidence/assets/OrganizationLossSummary-CpTzz5tz.js": {
+        "sha256": "a68d752cce32bf0926189bb4698e58fa8eda85cb35eb6dfc72d41a467279fdd9",
+        "bytes": 13311
+      },
+      "web/dist-evidence/assets/OrganizationLossSummary-CpTzz5tz.js.map": {
+        "sha256": "931e6804ce0e074b309ab5329aa1de652686485e6f5ecacf69157386d4764e19",
+        "bytes": 41060
+      },
+      "web/dist-evidence/assets/OversightPeriodPicker-Dto4vXys.js": {
+        "sha256": "5285f9f4895fd001646a3156c34b42289309b962d6d01d69628305a1fe43719d",
+        "bytes": 2951
+      },
+      "web/dist-evidence/assets/OversightPeriodPicker-Dto4vXys.js.map": {
+        "sha256": "8407e5b4bc7ea0150ea04fb6bbd733f57c3c27af2e09134b5fc49acc01008736",
+        "bytes": 7483
+      },
+      "web/dist-evidence/assets/OversightWorkspace-BInO32bQ.js": {
+        "sha256": "e6c54fd5657ebe2e0a76ec895376bb30b2da7c3d4a6c15237a9c9f94d258cf91",
+        "bytes": 85
+      },
+      "web/dist-evidence/assets/OversightWorkspace-CUtqXtOi.js": {
+        "sha256": "08bae9261c6f67158d64a063dfc56087246efad747960c16697181d9ab0a8a2e",
+        "bytes": 22683
+      },
+      "web/dist-evidence/assets/OversightWorkspace-CUtqXtOi.js.map": {
+        "sha256": "69814f2c36a3dcb05a789d13e849b0a7c6506dec3dcf9074692194798a150ca3",
+        "bytes": 64180
+      },
+      "web/dist-evidence/assets/RCSAWorkspace-Dt3yMK3R.css": {
+        "sha256": "9ef3d8fbdd9ad90b69d42749173c0273ff7a65f55a5a36581f51f684ffacde0c",
+        "bytes": 3825
+      },
+      "web/dist-evidence/assets/RCSAWorkspace-tTtdlsFq.js": {
+        "sha256": "b7cb1f47acb8056c8df2f7e7b4665acb9e6d0f85bac868da06475a764efa97aa",
+        "bytes": 15011
+      },
+      "web/dist-evidence/assets/RCSAWorkspace-tTtdlsFq.js.map": {
+        "sha256": "234c064ba046b7a50c480795ed7a9acdab7668f6041060c88f4845beaa1a4633",
+        "bytes": 37669
+      },
+      "web/dist-evidence/assets/ReportsExplore-BZWkRCPK.js": {
+        "sha256": "58f305ebf64958fa7f91676f3eecef8241d5bcf3b32f73feff346bb488f5affe",
+        "bytes": 14795
+      },
+      "web/dist-evidence/assets/ReportsExplore-BZWkRCPK.js.map": {
+        "sha256": "4a392e601b5690b3edce797e7a6a07d2d0b5605e371089fbaf1837f0057912d8",
+        "bytes": 42981
+      },
+      "web/dist-evidence/assets/ReportsExplore-DWws9bfr.css": {
+        "sha256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85",
+        "bytes": 4179
+      },
+      "web/dist-evidence/assets/ReportsWorkspace-BE7QasEr.css": {
+        "sha256": "5f19f164d10680e24761be28f0c87c2aebead00448cc67c52ed22825cbcc03dc",
+        "bytes": 18729
+      },
+      "web/dist-evidence/assets/ReportsWorkspace-DnL47C4Z.js": {
+        "sha256": "cbe16b9f37859f341da8413249ad4fee1589238389071a119c24e97b5b4d85dd",
+        "bytes": 50501
+      },
+      "web/dist-evidence/assets/ReportsWorkspace-DnL47C4Z.js.map": {
+        "sha256": "3e1711b920dc1797fc60e955ef5a739ebce264448b76c3458d11ee75e8727e93",
+        "bytes": 123955
+      },
+      "web/dist-evidence/assets/ResponseAssessment-DX8u-t2_.js": {
+        "sha256": "f452cd81e2ad8a2a6cd2ec811b4895d9fdd7cafb916ad2fa90e9ca38953f1943",
+        "bytes": 40662
+      },
+      "web/dist-evidence/assets/ResponseAssessment-DX8u-t2_.js.map": {
+        "sha256": "d5e000f66c21262afa770ae6ee1b5a14e10cabe9cbd0f876912c3cf5cc6a3251",
+        "bytes": 107986
+      },
+      "web/dist-evidence/assets/ResponseAssessment-DYFP7xBk.css": {
+        "sha256": "5c7d80d3beacc486aaa186cf58269b2818e23da389f14d02f35413813a2b486e",
+        "bytes": 9312
+      },
+      "web/dist-evidence/assets/ResponseBrowser-C52TBRy8.js": {
+        "sha256": "67879c76854e763719ffe040f251f3694c28e9820525a68bbf7d8bf8ae79fd72",
+        "bytes": 8904
+      },
+      "web/dist-evidence/assets/ResponseBrowser-C52TBRy8.js.map": {
+        "sha256": "0f2ee57e7e015e18102e6c0203713ffa3f16f56144a437a50c3a7fb29a32f9c2",
+        "bytes": 23357
+      },
+      "web/dist-evidence/assets/RisksWorkspace-DpZu8O6v.js": {
+        "sha256": "098fcea488889873ce5c61685cf55be546bf7b59f79d8e9bf393267939daa13c",
+        "bytes": 29731
+      },
+      "web/dist-evidence/assets/RisksWorkspace-DpZu8O6v.js.map": {
+        "sha256": "687294a7b77b34f186171e4b79c8d27ac68b05660d9a7257a5926c56b9544bf0",
+        "bytes": 81925
+      },
+      "web/dist-evidence/assets/RisksWorkspace-TeRd9HM3.css": {
+        "sha256": "59e0acddc2874e4eaeebb18f859720d3c1c2c96f2654590f83c8b48707d55509",
+        "bytes": 2999
+      },
+      "web/dist-evidence/assets/RopaActivityPage-B9U0Yq6k.js": {
+        "sha256": "0ac39d820e0b189c87eddc991eb9ab8fc7e3472c3749906cc3cbb648445e6ddc",
+        "bytes": 13417
+      },
+      "web/dist-evidence/assets/RopaActivityPage-B9U0Yq6k.js.map": {
+        "sha256": "dd4bf364fad74b1f40dee2aa9df4c88a9ecd9af590bbe8a5b58c5c77cdcfc1b0",
+        "bytes": 32544
+      },
+      "web/dist-evidence/assets/RopaRegisterPage-R1do15lJ.js": {
+        "sha256": "d7c2e633c1f198b1c2b8a6479fd17dc7a654ec7c696e745332d78a0b677ebb5c",
+        "bytes": 10411
+      },
+      "web/dist-evidence/assets/RopaRegisterPage-R1do15lJ.js.map": {
+        "sha256": "b58ec3bcf873a8822e0dd83daab90b6a3841dac863506f5215cf31dc731c793f",
+        "bytes": 28247
+      },
+      "web/dist-evidence/assets/SentFormDetail-CQA52hhv.js": {
+        "sha256": "2d833dc2258841e78936ba9e16482690ffcb9d7884167887a04366b47f970c0e",
+        "bytes": 14019
+      },
+      "web/dist-evidence/assets/SentFormDetail-CQA52hhv.js.map": {
+        "sha256": "953fd4e0784df48d2ca0320dd64ab58eb35f1a52a98979fb3d17b7d58c837e65",
+        "bytes": 34507
+      },
+      "web/dist-evidence/assets/SentFormDetail-DFR_kdL0.css": {
+        "sha256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a",
+        "bytes": 488
+      },
+      "web/dist-evidence/assets/SessionGate-D5eDL8UU.js": {
+        "sha256": "4bc04c0fd0c878aab0f1290ff93d37eb64a02caa024408f5ea1ac6209ecf8bdd",
+        "bytes": 159634
+      },
+      "web/dist-evidence/assets/SessionGate-D5eDL8UU.js.map": {
+        "sha256": "07cf256acd12052b1b5e57b8c36b4466dfce15c188dfd76024f452473c9c486f",
+        "bytes": 413994
+      },
+      "web/dist-evidence/assets/SessionGate-DQGLgUmf.css": {
+        "sha256": "1c80efd8569e632eab1275e25f88abf4f64a9bca5576af345aabd9081ad1f3d7",
+        "bytes": 55740
+      },
+      "web/dist-evidence/assets/UIComponentGallery-BPfInqDu.css": {
+        "sha256": "71cb8b148364a624690cd9beed8c98a909ae03606a8c20157f8c48d77974aa72",
+        "bytes": 3267
+      },
+      "web/dist-evidence/assets/UIComponentGallery-C2ckcZ5L.js": {
+        "sha256": "c2b13464002c36991cb73b1e7bdd6229b903bfe119e84db13f48884e2a5b0744",
+        "bytes": 20712
+      },
+      "web/dist-evidence/assets/UIComponentGallery-C2ckcZ5L.js.map": {
+        "sha256": "e420166ee8105ceeb7c25c017c72c80f5b25f5afb29bb87868ea48998b3f6ea2",
+        "bytes": 40441
+      },
+      "web/dist-evidence/assets/VendorComplianceOverview-C7ureuqp.js": {
+        "sha256": "3700325c92f7f5017520c6629d99b6d8fe2854b8d06b5495cc9c6606e271e8d6",
+        "bytes": 14638
+      },
+      "web/dist-evidence/assets/VendorComplianceOverview-C7ureuqp.js.map": {
+        "sha256": "c9d6db8b3bb795e83dc77fd13977e42d56f276e06101f2a50814f31ce80dd59a",
+        "bytes": 37785
+      },
+      "web/dist-evidence/assets/VendorComplianceOverview-DBsLWXEL.css": {
+        "sha256": "1abb61830a311c923ce2925bbee828d9a7ddb86384dd21d4655c0963c06ff116",
+        "bytes": 3004
+      },
+      "web/dist-evidence/assets/VendorWorkPanel-CN9VMHg0.js": {
+        "sha256": "a1ca6ca41288ca7da4702d3b01c94d7168fbf72415bd5d80e485f52536107135",
+        "bytes": 30940
+      },
+      "web/dist-evidence/assets/VendorWorkPanel-CN9VMHg0.js.map": {
+        "sha256": "ed4ba036279404a438df30e914f431f233ad98af345dd208cb03e628764eed6a",
+        "bytes": 80353
+      },
+      "web/dist-evidence/assets/VendorWorkPanel-CU0uMlLg.css": {
+        "sha256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8",
+        "bytes": 4790
+      },
+      "web/dist-evidence/assets/VendorsWorkspace-4bTlBfXu.js": {
+        "sha256": "4b2964b7b6a1d97cbac8d498d55d84cceb5e42b0571fb22495166d4c38080e03",
+        "bytes": 179700
+      },
+      "web/dist-evidence/assets/VendorsWorkspace-4bTlBfXu.js.map": {
+        "sha256": "54ac748384b33f76b320f329d126955092fd89ae3a0723fd6e51ff0649e3a176",
+        "bytes": 474382
+      },
+      "web/dist-evidence/assets/VendorsWorkspace-C9VxQNwU.css": {
+        "sha256": "9e4c4450abe7d9c87101c99612949af5ae10185bed7459e8d8e0e4feb47e6fad",
+        "bytes": 55717
+      },
+      "web/dist-evidence/assets/WorkItemIcon-kUXpzmct.js": {
+        "sha256": "7054836cce24f37280c5decc5a418257edf25211a8ba7e93bc999609bd175f87",
+        "bytes": 1338
+      },
+      "web/dist-evidence/assets/WorkItemIcon-kUXpzmct.js.map": {
+        "sha256": "66abdfdeee9f4046408521da2a624666e8e92b9a51e7df860bec2caa8a9ef557",
+        "bytes": 2719
+      },
+      "web/dist-evidence/assets/WorkspaceErrorBoundary-D6Uj8R6Z.js": {
+        "sha256": "3b33a594b6a935593f5a12f59451dd89eef7f9b98e9c129184f9d57a8e192e94",
+        "bytes": 783
+      },
+      "web/dist-evidence/assets/WorkspaceErrorBoundary-D6Uj8R6Z.js.map": {
+        "sha256": "dc7438218f5adb43b65c35dffc46e48725ec28bf16af1bbca8a9db4e6d32717e",
+        "bytes": 1718
+      },
+      "web/dist-evidence/assets/api-C98UCreH.js": {
+        "sha256": "6303325e498bcd58406be478f8fa1536a82077bfa12336a10b31f3aea986fb87",
+        "bytes": 5261
+      },
+      "web/dist-evidence/assets/api-C98UCreH.js.map": {
+        "sha256": "5418ef3020ed44e7a43d29cf1fd5dcab37b7a75f0468bcdf50794800a6eacc2a",
+        "bytes": 23089
+      },
+      "web/dist-evidence/assets/assessmentFieldResults-CYtGdiIt.css": {
+        "sha256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326",
+        "bytes": 7259
+      },
+      "web/dist-evidence/assets/assessmentFieldResults-JN5KNzXT.js": {
+        "sha256": "3f27c7ff8105ff0be4ddae479738841bb100af106344489d39d2203d28aa6397",
+        "bytes": 9772
+      },
+      "web/dist-evidence/assets/assessmentFieldResults-JN5KNzXT.js.map": {
+        "sha256": "5ab2ea17c9d8a30319e28500a22670092b10ba286e95d8d28a5868a6139e4d9e",
+        "bytes": 29831
+      },
+      "web/dist-evidence/assets/controlCatalogApi-Ce1062jj.js": {
+        "sha256": "8ffa2afaf3a8b5d6a03a13c23413da5e06b59eb51890f0b0dd9b2c096418dc55",
+        "bytes": 506
+      },
+      "web/dist-evidence/assets/controlCatalogApi-Ce1062jj.js.map": {
+        "sha256": "dba98850190f1348a29a837a189f5b2364adf1ef74d736d9f082a2823974526d",
+        "bytes": 2259
+      },
+      "web/dist-evidence/assets/form-policies-BQ_oewte.js": {
+        "sha256": "d3c2081fc32c63c342f9426b872266c1262d36887959c8c0bc69acb1e5b099a3",
+        "bytes": 12815
+      },
+      "web/dist-evidence/assets/form-policies-BQ_oewte.js.map": {
+        "sha256": "97bbf784df97a8f13f450e4a573e8b63b80e6208461d779371faf66fb735855b",
+        "bytes": 28354
+      },
+      "web/dist-evidence/assets/form-policies-d4RnLy_e.css": {
+        "sha256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2",
+        "bytes": 5595
+      },
+      "web/dist-evidence/assets/formPoliciesApi-CW2ZHZyP.js": {
+        "sha256": "892a5303cf6cee2f07499ff56b0ce543a4ca85006029f545a46477fcf9093cce",
+        "bytes": 1541
+      },
+      "web/dist-evidence/assets/formPoliciesApi-CW2ZHZyP.js.map": {
+        "sha256": "7eba3c1935b3cbcc380418190051a56b3bbff98fba82c891c3fba193e4f5dd16",
+        "bytes": 8921
+      },
+      "web/dist-evidence/assets/forms-foundation-CINn4wyp.css": {
+        "sha256": "ab82ca4d68089ebd1a8d9d62746cb6d191b3fd673d3de9ac62af0673fbc8f282",
+        "bytes": 49494
+      },
+      "web/dist-evidence/assets/formsApi-Bu51RPL0.js": {
+        "sha256": "f836b23a8b5dcce759ffe6c2e3b1c155160ea15b3759a79ef36ee2ff0757b0dd",
+        "bytes": 3079
+      },
+      "web/dist-evidence/assets/formsApi-Bu51RPL0.js.map": {
+        "sha256": "5d7c8ef9ee90634edbd0c93242ad2c095a251a4595908a6ae2b8b02e9991f371",
+        "bytes": 10014
+      },
+      "web/dist-evidence/assets/groupOversightApi-CM8Hxwyf.js": {
+        "sha256": "c417d1bcd3726fca2518410ce0517105ac967efbedfdb10b7d7916d9f0d31553",
+        "bytes": 190
+      },
+      "web/dist-evidence/assets/groupOversightApi-CM8Hxwyf.js.map": {
+        "sha256": "bf530020aa892b7b0f68a5d21b9111b1abcbf556c89ced16b0d4ad1d4ca79aac",
+        "bytes": 1797
+      },
+      "web/dist-evidence/assets/homeMetricPresentation-DRPLOH6L.js": {
+        "sha256": "7bedd8148b1e9f464074877ca81b91f17074f9eb039fc69e491cb87b719e84bc",
+        "bytes": 1127
+      },
+      "web/dist-evidence/assets/homeMetricPresentation-DRPLOH6L.js.map": {
+        "sha256": "36b2a464d26c07c94fc4d4f031aae51668cadbe21fc53a185282ef00350553b3",
+        "bytes": 3371
+      },
+      "web/dist-evidence/assets/http-NFAQrmHm.js": {
+        "sha256": "628b0ffe1e2a6e36f44bd8c29bb19e46defc50e45c188a5ebf5fed9ef01b4052",
+        "bytes": 2481
+      },
+      "web/dist-evidence/assets/http-NFAQrmHm.js.map": {
+        "sha256": "e8876bf150397a5e855be38263d1907227122ff62c36d4790a5721499f1d79c8",
+        "bytes": 7538
+      },
+      "web/dist-evidence/assets/identityAccessApi-3W5ysg-Y.js": {
+        "sha256": "2eb180d3a1a0e61930e67c523fa06a93e5d0538c2bac9fb2b695396cf4364408",
+        "bytes": 4640
+      },
+      "web/dist-evidence/assets/identityAccessApi-3W5ysg-Y.js.map": {
+        "sha256": "826a5cd2fd412151e45c92e7f92a81c6c893d70e6e59ce3878cac6cda60f8c79",
+        "bytes": 24085
+      },
+      "web/dist-evidence/assets/index-BUJ_0Ap0.css": {
+        "sha256": "555786f9390e746d429de31cd53a10ccbe15df0fd0ec38b151ed3eb3748a1698",
+        "bytes": 178312
+      },
+      "web/dist-evidence/assets/index-BnDK_K-k.js": {
+        "sha256": "4f61677e069d1703f2611568d75b9ccfa2a7f186704be0838eef1dced151306e",
+        "bytes": 468888
+      },
+      "web/dist-evidence/assets/index-BnDK_K-k.js.map": {
+        "sha256": "dd9b2cd3c1d06015cf775a3fc14173677d0b2092dfffec947d925d16fa579df7",
+        "bytes": 1466463
+      },
+      "web/dist-evidence/assets/indicatorApi-D0EDXQnA.js": {
+        "sha256": "7c17543016aac54a922c736d68b7c64ccf95d8f67d144759fd7b12b420ab3227",
+        "bytes": 520
+      },
+      "web/dist-evidence/assets/indicatorApi-D0EDXQnA.js.map": {
+        "sha256": "ce1129c9aea49235ca5997800d608d30d723f35d78d192281a16051f516cb7d7",
+        "bytes": 1577
+      },
+      "web/dist-evidence/assets/indicatorPresentation-CikXSk_C.js": {
+        "sha256": "d1635c9c6e6903eba8d8caa31b97ce9794c5f3d66827194d2b69d117356c456d",
+        "bytes": 4060
+      },
+      "web/dist-evidence/assets/indicatorPresentation-CikXSk_C.js.map": {
+        "sha256": "71ee6c6bd6218f07ed50260a0f7bf9db5d54f09ce50cdfdcae58d4dd35a6dc9a",
+        "bytes": 12755
+      },
+      "web/dist-evidence/assets/indicatorPresentation-CjxE_j0H.css": {
+        "sha256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973",
+        "bytes": 3102
+      },
+      "web/dist-evidence/assets/jsx-runtime-BKllkxft.js": {
+        "sha256": "d570da413d217278b5e77a876b290849a78fccff86b5136bb55d83463eac3c5c",
+        "bytes": 8457
+      },
+      "web/dist-evidence/assets/jsx-runtime-BKllkxft.js.map": {
+        "sha256": "cadf449c54a3d084b8ffe02b63859cb9388765a5a6d150c1a7a91f45261fbf6e",
+        "bytes": 29099
+      },
+      "web/dist-evidence/assets/lossApi-B_TcBYnM.js": {
+        "sha256": "88755028d2985d4fa607730c42a75535070744c5ccda9119e5a388c703055879",
+        "bytes": 1218
+      },
+      "web/dist-evidence/assets/lossApi-B_TcBYnM.js.map": {
+        "sha256": "0619e71abd12e89f2603e9a3247a21870474192fd2799445a8e51bcc554e4f39",
+        "bytes": 4158
+      },
+      "web/dist-evidence/assets/lossOverviewPresentation-CJwijbXQ.js": {
+        "sha256": "5eedc70cf1c7a9833eb5940ff4f3b3b1dca1d2405f2ddc39c44c7f5aaf8e36f6",
+        "bytes": 3948
+      },
+      "web/dist-evidence/assets/lossOverviewPresentation-CJwijbXQ.js.map": {
+        "sha256": "8da81ce03dc7a85f4eba20584fff2378e95dbf98b6990052534bcbb95796c3b2",
+        "bytes": 18786
+      },
+      "web/dist-evidence/assets/lossPresentation-KsK1xNN3.js": {
+        "sha256": "2cd7cf274af520c4d765c78226f7b33b60c66a39790e4ebb62d8e3086d115e10",
+        "bytes": 2845
+      },
+      "web/dist-evidence/assets/lossPresentation-KsK1xNN3.js.map": {
+        "sha256": "aba91db50d125e27f7f0a6835083f78a29513783cc2678d9e33427fcdefb3229",
+        "bytes": 9089
+      },
+      "web/dist-evidence/assets/monitoringApi-CRENqx4k.js": {
+        "sha256": "9cc94314a84aa2f99caa942ad163aa39482b03dd6aaf0d93aaed38c0cadba479",
+        "bytes": 3061
+      },
+      "web/dist-evidence/assets/monitoringApi-CRENqx4k.js.map": {
+        "sha256": "fd6df0f9ea9e7452ea64ac917970d9daff926d95ba76dcc22797f7f6e98c1392",
+        "bytes": 9319
+      },
+      "web/dist-evidence/assets/oversight-B7GD29gG.css": {
+        "sha256": "2584bffc3a1cba9861263f45ba9b0a0f7ed08ac5f849fb1ca1d21fba9d047292",
+        "bytes": 13482
+      },
+      "web/dist-evidence/assets/oversight-CY4fGfhs.js": {
+        "sha256": "6b985ec5ab08bce154a0370a356e5a164efa01001061b41b8fbf1274bfc110ac",
+        "bytes": 4804
+      },
+      "web/dist-evidence/assets/oversight-CY4fGfhs.js.map": {
+        "sha256": "875cc61554c204f8be59262d7b4c9b98d0fad7a629771716a781831c1bb59552",
+        "bytes": 12779
+      },
+      "web/dist-evidence/assets/preload-helper-Czpn1I53.js": {
+        "sha256": "aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152",
+        "bytes": 1196
+      },
+      "web/dist-evidence/assets/reportingApi-DY6dpKIv.js": {
+        "sha256": "8081cf4b87876e1a705817225ca810bf23ccff5f5a675a9ed341ad383333609e",
+        "bytes": 2582
+      },
+      "web/dist-evidence/assets/reportingApi-DY6dpKIv.js.map": {
+        "sha256": "437ebbbfd8ee8412e9a6063aaaf3bc855610b8464672199543156c17ab732cb3",
+        "bytes": 12705
+      },
+      "web/dist-evidence/assets/reportingPeriod-ChMy94oa.js": {
+        "sha256": "500d55e6ef0648551211513ec03c2d27bdef5de9f2db8c31aa607ce570d5adc6",
+        "bytes": 833
+      },
+      "web/dist-evidence/assets/reportingPeriod-ChMy94oa.js.map": {
+        "sha256": "6c97be096e0bc382b75f36b871adde7085afe36b77f9cb47786ceeffa9f622d2",
+        "bytes": 3020
+      },
+      "web/dist-evidence/assets/ropa-BZkz5VZm.css": {
+        "sha256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587",
+        "bytes": 12275
+      },
+      "web/dist-evidence/assets/ropa-TDXpe7CB.js": {
+        "sha256": "1520252bc56533ce4e71222d948f30ad1a15efdc8e694151bc92444e95dd0c6d",
+        "bytes": 1542
+      },
+      "web/dist-evidence/assets/ropa-TDXpe7CB.js.map": {
+        "sha256": "deabe48b2e1ea371bc8da9bbacfb0acca90216481783c1f0e826dedbcdea156b",
+        "bytes": 5540
+      },
+      "web/dist-evidence/assets/staticDemoFixtures-B_3l5bJf.json": {
+        "sha256": "e9f86a878e9904635d67ef06997def27091245a672092f5f94b83613779545d2",
+        "bytes": 23043
+      },
+      "web/dist-evidence/assets/staticDemoWorkflowRuntime-BhTozA-3.js": {
+        "sha256": "bdb4b5cb54a492007b548cc82a17817de56f937b2ff98575e65585257552d0b5",
+        "bytes": 41434
+      },
+      "web/dist-evidence/assets/systemActivityApi-Dix3I6gG.js": {
+        "sha256": "221047906ba654f99101ad55d4cc5f5375e89e43fd0957483b5e29c1bf3c716b",
+        "bytes": 1185
+      },
+      "web/dist-evidence/assets/systemActivityApi-Dix3I6gG.js.map": {
+        "sha256": "765c94d810f61e9dd55de4b9c55826d0c448ffc004669b93ed3698dc633a01e3",
+        "bytes": 3589
+      },
+      "web/dist-evidence/assets/ui-BqQkgK9q.css": {
+        "sha256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050",
+        "bytes": 1624
+      },
+      "web/dist-evidence/assets/ui-CnNf69dw.js": {
+        "sha256": "41478a4fdef6a7914c37399508ca0214acc8a04ae739b55cf1cc36d73dbafa19",
+        "bytes": 122800
+      },
+      "web/dist-evidence/assets/ui-CnNf69dw.js.map": {
+        "sha256": "391e9b180ab1f18622ea5b01f230e20d0f8f4e3948962266a0451a434df120e4",
+        "bytes": 628663
+      },
+      "web/dist-evidence/assets/useRiskLossMetrics-NFVaRUVj.js": {
+        "sha256": "28bfea592da21b346c8d8cbc4fd3300f7f246011862bee385d631cb7dfee40d2",
+        "bytes": 3242
+      },
+      "web/dist-evidence/assets/useRiskLossMetrics-NFVaRUVj.js.map": {
+        "sha256": "1342ca5d9c31cfa139a63f7a351dd0b5a9f25bc386df3ae98d4795fae8cbcca9",
+        "bytes": 10643
+      },
+      "web/dist-evidence/assets/vendorFormsApi-DBEyKbo7.js": {
+        "sha256": "797205efb31c8b6b245b7d83cff834bf2710d0c6fa954c0aa7442dafef1a801c",
+        "bytes": 598
+      },
+      "web/dist-evidence/assets/vendorFormsApi-DBEyKbo7.js.map": {
+        "sha256": "b059c7fd9a5107b05bfa4d3f080cca3c1a710e16767e47a0b561c595593f9c26",
+        "bytes": 4227
+      },
+      "web/dist-evidence/index.html": {
+        "sha256": "8f310011927f358440c7538e03176c37e440ce88ea61542787258f1bc1a7b310",
+        "bytes": 4558
+      }
+    }
+  },
+  "browser": {
+    "engine": "Chromium",
+    "playwright": "1.55.0",
+    "chromium": "140.0.7339.16",
+    "build": "1187",
+    "module": "/tmp/clearsight-ui-review-tools/node_modules/playwright",
+    "browsersPath": "/tmp/clearsight-playwright-browsers",
+    "nodeVersion": "24.19.0",
+    "testEnvironment": "Authorized local Playwright execution; standard Chromium build1187; no external browser workaround."
+  },
+  "sourceAuthority": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-vendor-management-designs/vendor-workspace-preview.html",
+    "sha256": "c37f35161878d2035335241fc104c41fb4c8f6176cfe81d8a2f0d7fbdba728fd",
+    "bytes": 90484,
+    "immutable": true
+  },
+  "baseline": {
+    "commit": "cf2710b60a02354b9258cb73014249b696b8f94d",
+    "tree": "7e7d8cfe05677958562daaec3f80284a34324aad",
+    "manifest": {
+      "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/manifest.json",
+      "sha256": "45a75949163831e3bbad756a75303f7d90466a1d769d8f4aa39d6b9562db3f6e",
+      "bytes": 10993
+    },
+    "viewportCaptures": 12,
+    "fullPageCompanions": 12,
+    "pngCount": 24,
+    "totalPersistedBytes": 5128101,
+    "views": [
+      "overview",
+      "register"
+    ],
+    "unimplementedViews": [
+      "onboarding",
+      "assessments",
+      "documents"
+    ],
+    "widths": [
+      1440,
+      768,
+      390
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "status": "PASS",
+    "images": [
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-light-1440.png",
+        "sha256": "098e745ce917db336922dd1b94fc4611f88eaa3ca562489d28a17d2ffea17285",
+        "bytes": 244336
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-light-1440-full.png",
+        "sha256": "d62796b0fb99ff69e919d9fc0f02ed861a97cf6961b49af8ebf4a3a7be39154c",
+        "bytes": 392292
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-light-1440.png",
+        "sha256": "86bef2a2b23976afb879edbf3960bae2f81169f1d3384389fb7e774e9a8bc1b4",
+        "bytes": 246038
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-light-1440-full.png",
+        "sha256": "76e1e7577ea6cfff40ed8de765cddcbb3fb6b6cb3efac238dfb681492f5fa871",
+        "bytes": 246155
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-light-768.png",
+        "sha256": "fe9c027be78bebac464ddcf11a887d8bc7194b1ebfa60a2282fcd1d1162c52c7",
+        "bytes": 142661
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-light-768-full.png",
+        "sha256": "58b8e5e8b3347b3dfb74ea7ab75096e3a8ca4d4eef4ec715c5ffa6c84b90a5cb",
+        "bytes": 334990
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-light-768.png",
+        "sha256": "56fbab295b19419a3b64b95448bad8edc0937f1988cf1d510cb5f343a3efe3df",
+        "bytes": 168675
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-light-768-full.png",
+        "sha256": "28a4f5e6f65f13229597080a8155901c7393bb01455bd3431157958560b46655",
+        "bytes": 196572
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-light-390.png",
+        "sha256": "147f1d98549a8947ed120391343ee797106a7a3c1550315d1a2736c7cbedd572",
+        "bytes": 96671
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-light-390-full.png",
+        "sha256": "d11cf5ec2889199cfb24b28f5bda0f13443b472ea6881bb182b346270dd0f1f0",
+        "bytes": 308436
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-light-390.png",
+        "sha256": "13a0734d327863aa0705bb04eea9d02e12c46dc03c0bbaa7460e0f943f123ae6",
+        "bytes": 111243
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-light-390-full.png",
+        "sha256": "09141c16b07231cd00f251ed8f9f8db73b6e98ec9c87b3b7f4ed499020e44b75",
+        "bytes": 151124
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-dark-1440.png",
+        "sha256": "b013f148d56404e2fed13e3535e41badb030dc4c68d7d1b9e01278287a028a6e",
+        "bytes": 226410
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-dark-1440-full.png",
+        "sha256": "1dee7e4a23536fa535a3c02c183100cf8c5430780d7057151602dd23de77b919",
+        "bytes": 370515
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-dark-1440.png",
+        "sha256": "d1aa74d15c04fa879801245550b2f573603bc5611f38223529f3b1ed6627db61",
+        "bytes": 226197
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-dark-1440-full.png",
+        "sha256": "55202a29bcb8ef34bdeda8fc2f3b1c65319dad113ccd61731a7589c6ef7a2bdb",
+        "bytes": 226334
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-dark-768.png",
+        "sha256": "c0178ac5cf0b6bc3a6b8c3b2342d3beb68a05cf37d31523faab28b718bc679f0",
+        "bytes": 135759
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-dark-768-full.png",
+        "sha256": "1822938dc9c653b9d5be06a5b4c9126355ccb465f23c9eab84e599ae1edcbbca",
+        "bytes": 320939
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-dark-768.png",
+        "sha256": "4aff64b89609dbad4d2bf517d1989a6bc569c3f2a4e75d868ec5a2ae4ccc4014",
+        "bytes": 157631
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-dark-768-full.png",
+        "sha256": "33b316b1381d1867ee648ec4baabd7c904ef828b95a3bfcab4b76b7faff91562",
+        "bytes": 184950
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-dark-390.png",
+        "sha256": "be3e233415651393462bcff40b370224ee5b33295d01a2df459fee271a36aea5",
+        "bytes": 90963
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-overview-dark-390-full.png",
+        "sha256": "1f59a1aa4dfb07666ffedb2bb561c58a0d1eeadc73ba4d15699a81043ed22b2c",
+        "bytes": 293863
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-dark-390.png",
+        "sha256": "3424c0e2e608772eb7450a5a119ce882e4e1f0feb27a814c4a8d37076ffaf5cb",
+        "bytes": 102221
+      },
+      {
+        "path": "docs/evidence/2026-10-22-vendor-portfolio-v2/before/before-vendor-register-dark-390-full.png",
+        "sha256": "743a2ac9819e9cd99a057636e4e88f1e896f8e47c2e7df40a912226c4c25fbd9",
+        "bytes": 142133
+      }
+    ]
+  },
+  "artifactLocations": {
+    "localRoot": "/workspace/scratch/52b859deca91/visual-review/vendor-portfolio-v2",
+    "pathsRelativeTo": "localRoot unless a repository path or absolute path is specified",
+    "finalPNGsCommitted": false,
+    "retention": "Baseline PNGs are repository-backed. Final local PNG digests are retained here; final-head CI renders are retained by the CI artifact, whose publication is recorded separately."
+  },
+  "matrix": {
+    "status": "PASS",
+    "totalCaptures": 63,
+    "matrixCaptures": 50,
+    "supplementalCaptures": 13,
+    "views": [
+      "overview",
+      "register",
+      "onboarding",
+      "assessments",
+      "documents"
+    ],
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 900
+      },
+      {
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "width": 768,
+        "height": 900
+      },
+      {
+        "width": 390,
+        "height": 844
+      }
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "manifest": {
+      "path": "after/manifest.json",
+      "sha256": "6b461ac8efd68ea28c6b3b7de02e88bc6884043dc7d588c8f7e77eb6ee5d743b",
+      "bytes": 406002
+    },
+    "captures": [
+      {
+        "path": "after/240-vendor-portfolio-overview-light-1440x900.png",
+        "sha256": "225a856d64ca032c2c91ce17603285cc285d3619ea12edd797207a6c9617d37e",
+        "bytes": 223576,
+        "view": "overview",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-light-1280x800.png",
+        "sha256": "97c59c7893bf1119de6ee9c1436feb9878e8f16d95729cb4d10c428f223d851f",
+        "bytes": 191107,
+        "view": "overview",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-light-1024x768.png",
+        "sha256": "803818408d3dcf667b9103645500feb7a6f417a6c9eff466d9c0af8ac22654d6",
+        "bytes": 147434,
+        "view": "overview",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-light-768x900.png",
+        "sha256": "0bb4df2fbed7b6d687373922fb00fc89dfa362902f728cabd317d0531d3d0d38",
+        "bytes": 140497,
+        "view": "overview",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-light-390x844.png",
+        "sha256": "a2c79738d6ddd16b7b726c3ebf39e9850e3b46789bdca4bd3173ce58a85ceac1",
+        "bytes": 88804,
+        "view": "overview",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-dark-1440x900.png",
+        "sha256": "425ce5485a0bd34b195c5b35540e15ef6b172b54cfd1873ce89749ca316e5f3d",
+        "bytes": 224927,
+        "view": "overview",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-dark-1280x800.png",
+        "sha256": "30df7fd8fe53b449145e260df51f4c3e571788e5730d4ebb535d54ebd0298e3a",
+        "bytes": 182797,
+        "view": "overview",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-dark-1024x768.png",
+        "sha256": "09a0a23aa11b3f45bfbbe68ea682053b78862a830b995e75ba96d2c674c26b5b",
+        "bytes": 140250,
+        "view": "overview",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-dark-768x900.png",
+        "sha256": "de86cc132dffb1fa163a70bb00eee9cf48bae4f65c2a576f54b1f28f3d68acdc",
+        "bytes": 142393,
+        "view": "overview",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-dark-390x844.png",
+        "sha256": "145754ad38c60afff5381c4a542ee59de3785f6f77bb960f7cb31da65407ae00",
+        "bytes": 85842,
+        "view": "overview",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-light-1440x900.png",
+        "sha256": "9ad6de6ce3c81acb0026edcd915d59282af7e84d542a937b4b2c3123b27848b9",
+        "bytes": 181861,
+        "view": "register",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-light-1280x800.png",
+        "sha256": "f4ad3a14061e39f4f2cbf2740f18255578d5e2e000e5cc1f07fbe9c57929d576",
+        "bytes": 173200,
+        "view": "register",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-light-1024x768.png",
+        "sha256": "735f0740159c9ed202e8860e14bb978bb55308b493c8e41e9122f99e9f629bb2",
+        "bytes": 143668,
+        "view": "register",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-light-768x900.png",
+        "sha256": "d8fb2bbbb3413cc5a198162fda3fbe0e43e50d5c454d8d59b554606a12b7c3ad",
+        "bytes": 133111,
+        "view": "register",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-light-390x844.png",
+        "sha256": "cb1b79dce118aff189727db1be7c866902531c8b763f0a05d31051d5cba25724",
+        "bytes": 88578,
+        "view": "register",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-dark-1440x900.png",
+        "sha256": "50a37246a4f1b9608e3f1536884cb1569b09c89866a0ebdda3645cb161c343f1",
+        "bytes": 177050,
+        "view": "register",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-dark-1280x800.png",
+        "sha256": "35c0b27604aeb9c6991ce29612084dc81f0c5acff4daec5449f11320933ef987",
+        "bytes": 175635,
+        "view": "register",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-dark-1024x768.png",
+        "sha256": "18ff011ec21844846f638155f66e3f4b741c1c1a57dca1331764d95f31ae537a",
+        "bytes": 143912,
+        "view": "register",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-dark-768x900.png",
+        "sha256": "3d7c8b92bb7e3aa958342edf3d9ade3951e50d1f210d82284624c39bc5fa731b",
+        "bytes": 134334,
+        "view": "register",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/241-vendor-portfolio-register-dark-390x844.png",
+        "sha256": "54be006aa8a5d2d1f837a40fdd184f08ccc5a20b5b463ea6d220d3b731285406",
+        "bytes": 88208,
+        "view": "register",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-light-1440x900.png",
+        "sha256": "799d72f53d7cae84fd961d892f34ec8ab5d4f629f4a4f3568ec9f14cd8975a59",
+        "bytes": 167220,
+        "view": "onboarding",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-light-1280x800.png",
+        "sha256": "52fae37572aaa2ee8d9344c0224f907e2357ef9f4e17fe69155338fb40a4d975",
+        "bytes": 159035,
+        "view": "onboarding",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-light-1024x768.png",
+        "sha256": "fdd8d322ff23fb67f0b24f3e6ba0bbc05fee9d689e56cb3a7a1757057867cc35",
+        "bytes": 135262,
+        "view": "onboarding",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-light-768x900.png",
+        "sha256": "5e542a69a5c57fe306a275dc8adb904837d8b0167142c7b6f7acda751f25affe",
+        "bytes": 117273,
+        "view": "onboarding",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-light-390x844.png",
+        "sha256": "3ad9422d8d627c9325f5e0f50ff7813042ac2fe8c28e22411eea31e1a7f7a6a7",
+        "bytes": 89491,
+        "view": "onboarding",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-dark-1440x900.png",
+        "sha256": "dc67231ea94c902be0d0e20ba8a92e0498b168eb1dd234c3613f66aa56dafb01",
+        "bytes": 163640,
+        "view": "onboarding",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-dark-1280x800.png",
+        "sha256": "7b55b9a19260e2b977b9cae35892f334e7403170df709afa37fa627c0a11d92f",
+        "bytes": 161736,
+        "view": "onboarding",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-dark-1024x768.png",
+        "sha256": "7fc0d58984bf527b6a6f7089313e43b08f72d44d0ae68fa50bf71623f4664f73",
+        "bytes": 135984,
+        "view": "onboarding",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-dark-768x900.png",
+        "sha256": "bc2ba702e0051f7127d004cd9f22d5d9e88f558f000540af9d2ff4f8af8ca4eb",
+        "bytes": 115618,
+        "view": "onboarding",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/242-vendor-portfolio-onboarding-dark-390x844.png",
+        "sha256": "918483890195fbfc4f56518294cf518336bb90894bac4d0bf2787ed00a66a5a2",
+        "bytes": 89029,
+        "view": "onboarding",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-light-1440x900.png",
+        "sha256": "17e6ffa17691a68aa8d468971e46b033de19aa555f8f63b44bb836e70192c24c",
+        "bytes": 165510,
+        "view": "assessments",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-light-1280x800.png",
+        "sha256": "d1ac2fdeb91e67684d5f4f6f61e05cbbf0847ba9f7dce867147244065dd43fb8",
+        "bytes": 156646,
+        "view": "assessments",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-light-1024x768.png",
+        "sha256": "762f765a31b90f3ffbd291531ec04c1204b96c6b8f4128f87256108c0e87cc6e",
+        "bytes": 132804,
+        "view": "assessments",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-light-768x900.png",
+        "sha256": "94744488d03b82375d9be3bb2580c851bc6e4086b133b28d35b61ee503ed24ac",
+        "bytes": 115577,
+        "view": "assessments",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-light-390x844.png",
+        "sha256": "013651163e6f6aac74d57dfd0397499780e3e824e0d80889010b4c0f269e3809",
+        "bytes": 88862,
+        "view": "assessments",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-dark-1440x900.png",
+        "sha256": "2eddaee7217bba939ddb2ae4f226ee219615073ce0eca71ac3c92218d3f5d66a",
+        "bytes": 161906,
+        "view": "assessments",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-dark-1280x800.png",
+        "sha256": "b96d66b74a315527b843d15c1549c5884c835c99d0735151308ed2fd9450952b",
+        "bytes": 159471,
+        "view": "assessments",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-dark-1024x768.png",
+        "sha256": "ecd4e618632b7b8625f5cd13d22ae2d5fb18719bc368f2a962abdc616bd69bed",
+        "bytes": 133269,
+        "view": "assessments",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-dark-768x900.png",
+        "sha256": "75092b3ab09dc0ae18271f3356938043da1c4b81991d82f0f390af844eefa55d",
+        "bytes": 113861,
+        "view": "assessments",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/243-vendor-portfolio-assessments-dark-390x844.png",
+        "sha256": "e3aa3117c4dae63a57f9eb99e6abdcce153e5c8959e683443e121ace2623c4bf",
+        "bytes": 88676,
+        "view": "assessments",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-light-1440x900.png",
+        "sha256": "2f43988bf3083184b0a7fef52671861412a3fdbc9468ff8a3b70f1019273dff0",
+        "bytes": 160361,
+        "view": "documents",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-light-1280x800.png",
+        "sha256": "a15474638a692e111c1c61f998f346b227205685196179a2bd0e0e97e3336f81",
+        "bytes": 151438,
+        "view": "documents",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-light-1024x768.png",
+        "sha256": "a3cfb2de65e2903eb746f3edd109b58aa96d54390db1540e9047496e95794945",
+        "bytes": 129007,
+        "view": "documents",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-light-768x900.png",
+        "sha256": "06b222be3df2777f468eb5eeb68329c3adc9bb0d1623f6712978b421c1d6cdf5",
+        "bytes": 110473,
+        "view": "documents",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-light-390x844.png",
+        "sha256": "6e6665ef9d04a92a01ab56d6cc05fcad60cd85ac3332fed37e118965d16adfde",
+        "bytes": 89481,
+        "view": "documents",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-dark-1440x900.png",
+        "sha256": "3796eeb40de07af155b520af490f547825b8d11c96750aa9c21d0891b7f6844f",
+        "bytes": 156999,
+        "view": "documents",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-dark-1280x800.png",
+        "sha256": "93405ffbe76508edb49c942fff09a2cc1cc37f67d2dde85acbc8a39a19fc62f6",
+        "bytes": 154468,
+        "view": "documents",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-dark-1024x768.png",
+        "sha256": "cbad98e58e9dc3543eaf294f44365df75dbdb24cd377006562e5d28e5b55dccb",
+        "bytes": 129590,
+        "view": "documents",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-dark-768x900.png",
+        "sha256": "5073bc81fdff7eacd0cb53d634e852e9c9b4f939d82c9fa7969fbc52ecdca695",
+        "bytes": 108824,
+        "view": "documents",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/244-vendor-portfolio-documents-dark-390x844.png",
+        "sha256": "a9ec248e57f8358101ca031584246c7adbec7e8fb7b55cab2be342a2c2ed4115",
+        "bytes": 89213,
+        "view": "documents",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/245-vendor-portfolio-loading-dark-390.png",
+        "sha256": "8d0f6f039d50b4aca310c2ba276353d64b25c4ad63da536b78a9d27f1d54ef91",
+        "bytes": 57227,
+        "view": "overview",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "state": "loading"
+      },
+      {
+        "path": "after/245a-vendor-portfolio-unavailable-light-1440.png",
+        "sha256": "b1ae7a59a691114e57cdbe400d06966e3d565ff03a49e0e5dcb6acd010990bdd",
+        "bytes": 149563,
+        "view": "overview",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "state": "unavailable"
+      },
+      {
+        "path": "after/245b-vendor-portfolio-empty-light-1440.png",
+        "sha256": "e3e730cad8467eed991f7298947c6751cbf7e8e4e618b0865cb2d68bd2d45ea2",
+        "bytes": 145578,
+        "view": "register",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "state": "empty"
+      },
+      {
+        "path": "after/245c-vendor-portfolio-partial-dark-390.png",
+        "sha256": "5c879e31b766e2dd9ed11c185dda3e95cb1ac122bd12e22aecf3bd11db89d5de",
+        "bytes": 88300,
+        "view": "register",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "state": "partial"
+      },
+      {
+        "path": "after/245d-vendor-portfolio-summaries-unavailable-dark-390.png",
+        "sha256": "3c3b8553e62850f205c758e39ac4c1a6429774f8c36abb1ce80a98f6b084bb13",
+        "bytes": 91241,
+        "view": "assessments",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "state": "summaries-unavailable"
+      },
+      {
+        "path": "after/245e-vendor-portfolio-search-paging-light-1440.png",
+        "sha256": "51994ca40e141c69f79dac8bf3ff1402d80a187411db1136a902f3a85aba02dc",
+        "bytes": 197915,
+        "view": "register",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "state": "search-paging"
+      },
+      {
+        "path": "after/245f-vendor-portfolio-long-labels-light-390.png",
+        "sha256": "318195cc001afca65c4a88afb7d979ccafa35f6244a08f9d98af1c9a0453db9e",
+        "bytes": 92970,
+        "view": "documents",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "state": "long-labels"
+      },
+      {
+        "path": "after/245g-vendor-portfolio-documents-drill-dark-390.png",
+        "sha256": "a9ec248e57f8358101ca031584246c7adbec7e8fb7b55cab2be342a2c2ed4115",
+        "bytes": 89213,
+        "view": "documents",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "state": "documents-drill"
+      },
+      {
+        "path": "after/245h-vendor-portfolio-onboarding-drill-light-1440.png",
+        "sha256": "b617e208899342e1ca8e34ea161134d2705d6930d71fcc0f637cedc23cc7bd55",
+        "bytes": 167287,
+        "view": "onboarding",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "state": "onboarding-drill"
+      },
+      {
+        "path": "after/245i-vendor-portfolio-assessments-drill-dark-390.png",
+        "sha256": "e3aa3117c4dae63a57f9eb99e6abdcce153e5c8959e683443e121ace2623c4bf",
+        "bytes": 88676,
+        "view": "assessments",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "state": "assessments-drill"
+      },
+      {
+        "path": "after/245j-vendor-portfolio-denied-light-390.png",
+        "sha256": "0839ed8e0c57d66808767bbc89c5aaaaa586952ddc4d7f52d3f6c85d795024df",
+        "bytes": 67588,
+        "view": "overview",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "state": "denied"
+      },
+      {
+        "path": "after/245k-vendor-portfolio-exceptions-unavailable-dark-1440.png",
+        "sha256": "de894d64b6c9c932427d5219596108c84640aba62297aa16ffc7ebbfea9feb20",
+        "bytes": 230748,
+        "view": "overview",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "state": "exceptions-unavailable"
+      },
+      {
+        "path": "after/245l-vendor-portfolio-summary-missing-light-1440.png",
+        "sha256": "d2bc0ab4ecf8f5c2740ca16a823ab841980a5d529fbca5de152b651be694f7c4",
+        "bytes": 168215,
+        "view": "assessments",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "state": "summary-missing"
+      }
+    ]
+  },
+  "sourceComparison": {
+    "status": "STRUCTURE_PASS_VISUAL_REVIEW_RECORDED_SEPARATELY",
+    "sourceFrames": 25,
+    "runtimePairs": 50,
+    "manifest": {
+      "path": "after/approved-reference/manifest.json",
+      "sha256": "b3e83b1a1d6dcaebfd94ad2f23cec4f5f72fed6baf0a9776c1a596f71ee13f59",
+      "bytes": 190877
+    },
+    "frames": [
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-overview-1440x900.png",
+        "sha256": "decf036affac9271469ed54eea2094450e91508ccb0312c457c2a3a0a017999d",
+        "bytes": 181723,
+        "view": "overview",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-overview-1280x800.png",
+        "sha256": "ffff198e1bfeb0c7276a93f6e0a6bc235d4c44702b001cf0713496c375664688",
+        "bytes": 153955,
+        "view": "overview",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-overview-1024x768.png",
+        "sha256": "5ed9f157c5c9fc3e8d66579f557903cc2d9128915e50ce9688af5f45b95b8c25",
+        "bytes": 94565,
+        "view": "overview",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-overview-768x900.png",
+        "sha256": "9954c59aace7f547a3ae13e17a9437c1d20fa700efa43dd5761e528c005aa437",
+        "bytes": 96393,
+        "view": "overview",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-overview-390x844.png",
+        "sha256": "57c8617557a781806bc81d99a84f9a2e2a1a763bb0839917dd7742c741045bef",
+        "bytes": 64691,
+        "view": "overview",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-register-1440x900.png",
+        "sha256": "06f24fd7ac9031fd69d9f263b846eeabb6979ef2a0256b4655e35d78cb2d0424",
+        "bytes": 138856,
+        "view": "register",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-register-1280x800.png",
+        "sha256": "b7149b4aa15333606ec43e365a51105e6a6f3093741a09552df3c38ca28c8c8a",
+        "bytes": 122240,
+        "view": "register",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-register-1024x768.png",
+        "sha256": "997f33e3d226ef634baa77a681079e4a724c6ae714dbb7a93c50c9251627b249",
+        "bytes": 91690,
+        "view": "register",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-register-768x900.png",
+        "sha256": "95739830cc176b7cd550c679d23f56051533e85130cb4fcdc3b43905342b583b",
+        "bytes": 96440,
+        "view": "register",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-register-390x844.png",
+        "sha256": "08db9a3374243e3b3a6939d32fbd90b959d1487d9bd8c8ae046e7c8aed067b5e",
+        "bytes": 68384,
+        "view": "register",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-onboarding-1440x900.png",
+        "sha256": "941728639ac337bf97a6117b26abe740c287537d7622879ca2c5204e4ba39c9e",
+        "bytes": 121354,
+        "view": "onboarding",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-onboarding-1280x800.png",
+        "sha256": "a375f7d01c2d55ee5054a2c8f22a78d002134de5d6c45c6f5a605bcd58bc4f15",
+        "bytes": 109973,
+        "view": "onboarding",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-onboarding-1024x768.png",
+        "sha256": "8c90b9ff6d6b643a2000953897e0ed49629eaee55b4f472c1780956cb8253a44",
+        "bytes": 80867,
+        "view": "onboarding",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-onboarding-768x900.png",
+        "sha256": "926806fc3429d722735f35296f95b787eb68680677e620f21136a4c9fd443d12",
+        "bytes": 80242,
+        "view": "onboarding",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-onboarding-390x844.png",
+        "sha256": "c1f1995bb2bf405198dcab70e05d3fef02f6e5868eb67a85ccf2ab37184d3142",
+        "bytes": 59501,
+        "view": "onboarding",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-assessments-1440x900.png",
+        "sha256": "f6f07a5f2148bac508a54023406478fe88d9d3e9bf6a6ce7b8e2c2f74999524e",
+        "bytes": 133860,
+        "view": "assessments",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-assessments-1280x800.png",
+        "sha256": "98e36d26f173ead98647096378b4281f6bc90b25f6a2803a26e3c7ac1fcc341f",
+        "bytes": 117756,
+        "view": "assessments",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-assessments-1024x768.png",
+        "sha256": "9f0c7ec5ebf7e3ab1c41a703cf45a1fe5bf1657d2aef0dcc1a31901d097ce02e",
+        "bytes": 87237,
+        "view": "assessments",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-assessments-768x900.png",
+        "sha256": "fc17dd397fcb172ae61cee6df088a8f31c923853ff6dbc02b224e3be5da6ea39",
+        "bytes": 91390,
+        "view": "assessments",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-assessments-390x844.png",
+        "sha256": "a41e0b5cacf2d0fb9c18db8a990e9499028b01f7a46f8647ee773e448358770a",
+        "bytes": 69570,
+        "view": "assessments",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-documents-1440x900.png",
+        "sha256": "7d8206f76d76394d5880507b0bc6a1f818350104d02dba20d30f6b932d47ab49",
+        "bytes": 134319,
+        "view": "documents",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-documents-1280x800.png",
+        "sha256": "b8ba56acf337826f3d4684bb80874ca89647b73d63347cbabaaa12851d9b1877",
+        "bytes": 118141,
+        "view": "documents",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-documents-1024x768.png",
+        "sha256": "b012a459af2b43c56605a385625dca7d62873abb28368f3fbbae105309ff012d",
+        "bytes": 87622,
+        "view": "documents",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-documents-768x900.png",
+        "sha256": "e2cf10cc099c0f4556cdf1ae6c78c8cc8056652ac8676f560f5531cc01b17f01",
+        "bytes": 91828,
+        "view": "documents",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/approved-reference/approved-vendor-portfolio-documents-390x844.png",
+        "sha256": "1b1f43ffe4a51a517fe04f101071b8383491d3e8d02dd918133cd2d41ba108c0",
+        "bytes": 67829,
+        "view": "documents",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ],
+    "pairs": [
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-1440x900.png",
+        "sourceSHA256": "decf036affac9271469ed54eea2094450e91508ccb0312c457c2a3a0a017999d",
+        "runtime": "after/240-vendor-portfolio-overview-light-1440x900.png",
+        "runtimeSHA256": "225a856d64ca032c2c91ce17603285cc285d3619ea12edd797207a6c9617d37e",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-1440x900.png",
+        "sourceSHA256": "decf036affac9271469ed54eea2094450e91508ccb0312c457c2a3a0a017999d",
+        "runtime": "after/240-vendor-portfolio-overview-dark-1440x900.png",
+        "runtimeSHA256": "425ce5485a0bd34b195c5b35540e15ef6b172b54cfd1873ce89749ca316e5f3d",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-1280x800.png",
+        "sourceSHA256": "ffff198e1bfeb0c7276a93f6e0a6bc235d4c44702b001cf0713496c375664688",
+        "runtime": "after/240-vendor-portfolio-overview-light-1280x800.png",
+        "runtimeSHA256": "97c59c7893bf1119de6ee9c1436feb9878e8f16d95729cb4d10c428f223d851f",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-1280x800.png",
+        "sourceSHA256": "ffff198e1bfeb0c7276a93f6e0a6bc235d4c44702b001cf0713496c375664688",
+        "runtime": "after/240-vendor-portfolio-overview-dark-1280x800.png",
+        "runtimeSHA256": "30df7fd8fe53b449145e260df51f4c3e571788e5730d4ebb535d54ebd0298e3a",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-1024x768.png",
+        "sourceSHA256": "5ed9f157c5c9fc3e8d66579f557903cc2d9128915e50ce9688af5f45b95b8c25",
+        "runtime": "after/240-vendor-portfolio-overview-light-1024x768.png",
+        "runtimeSHA256": "803818408d3dcf667b9103645500feb7a6f417a6c9eff466d9c0af8ac22654d6",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-1024x768.png",
+        "sourceSHA256": "5ed9f157c5c9fc3e8d66579f557903cc2d9128915e50ce9688af5f45b95b8c25",
+        "runtime": "after/240-vendor-portfolio-overview-dark-1024x768.png",
+        "runtimeSHA256": "09a0a23aa11b3f45bfbbe68ea682053b78862a830b995e75ba96d2c674c26b5b",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-768x900.png",
+        "sourceSHA256": "9954c59aace7f547a3ae13e17a9437c1d20fa700efa43dd5761e528c005aa437",
+        "runtime": "after/240-vendor-portfolio-overview-light-768x900.png",
+        "runtimeSHA256": "0bb4df2fbed7b6d687373922fb00fc89dfa362902f728cabd317d0531d3d0d38",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-768x900.png",
+        "sourceSHA256": "9954c59aace7f547a3ae13e17a9437c1d20fa700efa43dd5761e528c005aa437",
+        "runtime": "after/240-vendor-portfolio-overview-dark-768x900.png",
+        "runtimeSHA256": "de86cc132dffb1fa163a70bb00eee9cf48bae4f65c2a576f54b1f28f3d68acdc",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-390x844.png",
+        "sourceSHA256": "57c8617557a781806bc81d99a84f9a2e2a1a763bb0839917dd7742c741045bef",
+        "runtime": "after/240-vendor-portfolio-overview-light-390x844.png",
+        "runtimeSHA256": "a2c79738d6ddd16b7b726c3ebf39e9850e3b46789bdca4bd3173ce58a85ceac1",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-overview-390x844.png",
+        "sourceSHA256": "57c8617557a781806bc81d99a84f9a2e2a1a763bb0839917dd7742c741045bef",
+        "runtime": "after/240-vendor-portfolio-overview-dark-390x844.png",
+        "runtimeSHA256": "145754ad38c60afff5381c4a542ee59de3785f6f77bb960f7cb31da65407ae00",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-1440x900.png",
+        "sourceSHA256": "06f24fd7ac9031fd69d9f263b846eeabb6979ef2a0256b4655e35d78cb2d0424",
+        "runtime": "after/241-vendor-portfolio-register-light-1440x900.png",
+        "runtimeSHA256": "9ad6de6ce3c81acb0026edcd915d59282af7e84d542a937b4b2c3123b27848b9",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-1440x900.png",
+        "sourceSHA256": "06f24fd7ac9031fd69d9f263b846eeabb6979ef2a0256b4655e35d78cb2d0424",
+        "runtime": "after/241-vendor-portfolio-register-dark-1440x900.png",
+        "runtimeSHA256": "50a37246a4f1b9608e3f1536884cb1569b09c89866a0ebdda3645cb161c343f1",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-1280x800.png",
+        "sourceSHA256": "b7149b4aa15333606ec43e365a51105e6a6f3093741a09552df3c38ca28c8c8a",
+        "runtime": "after/241-vendor-portfolio-register-light-1280x800.png",
+        "runtimeSHA256": "f4ad3a14061e39f4f2cbf2740f18255578d5e2e000e5cc1f07fbe9c57929d576",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-1280x800.png",
+        "sourceSHA256": "b7149b4aa15333606ec43e365a51105e6a6f3093741a09552df3c38ca28c8c8a",
+        "runtime": "after/241-vendor-portfolio-register-dark-1280x800.png",
+        "runtimeSHA256": "35c0b27604aeb9c6991ce29612084dc81f0c5acff4daec5449f11320933ef987",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-1024x768.png",
+        "sourceSHA256": "997f33e3d226ef634baa77a681079e4a724c6ae714dbb7a93c50c9251627b249",
+        "runtime": "after/241-vendor-portfolio-register-light-1024x768.png",
+        "runtimeSHA256": "735f0740159c9ed202e8860e14bb978bb55308b493c8e41e9122f99e9f629bb2",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-1024x768.png",
+        "sourceSHA256": "997f33e3d226ef634baa77a681079e4a724c6ae714dbb7a93c50c9251627b249",
+        "runtime": "after/241-vendor-portfolio-register-dark-1024x768.png",
+        "runtimeSHA256": "18ff011ec21844846f638155f66e3f4b741c1c1a57dca1331764d95f31ae537a",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-768x900.png",
+        "sourceSHA256": "95739830cc176b7cd550c679d23f56051533e85130cb4fcdc3b43905342b583b",
+        "runtime": "after/241-vendor-portfolio-register-light-768x900.png",
+        "runtimeSHA256": "d8fb2bbbb3413cc5a198162fda3fbe0e43e50d5c454d8d59b554606a12b7c3ad",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-768x900.png",
+        "sourceSHA256": "95739830cc176b7cd550c679d23f56051533e85130cb4fcdc3b43905342b583b",
+        "runtime": "after/241-vendor-portfolio-register-dark-768x900.png",
+        "runtimeSHA256": "3d7c8b92bb7e3aa958342edf3d9ade3951e50d1f210d82284624c39bc5fa731b",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-390x844.png",
+        "sourceSHA256": "08db9a3374243e3b3a6939d32fbd90b959d1487d9bd8c8ae046e7c8aed067b5e",
+        "runtime": "after/241-vendor-portfolio-register-light-390x844.png",
+        "runtimeSHA256": "cb1b79dce118aff189727db1be7c866902531c8b763f0a05d31051d5cba25724",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-register-390x844.png",
+        "sourceSHA256": "08db9a3374243e3b3a6939d32fbd90b959d1487d9bd8c8ae046e7c8aed067b5e",
+        "runtime": "after/241-vendor-portfolio-register-dark-390x844.png",
+        "runtimeSHA256": "54be006aa8a5d2d1f837a40fdd184f08ccc5a20b5b463ea6d220d3b731285406",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-1440x900.png",
+        "sourceSHA256": "941728639ac337bf97a6117b26abe740c287537d7622879ca2c5204e4ba39c9e",
+        "runtime": "after/242-vendor-portfolio-onboarding-light-1440x900.png",
+        "runtimeSHA256": "799d72f53d7cae84fd961d892f34ec8ab5d4f629f4a4f3568ec9f14cd8975a59",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-1440x900.png",
+        "sourceSHA256": "941728639ac337bf97a6117b26abe740c287537d7622879ca2c5204e4ba39c9e",
+        "runtime": "after/242-vendor-portfolio-onboarding-dark-1440x900.png",
+        "runtimeSHA256": "dc67231ea94c902be0d0e20ba8a92e0498b168eb1dd234c3613f66aa56dafb01",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-1280x800.png",
+        "sourceSHA256": "a375f7d01c2d55ee5054a2c8f22a78d002134de5d6c45c6f5a605bcd58bc4f15",
+        "runtime": "after/242-vendor-portfolio-onboarding-light-1280x800.png",
+        "runtimeSHA256": "52fae37572aaa2ee8d9344c0224f907e2357ef9f4e17fe69155338fb40a4d975",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-1280x800.png",
+        "sourceSHA256": "a375f7d01c2d55ee5054a2c8f22a78d002134de5d6c45c6f5a605bcd58bc4f15",
+        "runtime": "after/242-vendor-portfolio-onboarding-dark-1280x800.png",
+        "runtimeSHA256": "7b55b9a19260e2b977b9cae35892f334e7403170df709afa37fa627c0a11d92f",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-1024x768.png",
+        "sourceSHA256": "8c90b9ff6d6b643a2000953897e0ed49629eaee55b4f472c1780956cb8253a44",
+        "runtime": "after/242-vendor-portfolio-onboarding-light-1024x768.png",
+        "runtimeSHA256": "fdd8d322ff23fb67f0b24f3e6ba0bbc05fee9d689e56cb3a7a1757057867cc35",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-1024x768.png",
+        "sourceSHA256": "8c90b9ff6d6b643a2000953897e0ed49629eaee55b4f472c1780956cb8253a44",
+        "runtime": "after/242-vendor-portfolio-onboarding-dark-1024x768.png",
+        "runtimeSHA256": "7fc0d58984bf527b6a6f7089313e43b08f72d44d0ae68fa50bf71623f4664f73",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-768x900.png",
+        "sourceSHA256": "926806fc3429d722735f35296f95b787eb68680677e620f21136a4c9fd443d12",
+        "runtime": "after/242-vendor-portfolio-onboarding-light-768x900.png",
+        "runtimeSHA256": "5e542a69a5c57fe306a275dc8adb904837d8b0167142c7b6f7acda751f25affe",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-768x900.png",
+        "sourceSHA256": "926806fc3429d722735f35296f95b787eb68680677e620f21136a4c9fd443d12",
+        "runtime": "after/242-vendor-portfolio-onboarding-dark-768x900.png",
+        "runtimeSHA256": "bc2ba702e0051f7127d004cd9f22d5d9e88f558f000540af9d2ff4f8af8ca4eb",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-390x844.png",
+        "sourceSHA256": "c1f1995bb2bf405198dcab70e05d3fef02f6e5868eb67a85ccf2ab37184d3142",
+        "runtime": "after/242-vendor-portfolio-onboarding-light-390x844.png",
+        "runtimeSHA256": "3ad9422d8d627c9325f5e0f50ff7813042ac2fe8c28e22411eea31e1a7f7a6a7",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-onboarding-390x844.png",
+        "sourceSHA256": "c1f1995bb2bf405198dcab70e05d3fef02f6e5868eb67a85ccf2ab37184d3142",
+        "runtime": "after/242-vendor-portfolio-onboarding-dark-390x844.png",
+        "runtimeSHA256": "918483890195fbfc4f56518294cf518336bb90894bac4d0bf2787ed00a66a5a2",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-1440x900.png",
+        "sourceSHA256": "f6f07a5f2148bac508a54023406478fe88d9d3e9bf6a6ce7b8e2c2f74999524e",
+        "runtime": "after/243-vendor-portfolio-assessments-light-1440x900.png",
+        "runtimeSHA256": "17e6ffa17691a68aa8d468971e46b033de19aa555f8f63b44bb836e70192c24c",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-1440x900.png",
+        "sourceSHA256": "f6f07a5f2148bac508a54023406478fe88d9d3e9bf6a6ce7b8e2c2f74999524e",
+        "runtime": "after/243-vendor-portfolio-assessments-dark-1440x900.png",
+        "runtimeSHA256": "2eddaee7217bba939ddb2ae4f226ee219615073ce0eca71ac3c92218d3f5d66a",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-1280x800.png",
+        "sourceSHA256": "98e36d26f173ead98647096378b4281f6bc90b25f6a2803a26e3c7ac1fcc341f",
+        "runtime": "after/243-vendor-portfolio-assessments-light-1280x800.png",
+        "runtimeSHA256": "d1ac2fdeb91e67684d5f4f6f61e05cbbf0847ba9f7dce867147244065dd43fb8",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-1280x800.png",
+        "sourceSHA256": "98e36d26f173ead98647096378b4281f6bc90b25f6a2803a26e3c7ac1fcc341f",
+        "runtime": "after/243-vendor-portfolio-assessments-dark-1280x800.png",
+        "runtimeSHA256": "b96d66b74a315527b843d15c1549c5884c835c99d0735151308ed2fd9450952b",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-1024x768.png",
+        "sourceSHA256": "9f0c7ec5ebf7e3ab1c41a703cf45a1fe5bf1657d2aef0dcc1a31901d097ce02e",
+        "runtime": "after/243-vendor-portfolio-assessments-light-1024x768.png",
+        "runtimeSHA256": "762f765a31b90f3ffbd291531ec04c1204b96c6b8f4128f87256108c0e87cc6e",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-1024x768.png",
+        "sourceSHA256": "9f0c7ec5ebf7e3ab1c41a703cf45a1fe5bf1657d2aef0dcc1a31901d097ce02e",
+        "runtime": "after/243-vendor-portfolio-assessments-dark-1024x768.png",
+        "runtimeSHA256": "ecd4e618632b7b8625f5cd13d22ae2d5fb18719bc368f2a962abdc616bd69bed",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-768x900.png",
+        "sourceSHA256": "fc17dd397fcb172ae61cee6df088a8f31c923853ff6dbc02b224e3be5da6ea39",
+        "runtime": "after/243-vendor-portfolio-assessments-light-768x900.png",
+        "runtimeSHA256": "94744488d03b82375d9be3bb2580c851bc6e4086b133b28d35b61ee503ed24ac",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-768x900.png",
+        "sourceSHA256": "fc17dd397fcb172ae61cee6df088a8f31c923853ff6dbc02b224e3be5da6ea39",
+        "runtime": "after/243-vendor-portfolio-assessments-dark-768x900.png",
+        "runtimeSHA256": "75092b3ab09dc0ae18271f3356938043da1c4b81991d82f0f390af844eefa55d",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-390x844.png",
+        "sourceSHA256": "a41e0b5cacf2d0fb9c18db8a990e9499028b01f7a46f8647ee773e448358770a",
+        "runtime": "after/243-vendor-portfolio-assessments-light-390x844.png",
+        "runtimeSHA256": "013651163e6f6aac74d57dfd0397499780e3e824e0d80889010b4c0f269e3809",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-assessments-390x844.png",
+        "sourceSHA256": "a41e0b5cacf2d0fb9c18db8a990e9499028b01f7a46f8647ee773e448358770a",
+        "runtime": "after/243-vendor-portfolio-assessments-dark-390x844.png",
+        "runtimeSHA256": "e3aa3117c4dae63a57f9eb99e6abdcce153e5c8959e683443e121ace2623c4bf",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-1440x900.png",
+        "sourceSHA256": "7d8206f76d76394d5880507b0bc6a1f818350104d02dba20d30f6b932d47ab49",
+        "runtime": "after/244-vendor-portfolio-documents-light-1440x900.png",
+        "runtimeSHA256": "2f43988bf3083184b0a7fef52671861412a3fdbc9468ff8a3b70f1019273dff0",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-1440x900.png",
+        "sourceSHA256": "7d8206f76d76394d5880507b0bc6a1f818350104d02dba20d30f6b932d47ab49",
+        "runtime": "after/244-vendor-portfolio-documents-dark-1440x900.png",
+        "runtimeSHA256": "3796eeb40de07af155b520af490f547825b8d11c96750aa9c21d0891b7f6844f",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-1280x800.png",
+        "sourceSHA256": "b8ba56acf337826f3d4684bb80874ca89647b73d63347cbabaaa12851d9b1877",
+        "runtime": "after/244-vendor-portfolio-documents-light-1280x800.png",
+        "runtimeSHA256": "a15474638a692e111c1c61f998f346b227205685196179a2bd0e0e97e3336f81",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-1280x800.png",
+        "sourceSHA256": "b8ba56acf337826f3d4684bb80874ca89647b73d63347cbabaaa12851d9b1877",
+        "runtime": "after/244-vendor-portfolio-documents-dark-1280x800.png",
+        "runtimeSHA256": "93405ffbe76508edb49c942fff09a2cc1cc37f67d2dde85acbc8a39a19fc62f6",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-1024x768.png",
+        "sourceSHA256": "b012a459af2b43c56605a385625dca7d62873abb28368f3fbbae105309ff012d",
+        "runtime": "after/244-vendor-portfolio-documents-light-1024x768.png",
+        "runtimeSHA256": "a3cfb2de65e2903eb746f3edd109b58aa96d54390db1540e9047496e95794945",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-1024x768.png",
+        "sourceSHA256": "b012a459af2b43c56605a385625dca7d62873abb28368f3fbbae105309ff012d",
+        "runtime": "after/244-vendor-portfolio-documents-dark-1024x768.png",
+        "runtimeSHA256": "cbad98e58e9dc3543eaf294f44365df75dbdb24cd377006562e5d28e5b55dccb",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-768x900.png",
+        "sourceSHA256": "e2cf10cc099c0f4556cdf1ae6c78c8cc8056652ac8676f560f5531cc01b17f01",
+        "runtime": "after/244-vendor-portfolio-documents-light-768x900.png",
+        "runtimeSHA256": "06b222be3df2777f468eb5eeb68329c3adc9bb0d1623f6712978b421c1d6cdf5",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-768x900.png",
+        "sourceSHA256": "e2cf10cc099c0f4556cdf1ae6c78c8cc8056652ac8676f560f5531cc01b17f01",
+        "runtime": "after/244-vendor-portfolio-documents-dark-768x900.png",
+        "runtimeSHA256": "5073bc81fdff7eacd0cb53d634e852e9c9b4f939d82c9fa7969fbc52ecdca695",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-390x844.png",
+        "sourceSHA256": "1b1f43ffe4a51a517fe04f101071b8383491d3e8d02dd918133cd2d41ba108c0",
+        "runtime": "after/244-vendor-portfolio-documents-light-390x844.png",
+        "runtimeSHA256": "6e6665ef9d04a92a01ab56d6cc05fcad60cd85ac3332fed37e118965d16adfde",
+        "theme": "light",
+        "structuralStatus": "PASS"
+      },
+      {
+        "source": "after/approved-reference/approved-vendor-portfolio-documents-390x844.png",
+        "sourceSHA256": "1b1f43ffe4a51a517fe04f101071b8383491d3e8d02dd918133cd2d41ba108c0",
+        "runtime": "after/244-vendor-portfolio-documents-dark-390x844.png",
+        "runtimeSHA256": "a9ec248e57f8358101ca031584246c7adbec7e8fb7b55cab2be342a2c2ed4115",
+        "theme": "dark",
+        "structuralStatus": "PASS"
+      }
+    ],
+    "adaptation": "Runtime retains the complete five-destination menu and source page anatomy. Stored criticality, linked exception stages and recorded renewal dates replace prototype-only business values. The approved shared primary navigation and compact selector at <=760px remain explicit adaptations."
+  },
+  "overviewFullPages": {
+    "status": "PASS",
+    "count": 2,
+    "receipt": {
+      "path": "after/overview-fullpage.json",
+      "sha256": "9bcf4e17010a01ec734493efe0f1d321792a668e994ea205faa3c04334299ed6",
+      "bytes": 14380
+    },
+    "captures": [
+      {
+        "path": "after/240-vendor-portfolio-overview-light-1440x900-full.png",
+        "sha256": "b60d7cd6528ad0ab72be1afd3ae6e281bc9d720d5a24925305eec3f8418b0c32",
+        "bytes": 264538,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "after/240-vendor-portfolio-overview-light-390x844-full.png",
+        "sha256": "9467987cf7dfd722b7c665e7983d7d0fc3aab563c200aa6469486ef7c6543902",
+        "bytes": 202544,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ]
+  },
+  "accessibility": {
+    "status": "PASS",
+    "scenarios": 20,
+    "axeViolations": 0,
+    "failedScenarios": 0,
+    "undersizedPrimaryControls": 0,
+    "manifest": {
+      "path": "after/accessibility.json",
+      "sha256": "890b507913503a8cf8de35aceb043d92c939099c65eeb5560da1b363ed4be1fe",
+      "bytes": 882821
+    },
+    "scenarioResults": [
+      {
+        "name": "vendor-portfolio-overview-light-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "PASS": 78,
+          "INCOMPLETE": 23,
+          "REVIEW": 9
+        }
+      },
+      {
+        "name": "vendor-portfolio-overview-light-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 16,
+          "PASS": 73,
+          "REVIEW": 10
+        }
+      },
+      {
+        "name": "vendor-portfolio-overview-dark-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "PASS": 78,
+          "INCOMPLETE": 23,
+          "REVIEW": 9
+        }
+      },
+      {
+        "name": "vendor-portfolio-overview-dark-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 16,
+          "PASS": 73,
+          "REVIEW": 10
+        }
+      },
+      {
+        "name": "vendor-portfolio-register-light-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 11,
+          "PASS": 41,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-register-light-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 7,
+          "PASS": 34,
+          "REVIEW": 4
+        }
+      },
+      {
+        "name": "vendor-portfolio-register-dark-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 11,
+          "PASS": 41,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-register-dark-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 7,
+          "PASS": 34,
+          "REVIEW": 4
+        }
+      },
+      {
+        "name": "vendor-portfolio-onboarding-light-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 11,
+          "PASS": 21,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-onboarding-light-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 7,
+          "PASS": 22,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-onboarding-dark-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 11,
+          "PASS": 21,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-onboarding-dark-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 7,
+          "PASS": 22,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-assessments-light-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "PASS": 32,
+          "INCOMPLETE": 12,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-assessments-light-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 8,
+          "PASS": 33,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-assessments-dark-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "PASS": 32,
+          "INCOMPLETE": 12,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-assessments-dark-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 8,
+          "PASS": 33,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-documents-light-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 11,
+          "PASS": 17,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-documents-light-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 7,
+          "PASS": 19,
+          "REVIEW": 2
+        }
+      },
+      {
+        "name": "vendor-portfolio-documents-dark-1440",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 11,
+          "PASS": 17,
+          "REVIEW": 3
+        }
+      },
+      {
+        "name": "vendor-portfolio-documents-dark-390",
+        "status": "PASS",
+        "incompleteRules": [
+          "color-contrast"
+        ],
+        "contrastOutcomes": {
+          "INCOMPLETE": 7,
+          "PASS": 19,
+          "REVIEW": 2
+        }
+      }
+    ],
+    "limitation": "Axe and local contrast inspection retain INCOMPLETE gradient/background cases and REVIEW control-boundary cases. Zero axe violations is not a claim that every contrast condition was automatically proved."
+  },
+  "compatibility": {
+    "selectedRelationshipStates": {
+      "status": "PASS",
+      "captures": 8,
+      "manifest": {
+        "path": "final-compat-relationship-states/manifest.json",
+        "sha256": "db268d0e590f1416f152142ac531db3492f4a76696bee25cdb34c71818cc922a",
+        "bytes": 76656
+      },
+      "images": [
+        {
+          "path": "final-compat-relationship-states/235-vendor-relationship-loading-dark-390.png",
+          "sha256": "18c8ab0bdcfdbf8074d57c5bc25c35f4b0fd898249db05637c9338dbad332b8c",
+          "bytes": 91373
+        },
+        {
+          "path": "final-compat-relationship-states/235a-vendor-relationship-unavailable-light-1440.png",
+          "sha256": "660bc5f0d81ab15d6675a9c5aae23ecbca3531311c9b72a06ac45c3a34d25dab",
+          "bytes": 197047
+        },
+        {
+          "path": "final-compat-relationship-states/235b-vendor-relationship-long-labels-light-390.png",
+          "sha256": "9208443e3ea26e2d94445a1e85df26a562ddca2a50e6a50aad6bd9336a01ddbd",
+          "bytes": 104018
+        },
+        {
+          "path": "final-compat-relationship-states/235c-vendor-relationship-documents-dark-390.png",
+          "sha256": "c2a2be70707a138e31b07486ecd411bded03c3ffd9a9e2cc3d923d4e21c05b75",
+          "bytes": 85590
+        },
+        {
+          "path": "final-compat-relationship-states/235d-vendor-relationship-activation-denied-light-1440.png",
+          "sha256": "cf609fbe185a66cab243372fa7181574612fe500cf0ae8bfbd7d24a5a6d4d260",
+          "bytes": 209892
+        },
+        {
+          "path": "final-compat-relationship-states/235e-vendor-relationship-assessment-unavailable-dark-390.png",
+          "sha256": "35a5a6209418094c2b0ddc6ce5aa8f0af03b1fc8d383759b3bf1476d1d535510",
+          "bytes": 88069
+        },
+        {
+          "path": "final-compat-relationship-states/235f-vendor-relationship-empty-light-1440.png",
+          "sha256": "35681d66888ca3eac91cb962d2b71fe9adf010b127c96be83006709358818513",
+          "bytes": 202970
+        },
+        {
+          "path": "final-compat-relationship-states/235g-vendor-relationship-partial-dark-390.png",
+          "sha256": "155b67d31112e03a46cd997245c5395aca918a5e05b54c6bfbd3b78b85803b10",
+          "bytes": 61169
+        }
+      ]
+    },
+    "existingVendorMeasures": {
+      "status": "PASS",
+      "captures": 2,
+      "manifest": {
+        "path": "final-compat-measures/manifest.json",
+        "sha256": "460f2fa6fc86b34a04335be9b058eba62a31f9f56648a4646a5278323df037d7",
+        "bytes": 1318
+      },
+      "images": [
+        {
+          "path": "final-compat-measures/217-vendor-approved-measures-light-1440x900.png",
+          "sha256": "abaa849ec48c39af18c38b2fa771f6af9ab997c5bc88ef559fa3b086d7636083",
+          "bytes": 223715
+        },
+        {
+          "path": "final-compat-measures/218-vendor-approved-measures-dark-mobile-390x844.png",
+          "sha256": "21027265ec965123bab26180f41d435cb6adb790f8ef4a0193c0574f5d5c43de",
+          "bytes": 85930
+        }
+      ]
+    },
+    "legacyPortfolio": {
+      "status": "PASS",
+      "captures": 12,
+      "detailAndBackChecks": 4,
+      "manifest": {
+        "path": "final-legacy-portfolio/manifest.json",
+        "sha256": "e80605b50021eb2f1c3d5f2ff2e30faea4e7500f5c81c930df506bf04352e8e5",
+        "bytes": 1602
+      },
+      "log": {
+        "path": "/tmp/vendor-portfolio-final-legacy-portfolio.log",
+        "sha256": "fd7ffdb8daeafb9c258db795ab8aee6e1ff9ac0856fa723db3edf532d8c4883b",
+        "bytes": 78
+      },
+      "images": [
+        {
+          "path": "final-legacy-portfolio/live-light-1440.png",
+          "sha256": "615ba01fcb0ad59485cf214ac3fe82c2ff3d00d8d959eb2c61b804023bd0c549",
+          "bytes": 264014
+        },
+        {
+          "path": "final-legacy-portfolio/register-light-1440.png",
+          "sha256": "1506ede1d826576f3aaf4cfbff21e72c0ec6b2722eba263390e1c4ba606e3230",
+          "bytes": 181468
+        },
+        {
+          "path": "final-legacy-portfolio/unavailable-light-1440.png",
+          "sha256": "c3567ec745d2a6d232024f8b42e9144b280002fc0c88a4ff2b36af787bf4076f",
+          "bytes": 261957
+        },
+        {
+          "path": "final-legacy-portfolio/live-light-390.png",
+          "sha256": "76a6d7d7423305af64f1cded764c54c89e158b46b5e67333d20ee565cc4eec59",
+          "bytes": 202373
+        },
+        {
+          "path": "final-legacy-portfolio/register-light-390.png",
+          "sha256": "a4d64205ef5cc20b5d867b5531891098e8edbc19b55c7b553d9cfe187eaeba9a",
+          "bytes": 118114
+        },
+        {
+          "path": "final-legacy-portfolio/unavailable-light-390.png",
+          "sha256": "04385dd39f9aa00dc9e2bf41a68e465da8fe71b1f550593a0eb9afff2484fb24",
+          "bytes": 197887
+        },
+        {
+          "path": "final-legacy-portfolio/live-dark-1440.png",
+          "sha256": "8b61c5305b6bf9503e73bef8f24135c983c31502f90e2d17f05820b8bb55c116",
+          "bytes": 265319
+        },
+        {
+          "path": "final-legacy-portfolio/register-dark-1440.png",
+          "sha256": "7e4673d16b7768cf5ee32e02a0c463fd653a022cc1b0db2ccb115c8e37a07c9f",
+          "bytes": 176840
+        },
+        {
+          "path": "final-legacy-portfolio/unavailable-dark-1440.png",
+          "sha256": "3ccba4b9a67ad7563555f43c8945257615c3755ed0d2713362853a70ed4f73f9",
+          "bytes": 264151
+        },
+        {
+          "path": "final-legacy-portfolio/live-dark-390.png",
+          "sha256": "5cdc6fb4b3c76b540c5d9468132c4912210ca02bf4424bc1e2e804365fc1ee33",
+          "bytes": 199591
+        },
+        {
+          "path": "final-legacy-portfolio/register-dark-390.png",
+          "sha256": "5dbd206a128bb3fc6b57635fd1a736201a190e26a71b1b7ea15add5e94715786",
+          "bytes": 117637
+        },
+        {
+          "path": "final-legacy-portfolio/unavailable-dark-390.png",
+          "sha256": "d5fe844766c50e840206e0c63fc876b973973dcefc4f7ac9de0f1afbdb51a36b",
+          "bytes": 198258
+        }
+      ],
+      "detailImages": [
+        {
+          "path": "final-legacy-portfolio/detail-light-1440.png",
+          "sha256": "c457053cff05b7b729add07591db14de10d2a8a7339c181d343d9754c50c30dd",
+          "bytes": 431850
+        },
+        {
+          "path": "final-legacy-portfolio/detail-light-390.png",
+          "sha256": "e5703b85b8bc54234000dada559014d6c662b2c54a7838e1c1cc73c2784de2fa",
+          "bytes": 285321
+        },
+        {
+          "path": "final-legacy-portfolio/detail-dark-1440.png",
+          "sha256": "0640605dcbfe74c1d413cc3b7d6e4bd347dcb74f7474c618d178620817b7a519",
+          "bytes": 422298
+        },
+        {
+          "path": "final-legacy-portfolio/detail-dark-390.png",
+          "sha256": "56bae54c569dff8ba3cb431dfff71ec6e9e6daef642ccfc91711552beae00352",
+          "bytes": 278942
+        }
+      ]
+    }
+  },
+  "contracts": {
+    "status": "PASS",
+    "failures": [],
+    "portfolioReview": {
+      "path": "after/portfolio-review.json",
+      "sha256": "b3d6ee2d97eeae10d06bb967f5e6901f5481bd13be0c8506cbe44e673d05bbf8",
+      "bytes": 609
+    },
+    "checksumVerification": {
+      "path": "after/checksum-verification.json",
+      "sha256": "bec62b2642c4796247abe4d50df6e6adcf92cd27980d593fa9b8241d986c172b",
+      "bytes": 364
+    },
+    "checksumCounts": {
+      "runtimeFiles": 6,
+      "evidenceScripts": 10,
+      "buildFiles": 171,
+      "sourceFrames": 25,
+      "runtimePairs": 50
+    },
+    "proved": [
+      "Five destinations and active panels",
+      "Desktop keyboard tabs and phone selector",
+      "Four measures, two insights, inline register and responsive rail",
+      "No horizontal overflow",
+      "Visible44px touch targets including opened queue",
+      "Phone filter expand/apply/collapse/clear",
+      "Observed bounded reads and exact relationship population",
+      "Search retained across cursor pagination",
+      "Exact collection reader drills and refreshed relationship identity",
+      "No API commands from view navigation",
+      "Settled exception queue and scroll restoration"
+    ],
+    "interactionProofs": [
+      {
+        "capture": "after/240-vendor-portfolio-overview-light-1440x900.png",
+        "interaction": {
+          "visited": [
+            "Overview",
+            "Register",
+            "Onboarding",
+            "Assessments",
+            "Documents"
+          ],
+          "keyboard": {
+            "options": [
+              "Overview",
+              "Register",
+              "Onboarding",
+              "Assessments",
+              "Documents"
+            ],
+            "sequence": [
+              "Register",
+              "Onboarding",
+              "Assessments",
+              "Documents",
+              "Overview"
+            ],
+            "complete": true
+          },
+          "baselineRestored": true,
+          "exceptionReturn": {
+            "open": true,
+            "scrollY": 884,
+            "rowVisible": true,
+            "rowTop": 623.65625,
+            "rowBottom": 667.65625,
+            "priorScrollY": 884,
+            "exactMatterID": "sample-portfolio-finding-0",
+            "baselineRestored": true
+          }
+        }
+      },
+      {
+        "capture": "after/240-vendor-portfolio-overview-light-390x844.png",
+        "interaction": {
+          "visited": [
+            "Overview",
+            "Register",
+            "Onboarding",
+            "Assessments",
+            "Documents"
+          ],
+          "keyboard": {
+            "options": [
+              "Overview",
+              "Register",
+              "Onboarding",
+              "Assessments",
+              "Documents"
+            ],
+            "sequence": [
+              "Register"
+            ],
+            "complete": true
+          },
+          "baselineRestored": true,
+          "queueTargets": {
+            "minimumWidth": 44,
+            "minimumHeight": 44,
+            "undersized": [],
+            "baselineRestored": true
+          }
+        }
+      },
+      {
+        "capture": "after/241-vendor-portfolio-register-light-390x844.png",
+        "interaction": {
+          "filters": {
+            "initiallyCollapsed": true,
+            "expanded": true,
+            "selection": "Critical",
+            "filteredRecords": 0,
+            "appliedCountRetained": true,
+            "cleared": true,
+            "baselineRestored": true
+          }
+        }
+      },
+      {
+        "capture": "after/245-vendor-portfolio-loading-dark-390.png",
+        "interaction": {
+          "pending": 1
+        }
+      },
+      {
+        "capture": "after/245a-vendor-portfolio-unavailable-light-1440.png",
+        "interaction": {
+          "retryIssued": true
+        }
+      },
+      {
+        "capture": "after/245b-vendor-portfolio-empty-light-1440.png",
+        "interaction": {
+          "empty": true
+        }
+      },
+      {
+        "capture": "after/245c-vendor-portfolio-partial-dark-390.png",
+        "interaction": {
+          "loadMoreAvailable": true
+        }
+      },
+      {
+        "capture": "after/245d-vendor-portfolio-summaries-unavailable-dark-390.png",
+        "interaction": {
+          "unavailable": true,
+          "unknownVisible": true
+        }
+      },
+      {
+        "capture": "after/245e-vendor-portfolio-search-paging-light-1440.png",
+        "interaction": {
+          "search": "Acme",
+          "paged": true
+        }
+      },
+      {
+        "capture": "after/245f-vendor-portfolio-long-labels-light-390.png",
+        "interaction": {
+          "longLabels": true
+        }
+      },
+      {
+        "capture": "after/245g-vendor-portfolio-documents-drill-dark-390.png",
+        "interaction": {
+          "relationshipPreserved": true,
+          "protectedDocuments": true,
+          "refresh": {
+            "relationshipPreserved": true,
+            "initialSection": "Overview",
+            "reopenedSection": "Evidence",
+            "evidenceView": "Documents",
+            "complete": true
+          },
+          "returned": true
+        }
+      },
+      {
+        "capture": "after/245h-vendor-portfolio-onboarding-drill-light-1440.png",
+        "interaction": {
+          "relationshipPreserved": true,
+          "dueDiligence": true,
+          "refresh": {
+            "relationshipPreserved": true,
+            "initialSection": "Overview",
+            "reopenedSection": "Due diligence",
+            "evidenceView": null,
+            "complete": true
+          },
+          "returned": true
+        }
+      },
+      {
+        "capture": "after/245i-vendor-portfolio-assessments-drill-dark-390.png",
+        "interaction": {
+          "relationshipPreserved": true,
+          "forms": true,
+          "refresh": {
+            "relationshipPreserved": true,
+            "initialSection": "Overview",
+            "reopenedSection": "Evidence",
+            "evidenceView": "Forms",
+            "complete": true
+          },
+          "returned": true
+        }
+      },
+      {
+        "capture": "after/245j-vendor-portfolio-denied-light-390.png",
+        "interaction": {
+          "addDisabled": true
+        }
+      },
+      {
+        "capture": "after/245k-vendor-portfolio-exceptions-unavailable-dark-1440.png",
+        "interaction": {
+          "unknownTotals": true
+        }
+      },
+      {
+        "capture": "after/245l-vendor-portfolio-summary-missing-light-1440.png",
+        "interaction": {
+          "unavailable": true,
+          "unknownVisible": true
+        }
+      }
+    ]
+  },
+  "tests": {
+    "finalFocused": {
+      "status": "PASS",
+      "tests": 137,
+      "files": 4,
+      "revision": "85817bf9f00d99cd168ab2b3eb312f85b07f7ba1",
+      "command": "npm test -- src/components/VendorsWorkspace.test.tsx src/components/VendorPortfolio.test.tsx src/appRouting.test.ts src/copyQuality.test.ts",
+      "log": {
+        "path": "/tmp/vendor-portfolio-final-targeted.log",
+        "sha256": "94943bd09c2f5b1bc80a2c92b99aea81f68520de5ca069f0cbb4495e43948c04",
+        "bytes": 522
+      }
+    },
+    "earlierFullWeb": {
+      "status": "PASS",
+      "tests": 2111,
+      "files": 262,
+      "revision": "99c962c2d9fcd276e00dc76198feb474830ce66b",
+      "command": "npm test",
+      "log": {
+        "path": "/tmp/vendor-portfolio-full-web-tests.log",
+        "sha256": "49816724d0589aef0a4993d6a66bd1c04ef935015c154a77ec0e2ed298573bc2",
+        "bytes": 405
+      },
+      "limitation": "This full run preceded the settled-scroll and opened-queue touch correction. It is not represented as an exact corrected-checkpoint full-suite run;137 final focused tests and final browser proofs cover the correction."
+    },
+    "finalOtherGates": {
+      "revision": "85817bf9f00d99cd168ab2b3eb312f85b07f7ba1",
+      "reportedBy": "/root",
+      "status": "PASS",
+      "commands": [
+        "npm run typecheck",
+        "npm run build",
+        "npm run check:runtime-truth",
+        "npm run check:ui-contracts"
+      ],
+      "uiContractNodecheckFiles": 3,
+      "customerBuildLog": {
+        "path": "/tmp/vendor-portfolio-final-build.log",
+        "sha256": "56f99a625d925815ae37d7feef11a0fac951cc8ebc5f11f15f5dc2c10df29945",
+        "bytes": 9062
+      }
+    }
+  },
+  "reviewers": [
+    {
+      "name": "/root",
+      "scope": "Overview",
+      "status": "PASS",
+      "directlyInspected": {
+        "runtimeViewportFrames": 10,
+        "sourceFrames": 5,
+        "fullPageFrames": 2
+      },
+      "verdict": "Source primary/rail density, four measures, two insights, inline list, complete menu, phone selector and lower mobile stacking are clear. No blocker."
+    },
+    {
+      "name": "/root/remaining_pages_audit",
+      "scope": "Register, Onboarding, Assessments, Documents",
+      "status": "PASS",
+      "directlyInspected": {
+        "runtimeViewportFrames": 40,
+        "sourceFrames": 20
+      },
+      "verdict": "All40 runtime frames and20 source frames directly inspected; six runtime file hashes unchanged; no material blocker.",
+      "verifiedDigests": {
+        "runtime40ImageAggregate": "a2f3cdefc4227515cd8b6515a33cae34cba973b10d6d66eb001eefe69160cae8",
+        "sourcePairManifest": "b3e83b1a1d6dcaebfd94ad2f23cec4f5f72fed6baf0a9776c1a596f71ee13f59",
+        "runtimeCheckpoint": "fe323c4a6c48626ace8cddd996abbdc12848b8a6e6d79d92fa4355ce1f09aa25",
+        "captureManifest": "6b461ac8efd68ea28c6b3b7de02e88bc6884043dc7d588c8f7e77eb6ee5d743b"
+      }
+    },
+    {
+      "name": "/root/remaining_pages_audit/edge_state_review",
+      "scope": "13 supplemental states and queue interaction receipts",
+      "status": "PASS",
+      "directlyInspected": {
+        "supplementalFrames": 13
+      },
+      "verdict": "Scoped no blocker; all final245* frames directly inspected and hashes checked against the corrected runtime receipt.",
+      "nonBlockingObservation": "The403 denied state uses generic unavailable/retry copy. It correctly hides records and disables creation."
+    }
+  ],
+  "commands": {
+    "cwd": "/workspace/scratch/52b859deca91/clearsight-v2-next/web",
+    "runs": [
+      {
+        "purpose": "Evidence build",
+        "command": "npm run build:evidence -- --base=/"
+      },
+      {
+        "purpose": "Local evidence preview",
+        "command": "npm run preview:evidence -- --host 127.0.0.1 --port 4318"
+      },
+      {
+        "purpose": "63 final portfolio captures",
+        "command": "node scripts/capture-ui-evidence.mjs",
+        "env": {
+          "PLAYWRIGHT_MODULE": "/tmp/clearsight-ui-review-tools/node_modules/playwright",
+          "PLAYWRIGHT_BROWSERS_PATH": "/tmp/clearsight-playwright-browsers",
+          "PAGE_URL": "http://127.0.0.1:4318",
+          "UI_EVIDENCE_DIR": "/workspace/scratch/52b859deca91/visual-review/vendor-portfolio-v2/after",
+          "UI_EVIDENCE_SCOPE": "vendor-portfolio"
+        }
+      },
+      {
+        "purpose": "25 approved source frames and50 runtime pairs",
+        "command": "node scripts/capture-approved-source-references.mjs",
+        "env": {
+          "PLAYWRIGHT_MODULE": "/tmp/clearsight-ui-review-tools/node_modules/playwright",
+          "PLAYWRIGHT_BROWSERS_PATH": "/tmp/clearsight-playwright-browsers",
+          "PAGE_URL": "http://127.0.0.1:4318",
+          "UI_EVIDENCE_DIR": "/workspace/scratch/52b859deca91/visual-review/vendor-portfolio-v2/after",
+          "UI_EVIDENCE_SCOPE": "vendor-portfolio"
+        }
+      },
+      {
+        "purpose": "20 accessibility states",
+        "command": "node scripts/review-ui-accessibility.mjs",
+        "env": {
+          "PLAYWRIGHT_MODULE": "/tmp/clearsight-ui-review-tools/node_modules/playwright",
+          "PLAYWRIGHT_BROWSERS_PATH": "/tmp/clearsight-playwright-browsers",
+          "PAGE_URL": "http://127.0.0.1:4318",
+          "UI_EVIDENCE_DIR": "/workspace/scratch/52b859deca91/visual-review/vendor-portfolio-v2/after",
+          "UI_EVIDENCE_SCOPE": "vendor-portfolio"
+        }
+      },
+      {
+        "purpose": "8 selected-relationship states",
+        "command": "node scripts/capture-ui-evidence.mjs",
+        "env": {
+          "PLAYWRIGHT_MODULE": "/tmp/clearsight-ui-review-tools/node_modules/playwright",
+          "PLAYWRIGHT_BROWSERS_PATH": "/tmp/clearsight-playwright-browsers",
+          "PAGE_URL": "http://127.0.0.1:4318",
+          "UI_EVIDENCE_DIR": "/workspace/scratch/52b859deca91/visual-review/vendor-portfolio-v2/final-compat-relationship-states",
+          "UI_EVIDENCE_SCOPE": "vendor-relationship-states"
+        }
+      },
+      {
+        "purpose": "2 existing Vendor metric captures",
+        "command": "node scripts/capture-ui-evidence.mjs",
+        "env": {
+          "PLAYWRIGHT_MODULE": "/tmp/clearsight-ui-review-tools/node_modules/playwright",
+          "PLAYWRIGHT_BROWSERS_PATH": "/tmp/clearsight-playwright-browsers",
+          "PAGE_URL": "http://127.0.0.1:4318",
+          "UI_EVIDENCE_DIR": "/workspace/scratch/52b859deca91/visual-review/vendor-portfolio-v2/final-compat-measures",
+          "UI_EVIDENCE_SCOPE": "vendor-measures"
+        }
+      },
+      {
+        "purpose": "12 legacy portfolio captures and4 detail returns",
+        "command": "node scripts/capture-vendor-portfolio-evidence.mjs",
+        "env": {
+          "PLAYWRIGHT_MODULE": "/tmp/clearsight-ui-review-tools/node_modules/playwright",
+          "PLAYWRIGHT_BROWSERS_PATH": "/tmp/clearsight-playwright-browsers",
+          "PAGE_URL": "http://127.0.0.1:4318",
+          "UI_EVIDENCE_DIR": "/workspace/scratch/52b859deca91/visual-review/vendor-portfolio-v2/final-legacy-portfolio",
+          "UI_EVIDENCE_SCOPE": ""
+        }
+      },
+      {
+        "purpose": "2 requested Overview full pages",
+        "command": "node /tmp/vendor-portfolio-final-fullpage.mjs",
+        "env": {
+          "PLAYWRIGHT_BROWSERS_PATH": "/tmp/clearsight-playwright-browsers"
+        },
+        "helper": {
+          "path": "/tmp/vendor-portfolio-final-fullpage.mjs",
+          "sha256": "cf899ad283bfe113665e81b8a060cdd3ff19b36f0cbd38e1febcd8f3324d3e07",
+          "bytes": 2663
+        }
+      },
+      {
+        "purpose": "63-capture contract",
+        "command": "node --input-type=module -e 'import{readFile}from\"node:fs/promises\";import{reviewVendorPortfolioCaptures}from\"./scripts/vendor-portfolio-evidence-contract.mjs\";const m=JSON.parse(await readFile(process.env.UI_EVIDENCE_DIR+\"/manifest.json\",\"utf8\"));const r=reviewVendorPortfolioCaptures(m.captures);console.log(JSON.stringify(r));if(m.failure||r.failures.length)process.exitCode=1;'",
+        "env": {
+          "PLAYWRIGHT_MODULE": "/tmp/clearsight-ui-review-tools/node_modules/playwright",
+          "PLAYWRIGHT_BROWSERS_PATH": "/tmp/clearsight-playwright-browsers",
+          "PAGE_URL": "http://127.0.0.1:4318",
+          "UI_EVIDENCE_DIR": "/workspace/scratch/52b859deca91/visual-review/vendor-portfolio-v2/after",
+          "UI_EVIDENCE_SCOPE": "vendor-portfolio"
+        }
+      },
+      {
+        "purpose": "Final checksum validation",
+        "command": "node /tmp/vendor-portfolio-verify-final.mjs",
+        "helper": {
+          "path": "/tmp/vendor-portfolio-verify-final.mjs",
+          "sha256": "4328a68e53899070e4285f8eec507abc894e029ccded93f1674046721fb6c49f",
+          "bytes": 2331
+        }
+      },
+      {
+        "purpose": "Whitespace validation",
+        "command": "git diff --check",
+        "cwd": "/workspace/scratch/52b859deca91/clearsight-v2-next"
+      }
+    ]
+  },
+  "excludedPreflights": [
+    {
+      "directory": "rejected-99c962c",
+      "reason": "Runtime99c962c failed settled queue scroll restoration; these captures/receipts are not final evidence."
+    },
+    {
+      "directory": "fixture-preflight-85817bf",
+      "reason": "The legacy synthetic Matter fixture omitted required scope, causing a strict browser-error failure. The exact sample response was completed only in the evidence helper, and the final run also awaited the real Matter heading before Back. No customer runtime change or suppressed browser error."
+    }
+  ],
+  "limits": [
+    "Synthetic UI fixture evidence does not establish backend authorization or production-data correctness.",
+    "Prototype values are not runtime business facts.",
+    "This scoped receipt does not replace the full final-head UI review runner or deployment verification.",
+    "Source geometry checks and image hashes do not substitute for the named direct visual reviews.",
+    "Selected-relationship URLs retain identity; refresh starts at Overview, after which the existing local section menu reopens the intended reader.",
+    "Formal screen acceptance remains0/19 and is not advanced by this implementation receipt."
+  ]
+}

@@ -12,6 +12,8 @@ import { notificationsEvidenceScenarios } from "./notifications-evidence-scenari
 import { reviewNotificationsCaptures } from "./notifications-evidence-contract.mjs";
 import { vendorRelationshipEvidenceScenarios } from "./vendor-relationship-evidence-scenarios.mjs";
 import { reviewVendorRelationshipCaptures } from "./vendor-relationship-evidence-contract.mjs";
+import { vendorPortfolioEvidenceScenarios, vendorPortfolioViews } from "./vendor-portfolio-evidence-scenarios.mjs";
+import { reviewVendorPortfolioCaptures } from "./vendor-portfolio-evidence-contract.mjs";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -105,6 +107,129 @@ test("the new Reports view and workflow captures cannot silently disappear", asy
 });
 
 const rect = (x, y, width, height) => ({ x, y, width, height, right: x + width, bottom: y + height });
+
+test("the five-view Vendor portfolio matrix and exceptional states cannot disappear", async () => {
+  const { failures } = await review([]);
+  const missing = failures.find((failure) => failure.startsWith("flow manifest is missing:")) ?? "";
+  for (const scenario of vendorPortfolioEvidenceScenarios) assert.ok(missing.includes(scenario.name), scenario.name);
+  assert.equal(new Set(vendorPortfolioEvidenceScenarios.map((scenario) => scenario.name)).size, 63);
+});
+
+function portfolioCapture(scenario = vendorPortfolioEvidenceScenarios[0]) {
+  const labels = vendorPortfolioViews.map((view) => view.label);
+  const selected = vendorPortfolioViews.find((view) => view.id === scenario.vendorPortfolioView).label;
+  const width = scenario.viewport.width;
+  const contentX = width === 390 ? 68 : 260;
+  const contentWidth = width - contentX - 12;
+  return { ...scenario, navigation: { activePage: ["Vendors"] }, vendorPortfolioLayout: {
+    kind: scenario.vendorPortfolioView, route: scenario.route, evidenceKind: "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+    headingText: "Vendors", heading: rect(contentX, 96, contentWidth, 90), title: rect(contentX, 110, Math.min(220, contentWidth), 40), titleContained: true,
+    localTabs: labels, selectedTab: selected, selectedPanelID: "sample-portfolio-panel", visiblePanelIDs: ["sample-portfolio-panel"], selectedPanelControlsMatch: true,
+    menuMode: width === 390 ? "select" : "tabs", compactValue: selected, tablist: rect(contentX, 205, contentWidth, 44), selectedTabBounds: rect(contentX, 205, 100, 44), selectedTabVisible: true,
+    documentWidth: width, scrollWidth: width, selectedRelationshipVisible: false, minTargetWidth: 44, minTargetHeight: 44, undersizedTargets: [],
+    main: rect(260, 405, 815, 500), aside: rect(1092, 405, 313, 600), placement: "beside",
+    metrics: ["2 vendor services", "5 open exceptions", "5 open actions", "5 overdue actions"].map((label, index) => ({ label, value: index ? "5" : "2", bounds: rect(260 + index * 285, 270, 274, 105) })),
+    insights: [{ heading: "Service criticality", bounds: rect(260, 405, 399, 190) }, { heading: "Exception stages", bounds: rect(675, 405, 400, 190) }],
+    railHeadings: ["Needs attention", "Service renewals"], register: rect(260, 611, 815, 294), registerRows: 2,
+    recordIDs: ["vendor-relationship-payments", "sample-relationship-hosting"], firstRecord: rect(contentX, 400, contentWidth, 64), recordHeights: [64, 64], firstRecordVisible: true,
+    firstUsefulContent: rect(contentX, 270, contentWidth, 105), firstUsefulContentVisible: true,
+    apiReads: [{ path: "/api/v1/vendors", method: "GET", query: "?limit=50", status: 200, responseItems: 2, relationshipIDs: ["vendor-relationship-payments", "sample-relationship-hosting"] },
+      { path: "/api/v1/vendors/form-summaries", method: "GET", query: "?relationship_ids=vendor-relationship-payments,sample-relationship-hosting&limit=50", status: 200, summaryIDs: ["vendor-relationship-payments", "sample-relationship-hosting"] }],
+    commands: [], interaction: scenario.verifyVendorPortfolioNavigation ? { visited: labels, baselineRestored: true, keyboard: { options: labels, sequence: [...labels.slice(1), labels[0]], complete: true },
+      exceptionReturn: { open: true, rowVisible: true, priorScrollY: 1000, scrollY: 1000, exactMatterID: "sample-portfolio-finding-0", baselineRestored: true } } : undefined,
+  } };
+}
+const portfolioFailures = (capture) => reviewVendorPortfolioCaptures([capture]).failures.filter((failure) => failure.startsWith(`${capture.name}:`));
+
+test("Vendor portfolio rejects a missing menu destination, hidden first content and false population", () => {
+  const capture = portfolioCapture();
+  assert.deepEqual(portfolioFailures(capture), []);
+  for (const mutate of [
+    (layout) => layout.localTabs.pop(),
+    (layout) => { layout.firstUsefulContent = rect(260, 910, 1148, 100); },
+    (layout) => { layout.visiblePanelIDs.push("leaked-register-panel"); },
+  ]) {
+    const changed = structuredClone(capture); mutate(changed.vendorPortfolioLayout);
+    assert.ok(portfolioFailures(changed).some((failure) => failure.includes("complete portfolio menu")));
+  }
+  const railRows = structuredClone(capture); railRows.vendorPortfolioLayout.registerRows = 7;
+  assert.ok(portfolioFailures(railRows).some((failure) => failure.includes("observed list population")));
+  const foreignRecord = structuredClone(capture); foreignRecord.vendorPortfolioLayout.recordIDs[0] = "foreign-relationship";
+  assert.ok(portfolioFailures(foreignRecord).some((failure) => failure.includes("observed list population")));
+  const lostQueue = structuredClone(capture); lostQueue.vendorPortfolioLayout.interaction.exceptionReturn.scrollY = 350;
+  assert.ok(portfolioFailures(lostQueue).some((failure) => failure.includes("settled open queue")));
+});
+
+test("Vendor Overview requires two insights, ordered inline register and the responsive rail", () => {
+  const capture = portfolioCapture();
+  for (const mutate of [
+    (layout) => layout.insights.pop(),
+    (layout) => { layout.register = rect(260, 300, 815, 294); },
+    (layout) => { layout.aside = rect(260, 920, 316, 600); layout.placement = "stacked"; },
+    (layout) => { layout.aside = rect(1092, 405, 250, 600); },
+    (layout) => { layout.metrics.pop(); },
+  ]) {
+    const changed = structuredClone(capture); mutate(changed.vendorPortfolioLayout);
+    assert.ok(portfolioFailures(changed).some((failure) => failure.includes("four measures, two insights")));
+  }
+});
+
+test("Vendor portfolio accepts bounded reads and rejects foreign scope, broad reads and commands", () => {
+  const capture = portfolioCapture();
+  for (const read of [
+    { path: "/api/v1/vendors", method: "GET", query: "?limit=500", status: 200 },
+    { path: "/api/v1/vendors/form-summaries", method: "GET", query: "?relationship_ids=foreign-relationship&limit=50", status: 200 },
+    { path: "/api/v1/vendors/foreign-relationship/links", method: "GET", query: "?limit=50", status: 200 },
+    { path: "/api/v1/authority/resolve", method: "POST", requestKind: "AUTHORITY_READ_QUERY", queryInput: { object_type: "THIRD_PARTY_RELATIONSHIP", object_id: "foreign-relationship" }, status: 200 },
+  ]) {
+    const changed = structuredClone(capture); changed.vendorPortfolioLayout.apiReads.push(read);
+    assert.ok(portfolioFailures(changed).some((failure) => failure.includes("bounded observed reads")));
+  }
+  const command = structuredClone(capture); command.vendorPortfolioLayout.commands.push({ path: "/api/v1/vendors/vendor-relationship-payments/activate", method: "POST" });
+  assert.ok(portfolioFailures(command).some((failure) => failure.includes("bounded observed reads")));
+  const wrongSummary = structuredClone(capture); wrongSummary.vendorPortfolioLayout.apiReads[1].summaryIDs.push("foreign-relationship");
+  assert.ok(portfolioFailures(wrongSummary).some((failure) => failure.includes("bounded observed reads")));
+});
+
+test("Vendor search evidence must carry its query through the cursor read", () => {
+  const scenario = vendorPortfolioEvidenceScenarios.find((item) => item.vendorPortfolioCheck === "search-paging");
+  const capture = portfolioCapture(scenario);
+  capture.vendorPortfolioLayout.interaction = { search: "Acme", paged: true };
+  capture.vendorPortfolioLayout.apiReads.push({ path: "/api/v1/vendors", method: "GET", query: "?limit=50&search=Acme", status: 200 },
+    { path: "/api/v1/vendors", method: "GET", query: "?limit=50&search=Acme&cursor=sample-vendor-page-2", status: 200 });
+  assert.deepEqual(portfolioFailures(capture), []);
+  capture.vendorPortfolioLayout.apiReads.at(-1).query = "?limit=50&cursor=sample-vendor-page-2";
+  assert.ok(portfolioFailures(capture).some((failure) => failure.includes("survive cursor pagination")));
+});
+
+test("Vendor document collection requires the exact protected document reader and return", () => {
+  const scenario = vendorPortfolioEvidenceScenarios.find((item) => item.vendorPortfolioCheck === "documents-drill");
+  const capture = portfolioCapture(scenario);
+  capture.vendorPortfolioLayout.interaction = { relationshipPreserved: true, returned: true, protectedDocuments: true,
+    refresh: { relationshipPreserved: true, initialSection: "Overview", complete: true, reopenedSection: "Evidence", evidenceView: "Documents" } };
+  capture.vendorPortfolioLayout.apiReads.push({ path: "/api/v1/forms/documents", method: "GET", query: "?relationship_id=vendor-relationship-payments&current_only=true&limit=25", status: 200 });
+  assert.deepEqual(portfolioFailures(capture), []);
+  const missing = structuredClone(capture); missing.vendorPortfolioLayout.apiReads.pop();
+  assert.ok(portfolioFailures(missing).some((failure) => failure.includes("exact existing relationship reader")));
+  const unprotected = structuredClone(capture); unprotected.vendorPortfolioLayout.apiReads.at(-1).query = "?relationship_id=vendor-relationship-payments&limit=25";
+  assert.ok(portfolioFailures(unprotected).some((failure) => failure.includes("bounded observed reads")));
+  const lostRefresh = structuredClone(capture); lostRefresh.vendorPortfolioLayout.interaction.refresh.relationshipPreserved = false;
+  assert.ok(portfolioFailures(lostRefresh).some((failure) => failure.includes("exact existing relationship reader")));
+});
+
+test("Vendor phone filters require a restored baseline and omitted summaries remain unknown", () => {
+  const filters = portfolioCapture(vendorPortfolioEvidenceScenarios.find((item) => item.verifyVendorPortfolioFilters));
+  filters.vendorPortfolioLayout.interaction = { filters: { initiallyCollapsed: true, expanded: true, selection: "Critical", filteredRecords: 0, appliedCountRetained: true, cleared: true, baselineRestored: true } };
+  assert.deepEqual(portfolioFailures(filters), []);
+  filters.vendorPortfolioLayout.interaction.filters.appliedCountRetained = false;
+  assert.ok(portfolioFailures(filters).some((failure) => failure.includes("phone filters require")));
+  const missing = portfolioCapture(vendorPortfolioEvidenceScenarios.find((item) => item.vendorPortfolioCheck === "summary-missing"));
+  missing.vendorPortfolioLayout.interaction = { unavailable: true, unknownVisible: true };
+  missing.vendorPortfolioLayout.apiReads[1].summaryIDs = ["sample-relationship-hosting"];
+  assert.deepEqual(portfolioFailures(missing), []);
+  missing.vendorPortfolioLayout.interaction.unknownVisible = false;
+  assert.ok(portfolioFailures(missing).some((failure) => failure.includes("omitted successful summary must remain unknown")));
+});
 
 test("the five-section Vendor relationship matrix cannot silently disappear", async () => {
   const { failures } = await review([]);

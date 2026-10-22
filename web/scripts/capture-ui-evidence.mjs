@@ -5,6 +5,8 @@ import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 import { reportsDesignEvidenceScenarios } from "./reports-design-evidence-scenarios.mjs";
 import { notificationsEvidenceScenarios } from "./notifications-evidence-scenarios.mjs";
 import { prepareNotifications, assertNotificationsLayout, verifyNotificationScenario } from "./notifications-evidence.mjs";
+import { vendorPortfolioEvidenceScenarios } from "./vendor-portfolio-evidence-scenarios.mjs";
+import { prepareVendorPortfolio, assertVendorPortfolioLayout, verifyVendorPortfolioScenario, selectVendorPortfolioView } from "./vendor-portfolio-evidence.mjs";
 import { vendorRelationshipEvidenceScenarios } from "./vendor-relationship-evidence-scenarios.mjs";
 import { prepareVendorRelationship, assertVendorRelationshipLayout, verifyVendorRelationshipScenario } from "./vendor-relationship-evidence.mjs";
 import { assertReportBuilderLayout, assertReportsExploreLayout, chooseReportExploreMeasure, chooseReportField,
@@ -26,6 +28,7 @@ const riskNavigationLabels = ["Risks", "RCSA", "Key indicators", "Loss events"];
 await mkdir(outputDir, { recursive: true });
 
 const captures = [
+  ...vendorPortfolioEvidenceScenarios,
   ...vendorRelationshipEvidenceScenarios,
   { name: "01-today-dark-comfortable-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
@@ -126,6 +129,11 @@ try {
     await captureVendorActivationRecovery();
   } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-workflows") {
     await captureVendorWorkflows();
+  } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-measures") {
+    await captureApprovedVendorMeasures("217-vendor-approved-measures-light-1440x900", "light", { width: 1440, height: 900 });
+    await captureApprovedVendorMeasures("218-vendor-approved-measures-dark-mobile-390x844", "dark", { width: 390, height: 844 });
+  } else if (["vendor-portfolio", "vendor-portfolio-states"].includes(process.env.UI_EVIDENCE_SCOPE)) {
+    for (const capture of captures.filter((item) => item.vendorPortfolioView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-portfolio-states" || item.vendorPortfolioCheck))) await capturePage(capture);
   } else if (["vendor-relationship", "vendor-relationship-states"].includes(process.env.UI_EVIDENCE_SCOPE)) {
     for (const capture of captures.filter((item) => item.vendorRelationshipView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-relationship-states" || item.vendorRelationshipCheck))) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "reports") {
@@ -588,14 +596,24 @@ async function verifyPrimaryNavigationKeyboard(page, capture) {
 }
 
 async function capturePage(capture) {
-  const { context, page } = await openPage(capture);
+  const { context, page, browserErrors } = await openPage(capture);
   let reportsLayout;
   let notificationsLayout;
   let vendorRelationshipLayout;
+  let vendorPortfolioLayout;
   try {
     // evidenceMain mounts this named fixture outside SessionGate/App. All
     // authenticated captures must still render and verify AppNavigation.
     let navigation = capture.fixture === "oversight" ? undefined : await assertPrimaryNavigation(page, capture);
+    if (capture.vendorPortfolioView) {
+      await prepareVendorPortfolio(page, capture);
+      vendorPortfolioLayout = await assertVendorPortfolioLayout(page, capture);
+      const interaction = await verifyVendorPortfolioScenario(page, capture);
+      if (interaction) vendorPortfolioLayout = await assertVendorPortfolioLayout(page, capture);
+      if (interaction) vendorPortfolioLayout.interaction = interaction;
+      vendorPortfolioLayout.apiReads = await page.evaluate(() => window.vendorPortfolioEvidence?.reads ?? []);
+      vendorPortfolioLayout.commands = await page.evaluate(() => window.vendorPortfolioEvidence?.commands ?? []);
+    }
     if (capture.vendorRelationshipView) {
       await prepareVendorRelationship(page, capture);
       vendorRelationshipLayout = await assertVendorRelationshipLayout(page, capture);
@@ -1063,6 +1081,7 @@ async function capturePage(capture) {
     // Earlier pointer interactions must not paint an unrelated menu item as
     // hovered in a canonical source comparison or expanded-menu capture.
     await page.mouse.move(0, 0);
+    if (capture.vendorPortfolioView && browserErrors.length) throw new Error(`${capture.name} emitted browser errors during portfolio interactions:\n${browserErrors.join("\n")}`);
     await saveScreenshot(page, capture.name);
     if (navigation?.drawer) {
       await page.keyboard.press("Escape");
@@ -1073,6 +1092,7 @@ async function capturePage(capture) {
     }
     const recordedCapture = { ...capture, navigation, ...(reportsLayout ? { reportsLayout } : {}), ...(notificationsLayout ? { notificationsLayout } : {}),
       ...(vendorRelationshipLayout ? { vendorRelationshipLayout } : {}),
+      ...(vendorPortfolioLayout ? { vendorPortfolioLayout } : {}),
       ...(capture.openRopaActivity ? { route: new URL(page.url()).hash } : {}) };
     await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
@@ -1337,7 +1357,7 @@ async function openPage({ route, title, theme, density, viewport, touch = false,
   await workspace.waitFor({ state: "visible" });
   await page.evaluate(() => document.fonts?.ready);
   if (browserErrors.length) throw new Error(`${route} emitted browser errors:\n${browserErrors.join("\n")}`);
-  return { context, page };
+  return { context, page, browserErrors };
 }
 
 async function saveScreenshot(page, name) {
@@ -1445,6 +1465,7 @@ async function record(page, capture, state) {
     ...(capture.reportsLayout ? { reportsLayout: capture.reportsLayout } : {}),
     ...(capture.notificationsLayout ? { notificationsLayout: capture.notificationsLayout } : {}),
     ...(capture.vendorRelationshipLayout ? { vendorRelationshipLayout: capture.vendorRelationshipLayout } : {}),
+    ...(capture.vendorPortfolioLayout ? { vendorPortfolioLayout: capture.vendorPortfolioLayout } : {}),
     ...(capture.navigation ? { navigation: capture.navigation } : {}),
     metrics: await layoutMetrics(page),
   });
@@ -1677,6 +1698,7 @@ async function captureApprovedVendorMeasures(name, theme, viewport) {
     fixture: "vendor-form-assessment", density: "comfortable", viewport, touch: viewport.width <= 390 };
   const { context, page } = await openPage(capture);
   try {
+    await prepareVendorPortfolio(page, { ...capture, vendorPortfolioView: "overview" });
     const summary = page.getByRole("region", { name: "Vendor overview summary" });
     await summary.waitFor({ state: "visible" });
     await summary.getByRole("button", { name: "5 open exceptions" }).waitFor({ state: "visible" });
@@ -1706,31 +1728,7 @@ async function captureApprovedVendorMeasures(name, theme, viewport) {
                  third.x < fourth.x && third.y >= first.y + first.height - 3)) {
       throw new Error(name + " is not a two-by-two mobile card grid");
     }
-    const panels = page.locator(".vendor-overview-panels");
-    const criticality = panels.getByRole("region", { name: "Service criticality" });
-    const stages = panels.getByRole("region", { name: "Exception stages" });
-    const attention = panels.getByRole("region", { name: "Needs attention" });
-    await Promise.all([criticality.waitFor({ state: "visible" }), stages.waitFor({ state: "visible" }),
-      attention.waitFor({ state: "visible" })]);
-    const [criticalityBox, stagesBox, attentionBox, exceptionsBox] = await Promise.all([
-      criticality.boundingBox(), stages.boundingBox(), attention.boundingBox(),
-      page.locator(".vendor-exceptions").boundingBox(),
-    ]);
-    if (!criticalityBox || !stagesBox || !attentionBox || !exceptionsBox) {
-      throw new Error(name + " has a missing source-aligned Vendor Overview panel");
-    }
-    if (viewport.width >= 1280) {
-      if (!(criticalityBox.x < stagesBox.x && stagesBox.x < attentionBox.x
-          && Math.abs(criticalityBox.y - attentionBox.y) < 3)) {
-        throw new Error(name + " lacks the approved three-column Vendor overview hierarchy");
-      }
-    } else if (!(criticalityBox.y < stagesBox.y && stagesBox.y < attentionBox.y)) {
-      throw new Error(name + " lacks the approved mobile Vendor overview reading order");
-    }
-    if (exceptionsBox.y < Math.max(criticalityBox.y + criticalityBox.height,
-      stagesBox.y + stagesBox.height, attentionBox.y + attentionBox.height) - 2) {
-      throw new Error(name + " puts the exception register ahead of the overview panels");
-    }
+    await assertVendorPortfolioLayout(page, { ...capture, vendorPortfolioView: "overview" });
     await assertNoHorizontalOverflow(page, name);
     await saveScreenshot(page, name);
     await record(page, capture, viewport.width >= 1280 ? "vendor-approved-measures-desktop" : "vendor-approved-measures-mobile");
@@ -2274,7 +2272,7 @@ async function captureVendorActivationRecovery() {
         };
       });
       await page.getByRole("complementary", { name: "Primary navigation" }).getByRole("link", { name: "Vendors", exact: true }).click();
-      await page.getByRole("navigation", { name: "Vendor sections" }).getByRole("button", { name: "Register", exact: true }).click();
+      await selectVendorPortfolioView(page, "register");
       await page.getByRole("button", { name: /Sample · Acme Processing Limited/ }).click();
       await openVendorSection(page, "Due diligence");
       const panel = page.locator(".vendor-activation-panel");

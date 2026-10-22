@@ -1,3 +1,4 @@
+import { selectVendorPortfolioView } from "./vendor-portfolio-evidence.mjs";
 import { vendorRelationshipViews } from "./vendor-relationship-evidence-scenarios.mjs";
 
 const labels = vendorRelationshipViews.map((view) => view.label);
@@ -19,7 +20,7 @@ export async function selectVendorRelationshipView(page, view) {
 }
 
 export async function prepareVendorRelationship(page, scenario) {
-  await page.locator(".vendor-row").first().waitFor({ state: "visible" });
+  await page.locator(".vendor-register .cs-selectable-record").first().waitFor({ state: "visible" });
   await installFixtureObservation(page, scenario.vendorRelationshipCheck);
   if (["loading", "unavailable", "long-labels", "assessment-unavailable", "empty", "partial"].includes(scenario.vendorRelationshipCheck)) {
     // Remount the same real workspace so its existing readers observe the
@@ -27,18 +28,17 @@ export async function prepareVendorRelationship(page, scenario) {
     await page.getByRole("complementary", { name: "Primary navigation", exact: true }).getByRole("link", { name: "Home", exact: true }).click();
     await page.getByRole("heading", { name: "Oversight", exact: true }).first().waitFor();
     await page.getByRole("complementary", { name: "Primary navigation", exact: true }).getByRole("link", { name: "Vendors", exact: true }).click();
-    const register = page.getByRole("navigation", { name: "Vendor sections", exact: true }).getByRole("button", { name: "Register", exact: true });
-    if (await register.isVisible()) await register.click();
-    await page.locator(".vendor-row").first().waitFor({ state: "visible" });
+    await selectVendorPortfolioView(page, "register");
+    await page.locator(".vendor-register .cs-selectable-record").first().waitFor({ state: "visible" });
   }
-  await page.locator(".vendor-row").first().evaluate((node, relationshipID) => {
+  await page.locator(".vendor-register .cs-selectable-record").first().evaluate((node, relationshipID) => {
     node.addEventListener("pointerdown", () => {
       const log = window.vendorRelationshipEvidence;
       log.selectionBoundary = { event: "RELATIONSHIP_SELECTION_POINTERDOWN", relationshipID, at: performance.now(), observedAt: new Date().toISOString() };
       log.phase = "SELECTED_RELATIONSHIP";
     }, { once: true, capture: true });
   }, fixtureRelationshipID);
-  await page.locator(".vendor-row").first().click();
+  await page.locator(".vendor-register .cs-selectable-record").first().click();
   await workspace(page).getByRole("heading", { level: 1 }).waitFor({ state: "visible" });
   if (new URL(page.url()).hash !== `#vendors/register/${fixtureRelationshipID}`) throw new Error(`${scenario.name}: selected relationship identity differs from the requested fixture`);
   await selectVendorRelationshipView(page, scenario.vendorRelationshipView);
@@ -203,7 +203,8 @@ export async function assertVendorRelationshipLayout(page, scenario) {
       placement: mainBounds && asideBounds && asideBounds.x >= mainBounds.right - 1 ? "beside" : "stacked",
       firstUsefulContent: contentBounds,
       firstUsefulContentVisible: Boolean(contentBounds && contentBounds.y >= 0 && Math.min(contentBounds.bottom, innerHeight) - contentBounds.y >= 44),
-      parentHeadingVisible: visible(document.querySelector(".vendors-topbar")), parentMenuVisible: visible(document.querySelector(".vendor-subnav")),
+      parentHeadingVisible: [...document.querySelectorAll(".vendors-topbar, .vendor-portfolio-heading")].some(visible),
+      parentMenuVisible: [...document.querySelectorAll(".vendor-subnav, .vendor-portfolio-navigation")].some(visible),
       registerVisible: visible(document.querySelector(".vendor-register")),
       mainHeading: main?.querySelector("h2,h3")?.textContent.trim() ?? null, relationshipFacts: facts,
       statusFields: status ? [...status.querySelectorAll("dt")].map((node) => ({ label: node.textContent.trim(), value: node.nextElementSibling?.textContent.trim(), bounds: rect(node.parentElement) })) : [],
@@ -288,7 +289,7 @@ export async function verifyVendorRelationshipScenario(page, scenario) {
     });
     const backRestoredFocus = await page.locator("#vendor-portfolio-register").evaluate((node) => node === document.activeElement);
     if (!backRestoredFocus) throw new Error(`${scenario.name}: returning to the register lost focus`);
-    await page.locator(".vendor-row").first().click();
+    await page.locator(".vendor-register .cs-selectable-record").first().click();
     await workspace(page).getByRole("heading", { level: 1 }).waitFor();
     await waitForVendorView(page, { ...scenario, vendorRelationshipView: "overview" });
     await resetScroll(page);

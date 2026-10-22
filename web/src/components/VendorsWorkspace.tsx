@@ -17,10 +17,12 @@ import { VendorRelationshipWorkspace, type VendorSection } from "./VendorRelatio
 import { VendorIdentityEditor } from "./VendorIdentityEditor";
 import { VendorFormReadiness } from "./VendorFormReadiness";
 import { VendorPortfolio } from "./VendorPortfolio";
-import { ActionLink, Button, Notice, SelectField, StatusBadge, TextField, TextArea } from "./ui";
+import { VendorPortfolioCollection } from "./VendorPortfolioCollection";
+import { ActionLink, Button, CheckboxField, DataTable, Notice, SelectableRecord, SelectField, StatusBadge, Tabs, TextField, TextArea } from "./ui";
 import { VendorFormRequest, type VendorRequestTarget } from "./VendorFormRequest";
 import { loadVendorFormSummaries, type VendorFormSummary, type VendorFormsFilter } from "../vendorFormsApi";
 import "./vendor-forms.css";
+import "./vendor-portfolio-workspace.css";
 
 type Props = {
   organizationName: string;
@@ -60,6 +62,14 @@ const emptyForm: FormValues = {
   criticality: undefined, privacyRole: undefined, sourceID: "", externalRef: "", effectiveFrom: "", renewalAt: "",
 };
 
+const portfolioViews = [
+  { id: "overview", label: "Overview" },
+  { id: "register", label: "Register" },
+  { id: "onboarding", label: "Onboarding" },
+  { id: "assessments", label: "Assessments" },
+  { id: "documents", label: "Documents" },
+] as const;
+
 function focusGuideTarget(target: HTMLElement | null) {
   if (!isGuideTargetAvailable(target)) return false;
   for (let ancestor = target.parentElement; ancestor; ancestor = ancestor.parentElement) { if (ancestor instanceof HTMLDetailsElement) ancestor.open = true; }
@@ -98,6 +108,11 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
   const [checkedRelationships, setCheckedRelationships] = useState<string[]>([]);
   const [requestTargets, setRequestTargets] = useState<VendorRequestTarget[]>();
   const [workFilter, setWorkFilter] = useState<VendorFormsFilter>();
+  const [criticalityFilter, setCriticalityFilter] = useState<VendorCriticality>();
+  const [statusFilter, setStatusFilter] = useState<VendorRelationshipAggregate["relationship"]["status"]>();
+  const [localPage, setLocalPage] = useState<VendorPage>(page);
+  const [compactRegisterFilters, setCompactRegisterFilters] = useState(() => typeof window.matchMedia === "function" && window.matchMedia("(max-width: 760px)").matches);
+  const [registerFiltersOpen, setRegisterFiltersOpen] = useState(false);
   const [formsFocus, setFormsFocus] = useState<{ relationshipID: string; filter?: VendorFormsFilter }>();
   const [vendorSection, setVendorSection] = useState<VendorSection>("OVERVIEW");
   const consumedFormsFocus = useRef<typeof formsFocus>(undefined);
@@ -125,6 +140,15 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
   const acknowledgedGuideIntentID = useRef<number | undefined>(undefined);
   const nextActionSearch = useRef<{ intentID: number; tried: Set<string> } | undefined>(undefined);
   const navigationFocus = useRef<"detail" | "register" | undefined>(undefined);
+  useEffect(() => setLocalPage(page), [page]);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(max-width: 760px)");
+    const update = () => setCompactRegisterFilters(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
   useEffect(() => {
     if (state !== "live" || !navigationFocus.current) return;
     const destination = navigationFocus.current;
@@ -464,15 +488,19 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
 
   async function refresh(requestedID?: string, search = submittedQuery, intent?: Props["guideIntent"]) {
     const loadID = ++registerLoadID.current;
+    // A route change cannot retarget an open edit draft to another service.
+    const editing = mode !== "browse";
+    const effectiveID = editing && selected ? selected.relationship.id : requestedID;
     setState("loading");
+    setLoadingMore(false);
     setLoadMoreError(false);
     try {
       const page = await loadVendorRelationships({ ...(search ? { search } : {}), limit: 50 });
       if (loadID !== registerLoadID.current) return;
       let next = page.items ?? [];
-      let exact = requestedID ? next.find((item) => item.relationship.id === requestedID) : undefined;
-      if (requestedID && !exact) {
-        exact = await loadVendorRelationship(requestedID);
+      let exact = effectiveID ? next.find((item) => item.relationship.id === effectiveID) : undefined;
+      if (effectiveID && !exact) {
+        exact = await loadVendorRelationship(effectiveID);
         if (loadID !== registerLoadID.current) return;
         next = [exact, ...next];
       }
@@ -480,15 +508,19 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
       setNextCursor(page.next_cursor ?? "");
       const preserved = selected ? next.find((item) => item.relationship.id === selected.relationship.id) : undefined;
       const nextSelected = exact ?? preserved ?? (intent ? next[0] : undefined);
-      if (nextSelected?.relationship.id !== selected?.relationship.id) setVendorSection("OVERVIEW");
-      setSelected(nextSelected ?? null);
-      if (nextSelected) setMode("browse");
+      // The selected aggregate is also the edit draft's optimistic-concurrency
+      // snapshot. Refreshing the register must not advance its expected version.
+      if (!editing) {
+        if (nextSelected?.relationship.id !== selected?.relationship.id) setVendorSection("OVERVIEW");
+        setSelected(nextSelected ?? null);
+      }
+      if (nextSelected && !editing) setMode("browse");
       if (intent && next.length === 0) setMode("create");
       setState("live");
     } catch {
       if (loadID !== registerLoadID.current) return;
       setRecords([]);
-      setSelected(null);
+      if (!editing) setSelected(null);
       setState("unavailable");
       if (intent) onGuideIntentFailed?.(intent.id);
     }
@@ -496,16 +528,18 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
 
   async function loadMoreRelationships() {
     if (mode !== "browse" || !nextCursor || loadingMore) return;
+    const loadID = registerLoadID.current;
     setLoadingMore(true);
     setLoadMoreError(false);
     try {
       const page = await loadVendorRelationships({ ...(submittedQuery ? { search: submittedQuery } : {}), cursor: nextCursor, limit: 50 });
+      if (loadID !== registerLoadID.current) return;
       setRecords((current) => page.items.reduce((items, item) => items.some((existing) => existing.relationship.id === item.relationship.id) ? items : [...items, item], current));
       setNextCursor(page.next_cursor ?? "");
     } catch {
-      setLoadMoreError(true);
+      if (loadID === registerLoadID.current) setLoadMoreError(true);
     } finally {
-      setLoadingMore(false);
+      if (loadID === registerLoadID.current) setLoadingMore(false);
     }
   }
 
@@ -515,7 +549,6 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
     const search = query.trim();
     setSubmittedQuery(search);
     setSelected(null);
-    onTarget?.();
     void refresh(undefined, search);
   }
 
@@ -587,6 +620,10 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (mode === "edit" && !selected) {
+      setFormError("The vendor relationship is unavailable. Reload it before saving these changes.");
+      return;
+    }
     const errors: Record<string, string> = {};
     if (mode === "create" && !form.legalName.trim()) errors.legalName = "Enter the vendor's legal name.";
     if (mode === "create" && !existingVendorSource) {
@@ -651,43 +688,66 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
     setRecords((current) => current.map(update));
   }
 
-  const workspaceClass = `vendors-workspace${registerLocked ? " is-form" : selected ? " has-selection" : ""}`;
-  const activePage: VendorPage = selected || registerLocked ? "register" : page;
-  const shownRecords = workFilter ? records.filter((record) => vendorSummaryMatches(formSummaries.get(record.relationship.id), workFilter)) : records;
+  const workspaceClass = `vendors-workspace${registerLocked ? " is-form" : selected ? " has-selection" : " vendor-portfolio-workspace"}`;
+  const activePage: VendorPage = selected || registerLocked ? "register" : onPage ? page : localPage;
+  const shownRecords = records.filter((record) => (!criticalityFilter || record.relationship.criticality === criticalityFilter)
+    && (!statusFilter || record.relationship.status === statusFilter)
+    && (!workFilter || vendorSummaryMatches(formSummaries.get(record.relationship.id), workFilter)));
+  const missingFormSummaries = summaryState !== "loading" && records.some((record) => !formSummaries.has(record.relationship.id));
+  const formSummaryCoverageIncomplete = summaryState === "unavailable" || missingFormSummaries;
   function requestForms(values: VendorRelationshipAggregate[]) { setRequestTargets(values.map((value) => ({ relationshipID: value.relationship.id, vendorName: value.vendor.legal_name, serviceName: value.relationship.service_name }))); }
   function openFormWork(record: VendorRelationshipAggregate, filter?: VendorFormsFilter) { choose(record); setVendorSection("FORMS"); setFormsFocus({ relationshipID: record.relationship.id, filter }); }
+  function selectPortfolioPage(next: VendorPage) { if (!registerLocked) { setLocalPage(next); onPage?.(next); } }
+  function clearSearch() { setQuery(""); setSubmittedQuery(""); void refresh(undefined, ""); }
+  function clearFilters() { setCriticalityFilter(undefined); setStatusFilter(undefined); setWorkFilter(undefined); }
+  function openCollection(record: VendorRelationshipAggregate, destination: "onboarding" | "assessments" | "documents") {
+    choose(record);
+    setVendorSection(destination === "onboarding" ? "DUE_DILIGENCE" : destination === "documents" ? "DOCUMENTS" : "FORMS");
+    if (destination === "assessments") setFormsFocus({ relationshipID: record.relationship.id });
+  }
+  const searchControls = <form className="vendor-search" onSubmit={searchRelationships}><TextField label="Search vendors and services" isLabelHidden type="search" value={query} onChange={setQuery} placeholder="Name, service or reference" isDisabled={registerLocked}/><Button type="submit" aria-label="Search vendors" isDisabled={registerLocked}>Search</Button>{submittedQuery && <Button variant="quiet" onPress={clearSearch} isDisabled={registerLocked}>Clear search</Button>}</form>;
+  const relationshipFooter = <div className="vendor-register-footer">{nextCursor && <Button type="button" isDisabled={registerLocked || loadingMore} onPress={() => void loadMoreRelationships()}>{loadingMore ? "Loading…" : "Load more vendors"}</Button>}{loadMoreError && <Notice tone="error">More vendor relationships could not be loaded. The current results remain available.</Notice>}</div>;
+  function registerContent(compact = false) {
+    return <section id="vendor-portfolio-register" tabIndex={-1} className={`vendor-register${compact ? " vendor-register--inline" : ""}`} hidden={!!selected || registerLocked} aria-label={`Vendor relationships for ${legalEntityName}`} aria-describedby={registerLocked ? "vendor-register-lock-note" : undefined}>
+      <header className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div>{compact && <ActionLink onPress={() => selectPortfolioPage("register")}>Open register</ActionLink>}</header>
+      {registerLocked && <p id="vendor-register-lock-note" className="vendor-register-lock-note">{registerLockMessage}</p>}
+      <div className="vendor-register-controls">{searchControls}<div className="vendor-register-filter-toggle"><Button variant="secondary" aria-expanded={registerFiltersOpen} aria-controls="vendor-register-filters" isDisabled={registerLocked} onPress={() => setRegisterFiltersOpen((open) => !open)}>Filters{criticalityFilter || statusFilter || workFilter ? ` · ${[criticalityFilter, statusFilter, workFilter].filter(Boolean).length} applied` : ""}</Button></div><div id="vendor-register-filters" className="vendor-register-filters" hidden={compactRegisterFilters && !registerFiltersOpen}>
+        <SelectField label="Service criticality in loaded relationships" isLabelHidden value={criticalityFilter} placeholder="All criticalities" isDisabled={registerLocked} options={[{ id: "CRITICAL", label: "Critical" }, { id: "IMPORTANT", label: "Important" }, { id: "STANDARD", label: "Standard" }]} onChange={setCriticalityFilter}/>
+        <SelectField label="Status in loaded relationships" isLabelHidden value={statusFilter} placeholder="All statuses" isDisabled={registerLocked} options={(["PROPOSED", "UNDER_REVIEW", "ACTIVE", "RESTRICTED", "SUSPENDED", "EXITING", "TERMINATED"] as const).map((id) => ({ id, label: humanize(id) }))} onChange={setStatusFilter}/>
+        {!compact && <SelectField label="Form work in loaded relationships" isLabelHidden value={workFilter} placeholder="All form work" isDisabled={registerLocked} options={vendorWorkFilters} onChange={setWorkFilter}/>}
+        {(criticalityFilter || statusFilter || workFilter) && <Button variant="quiet" isDisabled={registerLocked} onPress={clearFilters}>Clear filters</Button>}
+      </div></div>
+      {(criticalityFilter || statusFilter || workFilter) && <p className="vendor-register-filter-count">{shownRecords.length} of {records.length} loaded relationships match the active filters.{workFilter && (summaryState === "loading" || formSummaryCoverageIncomplete) ? " Unavailable form summaries are excluded." : ""}</p>}
+      {checkedRelationships.length > 0 && <div className="vendor-register-bulk"><Button isDisabled={registerLocked} onPress={() => requestForms(records.filter((record) => checkedRelationships.includes(record.relationship.id)))}>Request form for {checkedRelationships.length} {checkedRelationships.length === 1 ? "service" : "services"}</Button><Button variant="quiet" isDisabled={registerLocked} onPress={() => setCheckedRelationships([])}>Clear selection</Button><span>Selected services remain selected when filters change.</span></div>}
+      {formSummaryCoverageIncomplete && <Notice tone="warning">Some vendor form summaries could not be loaded. Their counts and concern remain unknown. <Button onPress={() => setFormsRefreshKey((value) => value + 1)}>Reload form summaries</Button></Notice>}
+      {records.length > 0 ? <div className="vendor-list"><DataTable ariaLabel="Vendor relationship register" rows={compact ? shownRecords.slice(0, 6) : shownRecords} rowKey={(record) => record.relationship.id} rowName={(record) => `${record.vendor.legal_name}, ${record.relationship.service_name}`} columns={[
+        { id: "selection", header: "Select", accessibleText: (record) => checkedRelationships.includes(record.relationship.id) ? "Selected" : "Not selected", render: (record) => <CheckboxField label={`Select ${record.vendor.legal_name} · ${record.relationship.service_name}`} isLabelHidden isSelected={checkedRelationships.includes(record.relationship.id)} isDisabled={registerLocked || checkedRelationships.length >= 50 && !checkedRelationships.includes(record.relationship.id)} onChange={(checked) => setCheckedRelationships((current) => checked ? [...current, record.relationship.id] : current.filter((id) => id !== record.relationship.id))}/> },
+        { id: "vendor", header: "Vendor / Service", mobileLayout: "full-width", accessibleText: (record) => `${record.vendor.legal_name}, ${record.relationship.service_name}`, render: (record) => <SelectableRecord variant="list" aria-label={`${record.vendor.legal_name}, ${record.relationship.service_name}`} title={record.vendor.legal_name} metadata={record.relationship.service_name} startContent={<VendorBrandIcon vendorID={record.vendor.id} legalName={record.vendor.legal_name} brand={record.brand} decorative/>} onPress={() => choose(record)} isDisabled={registerLocked}/> },
+        { id: "status", header: "Relationship", kind: "status", accessibleText: (record) => `${humanize(record.relationship.status)}, ${humanize(record.relationship.criticality)} criticality`, render: (record) => <div className="vendor-register-status"><StatusBadge tone="neutral">{humanize(record.relationship.status)}</StatusBadge><span>{humanize(record.relationship.criticality)} criticality</span></div> },
+        { id: "forms", header: "Form work", accessibleText: (record) => { const summary = formSummaries.get(record.relationship.id); return summary ? `${summary.awaiting_review} awaiting review, ${summary.outstanding_forms} outstanding, ${summary.overdue_forms} overdue` : "Counts unavailable"; }, render: (record) => <VendorRegisterFormSummary summary={formSummaries.get(record.relationship.id)} label={`${record.vendor.legal_name} · ${record.relationship.service_name}`} loading={summaryState === "loading"} disabled={registerLocked} onOpen={(filter) => openFormWork(record, filter)}/> },
+      ]}/>{shownRecords.length === 0 && <div className="vendor-collection-empty"><h3>No loaded relationships match these filters.</h3><p>Clear a filter or load more relationships.</p></div>}</div>
+        : submittedQuery ? <div className="vendor-empty"><h3>No vendor relationships match this search.</h3><p>Change search.</p><Button type="button" onPress={clearSearch} isDisabled={registerLocked}>Clear search</Button></div> : <div className="vendor-empty"><h3>No vendor relationships found for {legalEntityName}.</h3><p>Add a vendor to record its service and required reviews.</p></div>}
+      {compact && shownRecords.length > 6 && <p className="vendor-register-filter-count">Showing 6 of {shownRecords.length} matching loaded services. <ActionLink onPress={() => selectPortfolioPage("register")}>Open register</ActionLink></p>}
+      {records.length > 0 && <p className="vendor-register-selection-help">Select up to 50 services to request the same approved form.</p>}
+      {relationshipFooter}
+    </section>;
+  }
   return <div className={workspaceClass} tabIndex={-1}>
-    {(!selected || registerLocked) && <><header className="topbar vendors-topbar cs-workspace-header">
-      <div>{!selected && <span className="eyebrow">{organizationName} · {legalEntityName}</span>}<h1>Vendors</h1></div>
-      {mode === "browse" && <Button id="vendor-add-action" type="button" variant={selected ? "secondary" : "primary"} onPress={() => { onPage?.("register"); startCreate(); }} isDisabled={state !== "live"}>Add vendor</Button>}
-    </header>
-
-    <nav className="vendor-subnav" aria-label="Vendor sections">
-      <Button variant={activePage === "overview" ? "secondary" : "quiet"} aria-current={activePage === "overview" ? "page" : undefined} isDisabled={registerLocked} onPress={() => onPage?.("overview")}>Overview</Button>
-      <Button variant={activePage === "register" ? "secondary" : "quiet"} aria-current={activePage === "register" ? "page" : undefined} isDisabled={registerLocked} onPress={() => onPage?.("register")}>Register</Button>
-    </nav></>}
-
+    {(!selected || registerLocked) && <header className="vendor-portfolio-heading">
+      <div><span className="eyebrow">{organizationName} · {legalEntityName}</span><h1>Vendors</h1>{!registerLocked && <p>Service relationships, due diligence and submitted evidence</p>}</div>
+      {mode === "browse" && <Button id="vendor-add-action" type="button" variant="primary" onPress={startCreate} isDisabled={state !== "live"}>Add vendor</Button>}
+    </header>}
     {notice && <Notice tone="success">{notice}</Notice>}
-    {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
-    {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><Button  type="button" onPress={() => void refresh(targetID, "")}>Try again</Button></section>}
-    {state === "live" && activePage === "overview" && !selected && !registerLocked && <VendorPortfolio records={records} hasMore={!!nextCursor} onOpenMatter={onOpenMatter} refreshKey={formsRefreshKey}/>}
-    {state === "live" && activePage === "register" && <div className="vendor-layout">
-      <section id="vendor-portfolio-register" tabIndex={-1} className="vendor-register" hidden={!!selected || registerLocked} aria-label={`Vendor relationships for ${legalEntityName}`} aria-describedby={registerLocked ? "vendor-register-lock-note" : undefined}>
-        <div className="vendor-register-header"><div><h2>Vendor register</h2><p>{submittedQuery ? `Showing ${records.length} matching ${records.length === 1 ? "relationship" : "relationships"}` : `Showing ${records.length} ${records.length === 1 ? "relationship" : "relationships"} in this legal entity`}</p>{nextCursor && <small>More relationships are available.</small>}</div></div>
-        {registerLocked && <p id="vendor-register-lock-note" className="vendor-register-lock-note">{registerLockMessage}</p>}
-        <form className="vendor-search" onSubmit={searchRelationships}><TextField label="Search vendors and services" type="search" value={query} onChange={setQuery} placeholder="Name, service or reference" isDisabled={registerLocked}/><Button type="submit"  isDisabled={registerLocked}>Search vendors</Button></form>
-        {records.length > 0 && <div className="vendor-register-bulk"><SelectField label="Form work in loaded relationships" value={workFilter} placeholder="All loaded relationships" isDisabled={registerLocked} options={vendorWorkFilters} onChange={setWorkFilter}/>{workFilter && <p>{shownRecords.length} of {records.length} loaded relationships match this form-work filter.</p>}
-          <Button isDisabled={registerLocked || checkedRelationships.length === 0} onPress={() => requestForms(records.filter((record) => checkedRelationships.includes(record.relationship.id)))}>Request form for {checkedRelationships.length} {checkedRelationships.length === 1 ? "service" : "services"}</Button>
-          {checkedRelationships.length === 0 && <small>Select up to 50 vendor services to request the same approved form.</small>}{checkedRelationships.length > 0 && <Button variant="quiet" onPress={() => setCheckedRelationships([])}>Clear selection</Button>}
-        </div>}
-        {summaryState === "unavailable" && <Notice tone="warning">Some vendor form summaries could not be loaded. Their counts and concern remain unknown. <Button onPress={() => setFormsRefreshKey((value) => value + 1)}>Reload form summaries</Button></Notice>}
-        {records.length > 0 ? <div className="vendor-list">{shownRecords.map((record) => <div className="vendor-register-entry" key={record.relationship.id}><label><input type="checkbox" aria-label={`Select ${record.vendor.legal_name} · ${record.relationship.service_name}`} checked={checkedRelationships.includes(record.relationship.id)} disabled={registerLocked || checkedRelationships.length >= 50 && !checkedRelationships.includes(record.relationship.id)} onChange={(event) => setCheckedRelationships((current) => event.target.checked ? [...current, record.relationship.id] : current.filter((id) => id !== record.relationship.id))}/></label><div><button type="button" aria-label={`${record.vendor.legal_name}, ${record.relationship.service_name}`} aria-current={selected?.relationship.id === record.relationship.id ? "true" : undefined} className={selected?.relationship.id === record.relationship.id ? "vendor-row selected" : "vendor-row"} onClick={() => choose(record)} disabled={registerLocked}>
-          <VendorBrandIcon vendorID={record.vendor.id} legalName={record.vendor.legal_name} brand={record.brand} decorative/><span className="vendor-row-main"><strong>{record.vendor.legal_name}</strong><span>Service: {record.relationship.service_name}</span></span><span className={`vendor-criticality criticality-${record.relationship.criticality.toLowerCase()}`}>{humanize(record.relationship.criticality)}</span>
-        </button><VendorRegisterFormSummary summary={formSummaries.get(record.relationship.id)} label={`${record.vendor.legal_name} · ${record.relationship.service_name}`} loading={summaryState === "loading"} disabled={registerLocked} onOpen={(filter) => openFormWork(record, filter)}/></div></div>)}{shownRecords.length === 0 && <p>No matches. Clear the filter or load more.</p>}</div> : submittedQuery ? <div className="vendor-empty"><h3>No vendor relationships match this search.</h3><p>Change search.</p><Button type="button"  onPress={() => { setQuery(""); setSubmittedQuery(""); void refresh(undefined, ""); }} isDisabled={registerLocked}>Clear search</Button></div> : <div className="vendor-empty"><h3>No vendor relationships found for {legalEntityName}.</h3><p>Add a vendor.</p></div>}
-        {nextCursor && <Button type="button"  isDisabled={registerLocked || loadingMore} onPress={() => void loadMoreRelationships()}>{loadingMore ? "Loading…" : "Load more vendors"}</Button>}
-        {loadMoreError && <p role="alert" className="inline-error">More vendor relationships could not be loaded. The current results remain available.</p>}
-      </section>
-
+    {state === "unavailable" && <section className="vendor-state" role="alert"><h2>Vendor records are unavailable</h2><p>The vendor register for {legalEntityName} could not be loaded. Try again before adding or changing a record.</p><Button type="button" onPress={() => void refresh(selected?.relationship.id ?? targetID, submittedQuery)}>Try again</Button></section>}
+    {!selected && !registerLocked && <div className="vendor-portfolio-navigation"><Tabs ariaLabel="Vendor management sections" compactLabel="Vendor view" items={portfolioViews} selectedKey={activePage} onSelectionChange={selectPortfolioPage}>{(view) => <>
+      {state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
+      {state === "live" && (view === "overview" ? <VendorPortfolio records={records} hasMore={!!nextCursor} onOpenMatter={onOpenMatter} refreshKey={formsRefreshKey} register={registerContent(true)} registerLoading={summaryState === "loading"} onOpenVendor={choose}/>
+        : view === "register" ? registerContent()
+          : <VendorPortfolioCollection page={view} records={records} summaries={formSummaries} summaryState={formSummaryCoverageIncomplete ? "unavailable" : summaryState} hasMore={!!nextCursor} controls={searchControls} footer={relationshipFooter} onOpen={openCollection} onOpenRegister={() => selectPortfolioPage("register")}/>) }
+    </>}</Tabs></div>}
+    {(selected || registerLocked) && state === "loading" && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading vendor relationships for {legalEntityName}…</div>}
+    {state === "live" && (selected || registerLocked) && <div className="vendor-layout">
+      {registerContent()}
       <section id="vendor-detail-focus" tabIndex={-1} className={selected && !registerLocked ? "vendor-relationship-focus" : "vendor-focus"} aria-label="Selected vendor relationship">
         {mode === "edit-identity" && selected ? <VendorIdentityEditor record={selected} onCancel={cancelForm} onIdentitySaved={(presentation) => applyVendorPresentation(presentation, "Vendor details updated.", true)} onBrandSaved={(presentation) => applyVendorPresentation(presentation)} onPresentationReloaded={(presentation) => applyVendorPresentation(presentation)}/> : (mode === "create" || mode === "edit") ? <VendorForm mode={mode} form={form} errors={fieldErrors} formError={formError} saving={saving} existingVendor={existingVendorSource} candidates={vendorCandidates} candidateState={candidateState} onFindExisting={findExistingVendor} onUseExisting={useExistingVendor} onUseDifferent={() => { setExistingVendorSource(undefined); setForm((current) => ({ ...current, legalName: "", tradingName: "", registrationRef: "", jurisdiction: "", websiteDomain: "", registeredAddress: "" })); }} onChange={setValue} onCancel={cancelForm} onSubmit={submit}/> : selected ? <VendorRelationshipWorkspace
           record={selected}
@@ -706,7 +766,7 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
           formState={formState}
           requestOutcome={requestOutcome}
           requestOutcomeKind={requestOutcomeKind}
-          onBack={() => { navigationFocus.current = "register"; setSelected(null); onTarget?.(); }}
+          onBack={() => { navigationFocus.current = "register"; setSelected(null); setLocalPage("register"); onPage?.("register"); onTarget?.(); }}
           onEdit={startEdit}
           onEditIdentity={startIdentityEdit}
           onRefreshAssessment={() => refreshAssessment(selected.relationship.id)}
@@ -753,11 +813,11 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
 function VendorRegisterFormSummary({ summary, label, loading, disabled, onOpen }: { summary?: VendorFormSummary; label: string; loading: boolean; disabled: boolean; onOpen: (filter?: VendorFormsFilter) => void }) {
   if (!summary) return <div className="vendor-form-summary">{loading ? "Loading form work…" : "Form work counts unavailable"}</div>;
   return <div className="vendor-form-summary">
-    <div className="vendor-form-summary__counts"><ActionLink isDisabled={disabled} aria-label={`${summary.outstanding_forms} outstanding forms for ${label}`} onPress={() => onOpen("AWAITING_VENDOR")}>{summary.outstanding_forms} outstanding {summary.outstanding_forms === 1 ? "form" : "forms"}</ActionLink><span>·</span><ActionLink isDisabled={disabled} aria-label={`${summary.overdue_forms} overdue forms for ${label}`} onPress={() => onOpen("OVERDUE")}>{summary.overdue_forms} overdue</ActionLink></div>
-    <ActionLink isDisabled={disabled} aria-label={`${summary.awaiting_review} awaiting review for ${label}`} onPress={() => onOpen("AWAITING_REVIEW")}>{summary.awaiting_review} awaiting review</ActionLink>
-    <ActionLink isDisabled={disabled} aria-label={`Highest assessed concern for ${label}`} onPress={() => onOpen(summary.highest_concern === "LOW" ? undefined : summary.highest_concern ? "WITH_RISKS" : "NOT_ASSESSED")}>{summary.highest_concern ? <><StatusBadge tone={summary.highest_concern === "CRITICAL" || summary.highest_concern === "HIGH" ? "error" : summary.highest_concern === "MODERATE" ? "warning" : "neutral"}>{humanize(summary.highest_concern)} concern</StatusBadge> · {summary.assessed_forms} assessed {summary.assessed_forms === 1 ? "form" : "forms"}</> : "No assessed concern recorded"}</ActionLink>
-    <span>Checked <time dateTime={summary.observed_at}>{formatDateTime(summary.observed_at)}</time></span>
-    {!!summary.partially_replaced_forms && <span>Includes {summary.partially_replaced_forms} partly replaced {summary.partially_replaced_forms === 1 ? "response" : "responses"}; remaining fields need review.</span>}
+    <ActionLink isDisabled={disabled} aria-label={summary.awaiting_review > 0 ? `${summary.awaiting_review} awaiting review for ${label}` : `Open form work for ${label}`} onPress={() => onOpen(summary.awaiting_review > 0 ? "AWAITING_REVIEW" : undefined)}>{summary.awaiting_review > 0 ? `${summary.awaiting_review} awaiting review` : "Open form work"}</ActionLink>
+    <span>{summary.outstanding_forms} outstanding · {summary.overdue_forms} overdue</span>
+    {summary.highest_concern && <span><StatusBadge tone={summary.highest_concern === "CRITICAL" || summary.highest_concern === "HIGH" ? "error" : summary.highest_concern === "MODERATE" ? "warning" : "neutral"}>{humanize(summary.highest_concern)} form concern</StatusBadge></span>}
+    <span className="vendor-form-summary__observed">Checked <time dateTime={summary.observed_at}>{formatDateTime(summary.observed_at)}</time></span>
+    {!!summary.partially_replaced_forms && <span>{summary.partially_replaced_forms} partly replaced {summary.partially_replaced_forms === 1 ? "response" : "responses"}</span>}
   </div>;
 }
 

@@ -2,8 +2,14 @@
 
 > **VISUAL PARITY RESET · 2026-10-19** — **0 of 19 original HTML screens accepted**. This file's historical "Partial" entries refer to feature/contract integration only, not an approved redesign. The 1440px Program, Framework Library and Assessment source/runtime captures have material structural differences; the 390px Program view also diverges. See [verified side-by-side review](VISUAL-PARITY-RESET-2026-10-19.md). Successful CI and 226/226 screenshots prove flow execution and artifact completeness, **not source parity**. Stop counting cosmetic or data-quality fixes as UI cutover. Full cutover is BLOCKED until named screen-by-screen comparison approval.
 
-Updated: 2026-10-21. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
+Updated: 2026-10-22. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
 Authority: the immutable [approved source archive](./source/README.md), its [manifest](./source/MANIFEST.json), the [implementation mapping](./IMPLEMENTATION-MAPPING.md), the unified design specification and the [21 October navigation adaptation decision](../../decisions/2026-10-21-v2-navigation-adaptation.md). The newer user instruction supersedes the archived specification's prohibition on adapting the global menu. Source HTML is a **visual/interaction benchmark, not a data or permission contract**. No source-example totals, statuses, suggestions or approvals may ship as runtime facts.
+
+## 22 October — remaining Vendor portfolio views
+
+The [Vendor portfolio decision](../../decisions/2026-10-22-vendor-portfolio-v2.md) continues from released main `cf2710b60a02354b9258cb73014249b696b8f94d`. It adapts the complete **Overview / Register / Onboarding / Assessments / Documents** menu and page composition around existing relationship, exception, form-summary and protected-document owners. Overview uses two insight panels and an inline register beside bounded attention/renewal context; the other destinations preserve exact relationship workflows. The selected relationship adaptation from #582 remains in use.
+
+Source sample risk ratings, review deadlines, document totals and Copilot conclusions are not runtime facts. Service criticality, exception stages and service renewal dates retain their actual labels. The [local evidence receipt](../../decisions/2026-10-22-vendor-portfolio-evidence.json) records 63 passing scenarios, 25 original frames / 50 runtime pairs, 20 accessibility checks and named AI review at the corrected runtime tree. Final CI, artifact, merge and deployment evidence is recorded in the associated PR. **Partial v2 layout integration; 0/19 whole screens accepted.**
 
 ## 21 October — shared V2 menu adaptation
 
@@ -46,7 +52,7 @@ A green screenshot job without a **side-by-side reference review** is *not* visu
 | Framework Adoption — `clearsight-framework-designs/framework-adoption.html` | Program & scope → requirement links → questionnaire → independent adoption review | Partial; #511/#512/#514 merged; no complete four-stage screen or global Form association |
 | Program — `clearsight-program-designs/program-workspace-preview.html` | **Six** tabs: Overview / Requirements / Assessments / Evidence / Issues / Activity; Data collection contextual | Partial; #516/#517/#519/#520/#521 merged; #522 Activity review-digest in CI; global layout/source-to-runtime parity outstanding |
 | Assessment — `clearsight-designs-01-05/assessment-workspace-preview.html` | Three-column sections / form / evidence-readiness; mobile section rail; exact XLSX mapping | Partial; #523 adds governed CaptureForm wizard section rail. Source-backed third-column guidance, import/mapping and 1440/390 parity still outstanding |
-| Vendor — `clearsight-vendor-management-designs/vendor-workspace-preview.html` | Relationship register, due diligence, expiring evidence and approval | Foundation only; parity/flows outstanding |
+| Vendor — `clearsight-vendor-management-designs/vendor-workspace-preview.html` | Five portfolio destinations and the existing five-section selected relationship | Partial v2 layout integration: selected relationship released in #582; remaining portfolio adaptation and exact evidence tracked in the [22 October decision](../../decisions/2026-10-22-vendor-portfolio-v2.md). Authorized-result and whole-screen acceptance remain open |
 | Operational Risk — `clearsight-operational-risk-designs/operational-risk-preview.html` | RCSA, indicator and loss have distinct semantics and authorized scope | Foundation only |
 | Privacy — `clearsight-privacy-data-designs/privacy-workspace-preview.html` | Processing register, DPIA, purpose-specific reviews | Foundation only |
 | Reports — `clearsight-reports-insights-designs/reports-workspace-preview.html` | Report definitions, persisted runs, source parity, authorized download digest | Foundation only; live four-actor report proof missing |
