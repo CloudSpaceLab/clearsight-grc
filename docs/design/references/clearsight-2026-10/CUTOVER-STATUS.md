@@ -13,6 +13,10 @@ The shared rail target is 228px above 1024px, 72px at 561–1024px and 56px at 5
 
 The [implementation review](../../decisions/2026-10-21-v2-navigation-adaptation.md#implementation-review--21-october-2026) records the named AI review and exact implementation checkpoint `32ac98ce80f21424904b38a57ef5e31443cac2cd`: 14 passing menu states, five source pairs, short-height/boundary/resize checks and six scoped axe runs with zero violations. This verifies the recorded shared-menu adaptation, not complete specialist screens. Final-head CI and artifact review remain PR gates; four-actor execution, backend authorization and source-to-report receipts remain separate release gates. The [Reports #578 receipt](../../decisions/2026-10-21-reports-v2-layout-review.md) remains a partial Overview/library adaptation, not full-screen acceptance.
 
+## 21 October — Reports Explore and Builder composition
+
+The [next Reports tranche](../../decisions/2026-10-21-reports-explore-builder-v2.md) adapts both remaining source layouts and their local menu: a selected-measure Data rail/chart/table in Explore, and setup/paper/output in Builder with the original responsive rearrangements. Build report is contextual and its draft survives local navigation. Existing saved-definition governance and generation commands remain in use. Exact source/runtime pairs, named visual review and final CI are tracked in that decision. **Partial V2 layout integration; 0/19 remains unchanged.** This does not establish hosted actor execution or source-to-report reconciliation.
+
 ## Design fidelity register — 18 October 2026
 
 The reference artifact, **not the existing React screen**, defines each view's approved

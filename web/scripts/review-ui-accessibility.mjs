@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { inspectRenderedContrast } from "./rendered-contrast.mjs";
+import { reportsDesignAccessibilityScenarios } from "./reports-design-evidence-scenarios.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
@@ -18,7 +19,7 @@ const baseScenarios = [
   { name: "imports", path: "/?tour=off#imports", heading: "Imports", viewport: { width: 1440, height: 900 }, theme: "dark" },
   { name: "configure", path: "/?tour=off#configure", heading: "Configuration", viewport: { width: 1440, height: 900 }, theme: "light" },
 ];
-const scenarios = baseScenarios.filter((scenario) => scenario.name !== "today-mobile").flatMap((scenario) =>
+const scenarios = [...baseScenarios.filter((scenario) => scenario.name !== "today-mobile").flatMap((scenario) =>
   ["light", "dark"].flatMap((theme) => [1440, 390].map((width) => ({
     ...scenario,
     name: `${scenario.name}-${theme}-${width}`,
@@ -26,7 +27,7 @@ const scenarios = baseScenarios.filter((scenario) => scenario.name !== "today-mo
     viewport: { width, height: width === 390 ? 844 : 900 },
     touch: width === 390,
   }))),
-);
+), ...reportsDesignAccessibilityScenarios].filter((scenario) => process.env.UI_EVIDENCE_SCOPE !== "report-design" || scenario.reportView);
 
 await mkdir(outputDir, { recursive: true });
 const results = [];
@@ -56,10 +57,23 @@ try {
         ? page.getByRole("region", { name: "Program record" })
         : page.getByRole("heading", { name: scenario.heading, exact: true }).first();
       await workspace.waitFor({ state: "visible" });
+      if (scenario.reportView === "builder") {
+        await page.locator(".reports-workspace__actions").getByRole("button", { name: "New report", exact: true }).click();
+        await page.locator(".report-builder").getByRole("button", { name: "Save setup", exact: true }).waitFor({ state: "visible" });
+        await page.locator(".report-builder__setup .cs-select-field__trigger:not(:disabled)").first().waitFor({ state: "visible" });
+      } else if (scenario.reportView) {
+        await page.getByRole("tab", { name: "Explore", exact: true }).click();
+        await page.locator('.reports-explore__chart[data-state="live"]').waitFor({ state: "visible" });
+        if (scenario.reportView === "explore-members") {
+          await page.locator(".reports-explore").getByRole("button", { name: "Review underlying records", exact: true }).click();
+          await page.getByRole("dialog", { name: "Risks outside appetite records", exact: true })
+            .getByRole("table", { name: "Risks outside appetite records", exact: true }).waitFor({ state: "visible" });
+        }
+      }
       await page.evaluate(() => document.fonts?.ready);
       await page.addScriptTag({ content: axeSource });
-      const axe = await page.evaluate(async () => {
-        const result = await globalThis.axe.run(document, {
+      const axe = await page.evaluate(async (selector) => {
+        const result = await globalThis.axe.run(selector || document, {
           runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] },
         });
         const summarize = (items) => items.map((violation) => ({
@@ -74,21 +88,26 @@ try {
           })),
         }));
         return { violations: summarize(result.violations), incomplete: summarize(result.incomplete), passes: result.passes.map(({ id, nodes }) => ({ id, count: nodes.length })) };
-      });
-      const contrast = await page.evaluate(inspectRenderedContrast);
+      }, scenario.scopeSelector);
+      let contrast = await page.evaluate(inspectRenderedContrast);
+      if (scenario.scopeSelector) {
+        contrast = await page.evaluate(({ readings, scope }) => readings.filter((reading) =>
+          [...document.querySelectorAll(reading.selector)].some((node) => node.closest(scope))), { readings: contrast, scope: scenario.scopeSelector });
+      }
       const layout = await page.evaluate(() => ({
         clientWidth: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
       }));
       const undersizedPrimaryControls = scenario.touch
-        ? await page.locator(".primary-button:visible").evaluateAll((elements) => elements.flatMap((element) => {
+        ? await page.locator(scenario.scopeSelector ?? "body").locator(scenario.reportView
+          ? 'button:visible, input:not([type="hidden"]):visible, [role="tab"]:visible' : ".primary-button:visible").evaluateAll((elements, minimum) => elements.filter((element) => !element.closest('[aria-hidden="true"], [inert]')).flatMap((element) => {
             const box = element.getBoundingClientRect();
-            return box.width < 40 || box.height < 40
+            return box.width < minimum || box.height < minimum
               ? [{ text: element.textContent?.trim().slice(0, 80) ?? "", width: box.width, height: box.height }]
               : [];
-          }))
+          }), scenario.reportView ? 44 : 40)
         : [];
-      const blockingViolations = axe.violations.filter((violation) => violation.impact === "critical" || violation.impact === "serious");
+      const blockingViolations = axe.violations.filter((violation) => scenario.reportView || violation.impact === "critical" || violation.impact === "serious");
       const errors = [
         ...browserErrors.map((message) => `browser: ${message}`),
         ...(layout.scrollWidth > layout.clientWidth + 1 ? [`horizontal overflow: ${layout.scrollWidth}px in ${layout.clientWidth}px`] : []),
@@ -96,7 +115,8 @@ try {
         ...contrast.filter((reading) => reading.outcome === "FAIL" && (reading.kind === "placeholder" || reading.essential)).map((reading) => `contrast ${reading.kind}: ${reading.selector} (${reading.ratio.toFixed(2)} < ${reading.minimum})`),
         ...undersizedPrimaryControls.map((control) => `touch target: ${control.text} is ${Math.round(control.width)}x${Math.round(control.height)}`),
       ];
-      results.push({ ...scenario, ...axe, contrast, layout, undersizedPrimaryControls, errors, status: errors.length ? "FAIL" : "PASS" });
+      results.push({ ...scenario, ...axe, contrast, layout, touchTargetMinimum: scenario.reportView ? 44 : 40,
+        undersizedPrimaryControls, errors, status: errors.length ? "FAIL" : "PASS" });
       if (errors.length) failure = "One or more accessibility scenarios failed";
     } catch (error) {
       failure = "One or more accessibility scenarios failed";

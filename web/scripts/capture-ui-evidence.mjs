@@ -2,6 +2,10 @@ import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
+import { reportsDesignEvidenceScenarios } from "./reports-design-evidence-scenarios.mjs";
+import { assertReportBuilderLayout, assertReportsExploreLayout, chooseReportExploreMeasure, chooseReportField,
+  selectReportOrganizationScope, verifyReportBuilderNavigation, verifyReportExploreNavigation,
+  verifyReportBuilderFlow, verifyReportExploreCurrency, verifyReportExploreMembers } from "./reports-design-evidence.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
@@ -83,9 +87,7 @@ const captures = [
     { name: "140p-report-overview-denied-light-mobile-390x844", fixture: "report-overview-denied", theme: "light", viewport: { width: 390, height: 844 }, state: "report-overview-denied" },
     { name: "140q-report-overview-area-light-1440x900", theme: "light", viewport: { width: 1440, height: 900 }, state: "report-overview-selected-area", reportOrganizationScope: "sample-scope-risk-ops" },
   ].map((scenario) => ({ route: "#reports", title: "Reports & insights", fixture: "report-overview-loaded", density: "comfortable", openReportOverview: true, touch: scenario.viewport.width <= 1024, ...scenario })),
-  { name: "140c-report-explore-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-explore-desktop", openReportExplore: true },
-  { name: "140d-report-explore-light-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-explore-mobile", openReportExplore: true },
-
+  ...reportsDesignEvidenceScenarios,
 
   { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
   { name: "141a-report-library-records-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, scrollToReportRecords: true, state: "report-library-records-mobile" },
@@ -120,6 +122,10 @@ try {
     await captureVendorWorkflows();
   } else if (process.env.UI_EVIDENCE_SCOPE === "reports") {
     for (const capture of captures.filter((item) => item.route === "#reports")) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "report-design") {
+    for (const capture of captures.filter((item) => item.openReportExplore || item.openReportBuilder || item.openReportTemplates || item.openReportGenerate)) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "reports-expectations") {
+    for (const capture of captures.filter((item) => item.route === "#reports" && !item.openReportOverview && !item.openReportExplore && !item.openReportBuilder)) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "navigation") {
     for (const capture of captures.filter((item) => isNavigationMatrixCapture(item) || item.openPrimaryNavigation || item.assertNoConfigureNav)) await capturePage(capture);
   } else {
@@ -735,24 +741,36 @@ async function capturePage(capture) {
         throw new Error("Program Overview did not render exactly four grounded measures");
       }
     }
-    if (capture.route === "#reports" && !capture.openReportOverview && !capture.openReportExplore && !capture.openReportTemplates) {
+    if (capture.route === "#reports" && !capture.openReportOverview && !capture.openReportExplore && !capture.openReportBuilder && !capture.openReportTemplates) {
       await page.getByRole("tab", { name: "Reports", exact: true }).click();
       reportsLayout = await assertReportsLibraryLayout(page, capture);
     }
     if (capture.openReportExplore) {
       const workspace = page.locator(".reports-workspace");
+      if (capture.reportOrganizationScope) await selectReportOrganizationScope(page);
       await workspace.getByRole("tab", { name: "Explore", exact: true }).click();
-      const explore = workspace.getByRole("region", { name: "Risk and loss reporting" });
-      await explore.getByRole("heading", { name: "Risk and loss analysis" }).waitFor({ state: "visible" });
-      await explore.getByRole("button", { name: "Open Insights workspace" }).waitFor({ state: "visible" });
-      await page.waitForFunction(() => {
-        const region = document.querySelector('[aria-label="Risk and loss reporting"]');
-        return Boolean(region?.querySelector('[aria-label="Risk and loss analysis"]')
-          || region?.textContent?.includes("Reporting metrics are unavailable for the selected scope."));
-      }, undefined, { timeout: 12000 });
-      if (await workspace.locator(".cs-tabs__compact").count()) {
-        throw new Error(`${capture.name}: Reports Explore uses a redundant compact selector`);
+      if (capture.reportExploreMeasure) await chooseReportExploreMeasure(page, capture.reportExploreMeasure);
+      if (capture.reportExploreCurrency) await chooseReportField(page, page.locator(".reports-explore"), "Currency", capture.reportExploreCurrency);
+      reportsLayout = await assertReportsExploreLayout(page, capture);
+      const interaction = capture.verifyReportNavigation ? await verifyReportExploreNavigation(page, capture) : null;
+      const currencyInteraction = capture.verifyReportCurrency ? await verifyReportExploreCurrency(page, capture) : null;
+      if (interaction || currencyInteraction) reportsLayout = {
+        ...await assertReportsExploreLayout(page, capture),
+        ...(interaction ? { interaction } : {}),
+        ...(currencyInteraction ? { currencyInteraction } : {}),
+      };
+      await page.evaluate(() => window.scrollTo(0, 0));
+      if (capture.openReportExploreMembers) reportsLayout.memberDrill = await verifyReportExploreMembers(page, capture, reportsLayout);
+    }
+    if (capture.openReportBuilder) {
+      await page.locator(".reports-workspace__actions").getByRole("button", { name: "New report", exact: true }).click();
+      reportsLayout = await assertReportBuilderLayout(page, capture);
+      if (capture.verifyReportNavigation) {
+        const interaction = await verifyReportBuilderNavigation(page, capture);
+        reportsLayout = { ...await assertReportBuilderLayout(page, capture), interaction };
       }
+      if (capture.reportBuilderFlow) reportsLayout = await verifyReportBuilderFlow(page, capture, reportsLayout);
+      await page.evaluate(() => window.scrollTo(0, 0));
     }
 
     if (capture.openReportOverview) {
@@ -776,8 +794,11 @@ async function capturePage(capture) {
       await page.getByRole("heading", { name: "Customer account opening", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openReportTemplates) {
-      await page.getByRole("tab", { name: "Build report", exact: true }).click();
-      await page.getByRole("heading", { name: "Saved setups", exact: true }).waitFor({ state: "visible" });
+      await page.locator(".reports-workspace__actions").getByRole("button", { name: "New report", exact: true }).click();
+      await page.locator(".report-builder").getByRole("heading", { name: "Build report", exact: true }).waitFor({ state: "visible" });
+      await chooseReportField(page, page.locator(".report-builder"), "Saved setup", "Program health review");
+      await page.locator(".report-builder").getByRole("button", { name: "Activate setup", exact: true }).waitFor({ state: "visible" });
+      await page.evaluate(() => window.scrollTo(0, 0));
     }
     if (capture.openAssignedInspection) {
       const table = page.getByRole("table", { name: "Assigned work" });
@@ -786,11 +807,12 @@ async function capturePage(capture) {
       await page.getByRole("dialog", { name: /^Selected work: / }).waitFor({ state: "visible" });
     }
     if (capture.openReadyReport) {
-      const records = page.getByRole("list", { name: "Generated report records" });
+      const library = activeReportsLibrary(page);
+      const records = library.getByRole("list", { name: "Generated report records" });
       // The ready fixture is deliberately expired. Inspection remains valid,
       // but download is not permitted, so do not select by a Download action.
       await records.getByRole("button", { name: /^Select Processing activities with open exceptions, (Ready|Expired),/ }).click();
-      const inspector = page.getByRole("complementary", { name: "Selected report" });
+      const inspector = library.getByRole("complementary", { name: "Selected report" });
       await inspector.getByRole("heading", { name: "Processing activities with open exceptions", exact: true }).waitFor({ state: "visible" });
       await inspector.getByRole("button", { name: "View report details", exact: true }).click();
       const source = page.getByRole("dialog", { name: "Report details" }).getByRole("region", { name: "Source snapshot" });
@@ -798,14 +820,15 @@ async function capturePage(capture) {
       await source.getByText(/Population (complete|incomplete)|Coverage unknown/).waitFor({ state: "visible" });
     }
     if (capture.openFailedReport) {
-      await page.getByRole("list", { name: "Generated report records" }).getByRole("button", { name: /, Failed,/ }).first().click();
-      const inspector = page.getByRole("complementary", { name: "Selected report" });
+      const library = activeReportsLibrary(page);
+      await library.getByRole("list", { name: "Generated report records" }).getByRole("button", { name: /, Failed,/ }).first().click();
+      const inspector = library.getByRole("complementary", { name: "Selected report" });
       await inspector.getByText("Generation stopped: Row Limit Exceeded", { exact: true }).waitFor({ state: "visible" });
       await inspector.getByRole("button", { name: "View report details", exact: true }).click();
       await page.getByRole("dialog", { name: "Report details" }).waitFor({ state: "visible" });
     }
     if (capture.openReportGenerate) {
-      await page.getByRole("button", { name: "New report", exact: true }).click();
+      await page.locator(".reports-workspace__actions").getByRole("button", { name: "Generate report", exact: true }).click();
       await page.getByRole("dialog", { name: "Generate report" }).waitFor({ state: "visible" });
     }
     if (capture.matterTab) await openMatterWorkspaceTab(page, capture.matterTab);
@@ -922,7 +945,12 @@ async function capturePage(capture) {
       }
     }
 
-    if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
+    if (capture.expectText) {
+      const expected = capture.route === "#reports"
+        ? expectedReportsContent(page, capture)
+        : page.getByText(capture.expectText, { exact: false }).first();
+      await expected.waitFor({ state: "visible" });
+    }
     if (capture.scrollIntoViewText) {
       // Some controls sit below the fold at the capture viewport. Scroll them
       // into view so the screenshot proves the control is actually rendered,
@@ -998,7 +1026,7 @@ async function capturePage(capture) {
       await action.scrollIntoViewIfNeeded();
     }
     if (capture.state === "work-assigned-desktop" || capture.state === "work-assigned-mobile") await assertWorkMeasureLabels(page, capture);
-    if (capture.scrollToReportRecords) await page.getByRole("list", { name: "Generated report records" }).scrollIntoViewIfNeeded();
+    if (capture.scrollToReportRecords) await activeReportsLibrary(page).getByRole("list", { name: "Generated report records" }).scrollIntoViewIfNeeded();
     if (capture.openPrimaryNavigation || (capture.assertNoConfigureNav && capture.viewport.width <= 1024)) {
       navigation.drawer = await openAndVerifyNavigationDrawer(page, capture, !capture.assertNoConfigureNav);
     }
@@ -1064,8 +1092,8 @@ async function assertReportsOverviewLayout(page, capture) {
   await Promise.all([views, measures, workspace.getByRole("region", { name: "Reports Overview" })]
     .map((item) => item.waitFor({ state: "visible" })));
   const labels = (await views.getByRole("tab").allTextContents()).map((value) => value.trim());
-  if (labels.join("|") !== "Overview|Explore|Reports|Schedules|Build report" || await workspace.locator(".cs-tabs__compact").count()) {
-    throw new Error(`${capture.name}: Reports must retain its five approved local views without a duplicate compact selector`);
+  if (labels.join("|") !== "Overview|Explore|Reports|Schedules" || await workspace.locator(".cs-tabs__compact").count()) {
+    throw new Error(`${capture.name}: Reports must show four stable local views with Build report contextual to the active builder`);
   }
   const hasRisk = ["report-overview-loaded", "report-overview-partial"].includes(capture.fixture);
   const hasLoss = capture.fixture === "report-overview-loaded";
@@ -1188,9 +1216,30 @@ async function assertReportsOverviewLayout(page, capture) {
     lossAvailable: hasLoss, organizationScopeID: sourceScope || null };
 }
 
+function activeReportsLibrary(page) {
+  return page.getByRole("tabpanel", { name: "Reports", exact: true })
+    .getByRole("region", { name: "Generated reports", exact: true });
+}
+
+function expectedReportsContent(page, capture) {
+  // Visited panels remain mounted. Verify the active record, preview or sheet.
+  if (capture.openReportTemplates) {
+    return page.getByRole("tabpanel", { name: "Build report", exact: true })
+      .getByRole("article", { name: "Setup preview", exact: true })
+      .getByRole("heading", { name: capture.expectText, exact: true });
+  }
+  if (capture.openFailedReport || capture.openReportGenerate) {
+    return page.getByRole("dialog", { name: capture.openFailedReport ? "Report details" : "Generate report", exact: true })
+      .getByText(capture.expectText, { exact: true });
+  }
+  return activeReportsLibrary(page).getByRole("list", { name: "Generated report records" })
+    .getByRole("button", { pressed: true }).filter({ has: page.getByText(capture.expectText, { exact: true }) });
+}
+
 async function assertReportsLibraryLayout(page, capture) {
-  const records = page.getByRole("list", { name: "Generated report records" });
-  const inspector = page.getByRole("complementary", { name: "Selected report" });
+  const library = activeReportsLibrary(page);
+  const records = library.getByRole("list", { name: "Generated report records" });
+  const inspector = library.getByRole("complementary", { name: "Selected report" });
   await Promise.all([records, inspector, inspector.getByRole("button", { name: "View report details", exact: true })]
     .map((item) => item.waitFor({ state: "visible" })));
   if (await records.getByRole("button", { pressed: true }).count() !== 1 || await inspector.count() !== 1
@@ -1200,7 +1249,7 @@ async function assertReportsLibraryLayout(page, capture) {
   const title = await records.getByRole("button", { pressed: true }).locator(".cs-selectable-record__title").textContent();
   await inspector.getByRole("heading", { name: title, exact: true }).waitFor({ state: "visible" });
   const [registerBox, inspectorBox, listBox] = await Promise.all([
-    page.locator(".reports-v2-library__register"), inspector, records,
+    library.locator(".reports-v2-library__register"), inspector, records,
   ].map((item) => item.boundingBox()));
   const beside = capture.viewport.width > 700;
   if (!registerBox || !inspectorBox || !listBox

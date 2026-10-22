@@ -18,6 +18,7 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | External Forms capture and invitation access | — | — | — | — | — | — | — | — |
 | Today | — | — | — | — | — | — | — | — |
 | Oversight | M | — | — | M | — | M | — | M |
+| Reports · workspace, Overview/library, Explore and setup builder | M | M | M | M | M | M | — | M |
 | Programs and dedicated Program record | — | — | — | — | — | — | — | — |
 | Program · Submitted data list and query controls | M | M | M | — | M | M | — | M |
 | Vendors and vendor relationship record | — | — | — | — | — | — | — | — |
@@ -29,6 +30,8 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Shared shell, primary/mobile navigation and account context | — | — | — | — | — | — | — | — |
 
 ## Implemented boundary
+
+The October 21 Reports adaptation registers the workspace and setup builder alongside Overview/library and the new Explore composition. Actions, fields, data tables, exact member sheets, statuses and local navigation use the public contracts; feature CSS owns the source-specific chart and document geometry. Tabs gains a contextual item whose trigger appears only while selected without dropping its retained panel. This component boundary does not establish whole-screen visual or operational acceptance; see the [layout decision and evidence](decisions/2026-10-21-reports-explore-builder-v2.md).
 
 The October 5 response-browser slice enforces shared controls in the Forms response list, Program submitted-data panel and their query composition. `DataTable` adds named sortable headers with `aria-sort`; the gallery exercises that state. Desktop uses a filter rail, narrow layouts use a disclosure with active chips/reset outside, and optional columns retain form identity and review. Assessment/document internals and the broader Program record remain separately scoped. Evidence: `docs/quality/response-browser-2026-10-05.md`.
 

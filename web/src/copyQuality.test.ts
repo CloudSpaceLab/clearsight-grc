@@ -18,6 +18,7 @@ const productCommentary = [
   /activation still requires a separate approver/i,
   /no expired documents or recorded response gaps were identified/i,
   /exact retained records/i,
+  /\bexact\s+(?:snapshot|retained)\s+(?:members?|detail|records?)\b/i,
   /append-only recoveries/i,
   /governed (?:indicator population|Program monitoring|responsibility policies)/i,
   /injected structurally ahead of/i,

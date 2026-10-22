@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { loadHomeMetrics as loadHomeMetricsRequest } from "../../metricApi";
 import { ReportsOverview } from "./ReportsOverview";
 import { ReportsLibrary } from "./ReportsLibrary";
@@ -15,8 +15,8 @@ import {
   listReportRunPage as listReportRunPageRequest,
 } from "../../reportingApi";
 import type { ReportDefinition, ReportOwnerOption, ReportRun } from "../../reportingTypes";
-import { ReportingPage } from "../ReportingPage";
-import { reportSetupFocus, reportSetupFocusLabel } from "./reportTemplatePresets";
+import { ReportingPage, type ReportingPageProps } from "../ReportingPage";
+import { reportSetupArea, reportSetupFocus, reportSetupFocusLabel } from "./reportTemplatePresets";
 import {
   Button,
   EmptyState,
@@ -30,7 +30,7 @@ import {
 } from "../ui";
 import "./reports.css";
 
-const RiskLossInsights = lazy(() => import("../insights/RiskLossInsights").then(({ RiskLossInsights }) => ({ default: RiskLossInsights })));
+const ReportsExplore = lazy(() => import("./ReportsExplore").then(({ ReportsExplore }) => ({ default: ReportsExplore })));
 
 type WorkspaceTab = "overview" | "explore" | "library" | "schedules" | "builder";
 type LoadState = "loading" | "live" | "error";
@@ -47,6 +47,9 @@ export type ReportsWorkspaceProps = {
   onOpenWork?: () => void;
   onOpenPrograms?: () => void;
   loadDefinitions?: typeof listReportDefinitionsRequest;
+  createDefinition?: ReportingPageProps["createDefinition"];
+  transitionDefinition?: ReportingPageProps["transitionDefinition"];
+  loadMatters?: ReportingPageProps["loadMatters"];
   loadRunPage?: typeof listReportRunPageRequest;
   loadOwners?: typeof listReportOwnerOptionsRequest;
   createRun?: typeof createReportRunRequest;
@@ -58,6 +61,7 @@ const generationAreaOptions: readonly { id: Exclude<ReportArea, "ALL">; label: s
   { id: "VENDORS", label: "Vendors" },
   { id: "PROGRAMS", label: "Programs" },
   { id: "WORK", label: "Work" },
+  { id: "PROCESSING", label: "Processing activities" },
 ];
 
 export function ReportsWorkspace({
@@ -72,6 +76,9 @@ export function ReportsWorkspace({
   onOpenWork,
   onOpenPrograms,
   loadDefinitions = listReportDefinitionsRequest,
+  createDefinition,
+  transitionDefinition,
+  loadMatters,
   loadRunPage = listReportRunPageRequest,
   loadOwners = listReportOwnerOptionsRequest,
   createRun = createReportRunRequest,
@@ -103,11 +110,16 @@ export function ReportsWorkspace({
   const [ownersError, setOwnersError] = useState<string>();
   const [selectedRun, setSelectedRun] = useState<ReportRun>();
   const [command, setCommand] = useState<"idle" | "generating" | "downloading">("idle");
+  const commandPending = useRef(false);
+  const definitionMutation = useRef(0);
+  const runMutation = useRef(0);
   const [commandMessage, setCommandMessage] = useState<string>();
   const [commandError, setCommandError] = useState<string>();
 
   useEffect(() => {
     const controller = new AbortController();
+    const mutationAtRead = definitionMutation.current;
+    const runMutationAtRead = runMutation.current;
     setRunState("loading");
     setDefinitionState("loading");
     setRunError(undefined);
@@ -118,14 +130,18 @@ export function ReportsWorkspace({
     ]).then(([definitionResult, runResult]) => {
       if (controller.signal.aborted) return;
       if (definitionResult.status === "fulfilled") {
-        setDefinitions(definitionResult.value);
+        setDefinitions((current) => mutationAtRead === definitionMutation.current
+          ? definitionResult.value
+          : mergeDefinitions(definitionResult.value, current));
         setDefinitionState("live");
       } else if (!isAbortError(definitionResult.reason)) {
         setDefinitionState("error");
         setDefinitionError("Saved setups unavailable. Reports remain available.");
       }
       if (runResult.status === "fulfilled") {
-        setRuns(runResult.value.items);
+        setRuns((current) => runMutationAtRead === runMutation.current
+          ? runResult.value.items
+          : mergeReportRuns(current, runResult.value.items));
         setNextCursor(runResult.value.next_cursor);
         setRunState("live");
       } else if (!isAbortError(runResult.reason)) {
@@ -141,7 +157,7 @@ export function ReportsWorkspace({
   useEffect(() => {
     let current = true;
     setMetricPeriod(undefined);
-    if ((tab !== "explore" && tab !== "overview") || !scopeAuthorized) {
+    if (!scopeAuthorized) {
       setMetricPeriodState("idle");
       return;
     }
@@ -164,7 +180,7 @@ export function ReportsWorkspace({
       if (current) setMetricPeriodState("unavailable");
     });
     return () => { current = false; };
-  }, [tab, scopeAuthorized, legalEntityID, organizationScopeID, loadMetricBasis, refreshKey]);
+  }, [scopeAuthorized, legalEntityID, organizationScopeID, loadMetricBasis, refreshKey]);
 
   const definitionsByID = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -181,12 +197,11 @@ export function ReportsWorkspace({
   );
 
   useEffect(() => {
-    setGenerationDefinitionID((current) =>
-      activeGenerationDefinitions.some((definition) => definition.id === current)
-        ? current
-        : activeGenerationDefinitions[0]?.id
-    );
-  }, [activeGenerationDefinitions]);
+    if (generationDefinitionID && !activeGenerationDefinitions.some((definition) => definition.id === generationDefinitionID)) {
+      setGenerationDefinitionID(undefined);
+      if (generateOpen) setCommandError("The selected setup is no longer ready. Choose an approved setup before generating.");
+    }
+  }, [activeGenerationDefinitions, generationDefinitionID, generateOpen]);
 
   const generationDefinition = useMemo(
     () => activeGenerationDefinitions.find((definition) => definition.id === generationDefinitionID),
@@ -197,7 +212,7 @@ export function ReportsWorkspace({
     setGenerationOwnerID(undefined);
     setOwnerOptions([]);
     setOwnersError(undefined);
-    if (!generateOpen || !generationDefinition) {
+    if (!generateOpen || !generationDefinition || generationDefinition.dataset === "MATTER_BOARD_BRIEF") {
       setOwnersLoading(false);
       return;
     }
@@ -215,7 +230,8 @@ export function ReportsWorkspace({
     return () => controller.abort();
   }, [generateOpen, generationDefinition, loadOwners]);
 
-  const dateRangeInvalid = Boolean(generationStartDate && generationEndDate && generationStartDate > generationEndDate);
+  const isBoardBrief = generationDefinition?.dataset === "MATTER_BOARD_BRIEF";
+  const dateRangeInvalid = !isBoardBrief && Boolean(generationStartDate && generationEndDate && generationStartDate > generationEndDate);
 
   const runningCount = runs.filter((run) => run.status === "QUEUED" || run.status === "RUNNING").length;
 
@@ -257,7 +273,33 @@ export function ReportsWorkspace({
     }
   }
 
-  function openGenerate() {
+  function updateDefinition(definition: ReportDefinition) {
+    definitionMutation.current += 1;
+    setDefinitions((current) => mergeDefinitions(current, [definition]));
+    setDefinitionState("live");
+    setDefinitionError(undefined);
+  }
+
+  function openGenerate(definition?: ReportDefinition) {
+    if (commandPending.current) return;
+    if (definitionState !== "live") {
+      setCommandError("Refresh setups before generating a report.");
+      return;
+    }
+    if (definition) {
+      const current = definitionsByID.get(definition.id);
+      if (!current || current.status !== "ACTIVE" || !current.effective
+        || current.version !== definition.version || current.current_version !== definition.current_version
+        || current.checksum !== definition.checksum) {
+        setCommandError("This setup has changed or is no longer ready. Refresh setups and review its current status.");
+        return;
+      }
+      const setupArea = reportSetupArea(definition);
+      setGenerationArea(setupArea === "BOARD_BRIEF" ? "WORK" : setupArea);
+      setGenerationDefinitionID(definition.id);
+    } else {
+      setGenerationDefinitionID(generationDefinition?.id ?? activeGenerationDefinitions[0]?.id);
+    }
     setGenerationStartDate("");
     setGenerationEndDate("");
     setGenerationOwnerID(undefined);
@@ -272,16 +314,18 @@ export function ReportsWorkspace({
 
   async function generateReport() {
     const definition = generationDefinition;
-    if (!definition || dateRangeInvalid) return;
+    if (!definition || definitionState !== "live" || dateRangeInvalid || commandPending.current) return;
+    commandPending.current = true;
     setCommand("generating");
     setCommandError(undefined);
     setCommandMessage(undefined);
     try {
-      const run = await createRun(definition.id, definition.current_version, {
+      const run = await createRun(definition.id, definition.current_version, definition.dataset === "MATTER_BOARD_BRIEF" ? {} : {
         ...(generationStartDate ? { start_date: generationStartDate } : {}),
         ...(generationEndDate ? { end_date: generationEndDate } : {}),
         ...(generationOwnerID ? { owner_principal_id: generationOwnerID } : {}),
       });
+      runMutation.current += 1;
       setRuns((current) => [run, ...current.filter((item) => item.id !== run.id)]);
       setGenerateOpen(false);
       setGenerationStartDate("");
@@ -292,12 +336,14 @@ export function ReportsWorkspace({
     } catch (reason: unknown) {
       setCommandError(readError(reason, "Couldn’t generate report. Retry."));
     } finally {
+      commandPending.current = false;
       setCommand("idle");
     }
   }
 
   async function download(run: ReportRun) {
-    if (!isReportAvailable(run)) return;
+    if (!isReportAvailable(run) || commandPending.current) return;
+    commandPending.current = true;
     setCommand("downloading");
     setCommandError(undefined);
     try {
@@ -307,6 +353,7 @@ export function ReportsWorkspace({
     } catch (reason: unknown) {
       setCommandError(readError(reason, "Download failed. Refresh and retry."));
     } finally {
+      commandPending.current = false;
       setCommand("idle");
     }
   }
@@ -346,20 +393,23 @@ export function ReportsWorkspace({
   ];
 
   return <section className="reports-workspace" aria-labelledby="reports-heading">
-    <header className="reports-workspace__header cs-workspace-header">
+    <header className="reports-workspace__header">
       <div>
         <span className="eyebrow">Reporting · {legalEntityName || organizationName || "Current legal entity"}</span>
         <h1 id="reports-heading">Reports &amp; insights</h1>
       </div>
       <div className="reports-workspace__actions">
         <Button variant="secondary" onPress={refresh} isLoading={runState === "loading" || definitionState === "loading"}>Refresh</Button>
-        <Button variant="primary" isDisabled={definitionState === "error"} onPress={openGenerate}>New report</Button>
+        {tab !== "builder" && <Button variant="secondary" isDisabled={definitionState !== "live"} onPress={() => openGenerate()}>Generate report</Button>}
+        <Button variant="primary" onPress={openTemplates}>New report</Button>
       </div>
     </header>
+    {tab === "builder" && !generateOpen && commandError && <Notice tone="error">{commandError}</Notice>}
 
     <Tabs
       ariaLabel="Reports workspace"
-      items={[{ id: "overview", label: "Overview" }, { id: "explore", label: "Explore" }, { id: "library", label: "Reports" }, { id: "schedules", label: "Schedules" }, { id: "builder", label: "Build report" }]}
+      retainVisitedPanels
+      items={[{ id: "overview", label: "Overview" }, { id: "explore", label: "Explore" }, { id: "library", label: "Reports" }, { id: "schedules", label: "Schedules" }, { id: "builder", label: "Build report", isContextual: true }]}
       selectedKey={tab}
       onSelectionChange={setTab}
     >
@@ -387,19 +437,11 @@ export function ReportsWorkspace({
             onOpenPrograms={onOpenPrograms}
           />
         : activeTab === "explore"
-        ? <section className="reports-explore" aria-label="Risk and loss reporting">
-          <header className="reports-overview__recent">
-            <h2>Risk and loss analysis</h2>
-            {onOpenInsights && <Button variant="secondary" onPress={() => onOpenInsights?.(metricPeriod)}>Open Insights workspace</Button>}
-          </header>
-          {!scopeAuthorized && <Notice tone="warning">Select an authorized organization scope to review risk and loss data.</Notice>}
-          {scopeAuthorized && metricPeriodState === "loading" && <p role="status">Loading reporting period…</p>}
-          {scopeAuthorized && metricPeriodState === "unavailable" && <Notice tone="warning">Reporting metrics are unavailable for the selected scope.</Notice>}
-          {scopeAuthorized && metricPeriodState === "live" && metricPeriod && <Suspense fallback={<p role="status">Loading risk and loss analysis…</p>}>
-            <RiskLossInsights period={metricPeriod} organizationScopeID={organizationScopeID} scopeAuthorized
-              onOpenRisk={onOpenRisk} onOpenLoss={onOpenLoss}/>
-          </Suspense>}
-        </section>
+        ? <Suspense fallback={<p role="status">Loading risk and loss analysis…</p>}>
+            <ReportsExplore period={metricPeriod} periodState={metricPeriodState} organizationScopeID={organizationScopeID}
+              legalEntityID={legalEntityID} scopeAuthorized={scopeAuthorized} refreshKey={refreshKey}
+              onOpenRisk={onOpenRisk} onOpenLoss={onOpenLoss} onOpenInsights={onOpenInsights ? () => onOpenInsights(metricPeriod) : undefined}/>
+          </Suspense>
         : activeTab === "schedules"
         ? <section className="reports-v2-unavailable" aria-label="Report schedules">
             <h2>Schedules</h2>
@@ -418,23 +460,27 @@ export function ReportsWorkspace({
             scopeLabel={legalEntityName} onLoadMore={() => void loadOlderReports()} onRetry={refresh}
             onInspect={setSelectedRun} onDownload={(run) => void download(run)}/>
         </div>
-        : <section className="reports-v2-builder" aria-label="Build report">
-          <header><h2>Build report</h2><p>Choose or create a report setup.</p></header>
-          <ReportingPage
+        : <ReportingPage
+            key={legalEntityID || legalEntityName || "current-entity"}
             embedded
             organizationName={organizationName}
             legalEntityName={legalEntityName}
+            definitionSource={{ items: definitions, state: definitionState, refresh, onChange: updateDefinition }}
+            createDefinition={createDefinition}
+            transitionDefinition={transitionDefinition}
+            loadMatters={loadMatters}
+            onGenerate={openGenerate}
             onBack={() => setTab("library")}
           />
-        </section>
       }
     </Tabs>
 
-    {generateOpen && <FocusedSheet label="Generate report" onClose={() => setGenerateOpen(false)}>
+    {generateOpen && <FocusedSheet label="Generate report" onClose={() => setGenerateOpen(false)}
+      isDismissable={command !== "generating"} closeLabel={command === "generating" ? "Generating report…" : "Close"}>
       <div className="reports-generate">
         <div className="reports-generate__heading">
           <h2>Generate report</h2>
-          <p>Choose a setup, period and owner.</p>
+          <p>Choose an approved setup{isBoardBrief ? " for one issue." : ". Date filters apply to when records were created."}</p>
         </div>
         <SelectField
           label="Area"
@@ -442,7 +488,13 @@ export function ReportsWorkspace({
           placeholder="Choose an area"
           options={generationAreaOptions}
           allowsEmpty={false}
-          onChange={(value) => setGenerationArea((value || "VENDORS") as Exclude<ReportArea, "ALL">)}
+          isDisabled={command === "generating"}
+          onChange={(value) => {
+            const nextArea = (value || "VENDORS") as Exclude<ReportArea, "ALL">;
+            setGenerationArea(nextArea);
+            setGenerationDefinitionID(definitions.find((definition) => reportBelongsToArea(definition.dataset, nextArea) && definition.status === "ACTIVE" && definition.effective)?.id);
+            setCommandError(undefined);
+          }}
         />
         {activeGenerationDefinitions.length > 0 ? <>
           <SelectField
@@ -451,10 +503,11 @@ export function ReportsWorkspace({
             placeholder="Choose a saved setup"
             options={activeGenerationDefinitions.map((definition) => ({ id: definition.id, label: definition.name }))}
             allowsEmpty={false}
+            isDisabled={command === "generating"}
             onChange={setGenerationDefinitionID}
           />
           {generationDefinitionID && <ReportTemplateSummary definition={generationDefinition} />}
-          <div className="reports-generate__filters">
+          {!isBoardBrief && <div className="reports-generate__filters">
             <TextField
               label="Start date"
               type="date"
@@ -462,6 +515,7 @@ export function ReportsWorkspace({
               max={generationEndDate || undefined}
               onChange={setGenerationStartDate}
               isInvalid={dateRangeInvalid}
+              isDisabled={command === "generating"}
             />
             <TextField
               label="End date"
@@ -470,6 +524,7 @@ export function ReportsWorkspace({
               min={generationStartDate || undefined}
               onChange={setGenerationEndDate}
               isInvalid={dateRangeInvalid}
+              isDisabled={command === "generating"}
               errorMessage={dateRangeInvalid ? "End date must be on or after start date." : undefined}
             />
             <SelectField
@@ -477,15 +532,16 @@ export function ReportsWorkspace({
               value={generationOwnerID}
               placeholder={ownersLoading ? "Loading assigned owners…" : "All assigned owners"}
               options={ownerOptions.map((owner) => ({ id: owner.principal_id, label: owner.display_name }))}
-              isDisabled={ownersLoading || Boolean(ownersError)}
+              isDisabled={ownersLoading || Boolean(ownersError) || command === "generating"}
               onChange={setGenerationOwnerID}
             />
-          </div>
-          {ownersError && <Notice tone="warning"><span>{ownersError} Generate without an owner filter or retry.</span></Notice>}
+          </div>}
+          {isBoardBrief && <p>The board brief includes only its saved issue. Date and owner filters do not apply.</p>}
+          {!isBoardBrief && ownersError && <Notice tone="warning"><span>{ownersError} Generate without an owner filter or retry.</span></Notice>}
           {commandError && <Notice tone="error"><span>{commandError}</span></Notice>}
           <div className="reports-generate__footer">
-            <Button variant="secondary" onPress={() => setGenerateOpen(false)}>Cancel</Button>
-            <Button variant="primary" isDisabled={dateRangeInvalid} isLoading={command === "generating"} onPress={() => void generateReport()}>Generate report</Button>
+            <Button variant="secondary" isDisabled={command === "generating"} onPress={() => setGenerateOpen(false)}>Cancel</Button>
+            <Button variant="primary" isDisabled={!generationDefinition || definitionState !== "live" || dateRangeInvalid} isLoading={command === "generating"} onPress={() => void generateReport()}>Generate report</Button>
           </div>
         </> : <div className="reports-generate__empty">
           <EmptyState
@@ -513,7 +569,8 @@ function ReportTemplateSummary({ definition }: { definition?: ReportDefinition }
   if (!definition) return null;
   return <dl className="reports-generate__summary">
     <div><dt>Area</dt><dd>{reportDatasetLabel(definition.dataset)}</dd></div>
-    <div><dt>Shows</dt><dd>{reportSetupFocusLabel(reportSetupFocus(definition))}</dd></div>
+    <div><dt>Shows</dt><dd>{definition.dataset === "MATTER_BOARD_BRIEF" ? "Issue brief" : reportSetupFocusLabel(reportSetupFocus(definition))}</dd></div>
+    {definition.scope_kind === "MATTER" && <div><dt>Issue</dt><dd>Issue name unavailable. Saved reference: {definition.scope_ref || "Not recorded"}</dd></div>}
   </dl>;
 }
 
@@ -562,6 +619,14 @@ function ReportRunDetails({ run, definition, downloading, onDownload }: { run: R
       </Button>
     </div>
   </div>;
+}
+
+function mergeDefinitions(current: ReportDefinition[], incoming: ReportDefinition[]) {
+  const byID = new Map(current.map((definition) => [definition.id, definition]));
+  for (const definition of incoming) {
+    if ((byID.get(definition.id)?.version ?? -1) <= definition.version) byID.set(definition.id, definition);
+  }
+  return [...byID.values()];
 }
 
 function mergeReportRuns(current: ReportRun[], incoming: ReportRun[]) {

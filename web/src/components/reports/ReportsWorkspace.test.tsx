@@ -1,12 +1,19 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReportDefinition, ReportRun } from "../../reportingTypes";
+import type { ReportsExploreProps } from "./ReportsExplore";
 import { ReportsWorkspace } from "./ReportsWorkspace";
 
-vi.mock("../insights/RiskLossInsights", () => ({
-  RiskLossInsights: ({ period, organizationScopeID }: {
-    period: { start_date: string; end_date: string }; organizationScopeID?: string;
-  }) => <section aria-label="Risk and loss analysis">{period.start_date} to {period.end_date} · {organizationScopeID ?? "Legal entity"}</section>,
+const { receivedExploreProps } = vi.hoisted(() => ({ receivedExploreProps: vi.fn() }));
+
+vi.mock("./ReportsExplore", () => ({
+  ReportsExplore: (props: ReportsExploreProps) => {
+    receivedExploreProps(props);
+    return <section aria-label="Explore measures">
+      {props.period && <span>{props.period.start_date} to {props.period.end_date}</span>}
+      <button onClick={props.onOpenInsights}>Open Insights workspace</button>
+    </section>;
+  },
 }));
 
 const vendorDefinition: ReportDefinition = {
@@ -84,6 +91,23 @@ const failedRun: ReportRun = {
   completed_at: "2026-09-24T08:02:00Z",
 };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+async function choose(container: HTMLElement, field: string, option: string | RegExp) {
+  const trigger = within(container).getByRole("button", { name: new RegExp(field) });
+  await waitFor(() => expect(trigger).toHaveProperty("disabled", false));
+  fireEvent.click(trigger);
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+}
+
 describe("ReportsWorkspace", () => {
   const loadDefinitions = vi.fn();
   const loadRunPage = vi.fn();
@@ -92,9 +116,12 @@ describe("ReportsWorkspace", () => {
   const downloadRun = vi.fn();
   const onOpenInsights = vi.fn();
   const loadMetricBasis = vi.fn();
+  const createDefinition = vi.fn();
+  const transitionDefinition = vi.fn();
+  const loadMatters = vi.fn();
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     loadDefinitions.mockResolvedValue([vendorDefinition, programDefinition]);
     loadRunPage.mockResolvedValue({ items: [readyRun, failedRun] });
     loadOwners.mockResolvedValue([
@@ -114,6 +141,7 @@ describe("ReportsWorkspace", () => {
       scope_kind: "LEGAL_ENTITY", scope_id: "entity-1",
       reporting_period: { start_date: "2026-07-01", end_date: "2026-09-28" },
     });
+    loadMatters.mockResolvedValue({ items: [], generated_at: "2026-09-25T08:00:00Z" });
   });
 
   function renderWorkspace(initialView: "overview" | "library" = "library") {
@@ -128,6 +156,9 @@ describe("ReportsWorkspace", () => {
       createRun={createRun}
       downloadRun={downloadRun}
       onOpenInsights={onOpenInsights}
+      createDefinition={createDefinition}
+      transitionDefinition={transitionDefinition}
+      loadMatters={loadMatters}
     />);
     if (initialView === "library") fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
     return rendered;
@@ -138,11 +169,11 @@ describe("ReportsWorkspace", () => {
     expect(screen.getByRole("region", { name: "Reports Overview" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "Reporting measures" })).toBeTruthy();
     expect(screen.getByRole("complementary", { name: "Reporting context" })).toBeTruthy();
-    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Overview", "Explore", "Reports", "Schedules", "Build report"]);
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Overview", "Explore", "Reports", "Schedules"]);
     fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
 
     expect(await screen.findByRole("heading", { name: "Reports & insights" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Reports & insights" }).closest("header")?.className).toContain("cs-workspace-header");
+    expect(screen.getByRole("heading", { name: "Reports & insights" }).closest("header")?.className).toContain("reports-workspace__header");
 
     const records = await screen.findByRole("list", { name: "Generated report records" });
     expect(within(records).getByRole("button", { name: /Select Vendor portfolio, Ready/ }).getAttribute("aria-pressed")).toBe("true");
@@ -168,9 +199,12 @@ describe("ReportsWorkspace", () => {
     expect(within(recent).getByRole("row", { name: /Program health/ })).toBeTruthy();
     expect(within(measures).getByLabelText(/Reports ready: 1/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Explore analysis" }));
-    const analysis = await screen.findByRole("region", { name: "Risk and loss analysis" });
+    const analysis = await screen.findByRole("region", { name: "Explore measures" });
     expect(analysis.textContent).toContain("2026-07-01 to 2026-09-28");
     expect(loadMetricBasis).toHaveBeenCalledWith(undefined, undefined);
+    expect(receivedExploreProps).toHaveBeenLastCalledWith(expect.objectContaining({
+      period: { start_date: "2026-07-01", end_date: "2026-09-28" }, periodState: "live", legalEntityID: "entity-1", scopeAuthorized: true,
+    }));
     fireEvent.click(screen.getByRole("button", { name: "Open Insights workspace" }));
     expect(onOpenInsights).toHaveBeenCalledExactlyOnceWith({ start_date: "2026-07-01", end_date: "2026-09-28" });
     fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
@@ -194,8 +228,9 @@ describe("ReportsWorkspace", () => {
     });
     renderWorkspace();
     fireEvent.click(screen.getByRole("tab", { name: "Explore" }));
-    expect(await screen.findByText("Reporting metrics are unavailable for the selected scope.")).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "Risk and loss analysis" })).toBeNull();
+    await waitFor(() => expect(receivedExploreProps).toHaveBeenLastCalledWith(expect.objectContaining({
+      period: undefined, periodState: "unavailable", legalEntityID: "entity-1",
+    })));
   });
 
   it("uses only the selected group scope and rejects a legal-entity substitute", async () => {
@@ -206,7 +241,9 @@ describe("ReportsWorkspace", () => {
     render(<ReportsWorkspace legalEntityID="entity-1" organizationScopeID="group-1"
       loadMetricBasis={loadMetricBasis} loadDefinitions={loadDefinitions} loadRunPage={loadRunPage}/>);
     fireEvent.click(screen.getByRole("tab", { name: "Explore" }));
-    expect(await screen.findByText("Reporting metrics are unavailable for the selected scope.")).toBeTruthy();
+    await waitFor(() => expect(receivedExploreProps).toHaveBeenLastCalledWith(expect.objectContaining({
+      period: undefined, periodState: "unavailable", organizationScopeID: "group-1",
+    })));
     expect(loadMetricBasis).toHaveBeenCalledWith(undefined, "group-1");
   });
 
@@ -215,16 +252,48 @@ describe("ReportsWorkspace", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Schedules" }));
     expect(screen.getByRole("region", { name: "Report schedules" })).toBeTruthy();
     expect(screen.getByText(/Recurring report delivery is unavailable/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("tab", { name: "Build report" }));
+    expect(screen.queryByRole("tab", { name: "Build report" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "New report" }));
     expect(screen.getByRole("region", { name: "Build report" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Build report" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Build report" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByRole("dialog", { name: "Generate report" })).toBeNull();
+    expect(screen.getByLabelText(/^Name/)).toHaveProperty("value", "");
+    await waitFor(() => expect(loadDefinitions).toHaveBeenCalledTimes(1));
+  });
+
+  it("retains the draft and saved setup selection when the contextual builder tab is hidden", async () => {
+    renderWorkspace("overview");
+    await waitFor(() => expect(loadDefinitions).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: "New report" }));
+    const builder = screen.getByRole("region", { name: "Build report" });
+    fireEvent.change(within(builder).getByLabelText(/^Name/), { target: { value: "Quarterly Program exceptions" } });
+    await choose(builder, "Area", /^Programs/);
+    await choose(builder, "Report type", /^Exceptions & outstanding/);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
+    expect(screen.queryByRole("tab", { name: "Build report" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Build report" })).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
+    fireEvent.click(screen.getByRole("button", { name: "New report" }));
+    expect(within(builder).getByLabelText(/^Name/)).toHaveProperty("value", "Quarterly Program exceptions");
+    expect(within(builder).getByRole("button", { name: /Area/ }).textContent).toContain("Programs");
+    expect(within(builder).getByRole("button", { name: /Report type/ }).textContent).toContain("Exceptions & outstanding");
+    expect(createDefinition).not.toHaveBeenCalled();
+
+    await choose(builder, "Saved setup", /^Program health/);
+    fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
+    fireEvent.click(screen.getByRole("button", { name: "New report" }));
+    expect(within(builder).getByRole("button", { name: /Saved setup/ }).textContent).toContain("Program health");
+    expect(within(builder).getByRole("button", { name: "Generate report" })).toBeTruthy();
+    expect(loadDefinitions).toHaveBeenCalledTimes(1);
   });
 
   it("generates a vendor report from a ready saved setup", async () => {
     renderWorkspace();
     await screen.findByRole("list", { name: "Generated report records" });
 
-    fireEvent.click(screen.getByRole("button", { name: "New report" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
     const dialog = await screen.findByRole("dialog", { name: "Generate report" });
     expect(within(dialog).getAllByText("Vendor portfolio")).not.toHaveLength(0);
     expect(within(dialog).getAllByText("Overview")).not.toHaveLength(0);
@@ -247,6 +316,176 @@ describe("ReportsWorkspace", () => {
     expect(screen.getByRole("button", { name: /Select Vendor portfolio, Queued/ })).toBeTruthy();
   });
 
+  it("generates from the actual newly approved builder definition without reloading stale setups", async () => {
+    const created: ReportDefinition = {
+      ...vendorDefinition, id: "new-processing-setup", code: "PRIVACY-EXCEPTIONS", name: "Weekly privacy exceptions",
+      dataset: "PROCESSING_ACTIVITY_EXCEPTIONS", status: "DRAFT", effective: false,
+      version: 1, current_version: 1, checksum: "b".repeat(64),
+      reviewer_id: undefined, checker_id: undefined, effective_from: undefined,
+    };
+    const submitted: ReportDefinition = { ...created, status: "PENDING_REVIEW", version: 3, checksum: "c".repeat(64) };
+    const reviewed: ReportDefinition = { ...submitted, status: "REVIEWED", version: 6, checksum: "d".repeat(64), reviewer_id: "reviewer-2" };
+    const activated: ReportDefinition = { ...reviewed, status: "ACTIVE", effective: true, version: 9, current_version: 4, checksum: "e".repeat(64), checker_id: "checker-2" };
+    createDefinition.mockResolvedValue(created);
+    transitionDefinition.mockResolvedValueOnce(submitted).mockResolvedValueOnce(reviewed).mockResolvedValueOnce(activated);
+    createRun.mockResolvedValue({ ...readyRun, id: "processing-queued", definition_id: activated.id, definition_code: activated.code, definition_version: activated.current_version, dataset: activated.dataset, status: "QUEUED", row_count: 0 });
+    renderWorkspace("overview");
+    fireEvent.click(screen.getByRole("button", { name: "New report" }));
+    const builder = screen.getByRole("region", { name: "Build report" });
+    fireEvent.change(within(builder).getByLabelText(/^Name/), { target: { value: created.name } });
+    await choose(builder, "Area", /^Processing activities/);
+    await choose(builder, "Report type", /^Exceptions & outstanding/);
+    fireEvent.click(within(builder).getByRole("button", { name: "Save setup" }));
+    fireEvent.click(await within(builder).findByRole("button", { name: "Send for review" }));
+    fireEvent.click(await within(builder).findByRole("button", { name: "Record review" }));
+    fireEvent.click(await within(builder).findByRole("button", { name: "Activate setup" }));
+    fireEvent.click(await within(builder).findByRole("button", { name: "Generate report" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Generate report" });
+    expect(within(dialog).getByRole("button", { name: /Saved setup/ }).textContent).toContain(created.name);
+    expect(createDefinition).toHaveBeenCalledWith(expect.objectContaining({ name: created.name, dataset: "PROCESSING_ACTIVITY_EXCEPTIONS", scope_kind: "LEGAL_ENTITY", format: "XLSX" }));
+    expect(transitionDefinition).toHaveBeenLastCalledWith(created.id, "activate", { expected_version: reviewed.version, checksum_seen: reviewed.checksum });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
+    const reopened = await screen.findByRole("dialog", { name: "Generate report" });
+    expect(within(reopened).getByRole("button", { name: /Saved setup/ }).textContent).toContain(created.name);
+    fireEvent.click(within(reopened).getByRole("button", { name: "Generate report" }));
+    await waitFor(() => expect(createRun).toHaveBeenCalledExactlyOnceWith(created.id, activated.current_version, {}));
+    expect(await screen.findByText(/Weekly privacy exceptions queued/)).toBeTruthy();
+    expect(loadDefinitions).toHaveBeenCalledTimes(1);
+  });
+
+  it("shares refreshed setup eligibility with the builder and never substitutes another setup", async () => {
+    const alternative: ReportDefinition = { ...vendorDefinition, id: "vendor-alternative", code: "VENDOR-ALTERNATIVE", name: "Alternative vendor review" };
+    const retired: ReportDefinition = { ...vendorDefinition, status: "RETIRED", effective: false, version: vendorDefinition.version + 1 };
+    const retiredAlternative: ReportDefinition = { ...alternative, status: "RETIRED", effective: false, version: alternative.version + 1 };
+    loadDefinitions.mockResolvedValueOnce([vendorDefinition, alternative])
+      .mockResolvedValueOnce([retired, alternative])
+      .mockResolvedValueOnce([retired, retiredAlternative]);
+    renderWorkspace();
+    await screen.findByRole("list", { name: "Generated report records" });
+    fireEvent.click(screen.getByRole("button", { name: "New report" }));
+    const builder = screen.getByRole("region", { name: "Build report" });
+    await choose(builder, "Saved setup", /^Vendor portfolio/);
+    expect(within(builder).getByRole("button", { name: "Generate report" })).toHaveProperty("disabled", false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    const output = within(builder).getByRole("complementary", { name: "Output" });
+    await waitFor(() => expect(within(output).getAllByText("Retired").length).toBeGreaterThan(0));
+    expect(within(builder).getByRole("button", { name: /Saved setup/ }).textContent).toContain(vendorDefinition.name);
+    expect(within(builder).queryByRole("button", { name: "Generate report" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Generate report" })).toBeNull();
+    expect(createRun).not.toHaveBeenCalled();
+
+    await choose(builder, "Saved setup", /^Alternative vendor review/);
+    fireEvent.click(within(builder).getByRole("button", { name: "Refresh setups" }));
+    await waitFor(() => expect(within(output).getAllByText("Retired").length).toBeGreaterThan(0));
+    expect(loadDefinitions).toHaveBeenCalledTimes(3);
+    fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
+    fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
+    const dialog = await screen.findByRole("dialog", { name: "Generate report" });
+    expect(within(dialog).getByRole("heading", { name: "No ready vendors setup" })).toBeTruthy();
+    expect(within(dialog).queryByRole("button", { name: /Saved setup/ })).toBeNull();
+    expect(createRun).not.toHaveBeenCalled();
+  });
+
+  it("retains an accepted queued receipt when an older refresh settles and continues status polling", async () => {
+    const pendingSave = deferred<ReportDefinition>();
+    const pendingRuns = deferred<{ items: ReportRun[] }>();
+    const created: ReportDefinition = { ...vendorDefinition, id: "created-during-refresh", code: "REFRESH-REPORT", name: "Vendor report during refresh",
+      status: "DRAFT", effective: false, version: 1, current_version: 1, reviewer_id: undefined, checker_id: undefined };
+    const submitted: ReportDefinition = { ...created, status: "PENDING_REVIEW", version: 2 };
+    const reviewed: ReportDefinition = { ...submitted, status: "REVIEWED", version: 3, reviewer_id: "reviewer-2" };
+    const activated: ReportDefinition = { ...reviewed, status: "ACTIVE", effective: true, version: 4, checker_id: "checker-2" };
+    const queued: ReportRun = { ...readyRun, id: "queued-during-refresh", definition_id: created.id, definition_code: created.code,
+      definition_version: activated.current_version, status: "QUEUED", row_count: 0, completed_at: undefined };
+    createDefinition.mockReturnValueOnce(pendingSave.promise);
+    transitionDefinition.mockResolvedValueOnce(submitted).mockResolvedValueOnce(reviewed).mockResolvedValueOnce(activated);
+    createRun.mockResolvedValueOnce(queued);
+    loadRunPage.mockResolvedValueOnce({ items: [readyRun, failedRun] })
+      .mockReturnValueOnce(pendingRuns.promise)
+      .mockResolvedValue({ items: [queued, readyRun, failedRun] });
+    renderWorkspace();
+    await screen.findByRole("list", { name: "Generated report records" });
+    fireEvent.click(screen.getByRole("button", { name: "New report" }));
+    const builder = screen.getByRole("region", { name: "Build report" });
+    fireEvent.change(within(builder).getByLabelText(/^Name/), { target: { value: created.name } });
+    fireEvent.click(within(builder).getByRole("button", { name: "Save setup" }));
+    expect(createDefinition).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(loadRunPage).toHaveBeenCalledTimes(2));
+    await act(async () => pendingSave.resolve(created));
+    fireEvent.click(await within(builder).findByRole("button", { name: "Send for review" }));
+    fireEvent.click(await within(builder).findByRole("button", { name: "Record review" }));
+    fireEvent.click(await within(builder).findByRole("button", { name: "Activate setup" }));
+    fireEvent.click(await within(builder).findByRole("button", { name: "Generate report" }));
+    const dialog = await screen.findByRole("dialog", { name: "Generate report" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Generate report" }));
+    expect(await screen.findByText(`${created.name} queued.`)).toBeTruthy();
+
+    vi.useFakeTimers();
+    try {
+      await act(async () => pendingRuns.resolve({ items: [readyRun, failedRun] }));
+      expect(screen.getByRole("button", { name: /Select Vendor report during refresh, Queued/ })).toBeTruthy();
+      expect(createRun).toHaveBeenCalledExactlyOnceWith(created.id, activated.current_version, {});
+      await act(async () => vi.advanceTimersByTimeAsync(5000));
+      expect(loadRunPage).toHaveBeenCalledTimes(3);
+      expect(screen.getByRole("button", { name: /Select Vendor report during refresh, Queued/ })).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("never looks up owners or forwards period and owner overrides for a board brief", async () => {
+    const boardBrief: ReportDefinition = { ...vendorDefinition, id: "brief-template", name: "Settlement board brief", code: "SETTLEMENT-BRIEF", dataset: "MATTER_BOARD_BRIEF", scope_kind: "MATTER", scope_ref: "matter-1", format: "PDF" };
+    loadDefinitions.mockResolvedValue([vendorDefinition, boardBrief]);
+    createRun.mockResolvedValue({ ...readyRun, id: "brief-queued", definition_id: boardBrief.id, definition_code: boardBrief.code, dataset: boardBrief.dataset, format: "PDF", scope_kind: "MATTER", scope_ref: boardBrief.scope_ref, status: "QUEUED", row_count: 0 });
+    renderWorkspace();
+    await screen.findByRole("list", { name: "Generated report records" });
+    fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
+    const dialog = await screen.findByRole("dialog", { name: "Generate report" });
+    fireEvent.change(within(dialog).getByLabelText("Start date"), { target: { value: "2026-09-01" } });
+    fireEvent.change(within(dialog).getByLabelText("End date"), { target: { value: "2026-09-30" } });
+    await waitFor(() => expect(loadOwners).toHaveBeenCalledWith("VENDORS", expect.any(AbortSignal)));
+    await choose(dialog, "Assigned owner", "Amina Okafor");
+    await choose(dialog, "Area", "Work");
+
+    expect(within(dialog).getByRole("button", { name: /Saved setup/ }).textContent).toContain(boardBrief.name);
+    expect(within(dialog).queryByLabelText("Start date")).toBeNull();
+    expect(within(dialog).queryByLabelText("End date")).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: /Assigned owner/ })).toBeNull();
+    expect(loadOwners.mock.calls.map(([dataset]) => dataset)).not.toContain("MATTER_BOARD_BRIEF");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Generate report" }));
+    await waitFor(() => expect(createRun).toHaveBeenCalledExactlyOnceWith(boardBrief.id, boardBrief.current_version, {}));
+  });
+
+  it("does not duplicate an in-flight generation and retains valid filters after failure", async () => {
+    const pending = deferred<ReportRun>();
+    createRun.mockReturnValueOnce(pending.promise);
+    renderWorkspace();
+    await screen.findByRole("list", { name: "Generated report records" });
+    fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
+    const dialog = await screen.findByRole("dialog", { name: "Generate report" });
+    fireEvent.change(within(dialog).getByLabelText("Start date"), { target: { value: "2026-09-01" } });
+    fireEvent.change(within(dialog).getByLabelText("End date"), { target: { value: "2026-09-30" } });
+    const generate = within(dialog).getByRole("button", { name: "Generate report" });
+    act(() => {
+      fireEvent.click(generate);
+      fireEvent.click(generate);
+    });
+    expect(createRun).toHaveBeenCalledTimes(1);
+    expect(generate).toHaveProperty("disabled", true);
+    await act(async () => pending.reject(new Error("Report generation is temporarily unavailable.")));
+    expect(await within(dialog).findByText("Report generation is temporarily unavailable.")).toBeTruthy();
+    expect(within(dialog).getByLabelText("Start date")).toHaveProperty("value", "2026-09-01");
+    expect(within(dialog).getByLabelText("End date")).toHaveProperty("value", "2026-09-30");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Generate report" }));
+    await waitFor(() => expect(createRun).toHaveBeenCalledTimes(2));
+    expect(createRun).toHaveBeenLastCalledWith(vendorDefinition.id, vendorDefinition.current_version, { start_date: "2026-09-01", end_date: "2026-09-30" });
+    expect(await screen.findByText(/Vendor portfolio queued/)).toBeTruthy();
+  });
+
   it("explains why a ready report cannot be downloaded", async () => {
     downloadRun.mockRejectedValueOnce(new Error("Report download access is not assigned to your account."));
     renderWorkspace();
@@ -267,7 +506,8 @@ describe("ReportsWorkspace", () => {
     expect(within(records).getByRole("button", { name: /Select Vendor Portfolio, Ready/i })).toBeTruthy();
     expect(screen.getByText(/Saved setups unavailable/i)).toBeTruthy();
     expect(screen.queryByText(/Generated reports could not be loaded/i)).toBeNull();
-    expect(screen.getByRole("button", { name: "New report" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Generate report" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "New report" })).toHaveProperty("disabled", false);
   });
 
   it("loads older history pages without duplicating runs already in the library", async () => {

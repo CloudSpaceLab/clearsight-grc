@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
+import type { DomainMetricBundle, LossPeriodBundle } from "../../metricApi";
 import { RiskLossInsights } from "./RiskLossInsights";
 
 const api = vi.hoisted(() => ({ loadDomainMetrics: vi.fn(), loadLossPeriodMetrics: vi.fn() }));
@@ -14,10 +15,25 @@ vi.mock("../oversight/OrganizationLossSummary", () => ({ OrganizationLossSummary
 vi.mock("../oversight/LossMovement", () => ({ LossMovement: () => null }));
 
 const period = { start_date: "2026-09-08", end_date: "2026-10-07" };
-const loss = { source_id: "loss-1", period_start: "2026-09-08T00:00:00Z", period_end: "2026-10-07T12:00:00Z", scope_kind: "ORGANIZATION_SCOPE", scope_id: "scope-1" };
+const domain: DomainMetricBundle = {
+  source_id: "risk-1", source_revision: "risk-v1", definition_revision: "domain-v1",
+  generated_at: "2026-10-07T12:00:00Z", posture_as_of: "2026-10-07T12:00:00Z",
+  scope_id: "entity-1", scope_kind: "LEGAL_ENTITY", items: [],
+};
+const loss: LossPeriodBundle = {
+  source_id: "loss-1", source_revision: "loss-v1", definition_revision: "loss-v1",
+  generated_at: "2026-10-07T12:00:00Z", period_start: "2026-09-08T00:00:00Z", period_end: "2026-10-07T12:00:00Z",
+  scope_kind: "ORGANIZATION_SCOPE", scope_id: "scope-1", event_count: 0, contributing_loss_count: 0,
+  unattributed_event_count: 0, mixed_currencies: false, currencies: [], organization_breakdown: [],
+  flow_resolution: "DAY", flow_points: [], comparison: {
+    period_start: "2026-08-09T00:00:00Z", period_end: "2026-09-07T23:59:59Z", event_count: 0,
+    contributing_loss_count: 0, mixed_currencies: false, currencies: [], event_delta: 0,
+    direction: "UNKNOWN", comparison_quality: "MISSING",
+  },
+};
 
 beforeEach(() => {
-  api.loadDomainMetrics.mockReset().mockResolvedValue({ source_id: "risk-1", items: [] });
+  api.loadDomainMetrics.mockReset().mockResolvedValue(domain);
   api.loadLossPeriodMetrics.mockReset().mockResolvedValue(loss);
 });
 
@@ -47,12 +63,12 @@ it("rejects Loss data from a different reporting period instead of showing misma
 it("does not render a prior scoped response after the selected department changes", async () => {
   let resolveFirst!: (value: unknown) => void;
   const pending = new Promise((resolve) => { resolveFirst = resolve; });
-  api.loadDomainMetrics.mockReturnValueOnce(pending).mockResolvedValue({ source_id: "risk-new", items: [] });
+  api.loadDomainMetrics.mockReturnValueOnce(pending).mockResolvedValue({ ...domain, source_id: "risk-new" });
   api.loadLossPeriodMetrics.mockResolvedValue({ ...loss, scope_id: "scope-new", source_id: "loss-new" });
   const { rerender } = render(<RiskLossInsights period={period} organizationScopeID="scope-old" scopeAuthorized/>);
   rerender(<RiskLossInsights period={period} organizationScopeID="scope-new" scopeAuthorized/>);
   expect(await screen.findByText(/risk-new · loss-new/)).toBeTruthy();
-  resolveFirst({ source_id: "risk-old", items: [] });
+  resolveFirst({ ...domain, source_id: "risk-old" });
   await waitFor(() => expect(screen.getByText(/risk-new · loss-new/)).toBeTruthy());
   expect(screen.queryByText(/risk-old/)).toBeNull();
 });

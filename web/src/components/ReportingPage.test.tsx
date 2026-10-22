@@ -1,7 +1,7 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReportDefinition } from "../reportingTypes";
-import { ReportingPage } from "./ReportingPage";
+import { ReportingPage, type ReportingPageProps } from "./ReportingPage";
 
 function definition(overrides: Partial<ReportDefinition> = {}): ReportDefinition {
   return {
@@ -51,10 +51,12 @@ const api = vi.hoisted(() => ({
   createDefinition: vi.fn(),
   transitionDefinition: vi.fn(),
   loadMatters: vi.fn(),
+  onDefinitionChange: vi.fn(),
+  onGenerate: vi.fn(),
 }));
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   api.loadDefinitions.mockResolvedValue([active, draft]);
   api.loadMatters.mockResolvedValue({
     items: [{
@@ -95,7 +97,7 @@ beforeEach(() => {
   }));
 });
 
-function renderPage() {
+function renderPage(props: Partial<ReportingPageProps> = {}) {
   return render(<ReportingPage
     embedded
     organizationName="Clear Bank"
@@ -104,87 +106,205 @@ function renderPage() {
     createDefinition={api.createDefinition}
     transitionDefinition={api.transitionDefinition}
     loadMatters={api.loadMatters}
+    onDefinitionChange={api.onDefinitionChange}
+    onGenerate={api.onGenerate}
+    {...props}
   />);
 }
 
-describe("ReportingPage saved setups", () => {
-  it("shows business-facing setup fields instead of the low-level report definition model", async () => {
+async function choose(field: string, option: string | RegExp) {
+  const trigger = await screen.findByRole("button", { name: new RegExp(field) });
+  await waitFor(() => expect(trigger).toHaveProperty("disabled", false));
+  fireEvent.click(trigger);
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+describe("ReportingPage builder", () => {
+  it("starts with business-facing setup fields and lets the operator select a saved setup", async () => {
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "Saved setups" })).toBeTruthy();
-    const table = screen.getByRole("table", { name: "Saved setups" });
-    expect(within(table).getByRole("row", { name: "Monthly vendor overview" })).toBeTruthy();
-    expect(within(table).getByRole("row", { name: "Outstanding work" })).toBeTruthy();
-
-    expect(screen.getAllByText("Vendors").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Overview").length).toBeGreaterThan(0);
-    expect(screen.getByText("Exceptions & outstanding")).toBeTruthy();
-    expect(screen.queryByText(/dataset/i)).toBeNull();
-    expect(screen.queryByText(/scope identifier/i)).toBeNull();
-    expect(screen.queryByText(/file format/i)).toBeNull();
+    expect(screen.getByLabelText(/^Name/)).toHaveProperty("value", "");
+    expect(screen.getByRole("button", { name: /Area/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Report type/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save setup" })).toBeTruthy();
+    await waitFor(() => expect(api.loadDefinitions).toHaveBeenCalledWith(true, expect.any(AbortSignal)));
+    await choose("Saved setup", /^Outstanding work/);
+    expect(screen.getByRole("button", { name: "Send for review" })).toBeTruthy();
+    expect(screen.queryByLabelText(/dataset|scope identifier/i)).toBeNull();
+    expect(screen.queryByText(draft.id)).toBeNull();
+    expect(api.createDefinition).not.toHaveBeenCalled();
   });
 
-  it("creates a reusable overview with only a name and intent visible to the operator", async () => {
+  it("creates the supported overview payload and hands the returned draft back to its workspace", async () => {
     renderPage();
-    await screen.findByRole("table", { name: "Saved setups" });
-
-    fireEvent.click(screen.getByRole("button", { name: "New setup" }));
-    expect(screen.getByRole("heading", { name: "New report setup" })).toBeTruthy();
-    
     fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Board vendor summary" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+    const save = screen.getByRole("button", { name: "Save setup" });
+    await waitFor(() => expect(save).toHaveProperty("disabled", false));
+    fireEvent.click(save);
 
     await waitFor(() => expect(api.createDefinition).toHaveBeenCalledTimes(1));
-    expect(api.createDefinition.mock.calls[0]?.[0]).toMatchObject({
+    expect(api.createDefinition.mock.calls[0]?.[0]).toEqual({
+      code: expect.stringMatching(/^BOARD_VENDOR_SUMMARY_[0-9A-F]{8}$/),
       name: "Board vendor summary",
+      description: "Current vendors overview for the legal entity.",
       dataset: "VENDORS",
       scope_kind: "LEGAL_ENTITY",
       format: "XLSX",
       filter: { kind: "group", operator: "and", children: [] },
     });
-    expect(String(api.createDefinition.mock.calls[0]?.[0]?.code)).toMatch(/^BOARD_VENDOR_SUMMARY_[0-9A-F]{8}$/);
+    const created = await api.createDefinition.mock.results[0]?.value;
+    expect(api.onDefinitionChange).toHaveBeenCalledExactlyOnceWith(created);
+    expect(screen.getByRole("button", { name: "Send for review" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Generate report" })).toBeNull();
   });
 
   it("creates a governed board brief setup by named Issue without showing its raw ID", async () => {
     renderPage();
-    await screen.findByRole("table", { name: "Saved setups" });
-
-    fireEvent.click(screen.getByRole("button", { name: "New setup" }));
     fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Settlement board brief" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /Vendors/ }));
-    fireEvent.click(await screen.findByRole("option", { name: /Board brief/ }));
+    await choose("Area", /^Board brief/);
 
     await waitFor(() => expect(api.loadMatters).toHaveBeenCalledWith({ q: "", limit: 20 }));
-    expect(await screen.findByText("MAT-82BF — Settlement exception")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+    expect(await screen.findByText("Choose an issue for the board brief.")).toBeTruthy();
+    expect(api.createDefinition).not.toHaveBeenCalled();
     expect(screen.queryByText("matter-82bf")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /Choose an issue/ }));
-    fireEvent.click(await screen.findByRole("option", { name: "MAT-82BF — Settlement exception" }));
+    await choose("Choose an issue", "MAT-82BF — Settlement exception");
     fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
 
     await waitFor(() => expect(api.createDefinition).toHaveBeenCalledTimes(1));
-    expect(api.createDefinition.mock.calls[0]?.[0]).toMatchObject({
+    expect(api.createDefinition.mock.calls[0]?.[0]).toEqual({
+      code: expect.stringMatching(/^SETTLEMENT_BOARD_BRIEF_[0-9A-F]{8}$/),
+      name: "Settlement board brief",
+      description: "Governed executive brief for one issue or change.",
       dataset: "MATTER_BOARD_BRIEF",
       scope_kind: "MATTER",
       scope_ref: "matter-82bf",
       format: "PDF",
+      filter: { kind: "group", operator: "and", children: [] },
     });
   });
 
-  it("keeps approval as a short contextual next step instead of exposing governance internals", async () => {
+  it("cannot save a hidden previous Issue while a new search is pending or has failed", async () => {
+    const pending = deferred<Awaited<ReturnType<NonNullable<ReportingPageProps["loadMatters"]>>>>();
     renderPage();
-    const table = await screen.findByRole("table", { name: "Saved setups" });
-    fireEvent.click(within(table).getByRole("row", { name: "Outstanding work" }));
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Settlement board brief" } });
+    await choose("Area", /^Board brief/);
+    await choose("Choose an issue", "MAT-82BF — Settlement exception");
 
-    const detail = screen.getByRole("complementary", { name: "Selected report setup" });
-    expect(within(detail).getByText("Send for review.")).toBeTruthy();
-    fireEvent.click(within(detail).getByRole("button", { name: "Send for review" }));
+    api.loadMatters.mockReturnValueOnce(pending.promise);
+    fireEvent.change(screen.getByLabelText("Find issue"), { target: { value: "Different issue" } });
+    await waitFor(() => expect(api.loadMatters).toHaveBeenLastCalledWith({ q: "Different issue", limit: 20 }));
+    const save = screen.getByRole("button", { name: "Save setup" });
+    expect(save).toHaveProperty("disabled", true);
+    fireEvent.click(save);
+    expect(api.createDefinition).not.toHaveBeenCalled();
 
-    await waitFor(() => expect(api.transitionDefinition).toHaveBeenCalledWith(
-      draft.id,
-      "submit",
-      { expected_version: draft.version, checksum_seen: draft.checksum },
-    ));
+    await act(async () => pending.reject(new Error("Issue search unavailable")));
+    expect(await screen.findByText("Issues could not be loaded. Retry the search.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Choose an issue/ })).toBeTruthy();
+    fireEvent.click(save);
+    expect(await screen.findByText("Choose an issue for the board brief.")).toBeTruthy();
+    expect(api.createDefinition).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Find issue"), { target: { value: "Settlement" } });
+    await choose("Choose an issue", "MAT-82BF — Settlement exception");
+    fireEvent.click(save);
+    await waitFor(() => expect(api.createDefinition).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ scope_ref: "matter-82bf" })));
+  });
+
+  it("uses each returned version and checksum through review and activation before generating", async () => {
+    const submitted = definition({ ...draft, status: "PENDING_REVIEW", version: 7, checksum: "b".repeat(64) });
+    const reviewed = definition({ ...submitted, status: "REVIEWED", version: 11, checksum: "c".repeat(64), reviewer_id: "reviewer-2" });
+    const activated = definition({ ...reviewed, status: "ACTIVE", effective: true, version: 15, current_version: 3, checksum: "d".repeat(64), checker_id: "checker-2" });
+    api.transitionDefinition.mockResolvedValueOnce(submitted).mockResolvedValueOnce(reviewed).mockResolvedValueOnce(activated);
+    renderPage();
+    await choose("Saved setup", /^Outstanding work/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Send for review" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Record review" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Activate setup" }));
+    const generate = await screen.findByRole("button", { name: "Generate report" });
+
+    expect(api.transitionDefinition.mock.calls).toEqual([
+      [draft.id, "submit", { expected_version: draft.version, checksum_seen: draft.checksum }],
+      [draft.id, "review", { expected_version: submitted.version, checksum_seen: submitted.checksum }],
+      [draft.id, "activate", { expected_version: reviewed.version, checksum_seen: reviewed.checksum }],
+    ]);
+    expect(api.onDefinitionChange.mock.calls).toEqual([[submitted], [reviewed], [activated]]);
+    fireEvent.click(generate);
+    expect(api.onGenerate).toHaveBeenCalledExactlyOnceWith(activated);
+  });
+
+  it("prevents duplicate saves and preserves the entered setup after a failed command", async () => {
+    const pending = deferred<ReportDefinition>();
+    api.createDefinition.mockReturnValueOnce(pending.promise);
+    renderPage();
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Vendor issues for review" } });
+    await choose("Report type", /^Exceptions & outstanding/);
+    const save = screen.getByRole("button", { name: "Save setup" });
+    act(() => {
+      fireEvent.click(save);
+      fireEvent.click(save);
+    });
+    expect(api.createDefinition).toHaveBeenCalledTimes(1);
+    expect(save).toHaveProperty("disabled", true);
+    expect(screen.getByLabelText(/^Name/)).toHaveProperty("disabled", true);
+
+    await act(async () => pending.reject(new Error("Setup authority is unavailable.")));
+    expect(await screen.findByText("Setup authority is unavailable.")).toBeTruthy();
+    expect(screen.getByLabelText(/^Name/)).toHaveProperty("value", "Vendor issues for review");
+    expect(screen.getByRole("button", { name: /Report type/ }).textContent).toContain("Exceptions & outstanding");
+    expect(api.onDefinitionChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+    await waitFor(() => expect(api.onDefinitionChange).toHaveBeenCalledTimes(1));
+    expect(api.createDefinition).toHaveBeenCalledTimes(2);
+    expect(api.createDefinition.mock.calls[1]?.[0]).toMatchObject({
+      name: "Vendor issues for review", dataset: "VENDORS",
+      filter: { kind: "group", operator: "or", children: expect.arrayContaining([{ kind: "condition", field: "status", operator: "is", value: "UNDER_REVIEW" }]) },
+    });
+  });
+
+  it("does not advance or duplicate a transition while pending or after a version conflict", async () => {
+    const pending = deferred<ReportDefinition>();
+    api.transitionDefinition.mockReturnValueOnce(pending.promise);
+    renderPage();
+    await choose("Saved setup", /^Outstanding work/);
+    const submit = screen.getByRole("button", { name: "Send for review" });
+    act(() => {
+      fireEvent.click(submit);
+      fireEvent.click(submit);
+    });
+    expect(api.transitionDefinition).toHaveBeenCalledTimes(1);
+    expect(submit).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: /Saved setup/ })).toHaveProperty("disabled", true);
+    expect(screen.queryByRole("button", { name: "Record review" })).toBeNull();
+
+    await act(async () => pending.reject(new Error("The setup has changed. Refresh before retrying.")));
+    expect(await screen.findByText("The setup has changed. Refresh before retrying.")).toBeTruthy();
+    expect(api.onDefinitionChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Send for review" })).toHaveProperty("disabled", false);
+    expect(screen.queryByRole("button", { name: "Record review" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Generate report" })).toBeNull();
+  });
+
+  it("blocks generation for an active setup that is not effective", async () => {
+    api.loadDefinitions.mockResolvedValue([{ ...active, effective: false }]);
+    renderPage();
+    await choose("Saved setup", /^Monthly vendor overview/);
+    const generate = screen.getByRole("button", { name: "Generate report" });
+    expect(generate).toHaveProperty("disabled", true);
+    fireEvent.click(generate);
+    expect(api.onGenerate).not.toHaveBeenCalled();
   });
 });
