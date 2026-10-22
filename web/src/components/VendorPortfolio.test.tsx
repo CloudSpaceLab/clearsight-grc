@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MatterAction } from "../types";
 import type { VendorRelationshipAggregate } from "../vendorTypes";
@@ -108,5 +108,91 @@ describe("vendor exception overview", () => {
     await within(document.querySelector(".vendor-exception-list") as HTMLElement).findByText("Contract audit rights missing");
     expect(screen.getByText("Some vendor exceptions could not be checked. Totals unknown.")).toBeTruthy();
     expect(screen.getAllByText("Unknown").length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("reconciles all open exception stages, including drafts and response preparation", async () => {
+    api.loadVendorRiskWork.mockResolvedValue({ ...work, items: [
+      finding("draft", "r1", "Draft issue", undefined, undefined, "Low", "DRAFT"),
+      finding("response", "r1", "Response issue", undefined, undefined, "Low", "RESPONSE_PREPARATION"),
+      finding("future", "r1", "Other issue", undefined, undefined, "Low", "FUTURE_STAGE"),
+      finding("closed", "r1", "Closed issue", undefined, undefined, "Low", "CLOSED"),
+    ] });
+    render(<VendorPortfolio records={records} hasMore={false} register={<section>Vendor register</section>}/>);
+    await screen.findByRole("button", { name: "3 open exceptions" });
+    const stages = screen.getByRole("list", { name: "Open exception stages" });
+    expect(within(stages).getByRole("group", { name: "Draft: 1" })).toBeTruthy();
+    expect(within(stages).getByRole("group", { name: "Response preparation: 1" })).toBeTruthy();
+    expect(within(stages).getByRole("group", { name: "Other recorded stage: 1" })).toBeTruthy();
+    expect(within(stages).getAllByRole("group")).toHaveLength(3);
+    expect(screen.getByText("Includes sample exceptions")).toBeTruthy();
+  });
+
+  it("restores the expanded exception queue after opening a Matter and returning", async () => {
+    const onOpenMatter = vi.fn();
+    const view = render(<VendorPortfolio records={records} hasMore={false} register={<section id="vendor-portfolio-register">Vendor register</section>} onOpenMatter={onOpenMatter}/>);
+    await screen.findByRole("button", { name: "5 open exceptions" });
+    fireEvent.click(screen.getByRole("button", { name: "5 open exceptions" }));
+    expect((document.querySelector(".vendor-portfolio-exceptions") as HTMLDetailsElement).open).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Review exception: Contract audit rights missing" }));
+    expect(onOpenMatter).toHaveBeenCalledWith("finding-1");
+    view.unmount();
+    render(<VendorPortfolio records={records} hasMore={false} register={<section id="vendor-portfolio-register">Vendor register</section>} onOpenMatter={onOpenMatter}/>);
+    await screen.findByRole("button", { name: "Review exception: Contract audit rights missing" });
+    expect((document.querySelector(".vendor-portfolio-exceptions") as HTMLDetailsElement).open).toBe(true);
+  });
+
+  it("does not open the exception queue when returning from an attention-rail drill", async () => {
+    const view = render(<VendorPortfolio records={records} hasMore={false} register={<section>Vendor register</section>} onOpenMatter={vi.fn()}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Open attention: Contract audit rights missing" }));
+    view.unmount();
+    render(<VendorPortfolio records={records} hasMore={false} register={<section>Vendor register</section>} onOpenMatter={vi.fn()}/>);
+    await screen.findByRole("button", { name: "5 open exceptions" });
+    expect((document.querySelector(".vendor-portfolio-exceptions") as HTMLDetailsElement).open).toBe(false);
+  });
+
+  it.each([true, false])("restores return scroll once after both readers settle (complete linked work: %s)", async (complete) => {
+    let resolveWork!: (value: VendorRiskWork) => void;
+    api.loadVendorRiskWork.mockReturnValueOnce(new Promise<VendorRiskWork>((resolve) => { resolveWork = resolve; }));
+    window.sessionStorage.setItem("clearsight.vendor-exception-scroll", "888");
+    window.sessionStorage.setItem("clearsight.vendor-exception-view", JSON.stringify({ filter: "OPEN", exceptionsOpen: true }));
+    const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    const onOpenMatter = vi.fn();
+    try {
+      const view = render(<VendorPortfolio records={records} hasMore={false} register={<section>Vendor register</section>} registerLoading onOpenMatter={onOpenMatter}/>);
+      await act(async () => { await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve())); });
+      expect(scroll).not.toHaveBeenCalled();
+      expect(window.sessionStorage.getItem("clearsight.vendor-exception-scroll")).toBe("888");
+      await act(async () => { resolveWork({ ...work, complete }); });
+      await screen.findByRole("button", { name: "Review exception: Contract audit rights missing" });
+      await act(async () => { await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve())); });
+      expect(scroll).not.toHaveBeenCalled();
+      view.rerender(<VendorPortfolio records={records} hasMore={false} register={<section>Vendor register</section>} onOpenMatter={onOpenMatter}/>);
+      // A render that interrupts the queued frame must retain the intent.
+      view.rerender(<VendorPortfolio records={records} hasMore={false} register={<section>Vendor register</section>} registerLoading onOpenMatter={onOpenMatter}/>);
+      await act(async () => { await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve())); });
+      expect(scroll).not.toHaveBeenCalled();
+      expect(window.sessionStorage.getItem("clearsight.vendor-exception-scroll")).toBe("888");
+      view.rerender(<VendorPortfolio records={records} hasMore={false} register={<section>Vendor register</section>} onOpenMatter={onOpenMatter}/>);
+      await waitFor(() => expect(scroll).toHaveBeenCalledExactlyOnceWith({ top: 888 }));
+      expect((document.querySelector(".vendor-portfolio-exceptions") as HTMLDetailsElement).open).toBe(true);
+      expect(window.sessionStorage.getItem("clearsight.vendor-exception-scroll")).toBeNull();
+      view.rerender(<VendorPortfolio records={records} hasMore={false} register={<section>Vendor register</section>} refreshKey={1} onOpenMatter={onOpenMatter}/>);
+      await waitFor(() => expect(api.loadVendorRiskWork).toHaveBeenCalledTimes(2));
+      await screen.findByRole("button", { name: "5 open exceptions" });
+      expect(scroll).toHaveBeenCalledTimes(1);
+    } finally { scroll.mockRestore(); }
+  });
+
+  it("keeps selected-relationship detail isolated from the portfolio return position", async () => {
+    window.sessionStorage.setItem("clearsight.vendor-exception-scroll", "888");
+    const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    const onOpenMatter = vi.fn();
+    try {
+      render(<VendorPortfolio records={records} hasMore={false} detail onOpenMatter={onOpenMatter}/>);
+      fireEvent.click(await screen.findByRole("button", { name: "Review exception: Contract audit rights missing" }));
+      expect(onOpenMatter).toHaveBeenCalledWith("finding-1");
+      expect(scroll).not.toHaveBeenCalled();
+      expect(window.sessionStorage.getItem("clearsight.vendor-exception-scroll")).toBe("888");
+    } finally { scroll.mockRestore(); }
   });
 });

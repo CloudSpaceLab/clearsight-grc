@@ -5,7 +5,7 @@ export type WorkTab = "assigned" | "matters" | "evidence";
 export type ProgramSection = "overview" | "requirements-controls" | "assessments" | "evidence-results" | "issues-actions" | "history" | "monitoring";
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
 export type FrameworkEditionTarget = { editionID: string; jurisdiction: string };
-export type VendorPage = "overview" | "register";
+export type VendorPage = "overview" | "register" | "onboarding" | "assessments" | "documents";
 export type RopaPage = "register" | "reports";
 export type OversightMetric = "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
 export type HomeTab = "oversight" | "attention" | "my-work";
@@ -98,6 +98,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
 	if (view === "vendors") {
     if (!parts[1] || parts[1] === "overview") return { view, target: { vendorPage: "overview" } };
     if (parts[1] === "register") return { view, target: { vendorPage: "register", ...(parts[2] ? { vendorRelationshipID: decodeTarget(parts[2]) } : {}) } };
+    if (parts[1] === "onboarding" || parts[1] === "assessments" || parts[1] === "documents") return { view, target: { vendorPage: parts[1] } };
     return { view, target: { vendorPage: "register", vendorRelationshipID: decodeTarget(parts[1]) } };
   }
 	if (view === "ropa") {

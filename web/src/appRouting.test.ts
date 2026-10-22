@@ -99,6 +99,10 @@ describe("workspace routes", () => {
   it("parses and builds vendor relationship targets", () => {
     expect(parseRoute("#vendors")).toEqual({ view: "vendors", target: { vendorPage: "overview" } });
     expect(parseRoute("#vendors/register")).toEqual({ view: "vendors", target: { vendorPage: "register" } });
+    for (const vendorPage of ["onboarding", "assessments", "documents"] as const) {
+      expect(parseRoute(`#vendors/${vendorPage}`)).toEqual({ view: "vendors", target: { vendorPage } });
+      expect(routeHash("vendors", { vendorPage }, "matters")).toBe(`#vendors/${vendorPage}`);
+    }
     expect(parseRoute("#vendors/register/relationship-1")).toEqual({ view: "vendors", target: { vendorPage: "register", vendorRelationshipID: "relationship-1" } });
     expect(parseRoute("#vendors/relationship-1")).toEqual({ view: "vendors", target: { vendorPage: "register", vendorRelationshipID: "relationship-1" } });
     expect(routeHash("vendors", { vendorPage: "overview" }, "matters")).toBe("#vendors/overview");
