@@ -28,8 +28,27 @@ The two real identity edit paths need more header space than the prototype's sin
 
 This supersedes only the older selected-detail composition in `DESIGN.md` and the September compliance brief: edits move from collapsed metadata to the identity header, exceptions move to their own source destination, and the portfolio heading/menu disappear on selection. Existing authority, evidence, freshness, review and failure semantics remain in force.
 
-## Evidence plan
+## Evidence and review
 
 Baseline is exact Notifications head `8495506ef034718c897611991abb9e2a48f8bb87`. Preserve 1440/768/390 light/dark before captures. Compare all five source sections at 1440/1280/1024/768/390 with corresponding light/dark runtime renders. Assert identity, menu order/selection, removed portfolio chrome, active panel identity, 316px rail/stacking, first useful content, no horizontal overflow and 44px touch targets. Test loading, failed form/assessment reads, denied activation, long names, protected documents, retained Forms/Documents, keyboard navigation and register return focus.
 
-Exact captured hashes, verification results and the named visual verdict will be recorded after implementation. Synthetic fixtures prove composition and frontend interactions; they do not prove live authorization, four-actor execution, delivery or whole-screen production acceptance.
+Runtime checkpoint is `44c26f6ed8289fad97ffbd6fc01afca1f30f46d8`, tree `08f9d72cd1d94a00daab4108aada415b4762a91b`. The retained [before captures](../../evidence/2026-10-22-vendor-relationship-v2/before/manifest.json) bind all three light/dark viewport pairs and their full-page companions to the baseline. The [final local evidence receipt](2026-10-22-vendor-relationship-evidence.json) binds runtime, harness, built assets, source images, local test logs and named reviews separately; evidence-only follow-up commits do not imply a new runtime revision. The PR owns subsequent exact-head CI results.
+
+| Local verification | Result |
+| --- | --- |
+| Main matrix and original-source pairing | 50 runtime frames, 25 original-source frames and all 50 same-screen pairs pass |
+| Supplemental states | All eight pass: loading, unavailable forms, long labels, protected Documents, denied activation, unavailable assessment, empty and partial forms |
+| Accessibility | 20/20 PASS; zero reported violations, horizontal overflows, browser errors or undersized controls |
+| Web suite | 262 files / 2,100 tests passed before the last two return-focus tests and bounded markup corrections; the final affected workflow/copy suites pass all 99 tests |
+| Typecheck, customer build, runtime fixture boundary | PASS |
+| Expanded UI contracts | 51/51 PASS, including seven preparation/selection rejection mutations |
+| Existing browser workflows | 18 activation, six due-diligence and 21 first-run/brand captures pass |
+| Customer bundle budgets | PASS: initial JavaScript 161,867 bytes gzip, initial CSS 31,970 bytes gzip, largest JavaScript chunk 564,731 bytes raw |
+
+The 50-frame main capture completed before a focused loading case exposed a preparation-phase observer error: a legitimate portfolio read was being checked as a selected-record read. The eight supplemental cases were rerun against the same frozen build with an explicit selection event/timestamp. The receipt retains both actual runs and the earlier error; it does not claim a single uninterrupted local run. Selected reads still require the exact relationship and response owner, and every non-read API command remains observed across both phases. The historical partial-delivery fixture alone pins its clock to 8 September so its September invitation deadline can be exercised; production date validation is unchanged.
+
+Three named AI reviewers inspected all 50 main runtime images and 25 original-source images directly: ChatGPT `/root` reviewed Overview/Due diligence; `/root/current_pr_review` reviewed Evidence/Activity; `/root/vendor_contract_audit` reviewed Issues & actions. Their scoped verdict is **PASS with documented adaptations**, with no P1/P2 rendering blocker. This is an anatomy and interaction review, not pixel identity with the prototype. The Issues destination retains real counts and exception filters: the first exception is only partly within the initial 1440px viewport and requires scrolling at the narrower widths, while the summary and filters remain visible. The existing 768px global actor chip truncation is recorded separately from this relationship composition.
+
+Review also corrected four actual regressions: navigation to Due diligence now scrolls and focuses the real workflow; Back restores focus after the route-driven register refresh; the compliance count description uses valid definition-list markup; and Activity avoids repeating its section introduction so the first submitted revision is visible at 390px. Cancelled assessment guidance now names starting a new review.
+
+Synthetic fixtures prove composition and frontend interactions; they do not prove live authorization, four-actor execution, delivery or whole-screen production acceptance. Local Chromium 153 is explicitly distinguished from CI's pinned Chromium 140. Automated accessibility PASS means no blocking result in the checks run: 26 incomplete rule instances cover 308 nodes (20 color-contrast rules and six aria-prohibited-attr rules). Supplemental contrast readings are 1,090 PASS, 404 INCOMPLETE and 68 REVIEW; these remain disclosed rather than converted into universal conformance. Evidence-build bundle metrics are informational and do not use the customer entry's budget.

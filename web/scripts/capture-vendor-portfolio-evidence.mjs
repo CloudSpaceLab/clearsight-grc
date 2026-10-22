@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { selectVendorRelationshipView } from './vendor-relationship-evidence.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
 const out = path.resolve('../docs/evidence/2026-09-10-vendor-findings');
@@ -55,8 +56,9 @@ try {
         await page.locator('.vendor-row').first().click();
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).waitFor();
         if (await page.locator('.vendor-register').isVisible()) throw new Error('Vendor register did not yield to full-width detail');
-        await page.getByRole('button', { name: '5 open exceptions', exact: true }).waitFor();
         await page.getByText('Superseded', { exact: true }).waitFor();
+        await selectVendorRelationshipView(page, 'issues');
+        await page.getByRole('button', { name: '5 open exceptions', exact: true }).waitFor();
         await page.screenshot({ path: path.join(out, `detail-${theme}-${width}.png`), fullPage: true });
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).click();
         await page.getByRole('heading', { name: 'Vendor register', exact: true }).waitFor();

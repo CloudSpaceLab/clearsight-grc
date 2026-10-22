@@ -1,12 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { deflateSync } from "node:zlib";
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const manifestPath = path.join(outputDir, "manifest.json");
-const coverPath = path.resolve("..", "docs", "presentation-assets", "clearsight-premium-first-run-cover.png");
+const coverPath = path.resolve(process.env.UI_EVIDENCE_COVER_PATH ?? path.join("..", "docs", "presentation-assets", "clearsight-premium-first-run-cover.png"));
 const browser = await chromium.launch({ headless: true });
 const websiteLogo = createLogoPNG("website");
 const approvedLogo = createLogoPNG("approved");
@@ -102,9 +103,15 @@ async function captureVendorBrandGallery() {
   for (const capture of captures) {
     const opened = await openVendor(capture);
     try {
+      const label = opened.page.getByText(capture.label, { exact: true }).last();
+      if (!await label.isVisible()) await label.locator("xpath=ancestor::details[1]").locator("summary").click();
       await opened.page.getByText(capture.label, { exact: true }).last().waitFor({ state: "visible" });
-      if (capture.image) await opened.page.getByRole("img", { name: "Acme Processing Limited icon" }).first().waitFor({ state: "visible" });
-      if (capture.broken) await opened.page.locator(".vendor-detail-heading .vendor-brand-monogram").waitFor({ state: "visible" });
+      if (capture.image) {
+        const image = opened.page.locator(".vendor-relationship-header .vendor-brand-icon img");
+        await image.waitFor({ state: "visible" });
+        if (!await image.evaluate((element) => element.complete && element.naturalWidth > 0)) throw new Error(`${capture.name} did not render the selected relationship's vendor icon`);
+      }
+      if (capture.broken) await opened.page.locator(".vendor-relationship-header .vendor-brand-monogram").waitFor({ state: "visible" });
       await capturePage(opened.page, capture, "#vendors/register");
     } finally {
       await opened.context.close();
@@ -194,7 +201,6 @@ async function openVendor(capture) {
   const opened = await openPage({ ...capture, viewport: capture.viewport ?? { width: 1440, height: 900 }, route: "#vendors/register", tour: "off", reducedMotion: "reduce" });
   await opened.page.getByRole("button", { name: /Acme Processing Limited/ }).first().click();
   await opened.page.getByRole("heading", { name: "Acme Processing Limited", exact: true }).waitFor({ state: "visible" });
-  await opened.page.getByText("Vendor details and record history", { exact: true }).click();
   await opened.page.getByRole("button", { name: "Edit vendor details", exact: true }).waitFor({ state: "visible" });
   return opened;
 }

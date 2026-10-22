@@ -10,6 +10,8 @@ import { reportsDesignEvidenceScenarios } from "./reports-design-evidence-scenar
 import { reviewReportsDesignCaptures } from "./reports-design-evidence-contract.mjs";
 import { notificationsEvidenceScenarios } from "./notifications-evidence-scenarios.mjs";
 import { reviewNotificationsCaptures } from "./notifications-evidence-contract.mjs";
+import { vendorRelationshipEvidenceScenarios } from "./vendor-relationship-evidence-scenarios.mjs";
+import { reviewVendorRelationshipCaptures } from "./vendor-relationship-evidence-contract.mjs";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -103,6 +105,114 @@ test("the new Reports view and workflow captures cannot silently disappear", asy
 });
 
 const rect = (x, y, width, height) => ({ x, y, width, height, right: x + width, bottom: y + height });
+
+test("the five-section Vendor relationship matrix cannot silently disappear", async () => {
+  const { failures } = await review([]);
+  const missing = failures.find((failure) => failure.startsWith("flow manifest is missing:")) ?? "";
+  for (const scenario of vendorRelationshipEvidenceScenarios) assert.ok(missing.includes(scenario.name), scenario.name);
+  assert.equal(new Set(vendorRelationshipEvidenceScenarios.map((scenario) => scenario.name)).size, vendorRelationshipEvidenceScenarios.length);
+});
+
+test("Vendor relationship evidence rejects retained portfolio chrome, narrow rails and missing handoffs", () => {
+  const scenario = vendorRelationshipEvidenceScenarios[0];
+  const labels = ["Overview", "Due diligence", "Evidence", "Issues & actions", "Activity"];
+  const capture = { ...scenario, navigation: { activePage: ["Vendors"] }, vendorRelationshipLayout: {
+    kind: "overview", evidenceKind: "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION", headingText: "Acme Processing Limited", menuMode: "tabs",
+    selectedRelationshipID: "vendor-relationship-payments", selectedRoute: "#vendors/register/vendor-relationship-payments",
+    selectedPanelID: "sample-overview-panel", visiblePanelIDs: ["sample-overview-panel"], selectedPanelControlsMatch: true,
+    heading: rect(260, 90, 1148, 130), title: rect(340, 130, 600, 40), titleContained: true,
+    localTabs: labels, selectedTab: "Overview", tablist: rect(260, 240, 1148, 48), selectedTabBounds: rect(260, 240, 100, 48), selectedTabVisible: true,
+    parentHeadingVisible: false, parentMenuVisible: false, registerVisible: false, documentWidth: 1440, scrollWidth: 1440,
+    main: rect(260, 305, 815, 1000), aside: rect(1092, 305, 316, 600), placement: "beside",
+    firstUsefulContent: rect(260, 305, 815, 200), firstUsefulContentVisible: true,
+    apiReads: [{ path: "/api/v1/vendors/vendor-relationship-payments/assessments/current", method: "GET", status: 404 },
+      { path: "/api/v1/forms/responses", query: "?subject_type=VENDOR_RELATIONSHIP&subject_id=vendor-relationship-payments&current_only=false&sort=COMPLETED_DESC&limit=25", method: "GET", status: 200 },
+      { path: "/api/v1/forms/documents", query: "?relationship_id=vendor-relationship-payments&limit=25&current_only=true", method: "GET", status: 200 }], commands: [],
+    settledContent: { pendingVisible: 0 },
+    interaction: { visited: labels, keyboard: { complete: true, mode: "tabs", sequence: [...labels.slice(1), labels[0]] }, relationshipPreserved: true, evidenceDocumentsReachable: true, evidenceFormsReachable: true, responseHistoryReachable: true, backRestoredFocus: true, baselineRestored: true },
+  } };
+  const failuresFor = (value) => reviewVendorRelationshipCaptures([value]).failures.filter((failure) => failure.startsWith(`${scenario.name}:`));
+  assert.deepEqual(failuresFor(capture), []);
+  const ownerQuery = structuredClone(capture);
+  ownerQuery.vendorRelationshipLayout.apiReads.push({ path: "/api/v1/authority/resolve", method: "POST", status: 200,
+    requestKind: "AUTHORITY_READ_QUERY", queryInput: { object_type: "THIRD_PARTY_RELATIONSHIP", object_id: "vendor-relationship-payments" } });
+  assert.deepEqual(failuresFor(ownerQuery), []);
+  ownerQuery.vendorRelationshipLayout.apiReads.at(-1).queryInput.object_id = "foreign-relationship";
+  assert.ok(failuresFor(ownerQuery).some((failure) => failure.includes("without sending commands")));
+  const parentChrome = structuredClone(capture);
+  parentChrome.vendorRelationshipLayout.parentMenuVisible = true;
+  assert.ok(failuresFor(parentChrome).some((failure) => failure.includes("replaced portfolio chrome")));
+  const narrowRail = structuredClone(capture);
+  narrowRail.vendorRelationshipLayout.aside = rect(1092, 305, 270, 600);
+  assert.ok(failuresFor(narrowRail).some((failure) => failure.includes("316px rail")));
+  const lostForms = structuredClone(capture);
+  lostForms.vendorRelationshipLayout.interaction.evidenceFormsReachable = false;
+  assert.ok(failuresFor(lostForms).some((failure) => failure.includes("interaction proof")));
+  const fabricatedApproval = structuredClone(capture);
+  fabricatedApproval.vendorRelationshipLayout.commands = [{ path: "/api/v1/vendors/sample/activate", method: "POST" }];
+  assert.ok(failuresFor(fabricatedApproval).some((failure) => failure.includes("without sending commands")));
+  const foreignRelationship = structuredClone(capture);
+  foreignRelationship.vendorRelationshipLayout.apiReads[0].path = "/api/v1/vendors/foreign-relationship/assessments/current";
+  assert.ok(failuresFor(foreignRelationship).some((failure) => failure.includes("without sending commands")));
+  const absentDocumentRead = structuredClone(capture);
+  absentDocumentRead.vendorRelationshipLayout.apiReads.pop();
+  assert.ok(failuresFor(absentDocumentRead).some((failure) => failure.includes("interaction proof")));
+  for (const read of [
+    { path: "/api/v1/vendors/foreign-relationship", method: "GET", status: 200 },
+    { path: "/api/v1/vendor-work", query: "?relationship_id=foreign-relationship&limit=20", method: "GET", status: 200 },
+  ]) {
+    const foreignOwner = structuredClone(capture);
+    foreignOwner.vendorRelationshipLayout.apiReads.push(read);
+    assert.ok(failuresFor(foreignOwner).some((failure) => failure.includes("without sending commands")));
+  }
+  const leakedPanel = structuredClone(capture);
+  leakedPanel.vendorRelationshipLayout.visiblePanelIDs.push("sample-evidence-panel");
+  assert.ok(failuresFor(leakedPanel).some((failure) => failure.includes("complete local menu")));
+  const pendingContent = structuredClone(capture);
+  pendingContent.vendorRelationshipLayout.settledContent.pendingVisible = 1;
+  assert.ok(failuresFor(pendingContent).some((failure) => failure.includes("settled scoped content")));
+  const activityScenario = vendorRelationshipEvidenceScenarios.find((item) => item.vendorRelationshipView === "activity" && item.theme === "light" && item.viewport.width === 1440);
+  const activity = { ...structuredClone(capture), ...activityScenario };
+  Object.assign(activity.vendorRelationshipLayout, { kind: "activity", selectedTab: "Activity", activityScope: "Response history · Submitted response history for this service.",
+    settledContent: { pendingVisible: 0, responseRevisionSummary: "3 submitted revisions loaded" }, interaction: undefined });
+  const activityFailures = () => reviewVendorRelationshipCaptures([activity]).failures.filter((failure) => failure.startsWith(`${activity.name}:`));
+  assert.deepEqual(activityFailures(), []);
+  activity.vendorRelationshipLayout.apiReads = activity.vendorRelationshipLayout.apiReads.filter((read) => read.path !== "/api/v1/forms/responses");
+  assert.ok(activityFailures().some((failure) => failure.includes("successful submitted response reads")));
+
+  const supplementalScenario = vendorRelationshipEvidenceScenarios.find((item) => item.vendorRelationshipCheck === "unavailable");
+  const supplemental = { ...structuredClone(capture), ...supplementalScenario };
+  Object.assign(supplemental.vendorRelationshipLayout, {
+    selectionBoundary: { event: "RELATIONSHIP_SELECTION_POINTERDOWN", relationshipID: "vendor-relationship-payments", at: 50, observedAt: "2026-10-22T12:00:00.000Z" },
+    preparationReads: [{ path: "/api/v1/vendors/portfolio-other/links", query: "?limit=50", method: "GET", status: 200, phase: "PREPARING", initiatedAt: 10 }],
+    interaction: { unavailable: true, retryIssued: true, failureRetained: true },
+  });
+  supplemental.vendorRelationshipLayout.apiReads = supplemental.vendorRelationshipLayout.apiReads.map((read) => ({ ...read, phase: "SELECTED_RELATIONSHIP", initiatedAt: 60 }));
+  const supplementalFailures = (value) => reviewVendorRelationshipCaptures([value]).failures.filter((failure) => failure.startsWith(`${supplemental.name}:`));
+  assert.deepEqual(supplementalFailures(supplemental), []);
+  const noBoundary = structuredClone(supplemental);
+  delete noBoundary.vendorRelationshipLayout.selectionBoundary;
+  assert.ok(supplementalFailures(noBoundary).some((failure) => failure.includes("observed selection boundary")));
+  const relabelledRead = structuredClone(supplemental);
+  relabelledRead.vendorRelationshipLayout.apiReads[0].phase = "PREPARING";
+  assert.ok(supplementalFailures(relabelledRead).some((failure) => failure.includes("observed selection boundary")));
+  const movedRead = structuredClone(supplemental);
+  const latePreparation = movedRead.vendorRelationshipLayout.apiReads.shift();
+  movedRead.vendorRelationshipLayout.preparationReads.push({ ...latePreparation, phase: "PREPARING" });
+  assert.ok(supplementalFailures(movedRead).some((failure) => failure.includes("observed selection boundary")));
+  const foreignSelectedRead = structuredClone(supplemental);
+  foreignSelectedRead.vendorRelationshipLayout.apiReads.push({ path: "/api/v1/vendors/foreign-relationship/forms", method: "GET", status: 200, phase: "SELECTED_RELATIONSHIP", initiatedAt: 60 });
+  assert.ok(supplementalFailures(foreignSelectedRead).some((failure) => failure.includes("without sending commands")));
+  for (const status of [undefined, 503]) {
+    const lostAssessment = structuredClone(supplemental);
+    if (status === undefined) lostAssessment.vendorRelationshipLayout.apiReads.shift();
+    else lostAssessment.vendorRelationshipLayout.apiReads[0].status = status;
+    assert.ok(supplementalFailures(lostAssessment).some((failure) => failure.includes("without sending commands")));
+  }
+  const preparationCommand = structuredClone(supplemental);
+  preparationCommand.vendorRelationshipLayout.commands.push({ path: "/api/v1/forms/requests", method: "POST", status: 200, phase: "PREPARING", initiatedAt: 10 });
+  assert.ok(supplementalFailures(preparationCommand).some((failure) => failure.includes("without sending commands")));
+});
 const stableReportTabs = ["Overview", "Explore", "Reports", "Schedules"];
 function exploreCapture(state = "report-explore-light-1440") {
   const scenario = reportsDesignEvidenceScenarios.find((item) => item.state === state);

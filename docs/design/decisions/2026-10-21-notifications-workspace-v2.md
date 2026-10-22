@@ -1,6 +1,6 @@
 # Notifications workspace v2 adaptation
 
-Tracking: #462. Status: **locally implemented and reviewed; publication pending**. This is partial V2 layout integration; the whole-screen acceptance register remains **0/19**.
+Tracking: #462. Status: **published in PR #581; exact-head CI and named visual closeout complete**. This is partial V2 layout integration; the whole-screen acceptance register remains **0/19**.
 
 ## Decision and boundary
 
@@ -24,7 +24,7 @@ This tranche is based on PR #580's head `e6449c5149c52cdafa8e4c99140c3763ef980ae
 
 Verify scope/filter races, pagination failure and retry, duplicate read commands, unknown/unavailable unread count, exact safe deep links, permission-denied Activity, versioned preference updates, and retained local navigation. Review source/runtime anatomy at 1440, 1280, 1024, 768 and 390 pixels in both themes, mobile selection/return/filter/menu behavior and accessibility. Preserve all 96 original source files and record the exact implementation revision and local artifacts. Remote CI is a separate publication gate.
 
-This record defines a source layout and interaction tranche, not operational bank acceptance. The October acceptance register remains 0/19 until its separate required evidence is recorded. No Notifications PR, merge or deployment is recorded.
+This record defines a source layout and interaction tranche, not operational bank acceptance. The October acceptance register remains 0/19 until its separate required evidence is recorded. The 22 October closeout below records PR publication and CI; no merge or deployment is recorded.
 
 ## Implementation and scoped review — 21 October 2026
 
@@ -74,3 +74,10 @@ Local browser evidence uses Chromium153 through the retained Playwright adapter.
 Two connected GitHub branch-creation attempts did not return a result and were interrupted. Subsequent read-only checks found no remote Notifications branch or PR. The implementation and reviewed evidence are therefore saved as local commits, with a downloadable patch; no remote CI, merge or deployment is claimed. Existing #578–#580 and #574 remain separate work.
 
 **Scoped result: partial V2 layout adaptation verified.** Publication and remote CI remain pending. Representative authorized backend results, four-actor execution and the production cutover gates require their own evidence. Whole-screen acceptance remains **0/19**.
+
+
+## Published CI closeout — 22 October 2026
+
+[PR #581](https://github.com/CloudSpaceLab/clearsight-grc/pull/581) is ready for review at recovered head `8495506ef034718c897611991abb9e2a48f8bb87`. The published commits preserve the locally reviewed runtime/evidence trees exactly. CI run `39695461119` and UI run `39695461230` passed at merge `8880d5c99228f8cfec030322b95008716aadb296`, whose tree equals the head tree `800a642e2f719d3b7f54ddd02f5c6facff53d214`. All 2,096 web tests, required backend gates, 326 flow records and 42 Notifications cases passed.
+
+The [named exact-head review receipt](2026-10-22-notifications-ci-closeout.json) binds all 57 Notifications runtime/source/state images, reviewers and limitations to retained artifact `12390713137` (SHA-256 `b614f80882e2af00b2c8ac17e684f5b0b2d489b06974282807bd312a09f1c2fe`). Root inspected Inbox; `/root/current_pr_review` inspected Activity, Preferences and supplemental states. No new blocking visual defect was found. The 12 accessibility scenarios have zero violations; 80 incomplete axe contrast nodes and supplemental 148 INCOMPLETE / 38 REVIEW outcomes remain disclosed. This supersedes historical publication/remote-CI-pending statements only; operational acceptance stays 0/19.

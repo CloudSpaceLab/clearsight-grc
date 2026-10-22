@@ -5,6 +5,8 @@ import { inspectRenderedContrast } from "./rendered-contrast.mjs";
 import { reportsDesignAccessibilityScenarios } from "./reports-design-evidence-scenarios.mjs";
 import { notificationsAccessibilityScenarios } from "./notifications-evidence-scenarios.mjs";
 import { prepareNotifications } from "./notifications-evidence.mjs";
+import { vendorRelationshipAccessibilityScenarios } from "./vendor-relationship-evidence-scenarios.mjs";
+import { prepareVendorRelationship } from "./vendor-relationship-evidence.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
@@ -29,8 +31,9 @@ const scenarios = [...baseScenarios.filter((scenario) => scenario.name !== "toda
     viewport: { width, height: width === 390 ? 844 : 900 },
     touch: width === 390,
   }))),
-), ...reportsDesignAccessibilityScenarios, ...notificationsAccessibilityScenarios].filter((scenario) =>
-  process.env.UI_EVIDENCE_SCOPE === "report-design" ? scenario.reportView : process.env.UI_EVIDENCE_SCOPE === "notifications" ? scenario.notificationView : true);
+), ...reportsDesignAccessibilityScenarios, ...notificationsAccessibilityScenarios, ...vendorRelationshipAccessibilityScenarios].filter((scenario) =>
+  process.env.UI_EVIDENCE_SCOPE === "report-design" ? scenario.reportView : process.env.UI_EVIDENCE_SCOPE === "notifications" ? scenario.notificationView
+    : process.env.UI_EVIDENCE_SCOPE === "vendor-relationship" ? scenario.vendorRelationshipView : true);
 
 await mkdir(outputDir, { recursive: true });
 const results = [];
@@ -61,6 +64,7 @@ try {
         : page.getByRole("heading", { name: scenario.heading, exact: true }).first();
       await workspace.waitFor({ state: "visible" });
       if (scenario.notificationView) await prepareNotifications(page, { ...scenario, fixture: "notifications-loaded" });
+      if (scenario.vendorRelationshipView) await prepareVendorRelationship(page, scenario);
       if (scenario.reportView === "builder") {
         await page.locator(".reports-workspace__actions").getByRole("button", { name: "New report", exact: true }).click();
         await page.locator(".report-builder").getByRole("button", { name: "Save setup", exact: true }).waitFor({ state: "visible" });
@@ -103,15 +107,17 @@ try {
         scrollWidth: document.documentElement.scrollWidth,
       }));
       const undersizedPrimaryControls = scenario.touch
-        ? await page.locator(scenario.scopeSelector ?? "body").locator(scenario.reportView || scenario.notificationView
+        ? await page.locator(scenario.scopeSelector ?? "body").locator(scenario.vendorRelationshipView
+          ? 'button:visible, input:not([type="hidden"]):visible, select:visible, textarea:visible, summary:visible, [role="tab"]:visible'
+          : scenario.reportView || scenario.notificationView
           ? 'button:visible, input:not([type="hidden"]):visible, [role="tab"]:visible' : ".primary-button:visible").evaluateAll((elements, minimum) => [...new Set(elements.map((element) => element.closest(".cs-checkbox-field") ?? element))].filter((element) => !element.closest('[aria-hidden="true"], [inert]')).flatMap((element) => {
             const box = element.getBoundingClientRect();
             return box.width < minimum || box.height < minimum
               ? [{ text: element.textContent?.trim().slice(0, 80) ?? "", width: box.width, height: box.height }]
               : [];
-          }), scenario.reportView || scenario.notificationView ? 44 : 40)
+          }), scenario.reportView || scenario.notificationView || scenario.vendorRelationshipView ? 44 : 40)
         : [];
-      const blockingViolations = axe.violations.filter((violation) => scenario.reportView || scenario.notificationView || violation.impact === "critical" || violation.impact === "serious");
+      const blockingViolations = axe.violations.filter((violation) => scenario.reportView || scenario.notificationView || scenario.vendorRelationshipView || violation.impact === "critical" || violation.impact === "serious");
       const errors = [
         ...browserErrors.map((message) => `browser: ${message}`),
         ...(layout.scrollWidth > layout.clientWidth + 1 ? [`horizontal overflow: ${layout.scrollWidth}px in ${layout.clientWidth}px`] : []),
@@ -119,7 +125,7 @@ try {
         ...contrast.filter((reading) => reading.outcome === "FAIL" && (reading.kind === "placeholder" || reading.essential)).map((reading) => `contrast ${reading.kind}: ${reading.selector} (${reading.ratio.toFixed(2)} < ${reading.minimum})`),
         ...undersizedPrimaryControls.map((control) => `touch target: ${control.text} is ${Math.round(control.width)}x${Math.round(control.height)}`),
       ];
-      results.push({ ...scenario, ...axe, contrast, layout, touchTargetMinimum: scenario.reportView || scenario.notificationView ? 44 : 40,
+      results.push({ ...scenario, ...axe, contrast, layout, touchTargetMinimum: scenario.reportView || scenario.notificationView || scenario.vendorRelationshipView ? 44 : 40,
         undersizedPrimaryControls, errors, status: errors.length ? "FAIL" : "PASS" });
       if (errors.length) failure = "One or more accessibility scenarios failed";
     } catch (error) {
