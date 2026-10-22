@@ -202,11 +202,29 @@ test("Vendor search evidence must carry its query through the cursor read", () =
   assert.ok(portfolioFailures(capture).some((failure) => failure.includes("survive cursor pagination")));
 });
 
+function collectionInteraction(scenario) {
+  const view = scenario.vendorPortfolioView;
+  const check = scenario.vendorPortfolioCheck;
+  const titles = ["Acme Processing Limited", "Sample · Northshore Hosting Limited"];
+  const routeState = (view, action, observed = true) => ({ action, route: `#vendors/${view}`, view, heading: "Vendors",
+    selectedTab: vendorPortfolioViews.find((item) => item.id === view).label, portfolioVisible: true, collectionVisible: true, selectedPanelVisible: true,
+    selectedRelationshipVisible: false, loadingVisible: false, complete: true, recordCount: titles.length, recordTitles: titles,
+    pendingAPIRequests: observed ? 0 : null, observedReadsSettled: observed, sameDocument: observed ? true : null, ...(!observed ? { newDocument: true } : {}) });
+  return { relationshipPreserved: true, returned: true,
+    [check === "documents-drill" ? "protectedDocuments" : check === "onboarding-drill" ? "dueDiligence" : "forms"]: true,
+    initialCollection: { recordTitles: titles }, browserBack: routeState(view, "HISTORY_BACK"),
+    browserForward: { action: "HISTORY_FORWARD", route: "#vendors/register/vendor-relationship-payments", selectedRelationshipVisible: true, portfolioVisible: false,
+      relationshipTitle: "Acme Processing Limited", sameDocument: true, observedReadsSettled: true },
+    explicitRegisterReturn: routeState("register", "IN_APP_REGISTER_RETURN"),
+    refresh: { relationshipPreserved: true, initialSection: "Overview", complete: true,
+      reopenedSection: check === "onboarding-drill" ? "Due diligence" : "Evidence", evidenceView: check === "onboarding-drill" ? null : check === "documents-drill" ? "Documents" : "Forms",
+      directHashRoot: routeState(view, "DIRECT_HASH_ROOT"), reloadedCollection: routeState(view, "RELOAD_COLLECTION", false) } };
+}
+
 test("Vendor document collection requires the exact protected document reader and return", () => {
   const scenario = vendorPortfolioEvidenceScenarios.find((item) => item.vendorPortfolioCheck === "documents-drill");
   const capture = portfolioCapture(scenario);
-  capture.vendorPortfolioLayout.interaction = { relationshipPreserved: true, returned: true, protectedDocuments: true,
-    refresh: { relationshipPreserved: true, initialSection: "Overview", complete: true, reopenedSection: "Evidence", evidenceView: "Documents" } };
+  capture.vendorPortfolioLayout.interaction = collectionInteraction(scenario);
   capture.vendorPortfolioLayout.apiReads.push({ path: "/api/v1/forms/documents", method: "GET", query: "?relationship_id=vendor-relationship-payments&current_only=true&limit=25", status: 200 });
   assert.deepEqual(portfolioFailures(capture), []);
   const missing = structuredClone(capture); missing.vendorPortfolioLayout.apiReads.pop();
@@ -215,6 +233,31 @@ test("Vendor document collection requires the exact protected document reader an
   assert.ok(portfolioFailures(unprotected).some((failure) => failure.includes("bounded observed reads")));
   const lostRefresh = structuredClone(capture); lostRefresh.vendorPortfolioLayout.interaction.refresh.relationshipPreserved = false;
   assert.ok(portfolioFailures(lostRefresh).some((failure) => failure.includes("exact existing relationship reader")));
+});
+
+test("all Vendor collection drills require actual history and settled rendered return state", () => {
+  for (const scenario of vendorPortfolioEvidenceScenarios.filter((item) => ["onboarding-drill", "assessments-drill", "documents-drill"].includes(item.vendorPortfolioCheck))) {
+    const capture = portfolioCapture(scenario);
+    capture.vendorPortfolioLayout.interaction = collectionInteraction(scenario);
+    capture.vendorPortfolioLayout.apiReads.push(scenario.vendorPortfolioCheck === "documents-drill"
+      ? { path: "/api/v1/forms/documents", method: "GET", query: "?relationship_id=vendor-relationship-payments&current_only=true&limit=25", status: 200 }
+      : { path: `/api/v1/vendors/vendor-relationship-payments/${scenario.vendorPortfolioCheck === "onboarding-drill" ? "assessments/current" : "forms"}`, method: "GET", query: "", status: 200 });
+    assert.deepEqual(portfolioFailures(capture), [], scenario.name);
+    for (const mutate of [
+      (proof) => { delete proof.browserBack; }, // The old returned:true contract cannot pass.
+      (proof) => { proof.browserBack.selectedRelationshipVisible = true; proof.browserBack.portfolioVisible = false; },
+      (proof) => { proof.browserBack.pendingAPIRequests = 1; },
+      (proof) => { proof.browserBack.sameDocument = false; },
+      (proof) => { proof.browserBack.action = "IN_APP_REGISTER_RETURN"; },
+      (proof) => { proof.browserBack.recordTitles = ["Foreign relationship"]; },
+      (proof) => { proof.browserForward.route = "#vendors/register/foreign-relationship"; },
+      (proof) => { proof.refresh.directHashRoot.selectedRelationshipVisible = true; },
+      (proof) => { proof.refresh.reloadedCollection.newDocument = false; },
+    ]) {
+      const changed = structuredClone(capture); mutate(changed.vendorPortfolioLayout.interaction);
+      assert.ok(portfolioFailures(changed).some((failure) => failure.includes("browser Back and direct collection routes")), scenario.name);
+    }
+  }
 });
 
 test("Vendor phone filters require a restored baseline and omitted summaries remain unknown", () => {

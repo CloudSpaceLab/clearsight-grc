@@ -1,0 +1,1344 @@
+{
+  "schema": "clearsight.vendor-collection-return-evidence.v1",
+  "createdAt": "2026-10-22T14:12:38.958Z",
+  "status": "PASS",
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "scope": "Three existing collection drill scenarios strengthened for actual mounted-App browser Back/Forward and direct collection roots; not a rerun of the full63 portfolio matrix.",
+  "baseCommit": "cb07cc747c2bee7d19413ed398bb1c111f51c99f",
+  "baseTree": "968250b91c7d98c3a7fd0c38715f46853aea40e4",
+  "correctedCommit": null,
+  "runtimeFiles": [
+    {
+      "path": "web/src/appRouting.ts",
+      "sha256": "01f8d383ee557a9d273e4f30caba359d16af6f7afdaf3b4b6e9e92f32a27dbb5",
+      "bytes": 13489
+    },
+    {
+      "path": "web/src/components/VendorPortfolio.tsx",
+      "sha256": "6cdaca128d2539b7938b1de9dfad96930f62633a1fdd7251a4596dd842b17a3b",
+      "bytes": 22907
+    },
+    {
+      "path": "web/src/components/VendorPortfolioCollection.tsx",
+      "sha256": "685dcb8a6efda1b911c3a9dc8103d90c20c0481024e35b887747e8584f2f4d81",
+      "bytes": 4810
+    },
+    {
+      "path": "web/src/components/VendorsWorkspace.tsx",
+      "sha256": "b91aa661cf67dcb36fca2d27c7a2706675cfcc810bbc4391ed258462b85bb9a5",
+      "bytes": 62800
+    },
+    {
+      "path": "web/src/components/vendor-portfolio-workspace.css",
+      "sha256": "fada9e3361066487de979b9de545f7d3f8b0df55057342f6f6f6b6606f1a565d",
+      "bytes": 13466
+    },
+    {
+      "path": "web/src/vendors.css",
+      "sha256": "ad7490a2cfde527a6f2f554f8094e619adb3cc4272eb83ca5e24f1cb8b3d83e7",
+      "bytes": 12400
+    }
+  ],
+  "evidenceScripts": [
+    {
+      "path": "web/scripts/capture-ui-evidence.mjs",
+      "sha256": "9c945c25bbd0002e770de3500b9c3886007a2d561b3ad50100640d2c52f82da2",
+      "bytes": 182804
+    },
+    {
+      "path": "web/scripts/vendor-portfolio-evidence.mjs",
+      "sha256": "e8a55fe7ff017a623339ec7f9f3fc63978c48fef7eaf9d8c7125ae2a8abc50f3",
+      "bytes": 40940
+    },
+    {
+      "path": "web/scripts/vendor-portfolio-evidence-contract.mjs",
+      "sha256": "231dbd5cde7e04fe23d22d7abd645981c6aa5f1dadc02bf40b952aab37dda210",
+      "bytes": 15299
+    },
+    {
+      "path": "web/scripts/vendor-portfolio-evidence-scenarios.mjs",
+      "sha256": "92b01df144e9c33cfa9d8970efdd7111dd524dc6839c604c314d33318f5ec37d",
+      "bytes": 3534
+    },
+    {
+      "path": "web/scripts/review-ui-flow-manifest.nodecheck.mjs",
+      "sha256": "c99a6ccac4edfb3245be7cba59c987f702b804b09fea9e2dfc45b69f6e85bca3",
+      "bytes": 50962
+    }
+  ],
+  "source": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-vendor-management-designs/vendor-workspace-preview.html",
+    "sha256": "c37f35161878d2035335241fc104c41fb4c8f6176cfe81d8a2f0d7fbdba728fd",
+    "bytes": 90484
+  },
+  "build": {
+    "command": "npm run build:evidence -- --base=/",
+    "sha256": "cdbec6625d8628821027347dadd444e3f46dfde2addc467fa007ef9aeca092d5",
+    "digestDefinition": "SHA256(JSON.stringify(path-sorted [{path,sha256,bytes}] records))",
+    "files": [
+      {
+        "path": "web/dist-evidence/assets/App-CjVdDs1T.css",
+        "sha256": "87e94f66679ac4d0f8b209a40d85c059dbd05c801a826f65f12b6fee724cbabc",
+        "bytes": 69316
+      },
+      {
+        "path": "web/dist-evidence/assets/App-D8CHHjM0.js",
+        "sha256": "49ec3aff364529156cb86c372e325fbe90415f0e75f31bcfef792e91c3def79b",
+        "bytes": 438935
+      },
+      {
+        "path": "web/dist-evidence/assets/App-D8CHHjM0.js.map",
+        "sha256": "0d7510875c6237c3be45170f01bfae3f67326e75d0d5adbd99fe7b72226ce1bf",
+        "bytes": 1050674
+      },
+      {
+        "path": "web/dist-evidence/assets/BankJourneysWorkspace-2AgH9f2G.css",
+        "sha256": "e58abe5444c09ecdecdda458acbeda1e610d27f9b81626eb722d6a8883a48353",
+        "bytes": 4931
+      },
+      {
+        "path": "web/dist-evidence/assets/BankJourneysWorkspace-DVFk_eGZ.js",
+        "sha256": "3f9d39ec608ba1cb53352e5bf909ac6ea489aa6432781d66b6637b42bfa3f651",
+        "bytes": 13326
+      },
+      {
+        "path": "web/dist-evidence/assets/BankJourneysWorkspace-DVFk_eGZ.js.map",
+        "sha256": "ba3686b3ed9079b68930acbfe1e553ce43aab2b170586a193929127bb13f86ce",
+        "bytes": 35457
+      },
+      {
+        "path": "web/dist-evidence/assets/CommunicationsView-BTcKg5YN.js",
+        "sha256": "dfdfe327ba6e523afb5ed79241dd9094b82aa8a0a85073c6d593fba71aada23a",
+        "bytes": 266823
+      },
+      {
+        "path": "web/dist-evidence/assets/CommunicationsView-BTcKg5YN.js.map",
+        "sha256": "5cf8e0f278f3ced2c989d1eaf18d1d05d598e00e40cd082c00dd3adbea02d359",
+        "bytes": 756691
+      },
+      {
+        "path": "web/dist-evidence/assets/ConfigureWorkspace-BjXtRVNK.js",
+        "sha256": "3dd3081e1f855596d9f705ff98a3417a6772508b525ec1a60f2bb175d80b98ea",
+        "bytes": 167103
+      },
+      {
+        "path": "web/dist-evidence/assets/ConfigureWorkspace-BjXtRVNK.js.map",
+        "sha256": "63c58b039bde49a07c961f389f4a684a9ebb8792ee8e73a81c36cbd58ff961d1",
+        "bytes": 448676
+      },
+      {
+        "path": "web/dist-evidence/assets/ConfigureWorkspace-COYlClQh.css",
+        "sha256": "f801fbf4157506cacb6e1957d37e89cf1daa29ada38223b3b89e966333a5703d",
+        "bytes": 42438
+      },
+      {
+        "path": "web/dist-evidence/assets/DistributionComposer-BIbKG7Q5.js",
+        "sha256": "ec232567e5fe1f936213c28f3faedabb1149251d42599ec0db2cb34f33582a2b",
+        "bytes": 17731
+      },
+      {
+        "path": "web/dist-evidence/assets/DistributionComposer-BIbKG7Q5.js.map",
+        "sha256": "de3994e31258bdaa626cd413b01ca5041ff8dff58f17305bd3e717e7db6e7130",
+        "bytes": 57430
+      },
+      {
+        "path": "web/dist-evidence/assets/DistributionComposer-DLeZxbLt.css",
+        "sha256": "350b092b7f33a1a03f35e3d8610fb2acdaaa71fcb48dcaf6e67293c13c62132d",
+        "bytes": 9375
+      },
+      {
+        "path": "web/dist-evidence/assets/EmployeeProfileWorkspace-DrJEN7Y_.js",
+        "sha256": "36306f50e96636f8be954a043d94e775cdf858d3fdd8fe6cc1b7114e228680a3",
+        "bytes": 3946
+      },
+      {
+        "path": "web/dist-evidence/assets/EmployeeProfileWorkspace-DrJEN7Y_.js.map",
+        "sha256": "4b96c63e377a8aed3c4e4283dc4cd3969cbc97c5ffc7d573bbf57937f2fd6785",
+        "bytes": 8365
+      },
+      {
+        "path": "web/dist-evidence/assets/EmptyState-BhTs_6Db.js",
+        "sha256": "e99e69dbd688eafc222bbd91fc8810ef0be2a495dfd642f5b370da99defdc23c",
+        "bytes": 439
+      },
+      {
+        "path": "web/dist-evidence/assets/EmptyState-BhTs_6Db.js.map",
+        "sha256": "4bac315fe897c625976abfcb342295335f45f7bc22f6451a67f8d3c49974062d",
+        "bytes": 1198
+      },
+      {
+        "path": "web/dist-evidence/assets/FocusedSheet-BR3anp65.js",
+        "sha256": "1215e9d48e56ad3d535f5ff0f70ec85ffc150a9f253086ad64eaee288598349a",
+        "bytes": 35
+      },
+      {
+        "path": "web/dist-evidence/assets/FocusedSheet-DrnLjgsp.js",
+        "sha256": "7849d4e15b79dc68e0710ffb37ccfc218a5e8978d645cc1db8e6d55fb9ca5ac5",
+        "bytes": 100422
+      },
+      {
+        "path": "web/dist-evidence/assets/FocusedSheet-DrnLjgsp.js.map",
+        "sha256": "9831281ab94929237dc338b4e7297e5b6cc49cf41cd978beec5127f9afe84c35",
+        "bytes": 666254
+      },
+      {
+        "path": "web/dist-evidence/assets/FormBuilder-DJS_CSRN.js",
+        "sha256": "24512f7407c6ab981b2335e5fb8fc721e4a4b55f8dd79a4767fd052e4e26c0d1",
+        "bytes": 71
+      },
+      {
+        "path": "web/dist-evidence/assets/FormBuilder-DkNz5EQ_.css",
+        "sha256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1",
+        "bytes": 24472
+      },
+      {
+        "path": "web/dist-evidence/assets/FormBuilder-XRrW7aQe.js",
+        "sha256": "6fd74f900a9500f1df499c4a5c9df24b5295cab8dae7042ceafc865999458c25",
+        "bytes": 84302
+      },
+      {
+        "path": "web/dist-evidence/assets/FormBuilder-XRrW7aQe.js.map",
+        "sha256": "e55b234b6ee9923665ebb2e0d7aa38e9e367049fdafa92dfb3fee3711b07c111",
+        "bytes": 233207
+      },
+      {
+        "path": "web/dist-evidence/assets/FormPoliciesView-Cg_AyJ2r.js",
+        "sha256": "953614e0689022c1ab64a8f610a699f730402b819c391084f31cdc84dc94eff7",
+        "bytes": 15763
+      },
+      {
+        "path": "web/dist-evidence/assets/FormPoliciesView-Cg_AyJ2r.js.map",
+        "sha256": "d65b499b2951c3112a92457a5f770db0add2179175de272bdd6564c5ffbcf3ad",
+        "bytes": 37109
+      },
+      {
+        "path": "web/dist-evidence/assets/FormPreview-CvbhFbBW.js",
+        "sha256": "7b522d3db878192d64eacd0e8b83ab0bd0b6055fc93c153e02b3f0888067a98b",
+        "bytes": 29583
+      },
+      {
+        "path": "web/dist-evidence/assets/FormPreview-CvbhFbBW.js.map",
+        "sha256": "cfca7fe13b086126dbac4a1b346d3f0e594128e2eca77cb76f610c0e4300d639",
+        "bytes": 77593
+      },
+      {
+        "path": "web/dist-evidence/assets/FormProposalReview-DbSCJA0V.js",
+        "sha256": "8cddfc2cb80ce6961b96e552434259bcebf87fac9299e7f4d5b34e31a967900a",
+        "bytes": 15937
+      },
+      {
+        "path": "web/dist-evidence/assets/FormProposalReview-DbSCJA0V.js.map",
+        "sha256": "be42d1860d0c068f949ad3e87029fad3d95b8a8cb058d53d722ea66b83cea0f8",
+        "bytes": 40544
+      },
+      {
+        "path": "web/dist-evidence/assets/FormsWorkspace-CanuAxZI.js",
+        "sha256": "9141fabb61115a9ad23487ca4df08a0543e05619f548051eba4eb1357518c407",
+        "bytes": 65191
+      },
+      {
+        "path": "web/dist-evidence/assets/FormsWorkspace-CanuAxZI.js.map",
+        "sha256": "a7b03fe4f5877bbdfcf57b8e5bb7ce96738902627825f7a04e9dd849dbd7a813",
+        "bytes": 180795
+      },
+      {
+        "path": "web/dist-evidence/assets/GroupOversightWorkspace-C_G15Trr.js",
+        "sha256": "efc1753541ca1b29c5eb0e5ee962af50b7bd7cc1baacf41e26445bdffa466e51",
+        "bytes": 16878
+      },
+      {
+        "path": "web/dist-evidence/assets/GroupOversightWorkspace-C_G15Trr.js.map",
+        "sha256": "94c723f2384784b679b7231fccd0853b1083b9ddf21d92403c3124d38d93a001",
+        "bytes": 49151
+      },
+      {
+        "path": "web/dist-evidence/assets/GroupOversightWorkspace-FAWTwerR.css",
+        "sha256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242",
+        "bytes": 1428
+      },
+      {
+        "path": "web/dist-evidence/assets/GroupOversightWorkspace-Ij__ODTl.js",
+        "sha256": "74baac6ac5404a22e81bd1af205335db247fd8c230ea4a658fe97d22ef41b775",
+        "bytes": 95
+      },
+      {
+        "path": "web/dist-evidence/assets/IndicatorDetail-CJX6nosf.js",
+        "sha256": "a8a455d36a781e16a7d32537dec59b4000587d9887ec25b454f5fe5950fe252b",
+        "bytes": 9605
+      },
+      {
+        "path": "web/dist-evidence/assets/IndicatorDetail-CJX6nosf.js.map",
+        "sha256": "c7db12e8d161b167064e3746d648cf4fe621ffa5a44ebc266d72b980bf13a374",
+        "bytes": 24697
+      },
+      {
+        "path": "web/dist-evidence/assets/InsightsWorkspace-DgLLVYjj.css",
+        "sha256": "a5344e7614a330a2f2a1f67b8bbc4ddeef2d01e6c738263cfe09d4215d60baa2",
+        "bytes": 3139
+      },
+      {
+        "path": "web/dist-evidence/assets/InsightsWorkspace-wAeyaOhg.js",
+        "sha256": "e0408ea1dd5721fcb8a40a629e6e612a248d8c2a579d459029afbefc95c0b39e",
+        "bytes": 10622
+      },
+      {
+        "path": "web/dist-evidence/assets/InsightsWorkspace-wAeyaOhg.js.map",
+        "sha256": "50cc11aa1c5e15d169beba75cb2296e7c733164d3df639a0d91231f7e8c185e4",
+        "bytes": 28959
+      },
+      {
+        "path": "web/dist-evidence/assets/LossesWorkspace-D4hDCZjA.js",
+        "sha256": "4cdc97d32fb698aae6575f353ff36bea546503bef90db1f0df2a190449110fe0",
+        "bytes": 21642
+      },
+      {
+        "path": "web/dist-evidence/assets/LossesWorkspace-D4hDCZjA.js.map",
+        "sha256": "1fda1b10c033f77dddc14045aca89483ba7be17e4ca5a854befe4946a377b461",
+        "bytes": 59892
+      },
+      {
+        "path": "web/dist-evidence/assets/LossesWorkspace-DQPhU1Nj.css",
+        "sha256": "21108564fadc1803036f6fd7dc9678973cce0826aaeba94e71f134b36b8dc376",
+        "bytes": 3510
+      },
+      {
+        "path": "web/dist-evidence/assets/MetricMemberDrill-CR3Iszf7.js",
+        "sha256": "3c72a26988327418fd2319bdfb76486e6b34991841836b8b0845ecd450b234d1",
+        "bytes": 2894
+      },
+      {
+        "path": "web/dist-evidence/assets/MetricMemberDrill-CR3Iszf7.js.map",
+        "sha256": "345587bbfad594a8c587727a55e16cee269c0d1367573de6d116faed228ecd49",
+        "bytes": 7226
+      },
+      {
+        "path": "web/dist-evidence/assets/NavigationIcon-Cw28lXWO.js",
+        "sha256": "1ecfa7f3b854438575d1b465610ebef73a21e9ab1dba4e7872fded00aef1574d",
+        "bytes": 3372
+      },
+      {
+        "path": "web/dist-evidence/assets/NavigationIcon-Cw28lXWO.js.map",
+        "sha256": "ef0680a628b276ccb362ad7ee6f5cde9cb9342729bb6428c9b516aceafc7b15c",
+        "bytes": 6861
+      },
+      {
+        "path": "web/dist-evidence/assets/NotificationCenter-Bw_PmaFl.js",
+        "sha256": "b47230caa4626cce5323cc27282e4db7d7111cf7c99e080efff3e1cca8a17952",
+        "bytes": 1258
+      },
+      {
+        "path": "web/dist-evidence/assets/NotificationCenter-Bw_PmaFl.js.map",
+        "sha256": "770f9e3b86e875ccd632284264d6de1ff61814f98144886a87962b73d75b563b",
+        "bytes": 2637
+      },
+      {
+        "path": "web/dist-evidence/assets/NotificationCenter-y8gwOkyW.css",
+        "sha256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5",
+        "bytes": 1555
+      },
+      {
+        "path": "web/dist-evidence/assets/NotificationDeliveryHistory-DwbFDcun.js",
+        "sha256": "eb1cc2dc7181adf5a52ca934d13eefec5a52373a92060ffbe5f2605163570588",
+        "bytes": 2756
+      },
+      {
+        "path": "web/dist-evidence/assets/NotificationDeliveryHistory-DwbFDcun.js.map",
+        "sha256": "5a5582c34e5d4176962b5b8299ee5dd61a88eb3e536d2c7d0c018c8d24903967",
+        "bytes": 8189
+      },
+      {
+        "path": "web/dist-evidence/assets/NotificationsWorkspace-BAmZg4MJ.css",
+        "sha256": "e988de36e966535d55a0d8b6677e22792ce5e22015eee29227a194d036817d83",
+        "bytes": 14887
+      },
+      {
+        "path": "web/dist-evidence/assets/NotificationsWorkspace-SQ83kY9d.js",
+        "sha256": "6070c34ca679e5bfe1b03f594248cf7c8737beb8e4dd655eaea21f5cb6f59042",
+        "bytes": 26099
+      },
+      {
+        "path": "web/dist-evidence/assets/NotificationsWorkspace-SQ83kY9d.js.map",
+        "sha256": "88b269131dfae2bf4f446db5d234fa03afc08ca60f2927f334e5f880fd2fd71d",
+        "bytes": 62746
+      },
+      {
+        "path": "web/dist-evidence/assets/OrganizationLossSummary-CpTzz5tz.js",
+        "sha256": "a68d752cce32bf0926189bb4698e58fa8eda85cb35eb6dfc72d41a467279fdd9",
+        "bytes": 13311
+      },
+      {
+        "path": "web/dist-evidence/assets/OrganizationLossSummary-CpTzz5tz.js.map",
+        "sha256": "931e6804ce0e074b309ab5329aa1de652686485e6f5ecacf69157386d4764e19",
+        "bytes": 41060
+      },
+      {
+        "path": "web/dist-evidence/assets/OversightPeriodPicker-Dto4vXys.js",
+        "sha256": "5285f9f4895fd001646a3156c34b42289309b962d6d01d69628305a1fe43719d",
+        "bytes": 2951
+      },
+      {
+        "path": "web/dist-evidence/assets/OversightPeriodPicker-Dto4vXys.js.map",
+        "sha256": "8407e5b4bc7ea0150ea04fb6bbd733f57c3c27af2e09134b5fc49acc01008736",
+        "bytes": 7483
+      },
+      {
+        "path": "web/dist-evidence/assets/OversightWorkspace-BInO32bQ.js",
+        "sha256": "e6c54fd5657ebe2e0a76ec895376bb30b2da7c3d4a6c15237a9c9f94d258cf91",
+        "bytes": 85
+      },
+      {
+        "path": "web/dist-evidence/assets/OversightWorkspace-CUtqXtOi.js",
+        "sha256": "08bae9261c6f67158d64a063dfc56087246efad747960c16697181d9ab0a8a2e",
+        "bytes": 22683
+      },
+      {
+        "path": "web/dist-evidence/assets/OversightWorkspace-CUtqXtOi.js.map",
+        "sha256": "69814f2c36a3dcb05a789d13e849b0a7c6506dec3dcf9074692194798a150ca3",
+        "bytes": 64180
+      },
+      {
+        "path": "web/dist-evidence/assets/RCSAWorkspace-Dt3yMK3R.css",
+        "sha256": "9ef3d8fbdd9ad90b69d42749173c0273ff7a65f55a5a36581f51f684ffacde0c",
+        "bytes": 3825
+      },
+      {
+        "path": "web/dist-evidence/assets/RCSAWorkspace-tTtdlsFq.js",
+        "sha256": "b7cb1f47acb8056c8df2f7e7b4665acb9e6d0f85bac868da06475a764efa97aa",
+        "bytes": 15011
+      },
+      {
+        "path": "web/dist-evidence/assets/RCSAWorkspace-tTtdlsFq.js.map",
+        "sha256": "234c064ba046b7a50c480795ed7a9acdab7668f6041060c88f4845beaa1a4633",
+        "bytes": 37669
+      },
+      {
+        "path": "web/dist-evidence/assets/ReportsExplore-BZWkRCPK.js",
+        "sha256": "58f305ebf64958fa7f91676f3eecef8241d5bcf3b32f73feff346bb488f5affe",
+        "bytes": 14795
+      },
+      {
+        "path": "web/dist-evidence/assets/ReportsExplore-BZWkRCPK.js.map",
+        "sha256": "4a392e601b5690b3edce797e7a6a07d2d0b5605e371089fbaf1837f0057912d8",
+        "bytes": 42981
+      },
+      {
+        "path": "web/dist-evidence/assets/ReportsExplore-DWws9bfr.css",
+        "sha256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85",
+        "bytes": 4179
+      },
+      {
+        "path": "web/dist-evidence/assets/ReportsWorkspace-BE7QasEr.css",
+        "sha256": "5f19f164d10680e24761be28f0c87c2aebead00448cc67c52ed22825cbcc03dc",
+        "bytes": 18729
+      },
+      {
+        "path": "web/dist-evidence/assets/ReportsWorkspace-DnL47C4Z.js",
+        "sha256": "cbe16b9f37859f341da8413249ad4fee1589238389071a119c24e97b5b4d85dd",
+        "bytes": 50501
+      },
+      {
+        "path": "web/dist-evidence/assets/ReportsWorkspace-DnL47C4Z.js.map",
+        "sha256": "3e1711b920dc1797fc60e955ef5a739ebce264448b76c3458d11ee75e8727e93",
+        "bytes": 123955
+      },
+      {
+        "path": "web/dist-evidence/assets/ResponseAssessment-DX8u-t2_.js",
+        "sha256": "f452cd81e2ad8a2a6cd2ec811b4895d9fdd7cafb916ad2fa90e9ca38953f1943",
+        "bytes": 40662
+      },
+      {
+        "path": "web/dist-evidence/assets/ResponseAssessment-DX8u-t2_.js.map",
+        "sha256": "d5e000f66c21262afa770ae6ee1b5a14e10cabe9cbd0f876912c3cf5cc6a3251",
+        "bytes": 107986
+      },
+      {
+        "path": "web/dist-evidence/assets/ResponseAssessment-DYFP7xBk.css",
+        "sha256": "5c7d80d3beacc486aaa186cf58269b2818e23da389f14d02f35413813a2b486e",
+        "bytes": 9312
+      },
+      {
+        "path": "web/dist-evidence/assets/ResponseBrowser-C52TBRy8.js",
+        "sha256": "67879c76854e763719ffe040f251f3694c28e9820525a68bbf7d8bf8ae79fd72",
+        "bytes": 8904
+      },
+      {
+        "path": "web/dist-evidence/assets/ResponseBrowser-C52TBRy8.js.map",
+        "sha256": "0f2ee57e7e015e18102e6c0203713ffa3f16f56144a437a50c3a7fb29a32f9c2",
+        "bytes": 23357
+      },
+      {
+        "path": "web/dist-evidence/assets/RisksWorkspace-DpZu8O6v.js",
+        "sha256": "098fcea488889873ce5c61685cf55be546bf7b59f79d8e9bf393267939daa13c",
+        "bytes": 29731
+      },
+      {
+        "path": "web/dist-evidence/assets/RisksWorkspace-DpZu8O6v.js.map",
+        "sha256": "687294a7b77b34f186171e4b79c8d27ac68b05660d9a7257a5926c56b9544bf0",
+        "bytes": 81925
+      },
+      {
+        "path": "web/dist-evidence/assets/RisksWorkspace-TeRd9HM3.css",
+        "sha256": "59e0acddc2874e4eaeebb18f859720d3c1c2c96f2654590f83c8b48707d55509",
+        "bytes": 2999
+      },
+      {
+        "path": "web/dist-evidence/assets/RopaActivityPage-B9U0Yq6k.js",
+        "sha256": "0ac39d820e0b189c87eddc991eb9ab8fc7e3472c3749906cc3cbb648445e6ddc",
+        "bytes": 13417
+      },
+      {
+        "path": "web/dist-evidence/assets/RopaActivityPage-B9U0Yq6k.js.map",
+        "sha256": "dd4bf364fad74b1f40dee2aa9df4c88a9ecd9af590bbe8a5b58c5c77cdcfc1b0",
+        "bytes": 32544
+      },
+      {
+        "path": "web/dist-evidence/assets/RopaRegisterPage-R1do15lJ.js",
+        "sha256": "d7c2e633c1f198b1c2b8a6479fd17dc7a654ec7c696e745332d78a0b677ebb5c",
+        "bytes": 10411
+      },
+      {
+        "path": "web/dist-evidence/assets/RopaRegisterPage-R1do15lJ.js.map",
+        "sha256": "b58ec3bcf873a8822e0dd83daab90b6a3841dac863506f5215cf31dc731c793f",
+        "bytes": 28247
+      },
+      {
+        "path": "web/dist-evidence/assets/SentFormDetail-CQA52hhv.js",
+        "sha256": "2d833dc2258841e78936ba9e16482690ffcb9d7884167887a04366b47f970c0e",
+        "bytes": 14019
+      },
+      {
+        "path": "web/dist-evidence/assets/SentFormDetail-CQA52hhv.js.map",
+        "sha256": "953fd4e0784df48d2ca0320dd64ab58eb35f1a52a98979fb3d17b7d58c837e65",
+        "bytes": 34507
+      },
+      {
+        "path": "web/dist-evidence/assets/SentFormDetail-DFR_kdL0.css",
+        "sha256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a",
+        "bytes": 488
+      },
+      {
+        "path": "web/dist-evidence/assets/SessionGate-D5eDL8UU.js",
+        "sha256": "4bc04c0fd0c878aab0f1290ff93d37eb64a02caa024408f5ea1ac6209ecf8bdd",
+        "bytes": 159634
+      },
+      {
+        "path": "web/dist-evidence/assets/SessionGate-D5eDL8UU.js.map",
+        "sha256": "07cf256acd12052b1b5e57b8c36b4466dfce15c188dfd76024f452473c9c486f",
+        "bytes": 413994
+      },
+      {
+        "path": "web/dist-evidence/assets/SessionGate-DQGLgUmf.css",
+        "sha256": "1c80efd8569e632eab1275e25f88abf4f64a9bca5576af345aabd9081ad1f3d7",
+        "bytes": 55740
+      },
+      {
+        "path": "web/dist-evidence/assets/UIComponentGallery-BPfInqDu.css",
+        "sha256": "71cb8b148364a624690cd9beed8c98a909ae03606a8c20157f8c48d77974aa72",
+        "bytes": 3267
+      },
+      {
+        "path": "web/dist-evidence/assets/UIComponentGallery-C2ckcZ5L.js",
+        "sha256": "c2b13464002c36991cb73b1e7bdd6229b903bfe119e84db13f48884e2a5b0744",
+        "bytes": 20712
+      },
+      {
+        "path": "web/dist-evidence/assets/UIComponentGallery-C2ckcZ5L.js.map",
+        "sha256": "e420166ee8105ceeb7c25c017c72c80f5b25f5afb29bb87868ea48998b3f6ea2",
+        "bytes": 40441
+      },
+      {
+        "path": "web/dist-evidence/assets/VendorComplianceOverview-C7ureuqp.js",
+        "sha256": "3700325c92f7f5017520c6629d99b6d8fe2854b8d06b5495cc9c6606e271e8d6",
+        "bytes": 14638
+      },
+      {
+        "path": "web/dist-evidence/assets/VendorComplianceOverview-C7ureuqp.js.map",
+        "sha256": "c9d6db8b3bb795e83dc77fd13977e42d56f276e06101f2a50814f31ce80dd59a",
+        "bytes": 37785
+      },
+      {
+        "path": "web/dist-evidence/assets/VendorComplianceOverview-DBsLWXEL.css",
+        "sha256": "1abb61830a311c923ce2925bbee828d9a7ddb86384dd21d4655c0963c06ff116",
+        "bytes": 3004
+      },
+      {
+        "path": "web/dist-evidence/assets/VendorWorkPanel-CN9VMHg0.js",
+        "sha256": "a1ca6ca41288ca7da4702d3b01c94d7168fbf72415bd5d80e485f52536107135",
+        "bytes": 30940
+      },
+      {
+        "path": "web/dist-evidence/assets/VendorWorkPanel-CN9VMHg0.js.map",
+        "sha256": "ed4ba036279404a438df30e914f431f233ad98af345dd208cb03e628764eed6a",
+        "bytes": 80353
+      },
+      {
+        "path": "web/dist-evidence/assets/VendorWorkPanel-CU0uMlLg.css",
+        "sha256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8",
+        "bytes": 4790
+      },
+      {
+        "path": "web/dist-evidence/assets/VendorsWorkspace-BLa6-p8R.js",
+        "sha256": "df7f209ed1746fbd500440f0e6e8b88fa0e02900f8e63b5665c0907df7f505fe",
+        "bytes": 179700
+      },
+      {
+        "path": "web/dist-evidence/assets/VendorsWorkspace-BLa6-p8R.js.map",
+        "sha256": "20232e42fd623e1eace615f5da1e523d803248aee1cfc74f7f9b28943b16dd32",
+        "bytes": 474481
+      },
+      {
+        "path": "web/dist-evidence/assets/VendorsWorkspace-C9VxQNwU.css",
+        "sha256": "9e4c4450abe7d9c87101c99612949af5ae10185bed7459e8d8e0e4feb47e6fad",
+        "bytes": 55717
+      },
+      {
+        "path": "web/dist-evidence/assets/WorkItemIcon-kUXpzmct.js",
+        "sha256": "7054836cce24f37280c5decc5a418257edf25211a8ba7e93bc999609bd175f87",
+        "bytes": 1338
+      },
+      {
+        "path": "web/dist-evidence/assets/WorkItemIcon-kUXpzmct.js.map",
+        "sha256": "66abdfdeee9f4046408521da2a624666e8e92b9a51e7df860bec2caa8a9ef557",
+        "bytes": 2719
+      },
+      {
+        "path": "web/dist-evidence/assets/WorkspaceErrorBoundary-D6Uj8R6Z.js",
+        "sha256": "3b33a594b6a935593f5a12f59451dd89eef7f9b98e9c129184f9d57a8e192e94",
+        "bytes": 783
+      },
+      {
+        "path": "web/dist-evidence/assets/WorkspaceErrorBoundary-D6Uj8R6Z.js.map",
+        "sha256": "dc7438218f5adb43b65c35dffc46e48725ec28bf16af1bbca8a9db4e6d32717e",
+        "bytes": 1718
+      },
+      {
+        "path": "web/dist-evidence/assets/api-C98UCreH.js",
+        "sha256": "6303325e498bcd58406be478f8fa1536a82077bfa12336a10b31f3aea986fb87",
+        "bytes": 5261
+      },
+      {
+        "path": "web/dist-evidence/assets/api-C98UCreH.js.map",
+        "sha256": "5418ef3020ed44e7a43d29cf1fd5dcab37b7a75f0468bcdf50794800a6eacc2a",
+        "bytes": 23089
+      },
+      {
+        "path": "web/dist-evidence/assets/assessmentFieldResults-CYtGdiIt.css",
+        "sha256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326",
+        "bytes": 7259
+      },
+      {
+        "path": "web/dist-evidence/assets/assessmentFieldResults-JN5KNzXT.js",
+        "sha256": "3f27c7ff8105ff0be4ddae479738841bb100af106344489d39d2203d28aa6397",
+        "bytes": 9772
+      },
+      {
+        "path": "web/dist-evidence/assets/assessmentFieldResults-JN5KNzXT.js.map",
+        "sha256": "5ab2ea17c9d8a30319e28500a22670092b10ba286e95d8d28a5868a6139e4d9e",
+        "bytes": 29831
+      },
+      {
+        "path": "web/dist-evidence/assets/controlCatalogApi-Ce1062jj.js",
+        "sha256": "8ffa2afaf3a8b5d6a03a13c23413da5e06b59eb51890f0b0dd9b2c096418dc55",
+        "bytes": 506
+      },
+      {
+        "path": "web/dist-evidence/assets/controlCatalogApi-Ce1062jj.js.map",
+        "sha256": "dba98850190f1348a29a837a189f5b2364adf1ef74d736d9f082a2823974526d",
+        "bytes": 2259
+      },
+      {
+        "path": "web/dist-evidence/assets/form-policies-BQ_oewte.js",
+        "sha256": "d3c2081fc32c63c342f9426b872266c1262d36887959c8c0bc69acb1e5b099a3",
+        "bytes": 12815
+      },
+      {
+        "path": "web/dist-evidence/assets/form-policies-BQ_oewte.js.map",
+        "sha256": "97bbf784df97a8f13f450e4a573e8b63b80e6208461d779371faf66fb735855b",
+        "bytes": 28354
+      },
+      {
+        "path": "web/dist-evidence/assets/form-policies-d4RnLy_e.css",
+        "sha256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2",
+        "bytes": 5595
+      },
+      {
+        "path": "web/dist-evidence/assets/formPoliciesApi-CW2ZHZyP.js",
+        "sha256": "892a5303cf6cee2f07499ff56b0ce543a4ca85006029f545a46477fcf9093cce",
+        "bytes": 1541
+      },
+      {
+        "path": "web/dist-evidence/assets/formPoliciesApi-CW2ZHZyP.js.map",
+        "sha256": "7eba3c1935b3cbcc380418190051a56b3bbff98fba82c891c3fba193e4f5dd16",
+        "bytes": 8921
+      },
+      {
+        "path": "web/dist-evidence/assets/forms-foundation-CINn4wyp.css",
+        "sha256": "ab82ca4d68089ebd1a8d9d62746cb6d191b3fd673d3de9ac62af0673fbc8f282",
+        "bytes": 49494
+      },
+      {
+        "path": "web/dist-evidence/assets/formsApi-Bu51RPL0.js",
+        "sha256": "f836b23a8b5dcce759ffe6c2e3b1c155160ea15b3759a79ef36ee2ff0757b0dd",
+        "bytes": 3079
+      },
+      {
+        "path": "web/dist-evidence/assets/formsApi-Bu51RPL0.js.map",
+        "sha256": "5d7c8ef9ee90634edbd0c93242ad2c095a251a4595908a6ae2b8b02e9991f371",
+        "bytes": 10014
+      },
+      {
+        "path": "web/dist-evidence/assets/groupOversightApi-CM8Hxwyf.js",
+        "sha256": "c417d1bcd3726fca2518410ce0517105ac967efbedfdb10b7d7916d9f0d31553",
+        "bytes": 190
+      },
+      {
+        "path": "web/dist-evidence/assets/groupOversightApi-CM8Hxwyf.js.map",
+        "sha256": "bf530020aa892b7b0f68a5d21b9111b1abcbf556c89ced16b0d4ad1d4ca79aac",
+        "bytes": 1797
+      },
+      {
+        "path": "web/dist-evidence/assets/homeMetricPresentation-DRPLOH6L.js",
+        "sha256": "7bedd8148b1e9f464074877ca81b91f17074f9eb039fc69e491cb87b719e84bc",
+        "bytes": 1127
+      },
+      {
+        "path": "web/dist-evidence/assets/homeMetricPresentation-DRPLOH6L.js.map",
+        "sha256": "36b2a464d26c07c94fc4d4f031aae51668cadbe21fc53a185282ef00350553b3",
+        "bytes": 3371
+      },
+      {
+        "path": "web/dist-evidence/assets/http-NFAQrmHm.js",
+        "sha256": "628b0ffe1e2a6e36f44bd8c29bb19e46defc50e45c188a5ebf5fed9ef01b4052",
+        "bytes": 2481
+      },
+      {
+        "path": "web/dist-evidence/assets/http-NFAQrmHm.js.map",
+        "sha256": "e8876bf150397a5e855be38263d1907227122ff62c36d4790a5721499f1d79c8",
+        "bytes": 7538
+      },
+      {
+        "path": "web/dist-evidence/assets/identityAccessApi-3W5ysg-Y.js",
+        "sha256": "2eb180d3a1a0e61930e67c523fa06a93e5d0538c2bac9fb2b695396cf4364408",
+        "bytes": 4640
+      },
+      {
+        "path": "web/dist-evidence/assets/identityAccessApi-3W5ysg-Y.js.map",
+        "sha256": "826a5cd2fd412151e45c92e7f92a81c6c893d70e6e59ce3878cac6cda60f8c79",
+        "bytes": 24085
+      },
+      {
+        "path": "web/dist-evidence/assets/index-0o40EVzq.js",
+        "sha256": "94830bb4ea409c7d60b443621963811a8fb0f6a714573001ae0dd6c3edf3bf7d",
+        "bytes": 468888
+      },
+      {
+        "path": "web/dist-evidence/assets/index-0o40EVzq.js.map",
+        "sha256": "1ae52d678270fd46610ebd6315c455943e8a8334580314a804d7ffcce6a5a4ba",
+        "bytes": 1466463
+      },
+      {
+        "path": "web/dist-evidence/assets/index-BUJ_0Ap0.css",
+        "sha256": "555786f9390e746d429de31cd53a10ccbe15df0fd0ec38b151ed3eb3748a1698",
+        "bytes": 178312
+      },
+      {
+        "path": "web/dist-evidence/assets/indicatorApi-D0EDXQnA.js",
+        "sha256": "7c17543016aac54a922c736d68b7c64ccf95d8f67d144759fd7b12b420ab3227",
+        "bytes": 520
+      },
+      {
+        "path": "web/dist-evidence/assets/indicatorApi-D0EDXQnA.js.map",
+        "sha256": "ce1129c9aea49235ca5997800d608d30d723f35d78d192281a16051f516cb7d7",
+        "bytes": 1577
+      },
+      {
+        "path": "web/dist-evidence/assets/indicatorPresentation-CikXSk_C.js",
+        "sha256": "d1635c9c6e6903eba8d8caa31b97ce9794c5f3d66827194d2b69d117356c456d",
+        "bytes": 4060
+      },
+      {
+        "path": "web/dist-evidence/assets/indicatorPresentation-CikXSk_C.js.map",
+        "sha256": "71ee6c6bd6218f07ed50260a0f7bf9db5d54f09ce50cdfdcae58d4dd35a6dc9a",
+        "bytes": 12755
+      },
+      {
+        "path": "web/dist-evidence/assets/indicatorPresentation-CjxE_j0H.css",
+        "sha256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973",
+        "bytes": 3102
+      },
+      {
+        "path": "web/dist-evidence/assets/jsx-runtime-BKllkxft.js",
+        "sha256": "d570da413d217278b5e77a876b290849a78fccff86b5136bb55d83463eac3c5c",
+        "bytes": 8457
+      },
+      {
+        "path": "web/dist-evidence/assets/jsx-runtime-BKllkxft.js.map",
+        "sha256": "cadf449c54a3d084b8ffe02b63859cb9388765a5a6d150c1a7a91f45261fbf6e",
+        "bytes": 29099
+      },
+      {
+        "path": "web/dist-evidence/assets/lossApi-B_TcBYnM.js",
+        "sha256": "88755028d2985d4fa607730c42a75535070744c5ccda9119e5a388c703055879",
+        "bytes": 1218
+      },
+      {
+        "path": "web/dist-evidence/assets/lossApi-B_TcBYnM.js.map",
+        "sha256": "0619e71abd12e89f2603e9a3247a21870474192fd2799445a8e51bcc554e4f39",
+        "bytes": 4158
+      },
+      {
+        "path": "web/dist-evidence/assets/lossOverviewPresentation-CJwijbXQ.js",
+        "sha256": "5eedc70cf1c7a9833eb5940ff4f3b3b1dca1d2405f2ddc39c44c7f5aaf8e36f6",
+        "bytes": 3948
+      },
+      {
+        "path": "web/dist-evidence/assets/lossOverviewPresentation-CJwijbXQ.js.map",
+        "sha256": "8da81ce03dc7a85f4eba20584fff2378e95dbf98b6990052534bcbb95796c3b2",
+        "bytes": 18786
+      },
+      {
+        "path": "web/dist-evidence/assets/lossPresentation-KsK1xNN3.js",
+        "sha256": "2cd7cf274af520c4d765c78226f7b33b60c66a39790e4ebb62d8e3086d115e10",
+        "bytes": 2845
+      },
+      {
+        "path": "web/dist-evidence/assets/lossPresentation-KsK1xNN3.js.map",
+        "sha256": "aba91db50d125e27f7f0a6835083f78a29513783cc2678d9e33427fcdefb3229",
+        "bytes": 9089
+      },
+      {
+        "path": "web/dist-evidence/assets/monitoringApi-CRENqx4k.js",
+        "sha256": "9cc94314a84aa2f99caa942ad163aa39482b03dd6aaf0d93aaed38c0cadba479",
+        "bytes": 3061
+      },
+      {
+        "path": "web/dist-evidence/assets/monitoringApi-CRENqx4k.js.map",
+        "sha256": "fd6df0f9ea9e7452ea64ac917970d9daff926d95ba76dcc22797f7f6e98c1392",
+        "bytes": 9319
+      },
+      {
+        "path": "web/dist-evidence/assets/oversight-B7GD29gG.css",
+        "sha256": "2584bffc3a1cba9861263f45ba9b0a0f7ed08ac5f849fb1ca1d21fba9d047292",
+        "bytes": 13482
+      },
+      {
+        "path": "web/dist-evidence/assets/oversight-CY4fGfhs.js",
+        "sha256": "6b985ec5ab08bce154a0370a356e5a164efa01001061b41b8fbf1274bfc110ac",
+        "bytes": 4804
+      },
+      {
+        "path": "web/dist-evidence/assets/oversight-CY4fGfhs.js.map",
+        "sha256": "875cc61554c204f8be59262d7b4c9b98d0fad7a629771716a781831c1bb59552",
+        "bytes": 12779
+      },
+      {
+        "path": "web/dist-evidence/assets/preload-helper-Czpn1I53.js",
+        "sha256": "aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152",
+        "bytes": 1196
+      },
+      {
+        "path": "web/dist-evidence/assets/reportingApi-DY6dpKIv.js",
+        "sha256": "8081cf4b87876e1a705817225ca810bf23ccff5f5a675a9ed341ad383333609e",
+        "bytes": 2582
+      },
+      {
+        "path": "web/dist-evidence/assets/reportingApi-DY6dpKIv.js.map",
+        "sha256": "437ebbbfd8ee8412e9a6063aaaf3bc855610b8464672199543156c17ab732cb3",
+        "bytes": 12705
+      },
+      {
+        "path": "web/dist-evidence/assets/reportingPeriod-ChMy94oa.js",
+        "sha256": "500d55e6ef0648551211513ec03c2d27bdef5de9f2db8c31aa607ce570d5adc6",
+        "bytes": 833
+      },
+      {
+        "path": "web/dist-evidence/assets/reportingPeriod-ChMy94oa.js.map",
+        "sha256": "6c97be096e0bc382b75f36b871adde7085afe36b77f9cb47786ceeffa9f622d2",
+        "bytes": 3020
+      },
+      {
+        "path": "web/dist-evidence/assets/ropa-BZkz5VZm.css",
+        "sha256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587",
+        "bytes": 12275
+      },
+      {
+        "path": "web/dist-evidence/assets/ropa-TDXpe7CB.js",
+        "sha256": "1520252bc56533ce4e71222d948f30ad1a15efdc8e694151bc92444e95dd0c6d",
+        "bytes": 1542
+      },
+      {
+        "path": "web/dist-evidence/assets/ropa-TDXpe7CB.js.map",
+        "sha256": "deabe48b2e1ea371bc8da9bbacfb0acca90216481783c1f0e826dedbcdea156b",
+        "bytes": 5540
+      },
+      {
+        "path": "web/dist-evidence/assets/staticDemoFixtures-B_3l5bJf.json",
+        "sha256": "e9f86a878e9904635d67ef06997def27091245a672092f5f94b83613779545d2",
+        "bytes": 23043
+      },
+      {
+        "path": "web/dist-evidence/assets/staticDemoWorkflowRuntime-BhTozA-3.js",
+        "sha256": "bdb4b5cb54a492007b548cc82a17817de56f937b2ff98575e65585257552d0b5",
+        "bytes": 41434
+      },
+      {
+        "path": "web/dist-evidence/assets/systemActivityApi-Dix3I6gG.js",
+        "sha256": "221047906ba654f99101ad55d4cc5f5375e89e43fd0957483b5e29c1bf3c716b",
+        "bytes": 1185
+      },
+      {
+        "path": "web/dist-evidence/assets/systemActivityApi-Dix3I6gG.js.map",
+        "sha256": "765c94d810f61e9dd55de4b9c55826d0c448ffc004669b93ed3698dc633a01e3",
+        "bytes": 3589
+      },
+      {
+        "path": "web/dist-evidence/assets/ui-BqQkgK9q.css",
+        "sha256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050",
+        "bytes": 1624
+      },
+      {
+        "path": "web/dist-evidence/assets/ui-CnNf69dw.js",
+        "sha256": "41478a4fdef6a7914c37399508ca0214acc8a04ae739b55cf1cc36d73dbafa19",
+        "bytes": 122800
+      },
+      {
+        "path": "web/dist-evidence/assets/ui-CnNf69dw.js.map",
+        "sha256": "391e9b180ab1f18622ea5b01f230e20d0f8f4e3948962266a0451a434df120e4",
+        "bytes": 628663
+      },
+      {
+        "path": "web/dist-evidence/assets/useRiskLossMetrics-NFVaRUVj.js",
+        "sha256": "28bfea592da21b346c8d8cbc4fd3300f7f246011862bee385d631cb7dfee40d2",
+        "bytes": 3242
+      },
+      {
+        "path": "web/dist-evidence/assets/useRiskLossMetrics-NFVaRUVj.js.map",
+        "sha256": "1342ca5d9c31cfa139a63f7a351dd0b5a9f25bc386df3ae98d4795fae8cbcca9",
+        "bytes": 10643
+      },
+      {
+        "path": "web/dist-evidence/assets/vendorFormsApi-DBEyKbo7.js",
+        "sha256": "797205efb31c8b6b245b7d83cff834bf2710d0c6fa954c0aa7442dafef1a801c",
+        "bytes": 598
+      },
+      {
+        "path": "web/dist-evidence/assets/vendorFormsApi-DBEyKbo7.js.map",
+        "sha256": "b059c7fd9a5107b05bfa4d3f080cca3c1a710e16767e47a0b561c595593f9c26",
+        "bytes": 4227
+      },
+      {
+        "path": "web/dist-evidence/index.html",
+        "sha256": "76e871782b74adb105719bf5b4033f2977d2d1b800f0544bf4227eedb61346e8",
+        "bytes": 4558
+      }
+    ]
+  },
+  "browser": {
+    "playwright": "1.55.0",
+    "chromium": "140.0.7339.16",
+    "build": "1187"
+  },
+  "regression": {
+    "status": "EXPECTED_DEPLOYED_REGRESSION_REPRODUCED",
+    "receipt": {
+      "path": "before/receipt.json",
+      "sha256": "71e2f785082718db5c2baf157c745ac0fae55855fc2940b437878f183178ec27",
+      "bytes": 6282
+    },
+    "retainedBuildSHA256": "787c2616b314575dd9149872f2e758602df8ec8cddce088b7703ba2f5b45b377",
+    "reproducedViews": [
+      "documents",
+      "onboarding",
+      "assessments"
+    ],
+    "images": [
+      {
+        "path": "before/before-documents-390.png",
+        "sha256": "eae378426b2b652e8d5bed8f8ded9c7f219bd438f13c2b1e2bd6b8bbe001c7b9",
+        "bytes": 84911
+      },
+      {
+        "path": "before/before-onboarding-1440.png",
+        "sha256": "70e9d41d1734d973078c722634abdda1cf982fa8b3eae61d66fc6dbc66f05dad",
+        "bytes": 219268
+      },
+      {
+        "path": "before/before-assessments-390.png",
+        "sha256": "4e66a694a76d5b91eb937968681d1b452721c2fa3c3f76eafe95652739abd98b",
+        "bytes": 90219
+      }
+    ],
+    "observation": "All three immutable deployed-build states had the correct collection hash and zero pending API requests in the same document, but the selected relationship remained visible and the portfolio was absent."
+  },
+  "correction": {
+    "status": "PASS",
+    "manifest": {
+      "path": "after/manifest.json",
+      "sha256": "cb9972cb23f843932f009f1047c6c43eb36a9fe0f0429652373fd73aa6842ca3",
+      "bytes": 43712
+    },
+    "captures": [
+      {
+        "path": "after/245g-vendor-portfolio-documents-drill-dark-390.png",
+        "sha256": "a9ec248e57f8358101ca031584246c7adbec7e8fb7b55cab2be342a2c2ed4115",
+        "bytes": 89213,
+        "view": "documents",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "browserBack": {
+          "action": "HISTORY_BACK",
+          "route": "#vendors/documents",
+          "view": "documents",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Documents",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": 0,
+          "observedReadsSettled": true,
+          "loadingVisible": false,
+          "sameDocument": true,
+          "complete": true
+        },
+        "browserForward": {
+          "action": "HISTORY_FORWARD",
+          "route": "#vendors/register/vendor-relationship-payments",
+          "selectedRelationshipVisible": true,
+          "portfolioVisible": false,
+          "relationshipTitle": "Acme Processing Limited",
+          "sameDocument": true,
+          "observedReadsSettled": true
+        },
+        "directHashRoot": {
+          "action": "DIRECT_HASH_ROOT",
+          "route": "#vendors/documents",
+          "view": "documents",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Documents",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": 0,
+          "observedReadsSettled": true,
+          "loadingVisible": false,
+          "sameDocument": true,
+          "complete": true
+        },
+        "reloadedCollection": {
+          "action": "RELOAD_COLLECTION",
+          "route": "#vendors/documents",
+          "view": "documents",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Documents",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": null,
+          "observedReadsSettled": false,
+          "loadingVisible": false,
+          "sameDocument": null,
+          "complete": true,
+          "newDocument": true
+        },
+        "explicitRegisterReturn": {
+          "action": "IN_APP_REGISTER_RETURN",
+          "route": "#vendors/register",
+          "view": "register",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Register",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": 0,
+          "observedReadsSettled": true,
+          "loadingVisible": false,
+          "sameDocument": true,
+          "complete": true
+        }
+      },
+      {
+        "path": "after/245h-vendor-portfolio-onboarding-drill-light-1440.png",
+        "sha256": "b617e208899342e1ca8e34ea161134d2705d6930d71fcc0f637cedc23cc7bd55",
+        "bytes": 167287,
+        "view": "onboarding",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "browserBack": {
+          "action": "HISTORY_BACK",
+          "route": "#vendors/onboarding",
+          "view": "onboarding",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Onboarding",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": 0,
+          "observedReadsSettled": true,
+          "loadingVisible": false,
+          "sameDocument": true,
+          "complete": true
+        },
+        "browserForward": {
+          "action": "HISTORY_FORWARD",
+          "route": "#vendors/register/vendor-relationship-payments",
+          "selectedRelationshipVisible": true,
+          "portfolioVisible": false,
+          "relationshipTitle": "Acme Processing Limited",
+          "sameDocument": true,
+          "observedReadsSettled": true
+        },
+        "directHashRoot": {
+          "action": "DIRECT_HASH_ROOT",
+          "route": "#vendors/onboarding",
+          "view": "onboarding",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Onboarding",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": 0,
+          "observedReadsSettled": true,
+          "loadingVisible": false,
+          "sameDocument": true,
+          "complete": true
+        },
+        "reloadedCollection": {
+          "action": "RELOAD_COLLECTION",
+          "route": "#vendors/onboarding",
+          "view": "onboarding",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Onboarding",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": null,
+          "observedReadsSettled": false,
+          "loadingVisible": false,
+          "sameDocument": null,
+          "complete": true,
+          "newDocument": true
+        },
+        "explicitRegisterReturn": {
+          "action": "IN_APP_REGISTER_RETURN",
+          "route": "#vendors/register",
+          "view": "register",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Register",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": 0,
+          "observedReadsSettled": true,
+          "loadingVisible": false,
+          "sameDocument": true,
+          "complete": true
+        }
+      },
+      {
+        "path": "after/245i-vendor-portfolio-assessments-drill-dark-390.png",
+        "sha256": "e3aa3117c4dae63a57f9eb99e6abdcce153e5c8959e683443e121ace2623c4bf",
+        "bytes": 88676,
+        "view": "assessments",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "browserBack": {
+          "action": "HISTORY_BACK",
+          "route": "#vendors/assessments",
+          "view": "assessments",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Assessments",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": 0,
+          "observedReadsSettled": true,
+          "loadingVisible": false,
+          "sameDocument": true,
+          "complete": true
+        },
+        "browserForward": {
+          "action": "HISTORY_FORWARD",
+          "route": "#vendors/register/vendor-relationship-payments",
+          "selectedRelationshipVisible": true,
+          "portfolioVisible": false,
+          "relationshipTitle": "Acme Processing Limited",
+          "sameDocument": true,
+          "observedReadsSettled": true
+        },
+        "directHashRoot": {
+          "action": "DIRECT_HASH_ROOT",
+          "route": "#vendors/assessments",
+          "view": "assessments",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Assessments",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": 0,
+          "observedReadsSettled": true,
+          "loadingVisible": false,
+          "sameDocument": true,
+          "complete": true
+        },
+        "reloadedCollection": {
+          "action": "RELOAD_COLLECTION",
+          "route": "#vendors/assessments",
+          "view": "assessments",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Assessments",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": null,
+          "observedReadsSettled": false,
+          "loadingVisible": false,
+          "sameDocument": null,
+          "complete": true,
+          "newDocument": true
+        },
+        "explicitRegisterReturn": {
+          "action": "IN_APP_REGISTER_RETURN",
+          "route": "#vendors/register",
+          "view": "register",
+          "heading": "Vendors",
+          "portfolioVisible": true,
+          "collectionVisible": true,
+          "selectedRelationshipVisible": false,
+          "detailHeading": null,
+          "selectedTab": "Register",
+          "selectedPanelVisible": true,
+          "recordTitles": [
+            "Acme Processing Limited",
+            "Sample · Northshore Hosting Limited"
+          ],
+          "recordCount": 2,
+          "pendingAPIRequests": 0,
+          "observedReadsSettled": true,
+          "loadingVisible": false,
+          "sameDocument": true,
+          "complete": true
+        }
+      }
+    ],
+    "failures": []
+  },
+  "gap": "The prior collection scenarios clicked Back to vendor register and then manually reselected the collection. That explicit action cleared selected state and bypassed the actual browser-history route lifecycle. Their returned:true Boolean did not establish browser Back correctness.",
+  "fix": "The active scenarios now assert real history Back in the original document before any helper reload or explicit return. Reads must settle; the expected populated collection and selected tab/panel must be visible, and selected relationship detail must be absent. Forward, direct hash root, cold root reload and in-app Register return have distinct receipts.",
+  "gates": {
+    "uiContracts": {
+      "status": "PASS",
+      "command": "npm run check:ui-contracts",
+      "nodecheckFiles": 3,
+      "log": {
+        "path": "vendor-collection-return-ui-contracts.log",
+        "sha256": "4b4bbd3d08baa5161cff6e18dc8481179c81aea41d770b93ad19231a398ad7ce",
+        "bytes": 587
+      }
+    },
+    "whitespace": {
+      "status": "PASS",
+      "command": "git diff --check"
+    }
+  },
+  "command": {
+    "cwd": "/workspace/scratch/52b859deca91/clearsight-v2-next/web",
+    "command": "node scripts/capture-ui-evidence.mjs",
+    "environment": {
+      "PLAYWRIGHT_MODULE": "/tmp/clearsight-ui-review-tools/node_modules/playwright",
+      "PLAYWRIGHT_BROWSERS_PATH": "/tmp/clearsight-playwright-browsers",
+      "PAGE_URL": "http://127.0.0.1:4318",
+      "UI_EVIDENCE_DIR": "/workspace/scratch/52b859deca91/visual-review/vendor-collection-return-fix/after",
+      "UI_EVIDENCE_SCOPE": "vendor-portfolio-returns"
+    }
+  },
+  "limitations": [
+    "Corrected runtime and evidence scripts are bound by file hashes while publication is pending.",
+    "Full reload checks wait for the rendered loaded collection; API counters are intentionally absent in the newly created document.",
+    "Local evidence uses the real App route lifecycle with synthetic reads; it does not establish live backend authorization.",
+    "Hosted customer before/after verification and release gates are owned by root.",
+    "Reviewed PR584 evidence remains unchanged; this receipt adds the previously missing history transition coverage."
+  ]
+}

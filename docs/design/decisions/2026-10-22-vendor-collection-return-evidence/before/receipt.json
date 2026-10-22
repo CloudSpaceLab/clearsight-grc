@@ -1,0 +1,145 @@
+{
+  "status": "EXPECTED_DEPLOYED_REGRESSION_REPRODUCED",
+  "deployedCommit": "cb07cc747c2bee7d19413ed398bb1c111f51c99f",
+  "deployedTree": "968250b91c7d98c3a7fd0c38715f46853aea40e4",
+  "retainedRuntimeCommit": "85817bf9f00d99cd168ab2b3eb312f85b07f7ba1",
+  "retainedRuntimeTree": "4b722a081326b5cbb2504a9564fab3956621c4c6",
+  "equivalence": "PR584 added evidence/docs around the frozen runtime; all171 retained evidence-build files matched the reviewed runtime receipt before and after reproduction.",
+  "buildSHA256": "787c2616b314575dd9149872f2e758602df8ec8cddce088b7703ba2f5b45b377",
+  "helperSHA256": "10762d2dd6aad98e56e80f16ec452f83840b4aee3d9a0cec6e49d962d5778db6",
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "receipts": [
+    {
+      "view": "documents",
+      "check": "documents-drill",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "initial": {
+        "action": "INITIAL_COLLECTION",
+        "route": "#vendors/documents",
+        "view": "documents",
+        "heading": "Vendors",
+        "portfolioVisible": true,
+        "collectionVisible": true,
+        "selectedRelationshipVisible": false,
+        "detailHeading": null,
+        "selectedTab": "Documents",
+        "selectedPanelVisible": true,
+        "recordTitles": [
+          "Acme Processing Limited",
+          "Sample · Northshore Hosting Limited"
+        ],
+        "recordCount": 2,
+        "pendingAPIRequests": 0,
+        "observedReadsSettled": true,
+        "loadingVisible": false,
+        "sameDocument": null,
+        "complete": true
+      },
+      "action": "HISTORY_BACK",
+      "sameDocument": true,
+      "failure": "Vendor collection route did not restore its settled rendered state: {\"action\":\"HISTORY_BACK\",\"route\":\"#vendors/documents\",\"view\":\"documents\",\"heading\":null,\"portfolioVisible\":false,\"collectionVisible\":false,\"selectedRelationshipVisible\":true,\"detailHeading\":\"Acme Processing Limited\",\"selectedTab\":null,\"selectedPanelVisible\":false,\"recordTitles\":[],\"recordCount\":0,\"pendingAPIRequests\":0,\"observedReadsSettled\":true,\"loadingVisible\":false,\"sameDocument\":true}",
+      "settledState": {
+        "route": "#vendors/documents",
+        "portfolioVisible": false,
+        "detailVisible": true,
+        "pendingAPIRequests": 0,
+        "detailHeading": "Acme Processing Limited",
+        "timeOrigin": 1792678035949.3
+      },
+      "image": "before-documents-390.png",
+      "sha256": "eae378426b2b652e8d5bed8f8ded9c7f219bd438f13c2b1e2bd6b8bbe001c7b9",
+      "bytes": 84911
+    },
+    {
+      "view": "onboarding",
+      "check": "onboarding-drill",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "initial": {
+        "action": "INITIAL_COLLECTION",
+        "route": "#vendors/onboarding",
+        "view": "onboarding",
+        "heading": "Vendors",
+        "portfolioVisible": true,
+        "collectionVisible": true,
+        "selectedRelationshipVisible": false,
+        "detailHeading": null,
+        "selectedTab": "Onboarding",
+        "selectedPanelVisible": true,
+        "recordTitles": [
+          "Acme Processing Limited",
+          "Sample · Northshore Hosting Limited"
+        ],
+        "recordCount": 2,
+        "pendingAPIRequests": 0,
+        "observedReadsSettled": true,
+        "loadingVisible": false,
+        "sameDocument": null,
+        "complete": true
+      },
+      "action": "HISTORY_BACK",
+      "sameDocument": true,
+      "failure": "Vendor collection route did not restore its settled rendered state: {\"action\":\"HISTORY_BACK\",\"route\":\"#vendors/onboarding\",\"view\":\"onboarding\",\"heading\":null,\"portfolioVisible\":false,\"collectionVisible\":false,\"selectedRelationshipVisible\":true,\"detailHeading\":\"Acme Processing Limited\",\"selectedTab\":null,\"selectedPanelVisible\":false,\"recordTitles\":[],\"recordCount\":0,\"pendingAPIRequests\":0,\"observedReadsSettled\":true,\"loadingVisible\":false,\"sameDocument\":true}",
+      "settledState": {
+        "route": "#vendors/onboarding",
+        "portfolioVisible": false,
+        "detailVisible": true,
+        "pendingAPIRequests": 0,
+        "detailHeading": "Acme Processing Limited",
+        "timeOrigin": 1792678038786.1
+      },
+      "image": "before-onboarding-1440.png",
+      "sha256": "70e9d41d1734d973078c722634abdda1cf982fa8b3eae61d66fc6dbc66f05dad",
+      "bytes": 219268
+    },
+    {
+      "view": "assessments",
+      "check": "assessments-drill",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "initial": {
+        "action": "INITIAL_COLLECTION",
+        "route": "#vendors/assessments",
+        "view": "assessments",
+        "heading": "Vendors",
+        "portfolioVisible": true,
+        "collectionVisible": true,
+        "selectedRelationshipVisible": false,
+        "detailHeading": null,
+        "selectedTab": "Assessments",
+        "selectedPanelVisible": true,
+        "recordTitles": [
+          "Acme Processing Limited",
+          "Sample · Northshore Hosting Limited"
+        ],
+        "recordCount": 2,
+        "pendingAPIRequests": 0,
+        "observedReadsSettled": true,
+        "loadingVisible": false,
+        "sameDocument": null,
+        "complete": true
+      },
+      "action": "HISTORY_BACK",
+      "sameDocument": true,
+      "failure": "Vendor collection route did not restore its settled rendered state: {\"action\":\"HISTORY_BACK\",\"route\":\"#vendors/assessments\",\"view\":\"assessments\",\"heading\":null,\"portfolioVisible\":false,\"collectionVisible\":false,\"selectedRelationshipVisible\":true,\"detailHeading\":\"Acme Processing Limited\",\"selectedTab\":null,\"selectedPanelVisible\":false,\"recordTitles\":[],\"recordCount\":0,\"pendingAPIRequests\":0,\"observedReadsSettled\":true,\"loadingVisible\":false,\"sameDocument\":true}",
+      "settledState": {
+        "route": "#vendors/assessments",
+        "portfolioVisible": false,
+        "detailVisible": true,
+        "pendingAPIRequests": 0,
+        "detailHeading": "Acme Processing Limited",
+        "timeOrigin": 1792678041031
+      },
+      "image": "before-assessments-390.png",
+      "sha256": "4e66a694a76d5b91eb937968681d1b452721c2fa3c3f76eafe95652739abd98b",
+      "bytes": 90219
+    }
+  ]
+}

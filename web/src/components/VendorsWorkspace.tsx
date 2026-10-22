@@ -507,7 +507,8 @@ export function VendorsWorkspace({ organizationName, legalEntityName, page = "re
       setRecords(next);
       setNextCursor(page.next_cursor ?? "");
       const preserved = selected ? next.find((item) => item.relationship.id === selected.relationship.id) : undefined;
-      const nextSelected = exact ?? preserved ?? (intent ? next[0] : undefined);
+      // A collection route clears browse selection; only a guide may retain it without a target.
+      const nextSelected = exact ?? (intent ? preserved ?? next[0] : undefined);
       // The selected aggregate is also the edit draft's optimistic-concurrency
       // snapshot. Refreshing the register must not advance its expected version.
       if (!editing) {

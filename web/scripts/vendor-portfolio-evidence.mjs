@@ -56,10 +56,10 @@ async function waitForPortfolio(page, scenario) {
 export async function installVendorPortfolioObservation(page, check) {
   await page.evaluate((check) => {
     const original = window.fetch;
-    const log = { reads: [], commands: [], check, fixturePopulation: [], fixtureSummaryIDs: [], fixtureRecords: [] };
+    const log = { reads: [], commands: [], check, fixturePopulation: [], fixtureSummaryIDs: [], fixtureRecords: [], pendingAPIRequests: 0, lastAPIActivity: performance.now() };
     window.vendorPortfolioEvidence = log;
     const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
-    window.fetch = async (input, init) => {
+    const dispatch = async (input, init) => {
       const url = new URL(typeof input === "string" ? input : input.url, location.href);
       const method = String(init?.method ?? (typeof input === "object" ? input.method : null) ?? "GET").toUpperCase();
       const relevant = url.pathname.startsWith("/api/v1/vendors") || url.pathname.startsWith("/api/v1/vendor-")
@@ -138,7 +138,54 @@ export async function installVendorPortfolioObservation(page, check) {
       }
       return result;
     };
+    window.fetch = async (input, init) => {
+      const url = new URL(typeof input === "string" ? input : input.url, location.href);
+      if (!url.pathname.startsWith("/api/")) return dispatch(input, init);
+      log.pendingAPIRequests += 1; log.lastAPIActivity = performance.now();
+      try { return await dispatch(input, init); }
+      finally { log.pendingAPIRequests -= 1; log.lastAPIActivity = performance.now(); }
+    };
   }, check);
+}
+
+async function waitForRouteReadSettlement(page, route, requireObservedReads = true) {
+  // Hash changes and fetch completion can precede React's selected-record
+  // update. Wait for the route read to settle before inspecting the live DOM.
+  await page.waitForFunction(({ route, requireObservedReads }) => {
+    const observation = window.vendorPortfolioEvidence;
+    return location.hash === route && (!requireObservedReads || observation)
+      && (!observation || observation.pendingAPIRequests === 0 && performance.now() - observation.lastAPIActivity >= 100);
+  }, { route, requireObservedReads }, { timeout: 10000 });
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
+export async function assertVendorPortfolioRouteState(page, view, { action, priorTimeOrigin, expectedRecordTitles, requireObservedReads = true } = {}) {
+  await waitForRouteReadSettlement(page, `#vendors/${view}`, requireObservedReads);
+  const state = await page.evaluate(({ view, action, priorTimeOrigin }) => {
+    const visible = (node) => Boolean(node?.getClientRects().length && !node.closest('[hidden],[inert],[aria-hidden="true"]') && getComputedStyle(node).visibility !== "hidden");
+    const portfolio = [...document.querySelectorAll(".vendor-portfolio-workspace")].find(visible);
+    const detail = [...document.querySelectorAll(".vendor-relationship-workspace")].find(visible);
+    const tabs = portfolio?.querySelector('.vendor-portfolio-navigation > .cs-tabs > [role="tablist"]');
+    const selected = tabs?.querySelector('[aria-selected="true"]');
+    const panel = selected ? document.getElementById(selected.getAttribute("aria-controls")) : null;
+    const region = portfolio?.querySelector(view === "register" ? ".vendor-register" : view === "overview" ? ".vendor-portfolio-overview" : ".vendor-collection");
+    const records = [...(region?.querySelectorAll(".cs-selectable-record") ?? [])].filter(visible);
+    const recordTitles = records.map(node => node.querySelector(".cs-selectable-record__title")?.textContent.trim());
+    const observation = window.vendorPortfolioEvidence;
+    return { action, route: location.hash, view, heading: portfolio?.querySelector("h1")?.textContent.trim() ?? null,
+      portfolioVisible: Boolean(portfolio), collectionVisible: visible(region), selectedRelationshipVisible: Boolean(detail), detailHeading: detail?.querySelector("h1")?.textContent.trim() ?? null,
+      selectedTab: selected?.textContent.trim() ?? null, selectedPanelVisible: visible(panel), recordTitles, recordCount: records.length,
+      pendingAPIRequests: observation?.pendingAPIRequests ?? null, observedReadsSettled: Boolean(observation && observation.pendingAPIRequests === 0),
+      loadingVisible: Boolean(portfolio && /Loading vendor relationships|Loading form summaries/.test(portfolio.textContent)),
+      sameDocument: priorTimeOrigin === undefined ? null : performance.timeOrigin === priorTimeOrigin };
+  }, { view, action, priorTimeOrigin });
+  if (state.heading !== "Vendors" || !state.portfolioVisible || !state.collectionVisible || state.selectedRelationshipVisible
+    || state.selectedTab !== labelFor(view) || !state.selectedPanelVisible || !state.recordCount || state.loadingVisible
+    || requireObservedReads && !state.observedReadsSettled || priorTimeOrigin !== undefined && !state.sameDocument
+    || expectedRecordTitles && JSON.stringify(state.recordTitles) !== JSON.stringify(expectedRecordTitles)) {
+    throw new Error(`Vendor collection route did not restore its settled rendered state: ${JSON.stringify(state)}`);
+  }
+  return { ...state, complete: true };
 }
 
 export async function assertVendorPortfolioLayout(page, scenario) {
@@ -314,9 +361,12 @@ export async function verifyVendorPortfolioScenario(page, scenario) {
   }
   if (["documents-drill", "onboarding-drill", "assessments-drill"].includes(check)) {
     const collection = root(page).getByRole("region", { name: regionFor(scenario.vendorPortfolioView), exact: true });
+    result.initialCollection = await assertVendorPortfolioRouteState(page, scenario.vendorPortfolioView, { action: "INITIAL_COLLECTION" });
+    const priorTimeOrigin = await page.evaluate(() => performance.timeOrigin);
     await collection.locator(".cs-selectable-record").first().click();
     await page.locator(".vendor-relationship-workspace").waitFor();
     result.relationshipPreserved = new URL(page.url()).hash === `#vendors/register/${relationshipID}`;
+    if (!result.relationshipPreserved) throw new Error(`${scenario.name}: collection opened the wrong relationship`);
     if (check === "documents-drill") {
       await page.locator(".document-browser").waitFor();
       await page.waitForFunction(() => window.vendorPortfolioEvidence.reads.some((item) => item.path === "/api/v1/forms/documents" && item.status === 200));
@@ -324,11 +374,30 @@ export async function verifyVendorPortfolioScenario(page, scenario) {
     } else if (check === "onboarding-drill") {
       await page.locator(".vdd-workspace").waitFor(); result.dueDiligence = true;
     } else { await page.locator(".vendor-forms-panel").waitFor(); result.forms = true; }
-    result.refresh = await verifyCollectionRefresh(page, check);
+    await waitForRouteReadSettlement(page, `#vendors/register/${relationshipID}`);
+    // Exercise the original mounted App before any explicit Back action,
+    // root navigation or reload can clear its stale selected aggregate.
+    await page.goBack();
+    result.browserBack = await assertVendorPortfolioRouteState(page, scenario.vendorPortfolioView, {
+      action: "HISTORY_BACK", priorTimeOrigin, expectedRecordTitles: result.initialCollection.recordTitles,
+    });
+    result.returned = result.browserBack.complete;
+    await page.goForward();
+    await page.locator(".vendor-relationship-workspace").getByRole("heading", { name: "Acme Processing Limited", exact: true }).waitFor();
+    await waitForRouteReadSettlement(page, `#vendors/register/${relationshipID}`);
+    result.browserForward = await page.evaluate((priorTimeOrigin) => ({ action: "HISTORY_FORWARD", route: location.hash,
+      selectedRelationshipVisible: Boolean(document.querySelector(".vendor-relationship-workspace")), portfolioVisible: Boolean(document.querySelector(".vendor-portfolio-workspace")),
+      relationshipTitle: document.querySelector(".vendor-relationship-workspace h1")?.textContent.trim(), sameDocument: performance.timeOrigin === priorTimeOrigin,
+      observedReadsSettled: window.vendorPortfolioEvidence.pendingAPIRequests === 0 }), priorTimeOrigin);
+    if (!result.browserForward.selectedRelationshipVisible || result.browserForward.portfolioVisible || !result.browserForward.sameDocument
+      || result.browserForward.route !== `#vendors/register/${relationshipID}` || result.browserForward.relationshipTitle !== "Acme Processing Limited" || !result.browserForward.observedReadsSettled) throw new Error(`${scenario.name}: browser Forward did not restore the selected relationship`);
+    result.refresh = await verifyCollectionRefresh(page, check, scenario, result.initialCollection.recordTitles);
     await page.getByRole("button", { name: "Back to vendor register", exact: true }).click();
-    await root(page).waitFor();
+    result.explicitRegisterReturn = await assertVendorPortfolioRouteState(page, "register", {
+      action: "IN_APP_REGISTER_RETURN", priorTimeOrigin, expectedRecordTitles: result.initialCollection.recordTitles,
+    });
     await selectVendorPortfolioView(page, scenario.vendorPortfolioView);
-    await waitForPortfolio(page, scenario); result.returned = true;
+    await waitForPortfolio(page, scenario);
   }
   await resetScroll(page);
   return Object.keys(result).length ? result : null;
@@ -366,7 +435,7 @@ export async function verifyVendorPortfolioExceptionReturn(page) {
   return { ...state, priorScrollY: before, exactMatterID: "sample-portfolio-finding-0", baselineRestored: true };
 }
 
-async function verifyCollectionRefresh(page, check) {
+async function verifyCollectionRefresh(page, check, scenario, expectedRecordTitles) {
   // The existing selected-record URL owns identity, while its local section
   // starts at Overview on refresh. Verify that exact contract independently
   // of the collection page and reopen the intended destination with its menu.
@@ -400,8 +469,22 @@ async function verifyCollectionRefresh(page, check) {
       await choose(workspace.locator(".vendor-relationship-evidence:visible > .cs-tabs"), evidenceView);
       await workspace.locator(evidenceView === "Documents" ? ".document-browser:visible" : ".vendor-forms-panel:visible").waitFor();
     }
+    const relationshipPreserved = new URL(refreshed.url()).hash === `#vendors/register/${relationshipID}`;
+    await installVendorPortfolioObservation(refreshed);
+    const priorTimeOrigin = await refreshed.evaluate(() => performance.timeOrigin);
+    await refreshed.evaluate((view) => { location.hash = `#vendors/${view}`; }, scenario.vendorPortfolioView);
+    const directHashRoot = await assertVendorPortfolioRouteState(refreshed, scenario.vendorPortfolioView, {
+      action: "DIRECT_HASH_ROOT", priorTimeOrigin, expectedRecordTitles,
+    });
+    await refreshed.reload({ waitUntil: "networkidle" });
+    await waitForPortfolio(refreshed, scenario);
+    const reloadedCollection = await assertVendorPortfolioRouteState(refreshed, scenario.vendorPortfolioView, {
+      action: "RELOAD_COLLECTION", expectedRecordTitles, requireObservedReads: false,
+    });
+    reloadedCollection.newDocument = await refreshed.evaluate((priorTimeOrigin) => performance.timeOrigin !== priorTimeOrigin, priorTimeOrigin);
+    if (!reloadedCollection.newDocument) throw new Error("Collection reload did not create a new document");
     if (errors.length) throw new Error(`Collection route refresh emitted browser errors: ${errors.join("\n")}`);
-    return { relationshipPreserved: new URL(refreshed.url()).hash === `#vendors/register/${relationshipID}`, initialSection, reopenedSection: section, evidenceView, complete: true };
+    return { relationshipPreserved, initialSection, reopenedSection: section, evidenceView, directHashRoot, reloadedCollection, complete: true };
   } finally { await refreshed.close(); }
 }
 

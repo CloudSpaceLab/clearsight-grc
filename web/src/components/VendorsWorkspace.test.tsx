@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import axe from "axe-core";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -161,6 +161,70 @@ beforeEach(() => {
 });
 
 describe("VendorsWorkspace", () => {
+  it.each([
+    { page: "overview", tab: "Overview", open: "Acme Processing Limited, Card transaction processing", section: "Overview" },
+    { page: "register", tab: "Register", open: "Acme Processing Limited, Card transaction processing", section: "Overview" },
+    { page: "onboarding", tab: "Onboarding", open: "Review onboarding for Acme Processing Limited, Card transaction processing", section: "Due diligence" },
+    { page: "assessments", tab: "Assessments", open: "Review forms for Acme Processing Limited, Card transaction processing", section: "Evidence" },
+    { page: "documents", tab: "Documents", open: "Open documents for Acme Processing Limited, Card transaction processing", section: "Evidence" },
+  ] as const)("restores $page after the route target is removed and reopens the vendor on Forward", async ({ page, tab, open, section }) => {
+    const onTarget = vi.fn();
+    const onPage = vi.fn();
+    const view = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page={page} onTarget={onTarget} onPage={onPage}/>);
+    fireEvent.click(await screen.findByRole("button", { name: open }));
+    expect(onTarget).toHaveBeenCalledWith("relationship-1");
+
+    view.rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register" targetID="relationship-1" onTarget={onTarget} onPage={onPage}/>);
+    await screen.findByRole("region", { name: "Selected vendor relationship" });
+    expect(screen.getByRole("heading", { name: "Acme Processing Limited", level: 1 })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: section, selected: true })).toBeTruthy();
+    if (page === "assessments") expect(screen.getByRole("region", { name: "Vendor form work relationship-1 ALL" })).toBeTruthy();
+    if (page === "documents") expect(screen.getByRole("region", { name: "Documents for relationship-1" })).toBeTruthy();
+
+    view.rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page={page} onTarget={onTarget} onPage={onPage}/>);
+    const portfolioTabs = await screen.findByRole("tablist", { name: "Vendor management sections" });
+    expect(within(portfolioTabs).getByRole("tab", { name: tab, selected: true })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: open })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Selected vendor relationship" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Acme Processing Limited", level: 1 })).toBeNull();
+
+    view.rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register" targetID="relationship-1" onTarget={onTarget} onPage={onPage}/>);
+    expect(await screen.findByRole("heading", { name: "Acme Processing Limited", level: 1 })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Overview", selected: true })).toBeTruthy();
+    expect(screen.queryByRole("tablist", { name: "Vendor management sections" })).toBeNull();
+  });
+
+  it("ignores a late exact vendor read after the route returns to a collection", async () => {
+    const detail = deferred<VendorRelationshipAggregate>();
+    vi.mocked(loadVendorRelationships).mockResolvedValueOnce({ items: [] }).mockResolvedValue({ items: [record] });
+    vi.mocked(loadVendorRelationship).mockReturnValueOnce(detail.promise);
+    const onPage = vi.fn();
+    const view = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register" targetID="relationship-1" onPage={onPage}/>);
+    await waitFor(() => expect(loadVendorRelationship).toHaveBeenCalledWith("relationship-1"));
+
+    view.rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="onboarding" onPage={onPage}/>);
+    await screen.findByRole("button", { name: "Review onboarding for Acme Processing Limited, Card transaction processing" });
+    await act(async () => detail.resolve(record));
+    expect(screen.getByRole("tab", { name: "Onboarding", selected: true })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Selected vendor relationship" })).toBeNull();
+  });
+
+  it("retries a failed collection return without reopening the previous vendor", async () => {
+    vi.mocked(loadVendorRelationships).mockResolvedValueOnce({ items: [record] })
+      .mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ items: [record] });
+    const onPage = vi.fn();
+    const view = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="register" targetID="relationship-1" onPage={onPage}/>);
+    await screen.findByRole("heading", { name: "Acme Processing Limited", level: 1 });
+
+    view.rerender(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="assessments" onPage={onPage}/>);
+    await screen.findByRole("heading", { name: "Vendor records are unavailable" });
+    expect(screen.queryByRole("region", { name: "Selected vendor relationship" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("button", { name: "Review forms for Acme Processing Limited, Card transaction processing" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Assessments", selected: true })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Selected vendor relationship" })).toBeNull();
+  });
+
   it("uses the five v2 destinations and includes the register inside Overview", async () => {
     const onPage = vi.fn();
     const view = render(<VendorsWorkspace organizationName="Bank" legalEntityName="Bank Nigeria" page="overview" onPage={onPage}/>);
