@@ -10,6 +10,7 @@ import { ApiError } from "./http";
 import { loadFormTemplatePage } from "./formsApi";
 import { loadNotifications } from "./notificationApi";
 import { loadGroupOversight, type GroupOversightSnapshot } from "./groupOversightApi";
+import type { ReportingPeriodQuery } from "./reportingPeriod";
 
 const { listEvidenceRecipientCandidates, subscribeInvalidations } = vi.hoisted(() => ({ listEvidenceRecipientCandidates: vi.fn(), subscribeInvalidations: vi.fn() }));
 
@@ -71,6 +72,22 @@ vi.mock("./components/oversight/GroupOversightWorkspace", () => ({
 }));
 vi.mock("./components/losses/LossesWorkspace", () => ({
   LossesWorkspace: ({ targetID, organizationScopeID, organizationScopeName }: { targetID?: string; organizationScopeID?: string; organizationScopeName?: string }) => <section><h1>Losses</h1><output data-testid="loss-target">{targetID}</output><output data-testid="loss-scope">{organizationScopeID}:{organizationScopeName}</output></section>,
+}));
+vi.mock("./components/reports/ReportsWorkspace", () => ({
+  ReportsWorkspace: ({ legalEntityID, organizationScopeID, onOpenInsights }: {
+    legalEntityID?: string; organizationScopeID?: string; onOpenInsights?: (period?: ReportingPeriodQuery) => void;
+  }) => <section><h1>Reports &amp; insights</h1><output data-testid="report-scope">{legalEntityID}:{organizationScopeID}</output>
+    <button onClick={() => onOpenInsights?.({ start_date: "2026-09-08", end_date: "2026-10-07" })}>Open Insights workspace</button>
+  </section>,
+}));
+vi.mock("./components/insights/InsightsWorkspace", () => ({
+  InsightsWorkspace: ({ organizationScopeID, riskLossPeriod, scopeAuthorized, onOpenReports }: {
+    organizationScopeID?: string; riskLossPeriod?: ReportingPeriodQuery; scopeAuthorized?: boolean; onOpenReports?: () => void;
+  }) => <section><h1>Insights</h1><output data-testid="insights-scope">{organizationScopeID}</output>
+    <output data-testid="insights-period">{riskLossPeriod?.start_date}:{riskLossPeriod?.end_date}</output>
+    <output data-testid="insights-scope-authorized">{String(scopeAuthorized)}</output>
+    <button onClick={onOpenReports}>View reports</button>
+  </section>,
 }));
 vi.mock("./captureApi", () => ({
   declareWrongCaptureRecipient: vi.fn(),
@@ -489,6 +506,72 @@ describe("organization scope Portfolio persistence", () => {
     fireEvent.click(within(screen.getByRole("navigation", { name: "Portfolio lenses" })).getByRole("button", { name: "Vendors" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Clear Bank Nigeria"));
     expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).not.toContain("Risk");
+  });
+});
+
+describe("Reports organization scope", () => {
+  const areaID = "8f100000-0000-4000-8000-000000000001";
+  beforeEach(() => {
+    const scoped = switchableRuntime();
+    scoped.scope_hierarchy!.organization_scopes = [
+      { id: areaID, code: "RISK", name: "Risk", kind: "DEPARTMENT", parent_id: scoped.scope_hierarchy!.current.id, department_path: ["BANK", "RISK"], filterable: true },
+    ];
+    vi.mocked(loadContext).mockResolvedValue(scoped);
+  });
+
+  it("preserves the verified organization area when opening Reports from Portfolio", async () => {
+    window.history.replaceState(null, "", "#programs");
+    render(<App/>);
+    fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Change organization scope" })).getByRole("button", { name: /Risk/ }));
+    fireEvent.click(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Reports" }));
+
+    expect(await screen.findByRole("heading", { name: "Reports & insights" })).toBeTruthy();
+    expect(window.location.hash).toBe("#reports");
+    expect(screen.getByTestId("report-scope").textContent).toBe(`bank-ng:${areaID}`);
+    expect(screen.getByRole("button", { name: /Organization scope/ }).textContent).toContain("Risk");
+  });
+
+  it("keeps Reports open when changing its area and retains that selection through Insights", async () => {
+    window.history.replaceState(null, "", "#reports");
+    render(<App/>);
+    await screen.findByRole("heading", { name: "Reports & insights" });
+    fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Change organization scope" })).getByRole("button", { name: /Risk/ }));
+
+    expect(window.location.hash).toBe("#reports");
+    expect(screen.getByTestId("report-scope").textContent).toBe(`bank-ng:${areaID}`);
+    fireEvent.click(within(screen.getByRole("complementary", { name: "Primary navigation" })).getByRole("button", { name: "Insights" }));
+    expect(await screen.findByTestId("insights-scope")).toHaveProperty("textContent", areaID);
+    fireEvent.click(screen.getByRole("button", { name: "View reports" }));
+    expect(await screen.findByTestId("report-scope")).toHaveProperty("textContent", `bank-ng:${areaID}`);
+    expect(window.location.hash).toBe("#reports");
+
+    fireEvent.click(screen.getByRole("button", { name: /Organization scope/ }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Change organization scope" })).getByRole("button", { name: /Clear Bank Nigeria/ }));
+    expect(screen.getByTestId("report-scope").textContent).toBe("bank-ng:");
+    expect(window.location.hash).toBe("#reports");
+    expect(switchLegalEntity).not.toHaveBeenCalled();
+  });
+
+  it("preserves the verified report period and scope in the Insights route", async () => {
+    window.history.replaceState(null, "", "#reports");
+    render(<App/>);
+    await screen.findByRole("heading", { name: "Reports & insights" });
+    fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Change organization scope" })).getByRole("button", { name: /Risk/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Insights workspace" }));
+
+    expect(await screen.findByTestId("insights-period")).toHaveProperty("textContent", "2026-09-08:2026-10-07");
+    expect(screen.getByTestId("insights-scope").textContent).toBe(areaID);
+    expect(screen.getByTestId("insights-scope-authorized").textContent).toBe("true");
+    expect(window.location.hash).toBe(`#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&legal_entity_id=bank-ng&organization_scope_id=${areaID}`);
+
+    act(() => window.dispatchEvent(new HashChangeEvent("hashchange")));
+    expect(screen.getByTestId("insights-period").textContent).toBe("2026-09-08:2026-10-07");
+    expect(screen.getByTestId("insights-scope-authorized").textContent).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "View reports" }));
+    expect(await screen.findByTestId("report-scope")).toHaveProperty("textContent", `bank-ng:${areaID}`);
   });
 });
 

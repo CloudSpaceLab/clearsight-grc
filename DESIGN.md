@@ -78,7 +78,7 @@ Document reading and comparison surfaces use the document token family. Light mo
 
 ## Shared component contracts
 
-Migrated product screens import these closed contracts from `components/ui`; feature CSS arranges them but does not restyle their internals.
+Migrated product screens import these closed contracts from `components/ui`. Feature CSS may configure layout, spacing and typography through component tokens or an extended reusable contract to match the approved V2 anatomy. It must not duplicate or override the shared palette, focus, disabled, hover or selection states. A generic component's default geometry must not force the legacy page layout.
 
 | Family | Supported contract |
 | --- | --- |
@@ -96,7 +96,8 @@ Migrated product screens import these closed contracts from `components/ui`; fea
 | `Tabs` | Automatic peer-view navigation with one selected indicator. Optional `compactLabel` replaces the tab list with a labelled SelectField at widths up to 760px; the selected panel stays mounted and named across resize. Opt-in `retainVisitedPanels` mounts each panel on its first visit and retains local drafts, pending operations and conflicts; inactive panels are visually hidden and inert. Unvisited panels do not start reads. The owner revalidates material state when necessary. Other tab workspaces retain wrapped compact behavior. |
 | `ScopeBar` | One selected bounded result scope with stored counts and horizontal-overflow replacement behavior. |
 | `WorkspaceSwitcher` | Navigation between peer workspaces that remain independently routed and authoritative; selected state follows the current route and collapses to a labelled selector on compact screens. |
-| `MetricCard` | One memorable metric with a stable label/value, semantic condition, explicit current/stale/partial/unknown data quality, optional delta/context and one drill action. Non-current quality overrides reassuring success treatment. |
+| `MetricCard` | One memorable metric with a stable label/value, semantic condition, explicit current/stale/partial/unknown data quality, optional delta/context and one drill action. Non-current quality overrides reassuring success treatment. Component tokens configure heading columns and label case/tracking so narrow cards can stack the quality below a readable label. |
+| `RankedBarList` | Named quantities with decorative bars, optional supporting context and an authorized row action. The default `layout="stacked"` keeps label/value above the bar; `layout="inline"` places label, bar and value beside one another with context on a second row. Both use the same shared paint, focus and interaction states; inline action rows retain the minimum touch target. |
 | `StatusBadge` | Neutral, information, success, warning, error and unknown labelled states. |
 | `Notice` | Information, success, warning and error conditions at the point of work. |
 | `Surface` | Related work containment without implying a record. |

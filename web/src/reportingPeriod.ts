@@ -22,7 +22,7 @@ export function reportingPeriodPath(path: string, period?: ReportingPeriodQuery,
   return encoded ? `${path}?${encoded}` : path;
 }
 
-export function reportingPeriodLabel(period: ReportingPeriod) {
+export function reportingPeriodLabel(period: ReportingPeriodQuery) {
   const days = utcDayDifference(period.start_date, period.end_date);
   const calendarDays = days + 1;
   if (calendarDays === 7 || calendarDays === 30 || calendarDays === 90 || calendarDays === 180) return `Last ${calendarDays} days`;

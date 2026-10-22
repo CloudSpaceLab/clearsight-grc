@@ -116,8 +116,8 @@ describe("ReportsWorkspace", () => {
     });
   });
 
-  function renderWorkspace() {
-    return render(<ReportsWorkspace
+  function renderWorkspace(initialView: "overview" | "library" = "library") {
+    const rendered = render(<ReportsWorkspace
       organizationName="Meridian Trust Bank"
       legalEntityName="Meridian Trust Bank Nigeria"
       legalEntityID="entity-1"
@@ -129,58 +129,66 @@ describe("ReportsWorkspace", () => {
       downloadRun={downloadRun}
       onOpenInsights={onOpenInsights}
     />);
+    if (initialView === "library") fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
+    return rendered;
   }
 
-  it("opens on the generated-report library rather than setup management", async () => {
-    renderWorkspace();
+  it("opens the V2 Overview, then the governed report library", async () => {
+    renderWorkspace("overview");
+    expect(screen.getByRole("region", { name: "Reports Overview" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Reporting measures" })).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Reporting context" })).toBeTruthy();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Overview", "Explore", "Reports", "Schedules", "Build report"]);
+    fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
 
     expect(await screen.findByRole("heading", { name: "Reports & insights" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Reports & insights" }).closest("header")?.className).toContain("cs-workspace-header");
 
-    const table = await screen.findByRole("table", { name: "Generated reports" });
-    expect(within(table).getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
-    expect(within(table).getByRole("row", { name: /Program health/ })).toBeTruthy();
-    const summary = screen.getByRole("region", { name: "Report library summary" });
-    expect(within(summary).getByText("Available").nextElementSibling?.textContent).toBe("1");
-    expect(within(summary).getByText("Failed").nextElementSibling?.textContent).toBe("1");
-    expect(within(summary).getByText("Loaded report status")).toBeTruthy();
-    expect(within(summary).getByText("2 loaded")).toBeTruthy();
+    const records = await screen.findByRole("list", { name: "Generated report records" });
+    expect(within(records).getByRole("button", { name: /Select Vendor portfolio, Ready/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(records).getByRole("button", { name: /Select Program health, Failed/ })).toBeTruthy();
+    const inspector = screen.getByRole("complementary", { name: "Selected report" });
+    expect(within(inspector).getByRole("heading", { name: "Vendor portfolio" })).toBeTruthy();
+    expect(within(inspector).getByRole("button", { name: "Download report" })).toHaveProperty("disabled", false);
+    expect(screen.getByText("2 matching · 2 loaded")).toBeTruthy();
+    expect(screen.getByText("Reports for Meridian Trust Bank Nigeria")).toBeTruthy();
     expect(loadRunPage).toHaveBeenCalledWith({ limit: 50 }, expect.any(AbortSignal));
     expect(loadDefinitions).toHaveBeenCalledWith(true, expect.any(AbortSignal));
   });
 
   it("reuses loaded runs in the approved Overview and routes to existing Insights", async () => {
     renderWorkspace();
-    await screen.findByRole("table", { name: "Generated reports" });
+    await screen.findByRole("list", { name: "Generated report records" });
     fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
-    expect(screen.getByRole("region", { name: "Report library summary" })).toBeTruthy();
+    const measures = screen.getByRole("region", { name: "Reporting measures" });
+    expect(within(measures).getAllByText("Reports ready")).toHaveLength(1);
+    expect(within(measures).getAllByText("Requirements assessed")).toHaveLength(1);
     const recent = screen.getByRole("table", { name: "Recent reports" });
     expect(within(recent).getByRole("row", { name: /Vendor portfolio/ })).toBeTruthy();
     expect(within(recent).getByRole("row", { name: /Program health/ })).toBeTruthy();
-    expect(within(screen.getByRole("region", { name: "Report library summary" }))
-      .getByText("Loaded").nextElementSibling?.textContent).toBe("2");
-    expect(loadMetricBasis).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Explore insights" }));
+    expect(within(measures).getByLabelText(/Reports ready: 1/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Explore analysis" }));
     const analysis = await screen.findByRole("region", { name: "Risk and loss analysis" });
     expect(analysis.textContent).toContain("2026-07-01 to 2026-09-28");
     expect(loadMetricBasis).toHaveBeenCalledWith(undefined, undefined);
     fireEvent.click(screen.getByRole("button", { name: "Open Insights workspace" }));
-    expect(onOpenInsights).toHaveBeenCalledOnce();
+    expect(onOpenInsights).toHaveBeenCalledExactlyOnceWith({ start_date: "2026-07-01", end_date: "2026-09-28" });
     fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
-    fireEvent.click(screen.getByRole("button", { name: "View reports" }));
-    expect(screen.getByRole("table", { name: "Generated reports" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "View all" }));
+    expect(screen.getByRole("list", { name: "Generated report records" })).toBeTruthy();
   });
 
   it("does not represent an unavailable report population as zero", async () => {
     loadRunPage.mockRejectedValueOnce(new Error("Report API unavailable"));
     renderWorkspace();
     fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
-    expect(await screen.findByText("Report status totals unavailable until report runs load.")).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "Report library summary" })).toBeNull();
+    expect(await screen.findByText("Report totals unavailable.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Reports ready: —.*Unavailable/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Reports ready: 0/ })).toBeNull();
   });
 
   it("rejects metric bundles from a different verified legal entity", async () => {
-    loadMetricBasis.mockResolvedValueOnce({
+    loadMetricBasis.mockResolvedValue({
       scope_kind: "LEGAL_ENTITY", scope_id: "entity-other",
       reporting_period: { start_date: "2026-07-01", end_date: "2026-09-28" },
     });
@@ -191,7 +199,7 @@ describe("ReportsWorkspace", () => {
   });
 
   it("uses only the selected group scope and rejects a legal-entity substitute", async () => {
-    loadMetricBasis.mockResolvedValueOnce({
+    loadMetricBasis.mockResolvedValue({
       scope_kind: "LEGAL_ENTITY", scope_id: "entity-1",
       reporting_period: { start_date: "2026-07-01", end_date: "2026-09-28" },
     });
@@ -202,11 +210,21 @@ describe("ReportsWorkspace", () => {
     expect(loadMetricBasis).toHaveBeenCalledWith(undefined, "group-1");
   });
 
+  it("keeps the source Schedules destination honest and the Build report workflow operational", async () => {
+    renderWorkspace("overview");
+    fireEvent.click(screen.getByRole("tab", { name: "Schedules" }));
+    expect(screen.getByRole("region", { name: "Report schedules" })).toBeTruthy();
+    expect(screen.getByText(/Recurring report delivery is unavailable/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Build report" }));
+    expect(screen.getByRole("region", { name: "Build report" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Build report" })).toBeTruthy();
+  });
+
   it("generates a vendor report from a ready saved setup", async () => {
     renderWorkspace();
-    await screen.findByRole("table", { name: "Generated reports" });
+    await screen.findByRole("list", { name: "Generated report records" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Generate report" }));
+    fireEvent.click(screen.getByRole("button", { name: "New report" }));
     const dialog = await screen.findByRole("dialog", { name: "Generate report" });
     expect(within(dialog).getAllByText("Vendor portfolio")).not.toHaveLength(0);
     expect(within(dialog).getAllByText("Overview")).not.toHaveLength(0);
@@ -226,18 +244,18 @@ describe("ReportsWorkspace", () => {
       { start_date: "2026-09-01", end_date: "2026-09-30", owner_principal_id: "owner-1" },
     ));
     expect(await screen.findByText(/Vendor portfolio queued/)).toBeTruthy();
-    expect(screen.getAllByRole("row", { name: /Vendor portfolio/ }).some((row) => within(row).queryByText("Queued"))).toBe(true);
+    expect(screen.getByRole("button", { name: /Select Vendor portfolio, Queued/ })).toBeTruthy();
   });
 
   it("explains why a ready report cannot be downloaded", async () => {
     downloadRun.mockRejectedValueOnce(new Error("Report download access is not assigned to your account."));
     renderWorkspace();
 
-    const table = await screen.findByRole("table", { name: "Generated reports" });
-    const vendorRow = within(table).getByRole("row", { name: /Vendor portfolio/ });
-    fireEvent.click(within(vendorRow).getByRole("button", { name: "Download" }));
+    await screen.findByRole("list", { name: "Generated report records" });
+    fireEvent.click(within(screen.getByRole("complementary", { name: "Selected report" })).getByRole("button", { name: "Download report" }));
 
     expect(await screen.findByText("Report download access is not assigned to your account.")).toBeTruthy();
+    expect(downloadRun).toHaveBeenCalledExactlyOnceWith(readyRun.id);
   });
 
   it("keeps generated report history usable when saved setups fail to load", async () => {
@@ -245,11 +263,11 @@ describe("ReportsWorkspace", () => {
 
     renderWorkspace();
 
-    const table = await screen.findByRole("table", { name: "Generated reports" });
-    expect(within(table).getByRole("row", { name: /Vendor Portfolio/i })).toBeTruthy();
+    const records = await screen.findByRole("list", { name: "Generated report records" });
+    expect(within(records).getByRole("button", { name: /Select Vendor Portfolio, Ready/i })).toBeTruthy();
     expect(screen.getByText(/Saved setups unavailable/i)).toBeTruthy();
     expect(screen.queryByText(/Generated reports could not be loaded/i)).toBeNull();
-    expect(screen.getByRole("button", { name: "Generate report" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "New report" })).toHaveProperty("disabled", true);
   });
 
   it("loads older history pages without duplicating runs already in the library", async () => {
@@ -264,16 +282,17 @@ describe("ReportsWorkspace", () => {
       .mockResolvedValueOnce({ items: [readyRun, olderRun] });
 
     renderWorkspace();
-    const table = await screen.findByRole("table", { name: "Generated reports" });
-    expect(screen.getByText("2 loaded · More available")).toBeTruthy();
+    const records = await screen.findByRole("list", { name: "Generated report records" });
+    expect(screen.getByText("2 matching · 2 loaded · More available")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Load older reports" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Load older reports" }));
     await waitFor(() => expect(loadRunPage).toHaveBeenLastCalledWith({ limit: 50, cursor: "older-page" }));
 
-    const vendorRows = within(table).getAllByRole("row", { name: /Vendor portfolio/ });
-    expect(vendorRows).toHaveLength(2);
-    expect(screen.getByText("3 loaded")).toBeTruthy();
+    const vendorRecords = within(records).getAllByRole("button", { name: /Select Vendor portfolio/ });
+    expect(vendorRecords).toHaveLength(2);
+    expect(within(records).getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.getByText("3 matching · 3 loaded")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Load older reports" })).toBeNull();
   });
 
@@ -286,8 +305,8 @@ describe("ReportsWorkspace", () => {
     };
     loadRunPage.mockResolvedValueOnce({ items: [run] });
     renderWorkspace();
-    const table = await screen.findByRole("table", { name: "Generated reports" });
-    fireEvent.click(within(table).getByRole("button", { name: /View for Vendor portfolio/ }));
+    await screen.findByRole("list", { name: "Generated report records" });
+    fireEvent.click(within(screen.getByRole("complementary", { name: "Selected report" })).getByRole("button", { name: "View report details" }));
     const dialog = await screen.findByRole("dialog", { name: "Report details" });
     const source = within(dialog).getByRole("region", { name: "Source snapshot" });
     expect(within(source).getByText("Population complete")).toBeTruthy();
@@ -299,9 +318,8 @@ describe("ReportsWorkspace", () => {
 
   it("shows concise report details from the central library", async () => {
     renderWorkspace();
-    const table = await screen.findByRole("table", { name: "Generated reports" });
-    const vendorRow = within(table).getByRole("row", { name: /Vendor portfolio/ });
-    fireEvent.click(within(vendorRow).getByRole("button", { name: /View for Vendor portfolio/ }));
+    await screen.findByRole("list", { name: "Generated report records" });
+    fireEvent.click(within(screen.getByRole("complementary", { name: "Selected report" })).getByRole("button", { name: "View report details" }));
 
     const dialog = await screen.findByRole("dialog", { name: "Report details" });
     expect(within(dialog).getByRole("heading", { name: "Vendor portfolio" })).toBeTruthy();
@@ -311,5 +329,41 @@ describe("ReportsWorkspace", () => {
     expect(within(source).getByText("2")).toBeTruthy();
     expect(within(dialog).getByText("XLSX")).toBeTruthy();
     expect(within(dialog).queryByText("vendor-relationship-report.v1")).toBeNull();
+  });
+
+  it("counts only downloadable files as ready and disables expired downloads", async () => {
+    loadRunPage.mockResolvedValueOnce({ items: [
+      readyRun,
+      { ...readyRun, id: "run-expired", expires_at: "2000-01-01T00:00:00Z" },
+      { ...readyRun, id: "run-unknown-expiry", expires_at: "not-a-date" },
+    ] });
+    renderWorkspace("overview");
+    expect(await screen.findByRole("button", { name: /Reports ready: 1/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
+    const records = await screen.findByRole("list", { name: "Generated report records" });
+    fireEvent.click(within(records).getByRole("button", { name: /Select Vendor portfolio, Expired/ }));
+    const inspector = screen.getByRole("complementary", { name: "Selected report" });
+    const expiredDownload = within(inspector).getByRole("button", { name: "File expired" });
+    expect(expiredDownload).toHaveProperty("disabled", true);
+    fireEvent.click(expiredDownload);
+    expect(downloadRun).not.toHaveBeenCalled();
+    expect(within(inspector).getByText("File expired. Generate a new report to download.")).toBeTruthy();
+  });
+
+  it("refreshes the metric basis and report history from the Overview", async () => {
+    renderWorkspace("overview");
+    const context = screen.getByRole("complementary", { name: "Reporting context" });
+    await within(context).findByText("2026-07-01 – 2026-09-28");
+    await screen.findByRole("table", { name: "Recent reports" });
+    loadMetricBasis.mockResolvedValueOnce({
+      scope_kind: "LEGAL_ENTITY", scope_id: "entity-1",
+      reporting_period: { start_date: "2026-07-02", end_date: "2026-09-29" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    expect(await within(context).findByText("2026-07-02 – 2026-09-29")).toBeTruthy();
+    expect(loadMetricBasis).toHaveBeenCalledTimes(2);
+    expect(loadRunPage).toHaveBeenCalledTimes(2);
+    expect(loadDefinitions).toHaveBeenCalledTimes(2);
+    expect(within(context).queryByText("2026-07-01 – 2026-09-28")).toBeNull();
   });
 });

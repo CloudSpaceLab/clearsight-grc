@@ -58,7 +58,7 @@ export function formatLossMoney(minor: number, currency: string) {
   return formatter.format(minor / (10 ** digits));
 }
 
-export function formatLossMoneyExact(minorUnits: string | bigint, currency: string) {
+export function formatLossMoneyExact(minorUnits: string | bigint, currency: string, locale?: string) {
   const normalized = currency.trim().toUpperCase();
   const digits = lossCurrencyFractionDigits(normalized);
   if (digits === undefined) return `${minorUnits} ${normalized || "currency"}`;
@@ -76,7 +76,7 @@ export function formatLossMoneyExact(minorUnits: string | bigint, currency: stri
   const whole = absolute / scale;
   const fraction = absolute % scale;
 
-  const formatter = new Intl.NumberFormat(undefined, {
+  const formatter = new Intl.NumberFormat(locale, {
     style: "currency",
     currency: normalized,
     currencyDisplay: "narrowSymbol",
@@ -92,6 +92,37 @@ export function formatLossMoneyExact(minorUnits: string | bigint, currency: stri
     if (part.type === "fraction") return exactFraction;
     return part.value;
   }).join("");
+}
+
+/** Rounded summary text only; exact amounts remain in the loss detail and trend. */
+export function formatLossMoneyCompact(minorUnits: string | bigint, currency: string, locale?: string) {
+  const normalized = currency.trim().toUpperCase();
+  const digits = lossCurrencyFractionDigits(normalized);
+  if (digits === undefined) return formatLossMoneyExact(minorUnits, normalized, locale);
+
+  let minor: bigint;
+  try {
+    minor = typeof minorUnits === "bigint" ? minorUnits : BigInt(minorUnits.trim());
+  } catch {
+    return formatLossMoneyExact(minorUnits, normalized, locale);
+  }
+
+  const formatter = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: normalized,
+    currencyDisplay: "narrowSymbol",
+    notation: "compact",
+    compactDisplay: "short",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  });
+  // Compact units start at thousands; their one-decimal rounding boundaries
+  // are whole major units. Keep integer precision instead of converting money
+  // to Number. When a locale supplies no compact unit, preserve its exact cents.
+  const parts = formatter.formatToParts(minor / (10n ** BigInt(digits)));
+  return parts.some((part) => part.type === "compact")
+    ? parts.map((part) => part.value).join("")
+    : formatLossMoneyExact(minor, normalized, locale);
 }
 
 export function formatLossDate(value: string) {

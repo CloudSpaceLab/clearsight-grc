@@ -36,7 +36,30 @@ const references = [
   { id: "vendor-management", source: "clearsight-vendor-management-designs/vendor-workspace-preview.html", runtime: {} },
   { id: "operational-risk", source: "clearsight-operational-risk-designs/operational-risk-preview.html", runtime: {} },
   { id: "privacy-data", source: "clearsight-privacy-data-designs/privacy-workspace-preview.html", runtime: {} },
-  { id: "reports-insights", source: "clearsight-reports-insights-designs/reports-workspace-preview.html", runtime: {} },
+  {
+    id: "reports-insights",
+    source: "clearsight-reports-insights-designs/reports-workspace-preview.html",
+    sourceTab: "overview",
+    runtime: {
+      "1440x900": "140a-report-overview-light-1440x900.png",
+      "1280x800": "140h-report-overview-light-1280x800.png",
+      "1024x768": "140f-report-overview-light-1024x768.png",
+      "768x900": "140i-report-overview-light-768x900.png",
+      "390x844": "140b-report-overview-light-mobile-390x844.png",
+    },
+  },
+  {
+    id: "reports-library",
+    source: "clearsight-reports-insights-designs/reports-workspace-preview.html",
+    sourceTab: "reports",
+    runtime: {
+      "1440x900": "140-report-library-light-1440x900.png",
+      "1280x800": "141d-report-library-light-1280x800.png",
+      "1024x768": "141f-report-library-light-1024x768.png",
+      "768x900": "141h-report-library-light-768x900.png",
+      "390x844": "141b-report-library-light-mobile-390x844.png",
+    },
+  },
   { id: "work-approvals", source: "clearsight-work-approvals-designs/work-approvals-preview.html", runtime: {} },
   { id: "controls-policies", source: "clearsight-controls-policies-designs/controls-policies-preview.html", runtime: {} },
   { id: "enterprise-setup", source: "clearsight-enterprise-setup-designs/enterprise-setup-preview.html", runtime: {} },
@@ -63,7 +86,9 @@ function digest(value) {
 
 const manifest = JSON.parse(await readFile(path.join(sourceRoot, "MANIFEST.json"), "utf8"));
 const byPath = new Map(manifest.files.map((entry) => [entry.path, entry]));
-const verified = await Promise.all(references.map(async (reference) => {
+const requestedReferences = process.env.UI_EVIDENCE_SCOPE === "reports"
+  ? references.filter((reference) => reference.id.startsWith("reports-")) : references;
+const verified = await Promise.all(requestedReferences.map(async (reference) => {
   const expected = byPath.get(reference.source);
   if (!expected) throw new Error(`Approved source not indexed: ${reference.source}`);
   const absolutePath = path.join(sourceRoot, reference.source);
@@ -97,6 +122,13 @@ try {
         page.on("pageerror", (error) => errors.push(error.message));
         await page.goto(pathToFileURL(reference.absolutePath).href, { waitUntil: "load" });
         await page.evaluate(() => document.fonts?.ready);
+        if (reference.sourceTab) {
+          const tab = page.locator(`[role="tab"][data-tab="${reference.sourceTab}"]`);
+          await tab.click();
+          const panelID = await tab.getAttribute("aria-controls");
+          await page.locator(`[id="${panelID}"]`).waitFor({ state: "visible" });
+          if (await tab.getAttribute("aria-selected") !== "true") throw new Error(`Source tab did not activate: ${reference.id}/${reference.sourceTab}`);
+        }
         const presentation = await page.evaluate(() => ({
           title: document.title,
           heading: document.querySelector("h1")?.textContent?.trim() ?? "",
@@ -110,6 +142,7 @@ try {
           id: reference.id,
           viewport,
           source: reference.source,
+          source_tab: reference.sourceTab ?? null,
           source_sha256: reference.sha256,
           image,
           runtime_capture: reference.runtime[key] ?? null,

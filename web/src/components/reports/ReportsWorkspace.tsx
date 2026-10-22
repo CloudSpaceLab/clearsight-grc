@@ -1,5 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { loadHomeMetrics as loadHomeMetricsRequest } from "../../metricApi";
+import { ReportsOverview } from "./ReportsOverview";
+import { ReportsLibrary } from "./ReportsLibrary";
+import {
+  formatDateTime, humanizeCode, isExpired, isReportAvailable, reportBelongsToArea,
+  reportDatasetLabel, runStatusLabel, runStatusTone, type ReportArea,
+} from "./reportRunPresentation";
 import type { ReportingPeriodQuery } from "../../reportingPeriod";
 import {
   createReportRun as createReportRunRequest,
@@ -8,29 +14,25 @@ import {
   listReportOwnerOptions as listReportOwnerOptionsRequest,
   listReportRunPage as listReportRunPageRequest,
 } from "../../reportingApi";
-import type { ReportDataset, ReportDefinition, ReportOwnerOption, ReportRun } from "../../reportingTypes";
+import type { ReportDefinition, ReportOwnerOption, ReportRun } from "../../reportingTypes";
 import { ReportingPage } from "../ReportingPage";
 import { reportSetupFocus, reportSetupFocusLabel } from "./reportTemplatePresets";
 import {
   Button,
-  DataTable,
   EmptyState,
   FocusedSheet,
   Notice,
-  SearchField,
   SelectField,
   StatusBadge,
   Tabs,
   TextField,
   type DataColumn,
-  type StatusTone,
 } from "../ui";
 import "./reports.css";
 
 const RiskLossInsights = lazy(() => import("../insights/RiskLossInsights").then(({ RiskLossInsights }) => ({ default: RiskLossInsights })));
 
-type WorkspaceTab = "overview" | "explore" | "library" | "templates";
-type ReportArea = "ALL" | "VENDORS" | "PROGRAMS" | "WORK";
+type WorkspaceTab = "overview" | "explore" | "library" | "schedules" | "builder";
 type LoadState = "loading" | "live" | "error";
 
 export type ReportsWorkspaceProps = {
@@ -42,20 +44,15 @@ export type ReportsWorkspaceProps = {
   loadMetricBasis?: typeof loadHomeMetricsRequest;
   onOpenRisk?: (riskID: string) => void;
   onOpenLoss?: (lossID: string) => void;
+  onOpenWork?: () => void;
+  onOpenPrograms?: () => void;
   loadDefinitions?: typeof listReportDefinitionsRequest;
   loadRunPage?: typeof listReportRunPageRequest;
   loadOwners?: typeof listReportOwnerOptionsRequest;
   createRun?: typeof createReportRunRequest;
   downloadRun?: typeof downloadReportRunRequest;
-  onOpenInsights?: () => void;
+  onOpenInsights?: (period?: ReportingPeriodQuery) => void;
 };
-
-const areaOptions = [
-  { id: "ALL", label: "All reports" },
-  { id: "VENDORS", label: "Vendors" },
-  { id: "PROGRAMS", label: "Programs" },
-  { id: "WORK", label: "Work" },
-] as const;
 
 const generationAreaOptions: readonly { id: Exclude<ReportArea, "ALL">; label: string }[] = [
   { id: "VENDORS", label: "Vendors" },
@@ -72,6 +69,8 @@ export function ReportsWorkspace({
   loadMetricBasis = loadHomeMetricsRequest,
   onOpenRisk,
   onOpenLoss,
+  onOpenWork,
+  onOpenPrograms,
   loadDefinitions = listReportDefinitionsRequest,
   loadRunPage = listReportRunPageRequest,
   loadOwners = listReportOwnerOptionsRequest,
@@ -79,7 +78,7 @@ export function ReportsWorkspace({
   downloadRun = downloadReportRunRequest,
   onOpenInsights,
 }: ReportsWorkspaceProps) {
-  const [tab, setTab] = useState<WorkspaceTab>("library");
+  const [tab, setTab] = useState<WorkspaceTab>("overview");
   const [metricPeriod, setMetricPeriod] = useState<ReportingPeriodQuery>();
   const [metricPeriodState, setMetricPeriodState] = useState<"idle" | "loading" | "live" | "unavailable">("idle");
   const [definitions, setDefinitions] = useState<ReportDefinition[]>([]);
@@ -142,7 +141,7 @@ export function ReportsWorkspace({
   useEffect(() => {
     let current = true;
     setMetricPeriod(undefined);
-    if (tab !== "explore" || !scopeAuthorized) {
+    if ((tab !== "explore" && tab !== "overview") || !scopeAuthorized) {
       setMetricPeriodState("idle");
       return;
     }
@@ -165,7 +164,7 @@ export function ReportsWorkspace({
       if (current) setMetricPeriodState("unavailable");
     });
     return () => { current = false; };
-  }, [tab, scopeAuthorized, legalEntityID, organizationScopeID, loadMetricBasis]);
+  }, [tab, scopeAuthorized, legalEntityID, organizationScopeID, loadMetricBasis, refreshKey]);
 
   const definitionsByID = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -218,27 +217,7 @@ export function ReportsWorkspace({
 
   const dateRangeInvalid = Boolean(generationStartDate && generationEndDate && generationStartDate > generationEndDate);
 
-  const filteredRuns = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return [...runs]
-      .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))
-      .filter((run) => area === "ALL" || reportBelongsToArea(run.dataset, area))
-      .filter((run) => {
-        if (!normalized) return true;
-        const definition = definitionsByID.get(run.definition_id);
-        return [
-          definition?.name,
-          run.definition_code,
-          reportDatasetLabel(run.dataset),
-          run.status,
-          run.format,
-        ].some((value) => value?.toLowerCase().includes(normalized));
-      });
-  }, [area, definitionsByID, query, runs]);
-
-  const readyCount = runs.filter((run) => run.status === "READY" && !isExpired(run)).length;
   const runningCount = runs.filter((run) => run.status === "QUEUED" || run.status === "RUNNING").length;
-  const failedCount = runs.filter((run) => run.status === "FAILED").length;
 
   useEffect(() => {
     if (tab !== "library" || runState !== "live" || runningCount === 0) return;
@@ -288,7 +267,7 @@ export function ReportsWorkspace({
 
   function openTemplates() {
     setGenerateOpen(false);
-    setTab("templates");
+    setTab("builder");
   }
 
   async function generateReport() {
@@ -318,7 +297,7 @@ export function ReportsWorkspace({
   }
 
   async function download(run: ReportRun) {
-    if (run.status !== "READY" || isExpired(run)) return;
+    if (!isReportAvailable(run)) return;
     setCommand("downloading");
     setCommandError(undefined);
     try {
@@ -343,12 +322,6 @@ export function ReportsWorkspace({
       accessibleText: (run) => definitionsByID.get(run.definition_id)?.name || humanizeCode(run.definition_code),
     },
     {
-      id: "area",
-      header: "Area",
-      render: (run) => reportDatasetLabel(run.dataset),
-      accessibleText: (run) => reportDatasetLabel(run.dataset),
-    },
-    {
       id: "status",
       header: "Status",
       kind: "status",
@@ -362,41 +335,15 @@ export function ReportsWorkspace({
       accessibleText: (run) => formatDateTime(run.completed_at || run.created_at),
     },
     {
-      id: "rows",
-      header: "Rows",
-      kind: "number",
-      render: (run) => run.status === "READY" ? run.row_count.toLocaleString() : "—",
-      accessibleText: (run) => run.status === "READY" ? String(run.row_count) : "Not available",
-    },
-    {
-      id: "format",
-      header: "Format",
-      render: (run) => run.format,
-      accessibleText: (run) => run.format,
-    },
-    {
       id: "file",
       header: "File",
       kind: "action",
-      render: (run) => run.status === "READY" && !isExpired(run)
+      render: (run) => isReportAvailable(run)
         ? <Button variant="secondary" size="compact" isLoading={command === "downloading"} onPress={() => void download(run)}>Download</Button>
-        : <span className="reports-library__unavailable">{isExpired(run) ? "Expired" : "Not ready"}</span>,
-      accessibleText: (run) => run.status === "READY" && !isExpired(run) ? "Download available" : isExpired(run) ? "Expired" : "Not ready",
+        : <span className="reports-library__unavailable">{run.status === "READY" ? runStatusLabel(run) : "Not ready"}</span>,
+      accessibleText: (run) => isReportAvailable(run) ? "Download available" : run.status === "READY" ? runStatusLabel(run) : "Not ready",
     },
   ];
-
-  // Loaded runs are not a complete tenant-wide historical population.
-  const recentRuns = [...runs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 5);
-  const statusPanel = <section className="reports-summary" aria-label="Report library summary">
-    <div className="reports-summary__heading">
-      <strong>Loaded report status</strong>
-      <span>{runs.length} loaded{nextCursor ? " · More available" : ""}</span>
-    </div>
-    <ReportSummaryMetric label="Loaded" value={runs.length} />
-    <ReportSummaryMetric label="Available" value={readyCount} />
-    <ReportSummaryMetric label="In progress" value={runningCount} tone={runningCount ? "info" : "neutral"} />
-    <ReportSummaryMetric label="Failed" value={failedCount} tone={failedCount ? "error" : "neutral"} />
-  </section>;
 
   return <section className="reports-workspace" aria-labelledby="reports-heading">
     <header className="reports-workspace__header cs-workspace-header">
@@ -404,46 +351,46 @@ export function ReportsWorkspace({
         <span className="eyebrow">Reporting · {legalEntityName || organizationName || "Current legal entity"}</span>
         <h1 id="reports-heading">Reports &amp; insights</h1>
       </div>
-      {tab !== "templates" && <div className="reports-workspace__actions">
+      <div className="reports-workspace__actions">
         <Button variant="secondary" onPress={refresh} isLoading={runState === "loading" || definitionState === "loading"}>Refresh</Button>
-        <Button variant="primary" isDisabled={definitionState === "error"} onPress={openGenerate}>Generate report</Button>
-      </div>}
+        <Button variant="primary" isDisabled={definitionState === "error"} onPress={openGenerate}>New report</Button>
+      </div>
     </header>
 
     <Tabs
       ariaLabel="Reports workspace"
-      items={[{ id: "overview", label: "Overview" }, { id: "explore", label: "Explore" }, { id: "library", label: "Reports" }, { id: "templates", label: "Saved setups" }]}
+      items={[{ id: "overview", label: "Overview" }, { id: "explore", label: "Explore" }, { id: "library", label: "Reports" }, { id: "schedules", label: "Schedules" }, { id: "builder", label: "Build report" }]}
       selectedKey={tab}
       onSelectionChange={setTab}
     >
       {(activeTab) => activeTab === "overview"
-        ? <div className="reports-overview">
-          {runState === "live" ? statusPanel : <Notice tone="warning">Report status totals unavailable until report runs load.</Notice>}
-          {runState === "error" && <Notice tone="error"><span>{runError}</span><Button variant="secondary" size="compact" onPress={refresh}>Retry reports</Button></Notice>}
-          <section className="reports-overview__recent" aria-labelledby="reports-recent-heading">
-            <header>
-              <div><h2 id="reports-recent-heading">Recent reports</h2>
-                <p>Latest {recentRuns.length} loaded reports{nextCursor ? " · More available" : ""}</p>
-              </div>
-              <div className="reports-overview__actions">
-                <Button variant="quiet" onPress={() => setTab("explore")}>Explore insights</Button>
-                <Button variant="secondary" onPress={() => setTab("library")}>View reports</Button>
-              </div>
-            </header>
-            {runState === "loading" && <p role="status">Loading recent reports…</p>}
-            {runState === "live" && recentRuns.length === 0 && <EmptyState
-              population="generated reports" title="No reports yet" description="Generate a report to get started."/>}
-            {recentRuns.length > 0 && <DataTable ariaLabel="Recent reports" rows={recentRuns}
-              rowKey={(run) => run.id}
-              rowName={(run) => definitionsByID.get(run.definition_id)?.name || humanizeCode(run.definition_code)}
-              columns={columns} onRowAction={setSelectedRun} rowActionLabel="View" isLoading={runState === "loading"}/>}
-          </section>
-        </div>
+        ? <ReportsOverview
+            legalEntityName={legalEntityName}
+            metricPeriod={metricPeriod}
+            metricState={metricPeriodState}
+            refreshKey={refreshKey}
+            scopeAuthorized={scopeAuthorized}
+            organizationScopeID={organizationScopeID}
+            legalEntityID={legalEntityID}
+            runState={runState}
+            runs={runs}
+            nextCursor={nextCursor}
+            definitionsByID={definitionsByID}
+            definitionState={definitionState}
+            definitionCount={definitions.length}
+            columns={columns}
+            onSelectRun={setSelectedRun}
+            onViewReports={() => setTab("library")}
+            onOpenExplore={() => setTab("explore")}
+            onOpenBuilder={() => setTab("builder")}
+            onOpenWork={onOpenWork}
+            onOpenPrograms={onOpenPrograms}
+          />
         : activeTab === "explore"
         ? <section className="reports-explore" aria-label="Risk and loss reporting">
           <header className="reports-overview__recent">
             <h2>Risk and loss analysis</h2>
-            {onOpenInsights && <Button variant="secondary" onPress={onOpenInsights}>Open Insights workspace</Button>}
+            {onOpenInsights && <Button variant="secondary" onPress={() => onOpenInsights?.(metricPeriod)}>Open Insights workspace</Button>}
           </header>
           {!scopeAuthorized && <Notice tone="warning">Select an authorized organization scope to review risk and loss data.</Notice>}
           {scopeAuthorized && metricPeriodState === "loading" && <p role="status">Loading reporting period…</p>}
@@ -453,48 +400,33 @@ export function ReportsWorkspace({
               onOpenRisk={onOpenRisk} onOpenLoss={onOpenLoss}/>
           </Suspense>}
         </section>
+        : activeTab === "schedules"
+        ? <section className="reports-v2-unavailable" aria-label="Report schedules">
+            <h2>Schedules</h2>
+            <Notice tone="warning">Recurring report delivery is unavailable. Generated reports remain accessible in Reports.</Notice>
+            <Button variant="secondary" onPress={() => setTab("library")}>View reports</Button>
+          </section>
         : activeTab === "library"
         ? <div className="reports-library">
-          {runState === "live" ? statusPanel : <Notice tone="warning">Report status totals unavailable until report runs load.</Notice>}
-
-          {commandMessage && <Notice tone="success"><span>{commandMessage}</span></Notice>}
-          {commandError && <Notice tone="error"><span>{commandError}</span></Notice>}
-          {definitionState === "error" && <Notice tone="warning"><span>{definitionError || "Saved setups unavailable. Reports remain available."}</span></Notice>}
-
-          <div className="reports-library__toolbar">
-            <SearchField label="Search generated reports" value={query} onChange={setQuery} placeholder="Search reports" isLoading={runState === "loading"} />
-            <SelectField label="Area" value={area} placeholder="All reports" options={areaOptions} allowsEmpty={false} onChange={(value) => setArea((value || "ALL") as ReportArea)} />
-          </div>
-
-          {runState === "error" && <Notice tone="error"><span>{runError}</span> <Button variant="secondary" size="compact" onPress={refresh}>Retry</Button></Notice>}
-          {runState === "loading" && runs.length === 0 && <p className="reports-library__loading" role="status">Loading reports…</p>}
-          {runState === "live" && filteredRuns.length === 0 && <EmptyState
-            population={area === "ALL" ? "generated reports" : reportDatasetLabel(area)}
-            title={runs.length ? "No matches" : "No reports yet"}
-            description={runs.length ? "Change filters or search." : "Generate a report to get started."}
-          />}
-          {filteredRuns.length > 0 && <DataTable
-            ariaLabel="Generated reports"
-            rows={filteredRuns}
-            rowKey={(run) => run.id}
-            rowName={(run) => definitionsByID.get(run.definition_id)?.name || humanizeCode(run.definition_code)}
-            columns={columns}
-            onRowAction={setSelectedRun}
-            rowActionLabel="View"
-            isLoading={runState === "loading"}
-          />}
-          {nextCursor && <div className="reports-library__history-footer">
-            <Button variant="secondary" isLoading={loadingOlder} onPress={() => void loadOlderReports()}>Load older reports</Button>
-          </div>}
+          <p className="reports-library__scope">Reports for {legalEntityName || "the current legal entity"}</p>
+          {commandMessage && <Notice tone="success">{commandMessage}</Notice>}
+          {commandError && <Notice tone="error">{commandError}</Notice>}
+          {definitionState === "error" && <Notice tone="warning">{definitionError}</Notice>}
+          <ReportsLibrary runs={runs} definitionsByID={definitionsByID} state={runState} error={runError}
+            query={query} onQueryChange={setQuery} area={area} onAreaChange={setArea}
+            hasMore={Boolean(nextCursor)} loadingMore={loadingOlder} downloading={command === "downloading"}
+            scopeLabel={legalEntityName} onLoadMore={() => void loadOlderReports()} onRetry={refresh}
+            onInspect={setSelectedRun} onDownload={(run) => void download(run)}/>
         </div>
-        : <div className="reports-templates">
+        : <section className="reports-v2-builder" aria-label="Build report">
+          <header><h2>Build report</h2><p>Choose or create a report setup.</p></header>
           <ReportingPage
             embedded
             organizationName={organizationName}
             legalEntityName={legalEntityName}
             onBack={() => setTab("library")}
           />
-        </div>
+        </section>
       }
     </Tabs>
 
@@ -577,13 +509,6 @@ export function ReportsWorkspace({
   </section>;
 }
 
-function ReportSummaryMetric({ label, value, tone = "neutral" }: { label: string; value: number; tone?: StatusTone }) {
-  return <div className="reports-summary__metric" data-tone={tone}>
-    <span>{label}</span>
-    <strong>{value.toLocaleString()}</strong>
-  </div>;
-}
-
 function ReportTemplateSummary({ definition }: { definition?: ReportDefinition }) {
   if (!definition) return null;
   return <dl className="reports-generate__summary">
@@ -593,12 +518,12 @@ function ReportTemplateSummary({ definition }: { definition?: ReportDefinition }
 }
 
 function ReportRunDetails({ run, definition, downloading, onDownload }: { run: ReportRun; definition?: ReportDefinition; downloading: boolean; onDownload: () => void }) {
-  const available = run.status === "READY" && !isExpired(run);
+  const available = isReportAvailable(run);
   return <div className="report-run-details">
     <div>
       <span className="eyebrow">{reportDatasetLabel(run.dataset)}</span>
       <h2>{definition?.name || humanizeCode(run.definition_code)}</h2>
-          </div>
+    </div>
     <StatusBadge tone={runStatusTone(run)}>{runStatusLabel(run)}</StatusBadge>
     <dl>
       <div><dt>Requested</dt><dd>{formatDateTime(run.created_at)}</dd></div>
@@ -633,7 +558,7 @@ function ReportRunDetails({ run, definition, downloading, onDownload }: { run: R
     {run.failure_code && <Notice tone="error"><span>Generation stopped: {humanizeCode(run.failure_code)}</span></Notice>}
     <div className="report-run-details__footer">
       <Button variant="secondary" isDisabled={!available} isLoading={downloading} onPress={onDownload}>
-        {isExpired(run) ? "File expired" : "Download report"}
+        {run.status === "READY" && isExpired(run) ? "File expired" : "Download report"}
       </Button>
     </div>
   </div>;
@@ -646,62 +571,6 @@ function mergeReportRuns(current: ReportRun[], incoming: ReportRun[]) {
     const dateDifference = Date.parse(right.created_at) - Date.parse(left.created_at);
     return dateDifference || right.id.localeCompare(left.id);
   });
-}
-
-function reportDatasetLabel(dataset: ReportDataset | ReportArea) {
-  switch (dataset) {
-    case "VENDORS": return "Vendors";
-    case "PROGRAMS": return "Programs";
-    case "MATTER_BOARD_BRIEF": return "Board brief";
-    case "WORK":
-    case "MATTERS":
-    case "MATTER_EXCEPTIONS": return "Work";
-    case "PROCESSING_ACTIVITIES":
-    case "PROCESSING_ACTIVITY_EXCEPTIONS": return "Processing activities";
-    default: return "All reports";
-  }
-}
-
-function reportBelongsToArea(dataset: ReportDataset, area: Exclude<ReportArea, "ALL">) {
-  if (area === "WORK") return dataset === "MATTERS" || dataset === "MATTER_EXCEPTIONS" || dataset === "MATTER_BOARD_BRIEF";
-  return dataset === area;
-}
-
-function runStatusLabel(run: ReportRun): string {
-  if (run.status === "READY" && isExpired(run)) return "Expired";
-  switch (run.status) {
-    case "QUEUED": return "Queued";
-    case "RUNNING": return "Generating";
-    case "READY": return "Ready";
-    case "FAILED": return "Failed";
-    default: return "Unknown";
-  }
-}
-
-function runStatusTone(run: ReportRun): StatusTone {
-  if (run.status === "READY" && isExpired(run)) return "warning";
-  switch (run.status) {
-    case "READY": return "success";
-    case "QUEUED":
-    case "RUNNING": return "info";
-    case "FAILED": return "error";
-    default: return "unknown";
-  }
-}
-
-function isExpired(run: ReportRun) {
-  return Date.parse(run.expires_at) <= Date.now();
-}
-
-function formatDateTime(value?: string) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
-}
-
-function humanizeCode(value: string) {
-  return value.replaceAll("_", " ").replaceAll("-", " ").toLowerCase().replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function reportFilename(run: ReportRun) {

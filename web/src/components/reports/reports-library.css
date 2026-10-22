@@ -1,0 +1,81 @@
+/* Approved Reports library: selectable records and one persistent inspector. */
+.reports-v2-library {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 315px;
+  gap: var(--cs-space-group);
+  align-items: start;
+  min-width: 0;
+}
+
+.reports-v2-library__register,
+.reports-v2-library__inspector {
+  min-width: 0;
+  padding: var(--cs-primitive-space-4);
+  border: var(--cs-surface-border-width) solid var(--cs-border-default);
+  border-radius: var(--cs-surface-radius);
+  background: var(--cs-bg-surface-1);
+  box-shadow: var(--cs-primitive-shadow-1);
+}
+
+.reports-v2-library__register {
+  display: grid;
+  gap: var(--cs-space-group);
+  container: report-register / inline-size;
+}
+
+.reports-v2-library__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--cs-space-inline);
+}
+
+.reports-v2-library h2 { margin: 0; color: var(--cs-text-strong); font-size: var(--cs-primitive-font-size-18); }
+.reports-v2-library__heading > span { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.reports-v2-library__filters { display: grid; grid-template-columns: minmax(0, 1fr) 140px 140px; gap: var(--cs-space-inline); align-items: end; }
+.reports-v2-library__filters > * { min-width: 0; }
+.reports-v2-library__records { display: grid; gap: var(--cs-space-inline); margin: 0; padding: 0; list-style: none; }
+.reports-v2-library__records > li { min-width: 0; }
+.reports-v2-library__records .cs-selectable-record { --cs-action-card-padding: var(--cs-primitive-space-3); min-block-size: 74px; }
+
+.reports-v2-library__file-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--cs-primitive-radius-10);
+  background: var(--cs-bg-surface-2);
+  color: var(--cs-accent);
+}
+
+.reports-v2-library__pagination { display: flex; justify-content: center; }
+.reports-v2-library__inspector { position: sticky; top: var(--cs-space-group); display: grid; gap: var(--cs-space-group); }
+.reports-v2-library__inspector > .cs-status-badge { justify-self: start; }
+.reports-v2-library__identity { display: flex; gap: var(--cs-space-inline); align-items: center; }
+.reports-v2-library__identity > div { min-width: 0; }
+.reports-v2-library__identity > span { flex-shrink: 0; }
+.reports-v2-library__identity h2 { overflow-wrap: anywhere; }
+.reports-v2-library__identity p { margin: var(--cs-primitive-space-1) 0 0; font-size: var(--cs-font-size-caption); color: var(--cs-text-muted); }
+.reports-v2-library__facts { display: grid; margin: 0; }
+.reports-v2-library__facts > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--cs-space-inline); padding-block: var(--cs-primitive-space-3); border-top: var(--cs-surface-border-width) solid var(--cs-border-default); font-size: var(--cs-font-size-caption); }
+.reports-v2-library__facts dt { flex-shrink: 0; color: var(--cs-text-muted); }
+.reports-v2-library__facts dd { margin: 0; text-align: end; color: var(--cs-text-primary); overflow-wrap: anywhere; }
+.reports-v2-library__file-state { margin: 0; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); line-height: var(--cs-leading-body); }
+.reports-v2-library__actions { display: grid; gap: var(--cs-space-inline); }
+
+@container report-register (max-width: 620px) {
+  .reports-v2-library__filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reports-v2-library__filters > .cs-search-field { grid-column: 1 / -1; }
+}
+
+@media (max-width: 700px) {
+  .reports-v2-library { grid-template-columns: minmax(0, 1fr); }
+  .reports-v2-library__inspector { position: static; grid-row: 1; gap: var(--cs-space-inline); }
+  .reports-v2-library__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--cs-space-inline); }
+  .reports-v2-library__facts > div { display: grid; gap: var(--cs-primitive-space-1); padding-block: var(--cs-space-inline); }
+  .reports-v2-library__facts dd { text-align: start; }
+  .reports-v2-library__facts > div:nth-child(2) { grid-column: 1 / -1; grid-row: 1; }
+  .reports-v2-library__register,
+  .reports-v2-library__inspector { padding: var(--cs-primitive-space-3); }
+}

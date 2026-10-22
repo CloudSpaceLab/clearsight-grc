@@ -52,6 +52,8 @@
     "src/components/forms/filters/FilterPicker.tsx",
     "src/components/forms/filters/FormStatusScopes.tsx",
     "src/components/oversight/OversightWorkspace.tsx",
+    "src/components/reports/ReportsLibrary.tsx",
+    "src/components/reports/ReportsOverview.tsx",
     "src/components/VendorDueDiligence.tsx",
     "src/components/VendorWorkPanel.tsx",
     "src/components/EmptyState.tsx"
@@ -76,7 +78,9 @@
     "src/document-import.css",
     "src/components/documents/documents.css",
     "src/components/vendor-evidence-checklist.css",
-    "src/oversight.css"
+    "src/oversight.css",
+    "src/components/reports/reports-library.css",
+    "src/components/reports/reports-overview.css"
   ],
   "nativeControlExceptions": [
     {
@@ -130,6 +134,13 @@
       "unknown",
       "selected",
       "drill"
+    ],
+    "RankedBarList": [
+      "stacked",
+      "inline",
+      "static",
+      "authorized-row-action",
+      "supporting-context"
     ],
     "Button": [
       "primary",
