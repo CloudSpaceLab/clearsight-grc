@@ -167,3 +167,25 @@ it("shows a money Indicator without converting it to concern points", async () =
   const table = await screen.findByRole("table", { name: "Monthly operational loss observation history" });
   expect(within(table).getByText("Outside limit")).toBeTruthy();
 });
+
+it.each(["default", "inspector"] as const)("preserves exact Program and intervention actions in the %s presentation", async (presentation) => {
+  const loadResults = vi.fn().mockResolvedValue(history);
+  const onOpenProgram = vi.fn();
+  const onOpenMatter = vi.fn();
+  const withIntervention: RiskIndicatorDetail = {
+    ...indicator,
+    intervention: { matter_id: "matter-7", reference: "INT-7", status: "OPEN", priority: 1, created_at: "2026-10-05T10:05:00Z" },
+  };
+  render(<IndicatorDetail indicator={withIntervention} presentation={presentation} loadResults={loadResults} onOpenProgram={onOpenProgram} onOpenMatter={onOpenMatter}/>);
+  const programAction = screen.getByRole("button", { name: "Open Program" });
+  fireEvent.click(programAction);
+  fireEvent.click(screen.getByRole("button", { name: "Open intervention" }));
+  expect(onOpenProgram).toHaveBeenCalledExactlyOnceWith("program-1");
+  expect(onOpenMatter).toHaveBeenCalledExactlyOnceWith("matter-7");
+  const businessFacts = screen.getByText("Business period").closest("dl")!;
+  const actionBeforeFacts = Boolean(programAction.compareDocumentPosition(businessFacts) & Node.DOCUMENT_POSITION_FOLLOWING);
+  expect(actionBeforeFacts).toBe(presentation === "inspector");
+  const historyTable = await screen.findByRole("table", { name: "Mobile success rate observation history" });
+  expect(historyTable.closest(".cs-data-table")?.getAttribute("data-responsive-to")).toBe(presentation === "inspector" ? "container" : "viewport");
+  expect(within(historyTable).getByText("99.80%")).toBeTruthy();
+});

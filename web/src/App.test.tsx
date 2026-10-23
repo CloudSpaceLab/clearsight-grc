@@ -65,13 +65,16 @@ vi.mock("./components/VendorsWorkspace", () => ({
   VendorsWorkspace: ({ onOpenRequest, guideIntent, targetID }: { onOpenRequest?: (requestID: string) => void; guideIntent?: { type: string }; targetID?: string }) => <><output data-testid="vendor-guide-intent">{guideIntent?.type}</output><output data-testid="vendor-target">{targetID}</output><button type="button" onClick={() => onOpenRequest?.("request-vendor-1")}>Review vendor request</button></>,
 }));
 vi.mock("./components/risks/RisksWorkspace", () => ({
-  RisksWorkspace: ({ targetID, organizationScopeID }: { targetID?: string; organizationScopeID?: string }) => <section><h1>Risks</h1><output data-testid="risk-target">{targetID}</output><output data-testid="risk-scope">{organizationScopeID}</output></section>,
+  RisksWorkspace: ({ targetID, organizationScopeID, embedded }: ComponentProps<typeof import("./components/risks/RisksWorkspace")["RisksWorkspace"]>) => <section>{embedded ? <h2>Risks</h2> : <h1>Risks</h1>}<output data-testid="risk-target">{targetID}</output><output data-testid="risk-scope">{organizationScopeID}</output></section>,
+}));
+vi.mock("./components/rcsa/RCSAWorkspace", () => ({
+  RCSAWorkspace: ({ embedded, targetID }: ComponentProps<typeof import("./components/rcsa/RCSAWorkspace")["RCSAWorkspace"]>) => <section>{embedded ? <h2>Review cycles</h2> : <h1>RCSA cycles</h1>}<output data-testid="rcsa-target">{targetID}</output></section>,
 }));
 vi.mock("./components/oversight/GroupOversightWorkspace", () => ({
   GroupOversightWorkspace: ({ onOpenLegalEntity }: { onOpenLegalEntity: (legalEntityID: string) => void }) => <section><h1>Group posture</h1><button type="button" onClick={() => onOpenLegalEntity("entity-ng-uuid")}>Open current OpCo</button></section>,
 }));
 vi.mock("./components/losses/LossesWorkspace", () => ({
-  LossesWorkspace: ({ targetID, organizationScopeID, organizationScopeName }: { targetID?: string; organizationScopeID?: string; organizationScopeName?: string }) => <section><h1>Losses</h1><output data-testid="loss-target">{targetID}</output><output data-testid="loss-scope">{organizationScopeID}:{organizationScopeName}</output></section>,
+  LossesWorkspace: ({ targetID, organizationScopeID, organizationScopeName, embedded }: ComponentProps<typeof import("./components/losses/LossesWorkspace")["LossesWorkspace"]>) => <section>{embedded ? <h2>Losses</h2> : <h1>Losses</h1>}<output data-testid="loss-target">{targetID}</output><output data-testid="loss-scope">{organizationScopeID}:{organizationScopeName}</output></section>,
 }));
 vi.mock("./components/reports/ReportsWorkspace", () => ({
   ReportsWorkspace: ({ legalEntityID, organizationScopeID, onOpenInsights }: {
@@ -102,12 +105,10 @@ vi.mock("./components/notifications/NotificationsWorkspace", async () => {
   } };
 });
 vi.mock("./components/insights/InsightsWorkspace", () => ({
-  InsightsWorkspace: ({ organizationScopeID, riskLossPeriod, scopeAuthorized, onOpenReports }: {
-    organizationScopeID?: string; riskLossPeriod?: ReportingPeriodQuery; scopeAuthorized?: boolean; onOpenReports?: () => void;
-  }) => <section><h1>Insights</h1><output data-testid="insights-scope">{organizationScopeID}</output>
+  InsightsWorkspace: ({ organizationScopeID, riskLossPeriod, scopeAuthorized, onOpenReports, embedded }: ComponentProps<typeof import("./components/insights/InsightsWorkspace")["InsightsWorkspace"]>) => <section>{embedded ? <h2>Key indicators</h2> : <h1>Insights</h1>}<output data-testid="insights-scope">{organizationScopeID}</output>
     <output data-testid="insights-period">{riskLossPeriod?.start_date}:{riskLossPeriod?.end_date}</output>
     <output data-testid="insights-scope-authorized">{String(scopeAuthorized)}</output>
-    <button onClick={onOpenReports}>View reports</button>
+    {!embedded && <button onClick={onOpenReports}>View reports</button>}
   </section>,
 }));
 vi.mock("./captureApi", () => ({
@@ -705,6 +706,52 @@ describe("organization scope navigation persistence", () => {
   });
 });
 
+describe("Risk and loss local navigation", () => {
+  it("keeps one local menu while navigating all four real collection routes", async () => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    window.history.replaceState(null, "", "#risks");
+    render(<App/>);
+    await screen.findByRole("heading", { name: "Risk & Losses", level: 1 });
+    const menu = screen.getByRole("tablist", { name: "Risk and loss sections" });
+    expect(within(menu).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Risks", "RCSA", "Key indicators", "Loss events"]);
+
+    for (const [label, hash, heading] of [
+      ["RCSA", "#rcsa", "Review cycles"],
+      ["Key indicators", "#insights", "Key indicators"],
+      ["Loss events", "#losses", "Losses"],
+      ["Risks", "#risks", "Risks"],
+    ]) {
+      fireEvent.click(within(menu).getByRole("tab", { name: label! }));
+      expect(await screen.findByRole("heading", { name: heading!, level: 2 })).toBeTruthy();
+      expect(window.location.hash).toBe(hash);
+      expect(screen.getByRole("tablist", { name: "Risk and loss sections" })).toBe(menu);
+      expect(within(menu).getByRole("tab", { name: label!, selected: true })).toBeTruthy();
+      expect(primaryLink("Risk & Losses").getAttribute("aria-current")).toBe("page");
+      expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+      expect(screen.getAllByRole("button", { name: "View reports" })).toHaveLength(1);
+    }
+  });
+
+  it.each([
+    ["risks", "risk-target", "Risks"],
+    ["losses", "loss-target", "Loss events"],
+  ])("restores the %s collection menu after history removes the record target", async (route, targetTestID, tabLabel) => {
+    vi.mocked(loadContext).mockResolvedValue(runtime(false));
+    window.history.replaceState(null, "", `#${route}/record-1`);
+    render(<App/>);
+    expect(await screen.findByTestId(targetTestID)).toHaveProperty("textContent", "record-1");
+    expect(screen.queryByRole("tablist", { name: "Risk and loss sections" })).toBeNull();
+
+    act(() => {
+      window.history.replaceState(null, "", `#${route}`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(await screen.findByRole("heading", { name: "Risk & Losses", level: 1 })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: tabLabel, selected: true })).toBeTruthy();
+    expect(screen.getByTestId(targetTestID).textContent).toBe("");
+  });
+});
+
 describe("Reports organization scope", () => {
   const areaID = "8f100000-0000-4000-8000-000000000001";
   beforeEach(() => {
@@ -768,6 +815,7 @@ describe("Reports organization scope", () => {
     expect(window.location.hash).toBe(`#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&legal_entity_id=bank-ng&organization_scope_id=${areaID}`);
     expect(primaryLink("Reports").getAttribute("aria-current")).toBe("page");
     expect(primaryLink("Risk & Losses").getAttribute("aria-current")).toBeNull();
+    expect(screen.queryByRole("tablist", { name: "Risk and loss sections" })).toBeNull();
 
     act(() => window.dispatchEvent(new HashChangeEvent("hashchange")));
     expect(screen.getByTestId("insights-period").textContent).toBe("2026-09-08:2026-10-07");

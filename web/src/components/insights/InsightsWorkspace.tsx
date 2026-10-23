@@ -10,12 +10,13 @@ import { IndicatorDetail } from "../indicators/IndicatorDetail";
 import { IndicatorMovement, indicatorMovementText } from "../indicators/IndicatorMovement";
 import { IndicatorLimit, IndicatorObservedValue, indicatorLimitAccessibleText, indicatorObservedAccessibleText } from "../indicators/IndicatorValue";
 import { formatIndicatorDate, formatIndicatorPeriod, indicatorStateLabel, indicatorTone } from "../indicators/indicatorPresentation";
-import { Button, DataTable, EmptyState, FocusedSheet, Notice, StatusBadge, Surface, WorkspaceSwitcher, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, FocusedSheet, Notice, SelectField, StatusBadge, WorkspaceSwitcher, type DataColumn } from "../ui";
 import "./insights.css";
 
 type Props = {
   organizationName?: string;
   legalEntityName?: string;
+  embedded?: boolean;
   organizationScopeID?: string;
   organizationScopeName?: string;
   organizationScopes?: ScopeNode[];
@@ -35,6 +36,10 @@ type Props = {
 };
 
 type LoadState = "loading" | "live" | "error";
+type PopulationRead = { key: string; state: LoadState; page: IndicatorPopulationPage };
+type SelectedRead = { key: string; state: LoadState; item?: IndicatorPopulationItem };
+
+const emptyPopulation: IndicatorPopulationPage = { items: [], complete: true };
 
 const indicatorKinds: ReadonlyArray<{ id: RiskIndicatorKind; label: string }> = [
   { id: "KRI", label: "Risk indicators" },
@@ -44,6 +49,7 @@ const indicatorKinds: ReadonlyArray<{ id: RiskIndicatorKind; label: string }> = 
 export function InsightsWorkspace({
   organizationName,
   legalEntityName,
+  embedded = false,
   organizationScopeID,
   organizationScopeName,
   organizationScopes = [],
@@ -61,60 +67,65 @@ export function InsightsWorkspace({
   onOpenRisk,
   onOpenReports,
 }: Props) {
-  const [state, setState] = useState<LoadState>("loading");
-  const [page, setPage] = useState<IndicatorPopulationPage>({ items: [], complete: true });
-  const [retry, setRetry] = useState(0);
-  const [cursorStack, setCursorStack] = useState<string[]>([]);
+  const contextKey = JSON.stringify([kind, organizationScopeID, view]);
+  const [pagination, setPagination] = useState({ key: contextKey, cursors: [] as string[] });
+  const cursorStack = pagination.key === contextKey ? pagination.cursors : [];
   const cursor = cursorStack[cursorStack.length - 1];
-  const [targetItem, setTargetItem] = useState<IndicatorPopulationItem>();
-  const [targetState, setTargetState] = useState<LoadState>("live");
+  const populationKey = JSON.stringify([contextKey, cursor]);
+  const selectedKey = JSON.stringify([contextKey, targetID]);
+  const [population, setPopulation] = useState<PopulationRead>();
+  const state = population?.key === populationKey ? population.state : "loading";
+  const page = population?.key === populationKey ? population.page : emptyPopulation;
+  const [retry, setRetry] = useState(0);
+  const [selected, setSelected] = useState<SelectedRead>();
+  const targetState = selected?.key === selectedKey ? selected.state : "loading";
+  const targetItem = targetID && selected?.key === selectedKey && selected.item?.indicator.check_id === targetID ? selected.item : undefined;
+
+  const setCursorStack = (update: (current: string[]) => string[]) => {
+    setPagination((current) => ({ key: contextKey, cursors: update(current.key === contextKey ? current.cursors : []) }));
+  };
 
   useEffect(() => {
-    setCursorStack([]);
-  }, [kind, view, organizationScopeID]);
+    setPagination((current) => current.key === contextKey ? current : { key: contextKey, cursors: [] });
+  }, [contextKey]);
 
   useEffect(() => {
     if (view === "risk-loss") return;
     const controller = new AbortController();
-    setState("loading");
+    setPopulation({ key: populationKey, state: "loading", page: emptyPopulation });
     void loadIndicatorPopulation({ kind, organizationScopeID, cursor, limit: 50 }, controller.signal).then((value) => {
       if (controller.signal.aborted) return;
-      setPage(value);
-      setState("live");
+      setPopulation({ key: populationKey, state: "live", page: value });
     }).catch(() => {
       if (controller.signal.aborted) return;
-      setPage({ items: [], complete: false });
-      setState("error");
+      setPopulation({ key: populationKey, state: "error", page: { items: [], complete: false } });
     });
     return () => controller.abort();
-  }, [cursor, kind, organizationScopeID, retry, view]);
+  }, [cursor, kind, organizationScopeID, populationKey, retry, view]);
 
   useEffect(() => {
     if (view === "risk-loss") return;
     if (!targetID) {
-      setTargetItem(undefined);
-      setTargetState("live");
+      setSelected(undefined);
       return;
     }
     const inPage = page.items.find((item) => item.indicator.check_id === targetID);
     if (inPage) {
-      setTargetItem(inPage);
-      setTargetState("live");
+      setSelected({ key: selectedKey, state: "live", item: inPage });
       return;
     }
     const controller = new AbortController();
-    setTargetState("loading");
+    setSelected({ key: selectedKey, state: "loading" });
     void loadIndicatorPopulation({ kind, organizationScopeID, checkID: targetID, limit: 1 }, controller.signal).then((value) => {
       if (controller.signal.aborted) return;
-      setTargetItem(value.items[0]);
-      setTargetState("live");
+      const item = value.items.find((candidate) => candidate.indicator.check_id === targetID);
+      setSelected({ key: selectedKey, state: !item && (!value.complete || value.items.length > 0) ? "error" : "live", item });
     }).catch(() => {
       if (controller.signal.aborted) return;
-      setTargetItem(undefined);
-      setTargetState("error");
+      setSelected({ key: selectedKey, state: "error" });
     });
     return () => controller.abort();
-  }, [kind, organizationScopeID, page.items, targetID, view]);
+  }, [kind, organizationScopeID, page.items, selectedKey, targetID, view]);
 
   const scopeNames = useMemo(
     () => new Map(organizationScopes.map((scope) => [scope.id, scope.department_path?.join(" / ") || scope.name])),
@@ -125,8 +136,8 @@ export function InsightsWorkspace({
       id: "indicator",
       header: "Indicator",
       mobileLayout: "full-width",
-      render: (item) => <span className="insights-indicator__identity"><strong>{item.indicator.check_name}</strong><small>{item.indicator.link.kind} · {item.indicator.check_code}</small></span>,
-      accessibleText: (item) => `${item.indicator.check_name}. ${item.indicator.link.kind}. ${item.indicator.check_code}`,
+      render: (item) => <span className="insights-indicator__identity"><strong>{item.indicator.check_name}</strong><small>{item.indicator.link.kind} · {item.indicator.check_code}</small><small>{item.indicator.evaluated_at ? `Updated ${formatIndicatorDate(item.indicator.evaluated_at)}` : "No current result"}</small></span>,
+      accessibleText: (item) => `${item.indicator.check_name}. ${item.indicator.link.kind}. ${item.indicator.check_code}. ${item.indicator.evaluated_at ? `Updated ${formatIndicatorDate(item.indicator.evaluated_at)}` : "No current result"}`,
     },
     {
       id: "scope",
@@ -162,12 +173,6 @@ export function InsightsWorkspace({
       render: (item) => <IndicatorMovement movement={item.indicator.movement} measurement={item.indicator.native_measurement}/>,
       accessibleText: (item) => indicatorMovementText(item.indicator.movement, item.indicator.native_measurement),
     },
-    {
-      id: "updated",
-      header: "Updated",
-      render: (item) => item.indicator.evaluated_at ? formatIndicatorDate(item.indicator.evaluated_at) : "No current result",
-      accessibleText: (item) => item.indicator.evaluated_at ? formatIndicatorDate(item.indicator.evaluated_at) : "No current result",
-    },
   ];
 
   const scopeLabel = organizationScopeName || legalEntityName || "current scope";
@@ -201,30 +206,28 @@ export function InsightsWorkspace({
     </section>;
   }
 
-  return <section className="insights-workspace">
-    <header className="topbar cs-workspace-header">
+  return <section className="insights-workspace insights-indicator-register" data-embedded={embedded || undefined}>
+    <header className="insights-indicator__heading">
       <div>
-        <span className="eyebrow">{organizationName}</span>
-        <h1>Insights</h1>
+        {!embedded && <span className="eyebrow">{organizationName}</span>}
+        {embedded ? <h2>Key indicators</h2> : <h1>Key indicators</h1>}
         <p>Current indicators for {scopeLabel}.</p>
       </div>
-      {onOpenReports && <Button variant="secondary" onPress={onOpenReports}>Reports</Button>}
+      {!embedded && onOpenReports && <Button variant="secondary" onPress={onOpenReports}>Reports</Button>}
     </header>
 
-    <WorkspaceSwitcher ariaLabel="Insight lenses" compactLabel="Insight lens" items={indicatorKinds} selectedKey={kind} onSelectionChange={onKindChange}/>
-
-    <Surface>
-      <div className="section-header insights-indicator__heading">
-        <div>
-          <h2>{kind === "KRI" ? "Risk indicators" : "Control indicators"}</h2>
-          <p>Indicator values, approved limits and trends.</p>
-        </div>
+    <div className="insights-indicator__controls">
+      <div className="insights-indicator__type">
+        <SelectField label="Indicator type" value={kind} placeholder="Select indicator type" options={indicatorKinds} allowsEmpty={false} onChange={(next) => { if (next) onKindChange(next); }}/>
       </div>
+      <p className="insights-indicator__count">{state === "loading" ? "Loading indicators…" : state === "live" ? !page.complete && page.items.length === 0 ? "Indicator count unavailable" : `${page.items.length} ${page.items.length === 1 ? "indicator" : "indicators"} shown${page.next_cursor ? " · More available" : ""}` : "Indicator population unavailable"}</p>
+    </div>
 
-      {!page.complete && state !== "error" && <Notice tone="warning">Some indicator detail is unavailable in this scope. Available values remain unchanged.</Notice>}
-      {page.truncated && <Notice tone="info">More indicators are available on the next page.</Notice>}
+    <div className="insights-indicator__population">
+      {!page.complete && state === "live" && <Notice tone="warning">Some indicator detail is unavailable in this scope. Available values remain unchanged. <Button variant="quiet" size="compact" onPress={() => setRetry((value) => value + 1)}>Retry</Button></Notice>}
+      {page.truncated && state === "live" && <Notice tone="info">More indicators are available on the next page.</Notice>}
       {state === "error" && <EmptyState population="Indicators" title="Indicators could not be loaded" description="The current indicator population is unavailable." action={<Button variant="secondary" onPress={() => setRetry((value) => value + 1)}>Try again</Button>} role="alert"/>}
-      {state === "live" && page.items.length === 0 && <EmptyState population={kind === "KRI" ? "Risk indicators" : "Control indicators"} title="No indicators in this scope" description={kind === "KRI" ? "No risk indicators linked in this scope." : "No control indicators linked in this scope."}/>}
+      {state === "live" && page.complete && page.items.length === 0 && <EmptyState population={kind === "KRI" ? "Risk indicators" : "Control indicators"} title="No indicators in this scope" description={kind === "KRI" ? "No risk indicators linked in this scope." : "No control indicators linked in this scope."}/>}
       {(page.items.length > 0 || state === "loading") && <DataTable
         ariaLabel={kind === "KRI" ? "Risk indicators" : "Control indicators"}
         rows={page.items}
@@ -233,6 +236,7 @@ export function InsightsWorkspace({
         columns={columns}
         onRowAction={(item) => onTarget(item.indicator.check_id, kind)}
         rowActionLabel="Review indicator"
+        responsiveTo="container"
         isLoading={state === "loading"}
         pagination={(cursorStack.length > 0 || page.next_cursor) ? {
           label: "Indicator pages",
@@ -241,13 +245,13 @@ export function InsightsWorkspace({
           isLoading: state === "loading",
         } : undefined}
       />}
-    </Surface>
+    </div>
 
     {targetID && targetState === "loading" && <span className="cs-sr-only" role="status">Loading selected indicator…</span>}
     {targetID && targetState === "error" && <Notice tone="error">The selected indicator could not be loaded. <Button variant="quiet" size="compact" onPress={() => onTarget(undefined, kind)}>Close selection</Button></Notice>}
     {targetID && targetState === "live" && !targetItem && <Notice tone="warning">The selected indicator is not in the current authorized scope. <Button variant="quiet" size="compact" onPress={() => onTarget(undefined, kind)}>Close selection</Button></Notice>}
-    {targetItem && <FocusedSheet label={`${targetItem.indicator.check_name} indicator`} size="wide" onClose={() => onTarget(undefined, kind)}>
-      <IndicatorDetail indicator={targetItem.indicator} onOpenProgram={onOpenProgram} onOpenMatter={onOpenMatter}/>
+    {targetItem && <FocusedSheet label={`${targetItem.indicator.check_name} indicator`} panelClassName="insights-indicator-inspector" onClose={() => onTarget(undefined, kind)}>
+      <IndicatorDetail indicator={targetItem.indicator} presentation="inspector" onOpenProgram={onOpenProgram} onOpenMatter={onOpenMatter}/>
       <LinkedRisks item={targetItem} onOpenRisk={onOpenRisk}/>
     </FocusedSheet>}
   </section>;
@@ -255,8 +259,10 @@ export function InsightsWorkspace({
 
 function indicatorScopeLabel(item: IndicatorPopulationItem, scopeNames: Map<string, string>, selectedScope?: string, legalEntity?: string) {
   const ids = [...new Set(item.risks.map((risk) => risk.organization_scope_id).filter((id): id is string => Boolean(id)))];
-  const labels = ids.map((id) => scopeNames.get(id) || id);
-  if (item.risk_count > item.risks.length || labels.length > 2) return `${item.risk_count} linked Risks across multiple scopes`;
+  const riskCount = `${item.risk_count} linked ${item.risk_count === 1 ? "Risk" : "Risks"}`;
+  if (ids.length > 2) return `${riskCount} across multiple areas`;
+  const labels = ids.map((id) => scopeNames.get(id));
+  if (item.risks_truncated || item.risk_count > item.risks.length || labels.some((label) => !label)) return `${riskCount} · scope details incomplete`;
   if (labels.length === 1) return labels[0]!;
   if (labels.length === 2) return labels.join(" · ");
   return selectedScope || legalEntity || "Legal entity";
