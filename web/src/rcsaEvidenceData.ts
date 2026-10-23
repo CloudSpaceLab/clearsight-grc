@@ -23,7 +23,7 @@ export const sampleRCSAPage: RCSACyclePage = {
   items: [{
     cycle,
     risk_count: 3,
-    control_count: 4,
+    control_count: 2,
     first_line_owner_display_name: "Morgan Ellis",
     handoff: {
       stage: "CHALLENGE",

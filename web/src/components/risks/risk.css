@@ -69,6 +69,7 @@
 
   .risk-register__filter-summary:empty { display: none; }
   .risk-register-page > .cs-data-table { font-size: var(--cs-font-size-caption); }
+  .risk-register-page .cs-status-badge { overflow-wrap: normal; }
 
   .risk-register__summary-disclosure > summary {
     min-block-size: 44px;
@@ -279,6 +280,7 @@
   @container cs-data-table (max-width: 700px) {
     .risk-register-page > .cs-data-table tbody tr { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
     .risk-register-page > .cs-data-table tbody tr td { grid-template-columns: minmax(0, 1fr); align-content: start; }
+    .risk-register-page .cs-status-badge { --cs-badge-gap: var(--cs-primitive-space-1); --cs-badge-padding-inline: var(--cs-primitive-space-2); }
     .risk-register-page > .cs-data-table tbody tr td[data-mobile-layout="full-width"],
     .risk-register-page > .cs-data-table tbody tr td.cs-data-table__action { grid-column: 1 / -1; }
     .risk-register-page > .cs-data-table .cs-data-table__action .cs-button { inline-size: 100%; min-block-size: 44px; }

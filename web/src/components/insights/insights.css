@@ -49,6 +49,7 @@
   .insights-indicator__population table { font-size: var(--cs-font-size-caption); }
   .insights-indicator__population .indicator-value { min-inline-size: 0; }
   .insights-indicator__population td:not(.cs-data-table__action) { overflow-wrap: anywhere; }
+  .insights-indicator__population td[data-kind="status"] .cs-status-badge { overflow-wrap: normal; white-space: nowrap; }
   .insights-indicator__population .cs-data-table__action .cs-button { min-inline-size: max-content; white-space: nowrap; }
 
   .insights-indicator__identity,

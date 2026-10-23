@@ -1,5 +1,6 @@
 import { riskLossViews } from "./risk-loss-evidence-scenarios.mjs";
 import { installRiskLossObservation } from "./risk-loss-evidence-fixtures.mjs";
+import { riskLossStatusBadgesFit, riskLossRCSAPopulationMatches } from "./risk-loss-evidence-contract.mjs";
 
 export const riskLossSourceSHA256 = "cf0a101d574904fc5f496cab0625889e640e2e30734d180d86b89171419e69dd";
 export const riskLossSourcePath = "clearsight-operational-risk-designs/operational-risk-preview.html";
@@ -51,6 +52,23 @@ export async function measureRiskLossLayout(page, scenario) {
       const range = document.createRange(); range.selectNodeContents(node);
       return { label: node.getAttribute("aria-label"), bounds: box(node), lines: new Set([...range.getClientRects()].filter((r) => r.width > 1 && r.height > 1).map((r) => Math.round(r.y))).size };
     });
+    const statusBadges = ["risks", "insights"].includes(view) ? records.flatMap((record, rowIndex) => [...record.querySelectorAll('td[data-kind="status"] .cs-status-badge')].filter(visible).map((node) => {
+      // Measure text nodes only: the decorative marker has its own vertical alignment.
+      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT), textRects = [], words = [];
+      while (walker.nextNode()) if (walker.currentNode.textContent.trim()) {
+        const range = document.createRange(); range.selectNodeContents(walker.currentNode);
+        textRects.push(...[...range.getClientRects()].filter((r) => r.width > 1 && r.height > 1));
+        for (const match of walker.currentNode.textContent.matchAll(/\S+/g)) {
+          range.setStart(walker.currentNode, match.index); range.setEnd(walker.currentNode, match.index + match[0].length);
+          words.push({ text: match[0], lines: new Set([...range.getClientRects()].filter((r) => r.width > 1 && r.height > 1).map((r) => Math.round(r.y))).size });
+        }
+      }
+      const x = Math.min(...textRects.map((r) => r.x)), y = Math.min(...textRects.map((r) => r.y));
+      const right = Math.max(...textRects.map((r) => r.right)), bottom = Math.max(...textRects.map((r) => r.bottom));
+      return { label: node.textContent.trim(), rowIndex, column: node.closest("td").getAttribute("data-label"), words, bounds: box(node), cell: box(node.closest("td")),
+        textBounds: textRects.length ? { x, y, width: right - x, height: bottom - y, right, bottom } : null,
+        lines: new Set(textRects.map((r) => Math.round(r.y))).size };
+    })) : [];
     return { kind: view, route: location.hash, evidenceKind: "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION", heading: box(heading), headingText: heading?.querySelector("h1")?.textContent ?? null, main: box(frame ?? collection), collection: box(collection), controls: box(filters),
       localTabs: tabs.map((node) => node.textContent.trim()), selectedTab: selected?.textContent.trim() ?? null, selectedTabID: selected?.getAttribute("data-key") ?? null,
       menu: local, menuRows: new Set(tabs.map((node) => Math.round(node.getBoundingClientRect().top))).size,
@@ -58,7 +76,7 @@ export async function measureRiskLossLayout(page, scenario) {
       menuMatches: tabs.map((node) => node.textContent.trim()).join("|") === labels.join("|"), table: box(table), grid: box(grid), columns,
       presentation: grid ? "cards" : table ? getComputedStyle(table).display === "block" ? "stacked-records" : "table" : "state",
       records: records.length, firstRecord: first, firstIdentity: identityBox,
-      firstRecordColumns: table && records[0] ? getComputedStyle(records[0]).gridTemplateColumns.split(" ").filter((value) => value !== "none").length : null, rowActions,
+      firstRecordColumns: table && records[0] ? getComputedStyle(records[0]).gridTemplateColumns.split(" ").filter((value) => value !== "none").length : null, rowActions, statusBadges,
       recordTitles: records.map((record) => record.querySelector(grid ? "h3" : "td:first-child strong")?.textContent.trim() ?? ""),
       recordAccessibleNames: records.map((record) => record.getAttribute("aria-label") ?? record.querySelector("h3")?.textContent.trim() ?? ""),
       rowValues: records.map((record) => grid ? { title: record.querySelector("h3")?.textContent.trim(),
@@ -92,6 +110,7 @@ export function assertRiskLossLayout(layout, scenario) {
   }
   if (!layout.firstUsefulContentVisible || !layout.firstRecord || !layout.records) fail("the first useful record is absent from the first viewport");
   if (layout.rowActions.some((action) => action.lines > 2 || action.bounds.width < 44)) fail("record action is clipped or wraps beyond two lines");
+  if (["risks", "insights"].includes(scenario.riskLossView) && !riskLossStatusBadgesFit(layout)) fail("status badges must keep whole words on at most two lines with text contained in the badge and cell");
   if (!(layout.heading.bottom <= layout.menu.y + 1 && layout.menu.bottom <= layout.firstRecord.y + 1)) fail("heading, local menu and useful content anatomy is out of order");
   if (scenario.riskLossView === "rcsa") {
     const expectedColumns = scenario.viewport.width > 1190 ? 3 : scenario.viewport.width > 600 ? 2 : 1;
@@ -107,14 +126,18 @@ export function assertRiskLossLayout(layout, scenario) {
 
 export async function openRiskLossDetail(page, scenario) {
   const root = page.locator(roots[scenario.riskLossView]).first();
-  await root.getByRole("button", { name: new RegExp(`^${actionNames[scenario.riskLossView]} for ${scenario.firstRecord}`) }).first().click();
+  const open = root.getByRole("button", { name: new RegExp(`^${actionNames[scenario.riskLossView]} for ${scenario.firstRecord}`) }).first();
+  const cardPopulation = scenario.riskLossView === "rcsa" ? await open.evaluate((node) => Object.fromEntries(
+    [...node.closest("li").querySelectorAll(".rcsa-cycle__population > div")].map((fact) => [fact.querySelector("dt")?.textContent.trim(), fact.querySelector("dd")?.textContent.trim()]),
+  )) : null;
+  await open.click();
   const target = scenario.riskLossView === "rcsa" || scenario.riskLossView === "insights" ? page.getByRole("dialog") : page.locator(scenario.riskLossView === "risks" ? ".risk-record-page" : ".loss-record-page");
   await target.getByRole("heading", { name: scenario.firstRecord, exact: true }).first().waitFor();
   if (scenario.riskLossView === "rcsa") await target.getByRole("table", { name: "RCSA frozen Controls", exact: true }).waitFor();
   if (scenario.riskLossView === "insights") await target.getByRole("table", { name: `${scenario.firstRecord} observation history`, exact: true }).waitFor();
   if (scenario.riskLossView === "losses") await target.getByRole("table", { name: "Loss recoveries", exact: true }).waitFor();
   await page.waitForFunction(() => window.riskLossEvidence?.pending === 0);
-  return page.evaluate(({ view, id, title }) => {
+  return page.evaluate(({ view, id, title, cardPopulation }) => {
     const dialog = document.querySelector('[role="dialog"]');
     const standalone = document.querySelector(view === "risks" ? ".risk-record-page" : ".loss-record-page");
     const root = view === "rcsa" || view === "insights" ? dialog : standalone;
@@ -133,8 +156,11 @@ export async function openRiskLossDetail(page, scenario) {
       primaryAction: { label: actionLabel, bounds: bounds(action), visible: visibleInViewport(action) },
       internalTables: [...(root?.querySelectorAll(".cs-data-table") ?? [])].map((node) => ({ clientWidth: node.clientWidth, scrollWidth: node.scrollWidth,
         presentation: getComputedStyle(node.querySelector("table")).display })),
+      rcsaPopulation: view === "rcsa" ? { card: cardPopulation,
+        detailRows: Object.fromEntries(["Risks", "Controls"].map((kind) => [kind, root.querySelectorAll(`table[aria-label="RCSA frozen ${kind}"] tbody tr`).length])),
+        detailSummary: [...root.querySelectorAll(".rcsa-detail__facts > div")].find((fact) => fact.querySelector("span")?.textContent.trim() === "Frozen population")?.querySelector("strong")?.textContent.trim() ?? null } : null,
       pendingReads: window.riskLossEvidence.pending, commands: window.riskLossEvidence.commands, documentToken: window.riskLossEvidence.documentToken };
-  }, { view: scenario.riskLossView, id: scenario.detailID, title: scenario.firstRecord });
+  }, { view: scenario.riskLossView, id: scenario.detailID, title: scenario.firstRecord, cardPopulation });
 }
 
 export function assertRiskLossDetail(detail, scenario) {
@@ -145,6 +171,7 @@ export function assertRiskLossDetail(detail, scenario) {
       || detail.close.width < 44 || detail.close.height < 44 || detail.internalTables.some((table) => table.scrollWidth > table.clientWidth + 1 || table.presentation !== "block"))) {
     throw new Error(`${scenario.name}: exact detail reader must retain its title and use a bounded 480px inspector with container-aware tables`);
   }
+  if (scenario.riskLossView === "rcsa" && !riskLossRCSAPopulationMatches(detail)) throw new Error(`${scenario.name}: RCSA inspector frozen population must match the selected card, rendered summary and detail rows`);
 }
 
 export async function verifyRiskLossHistory(page, scenario) {

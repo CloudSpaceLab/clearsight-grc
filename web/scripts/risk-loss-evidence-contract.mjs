@@ -6,6 +6,27 @@ const rect = (value) => value && ["x", "y", "width", "height", "right", "bottom"
 const labels = riskLossViews.map((view) => view.label);
 const endpoints = { risks: "/api/v1/risks", rcsa: "/api/v1/rcsa/cycles", insights: "/api/v1/risk-indicators", losses: "/api/v1/losses" };
 
+export function riskLossStatusBadgesFit(layout) {
+  const contains = (outer, inner) => rect(outer) && rect(inner)
+    && inner.x >= outer.x - 1 && inner.y >= outer.y - 1 && inner.right <= outer.right + 1 && inner.bottom <= outer.bottom + 1;
+  const columns = { risks: ["Rating", "Appetite", "Status"], insights: ["Condition"] }[layout.kind];
+  return Boolean(columns && Array.isArray(layout.statusBadges) && layout.statusBadges.length === layout.records * columns.length
+    && layout.statusBadges.every((badge, index) => badge.rowIndex === Math.floor(index / columns.length) && badge.column === columns[index % columns.length]
+      && typeof badge.label === "string" && badge.label.trim().length > 0 && badge.label === layout.rowValues?.[badge.rowIndex]?.[badge.column]
+      && Number.isInteger(badge.lines) && badge.lines > 0 && badge.lines <= 2 && (/\s/.test(badge.label) || badge.lines === 1)
+      && Array.isArray(badge.words) && badge.words.map((word) => word.text).join(" ") === badge.label.replace(/\s+/g, " ")
+      && badge.words.every((word) => word.lines === 1)
+      && contains(badge.cell, badge.bounds) && contains(badge.bounds, badge.textBounds)));
+}
+
+export function riskLossRCSAPopulationMatches(detail) {
+  const population = detail.rcsaPopulation;
+  return Boolean(population && ["Risks", "Controls"].every((kind) => /^\d+$/.test(population.card?.[kind] ?? "")
+    && Number.isInteger(population.detailRows?.[kind]) && population.detailRows[kind] >= 0
+    && Number(population.card[kind]) === population.detailRows[kind])
+    && population.detailSummary === `${population.detailRows.Risks} Risks · ${population.detailRows.Controls} controls`);
+}
+
 export function reviewRiskLossCaptures(captures) {
   const failures = [], byName = new Map(captures.map((capture) => [capture.name, capture]));
   for (const scenario of riskLossEvidenceScenarios) {
@@ -41,6 +62,7 @@ export function reviewRiskLossCaptures(captures) {
           || Math.abs(detail.x + detail.width - scenario.viewport.width) > 1 || Math.abs(detail.height - scenario.viewport.height) > 1
           || detail.closeVisible !== true || detail.focusContained !== true || detail.primaryAction?.visible !== true || !rect(detail.close) || detail.close.width < 44 || detail.close.height < 44
           || !Array.isArray(detail.internalTables) || detail.internalTables.some((table) => table.scrollWidth > table.clientWidth + 1 || table.presentation !== "block"))) fail("exact record reader, source 480px inspector, container-aware tables or settled read boundary is missing");
+      if (scenario.riskLossView === "rcsa" && !riskLossRCSAPopulationMatches(detail ?? {})) fail("RCSA inspector frozen population must match the selected card, rendered summary and detail rows");
       continue;
     }
     if (layout.route !== scenario.route || layout.headingText !== "Risk & Losses" || !rect(layout.heading) || !rect(layout.menu)
@@ -63,13 +85,14 @@ export function reviewRiskLossCaptures(captures) {
     if (scenario.riskLossView === "rcsa") {
       const columns = scenario.viewport.width > 1190 ? 3 : scenario.viewport.width > 600 ? 2 : 1;
       if (layout.presentation !== "cards" || layout.columns !== columns || !rect(layout.grid)
-        || layout.rowValues?.[0]?.facts?.Risks !== "3" || layout.rowValues?.[0]?.facts?.Controls !== "4"
+        || layout.rowValues?.[0]?.facts?.Risks !== "3" || layout.rowValues?.[0]?.facts?.Controls !== "2"
         || layout.cardNumbers?.length !== 2 || layout.cardNumbers.some((number) => number.fontSize < 30 || number.labelFontSize > 14 || number.aligned !== true || !["start", "left"].includes(number.textAlign))) fail("RCSA source card columns or frozen population counts are missing");
     } else if (!rect(layout.table) || !["table", "stacked-records"].includes(layout.presentation)
       || scenario.viewport.width === 390 && layout.presentation !== "stacked-records") fail("register table did not adapt to readable phone records");
     const row = layout.rowValues?.[0] ?? {};
     if (!layout.rowActions?.length || layout.rowActions.some((action) => !rect(action.bounds) || action.bounds.width < 44 || action.lines > 2)
       || scenario.riskLossView !== "rcsa" && scenario.viewport.width === 390 && layout.firstRecordColumns !== 2) fail("record actions must stay readable and phone facts must use two source-aligned columns");
+    if (["risks", "insights"].includes(scenario.riskLossView) && !riskLossStatusBadgesFit(layout)) fail("status badges must keep whole words on at most two lines with text contained in the badge and cell");
     if (scenario.riskLossView === "insights") {
       if (check === "partial" ? !row["Current value"]?.includes("Native value unavailable") || row.Condition !== "Unknown"
         : !row["Current value"]?.includes("98.70%") || !row["Limit / target"]?.includes("99.50%") || !/0\.40\s*pp/.test(row.Movement ?? "")) {

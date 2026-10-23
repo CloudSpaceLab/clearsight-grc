@@ -630,10 +630,10 @@ function riskLossReceipt(scenario) {
   const bounds = (x, y, width, height) => ({ x, y, width, height, right: x + width, bottom: y + height });
   const titles = [scenario.firstRecord], ids = [scenario.detailID];
   const table = bounds(80, 400, scenario.viewport.width - 100, 200);
-  const row = scenario.riskLossView === "rcsa" ? { title: scenario.firstRecord, facts: { Risks: "3", Controls: "4" } }
-    : scenario.riskLossView === "insights" ? { "Current value": "98.70% 100 / 100 concern", "Limit / target": "Limit ≥ 99.50%", Movement: "−0.40 pp", Condition: "Outside limit" }
+  const row = scenario.riskLossView === "rcsa" ? { title: scenario.firstRecord, facts: { Risks: "3", Controls: "2" } }
+    : scenario.riskLossView === "insights" ? { "Current value": "98.70% 100 / 100 concern", "Limit / target": "Limit ≥ 99.50%", Movement: "−0.40 pp", Condition: "Breach" }
     : scenario.riskLossView === "losses" ? { Gross: "₦18,400,000.00", Recovered: "₦8,000,000.00 Partly recovered", Net: "₦10,400,000.00 Active" }
-    : { Risk: scenario.firstRecord, Appetite: "Outside appetite", Rating: "High" };
+    : { Risk: scenario.firstRecord, Appetite: "Outside appetite", Rating: "High", Status: "Active" };
   const riskLossLayout = { kind: scenario.riskLossView, route: scenario.route, evidenceKind: "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
     headingText: "Risk & Losses", heading: bounds(80, 180, scenario.viewport.width - 100, 100), menu: bounds(80, 300, scenario.viewport.width - 100, 49),
     localTabs: riskLossViews.map((view) => view.label), selectedTab: scenario.label, selectedTabVisible: true, menuRows: 1,
@@ -641,7 +641,10 @@ function riskLossReceipt(scenario) {
     records: 1, recordTitles: titles, populatedIDs: ids, firstRecord: table, firstIdentity: bounds(90, 410, 180, 40),
     firstUsefulContentVisible: true, table, grid: scenario.riskLossView === "rcsa" ? table : null,
     firstRecordColumns: scenario.viewport.width === 390 ? 2 : 0, rowActions: [{ label: "Open record", bounds: bounds(100, 460, 120, 44), lines: 1 }],
-    cardNumbers: [{ label: "Risks", value: "3", fontSize: 34, labelFontSize: 12, aligned: true, textAlign: "start" }, { label: "Controls", value: "4", fontSize: 34, labelFontSize: 12, aligned: true, textAlign: "start" }],
+    statusBadges: ({ insights: ["Condition"], risks: ["Rating", "Appetite", "Status"] }[scenario.riskLossView] ?? []).map((column) => ({
+      label: row[column], rowIndex: 0, column, lines: 1, words: row[column].split(/\s+/).map((text) => ({ text, lines: 1 })),
+      bounds: bounds(100, 410, 68, 26), cell: bounds(90, 400, 90, 50), textBounds: bounds(110, 415, 45, 16) })),
+    cardNumbers: [{ label: "Risks", value: "3", fontSize: 34, labelFontSize: 12, aligned: true, textAlign: "start" }, { label: "Controls", value: "2", fontSize: 34, labelFontSize: 12, aligned: true, textAlign: "start" }],
     presentation: scenario.riskLossView === "rcsa" ? "cards" : scenario.viewport.width === 390 ? "stacked-records" : "table",
     columns: scenario.viewport.width > 1190 ? 3 : scenario.viewport.width > 600 ? 2 : 1,
     tableHeaders: scenario.riskLossView === "losses" ? ["Loss", "Gross", "Recovered", "Net"] : [], rowValues: [row],
@@ -659,6 +662,7 @@ function riskLossReceipt(scenario) {
     exactTarget: true, titleMatches: true, titleVisible: true, pendingReads: 0, commands: [], placement: "sheet", width: Math.min(480, scenario.viewport.width),
     x: Math.max(0, scenario.viewport.width - 480), height: scenario.viewport.height, internalTables: [{ clientWidth: 438, scrollWidth: 438, presentation: "block" }] };
   if (capture.detail) Object.assign(capture.detail, { closeVisible: true, focusContained: true, close: bounds(scenario.viewport.width - 64, 20, 44, 44), primaryAction: { visible: true } });
+  if (capture.detail && scenario.riskLossView === "rcsa") capture.detail.rcsaPopulation = { card: { Risks: "3", Controls: "2" }, detailRows: { Risks: 3, Controls: 2 }, detailSummary: "3 Risks · 2 controls" };
   if (scenario.riskLossCheck === "filters") {
     const query = { ...observation.reads[0].query, ...(scenario.riskLossView === "insights" ? { kind: "KRI" } : {}) };
     const filter = { risks: { search: "network" }, losses: { search: "merchant" }, rcsa: { status: "AWAITING_CHALLENGE" }, insights: { kind: "KCI" } }[scenario.riskLossView];
@@ -758,6 +762,61 @@ test("indicator receipts cannot replace native percentages or percentage points 
   for (const [field, value] of [["Current value", "100%"], ["Limit / target", "100"], ["Movement", "−0.40%"]]) {
     const invalid = structuredClone(valid); invalid.riskLossLayout.rowValues[0][field] = value;
     assert.ok(riskLossFindings(invalid).some((message) => message.includes("native percentage")));
+  }
+});
+
+test("RCSA inspector counts must reconcile with the selected card and rendered detail rows", () => {
+  for (const scenario of riskLossEvidenceScenarios.filter((item) => item.riskLossView === "rcsa" && item.riskLossCheck === "detail")) {
+    const valid = riskLossReceipt(scenario);
+    assert.deepEqual(riskLossFindings(valid), []);
+    for (const change of [
+      (detail) => { delete detail.rcsaPopulation; },
+      (detail) => { detail.rcsaPopulation.card.Controls = "4"; },
+      (detail) => { detail.rcsaPopulation.detailRows.Controls = 1; },
+      (detail) => { detail.rcsaPopulation.detailSummary = "3 Risks · 4 controls"; },
+    ]) {
+      const invalid = structuredClone(valid); change(invalid.detail);
+      assert.ok(riskLossFindings(invalid).some((message) => message.includes("RCSA inspector frozen population")), scenario.name);
+    }
+  }
+});
+
+test("Risk & Losses rejects wrapped or clipped one-word indicator condition badges", () => {
+  for (const scenario of riskLossEvidenceScenarios.filter((item) => item.riskLossView === "insights" && item.riskLossMatrix && [1280, 1024].includes(item.viewport.width))) {
+    const valid = riskLossReceipt(scenario);
+    assert.deepEqual(riskLossFindings(valid), []);
+    for (const change of [
+      (layout) => { delete layout.statusBadges; },
+      (layout) => { layout.statusBadges[0].lines = 2; },
+      (layout) => { layout.statusBadges[0].lines = 0; },
+      (layout) => { layout.statusBadges[0].label = "Different condition"; },
+      (layout) => { const badge = layout.statusBadges[0]; badge.textBounds.right = badge.bounds.right + 2; badge.textBounds.width = badge.textBounds.right - badge.textBounds.x; },
+      (layout) => { const badge = layout.statusBadges[0]; badge.cell.right = badge.bounds.right - 2; badge.cell.width = badge.cell.right - badge.cell.x; },
+    ]) {
+      const invalid = structuredClone(valid); change(invalid.riskLossLayout);
+      assert.ok(riskLossFindings(invalid).some((message) => message.includes("status badges")), scenario.name);
+    }
+  }
+});
+
+test("Risk & Losses allows two-line Risk labels but rejects a split word in a status badge", () => {
+  const scenario = riskLossEvidenceScenarios.find((item) => item.riskLossView === "risks" && item.riskLossCheck === "partial");
+  const valid = riskLossReceipt(scenario);
+  valid.observation.responses[0].nextCursor = "sample-risk-loss-next-page";
+  for (const column of ["Rating", "Appetite"]) {
+    valid.riskLossLayout.rowValues[0][column] = "Reassessment needed";
+    const badge = valid.riskLossLayout.statusBadges.find((item) => item.column === column);
+    Object.assign(badge, { label: "Reassessment needed", lines: 2, words: [{ text: "Reassessment", lines: 1 }, { text: "needed", lines: 1 }] });
+  }
+  assert.deepEqual(riskLossFindings(valid), []);
+  for (const change of [
+    (badge) => { badge.words[0].lines = 2; },
+    (badge) => { badge.words.pop(); },
+    (badge) => { badge.lines = 3; },
+    (badge) => { badge.rowIndex = 1; },
+  ]) {
+    const invalid = structuredClone(valid); change(invalid.riskLossLayout.statusBadges[0]);
+    assert.ok(riskLossFindings(invalid).some((message) => message.includes("status badges")));
   }
 });
 
