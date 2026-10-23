@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
 import { routeHash, type View, type WorkspaceTarget, type WorkTab } from "../appRouting";
+import { riskLossDestinations } from "../riskLossNavigation";
 import { NavigationIcon } from "./NavigationIcon";
 import { Monogram } from "./Monogram";
 import { ActionLink, FocusedSheet, IconButton } from "./ui";
@@ -24,13 +25,6 @@ const destinations: readonly Destination[] = [
   { id: "privacy", label: "Privacy", view: "ropa" },
   { id: "work", label: "Work & Approvals", view: "work" },
   { id: "reports", label: "Reports", view: "reports" },
-];
-
-const riskDestinations: readonly Destination[] = [
-  { id: "risks", label: "Risks", view: "risks" },
-  { id: "rcsa", label: "RCSA", view: "rcsa" },
-  { id: "indicators", label: "Key indicators", view: "insights" },
-  { id: "losses", label: "Loss events", view: "losses" },
 ];
 
 function selectedDestination(view: View, target: WorkspaceTarget) {
@@ -106,7 +100,7 @@ export function AppNavigation({ activeView, target, configureEnabled, actorName,
             </div>}
           </div>
           {item.id === "risk" && <ul id={childrenID} className="app-navigation__children" hidden={!riskExpanded}>
-            {riskDestinations.map((child) => <li key={child.id}>
+            {riskLossDestinations.map((child) => <li key={child.id}>
               <ActionLink variant="navigation" href={routeHash(child.view, {}, "assigned")}
                 aria-label={child.label} title={child.label} data-navigation-child={child.id}
                 aria-current={selected === "risk" && activeView === child.view ? "location" : undefined}

@@ -1,0 +1,5 @@
+@import "../../design-system/components/workspace-switcher.css" layer(components);
+
+@layer features {
+  .risk-loss-navigation { min-inline-size: 0; }
+}
