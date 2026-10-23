@@ -110,7 +110,7 @@ export function assertRiskLossLayout(layout, scenario) {
   }
   if (!layout.firstUsefulContentVisible || !layout.firstRecord || !layout.records) fail("the first useful record is absent from the first viewport");
   if (layout.rowActions.some((action) => action.lines > 2 || action.bounds.width < 44)) fail("record action is clipped or wraps beyond two lines");
-  if (["risks", "insights"].includes(scenario.riskLossView) && !riskLossStatusBadgesFit(layout)) fail("status badges must keep whole words on at most two lines with text contained in the badge and cell");
+  if (["risks", "insights"].includes(scenario.riskLossView) && !riskLossStatusBadgesFit(layout)) fail("status badges must keep every word intact with text contained in the badge and cell");
   if (!(layout.heading.bottom <= layout.menu.y + 1 && layout.menu.bottom <= layout.firstRecord.y + 1)) fail("heading, local menu and useful content anatomy is out of order");
   if (scenario.riskLossView === "rcsa") {
     const expectedColumns = scenario.viewport.width > 1190 ? 3 : scenario.viewport.width > 600 ? 2 : 1;

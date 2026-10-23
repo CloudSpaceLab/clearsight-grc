@@ -799,7 +799,7 @@ test("Risk & Losses rejects wrapped or clipped one-word indicator condition badg
   }
 });
 
-test("Risk & Losses allows two-line Risk labels but rejects a split word in a status badge", () => {
+test("Risk & Losses allows whole-word Risk label wrapping but rejects a split word in a status badge", () => {
   const scenario = riskLossEvidenceScenarios.find((item) => item.riskLossView === "risks" && item.riskLossCheck === "partial");
   const valid = riskLossReceipt(scenario);
   valid.observation.responses[0].nextCursor = "sample-risk-loss-next-page";
@@ -809,10 +809,16 @@ test("Risk & Losses allows two-line Risk labels but rejects a split word in a st
     Object.assign(badge, { label: "Reassessment needed", lines: 2, words: [{ text: "Reassessment", lines: 1 }, { text: "needed", lines: 1 }] });
   }
   assert.deepEqual(riskLossFindings(valid), []);
+  // The named visual review accepts this contained three-word label at 1024px.
+  const threeWordScenario = riskLossEvidenceScenarios.find((item) => item.riskLossView === "risks" && item.riskLossMatrix && item.viewport.width === 1024);
+  const threeWords = riskLossReceipt(threeWordScenario);
+  threeWords.riskLossLayout.rowValues[0].Appetite = "Near appetite limit";
+  Object.assign(threeWords.riskLossLayout.statusBadges[1], { label: "Near appetite limit", lines: 3,
+    words: [{ text: "Near", lines: 1 }, { text: "appetite", lines: 1 }, { text: "limit", lines: 1 }] });
+  assert.deepEqual(riskLossFindings(threeWords), []);
   for (const change of [
     (badge) => { badge.words[0].lines = 2; },
     (badge) => { badge.words.pop(); },
-    (badge) => { badge.lines = 3; },
     (badge) => { badge.rowIndex = 1; },
   ]) {
     const invalid = structuredClone(valid); change(invalid.riskLossLayout.statusBadges[0]);

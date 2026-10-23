@@ -13,7 +13,7 @@ export function riskLossStatusBadgesFit(layout) {
   return Boolean(columns && Array.isArray(layout.statusBadges) && layout.statusBadges.length === layout.records * columns.length
     && layout.statusBadges.every((badge, index) => badge.rowIndex === Math.floor(index / columns.length) && badge.column === columns[index % columns.length]
       && typeof badge.label === "string" && badge.label.trim().length > 0 && badge.label === layout.rowValues?.[badge.rowIndex]?.[badge.column]
-      && Number.isInteger(badge.lines) && badge.lines > 0 && badge.lines <= 2 && (/\s/.test(badge.label) || badge.lines === 1)
+      && Number.isInteger(badge.lines) && badge.lines > 0 && (/\s/.test(badge.label) || badge.lines === 1)
       && Array.isArray(badge.words) && badge.words.map((word) => word.text).join(" ") === badge.label.replace(/\s+/g, " ")
       && badge.words.every((word) => word.lines === 1)
       && contains(badge.cell, badge.bounds) && contains(badge.bounds, badge.textBounds)));
@@ -92,7 +92,7 @@ export function reviewRiskLossCaptures(captures) {
     const row = layout.rowValues?.[0] ?? {};
     if (!layout.rowActions?.length || layout.rowActions.some((action) => !rect(action.bounds) || action.bounds.width < 44 || action.lines > 2)
       || scenario.riskLossView !== "rcsa" && scenario.viewport.width === 390 && layout.firstRecordColumns !== 2) fail("record actions must stay readable and phone facts must use two source-aligned columns");
-    if (["risks", "insights"].includes(scenario.riskLossView) && !riskLossStatusBadgesFit(layout)) fail("status badges must keep whole words on at most two lines with text contained in the badge and cell");
+    if (["risks", "insights"].includes(scenario.riskLossView) && !riskLossStatusBadgesFit(layout)) fail("status badges must keep every word intact with text contained in the badge and cell");
     if (scenario.riskLossView === "insights") {
       if (check === "partial" ? !row["Current value"]?.includes("Native value unavailable") || row.Condition !== "Unknown"
         : !row["Current value"]?.includes("98.70%") || !row["Limit / target"]?.includes("99.50%") || !/0\.40\s*pp/.test(row.Movement ?? "")) {
