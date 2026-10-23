@@ -49,13 +49,8 @@ export function recoveryStatusTone(value: LossRecoveryStatus) {
 }
 
 export function formatLossMoney(minor: number, currency: string) {
-  const formatter = new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-    currencyDisplay: "narrowSymbol",
-  });
-  const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
-  return formatter.format(minor / (10 ** digits));
+  if (!Number.isSafeInteger(minor)) return "Amount unavailable";
+  return formatLossMoneyExact(BigInt(minor), currency);
 }
 
 export function formatLossMoneyExact(minorUnits: string | bigint, currency: string, locale?: string) {
