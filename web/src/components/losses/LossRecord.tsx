@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { loadMatter, type ScopeNode } from "../../api";
 import { apiErrorKind } from "../../http";
 import { getLoss, openLossIntervention, recordLossRecovery } from "../../lossApi";
@@ -51,6 +51,12 @@ export function LossRecord({
   const [interventionBusy, setInterventionBusy] = useState(false);
   const [interventionError, setInterventionError] = useState("");
   const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const currentRecord = useRef<{ id: string } | undefined>({ id: lossID });
+
+  useEffect(() => {
+    currentRecord.current = { id: lossID };
+    return () => { currentRecord.current = undefined; };
+  }, [lossID]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -145,16 +151,19 @@ export function LossRecord({
       return;
     }
     if (interventionBusy) return;
+    const requestedRecord = currentRecord.current;
     setInterventionBusy(true);
     setInterventionError("");
     try {
       const response = await openIntervention(loss.id, loss.version);
+      if (currentRecord.current !== requestedRecord) return;
       setValue((current) => current ? { ...current, loss: response.loss } : current);
       onOpenMatter?.(response.matter.id);
     } catch (error) {
+      if (currentRecord.current !== requestedRecord) return;
       setInterventionError(error instanceof Error ? error.message : "Intervention could not be opened.");
     } finally {
-      setInterventionBusy(false);
+      if (currentRecord.current === requestedRecord) setInterventionBusy(false);
     }
   }
 
@@ -168,10 +177,14 @@ export function LossRecord({
       || "Organization area unavailable";
 
   return <section className="loss-record-page" aria-labelledby="loss-record-heading">
-    <header className="topbar loss-page-header cs-register-header">
+    <header className="loss-record__heading">
       <div>
         <span className="eyebrow">{loss.code} · {lossEventLabel(loss.event_type)}</span>
         <h1 id="loss-record-heading">{loss.title}</h1>
+        <div className="loss-record__conditions" aria-label="Loss conditions">
+          <StatusBadge tone={lossStatusTone(loss.status)}>{lossStatusLabel(loss.status)}</StatusBadge>
+          <StatusBadge tone={recoveryStatusTone(totals.recovery_status)}>{recoveryStatusLabel(totals.recovery_status)}</StatusBadge>
+        </div>
       </div>
       <Button variant="secondary" onPress={onBack}>Back to losses</Button>
     </header>
@@ -179,10 +192,10 @@ export function LossRecord({
     <Surface>
       <div role="group" aria-label="Current loss state">
         <dl className="loss-record__state">
-          <div><dt>Net loss</dt><dd><strong>{formatLossMoney(totals.net_loss_minor, totals.currency)}</strong></dd></div>
+          <div><dt>Gross loss</dt><dd>{formatLossMoney(totals.gross_amount_minor, totals.currency)}</dd></div>
           <div><dt>Recovered</dt><dd>{formatLossMoney(totals.recovered_amount_minor, totals.currency)}</dd></div>
-          <div><dt>Recovery</dt><dd><StatusBadge tone={recoveryStatusTone(totals.recovery_status)}>{recoveryStatusLabel(totals.recovery_status)}</StatusBadge></dd></div>
-          <div><dt>Status</dt><dd><StatusBadge tone={lossStatusTone(loss.status)}>{lossStatusLabel(loss.status)}</StatusBadge></dd></div>
+          <div><dt>Net loss</dt><dd><strong>{formatLossMoney(totals.net_loss_minor, totals.currency)}</strong></dd></div>
+          <div><dt>Currency</dt><dd>{totals.currency}</dd></div>
         </dl>
       </div>
     </Surface>
@@ -196,7 +209,6 @@ export function LossRecord({
             {loss.description && <div><dt>Description</dt><dd>{loss.description}</dd></div>}
             <div><dt>Occurred</dt><dd>{formatLossDate(loss.occurred_at)}</dd></div>
             <div><dt>Discovered</dt><dd>{formatLossDate(loss.discovered_at)}</dd></div>
-            <div><dt>Gross loss</dt><dd>{formatLossMoney(totals.gross_amount_minor, totals.currency)}</dd></div>
           </dl>
         </section>
       </Surface>
@@ -234,6 +246,7 @@ export function LossRecord({
       </div>
       {aggregate.recoveries.length ? <DataTable
         ariaLabel="Loss recoveries"
+        responsiveTo="container"
         rows={aggregate.recoveries}
         rowKey={(item) => item.id}
         rowName={(item) => `${item.kind === "RECOVERY" ? "Recovery" : "Reversal"}, ${formatLossMoney(item.amount_minor, item.currency)}, ${formatLossDate(item.recovered_at)}`}

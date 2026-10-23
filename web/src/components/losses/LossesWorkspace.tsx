@@ -6,6 +6,7 @@ import { LossRegister } from "./LossRegister";
 import "./loss.css";
 
 type Props = {
+  embedded?: boolean;
   organizationName?: string;
   legalEntityName?: string;
   organizationScopeID?: string;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function LossesWorkspace({
+  embedded,
   organizationName,
   legalEntityName,
   organizationScopeID,
@@ -31,6 +33,7 @@ export function LossesWorkspace({
   const [recording, setRecording] = useState(false);
 
   if (targetID) return <LossRecord
+    key={targetID}
     lossID={targetID}
     organizationScopeID={organizationScopeID}
     organizationScopeName={organizationScopeName}
@@ -42,10 +45,12 @@ export function LossesWorkspace({
 
   return <>
     <LossRegister
+      embedded={embedded}
       organizationName={organizationName}
       legalEntityName={legalEntityName}
       organizationScopeID={organizationScopeID}
       organizationScopeName={organizationScopeName}
+      organizationScopes={organizationScopes}
       onOpenLoss={(id) => onTarget(id)}
       onRecordLoss={() => setRecording(true)}
     />

@@ -9,6 +9,8 @@ import { vendorPortfolioAccessibilityScenarios } from "./vendor-portfolio-eviden
 import { prepareVendorPortfolio } from "./vendor-portfolio-evidence.mjs";
 import { vendorRelationshipAccessibilityScenarios } from "./vendor-relationship-evidence-scenarios.mjs";
 import { prepareVendorRelationship } from "./vendor-relationship-evidence.mjs";
+import { riskLossAccessibilityScenarios } from "./risk-loss-evidence-scenarios.mjs";
+import { prepareRiskLoss } from "./risk-loss-evidence.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
@@ -33,10 +35,11 @@ const scenarios = [...baseScenarios.filter((scenario) => scenario.name !== "toda
     viewport: { width, height: width === 390 ? 844 : 900 },
     touch: width === 390,
   }))),
-), ...reportsDesignAccessibilityScenarios, ...notificationsAccessibilityScenarios, ...vendorRelationshipAccessibilityScenarios, ...vendorPortfolioAccessibilityScenarios].filter((scenario) =>
+), ...reportsDesignAccessibilityScenarios, ...notificationsAccessibilityScenarios, ...vendorRelationshipAccessibilityScenarios, ...vendorPortfolioAccessibilityScenarios, ...riskLossAccessibilityScenarios].filter((scenario) =>
   process.env.UI_EVIDENCE_SCOPE === "report-design" ? scenario.reportView : process.env.UI_EVIDENCE_SCOPE === "notifications" ? scenario.notificationView
     : process.env.UI_EVIDENCE_SCOPE === "vendor-relationship" ? scenario.vendorRelationshipView
-    : process.env.UI_EVIDENCE_SCOPE === "vendor-portfolio" ? scenario.vendorPortfolioView : true);
+    : process.env.UI_EVIDENCE_SCOPE === "vendor-portfolio" ? scenario.vendorPortfolioView
+    : process.env.UI_EVIDENCE_SCOPE === "risk-loss" ? scenario.riskLossView : true);
 
 await mkdir(outputDir, { recursive: true });
 const results = [];
@@ -69,6 +72,7 @@ try {
       if (scenario.notificationView) await prepareNotifications(page, { ...scenario, fixture: "notifications-loaded" });
       if (scenario.vendorRelationshipView) await prepareVendorRelationship(page, scenario);
       if (scenario.vendorPortfolioView) await prepareVendorPortfolio(page, scenario);
+      if (scenario.riskLossView) await prepareRiskLoss(page, scenario);
       if (scenario.reportView === "builder") {
         await page.locator(".reports-workspace__actions").getByRole("button", { name: "New report", exact: true }).click();
         await page.locator(".report-builder").getByRole("button", { name: "Save setup", exact: true }).waitFor({ state: "visible" });
@@ -111,7 +115,7 @@ try {
         scrollWidth: document.documentElement.scrollWidth,
       }));
       const undersizedPrimaryControls = scenario.touch
-        ? await page.locator(scenario.scopeSelector ?? "body").locator((scenario.vendorRelationshipView || scenario.vendorPortfolioView)
+        ? await page.locator(scenario.scopeSelector ?? "body").locator((scenario.vendorRelationshipView || scenario.vendorPortfolioView || scenario.riskLossView)
           ? 'button:visible, input:not([type="hidden"]):visible, select:visible, textarea:visible, summary:visible, [role="tab"]:visible'
           : scenario.reportView || scenario.notificationView
           ? 'button:visible, input:not([type="hidden"]):visible, [role="tab"]:visible' : ".primary-button:visible").evaluateAll((elements, minimum) => [...new Set(elements.map((element) => element.closest(".cs-checkbox-field") ?? element))].filter((element) => !element.closest('[aria-hidden="true"], [inert]')).flatMap((element) => {
@@ -119,9 +123,9 @@ try {
             return box.width < minimum || box.height < minimum
               ? [{ text: element.textContent?.trim().slice(0, 80) ?? "", width: box.width, height: box.height }]
               : [];
-          }), scenario.reportView || scenario.notificationView || scenario.vendorRelationshipView || scenario.vendorPortfolioView ? 44 : 40)
+          }), scenario.reportView || scenario.notificationView || scenario.vendorRelationshipView || scenario.vendorPortfolioView || scenario.riskLossView ? 44 : 40)
         : [];
-      const blockingViolations = axe.violations.filter((violation) => scenario.reportView || scenario.notificationView || scenario.vendorRelationshipView || scenario.vendorPortfolioView || violation.impact === "critical" || violation.impact === "serious");
+      const blockingViolations = axe.violations.filter((violation) => scenario.reportView || scenario.notificationView || scenario.vendorRelationshipView || scenario.vendorPortfolioView || scenario.riskLossView || violation.impact === "critical" || violation.impact === "serious");
       const errors = [
         ...browserErrors.map((message) => `browser: ${message}`),
         ...(layout.scrollWidth > layout.clientWidth + 1 ? [`horizontal overflow: ${layout.scrollWidth}px in ${layout.clientWidth}px`] : []),
@@ -129,7 +133,7 @@ try {
         ...contrast.filter((reading) => reading.outcome === "FAIL" && (reading.kind === "placeholder" || reading.essential)).map((reading) => `contrast ${reading.kind}: ${reading.selector} (${reading.ratio.toFixed(2)} < ${reading.minimum})`),
         ...undersizedPrimaryControls.map((control) => `touch target: ${control.text} is ${Math.round(control.width)}x${Math.round(control.height)}`),
       ];
-      results.push({ ...scenario, ...axe, contrast, layout, touchTargetMinimum: scenario.reportView || scenario.notificationView || scenario.vendorRelationshipView || scenario.vendorPortfolioView ? 44 : 40,
+      results.push({ ...scenario, ...axe, contrast, layout, touchTargetMinimum: scenario.reportView || scenario.notificationView || scenario.vendorRelationshipView || scenario.vendorPortfolioView || scenario.riskLossView ? 44 : 40,
         undersizedPrimaryControls, errors, status: errors.length ? "FAIL" : "PASS" });
       if (errors.length) failure = "One or more accessibility scenarios failed";
     } catch (error) {

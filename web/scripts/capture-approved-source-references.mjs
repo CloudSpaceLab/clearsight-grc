@@ -8,6 +8,8 @@ import { vendorPortfolioViews } from "./vendor-portfolio-evidence-scenarios.mjs"
 import { measureVendorPortfolioSourceLayout } from "./vendor-portfolio-evidence.mjs";
 import { vendorRelationshipViews } from "./vendor-relationship-evidence-scenarios.mjs";
 import { measureVendorRelationshipSourceLayout } from "./vendor-relationship-evidence.mjs";
+import { riskLossViews } from "./risk-loss-evidence-scenarios.mjs";
+import { measureRiskLossSourceLayout, riskLossSourcePath, riskLossSourceSHA256 } from "./risk-loss-evidence.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -54,6 +56,12 @@ const references = [
     runtimeDark: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${230 + index}-vendor-relationship-${view.id}-dark-${size}.png`])),
   })),
   { id: "operational-risk", source: "clearsight-operational-risk-designs/operational-risk-preview.html", runtime: {} },
+  ...riskLossViews.map((view, index) => ({
+    id: `risk-loss-${view.id}`, source: riskLossSourcePath, pinnedSHA256: riskLossSourceSHA256,
+    sourceRiskLossView: view.id, sourceTab: view.source,
+    runtime: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${250 + index}-risk-loss-${view.id}-light-${size}.png`])),
+    runtimeDark: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${250 + index}-risk-loss-${view.id}-dark-${size}.png`])),
+  })),
   { id: "privacy-data", source: "clearsight-privacy-data-designs/privacy-workspace-preview.html", runtime: {} },
   {
     id: "reports-insights",
@@ -136,7 +144,9 @@ const requestedReferences = process.env.UI_EVIDENCE_SCOPE === "reports"
   : process.env.UI_EVIDENCE_SCOPE === "vendor-relationship"
     ? references.filter((reference) => reference.id.startsWith("vendor-relationship-"))
   : process.env.UI_EVIDENCE_SCOPE === "vendor-portfolio"
-    ? references.filter((reference) => reference.id.startsWith("vendor-portfolio-")) : references;
+    ? references.filter((reference) => reference.id.startsWith("vendor-portfolio-"))
+  : process.env.UI_EVIDENCE_SCOPE === "risk-loss"
+    ? references.filter((reference) => reference.id.startsWith("risk-loss-")) : references;
 const verified = await Promise.all(requestedReferences.map(async (reference) => {
   const expected = byPath.get(reference.source);
   if (!expected) throw new Error(`Approved source not indexed: ${reference.source}`);
@@ -235,7 +245,42 @@ try {
         const notificationsLayout = reference.sourceView ? await measureNotificationsSourceLayout(page, reference.sourceView) : null;
         const vendorRelationshipLayout = reference.sourceVendorView ? await measureVendorRelationshipSourceLayout(page, reference.sourceVendorView) : null;
         const vendorPortfolioLayout = reference.sourcePortfolioView ? await measureVendorPortfolioSourceLayout(page, reference.sourcePortfolioView) : null;
+        const riskLossLayout = reference.sourceRiskLossView ? await measureRiskLossSourceLayout(page, reference.sourceRiskLossView) : null;
         let layoutComparison = null;
+        if (riskLossLayout && runtimeManifest) {
+          const runtimePairs = [];
+          const view = riskLossViews.find((item) => item.id === reference.sourceRiskLossView);
+          for (const runtimeName of [reference.runtime[key], reference.runtimeDark[key]]) {
+            const capture = runtimeByName.get(runtimeName), actual = capture?.riskLossLayout;
+            if (!actual || capture.baseline !== false || actual.kind !== view.id
+              || capture.viewport?.width !== viewport.width || capture.viewport?.height !== viewport.height
+              || actual.localTabs?.join("|") !== riskLossViews.map((item) => item.label).join("|")
+              || actual.selectedTab !== view.label || actual.menuRows !== 1 || actual.selectedTabVisible !== true
+              || actual.firstUsefulContentVisible !== true || actual.scrollWidth > actual.documentWidth + 1
+              || actual.primaryCurrent?.join("|") !== "Risk & Losses" || actual.pendingReads !== 0
+              || actual.presentation !== riskLossLayout.presentation && !(viewport.width === 768 && actual.presentation === "stacked-records" && riskLossLayout.presentation === "table")
+              || view.id === "rcsa" && actual.columns !== riskLossLayout.columns) {
+              throw new Error(`${reference.id}/${key}/${capture?.theme ?? "missing"}: four-route Risk & Losses menu, first record or responsive source anatomy has no matching runtime evidence`);
+            }
+            const bytes = await readFile(path.join(outputDir, "..", runtimeName));
+            runtimePairs.push({ runtime_capture: runtimeName, runtime_theme: capture.theme, runtime_image_sha256: digest(bytes), runtime_image_bytes: bytes.length,
+              sourceComparison: view.sourceComparison, sameScreen: view.sourceComparison === "SAME_SCREEN",
+              sourceHeading: riskLossLayout.heading, runtimeHeading: actual.heading, sourceMenu: riskLossLayout.menu, runtimeMenu: actual.menu,
+              sourcePresentation: riskLossLayout.presentation, runtimePresentation: actual.presentation,
+              responsiveAdaptation: actual.presentation !== riskLossLayout.presentation ? "SHARED_TABLE_CONTAINER_REFLOW" : null,
+              sourceColumns: riskLossLayout.columns, runtimeColumns: actual.columns,
+              sourceFirstRecord: riskLossLayout.firstRecord, runtimeFirstRecord: actual.firstRecord, runtimeFirstIdentity: actual.firstIdentity,
+              sourceFirstIdentity: riskLossLayout.firstIdentity, sourceInspectorWidth: riskLossLayout.inspectorWidth,
+              sourceFirstUsefulContentVisible: riskLossLayout.firstUsefulContentVisible, runtimeFirstUsefulContentVisible: true,
+              runtimeSelectedTabVisible: true });
+          }
+          layoutComparison = { runtime_pairs: runtimePairs, sourceComparison: view.sourceComparison,
+            sameScreen: view.sourceComparison === "SAME_SCREEN", sourceFirstUsefulContentVisible: riskLossLayout.firstUsefulContentVisible,
+            runtimeFirstUsefulContentVisible: true, menuAdaptation: "APPROVED_FOUR_ROUTE_NAVIGATION",
+            dataComparison: "PROTOTYPE_VALUES_NOT_RUNTIME_DATA",
+            adaptation: "Risks, RCSA, Key indicators and Loss events are backed routes in one scrolling underline menu. RCSA preserves frozen population counts without inventing reviewed percentages; indicator values retain native units; the loss ledger separates Gross, Recovered and Net. The source has no Risk register, so Risks uses its KRI table anatomy and is explicitly not a same-screen comparison.",
+            conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
+        }
         if (vendorPortfolioLayout && runtimeManifest) {
           const runtimePairs = [];
           for (const runtimeName of [reference.runtime[key], reference.runtimeDark[key]]) {
@@ -401,6 +446,14 @@ try {
             adaptation: "The immutable Vendor prototype menu is preserved in its source. Runtime uses the approved shared navigation and authorized Settings footer.",
             conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
         }
+        if (reference.sourceRiskLossView && runtimeManifest) {
+          navigationComparison = { runtime_capture: reference.runtime[key], runtime_theme: runtimeCapture.theme,
+            sourceLabels: presentation.navigation?.labels ?? [], runtimeActivePage: runtimeCapture.riskLossLayout.primaryCurrent,
+            activeRiskLossDestinationMatches: runtimeCapture.riskLossLayout.primaryCurrent?.join("|") === "Risk & Losses",
+            canonicalRuntimeMenu: "2026-10-21-v2-navigation-adaptation",
+            adaptation: "The original five prototype sections remain immutable. Runtime exposes the four existing backed Risk & Losses collection routes, preserving exact record readers and the shared navigation owner.",
+            conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
+        }
         const image = `approved-${reference.id}-${key}.png`;
         await page.mouse.move(0, 0);
         await page.screenshot({ path: path.join(outputDir, image), fullPage: false, animations: "disabled" });
@@ -413,6 +466,7 @@ try {
           ...(reference.sourceView ? { source_view: reference.sourceView, source_inbox_filter: reference.sourceInboxFilter ?? null } : {}),
           ...(reference.sourcePortfolioView ? { source_portfolio_view: reference.sourcePortfolioView } : {}),
           ...(reference.sourceVendorView ? { source_vendor_view: reference.sourceVendorView, source_vendor_tab: reference.sourceVendorTab } : {}),
+          ...(reference.sourceRiskLossView ? { source_risk_loss_view: reference.sourceRiskLossView } : {}),
           ...(reference.sourceEntry ? { source_entry: reference.sourceEntry } : {}),
           source_sha256: reference.sha256,
           image,
@@ -425,6 +479,7 @@ try {
           ...(notificationsLayout ? { notifications_layout: notificationsLayout, layout_comparison: layoutComparison } : {}),
           ...(vendorRelationshipLayout ? { vendor_relationship_layout: vendorRelationshipLayout, layout_comparison: layoutComparison } : {}),
           ...(vendorPortfolioLayout ? { vendor_portfolio_layout: vendorPortfolioLayout, layout_comparison: layoutComparison } : {}),
+          ...(riskLossLayout ? { risk_loss_layout: riskLossLayout, layout_comparison: layoutComparison } : {}),
           prototype_errors: errors,
           visual_parity: "NOT_REVIEWED",
         });
@@ -454,6 +509,7 @@ const lines = [
   "Explore and Build report activate their actual source views. Build report enters through New report because its local tab is contextual. Measured layout comparisons cover the controls/chart/table or setup/paper/output replacement, not prototype values or unsupported report capabilities.",
   "Notifications activates Inbox with the original All filter, Activity and Preferences. Comparisons retain desktop list/context or main/aside placement; narrow Activity context moves above the feed, while Inbox and Preferences stack in content order. Runtime uses the canonical shared menu and only supported inbox, scoped activity and versioned email settings capabilities. Row heights and panel widths are recorded for named visual review; prototype counts and unsupported category/weekly/snooze actions are not runtime requirements.",
   "Vendor relationship captures enter the original NorthStar record and activate all five local tabs. Comparisons verify removal of portfolio chrome, the 316px context rail through 1024px and its replacement below primary content at 768/390px. Runtime facts, forms, activation and response history remain within their existing owners; prototype DPO approval, assessed risk and document completion claims are not copied.",
+  "Risk & Losses activates the original KRI, RCSA and Losses collections. Risks is explicitly a KRI table-anatomy adaptation because the original has no Risk register. The approved runtime menu exposes four backed routes in a scrolling underline row. Source/runtime record geometry is retained; shared table container reflow can start at768px, while both use two-column phone facts. The original480px inspector width is recorded alongside the separately verified runtime RCSA/indicator readers. Native indicator units, frozen RCSA counts and separate loss currencies replace illustrative values.",
   "",
   "| Screen | Viewport | Approved screenshot | Runtime screenshot |",
   "| --- | --- | --- | --- |",

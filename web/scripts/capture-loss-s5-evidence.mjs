@@ -1,9 +1,9 @@
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium } from "playwright";
 
 const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const manifestPath = path.join(outputDir, "manifest.json");
@@ -38,7 +38,7 @@ try {
     await page.goto(`${baseURL}/?fixture=loss-s5${capture.route}`, { waitUntil: "networkidle" });
 
     if (capture.openAuthoring) {
-      await page.getByRole("heading", { name: "Losses" }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Loss ledger", exact: true }).waitFor({ state: "visible" });
       // The approved compact phone shell discloses tenant/organization controls
       // instead of permanently consuming page height.
       const contextToggle = page.getByRole("button", { name: "Workspace controls" });
@@ -56,10 +56,10 @@ try {
       await dialog.getByRole("button", { name: /Event type/ }).waitFor({ state: "visible" });
       await dialog.getByRole("textbox", { name: /Gross loss/ }).waitFor({ state: "visible" });
     } else if (capture.state === "loss-register-s5") {
-      await page.getByRole("heading", { name: "Losses" }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Loss ledger", exact: true }).waitFor({ state: "visible" });
       await page.getByRole("table", { name: "Operational loss register" }).waitFor({ state: "visible" });
       await page.getByText("Duplicate merchant settlement", { exact: true }).waitFor({ state: "visible" });
-      await page.getByRole("cell", { name: "Recovery: Partly recovered" }).waitFor({ state: "visible" });
+      await page.getByRole("cell", { name: /Recovered:.*Partly recovered/ }).waitFor({ state: "visible" });
       await page.getByRole("button", { name: "Record loss" }).waitFor({ state: "visible" });
     } else {
       await page.getByRole("heading", { name: "Duplicate merchant settlement" }).waitFor({ state: "visible" });

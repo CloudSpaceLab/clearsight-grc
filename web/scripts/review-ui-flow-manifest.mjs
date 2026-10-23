@@ -12,6 +12,8 @@ import { vendorPortfolioAccessibilityScenarios, vendorPortfolioEvidenceScenarios
 import { reviewVendorPortfolioCaptures } from "./vendor-portfolio-evidence-contract.mjs";
 import { vendorRelationshipAccessibilityScenarios, vendorRelationshipEvidenceScenarios } from "./vendor-relationship-evidence-scenarios.mjs";
 import { reviewVendorRelationshipCaptures } from "./vendor-relationship-evidence-contract.mjs";
+import { riskLossAccessibilityScenarios, riskLossEvidenceScenarios } from "./risk-loss-evidence-scenarios.mjs";
+import { reviewRiskLossCaptures } from "./risk-loss-evidence-contract.mjs";
 
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const homeT7ScenarioNames = [
@@ -29,6 +31,7 @@ const homeT7ScreenshotNames = homeT7ScenarioNames.map((name) => `home-t7-${name}
 const expectedNames = [
   ...vendorRelationshipEvidenceScenarios.map(({ name }) => name),
   ...vendorPortfolioEvidenceScenarios.map(({ name }) => name),
+  ...riskLossEvidenceScenarios.map(({ name }) => name),
   "01-today-dark-comfortable-1440x900",
   "02-today-light-comfortable-1440x900",
   "03-today-dark-compact-1440x900",
@@ -203,6 +206,7 @@ const expectedNames = [
 const requiredStates = [
   ...vendorRelationshipEvidenceScenarios.map(({ state }) => state),
   ...vendorPortfolioEvidenceScenarios.map(({ state }) => state),
+  ...riskLossEvidenceScenarios.map(({ state }) => state),
   "navigation-settings-denied-mobile",
   "navigation-menu-light-mobile",
   "navigation-menu-dark-mobile",
@@ -434,6 +438,9 @@ if (manifest) {
   const vendorPortfolioReview = reviewVendorPortfolioCaptures(manifest.captures);
   failures.push(...vendorPortfolioReview.failures);
   checks.push(vendorPortfolioReview.check);
+  const riskLossReview = reviewRiskLossCaptures(manifest.captures);
+  failures.push(...riskLossReview.failures);
+  checks.push(riskLossReview.check);
   const loadedReportVariants = reportOverviews.filter((capture) => capture.fixture === "report-overview-loaded"
     && capture.state !== "report-overview-selected-area");
   const reportSizes = ["1440x900", "1280x800", "1024x768", "768x900", "390x844"];
@@ -647,7 +654,11 @@ if (accessibility) {
     && actual.theme === scenario.theme && actual.viewport?.width === scenario.viewport.width && actual.viewport?.height === scenario.viewport.height
     && actual.scopeSelector === scenario.scopeSelector && actual.touchTargetMinimum === 44));
   if (missingVendorPortfolios.length) failures.push(`Vendor portfolio scoped accessibility and touch evidence is missing: ${missingVendorPortfolios.map(({ name }) => name).join(", ")}`);
-  checks.push({ name: "accessibility and touch", status: failed.length || missingReports.length || missingNotifications.length || missingVendorRelationships.length || missingVendorPortfolios.length ? "FAIL" : "PASS", detail: `${accessibility.scenarios.length} rendered route states` });
+  const missingRiskLoss = riskLossAccessibilityScenarios.filter((scenario) => !accessibility.scenarios.some((actual) => actual.name === scenario.name
+    && actual.theme === scenario.theme && actual.viewport?.width === scenario.viewport.width && actual.viewport?.height === scenario.viewport.height
+    && actual.scopeSelector === scenario.scopeSelector && actual.touchTargetMinimum === 44));
+  if (missingRiskLoss.length) failures.push(`Risk & Losses scoped accessibility and touch evidence is missing: ${missingRiskLoss.map(({ name }) => name).join(", ")}`);
+  checks.push({ name: "accessibility and touch", status: failed.length || missingReports.length || missingNotifications.length || missingVendorRelationships.length || missingVendorPortfolios.length || missingRiskLoss.length ? "FAIL" : "PASS", detail: `${accessibility.scenarios.length} rendered route states` });
 }
 
 let bundle = { javascript: { raw: 0, gzip: 0, initial_gzip: 0, largest_raw_chunk: 0 }, css: { raw: 0, gzip: 0, initial_gzip: 0 } };

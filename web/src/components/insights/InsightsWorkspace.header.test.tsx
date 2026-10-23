@@ -15,32 +15,39 @@ const actions = {
   onTarget: vi.fn(),
 };
 
-it("uses the shared Insights header for current authorized indicators", async () => {
+it("uses the indicator heading and supported type selector for current authorized indicators", async () => {
   render(<InsightsWorkspace
     {...actions}
     kind="KRI"
     organizationName="Clear Bank"
     legalEntityName="Clear Bank Nigeria"
+    onOpenReports={vi.fn()}
   />);
 
-  const heading = screen.getByRole("heading", { name: "Insights", level: 1 });
-  expect(heading.closest("header")?.className).toContain("cs-workspace-header");
+  const heading = screen.getByRole("heading", { name: "Key indicators", level: 1 });
+  expect(heading.closest("header")?.className).toContain("insights-indicator__heading");
+  expect(screen.getByRole("button", { name: /Indicator type/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Reports" })).toBeTruthy();
   expect(screen.getByText("Current indicators for Clear Bank Nigeria.")).toBeTruthy();
   expect(await screen.findByText("No indicators in this scope")).toBeTruthy();
 });
 
-it("uses Control indicator empty-state copy for a KCI lens", async () => {
+it("uses an embedded subsection and Control indicator empty-state copy for the KCI type", async () => {
   render(<InsightsWorkspace
     {...actions}
     kind="KCI"
     organizationName="Clear Bank"
     legalEntityName="Clear Bank Nigeria"
+    embedded
+    onOpenReports={vi.fn()}
   />);
 
   expect(await screen.findByText("No control indicators linked in this scope.")).toBeTruthy();
   expect(screen.queryByText("No risk indicators linked in this scope.")).toBeNull();
-  expect(screen.getByRole("heading", { name: "Insights", level: 1 }).closest("header")?.className)
-    .toContain("cs-workspace-header");
+  expect(screen.getByRole("heading", { name: "Key indicators", level: 2 })).toBeTruthy();
+  expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+  expect(screen.queryByText("Clear Bank")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Reports" })).toBeNull();
 });
 
 it("keeps the same shared header in a selected-period Risk and Loss view", () => {

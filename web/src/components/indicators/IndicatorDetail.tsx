@@ -11,6 +11,7 @@ import "./indicator.css";
 
 type Props = {
   indicator: RiskIndicatorDetail;
+  presentation?: "default" | "inspector";
   onOpenProgram?: (programID: string) => void;
   onOpenMatter?: (matterID: string) => void;
   loadResults?: (checkID: string, version?: number) => Promise<MonitoringResult[]>;
@@ -20,6 +21,7 @@ type LoadState = "loading" | "live" | "error";
 
 export function IndicatorDetail({
   indicator,
+  presentation = "default",
   onOpenProgram,
   onOpenMatter,
   loadResults = loadMonitoringResults,
@@ -46,6 +48,10 @@ export function IndicatorDetail({
   }, [indicator.check_id, indicator.check_version, loadResults, retry]);
 
   const observations = state === "live" ? comparableIndicatorObservations(indicator, results) : undefined;
+  const actions = <div className="indicator-detail__actions">
+    {onOpenProgram && <Button variant="secondary" size="compact" onPress={() => onOpenProgram(indicator.program_id)}>Open Program</Button>}
+    {indicator.intervention && onOpenMatter && <Button size="compact" onPress={() => onOpenMatter(indicator.intervention!.matter_id)}>Open intervention</Button>}
+  </div>;
 
   const columns: readonly DataColumn<MonitoringResult>[] = [
     {
@@ -107,6 +113,8 @@ export function IndicatorDetail({
       </dl>
     </Surface>
 
+    {presentation === "inspector" && actions}
+
     <dl className="cs-sheet-facts">
       <div><dt>Business period</dt><dd>{formatIndicatorPeriod(indicator.native_measurement?.reporting_period_start, indicator.native_measurement?.reporting_period_end)}</dd></div>
       <div><dt>Program</dt><dd>{indicator.program_name}</dd></div>
@@ -115,10 +123,7 @@ export function IndicatorDetail({
       <div><dt>Freshness limit</dt><dd>{indicator.freshness_minutes} minutes</dd></div>
     </dl>
 
-    <div className="indicator-detail__actions">
-      {onOpenProgram && <Button variant="secondary" size="compact" onPress={() => onOpenProgram(indicator.program_id)}>Open Program</Button>}
-      {indicator.intervention && onOpenMatter && <Button size="compact" onPress={() => onOpenMatter(indicator.intervention!.matter_id)}>Open intervention</Button>}
-    </div>
+    {presentation !== "inspector" && actions}
 
     <section className="indicator-detail__history" aria-labelledby="indicator-history-heading">
       <div className="section-header">
@@ -152,6 +157,7 @@ export function IndicatorDetail({
         onRowAction={setSelectedResult}
         rowActionLabel="Review observation"
         isLoading={state === "loading"}
+        responsiveTo={presentation === "inspector" ? "container" : "viewport"}
       />}
       {selectedResult && <Surface>
         <div className="indicator-detail__observation">

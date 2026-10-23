@@ -1,0 +1,124 @@
+{
+  "schema": "clearsight.risk-loss-evidence-provenance.v1",
+  "reviewDate": "2026-10-23",
+  "producer": "ChatGPT /root",
+  "scope": "Risks, RCSA, Key indicators and Loss events collection anatomy, supported interaction and selected-record adaptations",
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "automatedStatus": "PASS",
+  "namedVisualStatus": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+  "pixelEquivalence": false,
+  "liveAuthority": "NOT_ASSESSED",
+  "formalScreenAcceptance": {
+    "accepted": 0,
+    "total": 19
+  },
+  "runtime": {
+    "publishedCommit": "527b348631e2f92fc920125b7da28692a2743e92",
+    "tree": "c6e85fc18a9e1e767fb45dfa80f7a17647c6fb4f",
+    "buildSHA256": "a20ab1aadace0972b9f35bb924c1d4361f805adca7af4a0b7131c84e1badc746",
+    "buildFiles": 171,
+    "manifest": {
+      "path": "docs/evidence/2026-10-22-risk-loss-v2/after/manifest.json",
+      "bytes": 741470,
+      "sha256": "0710d67354f6dcdaa7140d84e2f077cc6893504be0ead99ec175aceba879b214"
+    },
+    "note": "Subsequent evidence retention and documentation commits do not change implementation or evidence code."
+  },
+  "before": {
+    "commit": "ba284eb24b01141666c93783c15221263a13d7b8",
+    "tree": "7d1c2880c7082861751999290430408caea94377",
+    "matrixFrames": 40,
+    "overflowDiagnosticFrames": 1,
+    "receipt": {
+      "path": "docs/evidence/2026-10-22-risk-loss-v2/before/baseline-receipt.json",
+      "bytes": 20381,
+      "sha256": "9017d77c5c95e75d560f150978cfdccaeb20cfb06129b8679c85435695201b6b"
+    }
+  },
+  "source": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-operational-risk-designs/operational-risk-preview.html",
+    "sha256": "cf0a101d574904fc5f496cab0625889e640e2e30734d180d86b89171419e69dd",
+    "collectionFrames": 20,
+    "selectedRecordFrames": 6,
+    "collectionPairs": 40,
+    "selectedRecordPairs": 6,
+    "riskComparison": "TABLE_ANATOMY_ADAPTATION",
+    "theme": "light only",
+    "collectionManifest": {
+      "path": "docs/evidence/2026-10-22-risk-loss-v2/after/approved-reference/manifest.json",
+      "bytes": 202955,
+      "sha256": "9b9df096694b1a6d9dd1c1397d6d812fee233188301b85a7f88be5dff5325c87"
+    },
+    "selectedRecordManifest": {
+      "path": "docs/evidence/2026-10-22-risk-loss-v2/detail-reference/manifest.json",
+      "bytes": 47152,
+      "sha256": "a6b13da8f5aceb137d0ba48c8be7449916c2b286c34ac9c482cb0dc3bfa06b45"
+    },
+    "captureScript": {
+      "path": "docs/evidence/2026-10-22-risk-loss-v2/detail-reference/capture-detail-reference.mjs",
+      "bytes": 11958,
+      "sha256": "cf2c8a0f36849e813f0b889b45688e52ba768431ab53ca3482663e6c0b493ba1"
+    }
+  },
+  "review": {
+    "reviewer": "ChatGPT /root/risk_parity_audit",
+    "runtimeFrames": 68,
+    "sourceFrames": 26,
+    "allDirectlyInspectedImages": 94,
+    "sourceRuntimeBindings": 46,
+    "closedFindings": [
+      "V1 indicator word wrapping",
+      "V2 stale-risk phone word wrapping",
+      "E1 synthetic RCSA count reconciliation"
+    ],
+    "report": {
+      "path": "docs/evidence/2026-10-22-risk-loss-v2/visual-review.md",
+      "bytes": 30820,
+      "sha256": "10bb803605ae1daf1e9184894a25075dfbb4b4df995f5ccacc7fae3ec39b4251"
+    },
+    "automatedReceipt": {
+      "path": "docs/evidence/2026-10-22-risk-loss-v2/after/risk-loss-review.json",
+      "bytes": 17204,
+      "sha256": "6d69a2dd3156d4cbeeb5bf5b3878be97f00bb59db94d5d0b69eb403f28bdc192"
+    }
+  },
+  "accessibility": {
+    "scopedStates": 16,
+    "axeViolations": 0,
+    "undersizedPrimaryControls": 0,
+    "browserErrors": 0,
+    "targetMinimumPx": 44,
+    "axeIncompleteObservations": 32,
+    "supplementalContrastObservations": {
+      "PASS": 736,
+      "INCOMPLETE": 58,
+      "REVIEW": 64,
+      "FAIL": 0,
+      "UNSUPPORTED": 0
+    },
+    "limitation": "Decorative glyphs, partly offscreen inactive phone tabs and shared-shell filter/backdrop readings remain outside complete automated contrast proof. Observations are not counts of unique permanent nodes.",
+    "receipt": {
+      "path": "docs/evidence/2026-10-22-risk-loss-v2/after/accessibility.json",
+      "bytes": 604226,
+      "sha256": "658762ceec7d9f7295abf78921855e87757e1f2f34ed6885e202684c86895945"
+    }
+  },
+  "correctedRuntimeCI": {
+    "status": "SUCCESS",
+    "attempt": 1,
+    "head": "527b348631e2f92fc920125b7da28692a2743e92",
+    "runID": 39975370219,
+    "url": "https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/39975370219",
+    "webFiles": 263,
+    "webTests": 2159,
+    "localFullSuite": "Timing failures retained; isolated Reports timeout reproduced on untouched main, isolated Forms assertion passed; no timeout increased."
+  },
+  "releaseRecord": "https://github.com/CloudSpaceLab/clearsight-grc/pull/586",
+  "releaseStatusAtRetention": "Final documentation-head CI/UI, merge and exact-SHA demo verification are pending and will be recorded in the PR.",
+  "limits": [
+    "Different original and runtime records, controls and metadata; no same-record or pixel-equivalence claim.",
+    "Original selected Loss inspector becomes the existing standalone governed detail route; Risks has no dedicated original record.",
+    "Static visual review is bounded to retained viewports; interaction receipts separately cover navigation and scroll/action reachability.",
+    "No four-actor execution, live authorization, source-to-report reconciliation or production acceptance is established."
+  ]
+}

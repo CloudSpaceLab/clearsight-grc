@@ -40,9 +40,10 @@ describe("LossRegister", () => {
     render(<LossRegister organizationName="Clear Bank" legalEntityName="Nigeria" onOpenLoss={onOpenLoss} loadPage={loadPage}/>);
 
     expect(await screen.findByText("Duplicate settlement")).toBeTruthy();
-    expect(screen.getByText(/net$/i)).toBeTruthy();
-    expect(screen.getByText(/Gross .* Recovered/i)).toBeTruthy();
-    expect(screen.getByRole("cell", { name: "Recovery: Partly recovered" })).toBeTruthy();
+    expect(screen.getByRole("cell", { name: /Gross:.*5,000,000/ })).toBeTruthy();
+    expect(screen.getByRole("cell", { name: /Recovered:.*2,000,000.*Partly recovered/ })).toBeTruthy();
+    expect(screen.getByRole("cell", { name: /Net:.*3,000,000.*Active/ })).toBeTruthy();
+    fireEvent.click(screen.getByText("Financial impact for this page"));
     expect(screen.getByRole("region", { name: "Financial impact for displayed losses" })).toBeTruthy();
     expect(screen.getByRole("list", { name: "NGN financial exposure from loaded losses" })).toBeTruthy();
     expect(screen.getByText("Net outstanding")).toBeTruthy();
@@ -53,12 +54,17 @@ describe("LossRegister", () => {
     expect(onOpenLoss).toHaveBeenCalledWith("loss-1");
   });
 
-  it("reuses register styling and distinguishes current page from the total Loss register", async () => {
-    render(<LossRegister onOpenLoss={vi.fn()} loadPage={vi.fn().mockResolvedValue({ ...page, next_cursor: "next-loss-page" })}/>);
+  it("puts the ledger before secondary currency totals and names the loaded population", async () => {
+    render(<LossRegister embedded onOpenLoss={vi.fn()} loadPage={vi.fn().mockResolvedValue({ ...page, next_cursor: "next-loss-page" })}/>);
 
-    const summary = await screen.findByRole("region", { name: "Financial impact for displayed losses" });
-    expect(summary.className).toContain("cs-register-summary");
-    expect(screen.getByRole("heading", { name: "Losses" }).closest("header")?.className).toContain("cs-register-header");
+    const table = await screen.findByRole("table", { name: "Operational loss register" });
+    const disclosure = screen.getByText("Financial impact for this page").closest("details")!;
+    expect(disclosure.open).toBe(false);
+    expect(table.compareDocumentPosition(disclosure) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Loss ledger", level: 2 })).toBeTruthy();
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+    fireEvent.click(screen.getByText("Financial impact for this page"));
+    const summary = screen.getByRole("region", { name: "Financial impact for displayed losses" });
     expect(within(summary).getByText("1 on this page · More pages")).toBeTruthy();
     expect(within(summary).getByRole("list", { name: "NGN financial exposure from loaded losses" })).toBeTruthy();
   });
@@ -79,6 +85,7 @@ describe("LossRegister", () => {
     ));
     expect(screen.getByText("Recorded losses and recoveries for BANK / PAYMENTS.")).toBeTruthy();
 
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     fireEvent.click(screen.getByRole("button", { name: /Recovery/i }));
     fireEvent.click(await screen.findByRole("option", { name: "Partly recovered" }));
     fireEvent.click(screen.getByRole("button", { name: /Event type/i }));
@@ -95,6 +102,22 @@ describe("LossRegister", () => {
       }),
       expect.any(AbortSignal),
     ));
+  });
+
+  it("starts a new organization scope at its first page without reusing a previous cursor", async () => {
+    const loadPage = vi.fn().mockResolvedValue({ ...page, next_cursor: "cursor-scope-a" });
+    const onOpenLoss = vi.fn();
+    const { rerender } = render(<LossRegister organizationScopeID="scope-a" onOpenLoss={onOpenLoss} loadPage={loadPage}/>);
+    await screen.findByText("Duplicate settlement");
+    fireEvent.click(screen.getByRole("button", { name: "Load next page" }));
+    await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(expect.objectContaining({ organizationScopeID: "scope-a", cursor: "cursor-scope-a" }), expect.any(AbortSignal)));
+
+    rerender(<LossRegister organizationScopeID="scope-b" onOpenLoss={onOpenLoss} loadPage={loadPage}/>);
+    await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(expect.objectContaining({ organizationScopeID: "scope-b", cursor: undefined }), expect.any(AbortSignal)));
+    expect(loadPage.mock.calls.filter(([params]) => params.organizationScopeID === "scope-b").every(([params]) => params.cursor === undefined)).toBe(true);
+
+    rerender(<LossRegister organizationScopeID="scope-a" onOpenLoss={onOpenLoss} loadPage={loadPage}/>);
+    await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(expect.objectContaining({ organizationScopeID: "scope-a", cursor: undefined }), expect.any(AbortSignal)));
   });
 
   it("offers canonical loss authoring without changing register pagination", async () => {

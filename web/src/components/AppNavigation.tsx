@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
 import { routeHash, type View, type WorkspaceTarget, type WorkTab } from "../appRouting";
+import { riskLossDestinations } from "../riskLossNavigation";
 import { NavigationIcon } from "./NavigationIcon";
 import { Monogram } from "./Monogram";
 import { ActionLink, FocusedSheet, IconButton } from "./ui";
@@ -26,12 +27,7 @@ const destinations: readonly Destination[] = [
   { id: "reports", label: "Reports", view: "reports" },
 ];
 
-const riskDestinations: readonly Destination[] = [
-  { id: "risks", label: "Risks", view: "risks" },
-  { id: "rcsa", label: "RCSA", view: "rcsa" },
-  { id: "indicators", label: "Key indicators", view: "insights" },
-  { id: "losses", label: "Loss events", view: "losses" },
-];
+const riskDestinations: readonly Destination[] = riskLossDestinations;
 
 function selectedDestination(view: View, target: WorkspaceTarget) {
   if (view === "programs") return target.programsPage === "library" ? "frameworks" : "programs";

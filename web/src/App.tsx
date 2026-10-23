@@ -18,6 +18,7 @@ import type { RuntimeContext, ScopeNode } from "./api";
 import { CapturePanel, ProgramsView, ReferenceJourneysView, RoutingPanel, TodayView, WorkView, type RoutingLoadState } from "./AppViews";
 import { AdministrationMenu } from "./components/AdministrationMenu";
 import { AppNavigation } from "./components/AppNavigation";
+import { RiskLossWorkspaceFrame } from "./components/risk-loss/RiskLossWorkspaceFrame";
 import { DemoEnvironmentMenu } from "./components/DemoEnvironmentMenu";
 import { DisplayPreferencesMenu, useDisplayPreferences } from "./components/DisplayPreferences";
 import { DocumentImportWorkspace } from "./components/DocumentImportWorkspace";
@@ -679,8 +680,18 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         ...(activeOrganizationScope?.id ? { insightsOrganizationScopeID: activeOrganizationScope.id } : {}),
       })}/></Suspense>}
       {activeView === "programs" && <ProgramsView organizationName={organizationName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} actorPrincipalID={runtime?.actor.id} canConfigureSources={runtime?.capabilities?.config_write === true} targetID={target.programID} targetSection={target.programSection} programItem={target.programItem} programsPage={target.programsPage} frameworkEdition={target.frameworkEdition} onSectionChange={(programID, programSection) => navigate("programs", { programID, programSection, frameworkEdition: target.frameworkEdition })} openFirst={target.openFirstProgram} onOpenRequest={(id) => navigate("work", { evidenceID: id }, "evidence")} onOpenForm={(id) => navigate("forms", { formTemplateID: id })} onAnalyzeDocument={importsEnabled ? () => navigate("imports") : undefined}/>}
-      {activeView === "risks" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading risks…</div>}><RisksWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} actorID={runtime?.actor?.id} targetID={target.riskID} onTarget={(id) => navigate("risks", id ? { riskID: id } : {})} onOpenProgram={(programID) => navigate("programs", { programID, programSection: "monitoring" })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")} onOpenProgramControl={(programID, objectiveID) => navigate("programs", { programID, programSection: "requirements-controls", programItem: { kind: "control-objective", id: objectiveID } })}/></Suspense>}
+      {(activeView === "risks" || activeView === "rcsa" || activeView === "losses" || activeView === "insights") && <RiskLossWorkspaceFrame
+        section={activeView}
+        enabled={!(activeView === "risks" && target.riskID) && !(activeView === "losses" && target.lossID) && !(activeView === "insights" && target.insightsView === "risk-loss")}
+        organizationName={organizationName}
+        legalEntityName={legalEntityName}
+        organizationScopeName={activeView === "rcsa" ? undefined : activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name}
+        onSectionChange={(section) => navigate(section)}
+        onOpenReports={() => navigate("reports")}
+      >
+      {activeView === "risks" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading risks…</div>}><RisksWorkspace embedded={!target.riskID} organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} actorID={runtime?.actor?.id} targetID={target.riskID} onTarget={(id) => navigate("risks", id ? { riskID: id } : {})} onOpenProgram={(programID) => navigate("programs", { programID, programSection: "monitoring" })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")} onOpenProgramControl={(programID, objectiveID) => navigate("programs", { programID, programSection: "requirements-controls", programItem: { kind: "control-objective", id: objectiveID } })}/></Suspense>}
       {activeView === "rcsa" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading RCSA cycles…</div>}><RCSAWorkspace
+        embedded
         organizationName={organizationName}
         legalEntityName={legalEntityName}
         targetID={target.rcsaCycleID}
@@ -688,8 +699,9 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         onOpenEvidence={(id, cycleID) => navigate("work", { evidenceID: id, returnRCSACycleID: cycleID }, "evidence")}
         onOpenMatter={(id, cycleID) => navigate("work", { matterID: id, returnRCSACycleID: cycleID }, "matters")}
       /></Suspense>}
-      {activeView === "losses" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading losses…</div>}><LossesWorkspace organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} targetID={target.lossID} onTarget={(id) => navigate("losses", id ? { lossID: id } : {})} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")}/></Suspense>}
+      {activeView === "losses" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading losses…</div>}><LossesWorkspace embedded={!target.lossID} organizationName={organizationName} legalEntityName={legalEntityName} organizationScopeID={activeOrganizationScope?.id} organizationScopeName={activeOrganizationScope?.department_path?.join(" / ") || activeOrganizationScope?.name} organizationScopes={programOrganizationScopes} targetID={target.lossID} onTarget={(id) => navigate("losses", id ? { lossID: id } : {})} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenMatter={(matterID) => navigate("work", { matterID }, "matters")}/></Suspense>}
       {activeView === "insights" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Insights…</div>}><InsightsWorkspace
+        embedded={target.insightsView !== "risk-loss"}
         organizationName={organizationName}
         legalEntityName={legalEntityName}
         organizationScopeID={activeOrganizationScope?.id}
@@ -719,6 +731,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
         onOpenRisk={(riskID) => navigate("risks", { riskID })}
         onOpenReports={() => navigate("reports")}
       /></Suspense>}
+      </RiskLossWorkspaceFrame>}
       {activeView === "reports" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading reports…</div>}><ReportsWorkspace scopeAuthorized={Boolean(runtime)} organizationName={organizationName} legalEntityName={legalEntityName} legalEntityID={runtime?.legal_entity.id} organizationScopeID={activeOrganizationScope?.id} onOpenRisk={(riskID) => navigate("risks", { riskID })} onOpenLoss={(lossID) => navigate("losses", { lossID })} onOpenWork={() => navigate("work")} onOpenPrograms={() => navigate("programs")} onOpenInsights={(period) => navigate("insights", period ? { insightsView: "risk-loss", insightsPeriod: period, insightsLegalEntityID: runtime?.legal_entity.id, ...(activeOrganizationScope?.id ? { insightsOrganizationScopeID: activeOrganizationScope.id } : {}) } : {})}/></Suspense>}
       {activeView === "notifications" && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading notifications…</div>}>{runtime ? <NotificationsWorkspace key={notificationScopeKey(runtime)} inbox={notifications} tab={target.notificationTab ?? "inbox"} onTab={(notificationTab) => navigate("notifications", notificationTab === "inbox" ? {} : { notificationTab })} legalEntityID={runtime.legal_entity.id} legalEntityName={legalEntityName} actorName={actorName} canReadActivity={runtime.capabilities?.platform_operations_read === true} onOpenWork={() => navigate("work")}/> : <div className="workspace-loading" role="status">Loading your notification access…</div>}</Suspense>}
       {activeView === "ropa" && target.ropaPage !== "reports" && target.ropaActivityID && <Suspense fallback={<div className="workspace-loading" aria-live="polite" aria-busy="true">Loading processing activity…</div>}><RopaActivityPage activityID={target.ropaActivityID} organizationName={organizationName} legalEntityName={legalEntityName} onBack={() => navigate("ropa")}/></Suspense>}
