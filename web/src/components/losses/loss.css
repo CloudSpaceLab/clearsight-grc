@@ -6,6 +6,87 @@
     gap: var(--cs-space-section);
   }
 
+  .loss-register-page {
+    gap: var(--cs-space-group);
+    --cs-table-row-padding: 14px 12px;
+  }
+
+  .loss-register__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cs-space-group);
+    min-inline-size: 0;
+  }
+
+  .loss-register__heading h2 {
+    margin: 0;
+    color: var(--cs-text-strong);
+    font-size: 21px;
+    letter-spacing: -.6px;
+    line-height: 1.25;
+  }
+
+  .loss-register__heading p {
+    margin: 6px 0 0;
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+
+  .loss-register__filters {
+    display: grid;
+    gap: var(--cs-primitive-space-2);
+    min-inline-size: 0;
+  }
+
+  .loss-register__toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(150px, .38fr) auto;
+    align-items: end;
+    gap: var(--cs-primitive-space-3);
+  }
+
+  .loss-register__toolbar > *,
+  .loss-register__filter-fields > * { min-inline-size: 0; }
+
+  .loss-register__toolbar > .cs-button { min-block-size: 44px; }
+
+  .loss-register__filter-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--cs-primitive-space-3);
+    padding-block: var(--cs-primitive-space-2);
+  }
+
+  .loss-register__filter-summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--cs-primitive-space-3);
+    min-block-size: 24px;
+    color: var(--cs-text-muted);
+    font-size: var(--cs-font-size-caption);
+  }
+
+  .loss-register__filter-summary:empty { display: none; }
+  .loss-register-page > .cs-data-table { font-size: var(--cs-font-size-caption); }
+
+  .loss-register__summary-disclosure > summary {
+    min-block-size: 44px;
+    align-content: center;
+    color: var(--cs-text-primary);
+    font-size: var(--cs-font-size-caption);
+    font-weight: 650;
+    cursor: pointer;
+  }
+
+  .loss-register__summary-disclosure > summary:focus-visible {
+    outline: var(--cs-focus-width) solid var(--cs-focus-ring);
+    outline-offset: var(--cs-focus-offset);
+  }
+
+  .loss-register__summary-disclosure[open] > summary { margin-block-end: var(--cs-primitive-space-2); }
+
   .loss-register__identity,
   .loss-register__money {
     display: grid;
@@ -22,6 +103,8 @@
   .loss-register__money small {
     color: var(--cs-text-muted);
   }
+
+  .loss-register__money { justify-items: end; font-variant-numeric: tabular-nums; }
 
   .loss-exposure__currency-heading {
     display: flex;
@@ -72,6 +155,23 @@
     color: var(--cs-text-muted);
   }
 
+  .loss-record__heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--cs-space-group);
+    min-inline-size: 0;
+  }
+
+  .loss-record__heading > div { min-inline-size: 0; }
+  .loss-record__heading h1 { margin: var(--cs-primitive-space-2) 0; overflow-wrap: anywhere; }
+
+  .loss-record__conditions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cs-space-inline);
+  }
+
   .loss-record__state {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -98,6 +198,8 @@
     color: var(--cs-text-primary);
     overflow-wrap: anywhere;
   }
+
+  .loss-record__state dd { font-variant-numeric: tabular-nums; font-weight: 650; }
 
   .loss-record__overview {
     display: grid;
@@ -164,6 +266,11 @@
   }
 
   @media (max-width: 760px) {
+    .loss-register__toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+    .loss-register__toolbar > :first-child { grid-column: 1 / -1; }
+    .loss-register__heading { align-items: flex-start; flex-wrap: wrap; }
+    .loss-record__heading { flex-wrap: wrap; }
+    .loss-register__filter-fields { grid-template-columns: minmax(0, 1fr); }
     .loss-record__state {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -175,8 +282,18 @@
   }
 
   @media (max-width: 420px) {
+    .loss-register__heading h2 { font-size: 18px; }
     .loss-record__state {
       grid-template-columns: minmax(0, 1fr);
     }
+  }
+
+  @container cs-data-table (max-width: 700px) {
+    .loss-register-page > .cs-data-table tbody tr { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
+    .loss-register-page > .cs-data-table tbody tr td { grid-template-columns: minmax(0, 1fr); align-content: start; }
+    .loss-register-page > .cs-data-table tbody tr td[data-mobile-layout="full-width"],
+    .loss-register-page > .cs-data-table tbody tr td.cs-data-table__action { grid-column: 1 / -1; }
+    .loss-register-page > .cs-data-table .cs-data-table__action .cs-button { inline-size: 100%; min-block-size: 44px; }
+    .loss-register__money { justify-items: start; }
   }
 }

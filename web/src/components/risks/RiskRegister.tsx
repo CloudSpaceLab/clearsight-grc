@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { listRisks, type RiskListParams } from "../../riskApi";
 import { riskAppetiteDistribution } from "../../riskAppetiteDistribution";
 import type { RiskAppetitePosition, RiskPage, RiskStatus, RiskSummary } from "../../riskTypes";
-import { Button, DataTable, EmptyState, FilterBar, Notice, SearchField, SelectField, StackedDistribution, StatusBadge, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, Notice, SearchField, SelectField, StackedDistribution, StatusBadge, type DataColumn } from "../ui";
 import { assessmentKindLabel, assessmentRatingLabel, assessmentRatingTone, currentAppetiteLabel, currentAppetiteTone, formatRiskDate, riskStatusLabel, riskStatusTone } from "./riskPresentation";
 
 type Props = {
+  embedded?: boolean;
   organizationName?: string;
   legalEntityName?: string;
   organizationScopeID?: string;
@@ -29,16 +30,29 @@ const appetiteOptions: ReadonlyArray<{ id: RiskAppetitePosition; label: string }
   { id: "UNKNOWN", label: "Unknown" },
 ];
 
-export function RiskRegister({ organizationName, legalEntityName, organizationScopeID, organizationScopeName, onOpenRisk, loadPage = listRisks }: Props) {
+export function RiskRegister({ embedded = false, organizationName, legalEntityName, organizationScopeID, organizationScopeName, onOpenRisk, loadPage = listRisks }: Props) {
   const scope = organizationScopeName || legalEntityName || "this legal entity";
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<RiskStatus>();
   const [appetite, setAppetite] = useState<RiskAppetitePosition>();
-  const [cursors, setCursors] = useState<string[]>([]);
+  const [paginationState, setPaginationState] = useState<{ scopeID?: string; cursors: string[] }>({ scopeID: organizationScopeID, cursors: [] });
+  const cursors = paginationState.scopeID === organizationScopeID ? paginationState.cursors : [];
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState<RiskPage>({ items: [] });
   const [state, setState] = useState<LoadState>("loading");
   const [retry, setRetry] = useState(0);
   const currentCursor = cursors[cursors.length - 1];
+
+  function setCursors(update: string[] | ((previous: string[]) => string[])) {
+    setPaginationState((previous) => ({
+      scopeID: organizationScopeID,
+      cursors: typeof update === "function" ? update(previous.scopeID === organizationScopeID ? previous.cursors : []) : update,
+    }));
+  }
+
+  useEffect(() => {
+    setPaginationState((previous) => previous.scopeID === organizationScopeID ? previous : { scopeID: organizationScopeID, cursors: [] });
+  }, [organizationScopeID]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,6 +99,7 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
   }
 
   const hasFilters = Boolean(search.trim() || status || appetite);
+  const Heading = embedded ? "h2" : "h1";
   const appetiteSegments = state === "live" ? riskAppetiteDistribution(page.items) : [];
   const outsideCount = appetiteSegments.find((segment) => segment.id === "breached")?.count ?? 0;
   const nearCount = appetiteSegments.find((segment) => segment.id === "approaching")?.count ?? 0;
@@ -110,7 +125,7 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       header: "Rating",
       kind: "status",
       render: (item) => <StatusBadge tone={assessmentRatingTone(item.latest_assessment, item.risk.version)}>{assessmentRatingLabel(item.latest_assessment, item.risk.version)}</StatusBadge>,
-      accessibleText: (item) => assessmentRatingLabel(item.latest_assessment),
+      accessibleText: (item) => assessmentRatingLabel(item.latest_assessment, item.risk.version),
     },
     {
       id: "appetite",
@@ -142,26 +157,30 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
     },
   ];
 
-  return <section className="risk-register-page" aria-labelledby="risk-register-heading">
-    <header className="topbar risk-page-header cs-register-header">
+  return <section className="risk-register-page" data-embedded={embedded || undefined} aria-labelledby="risk-register-heading">
+    <header className={embedded ? "risk-register__heading" : "risk-register__heading cs-register-header"}>
       <div>
-        <span className="eyebrow">{organizationName || "Risk portfolio"}</span>
-        <h1 id="risk-register-heading">Risks</h1>
+        {!embedded && <span className="eyebrow">{organizationName || "Risk portfolio"}</span>}
+        <Heading id="risk-register-heading">Risks</Heading>
         <p>Risk assessments and appetite limits for {scope}.</p>
       </div>
     </header>
 
-    <FilterBar
-      label="Risk filters"
-      fields={<>
+    <section className="risk-register__filters" aria-label="Risk filters">
+      <div className="risk-register__toolbar">
         <SearchField label="Search risks" value={search} onChange={changeSearch} placeholder="Risk name, code, category or impact" isLoading={state === "loading"}/>
         <SelectField label="Risk status" value={status} placeholder="All statuses" options={statusOptions} onChange={changeStatus}/>
+        <Button variant="secondary" aria-expanded={filtersOpen} aria-controls="risk-register-more-filters" onPress={() => setFiltersOpen((open) => !open)}>Filters{appetite ? " (1)" : ""}</Button>
+      </div>
+      {filtersOpen && <div className="risk-register__filter-fields" id="risk-register-more-filters">
         <SelectField label="Appetite position" value={appetite} placeholder="All appetite positions" options={appetiteOptions} onChange={changeAppetite}/>
-      </>}
-      resultCount={state === "live" ? page.items.length : undefined}
-      resultLabel={(count) => `${count} shown`}
-      onClear={hasFilters ? clearFilters : undefined}
-    />
+      </div>}
+      <div className="risk-register__filter-summary">
+        {state === "live" && <output>{page.items.length} shown</output>}
+        {appetite && <span>{appetiteOptions.find((option) => option.id === appetite)?.label}</span>}
+        {hasFilters && <Button variant="quiet" onPress={clearFilters}>Clear filters</Button>}
+      </div>
+    </section>
 
     {state === "loading" && page.items.length === 0 && <p className="risk-load-state" role="status">Loading risks…</p>}
     {state === "error" && <Notice tone="error"><span>Risk register unavailable.</span> <Button variant="secondary" size="compact" onPress={() => setRetry((value) => value + 1)}>Try again</Button></Notice>}
@@ -170,17 +189,6 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       title={hasFilters ? "No matching risks" : "No risks in this scope"}
       description={hasFilters ? "Change the filters or search." : `No current risk records were returned for ${scope}.`}
     />}
-    {state === "live" && page.items.length > 0 && <section className="risk-register__position cs-register-summary" aria-label="Risk appetite for displayed records">
-      <div className="risk-register__position-header cs-register-summary__heading">
-        <h2>Risk appetite</h2>
-        <span className="cs-register-summary__count">{page.items.length} on this page{page.next_cursor ? " · More pages" : ""}</span>
-      </div>
-      <StackedDistribution ariaLabel="Risk appetite for displayed records" segments={appetiteSegments}/>
-      {(outsideCount > 0 || nearCount > 0) && <div className="risk-register__position-actions">
-        {outsideCount > 0 && appetite !== "BREACHED" && <Button variant="secondary" size="compact" onPress={() => changeAppetite("BREACHED")}>Filter outside appetite</Button>}
-        {nearCount > 0 && appetite !== "APPROACHING" && <Button variant="quiet" size="compact" onPress={() => changeAppetite("APPROACHING")}>Filter near limit</Button>}
-      </div>}
-    </section>}
     {page.items.length > 0 && <DataTable
       ariaLabel="Risk register"
       rows={page.items}
@@ -191,7 +199,22 @@ export function RiskRegister({ organizationName, legalEntityName, organizationSc
       rowActionLabel="Open risk"
       isLoading={state === "loading"}
       pagination={pagination}
+      responsiveTo="container"
     />}
+    {state === "live" && page.items.length > 0 && <details className="risk-register__summary-disclosure">
+      <summary>Appetite for this page</summary>
+      <section className="risk-register__position cs-register-summary" aria-label="Risk appetite for displayed records">
+      <div className="risk-register__position-header cs-register-summary__heading">
+        <h2>Risk appetite</h2>
+        <span className="cs-register-summary__count">{page.items.length} on this page{page.next_cursor ? " · More pages" : ""}</span>
+      </div>
+      <StackedDistribution ariaLabel="Risk appetite for displayed records" segments={appetiteSegments}/>
+      {(outsideCount > 0 || nearCount > 0) && <div className="risk-register__position-actions">
+        {outsideCount > 0 && appetite !== "BREACHED" && <Button variant="secondary" size="compact" onPress={() => changeAppetite("BREACHED")}>Filter outside appetite</Button>}
+        {nearCount > 0 && appetite !== "APPROACHING" && <Button variant="quiet" size="compact" onPress={() => changeAppetite("APPROACHING")}>Filter near limit</Button>}
+      </div>}
+      </section>
+    </details>}
   </section>;
 }
 

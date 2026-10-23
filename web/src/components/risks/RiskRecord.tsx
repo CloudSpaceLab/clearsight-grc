@@ -156,10 +156,11 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
   }
 
   return <section className="risk-record-page" aria-labelledby="risk-record-heading">
-    <header className="topbar risk-page-header cs-register-header">
+    <header className="risk-record__heading">
       <div>
         <span className="eyebrow">{risk.code}{risk.category ? ` · ${risk.category}` : ""}</span>
         <h1 id="risk-record-heading">{risk.name}</h1>
+        <div className="risk-record__conditions" aria-label="Risk status"><StatusBadge tone={riskStatusTone(risk.status)}>{riskStatusLabel(risk.status)}</StatusBadge></div>
       </div>
       <Button variant="secondary" onPress={onBack}>Back to risks</Button>
     </header>
@@ -168,7 +169,6 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
       <dl className="risk-record__state" role="group" aria-label="Current risk state">
         <div><dt>Current rating</dt><dd><StatusBadge tone={assessmentRatingTone(currentAssessment, risk.version)}>{assessmentRatingLabel(currentAssessment, risk.version)}</StatusBadge></dd></div>
         <div><dt>{currentAssessment ? `${assessmentKindLabel(currentAssessment.kind)} appetite` : "Appetite"}</dt><dd><StatusBadge tone={currentAppetiteTone(risk.version, currentAssessment, aggregate.active_appetite)}>{currentAppetiteLabel(risk.version, currentAssessment, aggregate.active_appetite)}</StatusBadge></dd></div>
-        <div><dt>Status</dt><dd><StatusBadge tone={riskStatusTone(risk.status)}>{riskStatusLabel(risk.status)}</StatusBadge></dd></div>
         <div><dt>Owner</dt><dd>{aggregate.owner_display_name || (risk.owner_principal_id ? "Assigned · name unavailable" : "Not assigned")}</dd></div>
         <div><dt>Updated</dt><dd>{formatRiskDate(risk.updated_at)}</dd></div>
       </dl>
@@ -219,6 +219,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
       {aggregate.control_details_complete === false && <Notice tone="warning">Some linked control details are unavailable in the current scope.</Notice>}
       {aggregate.control_details?.length ? <DataTable
         ariaLabel="Risk controls"
+        responsiveTo="container"
         rows={aggregate.control_details}
         rowKey={(item) => item.link.id}
         rowName={(item) => `${item.definition.name}, ${item.implementation_name}, ${controlImplementationStatusLabel(item.implementation_status)}`}
@@ -252,6 +253,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
       <div className="section-header"><div><h2 id="risk-assessments-heading">Assessments</h2><p>Approved assessment records and their appetite position.</p></div></div>
       {aggregate.assessments.length ? <DataTable
         ariaLabel="Risk assessments"
+        responsiveTo="container"
         rows={aggregate.assessments}
         rowKey={(item) => item.id}
         rowName={(item) => `${assessmentKindLabel(item.kind)}, ${item.method_code}, ${appetiteLabel(item.appetite_position)}`}
@@ -263,6 +265,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
       <div className="section-header"><div><h2 id="risk-appetite-heading">Appetite history</h2></div></div>
       {aggregate.appetite.length ? <DataTable
         ariaLabel="Risk appetite history"
+        responsiveTo="container"
         rows={aggregate.appetite}
         rowKey={(item) => item.id}
         rowName={(item) => `Appetite version ${item.version}, ${item.statement}`}

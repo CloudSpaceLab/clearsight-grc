@@ -1,9 +1,12 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { ApiError } from "../../http";
+import * as controlCatalogApi from "../../controlCatalogApi";
+import * as riskApi from "../../riskApi";
 import type { RiskAggregate, RiskPage, RiskRecord as RiskValue } from "../../riskTypes";
 import { RiskRecord } from "./RiskRecord";
 import { RiskRegister } from "./RiskRegister";
+import { RisksWorkspace } from "./RisksWorkspace";
 
 const risk: RiskValue = {
   id: "risk-1",
@@ -123,6 +126,7 @@ it("renders a bounded Risk register with working-language appetite state", async
   expect(within(table).getByText("Residual")).toBeTruthy();
   expect(within(table).getByText("QUAL-5X5 · v1")).toBeTruthy();
   expect(screen.getByText("1 shown")).toBeTruthy();
+  fireEvent.click(screen.getByText("Appetite for this page"));
   expect(screen.getByRole("img", { name: /Risk appetite for displayed records: 1 outside appetite/i })).toBeTruthy();
   expect(screen.getByText("1 shown")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Filter outside appetite" }));
@@ -130,13 +134,18 @@ it("renders a bounded Risk register with working-language appetite state", async
   expect(screen.queryByText(risk.owner_principal_id!)).toBeNull();
 });
 
-it("uses one shared surface and labels page-local appetite values accurately", async () => {
+it("puts records before the secondary page-local appetite summary", async () => {
   const loadPage = vi.fn().mockResolvedValue({ ...page, next_cursor: "next-risk-page" });
-  render(<RiskRegister onOpenRisk={vi.fn()} loadPage={loadPage}/>);
+  render(<RiskRegister embedded onOpenRisk={vi.fn()} loadPage={loadPage}/>);
 
-  const summary = await screen.findByRole("region", { name: "Risk appetite for displayed records" });
-  expect(summary.className).toContain("cs-register-summary");
-  expect(screen.getByRole("heading", { name: "Risks" }).closest("header")?.className).toContain("cs-register-header");
+  const table = await screen.findByRole("table", { name: "Risk register" });
+  const disclosure = screen.getByText("Appetite for this page").closest("details")!;
+  expect(disclosure.open).toBe(false);
+  expect(table.compareDocumentPosition(disclosure) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Risks", level: 2 })).toBeTruthy();
+  expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+  fireEvent.click(screen.getByText("Appetite for this page"));
+  const summary = screen.getByRole("region", { name: "Risk appetite for displayed records" });
   expect(within(summary).getByText("1 on this page · More pages")).toBeTruthy();
   expect(screen.queryByRole("button", { name: /Review 1 outside appetite/ })).toBeNull();
 
@@ -206,6 +215,22 @@ it("uses the opaque cursor for next-page navigation", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Load next page" }));
   expect(await screen.findByText("Payment interruption")).toBeTruthy();
   expect(loadPage).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: "cursor-2" }), expect.any(AbortSignal));
+});
+
+it("starts from the first page on every organization scope change", async () => {
+  const loadPage = vi.fn().mockResolvedValue({ ...page, next_cursor: "cursor-scope-a" });
+  const onOpenRisk = vi.fn();
+  const { rerender } = render(<RiskRegister organizationScopeID="scope-a" onOpenRisk={onOpenRisk} loadPage={loadPage}/>);
+  await screen.findByText("Network resilience");
+  fireEvent.click(screen.getByRole("button", { name: "Load next page" }));
+  await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(expect.objectContaining({ organizationScopeID: "scope-a", cursor: "cursor-scope-a" }), expect.any(AbortSignal)));
+
+  rerender(<RiskRegister organizationScopeID="scope-b" onOpenRisk={onOpenRisk} loadPage={loadPage}/>);
+  await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(expect.objectContaining({ organizationScopeID: "scope-b", cursor: undefined }), expect.any(AbortSignal)));
+  expect(loadPage.mock.calls.filter(([params]) => params.organizationScopeID === "scope-b").every(([params]) => params.cursor === undefined)).toBe(true);
+
+  rerender(<RiskRegister organizationScopeID="scope-a" onOpenRisk={onOpenRisk} loadPage={loadPage}/>);
+  await waitFor(() => expect(loadPage).toHaveBeenLastCalledWith(expect.objectContaining({ organizationScopeID: "scope-a", cursor: undefined }), expect.any(AbortSignal)));
 });
 
 it("shows statement, impact, scope and history without exposing principal identifiers", async () => {
@@ -301,6 +326,27 @@ it("does not offer Risk control linking to a non-owner", async () => {
   expect(screen.queryByRole("button", { name: "Link control" })).toBeNull();
 });
 
+it("discards the previous risk's link-control draft and late candidate read on an exact-record route change", async () => {
+  vi.spyOn(riskApi, "getRisk").mockImplementation(async (id) => ({
+    ...aggregate,
+    risk: id === risk.id ? risk : { ...risk, id, name: "Payment interruption" },
+  }));
+  let resolveCandidates!: (page: controlCatalogApi.ControlCatalogCandidatePage) => void;
+  vi.spyOn(controlCatalogApi, "listControlCatalogCandidates").mockReturnValue(new Promise((resolve) => { resolveCandidates = resolve; }));
+  const onTarget = vi.fn();
+  const { rerender } = render(<RisksWorkspace targetID="risk-1" actorID={risk.owner_principal_id} onTarget={onTarget}/>);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Link control" }));
+  expect(screen.getByText("Loading reusable controls…")).toBeTruthy();
+  rerender(<RisksWorkspace targetID="risk-2" actorID={risk.owner_principal_id} onTarget={onTarget}/>);
+  await screen.findByRole("heading", { name: "Payment interruption" });
+  await act(async () => resolveCandidates({ items: [], complete: true }));
+
+  expect(screen.queryByRole("heading", { name: "Link existing control" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Link control" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Network resilience" })).toBeNull();
+});
+
 it("uses the newer current-position assessment across CURRENT and RESIDUAL kinds", async () => {
   const olderCurrent = {
     ...assessment,
@@ -348,6 +394,7 @@ it("does not present a stale assessment as the current appetite position", async
   expect(within(register).getAllByText("Reassessment needed")).toHaveLength(2);
   expect(within(register).queryByText("High")).toBeNull();
   expect(within(register).queryByText("Outside appetite")).toBeNull();
+  expect(within(register).getByRole("cell", { name: "Rating: Reassessment needed" })).toBeTruthy();
 
   render(<RiskRecord riskID="risk-1" onBack={vi.fn()} loadRisk={vi.fn().mockResolvedValue({ ...aggregate, risk: { ...risk, version: 4 } })}/>);
   const currentState = await screen.findByRole("group", { name: "Current risk state" });
