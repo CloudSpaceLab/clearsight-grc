@@ -163,12 +163,11 @@ async function assertFileTypeSelected(page, name) {
   });
   const compact = page.getByRole("button", { name: `${name} File type`, exact: true });
   const sidebar = page.locator(".document-kinds");
-  if (await sidebar.isVisible()) {
-    if (await sidebar.getByRole("button", { name, exact: true, pressed: true }).count() !== 1)
-      throw new Error("The selected file type must retain its accessible label.");
-  } else if (!await compact.isVisible()) {
-    throw new Error("The compact file type selector must retain its accessible label.");
-  }
+  // Resolve the accessible control in one query while the container settles.
+  // A separate visibility read can become stale before its label is checked.
+  await sidebar.getByRole("button", { name, exact: true, pressed: true })
+    .or(compact)
+    .waitFor({ state: "visible" });
 }
 
 async function assertDocumentNameWidth(page) {
