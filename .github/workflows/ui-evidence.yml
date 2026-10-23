@@ -73,6 +73,10 @@ jobs:
         env:
           UI_EVIDENCE_DIR: ui-evidence
         run: node scripts/capture-approved-source-references.mjs
+      - name: Verify Risk and Losses source and runtime evidence
+        env:
+          UI_EVIDENCE_DIR: ui-evidence
+        run: node scripts/review-risk-loss-evidence.mjs
       - name: Verify proposal source rows
         env:
           PAGE_URL: http://127.0.0.1:4173

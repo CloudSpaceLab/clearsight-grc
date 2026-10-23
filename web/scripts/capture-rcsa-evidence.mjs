@@ -1,9 +1,9 @@
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium } from "playwright";
 
 const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const manifestPath = path.join(outputDir, "manifest.json");
@@ -38,10 +38,12 @@ try {
     await page.goto(`${baseURL}/?fixture=rcsa-cycles${capture.route}`, { waitUntil: "networkidle" });
 
     if (capture.state === "rcsa-register") {
-      await page.getByRole("heading", { name: "RCSA cycles" }).waitFor({ state: "visible" });
-      await page.getByRole("table", { name: "RCSA cycles" }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Risk & control self-assessments" }).waitFor({ state: "visible" });
+      await page.getByRole("list", { name: "RCSA cycles" }).waitFor({ state: "visible" });
       await page.getByText("Q3 Technology RCSA", { exact: true }).waitFor({ state: "visible" });
-      await page.getByText("3 Risks", { exact: true }).waitFor({ state: "visible" });
+      const population = page.getByLabel("Q3 Technology RCSA frozen population", { exact: true });
+      await population.getByText("Risks", { exact: true }).waitFor({ state: "visible" });
+      await population.getByText("3", { exact: true }).waitFor({ state: "visible" });
       await page.getByText("Independent challenge in progress", { exact: true }).waitFor({ state: "visible" });
     } else {
       await page.getByRole("heading", { name: "Q3 Technology RCSA" }).waitFor({ state: "visible" });

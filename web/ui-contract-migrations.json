@@ -65,7 +65,8 @@
     "src/components/NotificationCenter.tsx",
     "src/components/NotificationPreferences.tsx",
     "src/components/notifications/NotificationsWorkspace.tsx",
-    "src/components/notifications/NotificationActivity.tsx"
+    "src/components/notifications/NotificationActivity.tsx",
+    "src/components/risk-loss/RiskLossWorkspaceFrame.tsx"
   ],
   "migratedCss": [
     "src/components/vendor-relationship-workspace.css",
@@ -97,7 +98,8 @@
     "src/components/reports/reports-explore.css",
     "src/components/reports/reports.css",
     "src/notification-center.css",
-    "src/components/notifications/notifications-workspace.css"
+    "src/components/notifications/notifications-workspace.css",
+    "src/components/risk-loss/risk-loss-workspace.css"
   ],
   "nativeControlExceptions": [
     {

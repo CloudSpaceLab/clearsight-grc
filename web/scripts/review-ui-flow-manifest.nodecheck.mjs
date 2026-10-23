@@ -14,6 +14,8 @@ import { vendorRelationshipEvidenceScenarios } from "./vendor-relationship-evide
 import { reviewVendorRelationshipCaptures } from "./vendor-relationship-evidence-contract.mjs";
 import { vendorPortfolioEvidenceScenarios, vendorPortfolioViews } from "./vendor-portfolio-evidence-scenarios.mjs";
 import { reviewVendorPortfolioCaptures } from "./vendor-portfolio-evidence-contract.mjs";
+import { riskLossEvidenceScenarios, riskLossViews } from "./risk-loss-evidence-scenarios.mjs";
+import { reviewRiskLossCaptures } from "./risk-loss-evidence-contract.mjs";
 
 const webRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -621,4 +623,150 @@ test("Notifications preference evidence requires minutes, draft retention and ex
   const identity = structuredClone(valid);
   identity.notificationsLayout.commands[0].body.actor_id = "supplied-actor";
   assert.ok(notificationFindings(identity).some((failure) => failure.includes("versioned command")));
+});
+
+// Fabricated receipts exercise rejection rules only; browser captures supply proof.
+function riskLossReceipt(scenario) {
+  const bounds = (x, y, width, height) => ({ x, y, width, height, right: x + width, bottom: y + height });
+  const titles = [scenario.firstRecord], ids = [scenario.detailID];
+  const table = bounds(80, 400, scenario.viewport.width - 100, 200);
+  const row = scenario.riskLossView === "rcsa" ? { title: scenario.firstRecord, facts: { Risks: "3", Controls: "4" } }
+    : scenario.riskLossView === "insights" ? { "Current value": "98.70% 100 / 100 concern", "Limit / target": "Limit ≥ 99.50%", Movement: "−0.40 pp", Condition: "Outside limit" }
+    : scenario.riskLossView === "losses" ? { Gross: "₦18,400,000.00", Recovered: "₦8,000,000.00 Partly recovered", Net: "₦10,400,000.00 Active" }
+    : { Risk: scenario.firstRecord, Appetite: "Outside appetite", Rating: "High" };
+  const riskLossLayout = { kind: scenario.riskLossView, route: scenario.route, evidenceKind: "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+    headingText: "Risk & Losses", heading: bounds(80, 180, scenario.viewport.width - 100, 100), menu: bounds(80, 300, scenario.viewport.width - 100, 49),
+    localTabs: riskLossViews.map((view) => view.label), selectedTab: scenario.label, selectedTabVisible: true, menuRows: 1,
+    primaryCurrent: ["Risk & Losses"], documentWidth: scenario.viewport.width, scrollWidth: scenario.viewport.width,
+    records: 1, recordTitles: titles, populatedIDs: ids, firstRecord: table, firstIdentity: bounds(90, 410, 180, 40),
+    firstUsefulContentVisible: true, table, grid: scenario.riskLossView === "rcsa" ? table : null,
+    firstRecordColumns: scenario.viewport.width === 390 ? 2 : 0, rowActions: [{ label: "Open record", bounds: bounds(100, 460, 120, 44), lines: 1 }],
+    cardNumbers: [{ label: "Risks", value: "3", fontSize: 34, labelFontSize: 12, aligned: true, textAlign: "start" }, { label: "Controls", value: "4", fontSize: 34, labelFontSize: 12, aligned: true, textAlign: "start" }],
+    presentation: scenario.riskLossView === "rcsa" ? "cards" : scenario.viewport.width === 390 ? "stacked-records" : "table",
+    columns: scenario.viewport.width > 1190 ? 3 : scenario.viewport.width > 600 ? 2 : 1,
+    tableHeaders: scenario.riskLossView === "losses" ? ["Loss", "Gross", "Recovered", "Net"] : [], rowValues: [row],
+    stateText: "", disclosures: [], dialogVisible: false, pendingReads: 0, commands: [] };
+  const observation = { pending: 0, commands: [], reads: [{ path: { risks: "/api/v1/risks", rcsa: "/api/v1/rcsa/cycles", insights: "/api/v1/risk-indicators", losses: "/api/v1/losses" }[scenario.riskLossView],
+    method: "GET", status: 200, query: { limit: scenario.riskLossView === "insights" ? "50" : "25" } }], responses: [{ ids, titles }] };
+  const capture = { ...scenario, baseline: false, imageSHA256: "a".repeat(64), imageBytes: 50000, riskLossLayout, observation };
+  if (scenario.verifyRiskLossNavigation) capture.navigation = { visited: riskLossViews.map((view) => ({ label: view.label, route: view.route })),
+    keyboard: ["RCSA", "Key indicators", "Loss events", "Risks"], restoredRoute: scenario.route, restoredPopulation: ids, selectedTabVisible: true, commands: [] };
+  if (scenario.riskLossCheck === "history") capture.history = { actualBack: true, sameDocument: true, noSelectedDetail: true, backRoute: scenario.route,
+    selectedMenu: scenario.label, pendingReads: 0, initialDocumentToken: "same-document", backDocumentToken: "same-document", forwardDocumentToken: "same-document",
+    populationBefore: ids, populationAfter: ids, backLayout: structuredClone(riskLossLayout), forwardExactTarget: true,
+    forwardRoute: `#${scenario.riskLossView}/${scenario.detailID}`, explicitReturn: true, commands: [] };
+  if (scenario.riskLossCheck === "detail") capture.detail = { route: scenario.riskLossView === "insights" ? `#insights?kind=KRI&indicator=${scenario.detailID}` : `#${scenario.riskLossView}/${scenario.detailID}`,
+    exactTarget: true, titleMatches: true, titleVisible: true, pendingReads: 0, commands: [], placement: "sheet", width: Math.min(480, scenario.viewport.width),
+    x: Math.max(0, scenario.viewport.width - 480), height: scenario.viewport.height, internalTables: [{ clientWidth: 438, scrollWidth: 438, presentation: "block" }] };
+  if (capture.detail) Object.assign(capture.detail, { closeVisible: true, focusContained: true, close: bounds(scenario.viewport.width - 64, 20, 44, 44), primaryAction: { visible: true } });
+  if (scenario.riskLossCheck === "filters") {
+    const query = { ...observation.reads[0].query, ...(scenario.riskLossView === "insights" ? { kind: "KRI" } : {}) };
+    const filter = { risks: { search: "network" }, losses: { search: "merchant" }, rcsa: { status: "AWAITING_CHALLENGE" }, insights: { kind: "KCI" } }[scenario.riskLossView];
+    const before = { ids, titles, query };
+    capture.filters = { nextPageDistinct: true, previousPageRestored: true, filterSentToReader: true, phoneFiltersAccessible: true, commands: [],
+      pages: { before, next: { ids: ["next-record"], titles: ["Next record"], query: { ...query, cursor: "sample-risk-loss-next-page" } },
+        previous: structuredClone(before), filtered: { ...structuredClone(before), query: { ...query, ...filter } }, restored: structuredClone(before) } };
+    observation.reads.push({ ...observation.reads[0], query: capture.filters.pages.next.query }, { ...observation.reads[0], query: capture.filters.pages.filtered.query });
+  }
+  return capture;
+}
+const riskLossFindings = (capture) => reviewRiskLossCaptures([capture]).failures.filter((message) => message.startsWith(`${capture.name}:`));
+
+test("Risk & Losses evidence requires all route states and cannot accept a baseline receipt", () => {
+  assert.equal(reviewRiskLossCaptures([]).failures.length, riskLossEvidenceScenarios.length);
+  const capture = riskLossReceipt(riskLossEvidenceScenarios[0]);
+  assert.deepEqual(riskLossFindings(capture), []);
+  capture.baseline = true;
+  assert.ok(riskLossFindings(capture).some((message) => message.includes("synthetic evidence boundary")));
+});
+
+test("Risk & Losses rejects clipped menus, off-screen first identity and disconnected response populations", () => {
+  const valid = riskLossReceipt(riskLossEvidenceScenarios[0]);
+  for (const change of [
+    (layout) => { layout.menuRows = 2; },
+    (layout) => { layout.selectedTabVisible = false; },
+    (layout) => { layout.firstIdentity.y = 950; layout.firstIdentity.bottom = 990; },
+    (layout) => { layout.populatedIDs = ["foreign-risk"]; },
+    (layout) => { layout.recordTitles = ["Invented title"]; },
+    (layout) => { layout.rowActions[0].lines = 14; },
+  ]) {
+    const invalid = structuredClone(valid); change(invalid.riskLossLayout);
+    assert.ok(riskLossFindings(invalid).length > 0);
+  }
+});
+
+test("Risk & Losses paging requires rendered populations rather than success flags alone", () => {
+  for (const scenario of riskLossEvidenceScenarios.filter((item) => item.riskLossCheck === "filters")) {
+    const valid = riskLossReceipt(scenario);
+    assert.deepEqual(riskLossFindings(valid), []);
+    for (const change of [
+      (filters) => { delete filters.pages; },
+      (filters) => { filters.pages.next.ids = [...filters.pages.before.ids]; },
+      (filters) => { filters.pages.previous.ids = ["stale-page-record"]; },
+      (filters) => { filters.pages.previous.titles = ["Stale page title"]; },
+      (filters) => { filters.pages.restored.ids = ["filtered-page-record"]; },
+      (filters) => { filters.pages.filtered.query.cursor = "sample-risk-loss-next-page"; },
+      (filters) => { filters.pages.filtered.query = {}; },
+    ]) {
+      const invalid = structuredClone(valid); change(invalid.filters);
+      assert.ok(riskLossFindings(invalid).some((message) => message.includes("real cursor paging")), scenario.name);
+    }
+  }
+});
+
+test("Risk & Losses history requires same-document settled Back and exact Forward rather than returned=true", () => {
+  const scenario = riskLossEvidenceScenarios.find((item) => item.riskLossView === "rcsa" && item.riskLossCheck === "history");
+  const valid = riskLossReceipt(scenario);
+  assert.deepEqual(riskLossFindings(valid), []);
+  for (const change of [
+    (history) => { delete history.backLayout; history.returned = true; },
+    (history) => { history.backDocumentToken = "new-document"; },
+    (history) => { history.backLayout.dialogVisible = true; },
+    (history) => { history.backLayout.pendingReads = 1; },
+    (history) => { history.backLayout.populatedIDs = []; },
+    (history) => { history.forwardRoute = "#rcsa/another-cycle"; },
+  ]) {
+    const invalid = structuredClone(valid); change(invalid.history);
+    assert.ok(riskLossFindings(invalid).some((message) => message.includes("real Back/Forward")));
+  }
+});
+
+test("RCSA cards retain frozen counts and the source responsive column structure", () => {
+  const scenario = riskLossEvidenceScenarios.find((item) => item.riskLossView === "rcsa" && item.riskLossMatrix && item.viewport.width === 1440);
+  const valid = riskLossReceipt(scenario);
+  assert.deepEqual(riskLossFindings(valid), []);
+  for (const change of [(layout) => { layout.presentation = "table"; }, (layout) => { layout.columns = 2; }, (layout) => { layout.rowValues[0].facts.Risks = "83% reviewed"; }, (layout) => { layout.cardNumbers[0].fontSize = 14; }]) {
+    const invalid = structuredClone(valid); change(invalid.riskLossLayout);
+    assert.ok(riskLossFindings(invalid).some((message) => message.includes("RCSA source card columns")));
+  }
+});
+
+test("Risk & Losses sheets require the source 480px inspector and bounded internal table replacement", () => {
+  const scenario = riskLossEvidenceScenarios.find((item) => item.riskLossView === "rcsa" && item.riskLossCheck === "detail" && item.viewport.width === 1440);
+  const valid = riskLossReceipt(scenario);
+  assert.deepEqual(riskLossFindings(valid), []);
+  for (const change of [(detail) => { detail.width = 880; detail.x = 560; }, (detail) => { detail.internalTables[0].presentation = "table"; }, (detail) => { detail.internalTables[0].scrollWidth = 650; }]) {
+    const invalid = structuredClone(valid); change(invalid.detail);
+    assert.ok(riskLossFindings(invalid).some((message) => message.includes("source 480px inspector")));
+  }
+});
+
+test("indicator receipts cannot replace native percentages or percentage points with concern scores", () => {
+  const scenario = riskLossEvidenceScenarios.find((item) => item.riskLossView === "insights" && item.riskLossMatrix);
+  const valid = riskLossReceipt(scenario);
+  assert.deepEqual(riskLossFindings(valid), []);
+  for (const [field, value] of [["Current value", "100%"], ["Limit / target", "100"], ["Movement", "−0.40%"]]) {
+    const invalid = structuredClone(valid); invalid.riskLossLayout.rowValues[0][field] = value;
+    assert.ok(riskLossFindings(invalid).some((message) => message.includes("native percentage")));
+  }
+});
+
+test("loss receipt rejects combined amounts and commands performed while viewing records", () => {
+  const scenario = riskLossEvidenceScenarios.find((item) => item.riskLossView === "losses" && item.riskLossMatrix);
+  const valid = riskLossReceipt(scenario);
+  assert.deepEqual(riskLossFindings(valid), []);
+  const combined = structuredClone(valid); combined.riskLossLayout.tableHeaders = ["Loss", "Amounts"];
+  assert.ok(riskLossFindings(combined).some((message) => message.includes("separate exact currency")));
+  const command = structuredClone(valid); command.observation.commands.push({ method: "POST", path: "/api/v1/losses" });
+  assert.ok(riskLossFindings(command).some((message) => message.includes("zero business commands")));
 });

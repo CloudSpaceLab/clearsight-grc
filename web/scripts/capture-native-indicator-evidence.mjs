@@ -1,9 +1,9 @@
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium } from "playwright";
 
 const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const manifestPath = path.join(outputDir, "manifest.json");
@@ -42,7 +42,7 @@ try {
       await page.getByText("Limit ≥ 99.50%", { exact: true }).first().waitFor({ state: "visible" });
       await page.getByRole("table", { name: "Mobile transaction success rate observation history" }).waitFor({ state: "visible" });
     } else {
-      await page.getByRole("heading", { name: "Insights" }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Key indicators", exact: true }).waitFor({ state: "visible" });
       await page.getByRole("table", { name: "Risk indicators" }).waitFor({ state: "visible" });
       await page.getByText("Mobile transaction success rate", { exact: true }).first().waitFor({ state: "visible" });
       await page.getByText("Failed ATM transactions", { exact: true }).first().waitFor({ state: "visible" });
