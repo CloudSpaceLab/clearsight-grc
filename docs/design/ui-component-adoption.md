@@ -19,6 +19,7 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Today | — | — | — | — | — | — | — | — |
 | Oversight | M | — | — | M | — | M | — | M |
 | Reports · workspace, Overview/library, Explore and setup builder | M | M | M | M | M | M | — | M |
+| Risk & Losses · common heading and section composition | M | — | — | M | — | — | — | — |
 | Programs and dedicated Program record | — | — | — | — | — | — | — | — |
 | Program · Submitted data list and query controls | M | M | M | — | M | M | — | M |
 | Vendors portfolio/register | — | — | — | — | — | — | — | — |
@@ -32,6 +33,8 @@ This matrix records where ClearSight's shared UI contracts are actually enforced
 | Shared shell, primary/mobile navigation and account context | — | — | — | — | — | — | — | — |
 
 ## Implemented boundary
+
+The October 22 Risk & Losses adaptation registers its common frame and scoped layout CSS. Its Reports action and persistent four-item local menu use shared Button and Tabs contracts; the global contextual menu uses the same destination mapping. The [page decision](decisions/2026-10-22-risk-loss-pages-v2.md) covers the four collection layouts and exact-record behavior. This narrow component boundary does not claim that every legacy Risk, RCSA, indicator or Loss command form is migrated, or advance whole-screen operational acceptance.
 
 The October 22 vendor relationship adaptation registers the extracted record composition and its scoped layout CSS. Its heading actions, five-item local navigation, nested Evidence views and recorded-status feedback use shared contracts. Existing Forms, due diligence, activation, document and exception components keep their individual boundaries; this does not claim every legacy child or the portfolio/register is migrated. The [relationship decision](decisions/2026-10-22-vendor-relationship-v2.md) records the complete selected-page anatomy and responsive proof requirements.
 

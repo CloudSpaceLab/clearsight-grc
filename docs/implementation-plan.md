@@ -1,5 +1,11 @@
 # ClearSight implementation ledger
 
+## 23 October Risk & Losses — four v2 pages
+
+Continue from released main `ba284eb24b01141666c93783c15221263a13d7b8` after the Vendor history correction in #585. The [decision brief](design/decisions/2026-10-22-risk-loss-pages-v2.md) covers **Risks / RCSA / Key indicators / Loss events** with a persistent common heading and local menu, compact register queries, source-shaped RCSA cycle cards, native indicator facts and a loss ledger with separate Gross / Recovered / Net columns. The approved menu reuses existing routes and the Reports/Work ownership boundaries.
+
+Implemented in [#586](https://github.com/CloudSpaceLab/clearsight-grc/pull/586). The [retained evidence](evidence/2026-10-22-risk-loss-v2/README.md) preserves all 40 before frames and the corrected runtime at `527b348631e2f92fc920125b7da28692a2743e92`: 68 runtime states, 20 original collection frames, 40 pairs and 16 scoped accessibility states passed. Named review documents the full page anatomy and supported-data adaptations, including corrected status-word wrapping and consistent RCSA fixture counts. Scope-keyed cursors, record identity, actual Back/Forward, rendered filter/paging populations, native indicator units and separate loss currencies are checked. Loss display now preserves exact minor units at the safe-integer boundary. Final-head CI, merge and demo-release results will be recorded in #586. This is partial v2 layout integration; the formal operational-acceptance register remains **0/19** and #574 is unchanged.
+
 ## 22 October Vendor collection history correction
 
 PR [#584](https://github.com/CloudSpaceLab/clearsight-grc/pull/584) released the five Vendor portfolio views as `cb07cc747c2bee7d19413ed398bb1c111f51c99f` after successful PR/main CI, UI review and demo deployment. Root's subsequent hosted review confirmed all five layouts and entry paths, then reproduced browser Back retaining selected relationship detail at the Onboarding, Assessments and Documents collection URLs. The previous evidence used the explicit Register-return button, which cleared selection and missed the mounted-workspace history transition.
