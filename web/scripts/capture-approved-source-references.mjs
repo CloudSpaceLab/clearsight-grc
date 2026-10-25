@@ -10,6 +10,9 @@ import { vendorRelationshipViews } from "./vendor-relationship-evidence-scenario
 import { measureVendorRelationshipSourceLayout } from "./vendor-relationship-evidence.mjs";
 import { riskLossViews } from "./risk-loss-evidence-scenarios.mjs";
 import { measureRiskLossSourceLayout, riskLossSourcePath, riskLossSourceSHA256 } from "./risk-loss-evidence.mjs";
+import { privacyEvidenceScenarios, privacySourcePath, privacySourceSHA256, privacyViewports, privacyViews } from "./privacy-evidence-scenarios.mjs";
+import { measurePrivacySourceLayout } from "./privacy-evidence.mjs";
+import { privacySourcePairFailures, privacySourceTabs } from "./privacy-evidence-contract.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -62,7 +65,13 @@ const references = [
     runtime: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${250 + index}-risk-loss-${view.id}-light-${size}.png`])),
     runtimeDark: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${250 + index}-risk-loss-${view.id}-dark-${size}.png`])),
   })),
-  { id: "privacy-data", source: "clearsight-privacy-data-designs/privacy-workspace-preview.html", runtime: {} },
+  ...[...privacyViews.map((view) => ({ ...view, check: "layout" })), { ...privacyViews[1], check: "detail" }].map((view) => ({
+    id: `privacy-${view.id}${view.check === "detail" ? "-detail" : ""}`,
+    source: privacySourcePath, pinnedSHA256: privacySourceSHA256,
+    sourcePrivacyView: view.id, sourcePrivacyDetail: view.check === "detail", sourceTab: view.source,
+    runtime: Object.fromEntries(privacyViewports.map(({ width, height }) => [`${width}x${height}`, `270-privacy-${view.id}-${view.check}-light-${width}.png`])),
+    runtimeDark: Object.fromEntries(privacyViewports.map(({ width, height }) => [`${width}x${height}`, `270-privacy-${view.id}-${view.check}-dark-${width}.png`])),
+  })),
   {
     id: "reports-insights",
     source: "clearsight-reports-insights-designs/reports-workspace-preview.html",
@@ -146,7 +155,9 @@ const requestedReferences = process.env.UI_EVIDENCE_SCOPE === "reports"
   : process.env.UI_EVIDENCE_SCOPE === "vendor-portfolio"
     ? references.filter((reference) => reference.id.startsWith("vendor-portfolio-"))
   : process.env.UI_EVIDENCE_SCOPE === "risk-loss"
-    ? references.filter((reference) => reference.id.startsWith("risk-loss-")) : references;
+    ? references.filter((reference) => reference.id.startsWith("risk-loss-"))
+  : process.env.UI_EVIDENCE_SCOPE === "privacy"
+    ? references.filter((reference) => reference.id.startsWith("privacy-")) : references;
 const verified = await Promise.all(requestedReferences.map(async (reference) => {
   const expected = byPath.get(reference.source);
   if (!expected) throw new Error(`Approved source not indexed: ${reference.source}`);
@@ -205,6 +216,11 @@ try {
           await page.locator(`.detail-tabs [data-detail-tab="${reference.sourceVendorTab}"]`).click();
           await page.evaluate(() => window.scrollTo(0, 0));
         }
+        if (reference.sourcePrivacyDetail) {
+          await page.locator('#ropa-tbody tr[data-record="ropa-customer"]').click();
+          await page.locator("#privacy-drawer").waitFor({ state: "visible" });
+          await page.evaluate(() => window.scrollTo(0, 0));
+        }
         const presentation = await page.evaluate(() => {
           const sidebar = document.querySelector(".sidebar");
           const links = [...(sidebar?.querySelectorAll("a.nav-item") ?? [])];
@@ -246,7 +262,43 @@ try {
         const vendorRelationshipLayout = reference.sourceVendorView ? await measureVendorRelationshipSourceLayout(page, reference.sourceVendorView) : null;
         const vendorPortfolioLayout = reference.sourcePortfolioView ? await measureVendorPortfolioSourceLayout(page, reference.sourcePortfolioView) : null;
         const riskLossLayout = reference.sourceRiskLossView ? await measureRiskLossSourceLayout(page, reference.sourceRiskLossView) : null;
+        const privacyLayout = reference.sourcePrivacyView ? await measurePrivacySourceLayout(page, reference.sourcePrivacyView) : null;
         let layoutComparison = null;
+        if (privacyLayout && runtimeManifest) {
+          const runtimePairs = [];
+          const comparison = reference.sourcePrivacyView === "overview" ? "SUPPORTED_DATA_LAYOUT_ADAPTATION" : "SAME_SCREEN_SUPPORTED_MENU_ADAPTATION";
+          for (const runtimeName of [reference.runtime[key], reference.runtimeDark[key]]) {
+            const capture = runtimeByName.get(runtimeName);
+            const scenario = privacyEvidenceScenarios.find((item) => `${item.name}.png` === runtimeName);
+            const failures = privacySourcePairFailures(privacyLayout, capture, scenario);
+            if (failures.length) throw new Error(failures.join("\n"));
+            const bytes = await readFile(path.join(outputDir, "..", runtimeName));
+            if (digest(bytes) !== capture.imageSHA256 || bytes.length !== capture.imageBytes || capture.buildDigest !== runtimeManifest.runtimeBuild?.digest) {
+              throw new Error(`${runtimeName}: Privacy pair image or runtime build does not match its receipt`);
+            }
+            runtimePairs.push({ runtime_capture: runtimeName, runtime_theme: capture.theme, runtime_image_sha256: digest(bytes), runtime_image_bytes: bytes.length,
+              runtime_build_digest: capture.buildDigest, runtime_revision: runtimeManifest.runtimeBuild.revision,
+              sourceComparison: comparison, sameScreen: true, completeSourceParity: false,
+              sourceHeading: privacyLayout.heading, runtimeHeading: capture.privacyLayout.heading,
+              sourceMenu: privacyLayout.menu, runtimeMenu: capture.privacyLayout.menu,
+              sourceMetricLabels: privacyLayout.metrics.map((metric) => metric.label), runtimeMetricLabels: capture.privacyLayout.metrics.map((metric) => metric.label),
+              sourceFirstIdentity: privacyLayout.firstIdentity, runtimeFirstIdentity: capture.privacyLayout.firstIdentity,
+              sourceFirstName: privacyLayout.firstName, runtimeFirstName: capture.privacyLayout.recordNames[0] ?? null,
+              sourcePrimary: privacyLayout.primary, sourceContext: privacyLayout.aside,
+              runtimePrimary: capture.privacyLayout.primary, runtimeContext: capture.privacyLayout.aside,
+              sourceInspector: privacyLayout.inspector, runtimeInspector: capture.detail?.bounds ?? null,
+              sourceInspectorContent: privacyLayout.inspectorContent, runtimeInspectorContent: capture.detail?.contentBounds ?? null,
+              sourceInspectorFacts: privacyLayout.inspectorFacts, runtimeInspectorFacts: capture.detail?.factsBounds ?? null,
+              sourceInspectorHeading: privacyLayout.inspectorHeading, runtimeInspectorHeading: capture.detail?.heading ?? null,
+              runtimeFirstUsefulContentVisible: capture.privacyLayout.firstUsefulVisible,
+              illustrativeSourceDataReplaced: true });
+          }
+          layoutComparison = { runtime_pairs: runtimePairs, sourceComparison: comparison, sameScreen: true, completeSourceParity: false,
+            originalLocalTabs: privacySourceTabs, supportedLocalTabs: privacyViews.map((view) => view.label), excludedLocalTabs: privacySourceTabs.slice(2),
+            supportedTabsRetainSourceOrder: true, selectedSourceTab: privacyLayout.selectedTab,
+            adaptation: "Overview retains four metrics and primary/context placement using supported ROPA status, completeness and coverage. Department, DPIA, incident, priority and Copilot source sections remain excluded. ROPA retains controls, ordered records and the 480px/full-phone inspector with native activity fields. Source and runtime record values are independent labelled fixtures.",
+            conclusion: "SUPPORTED_STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
+        }
         if (riskLossLayout && runtimeManifest) {
           const runtimePairs = [];
           const view = riskLossViews.find((item) => item.id === reference.sourceRiskLossView);
@@ -454,6 +506,14 @@ try {
             adaptation: "The original five prototype sections remain immutable. Runtime exposes the four existing backed Risk & Losses collection routes, preserving exact record readers and the shared navigation owner.",
             conclusion: "STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
         }
+        if (reference.sourcePrivacyView && runtimeManifest) {
+          navigationComparison = { runtime_capture: reference.runtime[key], runtime_theme: runtimeCapture.theme,
+            sourceLabels: presentation.navigation?.labels ?? [], runtimeActivePage: runtimeCapture.privacyLayout.primaryCurrent,
+            activePrivacyDestinationMatches: runtimeCapture.privacyLayout.primaryCurrent?.join("|") === "Privacy",
+            canonicalRuntimeMenu: "2026-10-21-v2-navigation-adaptation",
+            adaptation: "The immutable source keeps all six local Privacy workflows. Runtime exposes supported Overview and ROPA in source order and uses the approved shared primary menu. Other Privacy workflows are excluded from this bounded integration.",
+            conclusion: "SUPPORTED_STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
+        }
         const image = `approved-${reference.id}-${key}.png`;
         await page.mouse.move(0, 0);
         await page.screenshot({ path: path.join(outputDir, image), fullPage: false, animations: "disabled" });
@@ -467,6 +527,7 @@ try {
           ...(reference.sourcePortfolioView ? { source_portfolio_view: reference.sourcePortfolioView } : {}),
           ...(reference.sourceVendorView ? { source_vendor_view: reference.sourceVendorView, source_vendor_tab: reference.sourceVendorTab } : {}),
           ...(reference.sourceRiskLossView ? { source_risk_loss_view: reference.sourceRiskLossView } : {}),
+          ...(reference.sourcePrivacyView ? { source_privacy_view: reference.sourcePrivacyView, source_privacy_detail: reference.sourcePrivacyDetail } : {}),
           ...(reference.sourceEntry ? { source_entry: reference.sourceEntry } : {}),
           source_sha256: reference.sha256,
           image,
@@ -480,6 +541,7 @@ try {
           ...(vendorRelationshipLayout ? { vendor_relationship_layout: vendorRelationshipLayout, layout_comparison: layoutComparison } : {}),
           ...(vendorPortfolioLayout ? { vendor_portfolio_layout: vendorPortfolioLayout, layout_comparison: layoutComparison } : {}),
           ...(riskLossLayout ? { risk_loss_layout: riskLossLayout, layout_comparison: layoutComparison } : {}),
+          ...(privacyLayout ? { privacy_layout: privacyLayout, layout_comparison: layoutComparison } : {}),
           prototype_errors: errors,
           visual_parity: "NOT_REVIEWED",
         });
@@ -510,6 +572,7 @@ const lines = [
   "Notifications activates Inbox with the original All filter, Activity and Preferences. Comparisons retain desktop list/context or main/aside placement; narrow Activity context moves above the feed, while Inbox and Preferences stack in content order. Runtime uses the canonical shared menu and only supported inbox, scoped activity and versioned email settings capabilities. Row heights and panel widths are recorded for named visual review; prototype counts and unsupported category/weekly/snooze actions are not runtime requirements.",
   "Vendor relationship captures enter the original NorthStar record and activate all five local tabs. Comparisons verify removal of portfolio chrome, the 316px context rail through 1024px and its replacement below primary content at 768/390px. Runtime facts, forms, activation and response history remain within their existing owners; prototype DPO approval, assessed risk and document completion claims are not copied.",
   "Risk & Losses activates the original KRI, RCSA and Losses collections. Risks is explicitly a KRI table-anatomy adaptation because the original has no Risk register. The approved runtime menu exposes four backed routes in a scrolling underline row. Source/runtime record geometry is retained; shared table container reflow can start at768px, while both use two-column phone facts. The original480px inspector width is recorded alongside the separately verified runtime RCSA/indicator readers. Native indicator units, frozen RCSA counts and separate loss currencies replace illustrative values.",
+  "Privacy activates the original Overview, ROPA and selected Customer onboarding inspector at all five approved widths. Each source render pairs with hash-bound light and dark runtime evidence; the original has no dark design. Runtime keeps Overview/ROPA in source order, four genuine ROPA measures, primary/context placement, records before summaries and a 480px/full-phone inspector. DPIAs, Breaches, Vendor reviews and Requests remain excluded, as do unsupported department, incident, priority and Copilot content. Native data subjects/lawful basis/review date/owner/status replace prototype fields where necessary. These are bounded supported-data adaptations, not complete Privacy visual parity or backend authorization evidence.",
   "",
   "| Screen | Viewport | Approved screenshot | Runtime screenshot |",
   "| --- | --- | --- | --- |",

@@ -435,6 +435,7 @@ function currentEvidenceVariant(): "STALE" | "CURRENT" {
   // state; the narrow register capture carries the current, unknown-coverage
   // state so both honesty states are visible in the retained evidence.
   const fixture = new URLSearchParams(window.location.search).get("fixture") ?? "";
+  if (fixture.startsWith("privacy-v2-")) return fixture === "privacy-v2-stale" ? "STALE" : "CURRENT";
   if (fixture.includes("unknown") || fixture.includes("current")) return "CURRENT";
   if (fixture.includes("stale")) return "STALE";
   return window.innerWidth > 0 && window.innerWidth <= 760 ? "CURRENT" : "STALE";
@@ -443,6 +444,10 @@ function currentEvidenceVariant(): "STALE" | "CURRENT" {
 declare global {
   interface Window {
     ropaEvidenceReads?: string[];
+    privacyEvidence?: {
+      reads: Array<{ path: string; query: string; status: number; records?: Array<{ id: string; name: string; status: string }>; summary?: RegisterSummary; activityID?: string; eventIDs?: string[]; nextCursor?: string }>;
+      commands: Array<{ method: string; path: string }>;
+    };
   }
 }
 
@@ -451,7 +456,11 @@ declare global {
 export function installRopaEvidence() {
   const previous = globalThis.fetch.bind(globalThis);
   const variant = currentEvidenceVariant();
+  const fixture = new URLSearchParams(window.location.search).get("fixture") ?? "";
+  const privacyVariant = fixture.startsWith("privacy-v2-") ? fixture.slice("privacy-v2-".length) : undefined;
+  let failuresRemaining = privacyVariant === "recovery" ? 1 : 0;
   window.ropaEvidenceReads = [];
+  if (privacyVariant) window.privacyEvidence = { reads: [], commands: [] };
   globalThis.fetch = async (input, init) => {
     const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const url = new URL(raw, window.location.origin);
@@ -459,27 +468,73 @@ export function installRopaEvidence() {
     const path = url.pathname;
     const recordRead = () => window.ropaEvidenceReads?.push(`${path}${url.search}`);
     const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
+    const result = (value: unknown, status = 200) => {
+      if (privacyVariant) {
+        const payload = value as { rows?: ProcessingActivityPageWire["rows"]; activity?: ProcessingActivityResponse["activity"]; events?: ProcessingActivityHistoryResponse["events"]; next_cursor?: string };
+        window.privacyEvidence!.reads.push({ path, query: url.search, status,
+          ...(payload.rows ? { records: payload.rows.map(({ id, name, status }) => ({ id, name, status })) } : {}),
+          ...(path.endsWith("/dashboard") && status === 200 ? { summary: value as RegisterSummary } : {}),
+          ...(payload.activity ? { activityID: payload.activity.id } : {}),
+          ...(payload.events ? { eventIDs: payload.events.map((event) => event.id) } : {}),
+          ...(payload.next_cursor ? { nextCursor: payload.next_cursor } : {}),
+        });
+      }
+      return json(value, status);
+    };
+    if (privacyVariant && path.startsWith("/api/v1/ropa/") && method !== "GET") {
+      window.privacyEvidence!.commands.push({ method, path });
+      return json({ error: { code: "fixture_read_only", message: "This sample supports viewing only." } }, 405);
+    }
+    if (privacyVariant === "denied" && path.startsWith("/api/v1/ropa/")) {
+      recordRead();
+      return result({ error: { code: "permission_required", message: "The processing activity register is unavailable for this account." } }, 403);
+    }
 
     if (method === "GET" && path === "/api/v1/ropa/dashboard") {
       recordRead();
-      return json(registerSummary(variant));
+      const summary = registerSummary(variant);
+      if (privacyVariant) {
+        if (privacyVariant === "empty") {
+          summary.coverage = { population: 0, excluded: 0, unknown: 0 };
+          summary.counts = { total: 0, new: 0, open: 0, closed: 0, review_overdue: 0, missing_lawful_basis: 0, missing_owner: 0, no_data_subjects: 0, retired: 0 };
+        } else if (privacyVariant === "partial") summary.coverage = { population: 8, excluded: 1, unknown: 1 };
+        else if (privacyVariant !== "unknown") summary.coverage = { population: 8, excluded: 0, unknown: 0 };
+      }
+      return result(summary);
     }
     if (method === "GET" && path === "/api/v1/ropa/processing-activities") {
       recordRead();
-      return json(page(url));
+      if (failuresRemaining > 0) {
+        failuresRemaining--;
+        return result({ error: { code: "ropa_unavailable", message: "The processing activity register could not be loaded. Try again." } }, 503);
+      }
+      if (privacyVariant === "empty") return result({ rows: [], has_more: false });
+      const response = page(url);
+      if (privacyVariant?.startsWith("paged")) {
+        const key = `${url.searchParams.get("search") ?? ""}|${url.searchParams.get("status") ?? ""}|${url.searchParams.get("include_retired") ?? ""}`;
+        const cursor = url.searchParams.get("cursor");
+        const offset = cursor ? Number(cursor.split(":")[0]) : 0;
+        if (cursor && cursor.slice(cursor.indexOf(":") + 1) !== key) return result({ error: { code: "ropa_cursor_invalid", message: "The page does not match the current filters." } }, 400);
+        if (cursor && privacyVariant === "paged-empty") return result({ rows: [], has_more: false });
+        if (cursor && privacyVariant === "paged-error") return result({ error: { code: "ropa_unavailable", message: "The next page could not be loaded. Try again." } }, 503);
+        const rows = response.rows ?? [];
+        const hasMore = rows.length > offset + 1;
+        return result({ rows: rows.slice(offset, offset + 1), has_more: hasMore, ...(hasMore ? { next_cursor: `${offset + 1}:${key}` } : {}) });
+      }
+      return result(response);
     }
     const history = /^\/api\/v1\/ropa\/processing-activities\/([^/]+)\/history$/.exec(path);
     if (method === "GET" && history) {
       recordRead();
-      if (decodeURIComponent(history[1]!) !== primaryActivityID) return json({ error: { code: "ropa_activity_not_found", message: "The processing activity is not available in this legal entity." } }, 404);
-      return json(activityHistory());
+      if (decodeURIComponent(history[1]!) !== primaryActivityID) return result({ error: { code: "ropa_activity_not_found", message: "The processing activity is not available in this legal entity." } }, 404);
+      return result(activityHistory());
     }
     const detail = /^\/api\/v1\/ropa\/processing-activities\/([^/]+)$/.exec(path);
     if (method === "GET" && detail) {
       recordRead();
       const id = decodeURIComponent(detail[1]!);
-      if (!activities.some((activity) => activity.id === id)) return json({ error: { code: "ropa_activity_not_found", message: "The processing activity is not available in this legal entity." } }, 404);
-      return json(activityResponse(id));
+      if (!activities.some((activity) => activity.id === id)) return result({ error: { code: "ropa_activity_not_found", message: "The processing activity is not available in this legal entity." } }, 404);
+      return result(activityResponse(id));
     }
     return previous(input, init);
   };

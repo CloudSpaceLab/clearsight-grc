@@ -6,7 +6,7 @@ export type ProgramSection = "overview" | "requirements-controls" | "assessments
 export type ProgramItemTarget = { kind: "requirement" | "control-objective"; id: string };
 export type FrameworkEditionTarget = { editionID: string; jurisdiction: string };
 export type VendorPage = "overview" | "register" | "onboarding" | "assessments" | "documents";
-export type RopaPage = "register" | "reports";
+export type RopaPage = "overview" | "register" | "reports";
 export type OversightMetric = "critical-high" | "overdue" | "routing-gaps" | "outcome-failures";
 export type HomeTab = "oversight" | "attention" | "my-work";
 export type OversightScopeMode = "group";
@@ -102,6 +102,7 @@ export function parseRoute(hash: string): { view: View; workTab?: WorkTab; targe
     return { view, target: { vendorPage: "register", vendorRelationshipID: decodeTarget(parts[1]) } };
   }
 	if (view === "ropa") {
+    if (parts[1] === "overview") return { view, target: { ropaPage: "overview" } };
     if (parts[1] === "activity" && parts[2]) return { view, target: { ropaPage: "register", ropaActivityID: decodeTarget(parts[2]) } };
     if (parts[1] === "reports") return { view, target: { ropaPage: "reports" } };
     return { view, target: { ropaPage: "register" } };
@@ -190,6 +191,7 @@ export function routeHash(view: View, target: WorkspaceTarget, workTab: WorkTab)
 	if (view === "ropa") {
     if (target.ropaActivityID) return `#ropa/activity/${encodeURIComponent(target.ropaActivityID)}`;
     if (target.ropaPage === "reports") return "#ropa/reports";
+    if (target.ropaPage === "overview") return "#ropa/overview";
 	}
 	if (view === "reports") return "#reports";
   if (view === "notifications") return target.notificationTab && target.notificationTab !== "inbox" ? `#notifications/${target.notificationTab}` : "#notifications";

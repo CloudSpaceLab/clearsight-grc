@@ -204,6 +204,8 @@ describe("Program section routes", () => {
 describe("ROPA workspace routes", () => {
   it("parses and builds the register route", () => {
     expect(parseRoute("#ropa")).toEqual({ view: "ropa", target: { ropaPage: "register" } });
+    expect(parseRoute("#ropa/overview")).toEqual({ view: "ropa", target: { ropaPage: "overview" } });
+    expect(routeHash("ropa", { ropaPage: "overview" }, "matters")).toBe("#ropa/overview");
     expect(routeHash("ropa", { ropaPage: "register" }, "matters")).toBe("#ropa");
   });
 
