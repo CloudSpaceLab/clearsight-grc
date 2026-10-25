@@ -58,7 +58,7 @@ export function Tabs<T extends string>({ ariaLabel, compactLabel, variant = "und
   return <AriaTabs className={`cs-tabs${variant === "surface" ? " cs-tabs--surface" : ""}${compactLabel ? " cs-tabs--compact-select" : ""}`} selectedKey={selectedKey} onSelectionChange={select} keyboardActivation="automatic">
     {compactLabel && <div className="cs-tabs__compact"><SelectField label={compactLabel} value={selectedKey} placeholder={compactLabel}
       options={visibleItems} allowsEmpty={false} onChange={(key) => { if (key !== undefined && key !== selectedKey) onSelectionChange(key); }}/></div>}
-    <TabList aria-label={ariaLabel} className="cs-tabs__list" items={visibleItems}>
+    <TabList aria-label={ariaLabel} className="cs-tabs__list" items={visibleItems} dependencies={[selectedKey]}>
       {(item) => <Tab ref={item.id === selectedKey ? revealSelectedTab : undefined} id={item.id} className="cs-tabs__tab">
         {({ isSelected }) => <>
           <span>{item.label}</span>

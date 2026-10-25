@@ -201,7 +201,7 @@ export async function verifyRiskLossHistory(page, scenario) {
 
 export async function verifyRiskLossMenu(page, scenario) {
   const menu = page.getByRole("tablist", { name: "Risk and loss sections", exact: true });
-  const visited = [], keyboard = [];
+  const visited = [], keyboard = [], peerHistory = [];
   for (const view of riskLossViews) {
     await menu.getByRole("tab", { name: view.label, exact: true }).click();
     await page.waitForFunction(({ id, label }) => location.hash.split("?")[0] === `#${id}`
@@ -209,6 +209,37 @@ export async function verifyRiskLossMenu(page, scenario) {
     await page.locator(".risk-loss-workspace").getByRole("heading", { name: view.heading, exact: true }).waitFor();
     visited.push({ label: view.label, route: await page.evaluate(() => location.hash) });
   }
+  // Click and arrow-key focus can reveal a tab even when controlled selection
+  // cannot. Exercise real history with the same mounted collection of tabs.
+  const menuHandle = await menu.elementHandle();
+  const documentToken = await page.evaluate(() => window.riskLossEvidence.documentToken);
+  try {
+    for (const [direction, indexes] of [["back", [2, 1, 0]], ["forward", [1, 2, 3]]]) {
+      for (const index of indexes) {
+        const view = riskLossViews[index];
+        const from = await page.evaluate(() => location.hash);
+        if (direction === "back") await page.goBack(); else await page.goForward();
+        await page.waitForFunction(({ id, label }) => location.hash.split("?")[0] === `#${id}`
+          && document.querySelector('.risk-loss-workspace [role="tab"][aria-selected="true"]')?.textContent.trim() === label, view);
+        await page.locator(".risk-loss-workspace").getByRole("heading", { name: view.heading, exact: true }).waitFor();
+        await page.evaluate(async () => { await document.fonts.ready; await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))); });
+        const state = await menuHandle.evaluate((node, token) => {
+          const list = document.querySelector('.risk-loss-workspace [role="tablist"][aria-label="Risk and loss sections"]');
+          const active = list?.querySelector('[role="tab"][aria-selected="true"]');
+          const box = (element) => { if (!element) return null; const r = element.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom }; };
+          const menu = box(list), selected = box(active);
+          return { to: location.hash, label: active?.textContent.trim(), sameTablist: node.isConnected && node === list,
+            sameDocument: window.riskLossEvidence.documentToken === token, menu, selected,
+            selectedTabVisible: Boolean(menu && selected && selected.x >= menu.x - 1 && selected.right <= menu.right + 1 && selected.y >= menu.y - 1 && selected.bottom <= menu.bottom + 1),
+            documentWidth: document.documentElement.clientWidth, scrollWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) };
+        }, documentToken);
+        if (!state.sameTablist || !state.sameDocument || state.label !== view.label || !state.selectedTabVisible || state.scrollWidth > state.documentWidth + 1) {
+          throw new Error(`${scenario.name}: peer browser ${direction} to ${view.id} did not retain a visible selected tab in the same document/menu: ${JSON.stringify(state)}`);
+        }
+        peerHistory.push({ direction, from, ...state });
+      }
+    }
+  } finally { await menuHandle.dispose(); }
   await menu.getByRole("tab", { name: "Risks", exact: true }).click();
   await menu.getByRole("tab", { name: "Risks", exact: true }).focus();
   for (const label of [...riskLossViews.slice(1).map((view) => view.label), "Risks"]) {
@@ -218,7 +249,7 @@ export async function verifyRiskLossMenu(page, scenario) {
   }
   await waitForRiskLoss(page, scenario);
   const restored = await measureRiskLossLayout(page, scenario);
-  return { visited, keyboard, restoredRoute: restored.route, restoredPopulation: restored.populatedIDs,
+  return { visited, keyboard, peerHistory, restoredRoute: restored.route, restoredPopulation: restored.populatedIDs,
     selectedTabVisible: restored.selectedTabVisible, commands: restored.commands };
 }
 
