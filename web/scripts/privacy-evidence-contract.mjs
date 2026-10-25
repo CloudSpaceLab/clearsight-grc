@@ -22,9 +22,16 @@ export function privacyCaptureFailures(capture, scenario) {
     if (!detail || !privacyRect(detail.bounds) || Math.abs(detail.bounds.width - Math.min(480, width)) > 1
       || Math.abs(detail.bounds.right - width) > 1 || detail.scrollWidth > detail.clientWidth + 1
       || detail.keyboardContained !== true || !privacyRect(detail.closeBounds) || detail.closeBounds.width < 44 || detail.closeBounds.height < 44) fail("selected record requires contained 480px/full-phone inspector and keyboard/touch behavior");
+    if (!privacyRect(detail?.headingBounds) || detail.headingBounds.right > detail.closeBounds?.x && detail.headingBounds.x < detail.closeBounds?.right
+      && detail.headingBounds.bottom > detail.closeBounds?.y && detail.headingBounds.y < detail.closeBounds?.bottom) fail("record and unavailable headings must remain clear of the close control");
     if (check === "detail" && (detail?.heading !== privacyActivityName || detail.route !== `#ropa/activity/${privacyActivityID}` || detail.historyEntries !== 3
       || !observed?.reads.some((read) => read.activityID === privacyActivityID && read.status === 200)
       || !observed?.reads.some((read) => read.path.endsWith(`/${privacyActivityID}/history`) && read.eventIDs?.length === 3))) fail("inspector identity and history must match the exact record reads");
+    if (check === "detail" && (!privacyRect(detail?.contentBounds) || !privacyRect(detail?.recordBounds) || !privacyRect(detail?.factsBounds)
+      || Math.abs(detail.recordBounds.x - detail.contentBounds.x - detail.contentPadding.left) > 1
+      || Math.abs(detail.contentBounds.right - detail.recordBounds.right - detail.contentPadding.right) > 1
+      || Math.abs(detail.factsBounds.width - detail.recordBounds.width) > 1 || !inside(detail.factsBounds, detail.recordBounds)
+      || !detail.factRows?.length || detail.factRows.some((row) => !inside(row.term, row.bounds) || !inside(row.value, row.bounds) || row.term.right > row.value.x + 1))) fail("inspector facts must use the full padded content width with contained key/value fields");
     if (check === "not-found" && (detail?.unavailable !== true || Object.keys(detail.facts ?? {}).length || !observed?.reads.some((read) => read.path.endsWith("/privacy-missing-record") && read.status === 404))) fail("missing record must not render the previously selected record");
     return failures;
   }

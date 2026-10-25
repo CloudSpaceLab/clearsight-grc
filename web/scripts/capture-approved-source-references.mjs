@@ -287,6 +287,8 @@ try {
               sourcePrimary: privacyLayout.primary, sourceContext: privacyLayout.aside,
               runtimePrimary: capture.privacyLayout.primary, runtimeContext: capture.privacyLayout.aside,
               sourceInspector: privacyLayout.inspector, runtimeInspector: capture.detail?.bounds ?? null,
+              sourceInspectorContent: privacyLayout.inspectorContent, runtimeInspectorContent: capture.detail?.contentBounds ?? null,
+              sourceInspectorFacts: privacyLayout.inspectorFacts, runtimeInspectorFacts: capture.detail?.factsBounds ?? null,
               sourceInspectorHeading: privacyLayout.inspectorHeading, runtimeInspectorHeading: capture.detail?.heading ?? null,
               runtimeFirstUsefulContentVisible: capture.privacyLayout.firstUsefulVisible,
               illustrativeSourceDataReplaced: true });

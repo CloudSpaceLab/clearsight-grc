@@ -27,6 +27,7 @@ const emptyHistory = async (_id?: string, _params?: RopaProcessingActivityHistor
 export function RopaActivityPage({ activityID, embedded = false, organizationName, legalEntityName, onBack, loadActivity = fetchProcessingActivity, loadHistory = fetchProcessingActivityHistory }: ActivityPageProps) {
   const Heading = embedded ? "h2" : "h1";
   const pageClass = `ropa-activity-page${embedded ? " ropa-activity-page--embedded" : ""}`;
+  const feedbackClass = `${pageClass} ropa-activity-page--feedback`;
   const activityReader = loadActivity ?? unavailableActivity;
   const historyReader = loadHistory ?? emptyHistory;
   const [response, setResponse] = useState<ProcessingActivityResponse>();
@@ -77,13 +78,13 @@ export function RopaActivityPage({ activityID, embedded = false, organizationNam
     setRetry((value) => value + 1);
   }
 
-  if (state === "loading") return <section className={pageClass} aria-busy="true">
+  if (state === "loading") return <section className={feedbackClass} aria-busy="true">
     <Button variant="quiet" onPress={goBack}>Back to register</Button>
     <Heading>Loading activity</Heading>
     <p role="status">Loading…</p>
   </section>;
 
-  if (state === "not-found") return <section className={pageClass} aria-label="Processing activity not found">
+  if (state === "not-found") return <section className={feedbackClass} aria-label="Processing activity not found">
     <EmptyState
       population="Processing activities in this legal entity"
       title="Processing activity not found"
@@ -92,7 +93,7 @@ export function RopaActivityPage({ activityID, embedded = false, organizationNam
     />
   </section>;
 
-  if (state === "error" || !response) return <section className={pageClass} aria-labelledby="ropa-activity-error">
+  if (state === "error" || !response) return <section className={feedbackClass} aria-labelledby="ropa-activity-error">
     <Heading id="ropa-activity-error">Processing activity unavailable</Heading>
     <Notice tone="error">
       <span>Couldn’t load activity.</span> <Button variant="secondary" size="compact" onPress={retryLoads}>Retry</Button>

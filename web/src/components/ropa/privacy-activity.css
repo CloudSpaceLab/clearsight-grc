@@ -1,5 +1,12 @@
 .privacy-activity-sheet { --cs-sheet-width: 480px; }
+.privacy-activity-sheet .cs-sheet__close {
+  float: none;
+  inline-size: var(--cs-target-min);
+  block-size: 0;
+  margin: 0 var(--cs-sheet-padding) 0 auto;
+}
 .ropa-activity-page--embedded { gap: 24px; }
+.ropa-activity-page--embedded.ropa-activity-page--feedback { padding-block-start: calc(var(--cs-target-min) + 12px); }
 .ropa-activity-heading { display: grid; gap: 12px; min-inline-size: 0; padding-inline-end: 45px; }
 .ropa-activity-heading h2 { margin: 12px 0; font-size: 25px; line-height: 1.15; letter-spacing: -0.025em; overflow-wrap: anywhere; }
 .ropa-activity-heading p { margin: 0; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }

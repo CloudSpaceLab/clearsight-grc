@@ -79,8 +79,14 @@ export async function openPrivacyActivity(page, { keyboard = false, notFound = f
   const result = await dialog.evaluate((node) => {
     const rect = (element) => { const r = element.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom }; };
     const sheet = node.closest(".cs-sheet");
+    const content = node.querySelector(".cs-sheet__content"), record = node.querySelector(".ropa-activity-page--embedded"), facts = node.querySelector(".ropa-fact-grid");
+    const contentStyle = getComputedStyle(content);
+    const heading = node.querySelector(".ropa-activity-heading h2") ?? node.querySelector(".cs-empty-state__title, h2, h3");
     return { route: location.hash, bounds: rect(sheet), dialog: rect(node), scrollWidth: node.scrollWidth, clientWidth: node.clientWidth,
-      heading: node.querySelector(".ropa-activity-heading h2")?.textContent.trim() ?? node.querySelector("h2")?.textContent.trim(),
+      contentBounds: rect(content), contentPadding: { left: parseFloat(contentStyle.paddingLeft), right: parseFloat(contentStyle.paddingRight) },
+      recordBounds: record ? rect(record) : null, factsBounds: facts ? rect(facts) : null,
+      factRows: [...(facts?.querySelectorAll(":scope > div") ?? [])].map((row) => ({ bounds: rect(row), term: rect(row.querySelector("dt")), value: rect(row.querySelector("dd")) })),
+      heading: heading?.textContent.trim(), headingBounds: heading ? rect(heading) : null,
       facts: Object.fromEntries([...node.querySelectorAll(".ropa-fact-grid > div")].map((item) => [item.querySelector("dt")?.textContent, item.querySelector("dd")?.textContent])),
       historyEntries: node.querySelectorAll(".ropa-history-list li").length,
       focusedInside: node.contains(document.activeElement), closeBounds: rect(node.querySelector('[aria-label="Close activity details"]')),
@@ -201,6 +207,7 @@ export async function measurePrivacySourceLayout(page, view) {
       metricColumns: panel?.querySelector(".privacy-metrics") ? getComputedStyle(panel.querySelector(".privacy-metrics")).gridTemplateColumns.split(" ").length : null,
       primary: box(panel?.querySelector(".privacy-primary")), aside: box(panel?.querySelector(".privacy-context")),
       inspector: box(inspector), inspectorHeading: inspector?.querySelector("h2")?.textContent.trim(),
+      inspectorContent: box(inspector?.querySelector(".drawer-content")), inspectorFacts: box(inspector?.querySelector(".drawer-facts")),
       documentWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth };
   }, view);
 }

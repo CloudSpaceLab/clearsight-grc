@@ -144,6 +144,8 @@ try {
     for (const capture of captures.filter((item) => item.openReportExplore || item.openReportBuilder || item.openReportTemplates || item.openReportGenerate)) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "notifications") {
     for (const capture of captures.filter((item) => item.notificationView)) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "privacy-legacy") {
+    for (const capture of captures.filter((item) => item.route === "#ropa")) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "reports-expectations") {
     for (const capture of captures.filter((item) => item.route === "#reports" && !item.openReportOverview && !item.openReportExplore && !item.openReportBuilder)) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "navigation") {

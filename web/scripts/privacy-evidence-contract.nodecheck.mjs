@@ -80,6 +80,26 @@ test("Overview count, quality and context geometry must match supported response
   ]) { const changed = structuredClone(capture); mutation(changed); assert.ok(privacyCaptureFailures(changed, scenario).length); }
 });
 
+test("inspector outer width cannot conceal a body squeezed by its close control", () => {
+  const { scenario, capture } = fixture("register", 1440, "detail");
+  capture.observation.reads.push({ path: `/api/v1/ropa/processing-activities/${privacyActivityID}`, query: "?tenant_id=bank-demo", status: 200, activityID: privacyActivityID },
+    { path: `/api/v1/ropa/processing-activities/${privacyActivityID}/history`, query: "?tenant_id=bank-demo", status: 200, eventIDs: ["a", "b", "c"] });
+  capture.detail = { route: `#ropa/activity/${privacyActivityID}`, heading: privacyActivityName, historyEntries: 3,
+    bounds: rect(960, 0, 480, 900), scrollWidth: 479, clientWidth: 479, keyboardContained: true, closeBounds: rect(1376, 20, 44, 44),
+    headingBounds: rect(981, 100, 394, 60), contentBounds: rect(961, 0, 479, 900), contentPadding: { left: 20, right: 20 },
+    recordBounds: rect(981, 20, 439, 1800), factsBounds: rect(981, 430, 439, 500),
+    factRows: [{ bounds: rect(981, 430, 439, 60), term: rect(981, 430, 160, 40), value: rect(1160, 430, 260, 40) }],
+  };
+  assert.deepEqual(privacyCaptureFailures(capture, scenario), []);
+  const squeezed = structuredClone(capture);
+  squeezed.detail.recordBounds = rect(981, 20, 375, 1800);
+  squeezed.detail.factsBounds = rect(981, 430, 375, 500);
+  assert.ok(privacyCaptureFailures(squeezed, scenario).some((failure) => failure.includes("full padded content width")));
+  const blocked = structuredClone(capture);
+  blocked.detail.headingBounds = rect(981, 20, 439, 60);
+  assert.ok(privacyCaptureFailures(blocked, scenario).some((failure) => failure.includes("clear of the close control")));
+});
+
 test("immutable original Overview comparison records six tabs and supported source anatomy", () => {
   const { scenario, capture } = fixture("overview"), runtime = capture.privacyLayout;
   const source = { kind: "overview", headingText: "Privacy & data", heading: runtime.heading, menu: runtime.menu,
