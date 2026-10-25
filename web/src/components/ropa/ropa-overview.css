@@ -11,6 +11,7 @@
   gap: 12px;
 }
 .ropa-overview .cs-metric-card {
+  align-content: start;
   --cs-metric-card-heading-columns: minmax(0, 1fr);
   --cs-metric-card-label-transform: none;
   --cs-metric-card-label-spacing: normal;
