@@ -17,6 +17,43 @@ function Harness() {
 }
 
 describe("Tabs", () => {
+  it("reveals existing tabs after controlled selection changes without moving focus or vertical scroll", () => {
+    vi.useFakeTimers();
+    try {
+      const panel = (key: string) => <p>{key}</p>;
+      const view = render(<Tabs ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      const list = screen.getByRole("tablist");
+      const first = screen.getByRole("tab", { name: "Templates" });
+      const last = screen.getByRole("tab", { name: "Responses" });
+      const focused = document.activeElement;
+      vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 44));
+      vi.spyOn(first, "getBoundingClientRect").mockImplementation(() => new DOMRect(-list.scrollLeft, 0, 100, 44));
+      vi.spyOn(last, "getBoundingClientRect").mockImplementation(() => new DOMRect(330 - list.scrollLeft, 0, 100, 44));
+      list.scrollTop = 37;
+      act(() => vi.advanceTimersToNextFrame());
+
+      // Browser history changes the controlled key without clicking a tab.
+      // Reuse the same item objects so React Aria's collection cache is exercised.
+      view.rerender(<Tabs ariaLabel="Forms views" items={items} selectedKey="RESPONSES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      act(() => vi.advanceTimersToNextFrame());
+      expect(screen.getByRole("tablist")).toBe(list);
+      expect(screen.getByRole("tab", { name: "Responses", selected: true })).toBe(last);
+      expect(list.scrollLeft).toBe(130);
+      expect(list.scrollTop).toBe(37);
+      expect(document.activeElement).toBe(focused);
+
+      view.rerender(<Tabs ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      act(() => vi.advanceTimersToNextFrame());
+      expect(screen.getByRole("tablist")).toBe(list);
+      expect(screen.getByRole("tab", { name: "Templates", selected: true })).toBe(first);
+      expect(list.scrollLeft).toBe(0);
+      expect(list.scrollTop).toBe(37);
+      expect(document.activeElement).toBe(focused);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("reveals a newly selected contextual tab horizontally and cancels pending reveals on unmount", () => {
     vi.useFakeTimers();
     try {
