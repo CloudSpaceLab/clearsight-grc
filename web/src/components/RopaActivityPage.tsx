@@ -3,9 +3,11 @@ import { fetchProcessingActivity, fetchProcessingActivityHistory, type RopaProce
 import type { ProcessingActivity, ProcessingActivityHistoryResponse, ProcessingActivityResponse, ProcessingActivityStatus, Recipient, Review } from "../ropaTypes";
 import { Button, EmptyState, Notice, StatusBadge, type StatusTone } from "./ui";
 import "./ropa.css";
+import "./ropa/privacy-activity.css";
 
 type ActivityPageProps = {
   activityID: string;
+  embedded?: boolean;
   organizationName?: string;
   legalEntityName?: string;
   onBack?: () => void;
@@ -22,7 +24,9 @@ const unavailableActivity = async (_id?: string, _signal?: AbortSignal): Promise
 
 const emptyHistory = async (_id?: string, _params?: RopaProcessingActivityHistoryParams, _signal?: AbortSignal): Promise<ProcessingActivityHistoryResponse> => ({ events: [], has_more: false });
 
-export function RopaActivityPage({ activityID, organizationName, legalEntityName, onBack, loadActivity = fetchProcessingActivity, loadHistory = fetchProcessingActivityHistory }: ActivityPageProps) {
+export function RopaActivityPage({ activityID, embedded = false, organizationName, legalEntityName, onBack, loadActivity = fetchProcessingActivity, loadHistory = fetchProcessingActivityHistory }: ActivityPageProps) {
+  const Heading = embedded ? "h2" : "h1";
+  const pageClass = `ropa-activity-page${embedded ? " ropa-activity-page--embedded" : ""}`;
   const activityReader = loadActivity ?? unavailableActivity;
   const historyReader = loadHistory ?? emptyHistory;
   const [response, setResponse] = useState<ProcessingActivityResponse>();
@@ -73,13 +77,13 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
     setRetry((value) => value + 1);
   }
 
-  if (state === "loading") return <section className="ropa-activity-page" aria-busy="true">
+  if (state === "loading") return <section className={pageClass} aria-busy="true">
     <Button variant="quiet" onPress={goBack}>Back to register</Button>
-    <h1>Loading activity</h1>
+    <Heading>Loading activity</Heading>
     <p role="status">Loading…</p>
   </section>;
 
-  if (state === "not-found") return <section className="ropa-activity-page" aria-label="Processing activity not found">
+  if (state === "not-found") return <section className={pageClass} aria-label="Processing activity not found">
     <EmptyState
       population="Processing activities in this legal entity"
       title="Processing activity not found"
@@ -88,8 +92,8 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
     />
   </section>;
 
-  if (state === "error" || !response) return <section className="ropa-activity-page" aria-labelledby="ropa-activity-error">
-    <h1 id="ropa-activity-error">Processing activity unavailable</h1>
+  if (state === "error" || !response) return <section className={pageClass} aria-labelledby="ropa-activity-error">
+    <Heading id="ropa-activity-error">Processing activity unavailable</Heading>
     <Notice tone="error">
       <span>Couldn’t load activity.</span> <Button variant="secondary" size="compact" onPress={retryLoads}>Retry</Button>
     </Notice>
@@ -100,33 +104,20 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
   const blockers = response.closure_blockers ?? [];
   const scope = legalEntityName || "this legal entity";
 
-  return <section className="ropa-activity-page" aria-labelledby="ropa-activity-heading">
-    <header className="topbar ropa-page-header cs-register-header">
+  return <section className={pageClass} aria-labelledby="ropa-activity-heading">
+    <header className={embedded ? "ropa-activity-heading" : "topbar ropa-page-header cs-register-header"}>
       <div>
         <span className="eyebrow">{organizationName || "Processing activity register"} · {scope}</span>
-        <h1 id="ropa-activity-heading">{activity.name || "Processing activity name not recorded"}</h1>
+        <Heading id="ropa-activity-heading">{activity.name || "Processing activity name not recorded"}</Heading>
         <p>{activity.code || "Code not recorded"} · Version {activity.version}</p>
       </div>
       <div className="topbar-actions">
         <StatusBadge tone={activityStatusTone(activity.status)}>{activityStatusLabel(activity.status)}</StatusBadge>
-        <Button variant="secondary" onPress={goBack}>Back to register</Button>
+        {!embedded && <Button variant="secondary" onPress={goBack}>Back to register</Button>}
       </div>
     </header>
 
     {activity.description && <p className="ropa-activity-description">{activity.description}</p>}
-
-    {blockers.length > 0 ? <section className="ropa-closure-blockers" aria-labelledby="ropa-closure-blockers-heading">
-      <div className="ropa-closure-blockers__heading">
-        <StatusBadge tone="warning">Closure blocked</StatusBadge>
-        <h2 id="ropa-closure-blockers-heading">Closure blockers</h2>
-      </div>
-      <ul className="ropa-closure-blockers__list">
-        {blockers.map((blocker) => <li key={blocker}><strong>{blockerLabel(blocker)}</strong><span>{blockerInstruction(blocker)}</span></li>)}
-      </ul>
-      <div className="ropa-closure-blockers__action">
-        <Button variant="primary" isDisabled>Close processing activity</Button>
-      </div>
-    </section> : <Notice tone="success">Ready to close.</Notice>}
 
     <section className="ropa-activity-facts" aria-labelledby="ropa-facts-heading">
       <div className="section-header"><div><h2 id="ropa-facts-heading">Activity details</h2></div></div>
@@ -147,6 +138,16 @@ export function RopaActivityPage({ activityID, organizationName, legalEntityName
         <Fact label="Required authority" value={principalLabel(activity.required_authority_display_name, activity.required_authority_principal_id)}/>
       </dl>
     </section>
+
+    {blockers.length > 0 ? <section className="ropa-closure-blockers" aria-labelledby="ropa-closure-blockers-heading">
+      <div className="ropa-closure-blockers__heading">
+        <StatusBadge tone="warning">Closure blocked</StatusBadge>
+        <h2 id="ropa-closure-blockers-heading">Closure blockers</h2>
+      </div>
+      <ul className="ropa-closure-blockers__list">
+        {blockers.map((blocker) => <li key={blocker}><strong>{blockerLabel(blocker)}</strong><span>{blockerInstruction(blocker)}</span></li>)}
+      </ul>
+    </section> : activity.status !== "CLOSED" ? <Notice tone="info">No closure blockers recorded.</Notice> : null}
 
     <div className="ropa-activity-columns">
       <DataCategories activity={activity}/>
@@ -176,7 +177,7 @@ function DataCategories({ activity }: { activity: ProcessingActivity }) {
   const categories = activity.data_categories ?? [];
   return <section className="ropa-activity-list" aria-labelledby="ropa-data-categories-heading">
     <h2 id="ropa-data-categories-heading">Personal data categories</h2>
-    {categories.length > 0 ? <ul>{categories.map((category) => <li key={category.category}><strong>{category.category}</strong><StatusBadge tone={sensitivityTone(category.sensitivity)}>{sensitivityLabel(category.sensitivity)}</StatusBadge></li>)}</ul> : <EmptyState population={`Personal data categories for ${activity.name || "this processing activity"}`} title="No data categories" description="Add a category."/>}
+    {categories.length > 0 ? <ul>{categories.map((category) => <li key={category.category}><strong>{category.category}</strong><StatusBadge tone={sensitivityTone(category.sensitivity)}>{sensitivityLabel(category.sensitivity)}</StatusBadge></li>)}</ul> : <EmptyState population={`Personal data categories for ${activity.name || "this processing activity"}`} title="No data categories" description="Category details are not recorded for this activity."/>}
   </section>;
 }
 
@@ -184,7 +185,7 @@ function Recipients({ activity }: { activity: ProcessingActivity }) {
   const recipients = activity.recipients ?? [];
   return <section className="ropa-activity-list" aria-labelledby="ropa-recipients-heading">
     <h2 id="ropa-recipients-heading">Recipients and transfers</h2>
-    {recipients.length > 0 ? <ul>{recipients.map((recipient) => <RecipientRow key={recipient.recipient} recipient={recipient}/>)}</ul> : <EmptyState population={`Recipients for ${activity.name || "this processing activity"}`} title="No recipients" description="Add a recipient."/>}
+    {recipients.length > 0 ? <ul>{recipients.map((recipient) => <RecipientRow key={recipient.recipient} recipient={recipient}/>)}</ul> : <EmptyState population={`Recipients for ${activity.name || "this processing activity"}`} title="No recipients" description="Recipients and transfer details are not recorded."/>}
   </section>;
 }
 
@@ -200,12 +201,12 @@ function Systems({ activity }: { activity: ProcessingActivity }) {
   const systems = activity.systems ?? [];
   return <section className="ropa-activity-list" aria-labelledby="ropa-systems-heading">
     <h2 id="ropa-systems-heading">Systems</h2>
-    {systems.length > 0 ? <ul>{systems.map((system) => <li key={system.system_name}><strong>{system.system_name || "System name not recorded"}</strong><span>{systemKindLabel(system.system_kind)}</span></li>)}</ul> : <EmptyState population={`Systems for ${activity.name || "this processing activity"}`} title="No systems" description="Add a system."/>}
+    {systems.length > 0 ? <ul>{systems.map((system) => <li key={system.system_name}><strong>{system.system_name || "System name not recorded"}</strong><span>{systemKindLabel(system.system_kind)}</span></li>)}</ul> : <EmptyState population={`Systems for ${activity.name || "this processing activity"}`} title="No systems" description="No systems are linked to this activity."/>}
   </section>;
 }
 
 function Reviews({ reviews, activityName }: { reviews: Review[]; activityName: string }) {
-  if (reviews.length === 0) return <EmptyState population={`Review history for ${activityName || "this processing activity"}`} title="No reviews" description="Add a review."/>;
+  if (reviews.length === 0) return <EmptyState population={`Review history for ${activityName || "this processing activity"}`} title="No reviews" description="No review history is recorded for this activity."/>;
   return <ul className="ropa-review-list">{reviews.map((review) => <li key={review.id}>
     <div><strong>{review.completed_at ? `Review completed ${formatActivityDate(review.completed_at)}` : `Review due ${formatActivityDate(review.due_date)}`}</strong><StatusBadge tone={reviewTone(review)}>{reviewStatusLabel(review)}</StatusBadge></div>
     <span>{review.outcome ? `Outcome: ${outcomeLabel(review.outcome)}` : "Outcome not recorded"}</span>
@@ -225,8 +226,7 @@ function ReviewDate({ value }: { value?: string }) {
   if (!value) return <span>Not recorded</span>;
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return <span>Review date unavailable</span>;
-  const overdue = new Date(value).getTime() < startOfToday().getTime();
-  return <StatusBadge tone={overdue ? "error" : "info"}>{overdue ? `Overdue · ${formatActivityDate(value)}` : `Review due ${formatActivityDate(value)}`}</StatusBadge>;
+  return <span>{formatActivityDate(value)}</span>;
 }
 
 function recordedValue(value: string | undefined): string {
@@ -311,7 +311,7 @@ function outcomeLabel(value: string): string {
 }
 
 function reviewStatusLabel(review: Review): string {
-  if (!review.completed_at) return new Date(review.due_date).getTime() < startOfToday().getTime() ? "Review overdue" : "Review pending";
+  if (!review.completed_at) return "Review pending";
   if (review.outcome === "CONFIRMED") return "Confirmed";
   if (review.outcome === "REVISED") return "Revised";
   if (review.outcome === "WITHDRAWN") return "Withdrawn";
@@ -320,7 +320,7 @@ function reviewStatusLabel(review: Review): string {
 
 function reviewTone(review: Review): StatusTone {
   if (review.completed_at) return review.outcome === "WITHDRAWN" ? "neutral" : "success";
-  return new Date(review.due_date).getTime() < startOfToday().getTime() ? "error" : "info";
+  return "info";
 }
 
 function eventTypeLabel(value: string): string {
@@ -347,11 +347,6 @@ function formatActivityDate(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "date unavailable";
   return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(date);
-}
-
-function startOfToday(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
 function isAbortError(error: unknown): boolean {

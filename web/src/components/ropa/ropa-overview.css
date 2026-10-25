@@ -1,0 +1,48 @@
+.ropa-dashboard-strip.ropa-overview {
+  display: grid;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.ropa-overview .ropa-dashboard-strip__metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.ropa-overview .cs-metric-card {
+  --cs-metric-card-heading-columns: minmax(0, 1fr);
+  --cs-metric-card-label-transform: none;
+  --cs-metric-card-label-spacing: normal;
+  min-block-size: 132px;
+}
+.ropa-overview__layout { display: grid; grid-template-columns: minmax(0, 1fr) 304px; gap: 14px; align-items: start; }
+.ropa-overview__primary { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 14px; }
+.ropa-overview__panel, .ropa-overview__coverage { min-inline-size: 0; }
+.ropa-overview__panel > .cs-surface { display: grid; align-content: start; gap: 18px; block-size: 100%; }
+.ropa-overview__panel h2, .ropa-overview__coverage h2 { margin: 0; font-size: 16px; line-height: 1.3; }
+.ropa-overview__panel header p, .ropa-overview__coverage p {
+  margin: 6px 0 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  line-height: 1.5;
+}
+.ropa-overview__gaps { display: grid; gap: 12px; }
+.ropa-overview__coverage > .cs-surface { display: grid; justify-items: start; gap: 14px; }
+.ropa-overview__coverage dl { display: grid; gap: 15px; margin: 0; }
+.ropa-overview__coverage dt { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.ropa-overview__coverage dd { margin: 4px 0 0; font-size: var(--cs-font-size-caption); overflow-wrap: anywhere; }
+.ropa-overview__panel .cs-ranked-bars { margin: 0; }
+@media (max-width: 1480px) { .ropa-overview__layout { grid-template-columns: minmax(0, 1fr) 285px; } }
+@media (max-width: 1230px) {
+  .ropa-overview__layout { grid-template-columns: minmax(0, 1fr); }
+  .ropa-overview .ropa-dashboard-strip__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ropa-overview__coverage dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+}
+@media (max-width: 600px) {
+  .ropa-overview__primary { grid-template-columns: minmax(0, 1fr); }
+  .ropa-overview__gaps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ropa-overview .ropa-dashboard-strip__metrics { gap: 10px; }
+  .ropa-overview .cs-metric-card { min-block-size: 132px; }
+  .ropa-overview__coverage dl { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}

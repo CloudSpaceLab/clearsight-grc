@@ -1,0 +1,25 @@
+.privacy-activity-sheet { --cs-sheet-width: 480px; }
+.ropa-activity-page--embedded { gap: 24px; }
+.ropa-activity-heading { display: grid; gap: 12px; min-inline-size: 0; padding-inline-end: 45px; }
+.ropa-activity-heading h2 { margin: 12px 0; font-size: 25px; line-height: 1.15; letter-spacing: -0.025em; overflow-wrap: anywhere; }
+.ropa-activity-heading p { margin: 0; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.ropa-activity-heading .eyebrow { font-size: var(--cs-font-size-caption); letter-spacing: normal; text-transform: none; }
+.ropa-activity-page--embedded .ropa-activity-description { color: var(--cs-text-muted); font-size: 13px; line-height: 1.6; }
+.ropa-activity-page--embedded :is(.ropa-activity-facts, .ropa-activity-list, .ropa-review-history, .ropa-change-history) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+.ropa-activity-page--embedded :is(.ropa-activity-facts, .ropa-activity-list, .ropa-review-history, .ropa-change-history) h2 { font-size: 16px; }
+.ropa-activity-page--embedded .ropa-activity-columns { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.ropa-activity-page--embedded .ropa-fact-grid { grid-template-columns: minmax(0, 1fr); }
+.ropa-activity-page--embedded .ropa-fact-grid > div { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 16px; padding-block: 14px; }
+.ropa-activity-page--embedded .ropa-fact-grid dd { justify-self: end; text-align: end; font-size: var(--cs-font-size-caption); }
+.ropa-activity-page--embedded .ropa-fact-grid dt { font-weight: 500; font-size: var(--cs-font-size-caption); }
+.ropa-activity-page--embedded .ropa-closure-blockers { padding: 16px; }
+.ropa-activity-page--embedded .ropa-closure-blockers h2 { font-size: 16px; }
+.ropa-activity-page--embedded .ropa-review-list li > div,
+.ropa-activity-page--embedded .ropa-history-list li { align-items: flex-start; flex-direction: column; }
+.ropa-activity-page--embedded .ropa-review-list li > small,
+.ropa-activity-page--embedded .ropa-history-list li > small { text-align: start; }

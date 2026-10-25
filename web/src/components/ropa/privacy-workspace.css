@@ -1,0 +1,128 @@
+.app-shell > main:has(> .privacy-workspace) { background: var(--cs-bg-canvas); }
+
+.privacy-workspace {
+  display: grid;
+  min-inline-size: 0;
+  max-inline-size: 1860px;
+}
+.privacy-workspace__heading {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  min-inline-size: 0;
+  min-block-size: 125px;
+  padding-block-end: 22px;
+}
+.privacy-workspace__heading > div { min-inline-size: 0; }
+.privacy-workspace__heading h1 {
+  margin: 0;
+  color: var(--cs-text-strong);
+  font-size: clamp(29px, 2.4vw, 39px);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+.privacy-workspace__scope {
+  margin: 0 0 10px;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+  overflow-wrap: anywhere;
+}
+.privacy-workspace__actions { display: flex; flex: none; gap: 9px; }
+.privacy-workspace__wave {
+  position: absolute;
+  z-index: -1;
+  inset: 0 26% 0 auto;
+  inline-size: 55%;
+  block-size: 125px;
+  color: var(--cs-action-primary);
+  opacity: 0.07;
+  pointer-events: none;
+}
+.privacy-workspace > .cs-tabs {
+  --cs-tabs-gap: 27px;
+  --cs-tabs-height: 47px;
+  --cs-tabs-padding-inline: 2px;
+  --cs-tabs-panel-gap: 18px;
+}
+.privacy-workspace > .cs-tabs > .cs-tabs__list {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.privacy-workspace > .cs-tabs > .cs-tabs__list > .cs-tabs__tab {
+  flex: none;
+  inline-size: auto;
+  min-inline-size: var(--cs-target-min);
+  font-size: var(--cs-font-size-caption);
+  white-space: nowrap;
+}
+.privacy-workspace > .cs-tabs > .cs-tabs__panel { min-inline-size: 0; }
+
+.privacy-workspace .ropa-register-list {
+  gap: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.privacy-workspace .ropa-register-list__header h2 {
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.privacy-workspace .ropa-register-list__header p {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.ropa-register-list__filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 310px) minmax(170px, 210px) minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+}
+.ropa-register-list__filters > * { min-inline-size: 0; }
+.ropa-register-list__scope, .ropa-register-list__recovery { display: flex; justify-content: flex-start; }
+.ropa-register-list__results {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-block-size: var(--cs-target-min);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.privacy-workspace .ropa-register-list > .cs-data-table {
+  font-size: var(--cs-font-size-caption);
+  --cs-table-row-padding: 15px 14px;
+}
+.privacy-workspace .ropa-register-identity { min-inline-size: 140px; }
+.privacy-workspace .ropa-register-list .cs-status-badge {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+@media (max-width: 850px) {
+  .ropa-register-list__filters { grid-template-columns: minmax(0, 1fr) minmax(170px, .65fr); }
+  .ropa-register-list__results { grid-column: 1 / -1; justify-content: space-between; min-block-size: 0; }
+}
+@media (max-width: 600px) {
+  .privacy-workspace__heading { flex-wrap: wrap; gap: 15px; min-block-size: 0; padding-block-end: 16px; }
+  .privacy-workspace__wave { inset-inline-end: 0; inline-size: 70%; block-size: 92px; }
+  .privacy-workspace__actions { inline-size: 100%; }
+  .privacy-workspace__actions > .cs-button { flex: 1; }
+  .privacy-workspace .ropa-register-list { gap: 14px; }
+  .ropa-register-list__filters { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .ropa-register-list__results { grid-column: auto; }
+}
+
+@container cs-data-table (max-width: 360px) {
+  .privacy-workspace .ropa-register-list .cs-data-table tbody tr td:not([data-mobile-layout="full-width"]):not(.cs-data-table__action) {
+    grid-template-columns: minmax(96px, .7fr) minmax(0, 1.3fr);
+    align-items: start;
+  }
+}

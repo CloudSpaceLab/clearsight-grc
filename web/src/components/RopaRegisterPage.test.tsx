@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { RopaActivityPage } from "./RopaActivityPage";
 import { RopaDashboardStrip } from "./RopaDashboardStrip";
@@ -87,7 +87,7 @@ it("renders the stored register counts and exception signals", () => {
 
   const strip = screen.getByRole("region", { name: "Processing activity status and coverage" });
   expect(within(strip).getByText("42")).toBeTruthy();
-  expect(within(strip).getByText("20")).toBeTruthy();
+  expect(within(strip).getByRole("article", { name: /In progress: 20/ })).toBeTruthy();
   expect(within(strip).getByText("6")).toBeTruthy();
   for (const [label, count] of [["Missing lawful basis", 4], ["Missing owner", 3], ["Missing data subjects", 5]] as const) {
     const card = within(strip).getByRole("article", { name: new RegExp(`${label}: ${count}.*Coverage incomplete`) });
@@ -135,7 +135,9 @@ it("renders one register row per activity with working-language status", async (
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities}/>);
 
   expect(await screen.findByText("Customer onboarding")).toBeTruthy();
-  expect(screen.getByRole("heading", { name: "Processing activity register", level: 1 }).closest("header")?.className).toContain("cs-register-header");
+  expect(screen.getByRole("heading", { name: "Privacy & data", level: 1 })).toBeTruthy();
+  expect(screen.getByRole("tab", { name: "ROPA", selected: true })).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Processing activity status and coverage" })).toBeNull();
   expect(screen.getByText("Card payment notices")).toBeTruthy();
   expect(screen.getByText("Archived payroll import")).toBeTruthy();
   expect(screen.getAllByRole("row")).toHaveLength(4);
@@ -158,7 +160,7 @@ it("shows the empty population and the next action when no activities match", as
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities}/>);
 
   expect(await screen.findByText("No activities")).toBeTruthy();
-  expect(screen.getByText("Add the first processing activity.")).toBeTruthy();
+  expect(screen.getByText("No current processing activities were found for this legal entity.")).toBeTruthy();
 });
 
 it("shows a retry that reloads a failed register read", async () => {
@@ -171,7 +173,7 @@ it("shows a retry that reloads a failed register read", async () => {
   expect(api.listProcessingActivities).toHaveBeenCalledTimes(2);
 });
 
-it("lists every closure blocker and explains why closing is unavailable", async () => {
+it("lists every closure blocker without offering an unsupported closure command", async () => {
   render(<RopaActivityPage activityID="activity-1" loadActivity={api.fetchProcessingActivity} loadHistory={api.fetchProcessingActivityHistory}/>);
 
   expect(await screen.findByRole("heading", { name: "Customer onboarding" })).toBeTruthy();
@@ -180,7 +182,7 @@ it("lists every closure blocker and explains why closing is unavailable", async 
   expect(within(blockerPanel).getByText("Named owner")).toBeTruthy();
   expect(within(blockerPanel).getByText("Data subject category")).toBeTruthy();
   expect(within(blockerPanel).getByText("Completed review")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Close processing activity" })).toHaveProperty("disabled", true);
+  expect(screen.queryByRole("button", { name: "Close processing activity" })).toBeNull();
 });
 
 it("opens the selected activity from the register row action", async () => {
@@ -216,14 +218,18 @@ it("opens the governed report workspace from the register", async () => {
   expect(onOpenReports).toHaveBeenCalledTimes(1);
 });
 
-it("retries a summary failure without hiding the register read", async () => {
+it("loads only the selected privacy view and can recover the summary independently", async () => {
   api.fetchDashboard.mockRejectedValueOnce(new Error("offline"));
   render(<RopaRegisterPage loadSummary={api.fetchDashboard} loadActivities={api.listProcessingActivities}/>);
-
+  expect(await screen.findByText("Customer onboarding")).toBeTruthy();
+  expect(api.fetchDashboard).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
   expect(await screen.findByText("Summary unavailable.")).toBeTruthy();
-  expect(screen.getByText("Customer onboarding")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-  await waitFor(() => expect(api.fetchDashboard).toHaveBeenCalledTimes(2));
+  await screen.findByRole("region", { name: "Processing activity status and coverage" });
+  expect(api.fetchDashboard).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole("tab", { name: "ROPA" }));
+  expect(await screen.findByText("Customer onboarding")).toBeTruthy();
 });
 
 it("sends search to the register read and clears the active search", async () => {
@@ -294,4 +300,132 @@ it("shows stored category sensitivity, cross-border safeguards, systems and revi
   expect(screen.queryByText(/reviewer-1/)).toBeNull();
   expect(screen.queryByText("SENSITIVE_BY_LAW")).toBeNull();
   expect(screen.queryByText("STANDARD_CONTRACT_CLAUSES")).toBeNull();
+});
+
+
+it("keeps the current search and page when exact-record navigation opens and closes", async () => {
+  api.listProcessingActivities.mockImplementation(async (params) => ({
+    rows: params?.cursor ? [rows[1]!] : [rows[0]!],
+    has_more: !params?.cursor,
+    next_cursor: params?.cursor ? undefined : "page-two",
+  }));
+  const props = { loadSummary: api.fetchDashboard, loadActivities: api.listProcessingActivities, view: "register" as const };
+  const view = render(<RopaRegisterPage {...props}/>);
+  await screen.findByText("Customer onboarding");
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search processing activities" }), { target: { value: "account" } });
+  await waitFor(() => expect(api.listProcessingActivities).toHaveBeenLastCalledWith(expect.objectContaining({ search: "account", cursor: undefined }), expect.anything()));
+  fireEvent.click(await screen.findByRole("button", { name: "Load next page" }));
+  await screen.findByText("Card payment notices");
+  const readCount = api.listProcessingActivities.mock.calls.length;
+  view.rerender(<RopaRegisterPage {...props} activityID="activity-1"/>);
+  const dialog = await screen.findByRole("dialog", { name: "Processing activity" });
+  expect(await within(dialog).findByRole("heading", { name: "Customer onboarding", level: 2 })).toBeTruthy();
+  expect(api.fetchProcessingActivity).toHaveBeenCalledWith("activity-1", expect.anything());
+  expect(api.listProcessingActivities).toHaveBeenCalledTimes(readCount);
+  view.rerender(<RopaRegisterPage {...props}/>);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("searchbox", { name: "Search processing activities" })).toHaveProperty("value", "account");
+  expect(screen.getByText("Card payment notices")).toBeTruthy();
+  expect(api.listProcessingActivities).toHaveBeenCalledTimes(readCount);
+  fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+  await waitFor(() => expect(api.listProcessingActivities).toHaveBeenLastCalledWith(expect.objectContaining({ search: undefined, cursor: undefined }), expect.anything()));
+});
+
+it("does not replace a newer search with a late response from an aborted search", async () => {
+  let finishOld: ((value: { rows: ProcessingActivity[]; has_more: boolean }) => void) | undefined;
+  api.listProcessingActivities.mockImplementation((params) => params?.search === "old"
+    ? new Promise((resolve) => { finishOld = resolve; })
+    : Promise.resolve({ rows: [rows[1]!], has_more: false }));
+  render(<RopaRegisterPage/>);
+  await screen.findByText("Card payment notices");
+  const search = screen.getByRole("searchbox", { name: "Search processing activities" });
+  fireEvent.change(search, { target: { value: "old" } });
+  await waitFor(() => expect(finishOld).toBeTypeOf("function"));
+  const priorSignal = api.listProcessingActivities.mock.calls.at(-1)?.[1] as AbortSignal;
+  fireEvent.change(search, { target: { value: "new" } });
+  await screen.findByText("Card payment notices");
+  await act(async () => { finishOld?.({ rows: [rows[0]!], has_more: false }); });
+  await waitFor(() => expect(priorSignal.aborted).toBe(true));
+  expect(screen.queryByText("Customer onboarding")).toBeNull();
+});
+
+it("keeps denied access distinct from an empty processing register", async () => {
+  api.listProcessingActivities.mockRejectedValueOnce({ kind: "forbidden" });
+  render(<RopaRegisterPage/>);
+  expect(await screen.findByText("Processing activities are unavailable with your current access. Contact your administrator.")).toBeTruthy();
+  expect(screen.queryByText("No activities")).toBeNull();
+  expect(screen.queryByRole("table")).toBeNull();
+});
+
+it("uses the exact activity read when the selected ID is absent from the current page", async () => {
+  api.fetchProcessingActivity.mockRejectedValueOnce({ kind: "not_found" });
+  render(<RopaRegisterPage activityID="outside-current-page"/>);
+  const dialog = await screen.findByRole("dialog", { name: "Processing activity" });
+  expect(await within(dialog).findByRole("heading", { name: "Processing activity not found" })).toBeTruthy();
+  expect(api.fetchProcessingActivity).toHaveBeenCalledWith("outside-current-page", expect.anything());
+  expect(within(dialog).queryByRole("heading", { name: "Customer onboarding" })).toBeNull();
+});
+
+it("does not present absence of recorded blockers as authority to close", async () => {
+  api.fetchProcessingActivity.mockResolvedValueOnce({ ...activityResponse, closure_blockers: [] });
+  render(<RopaActivityPage activityID="activity-1"/>);
+  expect(await screen.findByText("No closure blockers recorded.")).toBeTruthy();
+  expect(screen.queryByText("Ready to close.")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Close processing activity" })).toBeNull();
+});
+
+it("does not let a late activity response replace a different selected record", async () => {
+  let finishOld: ((value: ProcessingActivityResponse) => void) | undefined;
+  api.fetchProcessingActivity.mockImplementation((id) => id === "activity-1"
+    ? new Promise((resolve) => { finishOld = resolve; })
+    : Promise.resolve({ ...activityResponse, activity: rows[1]! }));
+  const view = render(<RopaRegisterPage activityID="activity-1"/>);
+  await waitFor(() => expect(finishOld).toBeTypeOf("function"));
+  const priorSignal = api.fetchProcessingActivity.mock.calls.at(-1)?.[1] as AbortSignal;
+  view.rerender(<RopaRegisterPage activityID="activity-2"/>);
+  const dialog = await screen.findByRole("dialog", { name: "Processing activity" });
+  await within(dialog).findByRole("heading", { name: "Card payment notices" });
+  await act(async () => { finishOld?.(activityResponse); });
+  await waitFor(() => expect(priorSignal.aborted).toBe(true));
+  expect(within(dialog).queryByRole("heading", { name: "Customer onboarding" })).toBeNull();
+  expect(within(dialog).getByRole("heading", { name: "Card payment notices" })).toBeTruthy();
+});
+
+it("keeps counted Overview drills in the summary's population including ended activities", async () => {
+  render(<RopaRegisterPage/>);
+  await screen.findByText("Customer onboarding");
+  fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
+  fireEvent.click(await screen.findByRole("button", { name: /In progress: 20.*Open ROPA/ }));
+  await waitFor(() => expect(api.listProcessingActivities).toHaveBeenLastCalledWith(expect.objectContaining({ status: "OPEN", include_retired: true, cursor: undefined }), expect.anything()));
+  expect(screen.getByText("Includes ended activities")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Remove Activity scope filter" }));
+  await waitFor(() => expect(api.listProcessingActivities).toHaveBeenLastCalledWith(expect.objectContaining({ status: "OPEN", include_retired: undefined, cursor: undefined }), expect.anything()));
+});
+
+it.each(["empty", "error"])("can return from an %s later page without losing the cursor recovery action", async (outcome) => {
+  api.listProcessingActivities.mockResolvedValueOnce({ rows: [rows[0]!], has_more: true, next_cursor: "page-two" });
+  if (outcome === "empty") api.listProcessingActivities.mockResolvedValueOnce({ rows: [], has_more: false });
+  else api.listProcessingActivities.mockRejectedValueOnce(new Error("unavailable"));
+  render(<RopaRegisterPage/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Load next page" }));
+  if (outcome === "empty") {
+    await screen.findByText("No more activities");
+    expect(screen.queryByText("No processing activities have been recorded for this legal entity.")).toBeNull();
+  }
+  else await screen.findByText("Couldn’t load activities.");
+  fireEvent.click(screen.getByRole("button", { name: "Load previous page" }));
+  await screen.findByText("Customer onboarding");
+  expect(api.listProcessingActivities).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: undefined }), expect.anything());
+});
+
+it("shows recorded review dates without classifying deadlines in the browser's timezone", async () => {
+  api.listProcessingActivities.mockResolvedValueOnce({ rows: [activity({ next_review_date: "2020-01-01" })], has_more: false });
+  api.fetchProcessingActivity.mockResolvedValueOnce({ ...activityResponse, activity: activity({ next_review_date: "2020-01-01", reviews: [{ id: "pending", created_at: "2019-12-01T00:00:00Z", due_date: "2020-01-01" }] }) });
+  const view = render(<RopaRegisterPage/>);
+  expect(await screen.findByRole("cell", { name: "Next review: 01 Jan 2020" })).toBeTruthy();
+  expect(screen.queryByText(/Overdue/)).toBeNull();
+  view.rerender(<RopaRegisterPage activityID="activity-1"/>);
+  const dialog = await screen.findByRole("dialog", { name: "Processing activity" });
+  expect(await within(dialog).findByText("Review pending")).toBeTruthy();
+  expect(within(dialog).queryByText(/Overdue|Review overdue/)).toBeNull();
 });
