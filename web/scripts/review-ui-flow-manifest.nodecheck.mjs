@@ -653,6 +653,15 @@ function riskLossReceipt(scenario) {
     method: "GET", status: 200, query: { limit: scenario.riskLossView === "insights" ? "50" : "25" } }], responses: [{ ids, titles }] };
   const capture = { ...scenario, baseline: false, imageSHA256: "a".repeat(64), imageBytes: 50000, riskLossLayout, observation };
   if (scenario.verifyRiskLossNavigation) capture.navigation = { visited: riskLossViews.map((view) => ({ label: view.label, route: view.route })),
+    peerHistory: [
+      ["back", "#losses", "#insights?kind=KRI", "Key indicators"],
+      ["back", "#insights?kind=KRI", "#rcsa", "RCSA"],
+      ["back", "#rcsa", "#risks", "Risks"],
+      ["forward", "#risks", "#rcsa", "RCSA"],
+      ["forward", "#rcsa", "#insights?kind=KRI", "Key indicators"],
+      ["forward", "#insights?kind=KRI", "#losses", "Loss events"],
+    ].map(([direction, from, to, label]) => ({ direction, from, to, label, sameTablist: true, sameDocument: true, selectedTabVisible: true,
+      menu: structuredClone(riskLossLayout.menu), selected: bounds(90, 302, 120, 44), documentWidth: scenario.viewport.width, scrollWidth: scenario.viewport.width })),
     keyboard: ["RCSA", "Key indicators", "Loss events", "Risks"], restoredRoute: scenario.route, restoredPopulation: ids, selectedTabVisible: true, commands: [] };
   if (scenario.riskLossCheck === "history") capture.history = { actualBack: true, sameDocument: true, noSelectedDetail: true, backRoute: scenario.route,
     selectedMenu: scenario.label, pendingReads: 0, initialDocumentToken: "same-document", backDocumentToken: "same-document", forwardDocumentToken: "same-document",
@@ -696,6 +705,65 @@ test("Risk & Losses rejects clipped menus, off-screen first identity and disconn
   ]) {
     const invalid = structuredClone(valid); change(invalid.riskLossLayout);
     assert.ok(riskLossFindings(invalid).length > 0);
+  }
+});
+
+test("Risk & Losses peer history requires all six ordered Back/Forward destinations", () => {
+  for (const scenario of riskLossEvidenceScenarios.filter((item) => item.verifyRiskLossNavigation)) {
+    const valid = riskLossReceipt(scenario);
+    assert.deepEqual(riskLossFindings(valid), [], scenario.name);
+    for (const [reason, change] of [
+      ["missing history", (navigation) => { delete navigation.peerHistory; }],
+      ["short history", (navigation) => { navigation.peerHistory.pop(); }],
+      ["extra history", (navigation) => { navigation.peerHistory.push(structuredClone(navigation.peerHistory[0])); }],
+      ["wrong order", (navigation) => { [navigation.peerHistory[0], navigation.peerHistory[1]] = [navigation.peerHistory[1], navigation.peerHistory[0]]; }],
+      ["wrong direction", (navigation) => { navigation.peerHistory[0].direction = "forward"; }],
+      ["wrong origin", (navigation) => { navigation.peerHistory[0].from = "#losses/another-record"; }],
+      ["wrong destination", (navigation) => { navigation.peerHistory[0].to = "#reports"; }],
+      ["wrong label", (navigation) => { navigation.peerHistory[0].label = "Loss events"; }],
+    ]) {
+      const invalid = structuredClone(valid); change(invalid.navigation);
+      assert.ok(riskLossFindings(invalid).some((message) => message.includes("peer Back/Forward")), `${scenario.name}: ${reason}`);
+    }
+  }
+});
+
+test("Risk & Losses peer history rejects clipped measured tabs despite visible=true", () => {
+  for (const scenario of riskLossEvidenceScenarios.filter((item) => item.verifyRiskLossNavigation)) {
+    const valid = riskLossReceipt(scenario);
+    assert.deepEqual(riskLossFindings(valid), [], scenario.name);
+    for (const [reason, change] of [
+      ["missing tab bounds", (step) => { delete step.selected; }],
+      ["left clipping", (step) => { step.selected = rect(step.menu.x - 2, step.selected.y, step.selected.width, step.selected.height); }],
+      ["right clipping", (step) => { step.selected = rect(step.menu.right - 10, step.selected.y, step.selected.width, step.selected.height); }],
+      ["vertical clipping", (step) => { step.selected = rect(step.selected.x, step.menu.bottom - 10, step.selected.width, step.selected.height); }],
+      ["off-screen menu", (step) => { step.menu = rect(-2, step.menu.y, step.menu.width, step.menu.height); }],
+      ["off-screen vertical bounds", (step) => { step.menu = rect(step.menu.x, scenario.viewport.height - 10, step.menu.width, step.menu.height); step.selected = rect(step.selected.x, step.menu.y + 2, step.selected.width, step.selected.height); }],
+      ["inconsistent rectangle", (step) => { step.selected.right += 5; }],
+      ["missing width measurement", (step) => { delete step.selected.width; }],
+      ["hidden tab", (step) => { step.selectedTabVisible = false; }],
+    ]) {
+      const invalid = structuredClone(valid); change(invalid.navigation.peerHistory[2]);
+      assert.ok(riskLossFindings(invalid).some((message) => message.includes("peer Back/Forward")), `${scenario.name}: ${reason}`);
+    }
+  }
+});
+
+test("Risk & Losses peer history requires the same menu and document without overflow", () => {
+  for (const scenario of riskLossEvidenceScenarios.filter((item) => item.verifyRiskLossNavigation)) {
+    const valid = riskLossReceipt(scenario);
+    assert.deepEqual(riskLossFindings(valid), [], scenario.name);
+    for (const [reason, change] of [
+      ["disconnected menu", (step) => { step.sameTablist = false; }],
+      ["new document", (step) => { step.sameDocument = false; }],
+      ["missing identity proof", (step) => { delete step.sameTablist; }],
+      ["wrong viewport", (step) => { step.documentWidth += 20; }],
+      ["document overflow", (step) => { step.scrollWidth += 2; }],
+      ["missing overflow measurement", (step) => { delete step.scrollWidth; }],
+    ]) {
+      const invalid = structuredClone(valid); change(invalid.navigation.peerHistory[5]);
+      assert.ok(riskLossFindings(invalid).some((message) => message.includes("peer Back/Forward")), `${scenario.name}: ${reason}`);
+    }
   }
 });
 

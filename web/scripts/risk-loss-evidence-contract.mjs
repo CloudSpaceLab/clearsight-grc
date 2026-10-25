@@ -3,12 +3,12 @@ import { riskLossEvidenceScenarios, riskLossViews } from "./risk-loss-evidence-s
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 const rect = (value) => value && ["x", "y", "width", "height", "right", "bottom"].every((key) => Number.isFinite(value[key]))
   && value.width > 0 && value.height > 0 && Math.abs(value.x + value.width - value.right) <= 1 && Math.abs(value.y + value.height - value.bottom) <= 1;
+const contains = (outer, inner) => rect(outer) && rect(inner)
+  && inner.x >= outer.x - 1 && inner.y >= outer.y - 1 && inner.right <= outer.right + 1 && inner.bottom <= outer.bottom + 1;
 const labels = riskLossViews.map((view) => view.label);
 const endpoints = { risks: "/api/v1/risks", rcsa: "/api/v1/rcsa/cycles", insights: "/api/v1/risk-indicators", losses: "/api/v1/losses" };
 
 export function riskLossStatusBadgesFit(layout) {
-  const contains = (outer, inner) => rect(outer) && rect(inner)
-    && inner.x >= outer.x - 1 && inner.y >= outer.y - 1 && inner.right <= outer.right + 1 && inner.bottom <= outer.bottom + 1;
   const columns = { risks: ["Rating", "Appetite", "Status"], insights: ["Condition"] }[layout.kind];
   return Boolean(columns && Array.isArray(layout.statusBadges) && layout.statusBadges.length === layout.records * columns.length
     && layout.statusBadges.every((badge, index) => badge.rowIndex === Math.floor(index / columns.length) && badge.column === columns[index % columns.length]
@@ -25,6 +25,24 @@ export function riskLossRCSAPopulationMatches(detail) {
     && Number.isInteger(population.detailRows?.[kind]) && population.detailRows[kind] >= 0
     && Number(population.card[kind]) === population.detailRows[kind])
     && population.detailSummary === `${population.detailRows.Risks} Risks · ${population.detailRows.Controls} controls`);
+}
+
+function peerHistoryMatches(history, viewport) {
+  const transitions = [
+    ["back", "losses", "insights"], ["back", "insights", "rcsa"], ["back", "rcsa", "risks"],
+    ["forward", "risks", "rcsa"], ["forward", "rcsa", "insights"], ["forward", "insights", "losses"],
+  ];
+  const routeBase = (route) => typeof route === "string" ? route.split("?")[0] : null;
+  const visibleViewport = { x: 0, y: 0, width: viewport.width, height: viewport.height, right: viewport.width, bottom: viewport.height };
+  return Array.isArray(history) && history.length === transitions.length && history.every((step, index) => {
+    const [direction, from, to] = transitions[index];
+    return step?.direction === direction && routeBase(step.from) === `#${from}` && routeBase(step.to) === `#${to}`
+      && step.label === riskLossViews.find((view) => view.id === to).label
+      && step.sameTablist === true && step.sameDocument === true && step.selectedTabVisible === true
+      && step.documentWidth === viewport.width && Number.isFinite(step.scrollWidth)
+      && Math.abs(step.scrollWidth - step.documentWidth) <= 1
+      && contains(visibleViewport, step.menu) && contains(step.menu, step.selected);
+  });
 }
 
 export function reviewRiskLossCaptures(captures) {
@@ -147,6 +165,9 @@ export function reviewRiskLossCaptures(captures) {
       || !same(capture.navigation?.keyboard, [...labels.slice(1), labels[0]]) || capture.navigation.restoredRoute !== scenario.route
       || capture.navigation.selectedTabVisible !== true || !same(capture.navigation.restoredPopulation, layout.populatedIDs) || capture.navigation.commands?.length !== 0)) {
       fail("all four local destinations need click, arrow-key and populated return evidence");
+    }
+    if (scenario.verifyRiskLossNavigation && !peerHistoryMatches(capture.navigation?.peerHistory, scenario.viewport)) {
+      fail("peer Back/Forward must traverse all four routes in order in the same document and tablist with measured visible tabs and no document overflow");
     }
   }
   return { failures, check: { name: "Risk & Losses source layout and bounded record workflows", status: failures.length ? "FAIL" : "PASS",
