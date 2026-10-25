@@ -23,7 +23,7 @@ The whole-page authority remains the immutable [operational-risk HTML](../refere
 - Recheck the existing contextual-tab, retained-panel and keyboard cases; use the normal CI, full UI/source gates, expected-head merge and exact-revision demo deployment.
 - Repeat the hosted phone history check and available real-record opening/return checks after deployment. Preserve empty, denied and unexercised states without inventing demo records.
 
-The new unit regression failed before the runtime correction (horizontal scroll remained 0 instead of 130); all 10 Tabs tests pass with the one-line dependency correction. The new browser peer-history check also fails against the unchanged baseline at the observed phone Back transition. Final capture, CI and deployment receipts are recorded in the follow-up PR.
+The new unit regression failed before the runtime correction (horizontal scroll remained 0 instead of 130); all 10 Tabs tests pass with the one-line dependency correction. The new browser peer-history check also fails against the unchanged baseline at the observed phone Back transition. The corrected isolated build passes both navigation profiles and all 12 history transitions; the [retained evidence and named review](../../evidence/2026-10-23-tabs-history/README.md) bind those results to the local runtime commit. Publication, CI and deployment of the follow-up remain pending.
 
 ## Hosted population and authority limits
 
