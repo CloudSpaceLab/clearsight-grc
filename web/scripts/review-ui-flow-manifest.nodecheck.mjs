@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import "./privacy-evidence-contract.nodecheck.mjs";
 import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
 import { reportsDesignEvidenceScenarios } from "./reports-design-evidence-scenarios.mjs";
 import { reviewReportsDesignCaptures } from "./reports-design-evidence-contract.mjs";
