@@ -131,6 +131,14 @@ The final approved light dashboard reference is a **presentation direction**, no
 
 ## Structural patterns
 
+### People & access — 26 October 2026
+
+Settings opens People / Roles / Approval routes / Delegations in the original specialist layout: one heading, a compact four-fact strip, a selectable list and a 320px-minimum context column. At 1370px the context minimum becomes 290px; at 1024px both columns stack and the facts become two columns. Selected rows scroll and focus the context on narrow screens. Existing shared Surface, MetricCard, SelectableRecord, SearchField, SelectField, Button and Tabs own paint, interaction and touch targets. The source has only a light theme; dark mode preserves anatomy and readable semantic tokens.
+
+People search covers only the returned tenant-wide profiles (up to 50); current-entity positions and group mappings remain separately labelled. Profile state, provisioning state, role capability and effective authority retain distinct meanings. Policy and delegation lists display at most 50 records with a more-record notice from the 51st result. Unknown counts remain unknown, explicit denial clears records, and temporary refresh failures retain labelled previous records with commands disabled. The exact delegation scope, policy/record versions and maker/checker history remain visible.
+
+The extra Configuration rail is replaced by a Settings return link on this specialist workspace. Organization, reporting, provisioning, escalation and routing checks remain secondary destinations. Four source tabs use the shared enclosed surface and horizontally scroll at narrow widths; shared 44px controls, visible status/quality labels, concise column headings and a shorter tablet heading accommodate the authenticated shell. Repeated entity text is omitted from the page heading because scope remains in the shell and record detail. Retained panels recheck data on return without discarding query/selection; a changed tenant/entity/actor remounts the owner. No new data, authority or navigation store is introduced. See the [decision and evidence requirements](docs/design/decisions/2026-10-26-people-access-v2.md).
+
 ### Privacy Overview and ROPA — 25 October 2026
 
 Privacy keeps one heading and the supported source-order Overview / ROPA menu. `#ropa` remains the register; `#ropa/overview` shows the existing summary. ROPA places compact search/status controls directly above source-shaped records, using the shared table's labelled cards below 700px of container space. Selected activities open the existing exact reader in a 480px `FocusedSheet`, with full-phone replacement. The register remains mounted so query and cursor survive record opening and browser history.

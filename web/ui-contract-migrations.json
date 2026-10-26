@@ -66,7 +66,12 @@
     "src/components/NotificationPreferences.tsx",
     "src/components/notifications/NotificationsWorkspace.tsx",
     "src/components/notifications/NotificationActivity.tsx",
-    "src/components/risk-loss/RiskLossWorkspaceFrame.tsx"
+    "src/components/risk-loss/RiskLossWorkspaceFrame.tsx",
+    "src/components/access/PeopleDirectory.tsx",
+    "src/components/access/PeopleRoleCatalog.tsx",
+    "src/components/PeopleGovernanceView.tsx",
+    "src/components/configure/PeopleAccessSection.tsx",
+    "src/components/configure/AuthorityRoutingSection.tsx"
   ],
   "migratedCss": [
     "src/components/vendor-relationship-workspace.css",
@@ -99,7 +104,10 @@
     "src/components/reports/reports.css",
     "src/notification-center.css",
     "src/components/notifications/notifications-workspace.css",
-    "src/components/risk-loss/risk-loss-workspace.css"
+    "src/components/risk-loss/risk-loss-workspace.css",
+    "src/components/access/people-access.css",
+    "src/people-governance.css",
+    "src/components/configure/people-access-workspace.css"
   ],
   "nativeControlExceptions": [
     {
