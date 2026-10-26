@@ -1,0 +1,69 @@
+import { lazy, StrictMode, Suspense } from "react";
+import { createRoot } from "react-dom/client";
+import "./staticDemoBootstrap";
+import { PolicyAssessmentEvidence } from "./PolicyAssessmentEvidence";
+import { FieldAssessmentEvidencePage, installVendorAssessmentEvidence } from "./vendorAssessmentEvidence";
+import { installVendorCollectionEvidence } from "./vendorCollectionEvidence";
+import { installUITruthEvidence, UITruthEvidencePage } from "./uiTruthEvidence";
+import { VendorCaptureEvidencePage, type VendorCaptureEvidenceState } from "./vendorCaptureEvidence";
+import { VendorReleaseEvidencePage } from "./vendorReleaseEvidence";
+import { installVendorComplianceEvidence, VendorComplianceEvidencePage } from "./vendorComplianceEvidence";
+import { installRopaEvidence } from "./ropaEvidence";
+import { installPeopleAccessEvidence } from "./peopleAccessEvidence";
+import { installReportingEvidence } from "./reportingEvidence";
+import { installNotificationWorkspaceEvidence } from "./notificationWorkspaceEvidence";
+import { installIssueWorkspaceFollowThroughEvidence } from "./issueWorkspaceFollowThroughEvidence";
+import { FindingFollowUpEvidence } from "./FindingFollowUpEvidence";
+import { consumeCaptureInvitation } from "./captureInvitationBrowser";
+import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
+import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
+import { OperatingMutationsEvidencePage } from "./components/OperatingMutationsEvidencePage";
+import { OversightEvidencePage } from "./components/oversight/OversightEvidencePage";
+import { HomeT7GroupEvidence } from "./homeT7Evidence";
+import { NativeIndicatorEvidencePage } from "./nativeIndicatorEvidence";
+import { DisplayPreferencesRoot } from "./components/DisplayPreferences";
+import { SessionGate } from "./components/SessionGate";
+import "./appStyles";
+
+const UIComponentGallery = lazy(() => import("./components/ui-gallery/UIComponentGallery").then((module) => ({ default: module.UIComponentGallery })));
+const App = lazy(() => import("./App"));
+
+const invitationToken = consumeCaptureInvitation(window);
+const root = document.getElementById("root");
+if (!root) throw new Error("Application root is missing");
+
+const fixture = new URLSearchParams(window.location.search).get("fixture");
+installVendorAssessmentEvidence();
+installVendorCollectionEvidence();
+installUITruthEvidence();
+installVendorComplianceEvidence();
+installRopaEvidence();
+installPeopleAccessEvidence();
+installReportingEvidence();
+installIssueWorkspaceFollowThroughEvidence();
+installNotificationWorkspaceEvidence();
+const application = invitationToken !== null
+  ? <ExternalCaptureApp invitationToken={invitationToken}/>
+  : fixture === "finding-followup" ? <FindingFollowUpEvidence/>
+  : fixture?.startsWith("vendor-compliance-") && !fixture.startsWith("vendor-compliance-app-") ? <VendorComplianceEvidencePage state={fixture.replace("vendor-compliance-", "")}/>
+  : fixture?.startsWith("vendor-release-") ? <VendorReleaseEvidencePage state={fixture.replace("vendor-release-", "")}/>
+  : fixture?.startsWith("ui-truth-") ? <UITruthEvidencePage state={fixture.replace("ui-truth-", "")}/>
+  : fixture?.startsWith("vendor-capture-") ? <VendorCaptureEvidencePage state={fixture.replace("vendor-capture-", "") as VendorCaptureEvidenceState}/>
+  : fixture === "field-assessment-policy" ? <PolicyAssessmentEvidence/>
+  : fixture === "field-assessment-builder" || fixture === "field-assessment-review"
+    ? <FieldAssessmentEvidencePage review={fixture === "field-assessment-review"}/>
+  : fixture === "home-t7-group" || fixture === "home-t7-group-partial"
+    ? <HomeT7GroupEvidence partial={fixture === "home-t7-group-partial"}/>
+    : fixture === "oversight"
+    ? <OversightEvidencePage/>
+    : fixture === "native-indicator"
+      ? <NativeIndicatorEvidencePage/>
+    : fixture === "ui-component-gallery"
+      ? <Suspense fallback={<p role="status">Loading the sample component gallery…</p>}><UIComponentGallery/></Suspense>
+      : fixture === "today-lifecycle"
+        ? <LifecycleTodayEvidencePage/>
+        : fixture === "operating-mutations"
+          ? <OperatingMutationsEvidencePage/>
+          : <SessionGate presentation="demo"><Suspense fallback={<p role="status">Loading the sample ClearSight workspace…</p>}><App presentation="demo"/></Suspense></SessionGate>;
+
+createRoot(root).render(<StrictMode><DisplayPreferencesRoot>{application}</DisplayPreferencesRoot></StrictMode>);
