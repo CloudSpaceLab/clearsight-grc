@@ -126,7 +126,25 @@ export async function verifyPeopleAccessHistory(page) {
     organization.push({ name, peopleRoute, route, focused, back, forward });
     await page.goBack(); await waitForPeopleAccess(page, { peopleAccessView: "people", peopleAccessCheck: "layout" });
   }
-  return { snapshots, queryless, organization };
+  await page.getByRole("button", { name: "Organization settings", exact: true }).click();
+  await page.getByRole("button", { name: "Add position", exact: true }).waitFor();
+  const organizationRoute = await page.evaluate(() => location.hash);
+  const provisioningButton = page.getByRole("navigation", { name: "Organization settings", exact: true }).getByRole("button", { name: "Provisioning", exact: true });
+  if (await provisioningButton.isVisible()) await provisioningButton.click();
+  else { await page.getByRole("button", { name: /Organization area/ }).click(); await page.getByRole("option", { name: "Provisioning", exact: true }).click(); }
+  const sourceEntry = page.getByRole("button", { name: "Add source", exact: true });
+  await sourceEntry.click();
+  const sourceDialog = page.getByRole("dialog", { name: "Add provisioning source", exact: true });
+  await sourceDialog.waitFor();
+  const sourceRoute = await page.evaluate(() => location.hash);
+  await page.goBack(); await sourceDialog.waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "Add position", exact: true }).waitFor();
+  const back = { route: await page.evaluate(() => location.hash), dialogCount: await page.getByRole("dialog").count() };
+  await page.goForward(); await sourceEntry.waitFor();
+  const forward = { route: await page.evaluate(() => location.hash), dialogCount: await page.getByRole("dialog").count() };
+  await page.goBack(); await page.getByRole("button", { name: "Add position", exact: true }).waitFor();
+  await page.goBack(); await waitForPeopleAccess(page, { peopleAccessView: "people", peopleAccessCheck: "layout" });
+  return { snapshots, queryless, organization, provisioning: { organizationRoute, sourceRoute, back, forward } };
 }
 export async function verifyPeopleAccessStickyContext(page) {
   await page.evaluate(() => scrollTo({ top: 500, behavior: "instant" }));
