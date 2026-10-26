@@ -2,7 +2,13 @@
 
 > **VISUAL PARITY RESET · 2026-10-19** — **0 of 19 original HTML screens accepted**. This file's historical "Partial" entries refer to feature/contract integration only, not an approved redesign. The 1440px Program, Framework Library and Assessment source/runtime captures have material structural differences; the 390px Program view also diverges. See [verified side-by-side review](VISUAL-PARITY-RESET-2026-10-19.md). Successful CI and 226/226 screenshots prove flow execution and artifact completeness, **not source parity**. Stop counting cosmetic or data-quality fixes as UI cutover. Full cutover is BLOCKED until named screen-by-screen comparison approval.
 
-Updated: 2026-10-25. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
+Updated: 2026-10-26. Tracking: [#462](https://github.com/CloudSpaceLab/clearsight-grc/issues/462).
+
+## 26 October — release reconciliation and People & access
+
+Tabs [#587](https://github.com/CloudSpaceLab/clearsight-grc/pull/587) and Privacy [#588](https://github.com/CloudSpaceLab/clearsight-grc/pull/588) are merged and demo-released. Current main `ea84283f913755be6dc1b8e366282469745b3e9a`, tree `28f0b24ef1da098b46bfd345c466cecd79051675`, exactly preserves the reviewed Privacy tree. Its [CI](https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/40216421954), [UI/UX review](https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/40216421953) and [demo deployment](https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/40217061145) passed. Independent review verified the deployment's exact-SHA step. This supersedes the pending checkpoints below, including the statement that the demo still carries the phone-history defect.
+
+The next scoped tranche is **People & access**: the original People / Roles / Approval routes / Delegations composition, with existing identity and governance owners. See the [decision and implementation brief](../../decisions/2026-10-26-people-access-v2.md). People/groups are a bounded tenant-wide inventory; positions and governance records retain their own entity scope. Unsupported invitation delivery, last-active timestamps and inferred effective-authority totals are not substitutes for missing data. Whole-screen acceptance remains **0/19**.
 Authority: the immutable [approved source archive](./source/README.md), its [manifest](./source/MANIFEST.json), the [implementation mapping](./IMPLEMENTATION-MAPPING.md), the unified design specification and the [21 October navigation adaptation decision](../../decisions/2026-10-21-v2-navigation-adaptation.md). The newer user instruction supersedes the archived specification's prohibition on adapting the global menu. Source HTML is a **visual/interaction benchmark, not a data or permission contract**. No source-example totals, statuses, suggestions or approvals may ship as runtime facts.
 
 ## 25 October — tabs publication and Privacy layout integration
