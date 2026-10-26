@@ -14,7 +14,7 @@ const item: AttentionItem = {
 };
 const asOf = "2026-10-21T00:00:00Z";
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => { vi.resetAllMocks(); });
 
 describe("source-backed Work title search", () => {
   it("queries beyond the Today feed and pages without changing the default items", async () => {
