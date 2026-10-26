@@ -55,12 +55,22 @@ func TestActorWorkEndpointPagesOverFiftyWithoutChangingToday(t *testing.T) {
 			HasMore    bool                  `json:"has_more"`
 			Coverage   string                `json:"coverage"`
 			CountBasis string                `json:"count_basis"`
+			Scope      struct {
+				TenantID      string `json:"tenant_id"`
+				LegalEntityID string `json:"legal_entity_id"`
+				PrincipalID   string `json:"principal_id"`
+			} `json:"scope"`
 		}
 		if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
 			t.Fatal(err)
 		}
 		if page.CountBasis != "NOT_AVAILABLE" || page.Coverage != "WORKFLOW_ASSIGNMENTS_ONLY" {
 			t.Fatalf("endpoint must not claim exact totals: %#v", page)
+		}
+		if page.Scope.TenantID != actor.TenantID ||
+			page.Scope.LegalEntityID != actor.LegalEntityID ||
+			page.Scope.PrincipalID != actor.PrincipalID {
+			t.Fatalf("page scope must match the verified actor: %#v", page.Scope)
 		}
 		for _, item := range page.Items {
 			if seen[item.ID] {
