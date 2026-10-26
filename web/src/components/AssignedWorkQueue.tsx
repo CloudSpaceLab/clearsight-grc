@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useActorWorkSearch } from "./useActorWorkSearch";
+import { isSourceWorkStatus } from "./workSourceFilters";
 import { Button, DataTable, FilterBar, FocusedSheet, MetricCard, SearchField, SelectField, StatusBadge, Tabs, type DataColumn } from "./ui";
 import { countLoadedWork, filterLoadedWork, type WorkDueWindow, type WorkQueueFilter } from "./workQueuePresentation";
 import { EmptyState } from "./EmptyState";
@@ -31,7 +32,7 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const [selectedID, setSelectedID] = useState<string>();
   const [inspectingItem, setInspectingItem] = useState<AttentionItem>();
   const sourceSearch = presentation === "workspace" && Boolean(sourceSearchScopeKey) && search.trim() !== "";
-  const searched = useActorWorkSearch(search, sourceSearchScopeKey ?? "", Boolean(sourceSearchScopeKey) && presentation === "workspace");
+  const searched = useActorWorkSearch(search, sourceSearchScopeKey ?? "", Boolean(sourceSearchScopeKey) && presentation === "workspace", status, dueWindow);
   const currentItems = sourceSearch ? searched.items : items;
   const currentState = sourceSearch ? searched.state === "idle" ? "loading" : searched.state : state;
   const currentHasMore = sourceSearch ? searched.hasMore : hasMore;
@@ -40,9 +41,9 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const snapshotTime = Date.parse((sourceSearch ? searched.asOf : asOf) ?? "");
   const now = Number.isFinite(snapshotTime) ? snapshotTime : Date.now();
   const counts = countLoadedWork(currentItems, now);
-  const statuses = [...new Set(currentItems.map((item) => item.state).filter(Boolean))]
+  const statuses = sourceSearch ? sourceWorkStatuses : [...new Set(currentItems.map((item) => item.state).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b)).map((value) => ({ id: value, label: value }));
-  const filtered = filterLoadedWork(currentItems, filter, sourceSearch ? "" : search, status, now, dueWindow);
+  const filtered = filterLoadedWork(currentItems, filter, sourceSearch ? "" : search, sourceSearch ? undefined : status, now, sourceSearch ? "ALL" : dueWindow);
   const selected = filtered.find((item) => item.id === selectedID) ?? filtered[0];
   // Inspection references are invalidated when the source population changes.
   const inspecting = currentItems.find((item) => item === inspectingItem);
@@ -82,7 +83,10 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                 </header>
                 <FilterBar label={sourceSearch ? "Filter matching assignments" : "Filter loaded work"}
                   fields={<>
-                    <SearchField label={sourceSearchScopeKey ? "Search assignment titles" : "Search loaded work"} value={search} onChange={(value) => setSearch(value.slice(0, 120))} placeholder={sourceSearchScopeKey ? "Search assignment titles" : "Search loaded work"}/>
+                    <SearchField label={sourceSearchScopeKey ? "Search assignment titles" : "Search loaded work"} value={search} onChange={(value) => {
+                      setSearch(value.slice(0, 120));
+                      if (value.trim() && sourceSearchScopeKey && status && !isSourceWorkStatus(status)) setStatus(undefined);
+                    }} placeholder={sourceSearchScopeKey ? "Search assignment titles" : "Search loaded work"}/>
                     <SelectField label="Work status" isLabelHidden value={status} placeholder="All statuses" options={statuses} onChange={setStatus}/>
                   </>}
                   resultCount={filtered.length}
@@ -120,6 +124,13 @@ const workQueues = [
   { id: "ALL", label: "My work" },
   { id: "APPROVALS", label: "Approvals" },
 ] as const;
+
+const sourceWorkStatuses = [
+  { id: "Ready", label: "Ready" },
+  { id: "In progress", label: "In progress" },
+  { id: "Blocked", label: "Blocked" },
+  { id: "Escalated", label: "Escalated" },
+];
 
 const dueWindows: readonly { id: WorkDueWindow; label: string }[] = [
   { id: "ALL", label: "All due dates" },
