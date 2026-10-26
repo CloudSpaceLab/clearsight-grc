@@ -210,6 +210,8 @@ function mapPolicy(record: GovernancePolicyRecord, entity: { id: string; label: 
     status: record.status,
     legalEntity: entity,
     currentVersion: record.current_version,
+    definition: record.definition,
+    checksum: record.checksum,
     version: record.version,
     effectiveFrom: record.effective_from,
     effectiveUntil: record.effective_until,

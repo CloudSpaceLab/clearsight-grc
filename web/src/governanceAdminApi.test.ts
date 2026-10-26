@@ -12,14 +12,16 @@ describe("governance administration API", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("loads bounded policy and delegation inventories", async () => {
+    const definition = { rules: [{ id: "review", responsibility: "REVIEWER", selector: { kind: "ROLE", ref: "CRO" } }] };
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({ items: [{ id: "policy-1", legal_entity_id: "entity-1" }] }))
+      .mockResolvedValueOnce(jsonResponse({ items: [{ id: "policy-1", legal_entity_id: "entity-1", definition, checksum: "a".repeat(64) }] }))
       .mockResolvedValueOnce(jsonResponse({ items: [{ id: "delegation-1", legal_entity_id: "entity-1" }] }));
     vi.stubGlobal("fetch", fetchMock);
 
     const inventory = await loadGovernanceInventory();
 
     expect(inventory.policies).toHaveLength(1);
+    expect(inventory.policies[0]).toMatchObject({ definition, checksum: "a".repeat(64) });
     expect(inventory.delegations).toHaveLength(1);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
       "/api/v1/governance/policies?limit=51",

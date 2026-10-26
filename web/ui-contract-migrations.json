@@ -69,6 +69,7 @@
     "src/components/risk-loss/RiskLossWorkspaceFrame.tsx",
     "src/components/access/PeopleDirectory.tsx",
     "src/components/access/PeopleRoleCatalog.tsx",
+    "src/components/GovernanceAdminWorkspace.tsx",
     "src/components/PeopleGovernanceView.tsx",
     "src/components/configure/PeopleAccessSection.tsx",
     "src/components/configure/AuthorityRoutingSection.tsx"

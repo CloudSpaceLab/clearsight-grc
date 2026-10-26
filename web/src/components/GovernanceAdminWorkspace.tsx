@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { FocusedSheet } from "./FocusedSheet";
 import type { GovernanceReadState } from "../governanceAdminApi";
-import { PeopleGovernanceView } from "./PeopleGovernanceView";
-import { Button, Notice, TextField } from "./ui";
+import { GovernancePolicyDefinition, PeopleGovernanceView } from "./PeopleGovernanceView";
+import { readGovernancePolicyDefinition } from "./governancePolicyPresentation";
+import { Button, Notice, SelectField, TextArea, TextField } from "./ui";
 
 export type GovernanceLoadState = "loading" | "ready" | "degraded" | "unavailable" | "restricted";
 export type GovernanceView = "policies" | "delegations";
@@ -20,6 +21,8 @@ export type GovernancePolicyItem = {
   status: string;
   legalEntity: GovernanceEntity;
   currentVersion: number;
+  definition?: unknown;
+  checksum?: string;
   version: number;
   effectiveFrom?: string;
   effectiveUntil?: string;
@@ -280,6 +283,7 @@ export function GovernanceAdminWorkspace({ active = true, view, selectedPolicyID
         selectedPolicyID={selectedPolicyID} onSelectPolicy={onSelectPolicy} selectedDelegationID={selectedDelegationID} onSelectDelegation={onSelectDelegation}
         creationAction={canConfigure && (view === "policies" ? createPolicyDraft && <Button isDisabled={!policyDraftEnabled || busy !== ""} onPress={() => { setError(""); setComposer("policy"); }}>New routing policy</Button> : <Button isDisabled={!delegationDraftEnabled || busy !== ""} onPress={() => { setError(""); setComposer("delegation"); }}>Propose delegation</Button>)}
         renderPolicyDetail={(policy) => <>
+          <GovernancePolicyDefinition key={`${policy.id}:${policy.version}`} policy={policy}/>
           <section><h3>Policy details</h3><dl className="people-access-facts"><dt>Legal entity</dt><dd>{policy.legalEntity.label}</dd><dt>Policy version</dt><dd>{policy.currentVersion}</dd><dt>Record version</dt><dd>{policy.version}</dd><dt>Effective dates</dt><dd>{dateWindow(policy.effectiveFrom, policy.effectiveUntil)}</dd><dt>Made by</dt><dd>{policy.maker.label}</dd><dt>Checked by</dt><dd>{policy.checker?.label ?? "Not checked yet"}</dd></dl></section>
           {policy.latestDecision && <section><h3>Latest decision</h3><PolicyDecisionSummary decision={policy.latestDecision}/></section>}
           <div className="people-governance-actions"><PolicyNextAction key={`${policy.id}:${policy.version}`} policy={policy} actorId={actorId} canConfigure={canConfigure} mutationDisabled={!mutationsEnabled || busy !== ""} busy={busy === `policy:${policy.id}`} onAction={runPolicyAction}/></div>
@@ -301,8 +305,8 @@ export function GovernanceAdminWorkspace({ active = true, view, selectedPolicyID
         <p>Review approval routes and active delegations.</p>
       </div>
       {canConfigure && <div className="governance-admin-actions" aria-label="Governance creation actions">
-        <button type="button" disabled={!delegationDraftEnabled || busy !== ""} onClick={() => { setError(""); setComposer("delegation"); }}>New delegation</button>
-        {createPolicyDraft && <button type="button" className="secondary-button" disabled={!policyDraftEnabled || busy !== ""} onClick={() => { setError(""); setComposer("policy"); }}>New routing policy</button>}
+        <Button isDisabled={!delegationDraftEnabled || busy !== ""} onPress={() => { setError(""); setComposer("delegation"); }}>New delegation</Button>
+        {createPolicyDraft && <Button variant="secondary" isDisabled={!policyDraftEnabled || busy !== ""} onPress={() => { setError(""); setComposer("policy"); }}>New routing policy</Button>}
       </div>}
     </header>
     {loadState === "loading" && <p role="status">Loading the current legal-entity governance inventory. Changes remain unavailable until the current approval route is confirmed.</p>}
@@ -328,6 +332,7 @@ export function GovernanceAdminWorkspace({ active = true, view, selectedPolicyID
           <div><dt>Effective dates</dt><dd>{dateWindow(policy.effectiveFrom, policy.effectiveUntil)}</dd></div>
         </dl>
         <p>Made by {policy.maker.label} · checked by {policy.checker?.label ?? "Not checked yet"}</p>
+        <GovernancePolicyDefinition policy={policy}/>
         {policy.latestDecision && <PolicyDecisionSummary decision={policy.latestDecision}/>}
         <PolicyNextAction policy={policy} actorId={actorId} canConfigure={canConfigure} mutationDisabled={!mutationsEnabled || busy !== ""} busy={busy === `policy:${policy.id}`} onAction={runPolicyAction}/>
       </article>)}
@@ -359,21 +364,21 @@ export function GovernanceAdminWorkspace({ active = true, view, selectedPolicyID
         <h3 id="create-governance-delegation">Create whole-entity delegation</h3>
         <p>Create a time-bound draft for one legal entity. A different authorized person must approve it before the delegated responsibility becomes active.</p>
         {error && <Notice tone="error">{error}</Notice>}
-        <form onSubmit={(event) => void create(event)}>
-          <label>Legal entity<select required value={legalEntityId} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => { setLegalEntityId(event.target.value); setFromPrincipalId(""); setToPrincipalId(""); }}><option value="">Choose legal entity</option>{entityOptions.map((entity) => <option key={entity.id} value={entity.id}>{entity.label}</option>)}</select></label>
-          <label>Responsibility<select required value={responsibility} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => { const next = event.target.value as GovernanceResponsibility; setResponsibility(next); setCandidateQuery(""); if (next) void refreshCandidates(next, ""); }}><option value="">Choose responsibility</option>{RESPONSIBILITIES.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>
-          {loadDelegationCandidates && responsibility && <div>
-            <label>Find eligible people<input maxLength={100} value={candidateQuery} disabled={!delegationDraftEnabled || candidateState === "loading"} onChange={(event) => setCandidateQuery(event.target.value)}/></label>
-            <button type="button" className="secondary-button" disabled={!delegationDraftEnabled || candidateState === "loading"} onClick={() => void refreshCandidates(responsibility, candidateQuery)}>{candidateState === "loading" ? "Loading people…" : "Search people"}</button>
+        <form className="governance-composer-form" onSubmit={(event) => void create(event)}>
+          <SelectField label="Legal entity" isRequired allowsEmpty={false} value={legalEntityId || undefined} placeholder="Choose legal entity" options={entityOptions.map((entity) => ({ id: entity.id, label: entity.label }))} isDisabled={!delegationDraftEnabled || busy !== ""} onChange={(value) => { setLegalEntityId(value ?? ""); setFromPrincipalId(""); setToPrincipalId(""); }}/>
+          <SelectField label="Responsibility" isRequired allowsEmpty={false} value={responsibility || undefined} placeholder="Choose responsibility" options={RESPONSIBILITIES.map((value) => ({ id: value, label: humanize(value) }))} isDisabled={!delegationDraftEnabled || busy !== ""} onChange={(next) => { setResponsibility(next ?? ""); setCandidateQuery(""); if (next) void refreshCandidates(next, ""); }}/>
+          {loadDelegationCandidates && responsibility && <div className="governance-composer__search governance-composer__wide">
+            <TextField label="Find eligible people" maxLength={100} value={candidateQuery} isDisabled={!delegationDraftEnabled || candidateState === "loading"} onChange={setCandidateQuery}/>
+            <Button variant="secondary" isDisabled={!delegationDraftEnabled || candidateState === "loading"} onPress={() => void refreshCandidates(responsibility, candidateQuery)}>{candidateState === "loading" ? "Loading people…" : "Search people"}</Button>
           </div>}
-          <label>Person giving authority<select required value={fromPrincipalId} disabled={!delegationDraftEnabled || !legalEntityId || (!responsibility && Boolean(loadDelegationCandidates)) || candidateState === "loading" || busy !== ""} onChange={(event) => setFromPrincipalId(event.target.value)}><option value="">Choose person</option>{peopleForEntity.filter((person) => person.canGive !== false).map((person) => <option key={person.id} value={person.id}>{personOptionLabel(person)}</option>)}</select></label>
-          <label>Person receiving authority<select required value={toPrincipalId} disabled={!delegationDraftEnabled || !legalEntityId || (!responsibility && Boolean(loadDelegationCandidates)) || candidateState === "loading" || busy !== ""} onChange={(event) => setToPrincipalId(event.target.value)}><option value="">Choose person</option>{peopleForEntity.filter((person) => person.id !== fromPrincipalId && person.canReceive !== false).map((person) => <option key={person.id} value={person.id}>{personOptionLabel(person)}</option>)}</select></label>
-          {candidateState === "unavailable" && <p role="status">Eligible people could not be confirmed for this responsibility. Reload the governance workspace before creating a delegation.</p>}
-          {candidateState === "ready" && peopleForEntity.length === 0 && <p role="status">No eligible people were found for this responsibility in the current legal entity. Ask the access administrator to check current assignments.</p>}
-          <label>Starts at<input required type="datetime-local" value={startsAt} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => setStartsAt(event.target.value)}/></label>
-          <label>Ends at<input required type="datetime-local" value={endsAt} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => setEndsAt(event.target.value)}/></label>
-          <label>Reason<textarea required value={reason} disabled={!delegationDraftEnabled || busy !== ""} onChange={(event) => setReason(event.target.value)}/></label>
-          <button type="submit" disabled={!delegationDraftEnabled || busy !== "" || !legalEntityId || !fromPrincipalId || !toPrincipalId || !responsibility || !startsAt || !endsAt || !reason.trim()}>{busy === "create-delegation" ? "Creating draft…" : "Create delegation draft"}</button>
+          <SelectField label="Person giving authority" isRequired allowsEmpty={false} value={fromPrincipalId || undefined} placeholder="Choose person" options={peopleForEntity.filter((person) => person.canGive !== false).map((person) => ({ id: person.id, label: personOptionLabel(person) }))} isDisabled={!delegationDraftEnabled || !legalEntityId || (!responsibility && Boolean(loadDelegationCandidates)) || candidateState === "loading" || busy !== ""} onChange={(value) => setFromPrincipalId(value ?? "")}/>
+          <SelectField label="Person receiving authority" isRequired allowsEmpty={false} value={toPrincipalId || undefined} placeholder="Choose person" options={peopleForEntity.filter((person) => person.id !== fromPrincipalId && person.canReceive !== false).map((person) => ({ id: person.id, label: personOptionLabel(person) }))} isDisabled={!delegationDraftEnabled || !legalEntityId || (!responsibility && Boolean(loadDelegationCandidates)) || candidateState === "loading" || busy !== ""} onChange={(value) => setToPrincipalId(value ?? "")}/>
+          {candidateState === "unavailable" && <div className="governance-composer__wide"><Notice tone="warning">Eligible people could not be confirmed for this responsibility. Search again before creating a delegation.</Notice></div>}
+          {candidateState === "ready" && peopleForEntity.length === 0 && <div className="governance-composer__wide"><Notice>No eligible people were found for this responsibility in the current legal entity. Ask the access administrator to check current assignments.</Notice></div>}
+          <TextField label="Starts at" isRequired type="datetime-local" value={startsAt} isDisabled={!delegationDraftEnabled || busy !== ""} onChange={setStartsAt} description="Your device's local time."/>
+          <TextField label="Ends at" isRequired type="datetime-local" value={endsAt} isDisabled={!delegationDraftEnabled || busy !== ""} onChange={setEndsAt} description="Your device's local time."/>
+          <div className="governance-composer__wide"><TextArea label="Reason" isRequired value={reason} isDisabled={!delegationDraftEnabled || busy !== ""} onChange={setReason}/></div>
+          <Button type="submit" isDisabled={!delegationDraftEnabled || busy !== "" || !legalEntityId || !fromPrincipalId || !toPrincipalId || !responsibility || !startsAt || !endsAt || !reason.trim()}>{busy === "create-delegation" ? "Creating draft…" : "Create delegation draft"}</Button>
         </form>
       </section>
     </FocusedSheet>}
@@ -384,15 +389,15 @@ export function GovernanceAdminWorkspace({ active = true, view, selectedPolicyID
         <h3 id="create-governance-policy">Create routing policy draft</h3>
         <p>Define one responsibility route for {currentEntity?.label ?? "the current legal entity"}. A different authorized person must review the draft before it can become active.</p>
         {error && <Notice tone="error">{error}</Notice>}
-        <form onSubmit={(event) => void createPolicy(event)}>
-          <label>Policy name<input required value={policyName} disabled={!policyDraftEnabled || busy !== ""} onChange={(event) => setPolicyName(event.target.value)}/></label>
-          <label>Policy code<input required value={policyCode} disabled={!policyDraftEnabled || busy !== ""} onChange={(event) => setPolicyCode(event.target.value)}/></label>
-          <label>Policy responsibility<select required value={policyResponsibility} disabled={!policyDraftEnabled || busy !== ""} onChange={(event) => setPolicyResponsibility(event.target.value as GovernanceResponsibility)}><option value="">Choose responsibility</option>{RESPONSIBILITIES.map((value) => <option key={value} value={value}>{humanize(value)}</option>)}</select></label>
-          <label>Responsible role<select required value={policyRoleCode} disabled={!policyDraftEnabled || busy !== ""} onChange={(event) => setPolicyRoleCode(event.target.value)}><option value="">Choose role</option>{policyRoles.map((role) => <option key={role.code} value={role.code}>{role.label}</option>)}</select></label>
-          <label>Applies to<select value={policyObjectType} disabled={!policyDraftEnabled || busy !== ""} onChange={(event) => setPolicyObjectType(event.target.value as "*" | "PROGRAM" | "MATTER")}><option value="*">Programs and issues</option><option value="PROGRAM">Programs</option><option value="MATTER">Issues and changes</option></select></label>
-          <label>Minimum materiality<input type="number" min={0} max={5} value={policyMinMateriality} disabled={!policyDraftEnabled || busy !== ""} onChange={(event) => setPolicyMinMateriality(Number(event.target.value))}/></label>
-          <label>Effective from<input type="datetime-local" value={policyEffectiveFrom} disabled={!policyDraftEnabled || busy !== ""} onChange={(event) => setPolicyEffectiveFrom(event.target.value)}/></label>
-          <button type="submit" disabled={!policyDraftEnabled || busy !== "" || !policyName.trim() || !policyCode.trim() || !policyResponsibility || !policyRoleCode}>{busy === "create-policy" ? "Creating draft…" : "Create policy draft"}</button>
+        <form className="governance-composer-form" onSubmit={(event) => void createPolicy(event)}>
+          <TextField label="Policy name" isRequired value={policyName} isDisabled={!policyDraftEnabled || busy !== ""} onChange={setPolicyName}/>
+          <TextField label="Policy code" isRequired value={policyCode} isDisabled={!policyDraftEnabled || busy !== ""} onChange={setPolicyCode}/>
+          <SelectField label="Policy responsibility" isRequired allowsEmpty={false} value={policyResponsibility || undefined} placeholder="Choose responsibility" options={RESPONSIBILITIES.map((value) => ({ id: value, label: humanize(value) }))} isDisabled={!policyDraftEnabled || busy !== ""} onChange={(value) => setPolicyResponsibility(value ?? "")}/>
+          <SelectField label="Responsible role" isRequired allowsEmpty={false} value={policyRoleCode || undefined} placeholder="Choose role" options={policyRoles.map((role) => ({ id: role.code, label: role.label }))} isDisabled={!policyDraftEnabled || busy !== ""} onChange={(value) => setPolicyRoleCode(value ?? "")}/>
+          <SelectField label="Applies to" value={policyObjectType} placeholder="Choose records" allowsEmpty={false} options={[{ id: "*", label: "Programs and issues" }, { id: "PROGRAM", label: "Programs" }, { id: "MATTER", label: "Issues and changes" }]} isDisabled={!policyDraftEnabled || busy !== ""} onChange={(value) => setPolicyObjectType(value ?? "*")}/>
+          <TextField label="Minimum materiality" type="number" min={0} max={5} value={String(policyMinMateriality)} isDisabled={!policyDraftEnabled || busy !== ""} onChange={(value) => setPolicyMinMateriality(Number(value))}/>
+          <TextField label="Effective from" type="datetime-local" value={policyEffectiveFrom} isDisabled={!policyDraftEnabled || busy !== ""} onChange={setPolicyEffectiveFrom} description="Your device's local time."/>
+          <Button type="submit" isDisabled={!policyDraftEnabled || busy !== "" || !policyName.trim() || !policyCode.trim() || !policyResponsibility || !policyRoleCode}>{busy === "create-policy" ? "Creating draft…" : "Create policy draft"}</Button>
         </form>
       </section>
     </FocusedSheet>}
@@ -461,11 +466,12 @@ function PolicyNextAction({ policy, actorId, canConfigure, mutationDisabled, bus
 
 function PolicyReviewAction({ policy, busy, disabled, onAction }: { policy: GovernancePolicyItem; busy: boolean; disabled: boolean; onAction: (input: GovernancePolicyActionInput) => Promise<void> }) {
   const [rationale, setRationale] = useState("");
+  const definitionAvailable = readGovernancePolicyDefinition(policy.definition).reviewable;
   return <div>
-    <Button isDisabled={busy || disabled} onPress={() => void onAction({ policyId: policy.id, action: "approve", expectedVersion: policy.version })}>{busy ? "Recording review…" : `Approve ${policy.name}`}</Button>
+    <Button variant="primary" isDisabled={busy || disabled || !definitionAvailable} onPress={() => { if (definitionAvailable) void onAction({ policyId: policy.id, action: "approve", expectedVersion: policy.version }); }}>{busy ? "Recording review…" : `Approve ${policy.name}`}</Button>
     <form onSubmit={(event) => { event.preventDefault(); if (rationale.trim()) void onAction({ policyId: policy.id, action: "reject", expectedVersion: policy.version, rationale: rationale.trim() }); }}>
       <TextField label={`Changes needed for ${policy.name}`} value={rationale} isDisabled={busy || disabled} onChange={setRationale}/>
-      <Button type="submit" isDisabled={busy || disabled || !rationale.trim()}>{busy ? "Recording review…" : `Return ${policy.name} for changes`}</Button>
+      <Button type="submit" variant="secondary" isDisabled={busy || disabled || !rationale.trim()}>{busy ? "Recording review…" : `Return ${policy.name} for changes`}</Button>
     </form>
   </div>;
 }
@@ -484,7 +490,7 @@ function dateWindow(from?: string, until?: string) {
 
 function formatDate(value: string) {
   const date = new Date(value);
-  return Number.isNaN(date.valueOf()) ? "Invalid date" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+  return Number.isNaN(date.valueOf()) ? "Date unavailable" : new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "UTC", timeZoneName: "short" }).format(date);
 }
 
 function humanize(value: string) {

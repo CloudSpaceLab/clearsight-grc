@@ -50,6 +50,17 @@ it("uses the supplied verified runtime context without another context request",
   expect(loadContext).not.toHaveBeenCalled();
 });
 
+it("keeps returned policy rules and the checksum visible through the runtime adapter", async () => {
+  const definition = { rules: [{ id: "recorded-rule", responsibility: "REVIEWER", object_type: "MATTER", min_materiality: 0, selector: { kind: "ROLE", ref: "CRO" } }], escalations: [] };
+  loadGovernanceInventory.mockResolvedValueOnce({ policies: [{ id: "policy-1", code: "PAYMENT", name: "Payment approval", status: "PENDING_APPROVAL", legal_entity_id: "entity-1", current_version: 3, version: 8, maker_id: "person-2", definition, checksum: "b".repeat(64) }], delegations: [], policiesAvailable: true, delegationsAvailable: true });
+  render(<GovernanceAdminPanel view="policies" runtimeContext={contextFor()}/>);
+  expect(await screen.findByRole("heading", { name: "Rules · Policy version 3" })).toBeTruthy();
+  expect(screen.getByText("CRO")).toBeTruthy();
+  expect(screen.getByText("b".repeat(64))).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "View full policy definition" }));
+  expect(JSON.parse(screen.getByRole("region", { name: "Full policy definition" }).textContent!)).toEqual(definition);
+});
+
 it("does not load protected lists when runtime governance read access is denied", async () => {
   render(<GovernanceAdminPanel view="policies" runtimeContext={{ ...contextFor(), capabilities: { config_read: false, config_write: false } }}/>);
   expect(await screen.findByRole("heading", { name: "Approval routes access restricted" })).toBeTruthy();
@@ -137,13 +148,17 @@ it("uses server-scoped people and labelled roles for explicit creation workflows
   await screen.findByRole("heading", { name: "Payment approval" });
 
   fireEvent.click(screen.getByRole("button", { name: "New delegation" }));
-  fireEvent.change(screen.getByRole("combobox", { name: "Responsibility" }), { target: { value: "REVIEWER" } });
+  fireEvent.click(screen.getByRole("button", { name: /Responsibility/ }));
+  fireEvent.click(await screen.findByRole("option", { name: "Reviewer" }));
   await waitFor(() => expect(searchGovernanceDelegationCandidates).toHaveBeenCalledWith("REVIEWER", ""));
-  expect((await screen.findAllByRole("option", { name: "Ada Okafor · Risk lead" })).length).toBeGreaterThan(0);
+  await waitFor(() => expect((screen.getByRole("button", { name: /Person giving authority/ }) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getByRole("button", { name: /Person giving authority/ }));
+  fireEvent.click(await screen.findByRole("option", { name: "Ada Okafor · Risk lead" }));
 
   fireEvent.click(screen.getByRole("button", { name: "Close delegation form" }));
   fireEvent.click(screen.getByRole("button", { name: "New routing policy" }));
-  expect(screen.getByRole("option", { name: "Control Assurance" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /Responsible role/ }));
+  expect(await screen.findByRole("option", { name: "Control Assurance" })).toBeTruthy();
 });
 
 it("loads labelled entity-scoped governance records and refreshes after an action", async () => {

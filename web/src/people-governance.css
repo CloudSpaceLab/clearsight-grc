@@ -16,8 +16,22 @@
 .people-governance-layout .people-access-panel-heading > .cs-button { flex: none; }
 .people-governance-list-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .people-governance-layout__detail .people-access-detail__heading .cs-status-badge { margin-block-start: 8px; }
+.people-governance-definition { display: grid; gap: 12px; min-inline-size: 0; }
+.people-governance-rules { list-style: none; padding: 0; margin: 0; display: grid; gap: 18px; }
+.people-governance-rules li { min-inline-size: 0; }
+.people-governance-rules h4 { margin: 0 0 8px; font-size: var(--cs-font-size-caption); }
+.people-governance-definition > .cs-button { justify-self: start; white-space: normal; }
+.people-governance-definition__source { min-inline-size: 0; max-block-size: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 12px; font-size: var(--cs-font-size-caption); line-height: 1.6; background: var(--cs-bg-surface-2); }
+.governance-composer h3 { margin: 0; color: var(--cs-text-strong); font-size: 20px; font-weight: 700; line-height: 1.3; }
+.governance-composer .governance-composer-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.governance-composer .governance-composer-form > .cs-field,
+.governance-composer .governance-composer-form > .cs-select-field { grid-column: auto; min-inline-size: 0; }
+.governance-composer .governance-composer-form > .governance-composer__wide,
+.governance-composer .governance-composer-form > .cs-button { grid-column: 1 / -1; }
+.governance-composer__search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; }
 
 @media (max-width: 680px) {
+  .governance-composer .governance-composer-form, .governance-composer__search { grid-template-columns: minmax(0, 1fr); }
   .people-governance-layout .people-access-panel-heading { flex-wrap: wrap; }
   .people-governance-layout__records { padding-inline: 12px; }
   .people-governance-layout .people-governance-layout__records .cs-selectable-record { grid-template-columns: 31px minmax(0, 1fr); gap: 5px 9px; }

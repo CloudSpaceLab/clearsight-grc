@@ -10,6 +10,8 @@ export type GovernancePolicyRecord = {
   name: string;
   status: string;
   current_version: number;
+  definition?: unknown;
+  checksum?: string;
   maker_id: string;
   checker_id?: string;
   effective_from?: string;

@@ -1,8 +1,9 @@
 import { useId, useRef, useState, type ReactNode } from "react";
 import type { GovernanceReadState } from "../governanceAdminApi";
 import type { GovernanceDelegationItem, GovernanceEntity, GovernanceLoadState, GovernancePolicyItem, GovernanceView } from "./GovernanceAdminWorkspace";
-import { Button, MetricCard, SelectableRecord, StatusBadge, Surface } from "./ui";
+import { Button, MetricCard, Notice, SelectableRecord, StatusBadge, Surface } from "./ui";
 import { humanAccessLabel } from "./access/peopleAccessPresentation";
+import { readGovernancePolicyDefinition, type GovernanceRuleFacts } from "./governancePolicyPresentation";
 import "./access/people-access.css";
 import "../people-governance.css";
 
@@ -35,7 +36,8 @@ export function PeopleGovernanceView({ view, policies, delegations, currentEntit
   const records = state === "restricted" ? [] : loaded.slice(0, 50);
   const selectedID = isPolicies ? selectedPolicyID : selectedDelegationID;
   const localID = isPolicies ? localPolicyID : localDelegationID;
-  const effectiveID = selectedID ?? (records.some((record) => record.id === localID) ? localID : records[0]?.id);
+  const selectionControlled = isPolicies ? onSelectPolicy !== undefined : onSelectDelegation !== undefined;
+  const effectiveID = selectedID ?? (!selectionControlled && records.some((record) => record.id === localID) ? localID : records[0]?.id);
   const selected = records.find((record) => record.id === effectiveID);
   const title = isPolicies ? "Approval routes" : "Delegations";
   const noun = isPolicies ? "routing policies" : "delegations";
@@ -99,4 +101,42 @@ export function governanceDateWindow(from?: string, until?: string) {
 export function governanceDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.valueOf()) ? "Date unavailable" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+
+export function GovernancePolicyDefinition({ policy }: { policy: GovernancePolicyItem }) {
+  const definition = readGovernancePolicyDefinition(policy.definition);
+  const [expanded, setExpanded] = useState(false);
+  const definitionID = useId();
+  return <section className="people-governance-definition">
+    <h3>Rules · Policy version {policy.currentVersion}</h3>
+    {definition.reviewable ? <>
+      <p>Rules apply by scope and priority. Approval authority is checked for each decision.</p>
+      <ul className="people-governance-rules">{definition.rules.map((rule) => <li key={rule.id}>
+        <h4>{humanAccessLabel(rule.responsibility)}</h4>
+        <PolicyRuleFacts rule={rule} entity={policy.legalEntity}/>
+      </li>)}</ul>
+    </> : <Notice tone="warning">{policy.definition == null ? "No policy definition was returned." : "The policy definition could not be fully read."} Approval is unavailable until the rules can be reviewed.</Notice>}
+    {definition.hasAdditionalSettings && <p>Additional settings are included in the full policy definition.</p>}
+    <dl className="people-access-facts"><dt>Definition checksum</dt><dd>{policy.checksum || "Not returned"}</dd></dl>
+    {definition.fullDefinition && <>
+      <Button variant="quiet" aria-expanded={expanded} aria-controls={definitionID} onPress={() => setExpanded((value) => !value)}>{expanded ? "Hide policy definition" : "View full policy definition"}</Button>
+      {expanded && <pre id={definitionID} className="people-governance-definition__source" role="region" tabIndex={0} aria-label="Full policy definition">{definition.fullDefinition}</pre>}
+    </>}
+  </section>;
+}
+
+function PolicyRuleFacts({ rule, entity }: { rule: GovernanceRuleFacts; entity: GovernanceEntity }) {
+  const noRestriction = (value: string) => !value || value === "*";
+  const recordType = ({ PROGRAM: "Programs", MATTER: "Issues and changes", VENDOR_RELATIONSHIP: "Vendor relationships" } as Record<string, string>)[rule.objectType] || humanAccessLabel(rule.objectType);
+  return <dl className="people-access-facts">
+    {rule.selector && <><dt>{({ PRINCIPAL: "Person reference", POSITION: "Position reference", ROLE: "Role" } as Record<string, string>)[rule.selector.kind]}</dt><dd>{rule.selector.ref}</dd></>}
+    {rule.lifecycle && <><dt>Lifecycle</dt><dd>{humanAccessLabel(rule.lifecycle.type)}</dd><dt>State</dt><dd>{humanAccessLabel(rule.lifecycle.state)}</dd>{rule.lifecycle.subtype && <><dt>Subtype</dt><dd>{rule.lifecycle.subtype}</dd></>}</>}
+    <dt>Legal entity</dt><dd>{noRestriction(rule.legalEntityID) ? "No entity restriction in this rule" : rule.legalEntityID === entity.id ? entity.label : rule.legalEntityID}</dd>
+    <dt>Records</dt><dd>{noRestriction(rule.objectType) ? "All record types" : recordType}</dd>
+    {!noRestriction(rule.objectID) && <><dt>Record reference</dt><dd>{rule.objectID}</dd></>}
+    <dt>Decision</dt><dd>{noRestriction(rule.decisionType) ? "Any decision type" : rule.decisionType}</dd>
+    <dt>Minimum materiality</dt><dd>{rule.minimumMateriality}</dd>
+    <dt>Priority</dt><dd>{rule.priority}</dd>
+    <dt>Rule reference</dt><dd>{rule.id}</dd>
+  </dl>;
 }
