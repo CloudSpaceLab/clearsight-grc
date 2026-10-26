@@ -15,6 +15,7 @@ export function peopleAccessCaptureFailures(capture, scenario) {
     || !same(layout.visiblePanelIDs,[layout.selectedPanelID]) || !inside(layout.selectedBounds,layout.menu) || !layout.selectedVisible || layout.heading.bottom>layout.menu.y+1 || layout.settingsCurrent!=="page" || layout.legacyRail) fail("source heading/menu/selected panel and Settings owner must remain coherent");
   if(scenario.touch && (layout.minTargetWidth<43 || layout.minTargetHeight<43 || layout.undersizedTargets?.length)) fail("visible controls require44px targets");
   if(scenario.peopleAccessMatrix && (!peopleAccessRect(layout.firstIdentity) || layout.firstUsefulVisible!==true || !peopleAccessRect(layout.firstRow) || layout.firstRowVisible!==true)) fail("complete first record must be fully visible without scrolling");
+  if(scenario.peopleAccessMatrix) failures.push(...peopleAccessAnatomyFailures(layout,scenario).map((failure)=>`${scenario.name}: ${failure}`));
   if(check === "layout" && scenario.peopleAccessView === "people" && scenario.viewport.width === 1440 && scenario.theme === "light" && (!capture.sticky || capture.sticky.scrollY < 400 || !peopleAccessRect(capture.sticky.context) || !peopleAccessRect(capture.sticky.bar) || capture.sticky.context.y < capture.sticky.bar.bottom)) fail("desktop context card must clear the sticky context bar after scrolling");
   if(!["denied","empty","missing"].includes(check) && !(check==="partial"&&scenario.peopleAccessView==="routes")) {
     if(!peopleAccessRect(layout.primary)||!peopleAccessRect(layout.context) || layout.placement!==(scenario.viewport.width>1024?"beside":"stacked")
@@ -58,6 +59,12 @@ export function peopleAccessCaptureFailures(capture, scenario) {
     const continuation=capture.continuation,target=continuation?.target;
     if(continuation?.image!==`${scenario.name}-continuation.png`||!continuation?.imageSHA256||!continuation.imageBytes||!peopleAccessRect(target)||target.width<43||target.height<43||target.x<0||target.right>scenario.viewport.width||target.y<0||target.bottom>scenario.viewport.height)fail("phone continuation must retain the lower form/review controls within the viewport");
   }
+  return failures;
+}
+export function peopleAccessAnatomyFailures(layout,scenario){
+  const failures=[],wave=layout.headingWave,heading=layout.heading,search=layout.toolbarSearch,controls=layout.controls;
+  if(scenario.viewport.width>680 && (!inside(wave,heading)||wave.y<heading.y-1||wave.bottom>heading.bottom+1))failures.push("heading wave must remain contained within the heading, clear of the tab strip");
+  if(scenario.peopleAccessView==="people" && (!inside(search,controls)||scenario.viewport.width<=1280&&(Math.abs(search.x-controls.x)>1||Math.abs(search.right-controls.right)>1||Math.abs(search.y-controls.y)>1)))failures.push("People search must fill its assigned toolbar row without an inherited width cap");
   return failures;
 }
 export function peopleAccessFilterFailures(filters){

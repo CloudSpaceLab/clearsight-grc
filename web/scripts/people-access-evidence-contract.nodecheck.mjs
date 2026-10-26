@@ -1,17 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { peopleAccessEvidenceScenarios, peopleAccessViews } from "./people-access-evidence-scenarios.mjs";
-import { peopleAccessCaptureFailures, peopleAccessComposerFailures, peopleAccessDefinitionFailures, peopleAccessFilterFailures, peopleAccessHistoryFailures, peopleAccessSourcePairFailures } from "./people-access-evidence-contract.mjs";
+import { peopleAccessAnatomyFailures, peopleAccessCaptureFailures, peopleAccessComposerFailures, peopleAccessDefinitionFailures, peopleAccessFilterFailures, peopleAccessHistoryFailures, peopleAccessSourcePairFailures } from "./people-access-evidence-contract.mjs";
 const rect=(x,y,width,height)=>({x,y,width,height,right:x+width,bottom:y+height});
 function fixture(){
  const scenario=peopleAccessEvidenceScenarios.find((item)=>item.peopleAccessView==="people"&&item.peopleAccessCheck==="layout"&&item.viewport.width===1440&&item.theme==="light");
  const names=["Amina Yusuf","Chidi Okonkwo","Funke Adeyemi","Ibrahim Musa","Kemi Adebayo","Morgan Ellis","Nneka Okafor","Olumide Balogun","Sarah Ojo","Tunde Bello","Zainab Abubakar","Zara Nwosu"];
  const layout={evidenceKind:"SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",kind:"people",route:scenario.route,headingText:"People & access",headingCount:1,heading:rect(260,100,1140,130),menu:rect(260,244,1140,50),localTabs:peopleAccessViews.map((view)=>view.label),selectedTab:"People",selectedBounds:rect(275,247,74,44),selectedVisible:true,visiblePanelIDs:["people-panel"],selectedPanelID:"people-panel",settingsCurrent:"page",legacyRail:false,documentWidth:1440,scrollWidth:1440,firstRow:rect(260,596,730,76),firstRowVisible:true,firstIdentity:rect(320,610,130,20),firstUsefulVisible:true,primary:rect(260,420,730,900),context:rect(1004,420,396,700),placement:"beside",contextScrollWidth:396,contextClientWidth:396,recordNames:names,recordCount:12,detailHeading:"Amina Yusuf",footerText:"12 of 12 loaded profiles",text:"People Up to 50 profiles across the organization",metrics:[12,2,2,2].map((value)=>({value:String(value),quality:"partial"})),targets:[],undersizedTargets:[],minTargetWidth:44,minTargetHeight:44};
+ Object.assign(layout,{headingWave:rect(700,100,600,128),controls:rect(282,500,686,88),toolbarSearch:rect(282,500,330,44)});
  return {scenario,capture:{...scenario,peopleAccessLayout:layout,sticky:{scrollY:500,context:rect(1004,96,396,700),heading:rect(1024,151,320,25),bar:rect(240,0,1200,68)},observation:{reads:[{path:"/api/v1/access/overview",query:"?limit=50",status:200,counts:{people:12,groups:2,sources:2,roles:2},people:names.map((display_name,index)=>({id:String(index),display_name,status:"ACTIVE"}))}],commands:[]},errors:[]}};
 }
 test("People/access evidence covers all4source views at5widths and2themes",()=>{
  const matrix=peopleAccessEvidenceScenarios.filter((item)=>item.peopleAccessMatrix);assert.equal(matrix.length,40);assert.equal(new Set(peopleAccessEvidenceScenarios.map((item)=>item.name)).size,peopleAccessEvidenceScenarios.length);
  for(const view of peopleAccessViews)assert.equal(matrix.filter((item)=>item.peopleAccessView===view.id).length,10);
+});
+test("source anatomy rejects a420px capped tablet search and a wave extending into the tabs",()=>{
+ const scenario={viewport:{width:1024,height:768},peopleAccessView:"people"};
+ const layout={heading:rect(113,124,870,78),headingWave:rect(444,124,496,78),controls:rect(130,541,836,97),toolbarSearch:rect(130,541,836,44)};
+ assert.deepEqual(peopleAccessAnatomyFailures(layout,scenario),[]);
+ const search=structuredClone(layout);search.toolbarSearch=rect(130,541,420,44);assert.deepEqual(peopleAccessAnatomyFailures(search,scenario),["People search must fill its assigned toolbar row without an inherited width cap"]);
+ const wave=structuredClone(layout);wave.headingWave=rect(444,124,496,128);assert.deepEqual(peopleAccessAnatomyFailures(wave,scenario),["heading wave must remain contained within the heading, clear of the tab strip"]);
 });
 test("People/access contract rejects clipped firstidentity, wrongmenu, broadqueries and silently truncated directory",()=>{
  const {scenario,capture}=fixture();assert.deepEqual(peopleAccessCaptureFailures(capture,scenario),[]);

@@ -292,6 +292,8 @@ try {
             runtimePairs.push({ runtime_capture: runtimeName, runtime_theme: capture.theme, runtime_image_sha256: digest(bytes), runtime_image_bytes: bytes.length,
               runtime_build_digest: capture.buildDigest, runtime_revision: runtimeManifest.runtimeBuild.revision, sameScreen: true, completeSourceParity: false,
               sourceHeading: peopleAccessLayout.heading, runtimeHeading: capture.peopleAccessLayout.heading, sourceMenu: peopleAccessLayout.menu, runtimeMenu: capture.peopleAccessLayout.menu,
+              sourceHeadingWave: peopleAccessLayout.headingWave, runtimeHeadingWave: capture.peopleAccessLayout.headingWave, sourceControls: peopleAccessLayout.controls, runtimeControls: capture.peopleAccessLayout.controls,
+              sourceSearch: peopleAccessLayout.toolbarSearch, runtimeSearch: capture.peopleAccessLayout.toolbarSearch,
               sourcePrimary: peopleAccessLayout.primary, runtimePrimary: capture.peopleAccessLayout.primary, sourceContext: peopleAccessLayout.context, runtimeContext: capture.peopleAccessLayout.context,
               sourceFirstIdentity: peopleAccessLayout.firstIdentity, runtimeFirstIdentity: capture.peopleAccessLayout.firstIdentity, sourceContextHeading: peopleAccessLayout.contextHeading, runtimeContextHeading: capture.peopleAccessLayout.contextHeading,
               responsivePlacement: capture.peopleAccessLayout.placement, illustrativeSourceDataReplaced: true });
