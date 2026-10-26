@@ -93,6 +93,10 @@ func (a *API) actorWorkAssignments(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteJSON(w, http.StatusOK, map[string]any{
 			"items": items, "next_cursor": page.NextCursor, "has_more": page.HasMore,
 			"as_of": page.AsOf, "coverage": page.Coverage, "count_basis": page.CountBasis,
+			"scope": map[string]string{
+				"tenant_id": actor.TenantID, "legal_entity_id": actor.LegalEntityID,
+				"principal_id": actor.PrincipalID,
+			},
 		})
 	}
 }
