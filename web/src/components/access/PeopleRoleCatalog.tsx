@@ -17,7 +17,7 @@ export function PeopleRoleCatalog({ roles, bindings, legalEntityName, selectedRo
   const [localSelectedID, setLocalSelectedID] = useState<string>();
   const headingID = useId();
   const detailRef = useRef<HTMLElement>(null);
-  const selectedID = selectedRoleID ?? (roles.some((role) => role.id === localSelectedID) ? localSelectedID : roles[0]?.id);
+  const selectedID = selectedRoleID ?? (!onSelectRole && roles.some((role) => role.id === localSelectedID) ? localSelectedID : roles[0]?.id);
   const selected = roles.find((role) => role.id === selectedID);
   const mappings = selected ? bindings.filter((binding) => binding.role_template_id === selected.id) : [];
 

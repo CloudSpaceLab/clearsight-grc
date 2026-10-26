@@ -29,6 +29,7 @@
 .people-access-count { display: inline-block; margin-inline-start: 5px; padding: 3px 7px; border-radius: var(--cs-primitive-radius-10); background: var(--cs-bg-surface-2); color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); vertical-align: middle; }
 .people-directory__toolbar { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(120px, .6fr) minmax(130px, .65fr); gap: 9px; margin: 0 22px 16px; align-items: end; }
 .people-directory__toolbar > * { min-inline-size: 0; }
+.people-directory__toolbar .cs-search-field { max-inline-size: none; }
 .people-directory__toolbar .cs-select__trigger { min-inline-size: 0; }
 .people-directory__list-head { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 75px; gap: 12px; padding: 12px 22px; border-block: 1px solid var(--cs-border-default); background: var(--cs-bg-surface-2); color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
 .people-access-layout .people-directory__records .cs-selectable-record { min-block-size: 76px; padding: 11px 21px; grid-template-columns: 37px minmax(0, 1fr) minmax(0, 1.15fr); grid-template-rows: auto auto; gap: 5px 11px; align-items: center; }
@@ -43,7 +44,7 @@
 .people-access-avatar { display: grid; place-items: center; inline-size: 37px; block-size: 37px; flex: none; border-radius: var(--cs-primitive-radius-14); background: var(--cs-bg-surface-2); color: var(--cs-action-primary); font-size: var(--cs-font-size-caption); font-weight: 750; }
 .people-access-avatar--role svg { inline-size: 21px; block-size: 21px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .people-access-list-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 12px; padding: 15px 22px; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
-.people-access-detail { position: sticky; top: 20px; scroll-margin-block-start: 20px; min-inline-size: 0; }
+.people-access-detail { position: sticky; top: 96px; scroll-margin-block-start: 96px; min-inline-size: 0; }
 .people-access-detail:focus-visible { outline: var(--cs-focus-width) solid var(--cs-focus-ring); outline-offset: var(--cs-focus-offset); border-radius: var(--cs-primitive-radius-14); }
 .people-access-detail__heading { padding: 21px 23px 18px; background: var(--cs-bg-surface-2); border-block-end: 1px solid var(--cs-border-default); }
 .people-access-kicker { color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); font-weight: 650; }
@@ -90,6 +91,12 @@
   .people-access-summary .cs-metric-card { --cs-metric-card-min-height: 82px; }
   .people-access-detail { position: static; }
   .people-access-layout .people-directory__records .cs-selectable-record .cs-selectable-record__end { grid-template-columns: minmax(0, 1fr) auto; }
+}
+@media (min-width: 681px) and (max-width: 1024px) {
+  .people-directory .people-access-panel-heading { padding-block: 16px 10px; }
+  .people-directory__toolbar { margin-block-end: 10px; }
+  .people-directory__list-head { padding-block: 8px; }
+  .identity-access-panel--embedded > .people-access-summary { margin-block-end: 10px; }
 }
 @media (max-width: 680px) {
   .identity-access-panel--embedded { padding: 0; }

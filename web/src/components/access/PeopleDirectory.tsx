@@ -23,14 +23,14 @@ export function PeopleDirectory({ people, positions, roles, organizationName, le
   const detailHeadingID = useId();
   const entity = legalEntityName || "this legal entity";
   const statuses = useMemo(() => [...new Set(people.map((person) => person.status).filter(Boolean))].sort().map((id) => ({ id, label: humanAccessLabel(id) })), [people]);
-  const sources = useMemo(() => [...new Set(people.map((person) => person.source_code || "__local"))].sort().map((id) => ({ id, label: id === "__local" ? "Local profile" : id })), [people]);
+  const sources = useMemo(() => [...new Set(people.map((person) => person.source_code || "__local"))].sort().map((id) => ({ id, label: id === "__local" ? "Source not returned" : id })), [people]);
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
     return people.filter((person) => (!status || person.status === status)
       && (!source || (person.source_code || "__local") === source)
       && (!query || [personName(person), person.user_name, person.source_code, ...positionsFor(person.id, positions).map((position) => `${position.title} ${position.department_path.join(" ")}`)].join(" ").toLocaleLowerCase().includes(query)));
   }, [people, positions, search, status, source]);
-  const selectedID = selectedPersonID ?? (filtered.some((person) => person.id === localSelectedID) ? localSelectedID : filtered[0]?.id);
+  const selectedID = selectedPersonID ?? (!onSelectPerson && filtered.some((person) => person.id === localSelectedID) ? localSelectedID : filtered[0]?.id);
   const selected = filtered.find((person) => person.id === selectedID);
 
   function selectPerson(id: string) {
@@ -71,7 +71,7 @@ export function PeopleDirectory({ people, positions, roles, organizationName, le
             return <SelectableRecord key={person.id} variant="list" title={personName(person)} metadata={person.user_name || "Username not provided"}
               aria-label={`Inspect ${personName(person)}`} isSelected={selectedID === person.id} onPress={() => selectPerson(person.id)}
               startContent={<span className="people-access-avatar">{initials(personName(person))}</span>}
-              endContent={<><span className="people-directory__position"><strong>{recordedPositions[0]?.title || "Position not returned"}</strong><small>{recordedPositions.length > 1 ? `${recordedPositions.length} positions in this list` : recordedPositions[0]?.department_path.join(" / ") || person.source_code || "Local profile"}</small></span><StatusBadge>{humanAccessLabel(person.status) || "Not reported"}</StatusBadge></>}/>
+              endContent={<><span className="people-directory__position"><strong>{recordedPositions[0]?.title || "Position not returned"}</strong><small>{recordedPositions.length > 1 ? `${recordedPositions.length} positions in this list` : recordedPositions[0]?.department_path.join(" / ") || person.source_code || "Source not returned"}</small></span><StatusBadge>{humanAccessLabel(person.status) || "Not reported"}</StatusBadge></>}/>
           })}
           {!filtered.length && <div className="people-access-empty"><h3>{people.length ? "No people match these filters" : "No people returned"}</h3><p>{people.length ? "Search checks only the profiles in this list." : "The directory returned no profiles for the organization."}</p>{people.length > 0 && <Button variant="quiet" onPress={resetFilters}>Clear filters</Button>}</div>}
         </div>
@@ -83,7 +83,7 @@ export function PeopleDirectory({ people, positions, roles, organizationName, le
         {selected ? <>
           <header className="people-access-detail__heading"><span className="people-access-kicker">Person record</span><div className="people-directory__identity"><span className="people-access-avatar" aria-hidden="true">{initials(personName(selected))}</span><div><h2 id={detailHeadingID}>{personName(selected)}</h2><p>{selected.user_name || "Username not provided"}</p></div></div><StatusBadge>Profile {humanAccessLabel(selected.status).toLowerCase() || "not reported"}</StatusBadge></header>
           <div className="people-access-detail__body">
-            <section><h3>Profile details</h3><dl className="people-access-facts"><dt>Directory</dt><dd>{organizationName || "Organization directory"}</dd><dt>Username</dt><dd>{selected.user_name || "Not provided"}</dd><dt>Provisioning</dt><dd>{selected.source_code || "Local profile"}</dd>{selected.source_code && <><dt>Source status</dt><dd>{humanAccessLabel(selected.source_state || "") || "Not reported"}</dd></>}</dl></section>
+            <section><h3>Profile details</h3><dl className="people-access-facts"><dt>Directory</dt><dd>{organizationName || "Organization directory"}</dd><dt>Username</dt><dd>{selected.user_name || "Not provided"}</dd><dt>Provisioning</dt><dd>{selected.source_code || "Source not returned"}</dd>{selected.source_code && <><dt>Source status</dt><dd>{humanAccessLabel(selected.source_state || "") || "Not reported"}</dd></>}</dl></section>
             <section><h3>Recorded positions</h3><p className="people-access-context">{entity} · Up to 50 positions returned.</p>
               {positionsFor(selected.id, positions).length ? <ul className="people-access-assignments">{positionsFor(selected.id, positions).map((position) => <li key={position.id}><strong>{position.title}</strong><span>{position.department_path.join(" / ") || "Legal entity wide"}</span>{position.role_codes.length > 0 && <span>Position roles: {position.role_codes.map((code) => roles.find((role) => role.code === code)?.name || humanAccessLabel(code)).join(", ")}</span>}</li>)}</ul> : <p className="people-access-context">No position for this person was returned in this list.</p>}
               {onOpenOrganization && <Button variant="quiet" onPress={onOpenOrganization}>View organization</Button>}

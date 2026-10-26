@@ -54,7 +54,12 @@ describe("People and role views", () => {
     fireEvent.keyDown(screen.getByRole("button", { name: /Profile status/ }), { key: "ArrowDown" });
     fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "Inactive" }));
     expect(screen.getByText("1 of 12 loaded profiles")).toBeTruthy();
-    expect(screen.getByRole("complementary", { name: "Bola Adeyemi" })).toBeTruthy();
+    const personWithoutSource = screen.getByRole("complementary", { name: "Bola Adeyemi" });
+    expect(within(personWithoutSource).getByText("Source not returned")).toBeTruthy();
+    expect(screen.queryByText("Local profile")).toBeNull();
+    fireEvent.keyDown(screen.getByRole("button", { name: /Provisioning source/ }), { key: "ArrowDown" });
+    fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "Source not returned" }));
+    expect(screen.getByText("1 of 12 loaded profiles")).toBeTruthy();
     fireEvent.keyDown(screen.getByRole("button", { name: /Provisioning source/ }), { key: "ArrowDown" });
     fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "Bank directory" }));
     expect(screen.getByRole("heading", { name: "No people match these filters" })).toBeTruthy();
@@ -97,6 +102,25 @@ describe("People and role views", () => {
     expect(screen.getByRole("heading", { name: "Role not in this list" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Return to listed roles" }));
     expect(onSelectRole).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("restores implicit first selections when browser history removes controlled record queries", async () => {
+    const onSelectPerson = vi.fn();
+    const onSelectRole = vi.fn();
+    const { rerender } = render(<IdentityAccessPanel area="people" onSelectPerson={onSelectPerson} onSelectRole={onSelectRole}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Inspect Zara Nwosu" }));
+    expect(onSelectPerson).toHaveBeenCalledWith("person-12");
+    rerender(<IdentityAccessPanel area="people" selectedPersonID="person-12" onSelectPerson={onSelectPerson} onSelectRole={onSelectRole}/>);
+    expect(screen.getByRole("complementary", { name: "Zara Nwosu" })).toBeTruthy();
+    rerender(<IdentityAccessPanel area="people" onSelectPerson={onSelectPerson} onSelectRole={onSelectRole}/>);
+    expect(screen.getByRole("complementary", { name: "Amina Yusuf" })).toBeTruthy();
+    rerender(<IdentityAccessPanel area="roles" onSelectPerson={onSelectPerson} onSelectRole={onSelectRole}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Inspect role Access administrator" }));
+    expect(onSelectRole).toHaveBeenCalledWith("role-access");
+    rerender(<IdentityAccessPanel area="roles" selectedRoleID="role-access" onSelectPerson={onSelectPerson} onSelectRole={onSelectRole}/>);
+    expect(screen.getByRole("complementary", { name: "Access administrator" })).toBeTruthy();
+    rerender(<IdentityAccessPanel area="roles" onSelectPerson={onSelectPerson} onSelectRole={onSelectRole}/>);
+    expect(screen.getByRole("complementary", { name: "Risk reviewer" })).toBeTruthy();
   });
 
   it("keeps 50 returned profiles visible to local search without asserting a complete directory", async () => {
