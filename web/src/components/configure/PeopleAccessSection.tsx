@@ -66,7 +66,7 @@ function PeopleAccessWorkspace({ hash, onNavigate, runtimeContext, scopeKey }: P
           </> : view === "checks" ? <AuthorityRoutingSection checksOnly active={route.view === "checks"}/>
             : <section className="people-access-workspace__organization" aria-label="Organization settings">
               <WorkspaceSwitcher ariaLabel="Organization settings" compactLabel="Organization area" items={organizationAreas} selectedKey={route.area === "people" || route.area === "roles" ? "positions" : route.area} onSelectionChange={(area) => open("organization", area)}/>
-              <IdentityAccessPanel {...identityProps} active={route.view === "organization"} area={route.area === "people" || route.area === "roles" ? "positions" : route.area}/>
+              <IdentityAccessPanel key={route.area} {...identityProps} active={route.view === "organization"} area={route.area === "people" || route.area === "roles" ? "positions" : route.area}/>
             </section>}
     </Tabs>
   </section>;

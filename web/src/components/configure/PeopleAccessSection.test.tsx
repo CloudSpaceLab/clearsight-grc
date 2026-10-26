@@ -75,3 +75,17 @@ it("waits for verified context and resets retained state when the actor or legal
   expect(within(next).getByText("Restricted")).toBeTruthy();
   expect(loads.identity).toHaveBeenLastCalledWith("people", "tenant:new-entity:actor");
 });
+
+it("remounts secondary area owners when navigating within Organization settings", () => {
+  const navigate = vi.fn();
+  const { rerender } = render(<PeopleAccessSection hash="#configure/access/directory" onNavigate={navigate} runtimeContext={context}/>);
+  const provisioning = screen.getByRole("region", { name: "Identity directory" });
+  fireEvent.change(within(provisioning).getByLabelText("Directory search"), { target: { value: "Previous form state" } });
+  rerender(<PeopleAccessSection hash="#configure/access/positions" onNavigate={navigate} runtimeContext={context}/>);
+  expect(screen.getByRole("region", { name: "Identity positions" })).not.toBe(provisioning);
+  expect(provisioning.isConnected).toBe(false);
+  rerender(<PeopleAccessSection hash="#configure/access/directory" onNavigate={navigate} runtimeContext={context}/>);
+  const next = screen.getByRole("region", { name: "Identity directory" });
+  expect(next).not.toBe(provisioning);
+  expect(within(next).getByLabelText("Directory search")).toHaveProperty("value", "");
+});
