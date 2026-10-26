@@ -29,6 +29,18 @@ func (a *API) actorWorkAssignments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	params := r.URL.Query()
+	for name, values := range params {
+		switch name {
+		case "tenant_id", "legal_entity_id", "principal_id", "q", "cursor", "limit", "status", "due_from", "due_before":
+			if len(values) != 1 {
+				httpx.WriteError(w, http.StatusBadRequest, "work_filter_invalid", "Specify each work filter once.")
+				return
+			}
+		default:
+			httpx.WriteError(w, http.StatusBadRequest, "work_filter_unsupported", "This work filter is unavailable.")
+			return
+		}
+	}
 	for name, expected := range map[string]string{
 		"tenant_id": actor.TenantID, "legal_entity_id": actor.LegalEntityID, "principal_id": actor.PrincipalID,
 	} {
@@ -44,7 +56,7 @@ func (a *API) actorWorkAssignments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	search := strings.TrimSpace(params.Get("q"))
-	if utf8.RuneCountInString(search) > 120 {
+	if strings.ContainsRune(search, 0) || utf8.RuneCountInString(search) > 120 {
 		httpx.WriteError(w, http.StatusBadRequest, "work_search_invalid", "Search is limited to 120 characters.")
 		return
 	}
