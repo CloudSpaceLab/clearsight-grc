@@ -138,6 +138,31 @@ describe("People and role views", () => {
 });
 
 describe("access read recovery and isolation", () => {
+  it.each(["Add position", "Add area"])("closes the retained %s sheet on deactivation while keeping People filters", async (action) => {
+    const value = overview();
+    value.can_configure_organization = true;
+    api.loadIdentityAccessOverview.mockResolvedValue(value);
+    const { rerender } = render(<IdentityAccessPanel area="people" active/>);
+    const search = await screen.findByRole("searchbox", { name: "Search people" });
+    fireEvent.change(search, { target: { value: "Amina" } });
+    rerender(<IdentityAccessPanel area="positions" active/>);
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    const dialog = screen.getByRole("dialog", { name: action });
+    fireEvent.change(within(dialog).getByRole("textbox", { name: /^Code/ }), { target: { value: "UNSAVED" } });
+
+    rerender(<IdentityAccessPanel area="positions" active={false}/>);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    rerender(<IdentityAccessPanel area="people" active/>);
+    await waitFor(() => expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("searchbox", { name: "Search people" })).toBe(search);
+    expect(search).toHaveProperty("value", "Amina");
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    rerender(<IdentityAccessPanel area="positions" active/>);
+    fireEvent.click(await screen.findByRole("button", { name: action }));
+    expect(within(screen.getByRole("dialog", { name: action })).getByRole("textbox", { name: /^Code/ })).toHaveProperty("value", "");
+  });
+
   it("does not restore a one-time token or duplicate a source after leaving a pending creation", async () => {
     const value = overview();
     value.can_configure = true;

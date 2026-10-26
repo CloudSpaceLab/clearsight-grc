@@ -367,7 +367,7 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
     <div className="identity-access-area" role={embedded ? undefined : "tabpanel"} aria-label={embedded ? undefined : areaLabel(area)}>
       {embedded && (area === "people" || visitedAreas.includes("people")) && <div hidden={area !== "people"}><PeopleDirectory people={overview.people} positions={overview.positions} roles={overview.roles} organizationName={organizationName} legalEntityName={legalEntityName} selectedPersonID={selectedPersonID} onSelectPerson={onSelectPerson} onOpenOrganization={() => setArea("positions")}/></div>}
       {embedded && (area === "roles" || visitedAreas.includes("roles")) && <div hidden={area !== "roles"}><PeopleRoleCatalog roles={overview.roles} bindings={overview.bindings} legalEntityName={legalEntityName} selectedRoleID={selectedRoleID} onSelectRole={onSelectRole} onOpenOrganization={() => setArea("positions")} onOpenMappings={() => setArea("directory")}/></div>}
-      {(area === "positions" || area === "reporting") && <OrganizationInventory
+      {active && (area === "positions" || area === "reporting") && <OrganizationInventory
         positions={overview.positions}
         people={overview.people}
         scopes={overview.organization_scopes}
@@ -399,7 +399,7 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
         onRejectDataBoundary={rejectBoundary}
       />}
 
-      {area === "directory" && <div className="identity-access-grid">
+      {active && area === "directory" && <div className="identity-access-grid">
       <IdentityAccessInventory
         signIn={overview.sign_in}
         sources={overview.sources}
@@ -415,7 +415,7 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
       />
       </div>}
 
-      {area === "escalation" && <EscalationRoutesWorkspace
+      {active && area === "escalation" && <EscalationRoutesWorkspace
         overview={overview}
         isBusy={isBusy}
         onBusy={(value) => setBusy(value ? "escalation" : "")}
@@ -424,8 +424,8 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
       />}
     </div>
 
-    <ProvisioningSourceComposer open={composer === "source"} busy={busy === "source-create"} onClose={() => setComposer(null)} onCreate={createSource}/>
-    <GroupRoleBindingComposer open={composer === "binding"} busy={busy === "binding-create"} groups={activeGroups} roles={activeRoles} onClose={() => setComposer(null)} onCreate={createBinding}/>
+    <ProvisioningSourceComposer open={active && composer === "source"} busy={busy === "source-create"} onClose={() => setComposer(null)} onCreate={createSource}/>
+    <GroupRoleBindingComposer open={active && composer === "binding"} busy={busy === "binding-create"} groups={activeGroups} roles={activeRoles} onClose={() => setComposer(null)} onCreate={createBinding}/>
   </section>;
 }
 
