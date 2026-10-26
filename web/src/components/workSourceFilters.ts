@@ -3,6 +3,12 @@ import type { WorkDueWindow } from "./workQueuePresentation";
 
 const dayMs = 24 * 60 * 60 * 1000;
 
+export function isSourceWorkStatus(value: string): boolean {
+  return ["READY", "IN_PROGRESS", "BLOCKED", "ESCALATED"].includes(
+    value.trim().toUpperCase().replace(/\\s+/g, "_"),
+  );
+}
+
 export function workSourceFilters(status: string | undefined, window: WorkDueWindow, now: number): ActorWorkFilters {
   const filters: ActorWorkFilters = {};
   if (status) {
