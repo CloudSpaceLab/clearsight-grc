@@ -1302,6 +1302,12 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/work/assignment-counts": {
+      "get": {
+        "operationId": "actorWorkDueCounts",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/people/{person_id}": {
       "get": {
         "operationId": "employeeProfile",
