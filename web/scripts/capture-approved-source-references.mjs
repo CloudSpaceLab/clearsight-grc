@@ -13,6 +13,9 @@ import { measureRiskLossSourceLayout, riskLossSourcePath, riskLossSourceSHA256 }
 import { privacyEvidenceScenarios, privacySourcePath, privacySourceSHA256, privacyViewports, privacyViews } from "./privacy-evidence-scenarios.mjs";
 import { measurePrivacySourceLayout } from "./privacy-evidence.mjs";
 import { privacySourcePairFailures, privacySourceTabs } from "./privacy-evidence-contract.mjs";
+import { peopleAccessEvidenceScenarios, peopleAccessSourcePath, peopleAccessSourceSHA256, peopleAccessViewports, peopleAccessViews } from "./people-access-evidence-scenarios.mjs";
+import { measurePeopleAccessSourceLayout } from "./people-access-evidence.mjs";
+import { peopleAccessSourcePairFailures } from "./people-access-evidence-contract.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -120,7 +123,13 @@ const references = [
     runtimeDark: Object.fromEntries(["1440x900", "1280x800", "1024x768", "768x900", "390x844"].map((size) => [size, `${226 + index}-notifications-${view}-dark-${size}.png`])),
   })),
   { id: "audit-assurance", source: "clearsight-audit-assurance-designs/audit-assurance-preview.html", runtime: {} },
-  { id: "people-access", source: "clearsight-people-access-designs/people-access-preview.html", runtime: {} },
+  ...peopleAccessViews.flatMap((view) => ["layout", "context"].map((check) => ({
+    id: `people-access-${view.id}${check === "context" ? "-context" : ""}`, source: peopleAccessSourcePath, pinnedSHA256: peopleAccessSourceSHA256,
+    sourcePeopleAccessView: view.id, sourcePeopleAccessContext: check === "context", sourceTab: view.source,
+    widths: check === "context" ? [1024, 768, 390] : undefined,
+    runtime: Object.fromEntries(peopleAccessViewports.map(({ width, height }) => [`${width}x${height}`, `280-people-access-${view.id}-${check}-light-${width}.png`])),
+    runtimeDark: Object.fromEntries(peopleAccessViewports.map(({ width, height }) => [`${width}x${height}`, `280-people-access-${view.id}-${check}-dark-${width}.png`])),
+  }))),
   { id: "automation-governance", source: "clearsight-automation-governance-designs/automation-governance-preview.html", runtime: {} },
   { id: "contextual-copilot", source: "clearsight-contextual-copilot-designs/ai-copilot-preview.html", runtime: {} },
 ];
@@ -157,7 +166,9 @@ const requestedReferences = process.env.UI_EVIDENCE_SCOPE === "reports"
   : process.env.UI_EVIDENCE_SCOPE === "risk-loss"
     ? references.filter((reference) => reference.id.startsWith("risk-loss-"))
   : process.env.UI_EVIDENCE_SCOPE === "privacy"
-    ? references.filter((reference) => reference.id.startsWith("privacy-")) : references;
+    ? references.filter((reference) => reference.id.startsWith("privacy-"))
+  : process.env.UI_EVIDENCE_SCOPE === "people-access"
+    ? references.filter((reference) => reference.id.startsWith("people-access-")) : references;
 const verified = await Promise.all(requestedReferences.map(async (reference) => {
   const expected = byPath.get(reference.source);
   if (!expected) throw new Error(`Approved source not indexed: ${reference.source}`);
@@ -176,7 +187,7 @@ const captures = [];
 
 try {
   for (const reference of verified) {
-    for (const viewport of viewports) {
+    for (const viewport of viewports.filter((item) => !reference.widths || reference.widths.includes(item.width))) {
       const key = `${viewport.width}x${viewport.height}`;
       const context = await browser.newContext({
         viewport,
@@ -199,7 +210,7 @@ try {
         if (reference.sourceTab) {
           const tab = page.locator(`[role="tab"][data-tab="${reference.sourceTab}"]`);
           if (!reference.sourceEntry) await tab.click();
-          const panelID = await tab.getAttribute("aria-controls");
+          const panelID = reference.sourcePeopleAccessView ?? await tab.getAttribute("aria-controls");
           await page.locator(`[id="${panelID}"]`).waitFor({ state: "visible" });
           if (await tab.getAttribute("aria-selected") !== "true") throw new Error(`Source tab did not activate: ${reference.id}/${reference.sourceTab}`);
         }
@@ -220,6 +231,11 @@ try {
           await page.locator('#ropa-tbody tr[data-record="ropa-customer"]').click();
           await page.locator("#privacy-drawer").waitFor({ state: "visible" });
           await page.evaluate(() => window.scrollTo(0, 0));
+        }
+        if (reference.sourcePeopleAccessContext) {
+          const panel = page.locator(`#${reference.sourcePeopleAccessView}`);
+          await panel.locator(".people-list button,.role-list button,.route-list button,.delegation-list button").first().press("Enter");
+          await panel.locator("aside").scrollIntoViewIfNeeded();
         }
         const presentation = await page.evaluate(() => {
           const sidebar = document.querySelector(".sidebar");
@@ -263,7 +279,28 @@ try {
         const vendorPortfolioLayout = reference.sourcePortfolioView ? await measureVendorPortfolioSourceLayout(page, reference.sourcePortfolioView) : null;
         const riskLossLayout = reference.sourceRiskLossView ? await measureRiskLossSourceLayout(page, reference.sourceRiskLossView) : null;
         const privacyLayout = reference.sourcePrivacyView ? await measurePrivacySourceLayout(page, reference.sourcePrivacyView) : null;
+        const peopleAccessLayout = reference.sourcePeopleAccessView ? await measurePeopleAccessSourceLayout(page, reference.sourcePeopleAccessView) : null;
         let layoutComparison = null;
+        if (peopleAccessLayout && runtimeManifest) {
+          const runtimePairs = [];
+          for (const runtimeName of [reference.runtime[key], reference.runtimeDark[key]]) {
+            const capture = runtimeByName.get(runtimeName), scenario = peopleAccessEvidenceScenarios.find((item) => `${item.name}.png` === runtimeName);
+            const failures = peopleAccessSourcePairFailures(peopleAccessLayout, capture, scenario);
+            if (failures.length) throw new Error(failures.join("\n"));
+            const bytes = await readFile(path.join(outputDir, "..", runtimeName));
+            if (digest(bytes) !== capture.imageSHA256 || bytes.length !== capture.imageBytes || capture.buildDigest !== runtimeManifest.runtimeBuild?.digest) throw new Error(`${runtimeName}: People/access pair bytes or build differ`);
+            runtimePairs.push({ runtime_capture: runtimeName, runtime_theme: capture.theme, runtime_image_sha256: digest(bytes), runtime_image_bytes: bytes.length,
+              runtime_build_digest: capture.buildDigest, runtime_revision: runtimeManifest.runtimeBuild.revision, sameScreen: true, completeSourceParity: false,
+              sourceHeading: peopleAccessLayout.heading, runtimeHeading: capture.peopleAccessLayout.heading, sourceMenu: peopleAccessLayout.menu, runtimeMenu: capture.peopleAccessLayout.menu,
+              sourcePrimary: peopleAccessLayout.primary, runtimePrimary: capture.peopleAccessLayout.primary, sourceContext: peopleAccessLayout.context, runtimeContext: capture.peopleAccessLayout.context,
+              sourceFirstIdentity: peopleAccessLayout.firstIdentity, runtimeFirstIdentity: capture.peopleAccessLayout.firstIdentity, sourceContextHeading: peopleAccessLayout.contextHeading, runtimeContextHeading: capture.peopleAccessLayout.contextHeading,
+              responsivePlacement: capture.peopleAccessLayout.placement, illustrativeSourceDataReplaced: true });
+          }
+          layoutComparison = { runtime_pairs: runtimePairs, sameScreen: true, completeSourceParity: false, originalLocalTabs: peopleAccessViews.map((view) => view.label),
+            supportedTabsRetainSourceOrder: true, selectedSourceTab: peopleAccessLayout.selectedTab,
+            adaptation: "Four source tabs and responsive list/context anatomy use existing bounded directory, role, governance policy and delegation reads. Metrics identify loaded populations. Unsupported invitations, last-active, effective access/authority and staged route details are excluded. Source and runtime records are independent labelled fixtures. Source uses environment font fallback; typography is not pixel-reproducible across hosts.",
+            conclusion: "SUPPORTED_STRUCTURE_CHECKED_VISUAL_REVIEW_REQUIRED" };
+        }
         if (privacyLayout && runtimeManifest) {
           const runtimePairs = [];
           const comparison = reference.sourcePrivacyView === "overview" ? "SUPPORTED_DATA_LAYOUT_ADAPTATION" : "SAME_SCREEN_SUPPORTED_MENU_ADAPTATION";
@@ -528,6 +565,7 @@ try {
           ...(reference.sourceVendorView ? { source_vendor_view: reference.sourceVendorView, source_vendor_tab: reference.sourceVendorTab } : {}),
           ...(reference.sourceRiskLossView ? { source_risk_loss_view: reference.sourceRiskLossView } : {}),
           ...(reference.sourcePrivacyView ? { source_privacy_view: reference.sourcePrivacyView, source_privacy_detail: reference.sourcePrivacyDetail } : {}),
+          ...(reference.sourcePeopleAccessView ? { source_people_access_view: reference.sourcePeopleAccessView, source_people_access_context: reference.sourcePeopleAccessContext } : {}),
           ...(reference.sourceEntry ? { source_entry: reference.sourceEntry } : {}),
           source_sha256: reference.sha256,
           image,
@@ -542,6 +580,7 @@ try {
           ...(vendorPortfolioLayout ? { vendor_portfolio_layout: vendorPortfolioLayout, layout_comparison: layoutComparison } : {}),
           ...(riskLossLayout ? { risk_loss_layout: riskLossLayout, layout_comparison: layoutComparison } : {}),
           ...(privacyLayout ? { privacy_layout: privacyLayout, layout_comparison: layoutComparison } : {}),
+          ...(peopleAccessLayout ? { people_access_layout: peopleAccessLayout, layout_comparison: layoutComparison } : {}),
           prototype_errors: errors,
           visual_parity: "NOT_REVIEWED",
         });
