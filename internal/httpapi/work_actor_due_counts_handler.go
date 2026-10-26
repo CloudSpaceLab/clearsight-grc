@@ -56,9 +56,9 @@ func (a *API) actorWorkDueCounts(w http.ResponseWriter, r *http.Request) {
 		"due_soon": counts.DueSoon, "undated": counts.Undated,
 		"as_of": counts.AsOf, "coverage": counts.Coverage, "count_basis": counts.CountBasis,
 		"scope": map[string]string{
-			"tenant_id": actor.TenantID,
+			"tenant_id":       actor.TenantID,
 			"legal_entity_id": actor.LegalEntityID,
-			"principal_id": actor.PrincipalID,
+			"principal_id":    actor.PrincipalID,
 		},
 	})
 }
