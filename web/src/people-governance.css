@@ -1,0 +1,27 @@
+.governance-admin-workspace.governance-admin-workspace--embedded { display: block; min-inline-size: 0; }
+.people-governance-layout__records { padding-inline: 18px; }
+.people-governance-layout__records .cs-selectable-record { min-block-size: 78px; padding: 14px 7px; align-items: center; }
+.people-governance-layout__records .cs-selectable-record__title { font-size: var(--cs-font-size-body); line-height: 1.4; overflow-wrap: anywhere; }
+.people-governance-layout__records .cs-selectable-record__metadata { font-size: var(--cs-font-size-caption); overflow-wrap: anywhere; }
+.people-governance-layout__records .people-access-avatar svg { inline-size: 21px; block-size: 21px; }
+.people-governance-layout__records .cs-selectable-record__end { align-self: center; }
+.people-governance-layout__detail .people-access-detail__body p { margin: 0; font-size: var(--cs-font-size-caption); line-height: 1.6; overflow-wrap: anywhere; }
+.people-governance-layout__detail .people-access-detail__body dl + p { margin-block-start: 12px; }
+.people-governance-actions, .people-governance-actions form { display: grid; gap: 12px; min-inline-size: 0; }
+.people-governance-actions:empty { display: none; }
+.people-governance-actions .cs-button { inline-size: 100%; white-space: normal; }
+.people-governance-notices { display: grid; gap: 10px; margin-block-end: 14px; }
+.people-governance-notices:empty { display: none; }
+.people-governance-notices > .cs-button { justify-self: start; }
+.people-governance-layout .people-access-panel-heading > .cs-button { flex: none; }
+.people-governance-list-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.people-governance-layout__detail .people-access-detail__heading .cs-status-badge { margin-block-start: 8px; }
+
+@media (max-width: 680px) {
+  .people-governance-layout .people-access-panel-heading { flex-wrap: wrap; }
+  .people-governance-layout__records { padding-inline: 12px; }
+  .people-governance-layout .people-governance-layout__records .cs-selectable-record { grid-template-columns: 31px minmax(0, 1fr); gap: 5px 9px; }
+  .people-governance-layout__records .cs-selectable-record__end { grid-column: 2; grid-row: 3; justify-self: start; }
+  .people-governance-layout__records .cs-selectable-record__start { grid-row: 1 / span 3; }
+  .people-governance-layout__records .people-access-avatar { inline-size: 31px; block-size: 31px; }
+}

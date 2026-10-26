@@ -1,6 +1,69 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { GovernanceAdminWorkspace, type GovernanceDelegationItem, type GovernancePolicyItem } from "./GovernanceAdminWorkspace";
+
+const viewActions = { createDelegation: vi.fn(), policyAction: vi.fn(), delegationAction: vi.fn() };
+
+it("uses one bounded policy list and selected context in the People workspace", () => {
+  const policies = Array.from({ length: 51 }, (_, index) => policy({ id: `p-${index}`, name: `Route ${index}`, version: index + 1 }));
+  render(<GovernanceAdminWorkspace view="policies" policies={policies} delegations={[]} eligiblePeople={[]} actorId="actor-1" canConfigure={false} loadState="ready" selectedPolicyID="p-3" {...viewActions}/>);
+  expect(screen.getAllByRole("button", { name: /^Inspect policy / })).toHaveLength(50);
+  expect(screen.queryByRole("button", { name: "Inspect policy Route 50" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "Route 3" })).toBeTruthy();
+  expect(screen.getByText("More records are available.")).toBeTruthy();
+  expect(screen.getByRole("article", { name: "Policies: 50. Loaded" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Governance policies and delegations" })).toBeNull();
+});
+
+it("keeps an unknown selected policy separate from the first returned policy", () => {
+  const onSelectPolicy = vi.fn();
+  render(<GovernanceAdminWorkspace view="policies" policies={[policy({ name: "Payment route", maker: { id: "actor-1", label: "Current administrator" }, status: "DRAFT" })]} delegations={[]} eligiblePeople={[]} actorId="actor-1" canConfigure loadState="ready" selectedPolicyID="not-returned" onSelectPolicy={onSelectPolicy} {...viewActions}/>);
+  expect(screen.getByRole("heading", { name: "Policy not in this list" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Submit Payment route for approval" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Return to listed routing policies" }));
+  expect(onSelectPolicy).toHaveBeenCalledWith(undefined);
+});
+
+it("does not show denied rows or a successful empty result in a source-shaped view", () => {
+  render(<GovernanceAdminWorkspace view="policies" policies={[policy({ name: "Restricted route" })]} delegations={[]} eligiblePeople={[]} actorId="actor-1" canConfigure loadState="degraded" policiesState="restricted" {...viewActions}/>);
+  expect(screen.getByRole("heading", { name: "Approval routes access restricted" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Inspect policy/ })).toBeNull();
+  expect(screen.queryByText("No routing policies returned")).toBeNull();
+  expect(screen.getByRole("article", { name: "Policies: —. Unavailable" })).toBeTruthy();
+});
+
+it("preserves unavailable policy details while disabling material actions", () => {
+  render(<GovernanceAdminWorkspace view="policies" policies={[policy({ name: "Payment route", status: "DRAFT", maker: { id: "actor-1", label: "Current administrator" } })]} delegations={[]} eligiblePeople={[]} actorId="actor-1" canConfigure loadState="degraded" policiesState="unavailable" {...viewActions}/>);
+  expect(screen.getByRole("heading", { name: "Payment route" })).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Submit Payment route for approval" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("article", { name: "Policies: 1. Previous list" })).toBeTruthy();
+});
+
+it("retains narrower delegation scope instead of describing it as whole-entity authority", () => {
+  render(<GovernanceAdminWorkspace view="delegations" policies={[]} delegations={[delegation({ scope: { legal_entity_id: "entity-1", object_type: "MATTER", object_id: "matter-123", decision_type: "matter.close", min_materiality: 2, max_materiality: 3 } })]} eligiblePeople={[]} actorId="actor-1" canConfigure={false} loadState="ready" {...viewActions}/>);
+  const detail = screen.getByRole("complementary");
+  expect(within(detail).getByText("One record · Issues and changes")).toBeTruthy();
+  expect(within(detail).getByText("matter-123")).toBeTruthy();
+  expect(within(detail).getByText("matter.close")).toBeTruthy();
+  expect(within(detail).queryByText("Whole legal entity")).toBeNull();
+});
+
+it("closes a retained view's composer when the route becomes inactive", () => {
+  const props = { view: "delegations" as const, policies: [], delegations: [], eligiblePeople: [], actorId: "actor-1", canConfigure: true, loadState: "ready" as const, ...viewActions };
+  const view = render(<GovernanceAdminWorkspace {...props} active/>);
+  fireEvent.click(screen.getByRole("button", { name: "Propose delegation" }));
+  expect(screen.getByRole("dialog", { name: "New delegation" })).toBeTruthy();
+  view.rerender(<GovernanceAdminWorkspace {...props} active={false}/>);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  view.rerender(<GovernanceAdminWorkspace {...props} active/>);
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("does not announce zero policy records before the initial read completes", () => {
+  render(<GovernanceAdminWorkspace view="policies" policies={[]} delegations={[]} eligiblePeople={[]} actorId="actor-1" canConfigure={false} loadState="loading" {...viewActions}/>);
+  expect(screen.getByText("Count unavailable")).toBeTruthy();
+  expect(screen.queryByText("0 routing policies in this list")).toBeNull();
+});
 
 it("shows a bounded governance inventory in business language", () => {
   render(<GovernanceAdminWorkspace

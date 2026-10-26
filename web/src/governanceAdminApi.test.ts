@@ -29,6 +29,25 @@ describe("governance administration API", () => {
     expect(inventory.delegationsAvailable).toBe(true);
   });
 
+  it("keeps denied policies separate from unavailable delegations", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ error: "forbidden" }, 403))
+      .mockResolvedValueOnce(jsonResponse({ error: "unavailable" }, 503)));
+
+    expect(await loadGovernanceInventory()).toEqual({
+      policies: [], delegations: [], policiesAvailable: false, delegationsAvailable: false,
+      policiesState: "restricted", delegationsState: "unavailable",
+    });
+  });
+
+  it("binds both inventory reads to the caller's cancellation signal", async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ items: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    await loadGovernanceInventory(controller.signal);
+    expect(fetchMock.mock.calls.map(([, init]) => init.signal)).toEqual([controller.signal, controller.signal]);
+  });
+
   it("creates a whole-entity delegation without browser-supplied actor or tenant fields", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ id: "delegation-1" }, 201));
     vi.stubGlobal("fetch", fetchMock);
