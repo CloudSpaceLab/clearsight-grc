@@ -15,13 +15,13 @@ var ErrActorWorkCountsUnavailable = errors.New("actor work counts are unavailabl
 // ActorWorkDueCounts describes the CURRENT authorized workflow assignment
 // population only. It is not a tenant-wide Work or completed-outcome count.
 type ActorWorkDueCounts struct {
-	Total       int64     `json:"total"`
-	Overdue     int64     `json:"overdue"`
-	DueSoon     int64     `json:"due_soon"`
-	Undated     int64     `json:"undated"`
-	AsOf        time.Time `json:"as_of"`
-	Coverage    string    `json:"coverage"`
-	CountBasis  string    `json:"count_basis"`
+	Total      int64     `json:"total"`
+	Overdue    int64     `json:"overdue"`
+	DueSoon    int64     `json:"due_soon"`
+	Undated    int64     `json:"undated"`
+	AsOf       time.Time `json:"as_of"`
+	Coverage   string    `json:"coverage"`
+	CountBasis string    `json:"count_basis"`
 }
 
 type actorWorkDueCountsRepository interface {
