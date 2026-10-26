@@ -17,6 +17,7 @@ await mkdir(configurationDir, { recursive: true });
 const scenarios = [
   { name: "configuration-organization-desktop-light-1440x900", route: "#configure/access/positions", viewport: { width: 1440, height: 900 }, theme: "light", expectation: "organization" },
   { name: "configuration-organization-mobile-dark-390x844", route: "#configure/access/positions", viewport: { width: 390, height: 844 }, theme: "dark", touch: true, expectation: "organization" },
+  { name: "configuration-organization-compact-light-600x900", route: "#configure/access/positions", viewport: { width: 600, height: 900 }, theme: "light", touch: true, expectation: "organization" },
   { name: "configuration-checks-partial-desktop-dark-1440x900", route: "#configure/authority/checks", fixture: "people-v2-checks-partial", viewport: { width: 1440, height: 900 }, theme: "dark", expectation: "checks" },
   { name: "configuration-overview-desktop-light-1440x900", route: "#configure", viewport: { width: 1440, height: 900 }, theme: "light", expectation: "overview" },
   { name: "configuration-authority-desktop-dark-1440x900", route: "#configure/authority", fixture: "people-v2-current", viewport: { width: 1440, height: 900 }, theme: "dark", expectation: "authority" },
