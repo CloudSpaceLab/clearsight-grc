@@ -171,7 +171,7 @@ func postgresActorWorkRowsSQL() string {
 		  AND ($10='' OR strpos(lower(wt.title),$10)>0)
 		  AND ($11::timestamptz IS NULL OR wt.due_at >= $11::timestamptz)
 		  AND ($12::timestamptz IS NULL OR wt.due_at < $12::timestamptz)
-		`+postgresWorkPagePredicate(13)
+		` + postgresWorkPagePredicate(13)
 }
 
 func postgresDocumentProposalRowsSQL() string {
@@ -212,5 +212,5 @@ func postgresDocumentProposalRowsSQL() string {
 		  AND ($8='' OR strpos(lower(wt.title),$8)>0)
 		  AND ($9::timestamptz IS NULL OR wt.due_at >= $9::timestamptz)
 		  AND ($10::timestamptz IS NULL OR wt.due_at < $10::timestamptz)
-		`+postgresWorkPagePredicate(11)
+		` + postgresWorkPagePredicate(11)
 }
