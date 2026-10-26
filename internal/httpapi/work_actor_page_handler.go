@@ -8,20 +8,14 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
 func (a *API) actorWorkAssignments(w http.ResponseWriter, r *http.Request) {
-	actor, err := identity.Require(r.Context())
-	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
-		return
-	}
-	if actor.TenantID == "" || actor.LegalEntityID == "" || actor.PrincipalID == "" {
-		httpx.WriteError(w, http.StatusForbidden, "work_scope_required", "Your assigned work scope could not be verified.")
+	actor, ok := verifiedWorkActor(w, r)
+	if !ok {
 		return
 	}
 	if a.deps.Workflow == nil {
