@@ -173,6 +173,23 @@ export function loadToday(): Promise<TodaySnapshot> {
   return request<TodaySnapshot>("/api/v1/today");
 }
 
+export type ActorWorkPage = {
+  items: AttentionItem[];
+  next_cursor?: string;
+  has_more: boolean;
+  as_of: string;
+  coverage: "WORKFLOW_ASSIGNMENTS_ONLY";
+  count_basis: "NOT_AVAILABLE";
+};
+
+export function loadActorWorkPage(search: string, cursor?: string): Promise<ActorWorkPage> {
+  return scopedRequest<ActorWorkPage>("/api/v1/work/assignments", {
+    q: search.trim(),
+    cursor,
+    limit: 50,
+  });
+}
+
 export function loadEmployeeProfile(personID: string): Promise<EmployeeProfile> { return scopedRequest<EmployeeProfile>(`/api/v1/people/${encodeURIComponent(personID)}`); }
 export function loadEmployeeWork(personID: string): Promise<{ items: EmployeeWorkItem[]; as_of: string }> { return scopedRequest(`/api/v1/people/${encodeURIComponent(personID)}/work`, { limit: 50 }); }
 export function loadEmployeeActivity(personID: string): Promise<{ items: EmployeeActivityItem[]; as_of: string }> { return scopedRequest(`/api/v1/people/${encodeURIComponent(personID)}/activity`, { limit: 50 }); }
