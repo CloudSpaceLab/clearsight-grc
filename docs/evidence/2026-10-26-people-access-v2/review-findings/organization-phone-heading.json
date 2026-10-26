@@ -1,0 +1,24 @@
+{
+  "status": "INITIAL_390PX_FIX_SUPERSEDED_BY_RANGE_CORRECTION",
+  "revision": "1386b521d2b42c6af2dbfded4e780a92c335fea7",
+  "reviewer": "/root/people_evidence",
+  "finding": "Positions & roles header measured zero width below the first viewport: the adjacent filter group consumed the full flex row at390px. The new cold-entry assertion correctly failed visibility.",
+  "evidence": "The retained scrolled frame shows the zero-width heading overlapping its adjacent filter fields; the raw geometry is in organization-phone-position-heading-rejected.json.",
+  "measuredHeading": {
+    "x": 85,
+    "y": 223.28125,
+    "width": 0,
+    "height": 63,
+    "top": 223.28125,
+    "right": 85,
+    "bottom": 286.28125,
+    "left": 85
+  },
+  "correction": "Stack the existing identity card header at the same560px breakpoint that gives its filters full width. Keep the heading visibility assertion unchanged.",
+  "image": {
+    "name": "organization-phone-position-heading-rejected.png",
+    "bytes": 63609,
+    "sha256": "3a460d4d3b3dde069cc3dc1b8f8a1cfbc3bd5cc12a3feb81d142593fed03d960"
+  },
+  "followup": "The same issue persisted at 600px, with fragmented table action labels. The final correction stacks headings at 900px and reflows identity tables at 680px; see organization-600-position-header-rejected.json and PNG."
+}

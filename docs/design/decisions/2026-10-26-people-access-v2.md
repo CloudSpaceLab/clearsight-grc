@@ -1,6 +1,6 @@
 # People & access — original HTML layout adaptation
 
-Date: 26 October 2026. Tracking: #462. Status: implementation in progress; partial v2 layout integration. Whole-screen acceptance remains 0/19.
+Date: 26 October 2026. Tracking: #462. Status: implementation published in [#589](https://github.com/CloudSpaceLab/clearsight-grc/pull/589); partial v2 layout integration. Whole-screen acceptance remains 0/19.
 
 ## Authority and starting point
 
@@ -38,3 +38,17 @@ Settings stays in the common footer. The specialist workspace uses a Settings re
 Freeze a before build before runtime edits. Retain original and runtime same-screen pairs for all four tabs at all five widths, plus light/dark runtime states. Assert actual heading/tab/control/list/detail geometry and first useful records, not DOM order alone. Cover keyboard selection, narrow-screen detail access, tab/history retention, query reset, no results, missing selection, loading/retry, denied/partial/read-only states, bounded inventory, stale-response scope changes and no page horizontal overflow.
 
 Run affected identity/governance/routing/copy tests, fixture-boundary/type/build/bundle gates and the existing hosted UI/UX suite. A named independent agent must inspect the exact runtime and original images; document source/font and supported-data adaptations. Commit and push in small chunks. Final release receipts belong to the PR and evidence index. Local fixtures and visual review do not establish four-actor execution, live backend authorization, source-to-report reconciliation or production acceptance.
+
+## Implementation review — 26 October 2026
+
+Published runtime and capture scripts: `1bde850512b9eb4045b23f306322a29ed0859292`, equivalent local `2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a`, tree `b8ddfceddb8b767bd060362a2028c8a90de784e2`. Later commits retain evidence and documentation without changing that runtime. The [complete evidence index](../../evidence/2026-10-26-people-access-v2/README.md) and [verification summary](../../evidence/2026-10-26-people-access-v2/verification-summary.json) bind the original source, baseline, final build, capture inputs, image files and named reviews.
+
+The reviewed set retains 30 before images, 92 final states / 95 runtime images, 32 original HTML frames / 64 bindings, 22 scoped accessibility checks and ten Configuration checks / 12 images. Six additional Organization range images verify heading/filter order and intact action labels at 390/600/768. All five approved widths expose the complete first People record without scrolling; the phone first-name position improves from 1726.89px to 728.55px and removes baseline horizontal overflow.
+
+Independent named reviews pass within their recorded scopes: `/root/people_review` covers People/Role, root routing and secondary Configuration; `/root/people_runtime` covers the governance owner, definitions, scope, dates and composers. Their receipts explicitly identify authorship limits, directly inspected images, unchanged-byte carry-forwards and remaining accessibility uncertainty. The original is light-only and uses the available font fallback; canonical menu, shared controls, supported data and responsive adaptations remain documented.
+
+Direct review rejected earlier checkpoints despite passing automation. The retained corrections include full-row search sizing, contained tablet artwork, summary semantics, readable unavailable metrics, shared switcher stylesheet ownership, Organization header/table reflow at intermediate widths and stable post-scroll action capture. Regression checks reject the actual earlier failures. Browser history closes inactive primary and secondary editor portals, preserves supported selection/filter state and resets queryless selection correctly.
+
+Type, fixture-boundary, component-contract, affected workflow/copy and fresh customer-build checks pass. Raw accessibility reports contain zero axe violations and zero undersized primary controls; color-only incompletes and manual limitations remain retained. Final hosted CI/UI artifacts, merge and exact-main non-production deployment are recorded in [#589](https://github.com/CloudSpaceLab/clearsight-grc/pull/589).
+
+**Partial v2 layout integration; whole-screen acceptance remains 0/19.** No live four-actor execution, backend authorization, report reconciliation, production acceptance or blanket accessibility conformance is inferred from these fixture renders.
