@@ -26,9 +26,10 @@ test("directory filters must search beyond old eighth record and preserve popula
 });
 test("browser history cannot pass after replacing the document/menu or losing active tab containment",()=>{
  const steps=["delegations","back-routes","back-roles","back-people","forward-roles","selected-person","back-person","forward-person"];
- const history={queryless:peopleAccessViews.map(({id,route})=>({view:id,first:"First",second:"Second",restored:"First",querylessRoute:route,restoredRoute:route,selectedRoute:`${route}?record=second`})),snapshots:steps.map((step,index)=>({step,sameDocument:true,sameMenu:true,selectedVisible:true,...(index>=5?{search:"Zara",names:["Zara Nwosu"],detail:"Zara Nwosu"}:{})}))};assert.deepEqual(peopleAccessHistoryFailures(history),[]);
+ const history={organization:["Add position","Add area"].map((name)=>({name,focused:true,peopleRoute:"#configure/access",route:"#configure/access/positions",back:{route:"#configure/access",selected:"People",dialogCount:0},forward:{route:"#configure/access/positions",selected:"Organization settings",dialogCount:0}})),queryless:peopleAccessViews.map(({id,route})=>({view:id,first:"First",second:"Second",restored:"First",querylessRoute:route,restoredRoute:route,selectedRoute:`${route}?record=second`})),snapshots:steps.map((step,index)=>({step,sameDocument:true,sameMenu:true,selectedVisible:true,...(index>=5?{search:"Zara",names:["Zara Nwosu"],detail:"Zara Nwosu"}:{})}))};assert.deepEqual(peopleAccessHistoryFailures(history),[]);
  for(const key of ["sameDocument","sameMenu","selectedVisible"]){const changed=structuredClone(history);changed.snapshots[2][key]=false;assert.ok(peopleAccessHistoryFailures(changed).length);}
  const stale=structuredClone(history);stale.queryless[2].restored="Second";assert.ok(peopleAccessHistoryFailures(stale).length);
+ const portal=structuredClone(history);portal.organization[0].back.dialogCount=1;assert.ok(peopleAccessHistoryFailures(portal).length);
 });
 test("composer evidence rejects lost focus, stale portals, query loss and unbounded candidate recovery",()=>{
  const scenario=peopleAccessEvidenceScenarios.find((item)=>item.peopleAccessView==="delegations"&&item.peopleAccessCheck==="composer"&&item.viewport.width===390);

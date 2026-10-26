@@ -109,7 +109,24 @@ export async function verifyPeopleAccessHistory(page) {
   await page.goBack(); await waitForPeopleAccess(page, { peopleAccessView: "people", peopleAccessCheck: "layout" }); await snapshot("back-person");
   await page.goForward(); await page.getByRole("heading", { name: "Zara Nwosu", exact: true }).waitFor(); await snapshot("forward-person");
   await page.goBack(); await page.getByRole("searchbox", { name: "Search people" }).fill("");
-  return { snapshots, queryless };
+  const organization = [];
+  for (const name of ["Add position", "Add area"]) {
+    const peopleRoute = await page.evaluate(() => location.hash);
+    await page.getByRole("button", { name: "Organization settings", exact: true }).click();
+    const entry = page.getByRole("button", { name, exact: true });
+    await entry.click();
+    const dialog = page.getByRole("dialog", { name, exact: true });
+    await dialog.waitFor();
+    const route = await page.evaluate(() => location.hash), focused = await dialog.evaluate((node) => node.contains(document.activeElement));
+    await page.goBack(); await dialog.waitFor({ state: "hidden" });
+    await waitForPeopleAccess(page, { peopleAccessView: "people", peopleAccessCheck: "layout" });
+    const back = { route: await page.evaluate(() => location.hash), selected: await tabs.getByRole("tab", { selected: true }).textContent(), dialogCount: await page.getByRole("dialog").count() };
+    await page.goForward(); await entry.waitFor();
+    const forward = { route: await page.evaluate(() => location.hash), selected: await tabs.getByRole("tab", { selected: true }).textContent(), dialogCount: await page.getByRole("dialog").count() };
+    organization.push({ name, peopleRoute, route, focused, back, forward });
+    await page.goBack(); await waitForPeopleAccess(page, { peopleAccessView: "people", peopleAccessCheck: "layout" });
+  }
+  return { snapshots, queryless, organization };
 }
 export async function verifyPeopleAccessStickyContext(page) {
   await page.evaluate(() => scrollTo({ top: 500, behavior: "instant" }));

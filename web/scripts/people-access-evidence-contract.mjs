@@ -68,6 +68,7 @@ export function peopleAccessHistoryFailures(history){
   const records=history?.snapshots??[],expected=["delegations","back-routes","back-roles","back-people","forward-roles","selected-person","back-person","forward-person"];
   if(!same(records.map((item)=>item.step),expected)||records.some((item)=>!item.sameDocument||!item.sameMenu||!item.selectedVisible)||records.slice(5).some((item)=>item.search!=="Zara"||!same(item.names,["Zara Nwosu"]))||records.at(-1)?.detail!=="Zara Nwosu")return["browser history must retain document, menu, active visibility and filtered person context"];
   if(!same(history.queryless?.map((item)=>item.view),peopleAccessViews.map((view)=>view.id)) || history.queryless.some((item)=>!item.first || item.first===item.second || item.restored!==item.first || item.restoredRoute!==item.querylessRoute || item.selectedRoute===item.querylessRoute))return["Back from an explicit selection must restore the initial queryless selection in all four views"];
+  if(!same(history.organization?.map((item)=>item.name),["Add position","Add area"])||history.organization.some((item)=>!item.focused||item.back?.route!==item.peopleRoute||item.back?.selected!=="People"||item.back?.dialogCount!==0||item.forward?.route!==item.route||item.forward?.selected!=="Organization settings"||item.forward?.dialogCount!==0))return["advanced organization sheets must close on Back to People and stay closed on Forward"];
   return[];
 }
 export function peopleAccessComposerFailures(composer,scenario,observation){
