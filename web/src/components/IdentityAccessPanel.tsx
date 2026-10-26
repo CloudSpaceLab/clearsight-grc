@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "../http";
 import {
   approveOrganizationPosition,
@@ -39,44 +39,107 @@ import { GroupRoleBindingComposer, ProvisioningSourceComposer } from "./access/I
 import { IdentityAccessInventory } from "./access/IdentityAccessInventory";
 import { EscalationRoutesWorkspace } from "./access/EscalationRoutesWorkspace";
 import { OrganizationInventory } from "./access/OrganizationInventory";
+import { PeopleDirectory } from "./access/PeopleDirectory";
+import { PeopleRoleCatalog } from "./access/PeopleRoleCatalog";
+import { Button, MetricCard, Notice } from "./ui";
+import "./access/people-access.css";
 
 type Composer = "source" | "binding" | null;
-type WorkspaceArea = "positions" | "reporting" | "directory" | "escalation";
+export type IdentityAccessArea = "people" | "roles" | "positions" | "reporting" | "directory" | "escalation";
+type WorkspaceArea = IdentityAccessArea;
+type Props = {
+  area?: IdentityAccessArea;
+  onAreaChange?: (area: IdentityAccessArea) => void;
+  organizationName?: string;
+  legalEntityName?: string;
+  scopeKey?: string;
+  canRead?: boolean;
+  active?: boolean;
+  selectedPersonID?: string;
+  onSelectPerson?: (id: string | undefined) => void;
+  selectedRoleID?: string;
+  onSelectRole?: (id: string | undefined) => void;
+};
 
-export function IdentityAccessPanel() {
+export function IdentityAccessPanel(props: Props) {
+  return <IdentityAccessWorkspace key={props.scopeKey || "access"} {...props}/>;
+}
+
+function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizationName, legalEntityName, canRead = true, active = true, selectedPersonID, onSelectPerson, selectedRoleID, onSelectRole }: Props) {
   const [overview, setOverview] = useState<IdentityAccessOverview | null>(null);
   const [state, setState] = useState<"loading" | "live" | "restricted" | "unavailable">("loading");
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState("");
   const [token, setToken] = useState("");
   const [composer, setComposer] = useState<Composer>(null);
-  const [area, setArea] = useState<WorkspaceArea>("positions");
+  const [localArea, setLocalArea] = useState<WorkspaceArea>("positions");
+  const [reload, setReload] = useState(0);
+  const [refreshState, setRefreshState] = useState<"idle" | "loading" | "error">("idle");
+  const readController = useRef<AbortController | null>(null);
+  const readGeneration = useRef(0);
+  const area = controlledArea ?? localArea;
+  const [visitedAreas, setVisitedAreas] = useState<WorkspaceArea[]>([area]);
+  const embedded = controlledArea !== undefined;
+  const panelClass = `identity-access-panel${embedded ? " identity-access-panel--embedded" : ""}`;
 
-  async function load() {
-    setState("loading");
+  useEffect(() => {
+    setVisitedAreas((current) => current.includes(area) ? current : [...current, area]);
+  }, [area]);
+
+  function setArea(next: WorkspaceArea) {
+    setLocalArea(next);
+    onAreaChange?.(next);
+  }
+
+  async function readOverview(retainRecords: boolean) {
+    if (!canRead || !active) return;
+    readController.current?.abort();
+    const controller = new AbortController();
+    readController.current = controller;
+    const generation = ++readGeneration.current;
+    if (retainRecords) setRefreshState("loading");
+    else setState("loading");
     try {
-      setOverview(await loadIdentityAccessOverview());
+      const value = await loadIdentityAccessOverview(controller.signal);
+      if (controller.signal.aborted || generation !== readGeneration.current) return;
+      setOverview(value);
       setState("live");
+      setRefreshState("idle");
     } catch (error) {
+      if (controller.signal.aborted || generation !== readGeneration.current) return;
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        setOverview(null);
+        setState("restricted");
+        setRefreshState("idle");
+      } else if (retainRecords) setRefreshState("error");
+      else {
+        setOverview(null);
+        setState("unavailable");
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!active || !canRead) {
+      setComposer(null);
+      setToken("");
+    }
+    if (!canRead) {
       setOverview(null);
-      setState(error instanceof ApiError && (error.status === 401 || error.status === 403) ? "restricted" : "unavailable");
+      setState("restricted");
+    } else if (active) {
+      void readOverview(overview !== null);
     }
-  }
+    return () => readController.current?.abort();
+  }, [canRead, active, reload]); // Reactivation rechecks the snapshot while retained view state stays mounted.
 
-  async function refresh() {
-    try {
-      setOverview(await loadIdentityAccessOverview());
-    } catch {
-      setNotice("The change was recorded, but the latest access inventory could not be refreshed. Reload before making another change.");
-    }
-  }
-
-  useEffect(() => { void load(); }, []);
+  async function refresh() { await readOverview(overview !== null); }
 
   const activeGroups = useMemo(() => overview?.groups.filter((group) => group.source_state === "ACTIVE") ?? [], [overview]);
   const activeRoles = overview?.roles ?? [];
 
   async function run(label: string, action: () => Promise<void>): Promise<boolean> {
+    if (!active || !canRead || state !== "live" || refreshState !== "idle") return false;
     setBusy(label);
     setNotice("");
     try {
@@ -93,6 +156,7 @@ export function IdentityAccessPanel() {
   async function createSource(input: { code: string; identity_issuer?: string; subject_attribute: "externalId" | "userName" }) {
     return run("source-create", async () => {
       const result = await createIdentitySource(input);
+      if (readController.current?.signal.aborted) return;
       setToken(result.token);
       setNotice("Provisioning source created. Copy the token now; it will not be shown again.");
       setOverview((current) => current ? {
@@ -113,6 +177,7 @@ export function IdentityAccessPanel() {
   async function rotateSource(source: IdentitySource) {
     await run(`rotate-${source.id}`, async () => {
       const next = await rotateIdentitySourceToken(source.id);
+      if (readController.current?.signal.aborted) return;
       setToken(next.token);
       setNotice("Token rotated. The previous token is no longer valid.");
     });
@@ -194,6 +259,7 @@ export function IdentityAccessPanel() {
   }
 
   async function simulatePosition(revision: OrganizationPositionRevision): Promise<OrganizationPositionRouteSimulation | null> {
+    if (!active || !canRead || state !== "live" || refreshState !== "idle") return null;
     setBusy("position-simulate-" + revision.id);
     setNotice("");
     try {
@@ -254,25 +320,35 @@ export function IdentityAccessPanel() {
     });
   }
 
-  if (state === "loading") return <section className="identity-access-panel" aria-busy="true"><div className="section-header"><div><span className="eyebrow">Organization & access</span><h2>Loading…</h2></div></div></section>;
-  if (state === "restricted") return <section className="identity-access-panel"><div className="section-header"><div><span className="eyebrow">Organization & access</span><h2>Access restricted</h2></div></div></section>;
-  if (state === "unavailable" || !overview) return <section className="identity-access-panel"><div className="section-header"><div><span className="eyebrow">Organization & access</span><h2>Unavailable</h2></div><button className="secondary-button" type="button" onClick={() => void load()}>Retry</button></div></section>;
+  if (!canRead || state === "restricted") return <section className={panelClass}><Notice><strong>People & access restricted.</strong> Ask your administrator for access to identity settings.</Notice></section>;
+  if (state === "loading") return <section className={panelClass} aria-busy="true"><Notice>Loading people and access settings…</Notice></section>;
+  if (state === "unavailable" || !overview) return <section className={panelClass}><Notice tone="error">People and access settings could not be loaded.</Notice><Button onPress={() => setReload((value) => value + 1)}>Retry</Button></section>;
 
-  const isBusy = busy !== "";
+  const isBusy = busy !== "" || refreshState !== "idle" || !active;
+  const canChange = active && refreshState === "idle";
 
-  return <section className="identity-access-panel" aria-label="Identity and access configuration">
-    <div className="section-header identity-access-heading"><div><span className="eyebrow">Organization & access</span><h2>Organization & access</h2></div><span className="identity-health">{overview.sources.filter((source) => source.status === "ACTIVE").length} active source{overview.sources.filter((source) => source.status === "ACTIVE").length === 1 ? "" : "s"}</span></div>
+  return <section className={panelClass} aria-label="Identity and access configuration">
+    {!embedded && <div className="section-header identity-access-heading"><div><span className="eyebrow">Organization & access</span><h2>Organization & access</h2></div><span className="identity-health">{overview.sources.filter((source) => source.status === "ACTIVE").length} active source{overview.sources.filter((source) => source.status === "ACTIVE").length === 1 ? "" : "s"}</span></div>}
     {notice && <div className="inline-notice" role="status">{notice}</div>}
+    {refreshState !== "idle" && <Notice tone={refreshState === "error" ? "warning" : "info"}>{refreshState === "loading" ? "Checking the latest people and access settings…" : <>The latest access settings could not be loaded. The previous list remains visible; reload before making a change. <Button variant="quiet" onPress={() => setReload((value) => value + 1)}>Retry access settings</Button></>}</Notice>}
     {token && <div className="identity-token" role="status"><div><strong>Provisioning token — shown once</strong><p>Copy this token to your SCIM provider now. It cannot be recovered after you leave this screen.</p><code>{token}</code></div><div className="identity-token-actions"><button className="secondary-button" type="button" onClick={() => void navigator.clipboard?.writeText(token)}>Copy</button><button className="text-button" type="button" onClick={() => setToken("")}>Hide</button></div></div>}
 
-    <div className="identity-access-tabs" role="tablist" aria-label="Identity and access areas">
+    {!embedded && <div className="identity-access-tabs" role="tablist" aria-label="Identity and access areas">
       <AreaTab area="positions" active={area} onSelect={setArea}>Organization</AreaTab>
       <AreaTab area="reporting" active={area} onSelect={setArea}>Reporting lines</AreaTab>
       <AreaTab area="directory" active={area} onSelect={setArea}>Directory groups & access</AreaTab>
       <AreaTab area="escalation" active={area} onSelect={setArea}>Escalation routes</AreaTab>
-    </div>
+    </div>}
 
-    <div className="identity-access-area" role="tabpanel" aria-label={areaLabel(area)}>
+    {(area === "people" || area === "roles") && <div className="people-access-summary" aria-label="Loaded access records">
+      <MetricCard label="People" value={overview.people.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
+      <MetricCard label="Groups" value={overview.groups.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
+      <MetricCard label="Sources" value={overview.sources.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
+      <MetricCard label="Role definitions" value={overview.roles.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
+    </div>}
+    <div className="identity-access-area" role={embedded ? undefined : "tabpanel"} aria-label={embedded ? undefined : areaLabel(area)}>
+      {embedded && (area === "people" || visitedAreas.includes("people")) && <div hidden={area !== "people"}><PeopleDirectory people={overview.people} positions={overview.positions} roles={overview.roles} organizationName={organizationName} legalEntityName={legalEntityName} selectedPersonID={selectedPersonID} onSelectPerson={onSelectPerson} onOpenOrganization={() => setArea("positions")}/></div>}
+      {embedded && (area === "roles" || visitedAreas.includes("roles")) && <div hidden={area !== "roles"}><PeopleRoleCatalog roles={overview.roles} bindings={overview.bindings} legalEntityName={legalEntityName} selectedRoleID={selectedRoleID} onSelectRole={onSelectRole} onOpenOrganization={() => setArea("positions")} onOpenMappings={() => setArea("directory")}/></div>}
       {(area === "positions" || area === "reporting") && <OrganizationInventory
         positions={overview.positions}
         people={overview.people}
@@ -285,7 +361,7 @@ export function IdentityAccessPanel() {
         dataBoundary={overview.data_boundary}
         dataBoundaryRevisions={overview.data_boundary_revisions}
         actorPrincipalID={overview.actor_principal_id}
-        canConfigure={overview.can_configure_organization}
+        canConfigure={overview.can_configure_organization && canChange}
         isBusy={isBusy}
         scopesTruncated={overview.organization_scopes_truncated === true}
         mode={area}
@@ -310,9 +386,8 @@ export function IdentityAccessPanel() {
         signIn={overview.sign_in}
         sources={overview.sources}
         bindings={overview.bindings}
-        people={overview.people}
         groups={overview.groups}
-        canConfigure={overview.can_configure}
+        canConfigure={overview.can_configure && canChange}
         busy={isBusy}
         onAddSource={() => setComposer("source")}
         onAddMapping={() => setComposer("binding")}
@@ -341,5 +416,5 @@ function AreaTab({ area, active, onSelect, children }: { area: WorkspaceArea; ac
 }
 
 function areaLabel(area: WorkspaceArea) {
-  return ({ positions: "Organization", reporting: "Reporting lines", directory: "Directory groups and access", escalation: "Escalation routes" } as const)[area];
+  return ({ people: "People", roles: "Roles", positions: "Organization", reporting: "Reporting lines", directory: "Directory groups and access", escalation: "Escalation routes" } as const)[area];
 }

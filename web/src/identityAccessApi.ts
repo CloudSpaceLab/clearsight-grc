@@ -386,8 +386,8 @@ function request<T>(path: string, init?: RequestInit): Promise<T> {
   return requestJSON<T>(apiBase, path, init);
 }
 
-export async function loadIdentityAccessOverview(): Promise<IdentityAccessOverview> {
-  const overview = await request<IdentityAccessOverview>("/api/v1/access/overview?limit=50");
+export async function loadIdentityAccessOverview(signal?: AbortSignal): Promise<IdentityAccessOverview> {
+  const overview = await request<IdentityAccessOverview>("/api/v1/access/overview?limit=50", { signal });
   return {
     ...overview,
     sources: overview.sources ?? [],
