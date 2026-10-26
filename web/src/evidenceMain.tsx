@@ -9,6 +9,7 @@ import { VendorCaptureEvidencePage, type VendorCaptureEvidenceState } from "./ve
 import { VendorReleaseEvidencePage } from "./vendorReleaseEvidence";
 import { installVendorComplianceEvidence, VendorComplianceEvidencePage } from "./vendorComplianceEvidence";
 import { installRopaEvidence } from "./ropaEvidence";
+import { installPeopleAccessEvidence } from "./peopleAccessEvidence";
 import { installReportingEvidence } from "./reportingEvidence";
 import { installNotificationWorkspaceEvidence } from "./notificationWorkspaceEvidence";
 import { installIssueWorkspaceFollowThroughEvidence } from "./issueWorkspaceFollowThroughEvidence";
@@ -37,6 +38,7 @@ installVendorCollectionEvidence();
 installUITruthEvidence();
 installVendorComplianceEvidence();
 installRopaEvidence();
+installPeopleAccessEvidence();
 installReportingEvidence();
 installIssueWorkspaceFollowThroughEvidence();
 installNotificationWorkspaceEvidence();
