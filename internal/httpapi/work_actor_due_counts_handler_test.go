@@ -44,10 +44,8 @@ func TestActorWorkCountsEndpointReturnsVerifiedSourcePopulation(t *testing.T) {
 		t.Fatalf("counts HTTP %d: %s", response.Code, response.Body.String())
 	}
 	var body struct {
-		Total, Overdue, DueSoon, Undated int64
-		Coverage, CountBasis             string
-		AsOf                             time.Time
-		Scope                            struct {
+		AsOf time.Time `json:"as_of"`
+		Scope struct {
 			TenantID      string `json:"tenant_id"`
 			LegalEntityID string `json:"legal_entity_id"`
 			PrincipalID   string `json:"principal_id"`
@@ -86,7 +84,7 @@ func TestActorWorkCountsEndpointRejectsUnsupportedAndCrossScopeQueries(t *testin
 	api := &API{deps: Dependencies{Workflow: workflow.NewService(workflow.NewMemoryRepository(nil))}}
 	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "actor"}
 	cases := []struct {
-		path string
+		path   string
 		status int
 	}{
 		{"/api/v1/work/assignment-counts?tenant_id=other", http.StatusForbidden},
