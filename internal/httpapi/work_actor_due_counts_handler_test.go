@@ -44,7 +44,7 @@ func TestActorWorkCountsEndpointReturnsVerifiedSourcePopulation(t *testing.T) {
 		t.Fatalf("counts HTTP %d: %s", response.Code, response.Body.String())
 	}
 	var body struct {
-		AsOf time.Time `json:"as_of"`
+		AsOf  time.Time `json:"as_of"`
 		Scope struct {
 			TenantID      string `json:"tenant_id"`
 			LegalEntityID string `json:"legal_entity_id"`
