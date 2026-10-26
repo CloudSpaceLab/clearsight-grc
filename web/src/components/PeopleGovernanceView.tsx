@@ -57,7 +57,7 @@ export function PeopleGovernanceView({ view, policies, delegations, currentEntit
   }
 
   return <>
-    <section className="people-access-summary people-governance-summary" aria-label={`${title} summary`}>
+    <section className={`people-access-summary people-governance-summary${quality === "partial" ? "" : " people-governance-summary--unconfirmed"}`} aria-label={`${title} summary`}>
       <MetricCard label={isPolicies ? "Policies" : "Records"} value={count()} quality={quality} qualityLabel={qualityLabel}/>
       <MetricCard label="Recorded active" value={count((record) => record.status === "ACTIVE")} quality={quality} qualityLabel={qualityLabel}/>
       <MetricCard label="Awaiting approval" value={count((record) => ["PENDING_APPROVAL", "IN_REVIEW"].includes(record.status))} quality={quality} qualityLabel={qualityLabel}/>

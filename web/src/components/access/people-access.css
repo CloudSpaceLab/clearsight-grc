@@ -15,9 +15,9 @@
   --cs-metric-card-value-size: 24px;
   --cs-metric-card-label-transform: none;
   --cs-metric-card-label-spacing: normal;
+  --cs-metric-card-heading-columns: minmax(0, 1fr) auto;
   align-content: start;
 }
-.people-access-summary .cs-metric-card__heading { grid-template-columns: minmax(0, 1fr) auto; }
 .people-access-summary .cs-metric-card__label { font-size: var(--cs-font-size-caption); }
 .people-access-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(320px, .69fr); gap: 14px; align-items: start; min-inline-size: 0; }
 .people-access-layout > *, .people-access-layout .cs-surface { min-inline-size: 0; }
@@ -102,6 +102,7 @@
   .identity-access-panel--embedded { padding: 0; }
   .people-access-summary { gap: 7px; }
   .people-access-summary .cs-metric-card { --cs-metric-card-min-height: 70px; --cs-metric-card-padding: 10px; --cs-metric-card-value-size: 21px; }
+  .people-governance-summary--unconfirmed .cs-metric-card { --cs-metric-card-heading-columns: minmax(0, 1fr); }
   .people-directory__toolbar { margin-block-end: 12px; }
   .people-access-layout .people-directory__records .cs-selectable-record { grid-template-columns: 31px minmax(0, 1fr) minmax(0, .85fr); min-block-size: 76px; padding: 11px; gap: 4px 7px; }
   .people-directory__records .people-access-avatar { inline-size: 31px; block-size: 31px; border-radius: var(--cs-primitive-radius-10); }
