@@ -106,6 +106,33 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 	return values, nil
 }
 
+
+func (r *MemoryRepository) CountActorWorkDue(_ context.Context, filter ListFilter, asOf time.Time) (ActorWorkDueCounts, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var counts ActorWorkDueCounts
+	soon := asOf.Add(7 * 24 * time.Hour)
+	for _, task := range r.tasks {
+		if task.TenantID != filter.TenantID ||
+			filter.LegalEntityID != "" && filter.LegalEntityID != "*" && task.LegalEntityID != filter.LegalEntityID ||
+			task.PrincipalID != filter.PrincipalID ||
+			task.Status == StatusCompleted || task.Status == StatusCancelled ||
+			filter.UpdatedThrough != nil && task.UpdatedAt.After(*filter.UpdatedThrough) ||
+			!ActorWorkVisibleTo(task, filter.PrincipalID) {
+			continue
+		}
+		counts.Total++
+		if task.DueAt == nil {
+			counts.Undated++
+		} else if task.DueAt.Before(asOf) {
+			counts.Overdue++
+		} else if !task.DueAt.After(soon) {
+			counts.DueSoon++
+		}
+	}
+	return counts, nil
+}
+
 func cloneTask(task Task) Task {
 	task.Context = clone(task.Context)
 	task.SourceBindings = append([]sourceaccess.BindingReference(nil), task.SourceBindings...)
