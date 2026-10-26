@@ -5,7 +5,7 @@
 .people-access-workspace__crumb { display: flex; align-items: center; gap: 8px; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
 .people-access-workspace__heading h1 { margin: 0; color: var(--cs-text-strong); font-size: 34px; font-weight: 750; letter-spacing: -.04em; line-height: 1.1; }
 .people-access-workspace__actions { display: flex; flex: none; gap: 10px; }
-.people-access-workspace__wave { position: absolute; z-index: auto; inset: 0 5% 0 auto; inline-size: 57%; block-size: 128px; color: var(--cs-action-primary); opacity: .06; pointer-events: none; }
+.people-access-workspace__wave { position: absolute; z-index: auto; inset: 0 5% 0 auto; inline-size: 57%; block-size: 100%; color: var(--cs-action-primary); opacity: .06; pointer-events: none; }
 .people-access-workspace > .cs-tabs { --cs-tabs-gap: 22px; --cs-tabs-height: var(--cs-control-height); --cs-tabs-padding-inline: 7px; --cs-tabs-panel-gap: 14px; }
 .people-access-workspace > .cs-tabs > .cs-tabs__list { display: flex; flex-wrap: nowrap; overflow-x: auto; padding-inline: 20px; }
 .people-access-workspace > .cs-tabs > .cs-tabs__list > .cs-tabs__tab { flex: none; min-inline-size: var(--cs-target-min); inline-size: auto; white-space: nowrap; font-size: var(--cs-font-size-caption); }
