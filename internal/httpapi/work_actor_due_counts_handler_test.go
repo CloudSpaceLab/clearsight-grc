@@ -21,7 +21,7 @@ func TestActorWorkCountsEndpointReturnsVerifiedSourcePopulation(t *testing.T) {
 			ID: id, TenantID: "bank", LegalEntityID: "entity", PrincipalID: "actor",
 			WorkflowKind: workflow.MatterActionWorkflowKind, MatterID: id,
 			MatterScope: json.RawMessage(`{"access":"INTERNAL"}`),
-			Title: "Review issue", Status: workflow.StatusReady,
+			Title:       "Review issue", Status: workflow.StatusReady,
 			DueAt: due, UpdatedAt: base,
 		}
 	}
