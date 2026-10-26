@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadActorWorkPage } from "../api";
 import type { AttentionItem } from "../types";
+import { workSourceFilters } from "./workSourceFilters";
+import type { WorkDueWindow } from "./workQueuePresentation";
 
 type SearchResult = {
   queryKey?: string;
@@ -19,9 +21,18 @@ const emptyResult: SearchResult = {
 
 // Source search is title-only; it must not be interpreted as a global Work,
 // approval or administrator-exception query.
-export function useActorWorkSearch(search: string, scopeKey: string, enabled: boolean) {
+export function useActorWorkSearch(
+  search: string, scopeKey: string, enabled: boolean,
+  status?: string, dueWindow: WorkDueWindow = "ALL",
+) {
   const term = enabled ? search.trim() : "";
-  const queryKey = `${scopeKey}\u0000${term}`;
+  const filters = useMemo(() => workSourceFilters(status, dueWindow, Date.now()),
+    [status, dueWindow, scopeKey, term]);
+  const queryKey = `${scopeKey}\u0000${term}\u0000${JSON.stringify(filters)}`;
+  const loadPage = useCallback((cursor?: string) => {
+    if (Object.keys(filters).length) return loadActorWorkPage(term, cursor, filters);
+    return cursor ? loadActorWorkPage(term, cursor) : loadActorWorkPage(term);
+  }, [term, filters]);
   const generation = useRef(0);
   const [retryToken, setRetryToken] = useState(0);
   const [result, setResult] = useState<SearchResult>(emptyResult);
@@ -34,7 +45,7 @@ export function useActorWorkSearch(search: string, scopeKey: string, enabled: bo
     }
     setResult({ ...emptyResult, queryKey, state: "loading" });
     const timer = window.setTimeout(() => {
-      void loadActorWorkPage(term).then((page) => {
+      void loadPage().then((page) => {
         if (generation.current !== current) return;
         setResult({
           queryKey, state: "live", items: page.items, asOf: page.as_of,
@@ -49,7 +60,7 @@ export function useActorWorkSearch(search: string, scopeKey: string, enabled: bo
       window.clearTimeout(timer);
       generation.current++;
     };
-  }, [term, scopeKey, queryKey, retryToken]);
+  }, [term, queryKey, loadPage, retryToken]);
 
   const loadMore = useCallback(() => {
     if (!term || result.queryKey !== queryKey || result.state !== "live" || !result.hasMore ||
@@ -57,7 +68,7 @@ export function useActorWorkSearch(search: string, scopeKey: string, enabled: bo
     const current = generation.current;
     const cursor = result.cursor;
     setResult((previous) => ({ ...previous, loadingMore: true, loadMoreFailed: false }));
-    void loadActorWorkPage(term, cursor).then((page) => {
+    void loadPage(cursor).then((page) => {
       if (generation.current !== current) return;
       setResult((previous) => {
         const existing = new Set(previous.items.map((item) => item.id));
@@ -76,7 +87,7 @@ export function useActorWorkSearch(search: string, scopeKey: string, enabled: bo
         setResult((previous) => ({ ...previous, loadingMore: false, loadMoreFailed: true }));
       }
     });
-  }, [result, term, queryKey]);
+  }, [result, term, queryKey, loadPage]);
 
   const visible = result.queryKey === queryKey ? result : { ...emptyResult, state: term ? "loading" as const : "idle" as const };
   return { ...visible, loadMore, retry: () => setRetryToken((value) => value + 1) };

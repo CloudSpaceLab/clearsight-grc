@@ -182,11 +182,18 @@ export type ActorWorkPage = {
   count_basis: "NOT_AVAILABLE";
 };
 
-export function loadActorWorkPage(search: string, cursor?: string): Promise<ActorWorkPage> {
+export type ActorWorkFilters = {
+  status?: "READY" | "IN_PROGRESS" | "BLOCKED" | "ESCALATED";
+  due_from?: string;
+  due_before?: string;
+};
+
+export function loadActorWorkPage(search: string, cursor?: string, filters: ActorWorkFilters = {}): Promise<ActorWorkPage> {
   return scopedRequest<ActorWorkPage>("/api/v1/work/assignments", {
     q: search.trim(),
     cursor,
     limit: 50,
+    ...filters,
   });
 }
 

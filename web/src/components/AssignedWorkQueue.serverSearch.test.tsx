@@ -14,7 +14,7 @@ const item: AttentionItem = {
 };
 const asOf = "2026-10-21T00:00:00Z";
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => { vi.resetAllMocks(); });
 
 describe("source-backed Work title search", () => {
   it("queries beyond the Today feed and pages without changing the default items", async () => {
@@ -73,6 +73,33 @@ describe("source-backed Work title search", () => {
     expect(screen.queryByRole("row", { name: item.title })).toBeNull();
     expect(screen.getByText("Searching assignment titles…")).toBeTruthy();
     expect(screen.getByRole("searchbox", { name: "Search assignment titles" })).toBeTruthy();
+  });
+
+  it("does not claim the approval queue is empty until later pages are checked", async () => {
+    const review = { ...item, intervention_class: "REVIEW" as const };
+    const approval = { ...item, id: "workflow_approval", title: "Authorize retained evidence", intervention_class: "AUTHORIZATION" as const };
+    vi.mocked(loadActorWorkPage)
+      .mockResolvedValueOnce({
+        items: [review], next_cursor: "remaining", has_more: true, as_of: asOf,
+        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE",
+      })
+      .mockResolvedValueOnce({
+        items: [approval], has_more: false, as_of: asOf,
+        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE",
+      });
+
+    render(<AssignedWorkQueue presentation="workspace" state="live" items={[]}
+      sourceSearchScopeKey="actor:entity" onOpenItem={vi.fn()}/>);
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search assignment titles" }), {
+      target: { value: "retained" },
+    });
+    expect(await screen.findByRole("row", { name: review.title })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Approvals" }));
+    expect(screen.getByText("No matching work loaded yet")).toBeTruthy();
+    expect(screen.getByText("Load more assignments to check remaining records.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Load more assignments" }));
+    expect(await screen.findByRole("row", { name: approval.title })).toBeTruthy();
+    expect(screen.queryByText("No matching work loaded yet")).toBeNull();
   });
 
   it("does not use server search when a narrower scope cannot be queried", () => {
