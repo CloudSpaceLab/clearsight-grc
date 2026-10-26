@@ -5,7 +5,7 @@ const dayMs = 24 * 60 * 60 * 1000;
 
 export function isSourceWorkStatus(value: string): boolean {
   return ["READY", "IN_PROGRESS", "BLOCKED", "ESCALATED"].includes(
-    value.trim().toUpperCase().replace(/\\s+/g, "_"),
+    value.trim().toUpperCase().replace(/\s+/g, "_"),
   );
 }
 
