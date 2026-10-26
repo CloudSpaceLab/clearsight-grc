@@ -106,7 +106,6 @@ func (r *MemoryRepository) List(_ context.Context, filter ListFilter) ([]Task, e
 	return values, nil
 }
 
-
 func (r *MemoryRepository) CountActorWorkDue(_ context.Context, filter ListFilter, asOf time.Time) (ActorWorkDueCounts, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
