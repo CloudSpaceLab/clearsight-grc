@@ -77,10 +77,19 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
   const [refreshState, setRefreshState] = useState<"idle" | "loading" | "error">("idle");
   const readController = useRef<AbortController | null>(null);
   const readGeneration = useRef(0);
+  const currentAccess = useRef({ active, canRead, mounted: true, generation: 0 });
+  if (currentAccess.current.active !== active || currentAccess.current.canRead !== canRead) currentAccess.current.generation += 1;
+  currentAccess.current.active = active;
+  currentAccess.current.canRead = canRead;
   const area = controlledArea ?? localArea;
   const [visitedAreas, setVisitedAreas] = useState<WorkspaceArea[]>([area]);
   const embedded = controlledArea !== undefined;
   const panelClass = `identity-access-panel${embedded ? " identity-access-panel--embedded" : ""}`;
+
+  useEffect(() => {
+    currentAccess.current.mounted = true;
+    return () => { currentAccess.current.mounted = false; };
+  }, []);
 
   useEffect(() => {
     setVisitedAreas((current) => current.includes(area) ? current : [...current, area]);
@@ -92,7 +101,7 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
   }
 
   async function readOverview(retainRecords: boolean) {
-    if (!canRead || !active) return;
+    if (!currentAccess.current.mounted || !currentAccess.current.canRead || !currentAccess.current.active) return;
     readController.current?.abort();
     const controller = new AbortController();
     readController.current = controller;
@@ -135,6 +144,11 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
 
   async function refresh() { await readOverview(overview !== null); }
 
+  function acceptsResult(generation: number) {
+    const current = currentAccess.current;
+    return current.mounted && current.active && current.canRead && generation === current.generation;
+  }
+
   const activeGroups = useMemo(() => overview?.groups.filter((group) => group.source_state === "ACTIVE") ?? [], [overview]);
   const activeRoles = overview?.roles ?? [];
 
@@ -154,9 +168,10 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
   }
 
   async function createSource(input: { code: string; identity_issuer?: string; subject_attribute: "externalId" | "userName" }) {
+    const generation = currentAccess.current.generation;
     return run("source-create", async () => {
       const result = await createIdentitySource(input);
-      if (readController.current?.signal.aborted) return;
+      if (!acceptsResult(generation)) return;
       setToken(result.token);
       setNotice("Provisioning source created. Copy the token now; it will not be shown again.");
       setOverview((current) => current ? {
@@ -167,17 +182,20 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
   }
 
   async function createBinding(input: { group_id: string; role_template_id: string; department_path: string[] }) {
+    const generation = currentAccess.current.generation;
     return run("binding-create", async () => {
       const binding = await createGroupRoleBinding(input);
+      if (!acceptsResult(generation)) return;
       setNotice("Directory group role mapping added. Material decision authority is unchanged.");
       setOverview((current) => current ? { ...current, bindings: [...current.bindings, binding] } : current);
     });
   }
 
   async function rotateSource(source: IdentitySource) {
+    const generation = currentAccess.current.generation;
     await run(`rotate-${source.id}`, async () => {
       const next = await rotateIdentitySourceToken(source.id);
-      if (readController.current?.signal.aborted) return;
+      if (!acceptsResult(generation)) return;
       setToken(next.token);
       setNotice("Token rotated. The previous token is no longer valid.");
     });
@@ -344,7 +362,7 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
       <MetricCard label="People" value={overview.people.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
       <MetricCard label="Groups" value={overview.groups.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
       <MetricCard label="Sources" value={overview.sources.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
-      <MetricCard label="Role definitions" value={overview.roles.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
+      <MetricCard label="Roles" value={overview.roles.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
     </div>}
     <div className="identity-access-area" role={embedded ? undefined : "tabpanel"} aria-label={embedded ? undefined : areaLabel(area)}>
       {embedded && (area === "people" || visitedAreas.includes("people")) && <div hidden={area !== "people"}><PeopleDirectory people={overview.people} positions={overview.positions} roles={overview.roles} organizationName={organizationName} legalEntityName={legalEntityName} selectedPersonID={selectedPersonID} onSelectPerson={onSelectPerson} onOpenOrganization={() => setArea("positions")}/></div>}

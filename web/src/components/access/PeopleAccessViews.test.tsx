@@ -4,7 +4,7 @@ import { ApiError } from "../../http";
 import type { IdentityAccessOverview } from "../../identityAccessApi";
 import { IdentityAccessPanel } from "../IdentityAccessPanel";
 
-const api = vi.hoisted(() => ({ loadIdentityAccessOverview: vi.fn() }));
+const api = vi.hoisted(() => ({ loadIdentityAccessOverview: vi.fn(), createIdentitySource: vi.fn() }));
 vi.mock("../../identityAccessApi", async (original) => ({ ...await original<typeof import("../../identityAccessApi")>(), ...api }));
 
 function overview(): IdentityAccessOverview {
@@ -114,6 +114,29 @@ describe("People and role views", () => {
 });
 
 describe("access read recovery and isolation", () => {
+  it("does not restore a one-time token or duplicate a source after leaving a pending creation", async () => {
+    const value = overview();
+    value.can_configure = true;
+    api.loadIdentityAccessOverview.mockResolvedValue(value);
+    const created = { id: "second-source", code: "SECOND", status: "ACTIVE", subject_attribute: "externalId", active_users: 0, active_groups: 0 };
+    let resolveCreation!: (result: { source: typeof created; token: string }) => void;
+    api.createIdentitySource.mockImplementationOnce(() => new Promise((resolve) => { resolveCreation = resolve; }));
+    const { rerender } = render(<IdentityAccessPanel area="directory" active/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Add source" }));
+    const dialog = screen.getByRole("dialog", { name: "Add provisioning source" });
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Code" }), { target: { value: "SECOND" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Create source" }));
+    await waitFor(() => expect(api.createIdentitySource).toHaveBeenCalledTimes(1));
+    rerender(<IdentityAccessPanel area="directory" active={false}/>);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    api.loadIdentityAccessOverview.mockResolvedValueOnce({ ...value, sources: [...value.sources, created] });
+    rerender(<IdentityAccessPanel area="directory" active/>);
+    await screen.findByText("SECOND");
+    await act(async () => resolveCreation({ source: created, token: "late-one-time-token" }));
+    expect(screen.queryByText("late-one-time-token")).toBeNull();
+    expect(screen.getAllByText("SECOND")).toHaveLength(1);
+  });
+
   it("rechecks a retained view on activation without remounting its filters", async () => {
     const { rerender } = render(<IdentityAccessPanel area="people" active/>);
     const search = await screen.findByRole("searchbox", { name: "Search people" });
