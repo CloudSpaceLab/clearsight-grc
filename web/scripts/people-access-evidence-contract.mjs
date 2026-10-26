@@ -14,6 +14,7 @@ export function peopleAccessCaptureFailures(capture, scenario) {
     || !same(layout.localTabs,peopleAccessViews.map((view)=>view.label)) || layout.selectedTab!==peopleAccessViews.find((view)=>view.id===scenario.peopleAccessView).label
     || !same(layout.visiblePanelIDs,[layout.selectedPanelID]) || !inside(layout.selectedBounds,layout.menu) || !layout.selectedVisible || layout.heading.bottom>layout.menu.y+1 || layout.settingsCurrent!=="page" || layout.legacyRail) fail("source heading/menu/selected panel and Settings owner must remain coherent");
   if(scenario.touch && (layout.minTargetWidth<43 || layout.minTargetHeight<43 || layout.undersizedTargets?.length)) fail("visible controls require44px targets");
+  failures.push(...peopleAccessMetricFailures(layout.metrics??[]).map((failure)=>`${scenario.name}: ${failure}`));
   if(scenario.peopleAccessMatrix && (!peopleAccessRect(layout.firstIdentity) || layout.firstUsefulVisible!==true || !peopleAccessRect(layout.firstRow) || layout.firstRowVisible!==true)) fail("complete first record must be fully visible without scrolling");
   if(scenario.peopleAccessMatrix) failures.push(...peopleAccessAnatomyFailures(layout,scenario).map((failure)=>`${scenario.name}: ${failure}`));
   if(check === "layout" && scenario.peopleAccessView === "people" && scenario.viewport.width === 1440 && scenario.theme === "light" && (!capture.sticky || capture.sticky.scrollY < 400 || !peopleAccessRect(capture.sticky.context) || !peopleAccessRect(capture.sticky.bar) || capture.sticky.context.y < capture.sticky.bar.bottom)) fail("desktop context card must clear the sticky context bar after scrolling");
@@ -56,8 +57,7 @@ export function peopleAccessCaptureFailures(capture, scenario) {
   if(check==="composer")failures.push(...peopleAccessComposerFailures(capture.composer,scenario,observed).map((failure)=>`${scenario.name}: ${failure}`));
   if(check==="definition")failures.push(...peopleAccessDefinitionFailures(capture.definition,scenario,policy?.policyRecords).map((failure)=>`${scenario.name}: ${failure}`));
   if(scenario.viewport.width===390&&["composer","definition"].includes(check)) {
-    const continuation=capture.continuation,target=continuation?.target;
-    if(continuation?.image!==`${scenario.name}-continuation.png`||!continuation?.imageSHA256||!continuation.imageBytes||!peopleAccessRect(target)||target.width<43||target.height<43||target.x<0||target.right>scenario.viewport.width||target.y<0||target.bottom>scenario.viewport.height)fail("phone continuation must retain the lower form/review controls within the viewport");
+    failures.push(...peopleAccessContinuationFailures(capture.continuation,scenario).map((failure)=>`${scenario.name}: ${failure}`));
   }
   return failures;
 }
@@ -66,6 +66,23 @@ export function peopleAccessAnatomyFailures(layout,scenario){
   if(scenario.viewport.width>680 && (!inside(wave,heading)||wave.y<heading.y-1||wave.bottom>heading.bottom+1))failures.push("heading wave must remain contained within the heading, clear of the tab strip");
   if(scenario.peopleAccessView==="people" && (!inside(search,controls)||scenario.viewport.width<=1280&&(Math.abs(search.x-controls.x)>1||Math.abs(search.right-controls.right)>1||Math.abs(search.y-controls.y)>1)))failures.push("People search must fill its assigned toolbar row without an inherited width cap");
   return failures;
+}
+export function peopleAccessMetricFailures(metrics){
+  const overlap=(a,b)=>peopleAccessRect(a)&&peopleAccessRect(b)&&Math.min(a.right,b.right)-Math.max(a.x,b.x)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.y,b.y)>1;
+  return metrics.some((metric)=>!inside(metric.labelBounds,metric.bounds)||!inside(metric.qualityBounds,metric.bounds)||!Number.isFinite(metric.labelLongestWordWidth)||!Number.isFinite(metric.qualityLongestWordWidth)||metric.labelLongestWordWidth>metric.labelBounds.width+1||metric.qualityLongestWordWidth>metric.qualityBounds.width+1||overlap(metric.labelBounds,metric.qualityBounds))?["summary labels and quality text must fit whole words without collision or clipping"]:[];
+}
+export function peopleAccessContinuationFailures(continuation,scenario){
+  const target=continuation?.target;
+  if(continuation?.image!==`${scenario.name}-continuation.png`||!continuation?.imageSHA256||!continuation.imageBytes||!peopleAccessRect(target)||target.width<43||target.height<43||target.x<0||target.right>scenario.viewport.width||target.y<0||target.bottom>scenario.viewport.height)return["phone continuation must retain the lower form/review controls within the viewport"];
+  if(!continuation.stability?.identicalConsecutiveFrames||continuation.stability.samples<2||continuation.stability.settledAnimationFrames<2||!inside(target.textBounds,target)||continuation.paint?.contrastPixels<20||!Number.isFinite(continuation.paint?.contrastPixels))return["phone continuation must contain stable painted action text, not only an on-screen DOM box"];
+  return[];
+}
+export function peopleAccessSwitcherFailures(switcher){
+  if(!switcher||switcher.selected!=="Organization")return["organization switcher must identify its current secondary destination"];
+  if(switcher.viewportWidth>760){
+    if(!peopleAccessRect(switcher.list)||switcher.compact!==null||switcher.listDisplay!=="flex"||switcher.compactDisplay!=="none"||switcher.buttons?.length!==4||switcher.buttons.some((button)=>!peopleAccessRect(button)||button.width<43||button.height<43)||!inside(switcher.indicator,switcher.selectedBounds)||switcher.indicator.height<2||switcher.indicatorPosition!=="absolute"||["transparent","rgba(0, 0, 0, 0)"].includes(switcher.indicatorColor))return["desktop organization switcher requires the styled list, current indicator and44px targets with compact control hidden"];
+  }else if(switcher.list!==null||!peopleAccessRect(switcher.compact)||switcher.listDisplay!=="none"||switcher.compactDisplay!=="block"||!peopleAccessRect(switcher.trigger)||switcher.trigger.height<43||switcher.trigger.width<43||switcher.compactValue!=="Organization")return["phone organization switcher requires one labelled compact control with the list hidden"];
+  return[];
 }
 export function peopleAccessFilterFailures(filters){
   const snapshots=filters?.snapshots??[],expected=["loaded","search-twelfth","empty-search","cleared","inactive","source-not-returned","restored"];
@@ -77,6 +94,7 @@ export function peopleAccessHistoryFailures(history){
   if(!same(records.map((item)=>item.step),expected)||records.some((item)=>!item.sameDocument||!item.sameMenu||!item.selectedVisible)||records.slice(5).some((item)=>item.search!=="Zara"||!same(item.names,["Zara Nwosu"]))||records.at(-1)?.detail!=="Zara Nwosu")return["browser history must retain document, menu, active visibility and filtered person context"];
   if(!same(history.queryless?.map((item)=>item.view),peopleAccessViews.map((view)=>view.id)) || history.queryless.some((item)=>!item.first || item.first===item.second || item.restored!==item.first || item.restoredRoute!==item.querylessRoute || item.selectedRoute===item.querylessRoute))return["Back from an explicit selection must restore the initial queryless selection in all four views"];
   if(!same(history.organization?.map((item)=>item.name),["Add position","Add area"])||history.organization.some((item)=>!item.focused||item.back?.route!==item.peopleRoute||item.back?.selected!=="People"||item.back?.dialogCount!==0||item.forward?.route!==item.route||item.forward?.selected!=="Organization settings"||item.forward?.dialogCount!==0))return["advanced organization sheets must close on Back to People and stay closed on Forward"];
+  if(history.organization.some((item)=>peopleAccessSwitcherFailures(item.switcher).length))return["history must retain a styled secondary organization switcher at desktop and phone widths"];
   const source=history.provisioning;
   if(!source?.organizationRoute?.startsWith("#configure/access/positions")||!source?.sourceRoute?.startsWith("#configure/access/directory")||source.back?.route!==source.organizationRoute||source.back?.dialogCount!==0||source.forward?.route!==source.sourceRoute||source.forward?.dialogCount!==0)return["provisioning sheets must close when history changes the secondary organization area"];
   return[];

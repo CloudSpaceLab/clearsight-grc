@@ -124,7 +124,7 @@
   .identity-row { grid-template-columns: 1fr; }
   .identity-row mark { justify-self: start; }
   .identity-organization-summary { grid-template-columns: 1fr 1fr; }
-  .identity-card-header { align-items: stretch; }
+  .identity-card-header { flex-direction: column; align-items: stretch; }
   .identity-position-filters { grid-template-columns: 1fr; min-width: 100%; }
   .identity-position-search { min-width: 100%; }
   .identity-position-table, .identity-position-table tbody, .identity-position-table tr, .identity-position-table td { display: block; width: 100%; }

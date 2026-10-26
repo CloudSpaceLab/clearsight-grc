@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { peopleAccessEvidenceScenarios, peopleAccessViews } from "./people-access-evidence-scenarios.mjs";
-import { peopleAccessAnatomyFailures, peopleAccessCaptureFailures, peopleAccessComposerFailures, peopleAccessDefinitionFailures, peopleAccessFilterFailures, peopleAccessHistoryFailures, peopleAccessSourcePairFailures } from "./people-access-evidence-contract.mjs";
+import { peopleAccessAnatomyFailures, peopleAccessCaptureFailures, peopleAccessComposerFailures, peopleAccessContinuationFailures, peopleAccessDefinitionFailures, peopleAccessFilterFailures, peopleAccessHistoryFailures, peopleAccessMetricFailures, peopleAccessSourcePairFailures, peopleAccessSwitcherFailures } from "./people-access-evidence-contract.mjs";
 const rect=(x,y,width,height)=>({x,y,width,height,right:x+width,bottom:y+height});
+const switcherFixture=()=>({viewportWidth:1440,list:rect(260,300,1140,44),compact:null,listDisplay:"flex",compactDisplay:"none",selected:"Organization",selectedBounds:rect(260,300,120,44),indicator:rect(270,342,100,2),indicatorPosition:"absolute",indicatorColor:"rgb(0, 100, 120)",buttons:[0,1,2,3].map((index)=>({...rect(260+index*140,300,130,44)})),trigger:null,compactValue:"Organization"});
 function fixture(){
  const scenario=peopleAccessEvidenceScenarios.find((item)=>item.peopleAccessView==="people"&&item.peopleAccessCheck==="layout"&&item.viewport.width===1440&&item.theme==="light");
  const names=["Amina Yusuf","Chidi Okonkwo","Funke Adeyemi","Ibrahim Musa","Kemi Adebayo","Morgan Ellis","Nneka Okafor","Olumide Balogun","Sarah Ojo","Tunde Bello","Zainab Abubakar","Zara Nwosu"];
  const layout={evidenceKind:"SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",kind:"people",route:scenario.route,headingText:"People & access",headingCount:1,heading:rect(260,100,1140,130),menu:rect(260,244,1140,50),localTabs:peopleAccessViews.map((view)=>view.label),selectedTab:"People",selectedBounds:rect(275,247,74,44),selectedVisible:true,visiblePanelIDs:["people-panel"],selectedPanelID:"people-panel",settingsCurrent:"page",legacyRail:false,documentWidth:1440,scrollWidth:1440,firstRow:rect(260,596,730,76),firstRowVisible:true,firstIdentity:rect(320,610,130,20),firstUsefulVisible:true,primary:rect(260,420,730,900),context:rect(1004,420,396,700),placement:"beside",contextScrollWidth:396,contextClientWidth:396,recordNames:names,recordCount:12,detailHeading:"Amina Yusuf",footerText:"12 of 12 loaded profiles",text:"People Up to 50 profiles across the organization",metrics:[12,2,2,2].map((value)=>({value:String(value),quality:"partial"})),targets:[],undersizedTargets:[],minTargetWidth:44,minTargetHeight:44};
  Object.assign(layout,{headingWave:rect(700,100,600,128),controls:rect(282,500,686,88),toolbarSearch:rect(282,500,330,44)});
+ layout.metrics=layout.metrics.map((metric,index)=>({...metric,bounds:rect(260+index*280,320,270,80),labelBounds:rect(270+index*280,330,100,16),qualityBounds:rect(420+index*280,330,100,16),labelLongestWordWidth:50,qualityLongestWordWidth:40}));
  return {scenario,capture:{...scenario,peopleAccessLayout:layout,sticky:{scrollY:500,context:rect(1004,96,396,700),heading:rect(1024,151,320,25),bar:rect(240,0,1200,68)},observation:{reads:[{path:"/api/v1/access/overview",query:"?limit=50",status:200,counts:{people:12,groups:2,sources:2,roles:2},people:names.map((display_name,index)=>({id:String(index),display_name,status:"ACTIVE"}))}],commands:[]},errors:[]}};
 }
 test("People/access evidence covers all4source views at5widths and2themes",()=>{
@@ -35,11 +37,30 @@ test("directory filters must search beyond old eighth record and preserve popula
 });
 test("browser history cannot pass after replacing the document/menu or losing active tab containment",()=>{
  const steps=["delegations","back-routes","back-roles","back-people","forward-roles","selected-person","back-person","forward-person"];
- const history={provisioning:{organizationRoute:"#configure/access/positions",sourceRoute:"#configure/access/directory",back:{route:"#configure/access/positions",dialogCount:0},forward:{route:"#configure/access/directory",dialogCount:0}},organization:["Add position","Add area"].map((name)=>({name,focused:true,peopleRoute:"#configure/access",route:"#configure/access/positions",back:{route:"#configure/access",selected:"People",dialogCount:0},forward:{route:"#configure/access/positions",selected:"Organization settings",dialogCount:0}})),queryless:peopleAccessViews.map(({id,route})=>({view:id,first:"First",second:"Second",restored:"First",querylessRoute:route,restoredRoute:route,selectedRoute:`${route}?record=second`})),snapshots:steps.map((step,index)=>({step,sameDocument:true,sameMenu:true,selectedVisible:true,...(index>=5?{search:"Zara",names:["Zara Nwosu"],detail:"Zara Nwosu"}:{})}))};assert.deepEqual(peopleAccessHistoryFailures(history),[]);
+ const history={provisioning:{organizationRoute:"#configure/access/positions",sourceRoute:"#configure/access/directory",back:{route:"#configure/access/positions",dialogCount:0},forward:{route:"#configure/access/directory",dialogCount:0}},organization:["Add position","Add area"].map((name)=>({name,focused:true,peopleRoute:"#configure/access",route:"#configure/access/positions",back:{route:"#configure/access",selected:"People",dialogCount:0},forward:{route:"#configure/access/positions",selected:"Organization settings",dialogCount:0},switcher:switcherFixture()})),queryless:peopleAccessViews.map(({id,route})=>({view:id,first:"First",second:"Second",restored:"First",querylessRoute:route,restoredRoute:route,selectedRoute:`${route}?record=second`})),snapshots:steps.map((step,index)=>({step,sameDocument:true,sameMenu:true,selectedVisible:true,...(index>=5?{search:"Zara",names:["Zara Nwosu"],detail:"Zara Nwosu"}:{})}))};assert.deepEqual(peopleAccessHistoryFailures(history),[]);
  for(const key of ["sameDocument","sameMenu","selectedVisible"]){const changed=structuredClone(history);changed.snapshots[2][key]=false;assert.ok(peopleAccessHistoryFailures(changed).length);}
  const stale=structuredClone(history);stale.queryless[2].restored="Second";assert.ok(peopleAccessHistoryFailures(stale).length);
  const portal=structuredClone(history);portal.organization[0].back.dialogCount=1;assert.ok(peopleAccessHistoryFailures(portal).length);
  const provisioning=structuredClone(history);provisioning.provisioning.forward.dialogCount=1;assert.ok(peopleAccessHistoryFailures(provisioning).length);
+});
+test("unavailable summary copy must fit complete words and avoid quality-label collisions",()=>{
+ const metric={bounds:rect(0,0,156,90),labelBounds:rect(10,10,136,18),qualityBounds:rect(10,34,136,18),labelLongestWordWidth:58,qualityLongestWordWidth:80};assert.deepEqual(peopleAccessMetricFailures([metric]),[]);
+ const narrow=structuredClone(metric);narrow.labelBounds=rect(10,10,22,18);assert.ok(peopleAccessMetricFailures([narrow]).length);
+ const collision=structuredClone(metric);collision.qualityBounds=rect(20,10,120,18);assert.ok(peopleAccessMetricFailures([collision]).length);
+});
+test("secondary switcher rejects both desktop controls showing and an unstyled current indicator",()=>{
+ const desktop=switcherFixture();assert.deepEqual(peopleAccessSwitcherFailures(desktop),[]);
+ const doubled=structuredClone(desktop);doubled.compact=rect(260,344,1140,70);assert.ok(peopleAccessSwitcherFailures(doubled).length);
+ const unstyled=structuredClone(desktop);unstyled.listDisplay="block";unstyled.indicator=null;assert.ok(peopleAccessSwitcherFailures(unstyled).length);
+ const phone={...desktop,viewportWidth:390,list:null,listDisplay:"none",compact:rect(64,300,318,80),compactDisplay:"block",trigger:rect(64,330,318,44),indicator:null,selectedBounds:null};assert.deepEqual(peopleAccessSwitcherFailures(phone),[]);
+ phone.list=rect(64,300,318,20);assert.ok(peopleAccessSwitcherFailures(phone).length);
+});
+test("continuation rejects a geometrically visible action whose settled screenshot has blank label pixels",()=>{
+ const scenario={name:"policy-phone",viewport:{width:390,height:844}},target={...rect(85,649,276,44),textBounds:rect(105,653,234,36)};
+ const continuation={image:"policy-phone-continuation.png",imageBytes:10000,imageSHA256:"c".repeat(64),target,stability:{samples:2,identicalConsecutiveFrames:true,settledAnimationFrames:2},paint:{contrastPixels:900}};
+ assert.deepEqual(peopleAccessContinuationFailures(continuation,scenario),[]);
+ const blank=structuredClone(continuation);blank.paint.contrastPixels=0;assert.ok(peopleAccessContinuationFailures(blank,scenario).length);
+ const unstable=structuredClone(continuation);unstable.stability.identicalConsecutiveFrames=false;assert.ok(peopleAccessContinuationFailures(unstable,scenario).length);
 });
 test("composer evidence rejects lost focus, stale portals, query loss and unbounded candidate recovery",()=>{
  const scenario=peopleAccessEvidenceScenarios.find((item)=>item.peopleAccessView==="delegations"&&item.peopleAccessCheck==="composer"&&item.viewport.width===390);

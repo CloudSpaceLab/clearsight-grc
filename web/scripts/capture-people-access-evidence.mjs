@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { peopleAccessEvidenceScenarios } from "./people-access-evidence-scenarios.mjs";
-import { measurePeopleAccessLayout, openPeopleAccessContext, showPeopleAccessContinuation, verifyPeopleAccessComposer, verifyPeopleAccessDefinition, verifyPeopleAccessFilters, verifyPeopleAccessHistory, verifyPeopleAccessStickyContext, waitForPeopleAccess } from "./people-access-evidence.mjs";
+import { measurePeopleAccessContinuationPaint, measurePeopleAccessLayout, openPeopleAccessContext, settlePeopleAccessPaint, showPeopleAccessContinuation, verifyPeopleAccessComposer, verifyPeopleAccessDefinition, verifyPeopleAccessFilters, verifyPeopleAccessHistory, verifyPeopleAccessStickyContext, waitForPeopleAccess } from "./people-access-evidence.mjs";
 import { peopleAccessCaptureFailures } from "./people-access-evidence-contract.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
@@ -93,9 +93,16 @@ try {
       Object.assign(record, { imageBytes: bytes.length, imageSHA256: digest(bytes) });
       if (scenario.viewport.width === 390 && ["composer", "definition"].includes(scenario.peopleAccessCheck)) {
         const target = await showPeopleAccessContinuation(page, scenario), name = `${scenario.name}-continuation.png`;
-        await page.screenshot({ path: path.join(out, name), fullPage: false, animations: "disabled", caret: "hide" });
-        const continuationBytes = await readFile(path.join(out, name));
-        record.continuation = { image: name, imageBytes: continuationBytes.length, imageSHA256: digest(continuationBytes), target };
+        let previous, continuationBytes, samples=0;
+        for (;samples<4;) {
+          await settlePeopleAccessPaint(page);
+          const next=await page.screenshot({fullPage:false,animations:"disabled",caret:"hide"});samples++;
+          if(previous?.equals(next)){continuationBytes=next;break;}previous=next;
+        }
+        if(!continuationBytes)throw new Error(`${scenario.name}: continuation did not produce two consecutive identical rendered frames`);
+        await writeFile(path.join(out,name),continuationBytes);
+        const paint=await measurePeopleAccessContinuationPaint(page,continuationBytes.toString("base64"),target);
+        record.continuation = { image: name, imageBytes: continuationBytes.length, imageSHA256: digest(continuationBytes), target, paint, stability:{samples,identicalConsecutiveFrames:true,settledAnimationFrames:2} };
       }
       const failures = peopleAccessCaptureFailures(record, scenario);
       if (failures.length) throw new Error(failures.join("\n"));

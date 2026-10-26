@@ -22,6 +22,7 @@ export async function measurePeopleAccessLayout(page, scenario) {
     const root = document.querySelector(".people-access-workspace"), menu = root?.querySelector('[role="tablist"]');
     const visible = (node) => Boolean(node?.getClientRects().length && getComputedStyle(node).visibility !== "hidden");
     const box = (node) => { if (!visible(node)) return null; const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom }; };
+    const longestWord = (node) => { if (!node) return null; const style=getComputedStyle(node),ctx=document.createElement("canvas").getContext("2d");ctx.font=`${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;return Math.max(0,...node.textContent.trim().split(/\s+/).map((word)=>ctx.measureText(word).width)); };
     const tabs = [...(menu?.querySelectorAll('[role="tab"]') ?? [])], selected = tabs.find((node) => node.getAttribute("aria-selected") === "true");
     const content = selected?.getAttribute("aria-controls") ? document.getElementById(selected.getAttribute("aria-controls")) : root;
     const recordList = content?.querySelector(selectors.records), records = [...(recordList?.querySelectorAll(".cs-selectable-record") ?? [])];
@@ -37,7 +38,7 @@ export async function measurePeopleAccessLayout(page, scenario) {
       visiblePanelIDs: [...(root?.querySelectorAll('[role="tabpanel"]') ?? [])].filter(visible).map((node) => node.id),
       selectedPanelID: selected?.getAttribute("aria-controls"), settingsCurrent: document.querySelector('.sidebar-secondary a[href="#configure"]')?.getAttribute("aria-current"),
       summary: box(summary), summaryText: summary?.textContent.trim(),
-      metrics: [...(summary?.querySelectorAll(".cs-metric-card") ?? [])].map((node) => ({ text: node.textContent.trim(), label: node.querySelector(".cs-metric-card__label")?.textContent.trim(), value: node.querySelector(".cs-metric-card__measure strong")?.textContent.trim(), quality: node.getAttribute("data-quality"), bounds: box(node) })),
+      metrics: [...(summary?.querySelectorAll(".cs-metric-card") ?? [])].map((node) => { const label=node.querySelector(".cs-metric-card__label"),quality=node.querySelector(".cs-metric-card__quality");return { text:node.textContent.trim(),label:label?.textContent.trim(),value:node.querySelector(".cs-metric-card__measure strong")?.textContent.trim(),quality:node.getAttribute("data-quality"),bounds:box(node),labelBounds:box(label),qualityBounds:box(quality),labelLongestWordWidth:longestWord(label),qualityLongestWordWidth:longestWord(quality) }; }),
       controls: box(content?.querySelector(".people-directory__toolbar")), toolbarSearch: box(content?.querySelector(".people-directory__toolbar .cs-search-field")), primary: panel, context: detailBounds,
       placement: panel && detailBounds ? (detailBounds.x >= panel.right - 1 ? "beside" : "stacked") : null,
       firstRow: box(first), firstRowVisible: Boolean(first && box(first).y >= 0 && box(first).bottom <= innerHeight), firstIdentity: bounds, firstUsefulVisible: Boolean(bounds && bounds.y >= 0 && bounds.bottom <= innerHeight && bounds.x >= 0 && bounds.right <= innerWidth),
@@ -123,7 +124,8 @@ export async function verifyPeopleAccessHistory(page) {
     const back = { route: await page.evaluate(() => location.hash), selected: await tabs.getByRole("tab", { selected: true }).textContent(), dialogCount: await page.getByRole("dialog").count() };
     await page.goForward(); await entry.waitFor();
     const forward = { route: await page.evaluate(() => location.hash), selected: await tabs.getByRole("tab", { selected: true }).textContent(), dialogCount: await page.getByRole("dialog").count() };
-    organization.push({ name, peopleRoute, route, focused, back, forward });
+    const switcher = await measureOrganizationSwitcher(page);
+    organization.push({ name, peopleRoute, route, focused, back, forward, switcher });
     await page.goBack(); await waitForPeopleAccess(page, { peopleAccessView: "people", peopleAccessCheck: "layout" });
   }
   await page.getByRole("button", { name: "Organization settings", exact: true }).click();
@@ -232,7 +234,30 @@ export async function showPeopleAccessContinuation(page, scenario) {
     ? page.getByRole("dialog").getByRole("button", { name: scenario.peopleAccessView === "routes" ? "Create policy draft" : "Create delegation draft", exact: true })
     : page.getByRole("button", { name: "Return Independent evidence review for changes", exact: true });
   await target.scrollIntoViewIfNeeded();
-  return target.evaluate((node) => { const r=node.getBoundingClientRect();return { label:node.textContent.trim(),disabled:node.disabled,x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom }; });
+  await settlePeopleAccessPaint(page);
+  return target.evaluate((node) => { const box=(r)=>({x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}),range=document.createRange();range.selectNodeContents(node.querySelector("span")??node);return {label:node.textContent.trim(),disabled:node.disabled,...box(node.getBoundingClientRect()),textBounds:box(range.getBoundingClientRect()),opacity:Number(getComputedStyle(node).opacity)}; });
+}
+export async function settlePeopleAccessPaint(page) {
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+export async function measurePeopleAccessContinuationPaint(page, pngBase64, target) {
+  return page.evaluate(async ({ pngBase64, target }) => {
+    const img=new Image();img.src=`data:image/png;base64,${pngBase64}`;await img.decode();
+    const canvas=document.createElement("canvas");canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext("2d");ctx.drawImage(img,0,0);
+    const x=Math.ceil(target.textBounds.x)+1,y=Math.ceil(target.textBounds.y)+1,width=Math.max(1,Math.floor(target.textBounds.right)-x-1),height=Math.max(1,Math.floor(target.textBounds.bottom)-y-1);
+    const pixels=ctx.getImageData(x,y,width,height).data,colors=new Map();
+    for(let i=0;i<pixels.length;i+=4){const key=`${pixels[i]},${pixels[i+1]},${pixels[i+2]}`;colors.set(key,(colors.get(key)??0)+1);}
+    const [background]=[...colors].sort((a,b)=>b[1]-a[1])[0],base=background.split(",").map(Number);
+    let contrastPixels=0;for(let i=0;i<pixels.length;i+=4)if(Math.max(Math.abs(pixels[i]-base[0]),Math.abs(pixels[i+1]-base[1]),Math.abs(pixels[i+2]-base[2]))>=24)contrastPixels++;
+    return {sample:{x,y,width,height},background,distinctColors:colors.size,contrastPixels};
+  }, {pngBase64,target});
+}
+export async function measureOrganizationSwitcher(page) {
+  return page.locator(".people-access-workspace__organization .cs-workspace-switcher").evaluate((root) => {
+    const box=(node)=>{if(!node?.getClientRects().length)return null;const r=node.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
+    const list=root.querySelector(".cs-workspace-switcher__list"),compact=root.querySelector(".cs-workspace-switcher__compact"),selected=list.querySelector('[aria-current="page"]'),indicator=selected?.querySelector(".cs-workspace-switcher__indicator"),trigger=compact.querySelector("button");
+    return {viewportWidth:innerWidth,list:box(list),compact:box(compact),listDisplay:getComputedStyle(list).display,compactDisplay:getComputedStyle(compact).display,selected:selected?.textContent.trim(),selectedBounds:box(selected),indicator:box(indicator),indicatorPosition:indicator?getComputedStyle(indicator).position:null,indicatorColor:indicator?getComputedStyle(indicator).backgroundColor:null,buttons:[...list.querySelectorAll("button")].map((node)=>({label:node.textContent.trim(),...box(node)})),trigger:box(trigger),compactValue:compact.querySelector(".cs-select-field__value")?.textContent.trim()};
+  });
 }
 export async function measurePeopleAccessSourceLayout(page, view) {
   return page.evaluate((view) => {
