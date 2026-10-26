@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useActorWorkSearch } from "./useActorWorkSearch";
 import { isSourceWorkStatus } from "./workSourceFilters";
 import { Button, DataTable, FilterBar, FocusedSheet, MetricCard, SearchField, SelectField, StatusBadge, Tabs, type DataColumn } from "./ui";
@@ -32,6 +32,9 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const [selectedID, setSelectedID] = useState<string>();
   const [inspectingItem, setInspectingItem] = useState<AttentionItem>();
   const sourceSearch = presentation === "workspace" && Boolean(sourceSearchScopeKey) && search.trim() !== "";
+  useEffect(() => {
+    if (sourceSearch && status && !isSourceWorkStatus(status)) setStatus(undefined);
+  }, [sourceSearch, status]);
   const searched = useActorWorkSearch(search, sourceSearchScopeKey ?? "", Boolean(sourceSearchScopeKey) && presentation === "workspace", status, dueWindow);
   const currentItems = sourceSearch ? searched.items : items;
   const currentState = sourceSearch ? searched.state === "idle" ? "loading" : searched.state : state;
@@ -127,7 +130,7 @@ const workQueues = [
 
 const sourceWorkStatuses = [
   { id: "Ready", label: "Ready" },
-  { id: "In progress", label: "In progress" },
+  { id: "In Progress", label: "In progress" },
   { id: "Blocked", label: "Blocked" },
   { id: "Escalated", label: "Escalated" },
 ];
