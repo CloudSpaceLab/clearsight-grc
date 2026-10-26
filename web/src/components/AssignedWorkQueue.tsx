@@ -104,8 +104,8 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
                     onRowAction={(item) => { setSelectedID(item.id); setInspectingItem(item); }}
                     rowActionLabel="Inspect" responsiveTo="container"/>
                   {selected && <WorkContext item={selected} onOpen={onOpenItem} onInspectAuthority={onInspectAuthority}/>}
-                </div> : <div id="attention-list"><EmptyState label="Assigned work" title={sourceSearch ? "No matching assignment titles" : filter === "ALL" && !search && !status ? "Nothing needs your action right now" : "No matching work"}
-                  description={sourceSearch ? "No matching workflow assignments in the current page." : filter === "ALL" && !search && !status ? "No open assigned work." : "No matching items in the loaded queue."}/></div>}
+                </div> : <div id="attention-list"><EmptyState label="Assigned work" title={sourceSearch ? "No matching assignments" : filter === "ALL" && !search && !status ? "Nothing needs your action right now" : "No matching work"}
+                  description={sourceSearch ? "No workflow assignments match the selected filters." : filter === "ALL" && !search && !status ? "No open assigned work." : "No matching items in the loaded queue."}/></div>}
                 {sourceSearch && currentHasMore && <div className="workspace-recovery-actions">
                   <Button variant="secondary" isDisabled={searched.loadingMore} onPress={searched.loadMore}>{searched.loadingMore ? "Loading assignments…" : "Load more assignments"}</Button>
                 </div>}
