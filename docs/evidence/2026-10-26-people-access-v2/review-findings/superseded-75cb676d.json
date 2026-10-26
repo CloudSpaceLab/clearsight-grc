@@ -1,0 +1,10 @@
+{
+  "status": "SUPERSEDED_VISUAL_CHECKPOINT",
+  "revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+  "automatedResults": { "states": 92, "images": 95, "accessibilityCases": 22, "configurationCases": 8, "passed": true },
+  "findings": [
+    { "views": ["People", "Roles"], "finding": "The loaded summary label is on a div without a group role; axe reports aria-prohibited-attr as incomplete in eight cases. Add a semantic group role." },
+    { "viewport": { "width": 390, "height": 844 }, "view": "Delegations", "finding": "The first metric label breaks inside the word Delegations. A shorter contextual Records label will preserve readable metrics." }
+  ],
+  "publication": "Superseded before visual acceptance. Raw accessibility incomplete/contrast findings are preserved. Capture instructions remain unchanged; the final build will include the two scoped corrections. No source-pair acceptance was generated."
+}

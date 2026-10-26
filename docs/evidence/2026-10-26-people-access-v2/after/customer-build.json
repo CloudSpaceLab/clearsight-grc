@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-26T10:17:55.049Z",
+  "freshOutputDirectory": "/tmp/people-v2-customer-d2cbf333",
+  "localRevision": "832f52b69dd3270acf97a2f33a7786ae66279d81",
+  "publishedRevision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+  "tree": "b3949dfb03358a7b7144c1511c8b2e0e96f0967c",
+  "metrics": {
+    "javascript": {
+      "raw": 2400710,
+      "gzip": 665381,
+      "initial_gzip": 161876,
+      "largest_raw_chunk": 566368
+    },
+    "css": {
+      "raw": 645931,
+      "gzip": 111610,
+      "initial_gzip": 31976
+    }
+  },
+  "failures": [],
+  "fixtureMarkersAbsent": true,
+  "configureChunks": [
+    "ConfigureWorkspace-BOgO-uXa.js"
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "status": "PASS",
+  "evidenceDirectory": "configuration",
+  "scenarios": [
+    {
+      "name": "configuration-organization-desktop-light-1440x900",
+      "route": "#configure/access/positions",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "organization"
+    },
+    {
+      "name": "configuration-checks-partial-desktop-dark-1440x900",
+      "route": "#configure/authority/checks",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "expectation": "checks"
+    },
+    {
+      "name": "configuration-overview-desktop-light-1440x900",
+      "route": "#configure",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "overview"
+    },
+    {
+      "name": "configuration-authority-desktop-dark-1440x900",
+      "route": "#configure/authority",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "expectation": "authority"
+    },
+    {
+      "name": "configuration-access-desktop-light-1440x900",
+      "route": "#configure/access",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "access"
+    },
+    {
+      "name": "configuration-overview-tablet-dark-1024x768",
+      "route": "#configure",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "expectation": "overview"
+    },
+    {
+      "name": "configuration-overview-mobile-light-390x844",
+      "route": "#configure",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "expectation": "mobile"
+    },
+    {
+      "name": "configuration-overview-reflow-dark-320x800",
+      "route": "#configure",
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "theme": "dark",
+      "expectation": "mobile"
+    }
+  ]
+}
