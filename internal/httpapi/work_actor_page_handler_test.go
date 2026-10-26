@@ -55,7 +55,7 @@ func TestActorWorkEndpointPagesOverFiftyWithoutChangingToday(t *testing.T) {
 			HasMore    bool                  `json:"has_more"`
 			Coverage   string                `json:"coverage"`
 			CountBasis string                `json:"count_basis"`
-			Scope struct {
+			Scope      struct {
 				TenantID      string `json:"tenant_id"`
 				LegalEntityID string `json:"legal_entity_id"`
 				PrincipalID   string `json:"principal_id"`
