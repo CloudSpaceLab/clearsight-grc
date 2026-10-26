@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T10:18:19.166Z",
+  "generatedAt": "2026-10-26T10:52:39.813Z",
   "failure": null,
   "scope": "Automated checks for the listed fixture, theme and viewport states. PASS means no blocking finding in these checks; incomplete and unsupported readings remain unresolved.",
   "contrastLimits": "Canvas colors are rounded to 8-bit sRGB. Supplemental readings do not model overlapping siblings, pseudo-element paint, blur or position-dependent gradients. Only shared field boundaries are automatically classified as essential; other low border readings require human interpretation.",
@@ -30,7 +30,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria3107194808-_r_8_ > span"
+                "#react-aria431925027-_r_f_ > span"
               ],
               "html": "<span>Organization settings</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
@@ -50,7 +50,7 @@
             },
             {
               "target": [
-                "#react-aria3107194808-_r_m_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria431925027-_r_t_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -66,7 +66,7 @@
             },
             {
               "target": [
-                "#react-aria3107194808-_r_10_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria431925027-_r_17_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -357,7 +357,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_8_",
+          "selector": "#react-aria431925027-_r_f_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#f5f7fa",
@@ -823,7 +823,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#_r_j_",
+          "selector": "#_r_q_",
           "parentSelector": "label.cs-search-field",
           "disabled": false,
           "background": "#ffffff",
@@ -844,7 +844,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#_r_j_",
+          "selector": "#_r_q_",
           "parentSelector": "label.cs-search-field",
           "disabled": false,
           "background": "#ffffff",
@@ -869,7 +869,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_n_",
+          "selector": "#react-aria431925027-_r_u_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#ffffff",
@@ -890,7 +890,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_m_",
+          "selector": "#react-aria431925027-_r_t_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#ffffff",
@@ -915,7 +915,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_r_",
+          "selector": "#react-aria431925027-_r_12_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -936,7 +936,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_11_",
+          "selector": "#react-aria431925027-_r_18_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#ffffff",
@@ -957,7 +957,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_10_",
+          "selector": "#react-aria431925027-_r_17_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#ffffff",
@@ -982,7 +982,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_15_",
+          "selector": "#react-aria431925027-_r_1c_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -1003,7 +1003,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_18_",
+          "selector": "#react-aria431925027-_r_1f_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -1133,7 +1133,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1a_",
+          "selector": "#react-aria431925027-_r_1h_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -1263,7 +1263,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1c_",
+          "selector": "#react-aria431925027-_r_1j_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -1393,7 +1393,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1e_",
+          "selector": "#react-aria431925027-_r_1l_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -1523,7 +1523,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1g_",
+          "selector": "#react-aria431925027-_r_1n_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -1653,7 +1653,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1i_",
+          "selector": "#react-aria431925027-_r_1p_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -1783,7 +1783,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1k_",
+          "selector": "#react-aria431925027-_r_1r_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -1913,7 +1913,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1m_",
+          "selector": "#react-aria431925027-_r_1t_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -2043,7 +2043,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1o_",
+          "selector": "#react-aria431925027-_r_1v_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -2173,7 +2173,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1q_",
+          "selector": "#react-aria431925027-_r_21_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -2303,7 +2303,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1s_",
+          "selector": "#react-aria431925027-_r_23_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -2433,7 +2433,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_1u_",
+          "selector": "#react-aria431925027-_r_25_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -2626,7 +2626,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#_r_i_",
+          "selector": "#_r_p_",
           "parentSelector": "div",
           "disabled": false,
           "background": "#eef3f7",
@@ -2983,7 +2983,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3107194808-_r_21_",
+          "selector": "#react-aria431925027-_r_28_",
           "parentSelector": "section",
           "disabled": false,
           "background": "#ffffff",
@@ -3085,7 +3085,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria4348024301-_r_t_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria660276433-_r_t_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -3101,7 +3101,7 @@
             },
             {
               "target": [
-                "#react-aria4348024301-_r_17_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria660276433-_r_17_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -3331,7 +3331,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_f_",
+          "selector": "#react-aria660276433-_r_f_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#f5f7fa",
@@ -3843,7 +3843,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_u_",
+          "selector": "#react-aria660276433-_r_u_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#ffffff",
@@ -3864,7 +3864,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_t_",
+          "selector": "#react-aria660276433-_r_t_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#ffffff",
@@ -3889,7 +3889,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_12_",
+          "selector": "#react-aria660276433-_r_12_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -3910,7 +3910,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_18_",
+          "selector": "#react-aria660276433-_r_18_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#ffffff",
@@ -3931,7 +3931,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_17_",
+          "selector": "#react-aria660276433-_r_17_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#ffffff",
@@ -3956,7 +3956,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1c_",
+          "selector": "#react-aria660276433-_r_1c_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -3977,7 +3977,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1f_",
+          "selector": "#react-aria660276433-_r_1f_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -4107,7 +4107,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1h_",
+          "selector": "#react-aria660276433-_r_1h_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -4237,7 +4237,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1j_",
+          "selector": "#react-aria660276433-_r_1j_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -4367,7 +4367,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1l_",
+          "selector": "#react-aria660276433-_r_1l_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -4497,7 +4497,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1n_",
+          "selector": "#react-aria660276433-_r_1n_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -4627,7 +4627,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1p_",
+          "selector": "#react-aria660276433-_r_1p_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -4757,7 +4757,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1r_",
+          "selector": "#react-aria660276433-_r_1r_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -4887,7 +4887,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1t_",
+          "selector": "#react-aria660276433-_r_1t_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -5017,7 +5017,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_1v_",
+          "selector": "#react-aria660276433-_r_1v_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -5147,7 +5147,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_21_",
+          "selector": "#react-aria660276433-_r_21_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -5277,7 +5277,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_23_",
+          "selector": "#react-aria660276433-_r_23_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -5407,7 +5407,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_25_",
+          "selector": "#react-aria660276433-_r_25_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#ffffff",
@@ -5957,7 +5957,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4348024301-_r_28_",
+          "selector": "#react-aria660276433-_r_28_",
           "parentSelector": "section",
           "disabled": false,
           "background": "#ffffff",
@@ -6059,7 +6059,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria9754196158-_r_f_ > span"
+                "#react-aria8858834497-_r_f_ > span"
               ],
               "html": "<span>Organization settings</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
@@ -6079,7 +6079,7 @@
             },
             {
               "target": [
-                "#react-aria9754196158-_r_t_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria8858834497-_r_t_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -6095,7 +6095,7 @@
             },
             {
               "target": [
-                "#react-aria9754196158-_r_17_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria8858834497-_r_17_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -6386,7 +6386,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_f_",
+          "selector": "#react-aria8858834497-_r_f_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#07111d",
@@ -6898,7 +6898,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_u_",
+          "selector": "#react-aria8858834497-_r_u_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#0d1826",
@@ -6919,7 +6919,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_t_",
+          "selector": "#react-aria8858834497-_r_t_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#0d1826",
@@ -6944,7 +6944,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_12_",
+          "selector": "#react-aria8858834497-_r_12_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -6965,7 +6965,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_18_",
+          "selector": "#react-aria8858834497-_r_18_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#0d1826",
@@ -6986,7 +6986,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_17_",
+          "selector": "#react-aria8858834497-_r_17_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#0d1826",
@@ -7011,7 +7011,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1c_",
+          "selector": "#react-aria8858834497-_r_1c_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -7032,7 +7032,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1f_",
+          "selector": "#react-aria8858834497-_r_1f_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -7162,7 +7162,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1h_",
+          "selector": "#react-aria8858834497-_r_1h_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -7292,7 +7292,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1j_",
+          "selector": "#react-aria8858834497-_r_1j_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -7422,7 +7422,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1l_",
+          "selector": "#react-aria8858834497-_r_1l_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -7552,7 +7552,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1n_",
+          "selector": "#react-aria8858834497-_r_1n_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -7682,7 +7682,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1p_",
+          "selector": "#react-aria8858834497-_r_1p_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -7812,7 +7812,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1r_",
+          "selector": "#react-aria8858834497-_r_1r_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -7942,7 +7942,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1t_",
+          "selector": "#react-aria8858834497-_r_1t_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -8072,7 +8072,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_1v_",
+          "selector": "#react-aria8858834497-_r_1v_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -8202,7 +8202,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_21_",
+          "selector": "#react-aria8858834497-_r_21_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -8332,7 +8332,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_23_",
+          "selector": "#react-aria8858834497-_r_23_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -8462,7 +8462,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_25_",
+          "selector": "#react-aria8858834497-_r_25_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -9012,7 +9012,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9754196158-_r_28_",
+          "selector": "#react-aria8858834497-_r_28_",
           "parentSelector": "section",
           "disabled": false,
           "background": "#0d1826",
@@ -9114,7 +9114,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria3904222991-_r_m_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria2701850035-_r_m_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -9130,7 +9130,7 @@
             },
             {
               "target": [
-                "#react-aria3904222991-_r_10_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria2701850035-_r_10_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -9360,7 +9360,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_8_",
+          "selector": "#react-aria2701850035-_r_8_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#07111d",
@@ -9872,7 +9872,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_n_",
+          "selector": "#react-aria2701850035-_r_n_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#0d1826",
@@ -9893,7 +9893,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_m_",
+          "selector": "#react-aria2701850035-_r_m_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#0d1826",
@@ -9918,7 +9918,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_r_",
+          "selector": "#react-aria2701850035-_r_r_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -9939,7 +9939,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_11_",
+          "selector": "#react-aria2701850035-_r_11_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#0d1826",
@@ -9960,7 +9960,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_10_",
+          "selector": "#react-aria2701850035-_r_10_",
           "parentSelector": "div.cs-select-field.cs-select-field--label-hidden",
           "disabled": false,
           "background": "#0d1826",
@@ -9985,7 +9985,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_15_",
+          "selector": "#react-aria2701850035-_r_15_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -10006,7 +10006,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_18_",
+          "selector": "#react-aria2701850035-_r_18_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -10136,7 +10136,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1a_",
+          "selector": "#react-aria2701850035-_r_1a_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -10266,7 +10266,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1c_",
+          "selector": "#react-aria2701850035-_r_1c_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -10396,7 +10396,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1e_",
+          "selector": "#react-aria2701850035-_r_1e_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -10526,7 +10526,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1g_",
+          "selector": "#react-aria2701850035-_r_1g_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -10656,7 +10656,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1i_",
+          "selector": "#react-aria2701850035-_r_1i_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -10786,7 +10786,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1k_",
+          "selector": "#react-aria2701850035-_r_1k_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -10916,7 +10916,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1m_",
+          "selector": "#react-aria2701850035-_r_1m_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -11046,7 +11046,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1o_",
+          "selector": "#react-aria2701850035-_r_1o_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -11176,7 +11176,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1q_",
+          "selector": "#react-aria2701850035-_r_1q_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -11306,7 +11306,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1s_",
+          "selector": "#react-aria2701850035-_r_1s_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -11436,7 +11436,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_1u_",
+          "selector": "#react-aria2701850035-_r_1u_",
           "parentSelector": "div.people-directory__records",
           "disabled": false,
           "background": "#0d1826",
@@ -11986,7 +11986,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria3904222991-_r_21_",
+          "selector": "#react-aria2701850035-_r_21_",
           "parentSelector": "section",
           "disabled": false,
           "background": "#0d1826",
@@ -12088,7 +12088,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria6537179477-_r_8_ > span"
+                "#react-aria5112163020-_r_f_ > span"
               ],
               "html": "<span>Organization settings</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
@@ -12346,7 +12346,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria6537179477-_r_8_",
+          "selector": "#react-aria5112163020-_r_f_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#f5f7fa",
@@ -12791,7 +12791,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria6537179477-_r_j_",
+          "selector": "#react-aria5112163020-_r_q_",
           "parentSelector": "div.people-role-catalog__records",
           "disabled": false,
           "background": "#ffffff",
@@ -12858,7 +12858,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria6537179477-_r_l_",
+          "selector": "#react-aria5112163020-_r_s_",
           "parentSelector": "div.people-role-catalog__records",
           "disabled": false,
           "background": "#ffffff",
@@ -12967,7 +12967,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#_r_i_",
+          "selector": "#_r_p_",
           "parentSelector": "header.people-access-detail__heading",
           "disabled": false,
           "background": "#eef3f7",
@@ -13156,7 +13156,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria6537179477-_r_o_",
+          "selector": "#react-aria5112163020-_r_v_",
           "parentSelector": "section",
           "disabled": false,
           "background": "#ffffff",
@@ -13244,7 +13244,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria6537179477-_r_r_",
+          "selector": "#react-aria5112163020-_r_12_",
           "parentSelector": "div.people-access-detail__body",
           "disabled": false,
           "background": "#ffffff",
@@ -13515,7 +13515,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9470976420-_r_f_",
+          "selector": "#react-aria4530854265-_r_f_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#f5f7fa",
@@ -13960,7 +13960,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9470976420-_r_q_",
+          "selector": "#react-aria4530854265-_r_q_",
           "parentSelector": "div.people-role-catalog__records",
           "disabled": false,
           "background": "#ffffff",
@@ -14027,7 +14027,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9470976420-_r_s_",
+          "selector": "#react-aria4530854265-_r_s_",
           "parentSelector": "div.people-role-catalog__records",
           "disabled": false,
           "background": "#ffffff",
@@ -14325,7 +14325,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9470976420-_r_v_",
+          "selector": "#react-aria4530854265-_r_v_",
           "parentSelector": "section",
           "disabled": false,
           "background": "#ffffff",
@@ -14413,7 +14413,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9470976420-_r_12_",
+          "selector": "#react-aria4530854265-_r_12_",
           "parentSelector": "div.people-access-detail__body",
           "disabled": false,
           "background": "#ffffff",
@@ -14494,7 +14494,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria1998086772-_r_f_ > span"
+                "#react-aria361188113-_r_f_ > span"
               ],
               "html": "<span>Organization settings</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
@@ -14752,7 +14752,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria1998086772-_r_f_",
+          "selector": "#react-aria361188113-_r_f_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#07111d",
@@ -15197,7 +15197,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria1998086772-_r_q_",
+          "selector": "#react-aria361188113-_r_q_",
           "parentSelector": "div.people-role-catalog__records",
           "disabled": false,
           "background": "#0d1826",
@@ -15264,7 +15264,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria1998086772-_r_s_",
+          "selector": "#react-aria361188113-_r_s_",
           "parentSelector": "div.people-role-catalog__records",
           "disabled": false,
           "background": "#0d1826",
@@ -15562,7 +15562,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria1998086772-_r_v_",
+          "selector": "#react-aria361188113-_r_v_",
           "parentSelector": "section",
           "disabled": false,
           "background": "#0d1826",
@@ -15650,7 +15650,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria1998086772-_r_12_",
+          "selector": "#react-aria361188113-_r_12_",
           "parentSelector": "div.people-access-detail__body",
           "disabled": false,
           "background": "#0d1826",
@@ -15921,7 +15921,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2808390016-_r_8_",
+          "selector": "#react-aria7295908604-_r_8_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#07111d",
@@ -16366,7 +16366,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2808390016-_r_j_",
+          "selector": "#react-aria7295908604-_r_j_",
           "parentSelector": "div.people-role-catalog__records",
           "disabled": false,
           "background": "#0d1826",
@@ -16433,7 +16433,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2808390016-_r_l_",
+          "selector": "#react-aria7295908604-_r_l_",
           "parentSelector": "div.people-role-catalog__records",
           "disabled": false,
           "background": "#0d1826",
@@ -16731,7 +16731,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2808390016-_r_o_",
+          "selector": "#react-aria7295908604-_r_o_",
           "parentSelector": "section",
           "disabled": false,
           "background": "#0d1826",
@@ -16819,7 +16819,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2808390016-_r_r_",
+          "selector": "#react-aria7295908604-_r_r_",
           "parentSelector": "div.people-access-detail__body",
           "disabled": false,
           "background": "#0d1826",
@@ -16900,7 +16900,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria321307591-_r_m_ > span"
+                "#react-aria5990196707-_r_m_ > span"
               ],
               "html": "<span>Organization settings</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
@@ -17174,7 +17174,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria321307591-_r_m_",
+          "selector": "#react-aria5990196707-_r_m_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#f5f7fa",
@@ -17619,7 +17619,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria321307591-_r_u_",
+          "selector": "#react-aria5990196707-_r_u_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#ffffff",
@@ -17665,7 +17665,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria321307591-_r_11_",
+          "selector": "#react-aria5990196707-_r_11_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#ffffff",
@@ -17711,7 +17711,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria321307591-_r_17_",
+          "selector": "#react-aria5990196707-_r_17_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -17799,7 +17799,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria321307591-_r_19_",
+          "selector": "#react-aria5990196707-_r_19_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -18685,7 +18685,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria321307591-_r_1d_",
+          "selector": "#react-aria5990196707-_r_1d_",
           "parentSelector": "section.people-governance-definition",
           "disabled": false,
           "background": "#ffffff",
@@ -19050,7 +19050,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria321307591-_r_1j_",
+          "selector": "#react-aria5990196707-_r_1j_",
           "parentSelector": "form",
           "disabled": true,
           "background": "#ffffff",
@@ -19362,7 +19362,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7244304364-_r_8_",
+          "selector": "#react-aria6233752617-_r_m_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#f5f7fa",
@@ -19807,7 +19807,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7244304364-_r_g_",
+          "selector": "#react-aria6233752617-_r_u_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#ffffff",
@@ -19853,7 +19853,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7244304364-_r_j_",
+          "selector": "#react-aria6233752617-_r_11_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#ffffff",
@@ -19899,7 +19899,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7244304364-_r_p_",
+          "selector": "#react-aria6233752617-_r_17_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -19987,7 +19987,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7244304364-_r_r_",
+          "selector": "#react-aria6233752617-_r_19_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -20117,7 +20117,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#_r_e_",
+          "selector": "#_r_s_",
           "parentSelector": "header.people-access-detail__heading",
           "disabled": false,
           "background": "#eef3f7",
@@ -20873,7 +20873,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7244304364-_r_v_",
+          "selector": "#react-aria6233752617-_r_1d_",
           "parentSelector": "section.people-governance-definition",
           "disabled": false,
           "background": "#ffffff",
@@ -21213,7 +21213,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#_r_11_",
+          "selector": "#_r_1f_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#ffffff",
@@ -21238,7 +21238,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7244304364-_r_15_",
+          "selector": "#react-aria6233752617-_r_1j_",
           "parentSelector": "form",
           "disabled": true,
           "background": "#ffffff",
@@ -21344,7 +21344,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria4284334858-_r_m_ > span"
+                "#react-aria5449810802-_r_8_ > span"
               ],
               "html": "<span>Organization settings</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
@@ -21618,7 +21618,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4284334858-_r_m_",
+          "selector": "#react-aria5449810802-_r_8_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#07111d",
@@ -22063,7 +22063,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4284334858-_r_u_",
+          "selector": "#react-aria5449810802-_r_g_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#0d1826",
@@ -22109,7 +22109,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4284334858-_r_11_",
+          "selector": "#react-aria5449810802-_r_j_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#0d1826",
@@ -22155,7 +22155,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4284334858-_r_17_",
+          "selector": "#react-aria5449810802-_r_p_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -22243,7 +22243,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4284334858-_r_19_",
+          "selector": "#react-aria5449810802-_r_r_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -22373,7 +22373,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#_r_s_",
+          "selector": "#_r_e_",
           "parentSelector": "header.people-access-detail__heading",
           "disabled": false,
           "background": "#132234",
@@ -23129,7 +23129,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4284334858-_r_1d_",
+          "selector": "#react-aria5449810802-_r_v_",
           "parentSelector": "section.people-governance-definition",
           "disabled": false,
           "background": "#0d1826",
@@ -23469,7 +23469,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#_r_1f_",
+          "selector": "#_r_11_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#0d1826",
@@ -23494,7 +23494,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria4284334858-_r_1j_",
+          "selector": "#react-aria5449810802-_r_15_",
           "parentSelector": "form",
           "disabled": true,
           "background": "#0d1826",
@@ -23806,7 +23806,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2321540549-_r_m_",
+          "selector": "#react-aria4570598354-_r_m_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#07111d",
@@ -24251,7 +24251,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2321540549-_r_u_",
+          "selector": "#react-aria4570598354-_r_u_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#0d1826",
@@ -24297,7 +24297,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2321540549-_r_11_",
+          "selector": "#react-aria4570598354-_r_11_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#0d1826",
@@ -24343,7 +24343,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2321540549-_r_17_",
+          "selector": "#react-aria4570598354-_r_17_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -24431,7 +24431,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2321540549-_r_19_",
+          "selector": "#react-aria4570598354-_r_19_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -25317,7 +25317,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2321540549-_r_1d_",
+          "selector": "#react-aria4570598354-_r_1d_",
           "parentSelector": "section.people-governance-definition",
           "disabled": false,
           "background": "#0d1826",
@@ -25682,7 +25682,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2321540549-_r_1j_",
+          "selector": "#react-aria4570598354-_r_1j_",
           "parentSelector": "form",
           "disabled": true,
           "background": "#0d1826",
@@ -25788,7 +25788,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria8923927072-_r_j_ > span"
+                "#react-aria1517703306-_r_j_ > span"
               ],
               "html": "<span>Organization settings</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
@@ -26046,7 +26046,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria8923927072-_r_j_",
+          "selector": "#react-aria1517703306-_r_j_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#f5f7fa",
@@ -26491,7 +26491,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria8923927072-_r_r_",
+          "selector": "#react-aria1517703306-_r_r_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#ffffff",
@@ -26537,7 +26537,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria8923927072-_r_11_",
+          "selector": "#react-aria1517703306-_r_11_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -26625,7 +26625,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria8923927072-_r_13_",
+          "selector": "#react-aria1517703306-_r_13_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -27336,7 +27336,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria6762327272-_r_b_-tab-people > span"
+                "#react-aria282978471-_r_b_-tab-people > span"
               ],
               "html": "<span>People</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element",
@@ -27554,7 +27554,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria6762327272-_r_8_",
+          "selector": "#react-aria282978471-_r_8_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#f5f7fa",
@@ -27999,7 +27999,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria6762327272-_r_g_",
+          "selector": "#react-aria282978471-_r_g_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#ffffff",
@@ -28045,7 +28045,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria6762327272-_r_m_",
+          "selector": "#react-aria282978471-_r_m_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -28133,7 +28133,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria6762327272-_r_o_",
+          "selector": "#react-aria282978471-_r_o_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -28844,7 +28844,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria1765501449-_r_j_ > span"
+                "#react-aria2411964242-_r_j_ > span"
               ],
               "html": "<span>Organization settings</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
@@ -29102,7 +29102,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria1765501449-_r_j_",
+          "selector": "#react-aria2411964242-_r_j_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#07111d",
@@ -29547,7 +29547,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria1765501449-_r_r_",
+          "selector": "#react-aria2411964242-_r_r_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#0d1826",
@@ -29593,7 +29593,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria1765501449-_r_11_",
+          "selector": "#react-aria2411964242-_r_11_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -29681,7 +29681,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria1765501449-_r_13_",
+          "selector": "#react-aria2411964242-_r_13_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -30392,7 +30392,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria9009314789-_r_m_-tab-people > span"
+                "#react-aria7456056530-_r_b_-tab-people > span"
               ],
               "html": "<span>People</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element",
@@ -30610,7 +30610,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9009314789-_r_j_",
+          "selector": "#react-aria7456056530-_r_8_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#07111d",
@@ -31055,7 +31055,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9009314789-_r_r_",
+          "selector": "#react-aria7456056530-_r_g_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#0d1826",
@@ -31101,7 +31101,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9009314789-_r_11_",
+          "selector": "#react-aria7456056530-_r_m_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -31189,7 +31189,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria9009314789-_r_13_",
+          "selector": "#react-aria7456056530-_r_o_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -31319,7 +31319,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#_r_p_",
+          "selector": "#_r_e_",
           "parentSelector": "header.people-access-detail__heading",
           "disabled": false,
           "background": "#132234",
@@ -31900,7 +31900,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria6644512630-_r_6o_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria306897141-_r_6o_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -31916,7 +31916,7 @@
             },
             {
               "target": [
-                "#react-aria6644512630-_r_72_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria306897141-_r_72_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -31932,7 +31932,7 @@
             },
             {
               "target": [
-                "#react-aria6644512630-_r_7c_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria306897141-_r_7c_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -32017,7 +32017,7 @@
       ],
       "contrast": [
         {
-          "selector": "#react-aria6644512630-_r_6e_",
+          "selector": "#react-aria306897141-_r_6e_",
           "parentSelector": "div.cs-sheet__close",
           "disabled": false,
           "background": "#ffffff",
@@ -32259,7 +32259,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_6p_",
+          "selector": "#react-aria306897141-_r_6p_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -32282,7 +32282,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_6o_",
+          "selector": "#react-aria306897141-_r_6o_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -32309,7 +32309,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_6t_",
+          "selector": "#react-aria306897141-_r_6t_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -32332,7 +32332,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_73_",
+          "selector": "#react-aria306897141-_r_73_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -32355,7 +32355,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_72_",
+          "selector": "#react-aria306897141-_r_72_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -32382,7 +32382,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_77_",
+          "selector": "#react-aria306897141-_r_77_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -32405,7 +32405,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_7d_",
+          "selector": "#react-aria306897141-_r_7d_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -32428,7 +32428,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_7c_",
+          "selector": "#react-aria306897141-_r_7c_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -32455,7 +32455,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_7h_",
+          "selector": "#react-aria306897141-_r_7h_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -32601,7 +32601,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria6644512630-_r_7r_",
+          "selector": "#react-aria306897141-_r_7r_",
           "parentSelector": "form.governance-composer-form",
           "disabled": true,
           "background": "#ffffff",
@@ -32688,7 +32688,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria5063145665-_r_6o_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria12121293-_r_6a_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -32704,7 +32704,7 @@
             },
             {
               "target": [
-                "#react-aria5063145665-_r_72_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria12121293-_r_6k_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -32720,7 +32720,7 @@
             },
             {
               "target": [
-                "#react-aria5063145665-_r_7c_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria12121293-_r_6u_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -32805,7 +32805,7 @@
       ],
       "contrast": [
         {
-          "selector": "#react-aria5063145665-_r_6e_",
+          "selector": "#react-aria12121293-_r_60_",
           "parentSelector": "div.cs-sheet__close",
           "disabled": false,
           "background": "#0d1826",
@@ -32947,7 +32947,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_6g_",
+          "selector": "#_r_62_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33020,7 +33020,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_6j_",
+          "selector": "#_r_65_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33047,7 +33047,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_6p_",
+          "selector": "#react-aria12121293-_r_6b_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33070,7 +33070,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_6o_",
+          "selector": "#react-aria12121293-_r_6a_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33097,7 +33097,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_6t_",
+          "selector": "#react-aria12121293-_r_6f_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -33120,7 +33120,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_73_",
+          "selector": "#react-aria12121293-_r_6l_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33143,7 +33143,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_72_",
+          "selector": "#react-aria12121293-_r_6k_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33170,7 +33170,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_77_",
+          "selector": "#react-aria12121293-_r_6p_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -33193,7 +33193,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_7d_",
+          "selector": "#react-aria12121293-_r_6v_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33216,7 +33216,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_7c_",
+          "selector": "#react-aria12121293-_r_6u_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33243,7 +33243,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_7h_",
+          "selector": "#react-aria12121293-_r_73_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -33289,7 +33289,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_7k_",
+          "selector": "#_r_76_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33339,7 +33339,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_7n_",
+          "selector": "#_r_79_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33366,7 +33366,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_7o_",
+          "selector": "#_r_7a_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#0d1826",
@@ -33389,7 +33389,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria5063145665-_r_7r_",
+          "selector": "#react-aria12121293-_r_7d_",
           "parentSelector": "form.governance-composer-form",
           "disabled": true,
           "background": "#0d1826",
@@ -33476,7 +33476,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria4453528228-_r_65_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria4667019014-_r_6g_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -33492,7 +33492,7 @@
             },
             {
               "target": [
-                "#react-aria4453528228-_r_6f_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria4667019014-_r_6q_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -33508,9 +33508,9 @@
             },
             {
               "target": [
-                "#_r_8r_"
+                "#_r_96_"
               ],
-              "html": "<input id=\"_r_8r_\" class=\"cs-field__control\" maxlength=\"100\" type=\"text\" value=\"\">",
+              "html": "<input id=\"_r_96_\" class=\"cs-field__control\" maxlength=\"100\" type=\"text\" value=\"\">",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
               "checks": [
                 {
@@ -33528,9 +33528,9 @@
             },
             {
               "target": [
-                "#react-aria4453528228-_r_6q_"
+                "#react-aria4667019014-_r_75_"
               ],
-              "html": "<span class=\"cs-select-field__label\" id=\"react-aria4453528228-_r_6q_\">Person giving authority<span class=\"cs-field__required\" aria-hidden=\"true\"> *</span></span>",
+              "html": "<span class=\"cs-select-field__label\" id=\"react-aria4667019014-_r_75_\">Person giving authority<span class=\"cs-field__required\" aria-hidden=\"true\"> *</span></span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
               "checks": [
                 {
@@ -33548,9 +33548,9 @@
             },
             {
               "target": [
-                "#react-aria4453528228-_r_6u_"
+                "#react-aria4667019014-_r_79_"
               ],
-              "html": "<span id=\"react-aria4453528228-_r_6u_\" class=\"cs-select-field__value\" data-rac=\"\" data-placeholder=\"true\">Choose person</span>",
+              "html": "<span id=\"react-aria4667019014-_r_79_\" class=\"cs-select-field__value\" data-rac=\"\" data-placeholder=\"true\">Choose person</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
               "checks": [
                 {
@@ -33568,7 +33568,7 @@
             },
             {
               "target": [
-                "#react-aria4453528228-_r_6p_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria4667019014-_r_74_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -33584,9 +33584,9 @@
             },
             {
               "target": [
-                "#react-aria4453528228-_r_74_"
+                "#react-aria4667019014-_r_7f_"
               ],
-              "html": "<span class=\"cs-select-field__label\" id=\"react-aria4453528228-_r_74_\">Person receiving authority<span class=\"cs-field__required\" aria-hidden=\"true\"> *</span></span>",
+              "html": "<span class=\"cs-select-field__label\" id=\"react-aria4667019014-_r_7f_\">Person receiving authority<span class=\"cs-field__required\" aria-hidden=\"true\"> *</span></span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
               "checks": [
                 {
@@ -33604,9 +33604,9 @@
             },
             {
               "target": [
-                "#react-aria4453528228-_r_78_"
+                "#react-aria4667019014-_r_7j_"
               ],
-              "html": "<span id=\"react-aria4453528228-_r_78_\" class=\"cs-select-field__value\" data-rac=\"\" data-placeholder=\"true\">Choose person</span>",
+              "html": "<span id=\"react-aria4667019014-_r_7j_\" class=\"cs-select-field__value\" data-rac=\"\" data-placeholder=\"true\">Choose person</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
               "checks": [
                 {
@@ -33624,7 +33624,7 @@
             },
             {
               "target": [
-                "#react-aria4453528228-_r_73_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria4667019014-_r_7e_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -33709,7 +33709,7 @@
       ],
       "contrast": [
         {
-          "selector": "#react-aria4453528228-_r_61_",
+          "selector": "#react-aria4667019014-_r_6c_",
           "parentSelector": "div.cs-sheet__close",
           "disabled": false,
           "background": "#ffffff",
@@ -33805,7 +33805,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_66_",
+          "selector": "#react-aria4667019014-_r_6h_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -33828,7 +33828,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_65_",
+          "selector": "#react-aria4667019014-_r_6g_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -33855,7 +33855,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_6a_",
+          "selector": "#react-aria4667019014-_r_6l_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -33878,7 +33878,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_6g_",
+          "selector": "#react-aria4667019014-_r_6r_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -33901,7 +33901,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_6f_",
+          "selector": "#react-aria4667019014-_r_6q_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -33928,7 +33928,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_6k_",
+          "selector": "#react-aria4667019014-_r_6v_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -33974,7 +33974,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_8r_",
+          "selector": "#_r_96_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34001,7 +34001,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_8v_",
+          "selector": "#react-aria4667019014-_r_9a_",
           "parentSelector": "div.governance-composer__search.governance-composer__wide",
           "disabled": false,
           "background": "#ffffff",
@@ -34051,7 +34051,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_6q_",
+          "selector": "#react-aria4667019014-_r_75_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34074,7 +34074,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_6p_",
+          "selector": "#react-aria4667019014-_r_74_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34101,7 +34101,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_6u_",
+          "selector": "#react-aria4667019014-_r_79_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -34124,7 +34124,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_74_",
+          "selector": "#react-aria4667019014-_r_7f_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34147,7 +34147,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_73_",
+          "selector": "#react-aria4667019014-_r_7e_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34174,7 +34174,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_78_",
+          "selector": "#react-aria4667019014-_r_7j_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#ffffff",
@@ -34266,7 +34266,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_7b_",
+          "selector": "#_r_7m_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34293,7 +34293,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_7c_",
+          "selector": "#_r_7n_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34362,7 +34362,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_7e_",
+          "selector": "#_r_7p_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34389,7 +34389,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_7f_",
+          "selector": "#_r_7q_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34458,7 +34458,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#_r_7h_",
+          "selector": "#_r_7s_",
           "parentSelector": "div.cs-field",
           "disabled": false,
           "background": "#ffffff",
@@ -34485,7 +34485,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4453528228-_r_7l_",
+          "selector": "#react-aria4667019014-_r_80_",
           "parentSelector": "form.governance-composer-form",
           "disabled": true,
           "background": "#ffffff",
@@ -34572,7 +34572,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria4854737115-_r_6g_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria2703215147-_r_6g_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -34588,7 +34588,7 @@
             },
             {
               "target": [
-                "#react-aria4854737115-_r_6q_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria2703215147-_r_6q_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -34604,7 +34604,7 @@
             },
             {
               "target": [
-                "#react-aria4854737115-_r_74_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria2703215147-_r_74_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -34620,7 +34620,7 @@
             },
             {
               "target": [
-                "#react-aria4854737115-_r_7e_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
+                "#react-aria2703215147-_r_7e_ > .cs-select-field__chevron[aria-hidden=\"true\"]"
               ],
               "html": "<span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
               "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters",
@@ -34705,7 +34705,7 @@
       ],
       "contrast": [
         {
-          "selector": "#react-aria4854737115-_r_6c_",
+          "selector": "#react-aria2703215147-_r_6c_",
           "parentSelector": "div.cs-sheet__close",
           "disabled": false,
           "background": "#0d1826",
@@ -34801,7 +34801,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_6h_",
+          "selector": "#react-aria2703215147-_r_6h_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -34824,7 +34824,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_6g_",
+          "selector": "#react-aria2703215147-_r_6g_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -34851,7 +34851,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_6l_",
+          "selector": "#react-aria2703215147-_r_6l_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -34874,7 +34874,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_6r_",
+          "selector": "#react-aria2703215147-_r_6r_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -34897,7 +34897,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_6q_",
+          "selector": "#react-aria2703215147-_r_6q_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -34924,7 +34924,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_6v_",
+          "selector": "#react-aria2703215147-_r_6v_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -34997,7 +34997,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_9a_",
+          "selector": "#react-aria2703215147-_r_9a_",
           "parentSelector": "div.governance-composer__search.governance-composer__wide",
           "disabled": false,
           "background": "#0d1826",
@@ -35047,7 +35047,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_75_",
+          "selector": "#react-aria2703215147-_r_75_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -35070,7 +35070,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_74_",
+          "selector": "#react-aria2703215147-_r_74_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -35097,7 +35097,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_79_",
+          "selector": "#react-aria2703215147-_r_79_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -35120,7 +35120,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_7f_",
+          "selector": "#react-aria2703215147-_r_7f_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -35143,7 +35143,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_7e_",
+          "selector": "#react-aria2703215147-_r_7e_",
           "parentSelector": "div.cs-select-field",
           "disabled": false,
           "background": "#0d1826",
@@ -35170,7 +35170,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_7j_",
+          "selector": "#react-aria2703215147-_r_7j_",
           "parentSelector": "button.cs-select-field__trigger",
           "disabled": false,
           "background": "#0d1826",
@@ -35481,7 +35481,7 @@
           "outcome": "INCOMPLETE"
         },
         {
-          "selector": "#react-aria4854737115-_r_80_",
+          "selector": "#react-aria2703215147-_r_80_",
           "parentSelector": "form.governance-composer-form",
           "disabled": true,
           "background": "#0d1826",
@@ -35568,7 +35568,7 @@
           "nodes": [
             {
               "target": [
-                "#react-aria7718438870-_r_m_ > span"
+                "#react-aria5968907980-_r_m_ > span"
               ],
               "html": "<span>Organization settings</span>",
               "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
@@ -35846,7 +35846,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7718438870-_r_m_",
+          "selector": "#react-aria5968907980-_r_m_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#f5f7fa",
@@ -36291,7 +36291,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7718438870-_r_u_",
+          "selector": "#react-aria5968907980-_r_u_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#ffffff",
@@ -36337,7 +36337,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7718438870-_r_11_",
+          "selector": "#react-aria5968907980-_r_11_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#ffffff",
@@ -36383,7 +36383,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7718438870-_r_17_",
+          "selector": "#react-aria5968907980-_r_17_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -36471,7 +36471,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7718438870-_r_19_",
+          "selector": "#react-aria5968907980-_r_19_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#ffffff",
@@ -37420,7 +37420,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7718438870-_r_1n_",
+          "selector": "#react-aria5968907980-_r_1n_",
           "parentSelector": "section.people-governance-definition",
           "disabled": false,
           "background": "#ffffff",
@@ -37760,7 +37760,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7718438870-_r_1q_",
+          "selector": "#react-aria5968907980-_r_1q_",
           "parentSelector": "div",
           "disabled": false,
           "background": "#ffffff",
@@ -37852,7 +37852,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria7718438870-_r_20_",
+          "selector": "#react-aria5968907980-_r_20_",
           "parentSelector": "form",
           "disabled": true,
           "background": "#ffffff",
@@ -38164,7 +38164,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2639760412-_r_m_",
+          "selector": "#react-aria2863596103-_r_m_",
           "parentSelector": "div.people-access-workspace__actions",
           "disabled": false,
           "background": "#07111d",
@@ -38609,7 +38609,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2639760412-_r_u_",
+          "selector": "#react-aria2863596103-_r_u_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#0d1826",
@@ -38655,7 +38655,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2639760412-_r_11_",
+          "selector": "#react-aria2863596103-_r_11_",
           "parentSelector": "div.people-governance-list-actions",
           "disabled": false,
           "background": "#0d1826",
@@ -38701,7 +38701,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2639760412-_r_17_",
+          "selector": "#react-aria2863596103-_r_17_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -38789,7 +38789,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2639760412-_r_19_",
+          "selector": "#react-aria2863596103-_r_19_",
           "parentSelector": "div.people-governance-layout__records",
           "disabled": false,
           "background": "#0d1826",
@@ -39738,7 +39738,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2639760412-_r_1n_",
+          "selector": "#react-aria2863596103-_r_1n_",
           "parentSelector": "section.people-governance-definition",
           "disabled": false,
           "background": "#0d1826",
@@ -40078,7 +40078,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2639760412-_r_1q_",
+          "selector": "#react-aria2863596103-_r_1q_",
           "parentSelector": "div",
           "disabled": false,
           "background": "#0d1826",
@@ -40170,7 +40170,7 @@
           "outcome": "PASS"
         },
         {
-          "selector": "#react-aria2639760412-_r_20_",
+          "selector": "#react-aria2863596103-_r_20_",
           "parentSelector": "form",
           "disabled": true,
           "background": "#0d1826",

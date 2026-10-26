@@ -1,25 +1,25 @@
 {
-  "checkedAt": "2026-10-26T10:17:55.049Z",
-  "freshOutputDirectory": "/tmp/people-v2-customer-d2cbf333",
-  "localRevision": "832f52b69dd3270acf97a2f33a7786ae66279d81",
-  "publishedRevision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
-  "tree": "b3949dfb03358a7b7144c1511c8b2e0e96f0967c",
+  "checkedAt": "2026-10-26T10:52:13.630Z",
+  "freshOutputDirectory": "/tmp/people-v2-customer-1bde8505",
+  "localRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+  "publishedRevision": "1bde850512b9eb4045b23f306322a29ed0859292",
+  "tree": "b8ddfceddb8b767bd060362a2028c8a90de784e2",
   "metrics": {
     "javascript": {
-      "raw": 2400710,
-      "gzip": 665381,
+      "raw": 2400771,
+      "gzip": 665409,
       "initial_gzip": 161876,
       "largest_raw_chunk": 566368
     },
     "css": {
-      "raw": 645931,
-      "gzip": 111610,
-      "initial_gzip": 31976
+      "raw": 646002,
+      "gzip": 111406,
+      "initial_gzip": 32097
     }
   },
   "failures": [],
   "fixtureMarkersAbsent": true,
   "configureChunks": [
-    "ConfigureWorkspace-BOgO-uXa.js"
+    "ConfigureWorkspace-CuVJIbxv.js"
   ]
 }
