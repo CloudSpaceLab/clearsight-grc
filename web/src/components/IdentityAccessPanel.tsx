@@ -358,7 +358,7 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
       <AreaTab area="escalation" active={area} onSelect={setArea}>Escalation routes</AreaTab>
     </div>}
 
-    {(area === "people" || area === "roles") && <div className="people-access-summary" aria-label="Loaded access records">
+    {(area === "people" || area === "roles") && <div className="people-access-summary" role="group" aria-label="Loaded access records">
       <MetricCard label="People" value={overview.people.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
       <MetricCard label="Groups" value={overview.groups.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
       <MetricCard label="Sources" value={overview.sources.length} quality={refreshState === "idle" ? "partial" : "stale"} qualityLabel={refreshState === "idle" ? "Loaded" : "Previous list"}/>
