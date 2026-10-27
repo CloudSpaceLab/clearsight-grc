@@ -4,7 +4,7 @@ import type { AttentionItem } from "../types";
 import { loadActorWorkPage } from "../api";
 import { AssignedWorkQueue } from "./AssignedWorkQueue";
 
-vi.mock("../api", () => ({ loadActorWorkPage: vi.fn() }));
+vi.mock("../api", () => ({ loadActorWorkPage: vi.fn(), loadActorWorkDueCounts: vi.fn() }));
 
 const item: AttentionItem = {
   id: "workflow_1", type: "MATTER", title: "Review retained evidence",
