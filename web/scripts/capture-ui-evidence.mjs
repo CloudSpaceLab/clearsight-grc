@@ -1803,8 +1803,11 @@ async function assertWorkMeasureLabels(page, capture) {
     if (item.label !== labels[index] || item.width < 78 || item.overflow) {
       throw new Error(`${capture.name}: unreadable Work measure label ${JSON.stringify(item)}`);
     }
-    if (item.qualityDisplay !== "none" || !item.accessible.includes("Loaded work")) {
-      throw new Error(`${capture.name}: loaded-feed qualification missing or duplicated in Work measures`);
+    const sourceQualified = index < 2 && item.accessible.includes("Workflow assignments");
+    const loadedQualified = item.accessible.includes("Loaded work");
+    if (item.qualityDisplay !== "none" || (!sourceQualified && !loadedQualified) ||
+        (index >= 2 && !loadedQualified)) {
+      throw new Error(`${capture.name}: Work measure source coverage is missing or incorrect`);
     }
   }
   if (capture.viewport.width <= 390) {
