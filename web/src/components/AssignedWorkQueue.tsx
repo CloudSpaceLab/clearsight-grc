@@ -22,7 +22,7 @@ export type AssignedWorkQueueProps = {
   headingLevel?: "h2" | "h3";
   presentation?: "brief" | "workspace";
   sourceSearchScopeKey?: string;
-  sourceCountScope?: { principalID: string; legalEntityID: string };
+  sourceCountScope?: { principalID: string; tenantID: string; legalEntityID: string };
 };
 
 export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief", sourceSearchScopeKey, sourceCountScope }: AssignedWorkQueueProps) {
