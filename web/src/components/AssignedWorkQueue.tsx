@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useActorWorkSearch } from "./useActorWorkSearch";
+import { useActorWorkDueCounts } from "./useActorWorkDueCounts";
 import { isSourceWorkStatus } from "./workSourceFilters";
 import { Button, DataTable, FilterBar, FocusedSheet, MetricCard, SearchField, SelectField, StatusBadge, Tabs, type DataColumn } from "./ui";
 import { countLoadedWork, filterLoadedWork, type WorkDueWindow, type WorkQueueFilter } from "./workQueuePresentation";
@@ -21,9 +22,10 @@ export type AssignedWorkQueueProps = {
   headingLevel?: "h2" | "h3";
   presentation?: "brief" | "workspace";
   sourceSearchScopeKey?: string;
+  sourceCountScope?: { principalID: string; legalEntityID: string };
 };
 
-export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief", sourceSearchScopeKey }: AssignedWorkQueueProps) {
+export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief", sourceSearchScopeKey, sourceCountScope }: AssignedWorkQueueProps) {
   const Heading = headingLevel;
   const [filter, setFilter] = useState<WorkQueueFilter>("ALL");
   const [search, setSearch] = useState("");
@@ -36,6 +38,7 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
     if (sourceSearch && status && !isSourceWorkStatus(status)) setStatus(undefined);
   }, [sourceSearch, status]);
   const searched = useActorWorkSearch(search, sourceSearchScopeKey ?? "", Boolean(sourceSearchScopeKey) && presentation === "workspace", status, dueWindow);
+  const sourceCounts = useActorWorkDueCounts(presentation === "workspace" ? sourceCountScope : undefined, sourceSearchScopeKey);
   const currentItems = sourceSearch ? searched.items : items;
   const currentState = sourceSearch ? searched.state === "idle" ? "loading" : searched.state : state;
   const currentHasMore = sourceSearch ? searched.hasMore : hasMore;
@@ -66,14 +69,22 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
               onSelectionChange={(key) => setFilter(key)}>
               {() => <>
                 {(!sourceSearch || currentState === "live") && <div className="assigned-workspace__signals" aria-label="Loaded work measures">
-                  {workSignals.map(({ key, label, tone }) => <MetricCard
-                    key={key} label={label} value={counts[key]} qualityLabel="Loaded work" tone={tone}
-                    isSelected={filter === key} ariaControls="attention-list" onPress={() => setFilter(filter === key ? "ALL" : key)}
-                  />)}
+                  {workSignals.map(({ key, label, tone }) => {
+                    const sourced = sourceCounts.value && (key === "OVERDUE" || key === "DUE_SOON");
+                    const value = sourced
+                      ? key === "OVERDUE" ? sourceCounts.value!.overdue : sourceCounts.value!.due_soon
+                      : counts[key];
+                    return <MetricCard
+                      key={key} label={label} value={value} qualityLabel={sourced ? "Workflow assignments" : "Loaded work"} tone={tone}
+                      isSelected={filter === key} ariaControls="attention-list" onPress={() => setFilter(filter === key ? "ALL" : key)}
+                    />;
+                  })}
                 </div>}
                 <header className="intervention-heading">
                   <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">Assigned to me</Heading>
                     {(!sourceSearch || currentState === "live") && <p>{currentItems.length} {currentItems.length === 1 ? "item" : "items"} loaded</p>}
+                    {sourceCounts.value && <p role="status">Deadline totals: workflow assignments only. Approvals and evidence: loaded work.</p>}
+                    {sourceCounts.unavailable && <p role="status">Assignment totals unavailable. Showing loaded work measures.</p>}
                     {sourceSearch
                       ? <p role="status">Workflow assignments only · title matches · loaded results, not total work.</p>
                       : currentHasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}
