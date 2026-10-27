@@ -182,6 +182,21 @@ export type ActorWorkPage = {
   count_basis: "NOT_AVAILABLE";
 };
 
+export type ActorWorkDueCounts = {
+  total: number;
+  overdue: number;
+  due_soon: number;
+  undated: number;
+  as_of: string;
+  coverage: "WORKFLOW_ASSIGNMENTS_ONLY";
+  count_basis: "SOURCE_SNAPSHOT";
+  scope: { tenant_id: string; legal_entity_id: string; principal_id: string };
+};
+
+export function loadActorWorkDueCounts(): Promise<ActorWorkDueCounts> {
+  return scopedRequest<ActorWorkDueCounts>("/api/v1/work/assignment-counts");
+}
+
 export type ActorWorkFilters = {
   status?: "READY" | "IN_PROGRESS" | "BLOCKED" | "ESCALATED";
   due_from?: string;
