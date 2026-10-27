@@ -117,6 +117,7 @@ vi.mock("./captureApi", () => ({
   uploadInternalCaptureArtifact: vi.fn(),
 }));
 vi.mock("./api", () => ({
+  loadActorWorkDueCounts: vi.fn().mockRejectedValue(new Error("Source counts unavailable in shell test")),
   loadAutomationPolicies: vi.fn().mockResolvedValue([]),
   loadCaptureRequest: vi.fn(),
   loadContext: vi.fn(),
