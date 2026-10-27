@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { loadActorWorkDueCounts, type ActorWorkDueCounts } from "../api";
 
-type ActorCountScope = { principalID: string; legalEntityID: string };
+type ActorCountScope = { principalID: string; tenantID: string; legalEntityID: string };
 type CountState = { key: string; value?: ActorWorkDueCounts; unavailable: boolean };
 
 function validSourceCounts(value: ActorWorkDueCounts, scope: ActorCountScope): boolean {
   const { total, overdue, due_soon: dueSoon, undated } = value;
   return value.coverage === "WORKFLOW_ASSIGNMENTS_ONLY" &&
     value.count_basis === "SOURCE_SNAPSHOT" &&
+    value.scope?.tenant_id === scope.tenantID &&
     value.scope?.principal_id === scope.principalID &&
     value.scope?.legal_entity_id === scope.legalEntityID &&
     Number.isFinite(Date.parse(value.as_of)) &&
@@ -19,9 +20,10 @@ function validSourceCounts(value: ActorWorkDueCounts, scope: ActorCountScope): b
 // is bound to the actor, entity and source invalidation token before render.
 export function useActorWorkDueCounts(scope: ActorCountScope | undefined, scopeKey?: string) {
   const principalID = scope?.principalID ?? "";
+  const tenantID = scope?.tenantID ?? "";
   const legalEntityID = scope?.legalEntityID ?? "";
-  const key = scopeKey && principalID && legalEntityID
-    ? `${scopeKey}\u0000${principalID}\u0000${legalEntityID}` : "";
+  const key = scopeKey && principalID && tenantID && legalEntityID
+    ? `${scopeKey}\u0000${tenantID}\u0000${principalID}\u0000${legalEntityID}` : "";
   const [state, setState] = useState<CountState>();
 
   useEffect(() => {
@@ -29,14 +31,14 @@ export function useActorWorkDueCounts(scope: ActorCountScope | undefined, scopeK
     let current = true;
     void loadActorWorkDueCounts().then((value) => {
       if (!current) return;
-      setState(validSourceCounts(value, { principalID, legalEntityID })
+      setState(validSourceCounts(value, { principalID, tenantID, legalEntityID })
         ? { key, value, unavailable: false }
         : { key, unavailable: true });
     }).catch(() => {
       if (current) setState({ key, unavailable: true });
     });
     return () => { current = false; };
-  }, [key, principalID, legalEntityID]);
+  }, [key, principalID, tenantID, legalEntityID]);
 
   return {
     value: state?.key === key ? state.value : undefined,
