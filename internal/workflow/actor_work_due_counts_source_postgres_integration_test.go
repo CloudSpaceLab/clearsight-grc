@@ -29,19 +29,19 @@ func TestActorWorkPostgresCountsReconcileWithVisibleCursorPages(t *testing.T) {
 	defer pool.Close()
 
 	const (
-		tenantID        = "9f888888-8888-4888-8888-888888888801"
-		entityID        = "9f888888-8888-4888-8888-888888888802"
-		otherEntityID   = "9f888888-8888-4888-8888-888888888803"
-		principalID     = "9f888888-8888-4888-8888-888888888804"
-		otherPrincipal  = "9f888888-8888-4888-8888-888888888805"
-		visibleMatter   = "9f888888-8888-4888-8888-888888888806"
+		tenantID         = "9f888888-8888-4888-8888-888888888801"
+		entityID         = "9f888888-8888-4888-8888-888888888802"
+		otherEntityID    = "9f888888-8888-4888-8888-888888888803"
+		principalID      = "9f888888-8888-4888-8888-888888888804"
+		otherPrincipal   = "9f888888-8888-4888-8888-888888888805"
+		visibleMatter    = "9f888888-8888-4888-8888-888888888806"
 		restrictedMatter = "9f888888-8888-4888-8888-888888888807"
-		entityMatter    = "9f888888-8888-4888-8888-888888888808"
-		otherMatter     = "9f888888-8888-4888-8888-888888888809"
-		visibleFlow     = "9f888888-8888-4888-8888-888888888810"
-		restrictedFlow  = "9f888888-8888-4888-8888-888888888811"
-		entityFlow      = "9f888888-8888-4888-8888-888888888812"
-		otherFlow       = "9f888888-8888-4888-8888-888888888813"
+		entityMatter     = "9f888888-8888-4888-8888-888888888808"
+		otherMatter      = "9f888888-8888-4888-8888-888888888809"
+		visibleFlow      = "9f888888-8888-4888-8888-888888888810"
+		restrictedFlow   = "9f888888-8888-4888-8888-888888888811"
+		entityFlow       = "9f888888-8888-4888-8888-888888888812"
+		otherFlow        = "9f888888-8888-4888-8888-888888888813"
 	)
 	cleanup := func() {
 		cleanupCtx, done := context.WithTimeout(context.Background(), 10*time.Second)
