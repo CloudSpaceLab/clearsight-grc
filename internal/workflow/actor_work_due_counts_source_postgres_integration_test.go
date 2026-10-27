@@ -26,7 +26,6 @@ func TestActorWorkPostgresCountsReconcileWithVisibleCursorPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pool.Close()
 
 	const (
 		tenantID         = "9f888888-8888-4888-8888-888888888801"
@@ -61,7 +60,7 @@ func TestActorWorkPostgresCountsReconcileWithVisibleCursorPages(t *testing.T) {
 		}
 	}
 	cleanup()
-	t.Cleanup(cleanup)
+	t.Cleanup(func() { cleanup(); pool.Close() })
 	now := time.Now().UTC()
 	old := now.Add(-10 * time.Minute)
 	late := now.Add(-24 * time.Hour)
