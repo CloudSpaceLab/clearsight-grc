@@ -245,7 +245,7 @@ try {
       for(const label of ["Move area","Retire area"])assert.equal(await page.getByRole("button",{name:label,exact:true}).isEnabled(),false);
       await page.getByText(/Choose a managed area type/).waitFor();r.checks.importedMoveRetireGuard=true;
       await page.getByRole("button",{name:"Edit area",exact:true}).click();
-      const importedEditor=page.getByRole("dialog",{name:"Edit area",exact:true});await importedEditor.waitFor();
+      const importedEditor=page.getByRole("dialog",{name:"Edit Imported operations",exact:true});await importedEditor.waitFor();
       const type=importedEditor.locator(".cs-select-field").filter({has:page.getByText("Type",{exact:true})});
       assert.equal(await type.count(),1);assert.equal(await type.locator(".cs-select-field__value").innerText(),"Choose type");
       assert.equal(await importedEditor.getByRole("button",{name:"Propose change",exact:true}).isEnabled(),false);
