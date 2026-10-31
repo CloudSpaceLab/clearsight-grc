@@ -93,14 +93,20 @@ async function verifyDrills(viewport, theme) {
       assert.equal(result.checks.sourceDrillAbsent, true, "The baseline no longer reproduces the reported defect.");
       return;
     }
+    const activateMetric = async (index) => {
+      const metric = cards(page).nth(index);
+      if (viewport.width === 390) await metric.tap();
+      else { await metric.focus(); await page.keyboard.press("Enter"); }
+    };
     const search = page.getByRole("searchbox", { name: "Search assignment titles" });
     await search.fill("upcoming");
     await waitRows(page, 50);
     await choose(page, "Work status", "Ready");
     await page.waitForFunction(() => window.workSourceEvidence.reads.some((entry) => entry.query.status === "READY"));
     await choose(page, "Due-date window", "Next 30 days + overdue");
-    await cards(page).nth(0).click();
+    await activateMetric(0);
     await waitRows(page, 50);
+    if (viewport.width !== 390) assert.equal(await cards(page).nth(0).evaluate((node) => node === document.activeElement), true);
     assert.equal(await search.inputValue(), "");
     const first = (await sourceReads(page)).at(-1);
     assert.equal(first.query.q ?? "", "");
@@ -119,7 +125,7 @@ async function verifyDrills(viewport, theme) {
     result.checks.overdueComplete = true;
     await page.evaluate(() => scrollTo(0, 0));
     result.overdueImage = await image(page, `overdue-complete-${theme}-${viewport.width}.png`);
-    await cards(page).nth(1).click();
+    await activateMetric(1);
     await waitRows(page, 50);
     const due = (await sourceReads(page)).at(-1);
     assert.equal(due.query.due_from, "2026-10-31T10:00:00.123456Z");
@@ -129,6 +135,7 @@ async function verifyDrills(viewport, theme) {
     for (const name of ["Sample at the deadline window start", "Sample at the deadline window end"]) assert.equal(await table(page).getByRole("row", { name, exact: true }).count(), 1);
     for (const name of ["Sample just before the deadline window", "Sample just after the deadline window"]) assert.equal(await table(page).getByRole("row", { name, exact: true }).count(), 0);
     result.checks.upcomingInclusiveMicrosecondBounds = true;
+    result.checks.metricActivation = viewport.width === 390 ? "touch" : "keyboard";
     await page.evaluate(() => scrollTo(0, 0));
     result.upcomingImage = await image(page, `upcoming-complete-${theme}-${viewport.width}.png`);
     await page.getByRole("button", { name: "Clear filters", exact: true }).click();
