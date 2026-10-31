@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useActorWorkSearch } from "./useActorWorkSearch";
-import { isSourceWorkStatus } from "./workSourceFilters";
+import { useActorWorkDueCounts } from "./useActorWorkDueCounts";
+import { isSourceWorkStatus, type WorkDeadlineDrill } from "./workSourceFilters";
+import type { ActorWorkScope } from "../api";
 import { Button, DataTable, FilterBar, FocusedSheet, MetricCard, SearchField, SelectField, StatusBadge, Tabs, type DataColumn } from "./ui";
 import { countLoadedWork, filterLoadedWork, type WorkDueWindow, type WorkQueueFilter } from "./workQueuePresentation";
 import { EmptyState } from "./EmptyState";
@@ -21,9 +23,10 @@ export type AssignedWorkQueueProps = {
   headingLevel?: "h2" | "h3";
   presentation?: "brief" | "workspace";
   sourceSearchScopeKey?: string;
+  sourceCountScope?: ActorWorkScope;
 };
 
-export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief", sourceSearchScopeKey }: AssignedWorkQueueProps) {
+export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onInspectAuthority, onRetry = () => window.location.reload(), headingLevel = "h2", presentation = "brief", sourceSearchScopeKey, sourceCountScope }: AssignedWorkQueueProps) {
   const Heading = headingLevel;
   const [filter, setFilter] = useState<WorkQueueFilter>("ALL");
   const [search, setSearch] = useState("");
@@ -31,11 +34,26 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const [dueWindow, setDueWindow] = useState<WorkDueWindow>("ALL");
   const [selectedID, setSelectedID] = useState<string>();
   const [inspectingItem, setInspectingItem] = useState<AttentionItem>();
-  const sourceSearch = presentation === "workspace" && Boolean(sourceSearchScopeKey) && search.trim() !== "";
+  const [deadlineDrill, setDeadlineDrill] = useState<WorkDeadlineDrill & { scopeKey: string }>();
+  const canReadSource = presentation === "workspace" && Boolean(sourceSearchScopeKey &&
+    sourceCountScope?.tenantID && sourceCountScope.legalEntityID && sourceCountScope.principalID);
+  const activeDrill = canReadSource && deadlineDrill?.scopeKey === sourceSearchScopeKey ? deadlineDrill : undefined;
+  const sourceSearch = canReadSource && (search.trim() !== "" || Boolean(activeDrill));
+  useEffect(() => {
+    setDeadlineDrill(undefined);
+    setFilter((value) => value === "OVERDUE" || value === "DUE_SOON" ? "ALL" : value);
+  }, [sourceSearchScopeKey]);
   useEffect(() => {
     if (sourceSearch && status && !isSourceWorkStatus(status)) setStatus(undefined);
   }, [sourceSearch, status]);
-  const searched = useActorWorkSearch(search, sourceSearchScopeKey ?? "", Boolean(sourceSearchScopeKey) && presentation === "workspace", status, dueWindow);
+  const sourceCounts = useActorWorkDueCounts(canReadSource ? sourceCountScope : undefined, sourceSearchScopeKey);
+  // A loaded-only selection must not become a selected source total when its
+  // asynchronous receipt arrives. Reset before committing that render.
+  if (sourceCounts.value && !activeDrill && (filter === "OVERDUE" || filter === "DUE_SOON")) setFilter("ALL");
+  const searched = useActorWorkSearch({
+    search, scopeKey: sourceSearchScopeKey ?? "", scope: sourceCountScope,
+    enabled: canReadSource, status, dueWindow, deadline: activeDrill, onAccessLost: sourceCounts.invalidate,
+  });
   const currentItems = sourceSearch ? searched.items : items;
   const currentState = sourceSearch ? searched.state === "idle" ? "loading" : searched.state : state;
   const currentHasMore = sourceSearch ? searched.hasMore : hasMore;
@@ -43,13 +61,27 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
   const title = currentState === "loading" ? "Loading assigned work" : currentState === "unavailable" ? "Assigned work is unavailable" : count;
   const snapshotTime = Date.parse((sourceSearch ? searched.asOf : asOf) ?? "");
   const now = Number.isFinite(snapshotTime) ? snapshotTime : Date.now();
-  const counts = countLoadedWork(currentItems, now);
+  const loadedTime = Date.parse(asOf ?? "");
+  const counts = countLoadedWork(items, Number.isFinite(loadedTime) ? loadedTime : Date.now());
   const statuses = sourceSearch ? sourceWorkStatuses : [...new Set(currentItems.map((item) => item.state).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b)).map((value) => ({ id: value, label: value }));
-  const filtered = filterLoadedWork(currentItems, filter, sourceSearch ? "" : search, sourceSearch ? undefined : status, now, sourceSearch ? "ALL" : dueWindow);
+  const filtered = filterLoadedWork(currentItems, activeDrill ? "ALL" : filter, sourceSearch ? "" : search, sourceSearch ? undefined : status, now, sourceSearch ? "ALL" : dueWindow);
   const selected = filtered.find((item) => item.id === selectedID) ?? filtered[0];
   // Inspection references are invalidated when the source population changes.
   const inspecting = currentItems.find((item) => item === inspectingItem);
+
+  const clearFilters = () => {
+    setSearch(""); setStatus(undefined); setDueWindow("ALL"); setFilter("ALL"); setDeadlineDrill(undefined);
+  };
+  const selectSignal = (key: WorkQueueFilter) => {
+    const selected = filter === key;
+    clearFilters();
+    if (selected) return;
+    setFilter(key);
+    if (sourceCounts.value && sourceSearchScopeKey && (key === "OVERDUE" || key === "DUE_SOON")) {
+      setDeadlineDrill({ kind: key, asOf: sourceCounts.value.as_of, scopeKey: sourceSearchScopeKey });
+    }
+  };
 
   return <section className={`intervention-brief${presentation === "workspace" ? " assigned-workspace" : ""}`} aria-labelledby="assigned-work-heading">
     {(presentation !== "workspace" || (currentState !== "live" && !sourceSearch)) && <header className="intervention-heading">
@@ -63,43 +95,54 @@ export function AssignedWorkQueue({ items, state, asOf, hasMore, onOpenItem, onI
           ? <>
             <Tabs ariaLabel="Assigned work queues" items={workQueues}
               selectedKey={filter === "APPROVALS" ? "APPROVALS" : "ALL"}
-              onSelectionChange={(key) => setFilter(key)}>
+              onSelectionChange={(key) => { setDeadlineDrill(undefined); setFilter(key); }}>
               {() => <>
-                {(!sourceSearch || currentState === "live") && <div className="assigned-workspace__signals" aria-label="Loaded work measures">
-                  {workSignals.map(({ key, label, tone }) => <MetricCard
-                    key={key} label={label} value={counts[key]} qualityLabel="Loaded work" tone={tone}
-                    isSelected={filter === key} ariaControls="attention-list" onPress={() => setFilter(filter === key ? "ALL" : key)}
-                  />)}
-                </div>}
+                <div className="assigned-workspace__signals" aria-label="Work measures">
+                  {workSignals.map(({ key, label, tone }) => {
+                    const sourced = sourceCounts.value && (key === "OVERDUE" || key === "DUE_SOON");
+                    const value = sourced
+                      ? key === "OVERDUE" ? sourceCounts.value!.overdue : sourceCounts.value!.due_soon
+                      : counts[key];
+                    return <MetricCard
+                      key={key} label={label} value={value} qualityLabel={sourced ? "Workflow assignments" : "Loaded work"} tone={tone}
+                      isSelected={filter === key} ariaControls="attention-list" onPress={() => selectSignal(key)}
+                    />;
+                  })}
+                </div>
+                {sourceCounts.value && <p className="assigned-workspace__receipt">Workflow assignment totals · <time dateTime={sourceCounts.value.as_of} title={sourceCounts.value.as_of}>{formatWorkTime(sourceCounts.value.as_of)}</time></p>}
+                {sourceCounts.unavailable && <p className="assigned-workspace__receipt" role="status">Assignment totals unavailable. Showing loaded work measures.</p>}
                 <header className="intervention-heading">
-                  <div><span className="eyebrow">Assigned work</span><Heading id="assigned-work-heading">Assigned to me</Heading>
-                    {(!sourceSearch || currentState === "live") && <p>{currentItems.length} {currentItems.length === 1 ? "item" : "items"} loaded</p>}
+                  <div><Heading id="assigned-work-heading">Assigned to me</Heading>
+                    {(!sourceSearch || currentState === "live") && <p>{currentItems.length} {currentItems.length === 1 ? "item" : "items"} loaded{sourceSearch && <> · Workflow assignments only{search.trim() && " · title matches"}</>}</p>}
                     {sourceSearch
-                      ? <p role="status">Workflow assignments only · title matches · loaded results, not total work.</p>
-                      : currentHasMore && <p role="status">More assignments exist. Counts and search cover loaded work only.</p>}
+                      ? searched.asOf && <p>Assignment results · <time dateTime={searched.asOf} title={searched.asOf}>{formatWorkTime(searched.asOf)}</time></p>
+                      : currentHasMore && <p role="status">More assignments available. The queue shows loaded work.</p>}
                   </div>
                   <div className="assigned-workspace__due-window">
                     <SelectField label="Due-date window" value={dueWindow} placeholder="All due dates"
                       options={dueWindows} allowsEmpty={false}
-                      onChange={(value) => setDueWindow(value ?? "ALL")}/>
+                      onChange={(value) => {
+                        setDueWindow(value ?? "ALL"); setDeadlineDrill(undefined);
+                        if (filter === "OVERDUE" || filter === "DUE_SOON") setFilter("ALL");
+                      }}/>
                   </div>
                 </header>
-                <FilterBar label={sourceSearch ? "Filter matching assignments" : "Filter loaded work"}
+                <FilterBar label={sourceSearch ? "Filter assignments" : "Filter loaded work"}
                   fields={<>
-                    <SearchField label={sourceSearchScopeKey ? "Search assignment titles" : "Search loaded work"} value={search} onChange={(value) => {
+                    <SearchField label={canReadSource ? "Search assignment titles" : "Search loaded work"} value={search} onChange={(value) => {
                       setSearch(value.slice(0, 120));
                       if (value.trim() && sourceSearchScopeKey && status && !isSourceWorkStatus(status)) setStatus(undefined);
-                    }} placeholder={sourceSearchScopeKey ? "Search assignment titles" : "Search loaded work"}/>
+                    }} placeholder={canReadSource ? "Search assignment titles" : "Search loaded work"}/>
                     <SelectField label="Work status" isLabelHidden value={status} placeholder="All statuses" options={statuses} onChange={setStatus}/>
                   </>}
                   resultCount={filtered.length}
-                  resultLabel={(count) => sourceSearch && currentState !== "live" ? currentState === "loading" ? "Searching assignment titles" : "Assignment search unavailable" : `${count} of ${currentItems.length} loaded ${sourceSearch ? "assignment matches" : "items"} · ${workFilterLabel(filter)}`}
-                  onClear={search || status || filter !== "ALL" || dueWindow !== "ALL" ? () => { setSearch(""); setStatus(undefined); setDueWindow("ALL"); setFilter("ALL"); } : undefined}
+                  resultLabel={(count) => sourceSearch && currentState !== "live" ? currentState === "loading" ? "Loading assignments" : "Assignments unavailable" : `${count} of ${currentItems.length} loaded ${sourceSearch ? "assignment matches" : "items"} · ${workFilterLabel(filter)}`}
+                  onClear={search || status || filter !== "ALL" || dueWindow !== "ALL" || activeDrill ? clearFilters : undefined}
                 />
                 {sourceSearch && currentState !== "live"
                   ? <div id="attention-list">{currentState === "loading"
-                    ? <div className="workspace-loading" aria-live="polite" aria-busy="true">Searching assignment titles…</div>
-                    : <EmptyState kind="unavailable" label="Assigned work" title="Assignment search unavailable" description="Retry the search." action="Try again" onAction={searched.retry}/>}</div>
+                    ? <div className="workspace-loading" aria-live="polite" aria-busy="true">{search.trim() ? "Searching assignment titles…" : "Loading assignments…"}</div>
+                    : <EmptyState kind="unavailable" label="Assigned work" title="Assignments unavailable" description="Retry loading assignments." action="Try again" onAction={searched.retry}/>}</div>
                   : filtered.length ? <div className="assigned-workspace__grid" id="attention-list">
                   <DataTable ariaLabel="Assigned work" rows={filtered} rowKey={(item) => item.id}
                     rowName={(item) => item.title} columns={workColumns} selectedKey={selected?.id}
@@ -275,4 +318,13 @@ function formatCheckTime(value?: string) {
   const parsed = Date.parse(value ?? "");
   if (!Number.isFinite(parsed) || new Date(parsed).getUTCFullYear() < 2000) return "Not scheduled";
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(parsed));
+}
+
+const workTimeFormat = new Intl.DateTimeFormat(undefined, {
+  day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  timeZone: "UTC", timeZoneName: "short",
+});
+
+function formatWorkTime(value: string) {
+  return workTimeFormat.format(new Date(value));
 }

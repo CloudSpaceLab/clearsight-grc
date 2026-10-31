@@ -18,6 +18,7 @@ const scripts = [
   "scripts/capture-risk-loss-evidence.mjs",
   "scripts/capture-privacy-evidence.mjs",
   "scripts/capture-people-access-evidence.mjs",
+  "scripts/capture-work-source-evidence.mjs",
   "scripts/capture-home-t7-evidence.mjs",
   "scripts/capture-premium-first-run-evidence.mjs",
   "scripts/capture-forms-evidence.mjs",

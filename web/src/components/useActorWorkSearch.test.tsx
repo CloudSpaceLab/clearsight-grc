@@ -6,10 +6,12 @@ import { useActorWorkSearch } from "./useActorWorkSearch";
 
 vi.mock("../api", () => ({ loadActorWorkPage: vi.fn() }));
 
+const scope = { tenantID: "bank", legalEntityID: "entity", principalID: "actor" };
 const page: ActorWorkPage = {
-  items: [], next_cursor: "second-page", has_more: true,
+  items: [{ id: "assignment", type: "MATTER", title: "Review audit", why_now: "Review due", scope: "Ops", state: "Ready", evidence: "Received", owner: "Reviewer", due_at: "", primary_action: "Inspect" }], next_cursor: "second-page", has_more: true,
   as_of: "2026-10-26T12:00:00Z",
   coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE",
+  scope: { tenant_id: "bank", legal_entity_id: "entity", principal_id: "actor" },
 };
 
 beforeEach(() => vi.resetAllMocks());
@@ -21,7 +23,7 @@ describe("source Work query paging", () => {
       .mockResolvedValueOnce({ ...page, next_cursor: undefined, has_more: false });
 
     const { result } = renderHook(() =>
-      useActorWorkSearch("audit", "actor:entity", true, "In progress", "7"));
+      useActorWorkSearch({ search: "audit", scopeKey: "actor:entity", enabled: true, scope, status: "In progress", dueWindow: "7" }));
 
     await waitFor(() => expect(result.current.state).toBe("live"));
     const first = vi.mocked(loadActorWorkPage).mock.calls[0]!;
@@ -40,7 +42,7 @@ describe("source Work query paging", () => {
     vi.mocked(loadActorWorkPage).mockResolvedValue(page);
     const { result, rerender } = renderHook(
       ({ dueWindow }: { dueWindow: WorkDueWindow }) =>
-        useActorWorkSearch("audit", "actor:entity", true, "Ready", dueWindow),
+        useActorWorkSearch({ search: "audit", scopeKey: "actor:entity", enabled: true, scope, status: "Ready", dueWindow }),
       { initialProps: { dueWindow: "ALL" as WorkDueWindow } },
     );
 

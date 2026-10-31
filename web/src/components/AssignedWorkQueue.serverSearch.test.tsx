@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AttentionItem } from "../types";
-import { loadActorWorkPage } from "../api";
+import { loadActorWorkDueCounts, loadActorWorkPage } from "../api";
 import { AssignedWorkQueue } from "./AssignedWorkQueue";
 
-vi.mock("../api", () => ({ loadActorWorkPage: vi.fn() }));
+vi.mock("../api", () => ({ loadActorWorkPage: vi.fn(), loadActorWorkDueCounts: vi.fn() }));
 
 const item: AttentionItem = {
   id: "workflow_1", type: "MATTER", title: "Review retained evidence",
@@ -12,26 +12,28 @@ const item: AttentionItem = {
   owner: "Reviewer", due_at: "", primary_action: "Open issue",
   action_target_type: "MATTER", action_target_id: "matter-1",
 };
+const scope = { tenantID: "bank", legalEntityID: "entity", principalID: "actor" };
+const receiptScope = { tenant_id: "bank", legal_entity_id: "entity", principal_id: "actor" };
 const asOf = "2026-10-21T00:00:00Z";
 
-beforeEach(() => { vi.resetAllMocks(); });
+beforeEach(() => { vi.resetAllMocks(); vi.mocked(loadActorWorkDueCounts).mockRejectedValue(new Error("Counts unavailable")); });
 
 describe("source-backed Work title search", () => {
   it("queries beyond the Today feed and pages without changing the default items", async () => {
     vi.mocked(loadActorWorkPage)
       .mockResolvedValueOnce({
         items: [item], next_cursor: "page-two", has_more: true, as_of: asOf,
-        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE",
+        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE", scope: receiptScope,
       })
       .mockResolvedValueOnce({
         items: [{ ...item, id: "workflow_2", title: "Review retained evidence 2" }],
         has_more: false, as_of: asOf,
-        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE",
+        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE", scope: receiptScope,
       });
 
     const local = { ...item, id: "admin-recovery", title: "Assign issue owner" };
     render(<AssignedWorkQueue presentation="workspace" state="live" items={[local]}
-      sourceSearchScopeKey="actor:entity" onOpenItem={vi.fn()}/>);
+      sourceSearchScopeKey="actor:entity" sourceCountScope={scope} onOpenItem={vi.fn()}/>);
 
     const searchField = screen.getByRole("searchbox", { name: "Search assignment titles" });
     searchField.focus();
@@ -58,10 +60,10 @@ describe("source-backed Work title search", () => {
   it("never renders results from a previous actor scope", async () => {
     vi.mocked(loadActorWorkPage).mockResolvedValue({
       items: [item], has_more: false, as_of: asOf,
-      coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE",
+      coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE", scope: receiptScope,
     });
     const { rerender } = render(<AssignedWorkQueue presentation="workspace" state="live" items={[]}
-      sourceSearchScopeKey="actor:entity-a" onOpenItem={vi.fn()}/>);
+      sourceSearchScopeKey="actor:entity-a" sourceCountScope={scope} onOpenItem={vi.fn()}/>);
     fireEvent.change(screen.getByRole("searchbox", { name: "Search assignment titles" }), {
       target: { value: "retained" },
     });
@@ -69,7 +71,7 @@ describe("source-backed Work title search", () => {
 
     vi.mocked(loadActorWorkPage).mockImplementationOnce(() => new Promise(() => {}));
     rerender(<AssignedWorkQueue presentation="workspace" state="live" items={[]}
-      sourceSearchScopeKey="actor:entity-b" onOpenItem={vi.fn()}/>);
+      sourceSearchScopeKey="actor:entity-b" sourceCountScope={{ ...scope, legalEntityID: "entity-b" }} onOpenItem={vi.fn()}/>);
     expect(screen.queryByRole("row", { name: item.title })).toBeNull();
     expect(screen.getByText("Searching assignment titles…")).toBeTruthy();
     expect(screen.getByRole("searchbox", { name: "Search assignment titles" })).toBeTruthy();
@@ -81,15 +83,15 @@ describe("source-backed Work title search", () => {
     vi.mocked(loadActorWorkPage)
       .mockResolvedValueOnce({
         items: [review], next_cursor: "remaining", has_more: true, as_of: asOf,
-        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE",
+        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE", scope: receiptScope,
       })
       .mockResolvedValueOnce({
         items: [approval], has_more: false, as_of: asOf,
-        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE",
+        coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE", scope: receiptScope,
       });
 
     render(<AssignedWorkQueue presentation="workspace" state="live" items={[]}
-      sourceSearchScopeKey="actor:entity" onOpenItem={vi.fn()}/>);
+      sourceSearchScopeKey="actor:entity" sourceCountScope={scope} onOpenItem={vi.fn()}/>);
     fireEvent.change(screen.getByRole("searchbox", { name: "Search assignment titles" }), {
       target: { value: "retained" },
     });

@@ -1,0 +1,68 @@
+{
+  "reviewer": "ChatGPT, GPT-6 Astra Pro, /root/work_contract",
+  "date": "2026-10-31",
+  "result": {
+    "failures": [],
+    "detail": "10 layouts, 5 behavior scenarios, 22 retained images"
+  },
+  "runtimeRevision": "e4d9a08cb16b88fde6b3cd8657fb1a7a4a75643d",
+  "runtimeTree": "c06c30bb766d10fb8ecc5247c8c6bf627e595c5e",
+  "runtimeBuildDigest": "3bfc7fcf130c22bcde0ece385a909632d872cb5c47f7f74867e3c41651548c51",
+  "globalBuildBinding": "PASS",
+  "mismatchedBuildRejected": true,
+  "stages": {
+    "before": {
+      "revision": "ad81d259a79b58d7e2871587900ba1570e56ffba",
+      "buildDigest": "f14ff7f0b633eef1dd277a5e784ab451389821b3db5e33dfd92c63bf08a6d171",
+      "receiptSHA256": "af70d2f031bf191b344ce99846c57eda9eba41e20d307d3c60e75fc09d4ff50e",
+      "inputs": {
+        "fixtureSHA256": "60e18baa3ed232786c6f6107e76137e99723c1443e779f8c072b30ea8c24df60",
+        "captureSHA256": "98172082b7be9fe04232d8dd64a381e1b34805e804b197eb5fc460b4825b58ea"
+      },
+      "imageCount": 17
+    },
+    "after": {
+      "revision": "e4d9a08cb16b88fde6b3cd8657fb1a7a4a75643d",
+      "buildDigest": "3bfc7fcf130c22bcde0ece385a909632d872cb5c47f7f74867e3c41651548c51",
+      "receiptSHA256": "c8212e365cba398dec8b67db6d6535840ac0283df5d1fbad3319ed9f45cea576",
+      "inputs": {
+        "fixtureSHA256": "60e18baa3ed232786c6f6107e76137e99723c1443e779f8c072b30ea8c24df60",
+        "captureSHA256": "71992b5c0300abff75f072ecaf3879d97da72374b7ad68cf78139cda84fc3c73"
+      },
+      "imageCount": 22
+    }
+  },
+  "legacy": {
+    "manifestSHA256": "491f373e9a57e125d5e3a84350b13986dc3420002a81f438fbc80dffb3f2cc7a",
+    "captureCount": 3,
+    "images": [
+      {
+        "file": "150-work-queue-light-1440x900.png",
+        "bytes": 239762,
+        "sha256": "0a0f751d6dea19fd0fc6c503602e63ac533d0918f65a2d087cb9b7f59ea3e602"
+      },
+      {
+        "file": "151-work-queue-dark-mobile-390x844.png",
+        "bytes": 96145,
+        "sha256": "781f6458f0eb82ef8bef07b9d6eed2d98983910b0421e5569790f527fb04fee3"
+      },
+      {
+        "file": "152-work-detail-dark-mobile-390x844.png",
+        "bytes": 38183,
+        "sha256": "0b75b24a1ff460a1d0351f802eddd4701bc6603811af065d7d3eea830291150c"
+      }
+    ],
+    "runtimeRevision": "9584d2891f4d2da456b5c6b5c3d7097883ee0440",
+    "buildDigest": "3bfc7fcf130c22bcde0ece385a909632d872cb5c47f7f74867e3c41651548c51"
+  },
+  "sourceSHA256": "202ed9c2b22ac4e921d9ba14aa41b61644ea54cbe55abcc81a86ec10b10ee8d2",
+  "limits": [
+    "Synthetic browser fixture; no backend authorization evidence",
+    "Partial V2 integration; whole-screen acceptance remains 0/19"
+  ],
+  "metricActivation": {
+    "desktop": "keyboard Enter, focus retained",
+    "phone": "touch tap"
+  },
+  "unchangedApplicationBuildFrom": "9584d2891f4d2da456b5c6b5c3d7097883ee0440"
+}
