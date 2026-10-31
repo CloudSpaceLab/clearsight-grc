@@ -16,7 +16,7 @@ const requiredBehaviors = {
   recovery: ["failedReadDoesNotShowRecords", "retryRestoresRecords", "noHorizontalOverflow"],
   readonly: ["mutationActionsUnavailable", "noHorizontalOverflow"],
   "hierarchy-gaps": ["orphanAndCycleRemainReachable", "noHorizontalOverflow"],
-  "existing-editors-and-import-guards": ["managedEditorsOpenWithoutCommands", "importedMoveRetireGuard", "importedTypeRequiresExplicitChoice", "retainedPositionBoundaryEditorsOpen", "independentMakerGuard"],
+  "existing-editors-and-import-guards": ["managedEditorsOpenWithoutCommands", "importedMoveRetireGuard", "importedTypePopoverClosed", "importedTypeFocusRestored", "importedTypeRequiresExplicitChoice", "retainedPositionBoundaryEditorsOpen", "independentMakerGuard"],
 };
 
 export async function reviewEnterpriseSetupEvidence(outputDirectory, runtimeBuild) {
@@ -51,6 +51,10 @@ export async function reviewEnterpriseSetupEvidence(outputDirectory, runtimeBuil
   for (const [name, checks] of Object.entries(requiredBehaviors)) {
     const matches = behaviors.filter(item => item.name === name), record = matches[0];
     if (matches.length !== 1 || !record?.passed || record.errors?.length || checks.some(key => record.checks?.[key] !== true)) failures.push("Enterprise Setup behavior evidence failed: " + name);
+    if(name==="existing-editors-and-import-guards"){
+      const dismissal=record?.importedTypeDismissal;
+      if(dismissal?.expanded!=="false"||dismissal.focused!==true||dismissal.listboxes!==0||dismissal.popovers!==0) failures.push("Enterprise Setup imported-type overlay did not close and restore trigger focus before sheet dismissal");
+    }
   }
   for (const record of [...layouts, ...behaviors]) {
     const log = record.observation;

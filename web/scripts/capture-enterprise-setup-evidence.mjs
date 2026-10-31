@@ -254,8 +254,17 @@ try {
       const type=importedEditor.locator(".cs-select-field").filter({has:page.getByText("Type",{exact:true})});
       assert.equal(await type.count(),1);assert.equal(await type.locator(".cs-select-field__value").innerText(),"Choose type");
       assert.equal(await importedEditor.getByRole("button",{name:"Propose change",exact:true}).isEnabled(),false);
-      await type.getByRole("button").click();await importedEditor.getByRole("option",{name:"Department",exact:true}).click();
+      const typeTrigger=type.getByRole("button");
+      await typeTrigger.click();await importedEditor.getByRole("option",{name:"Department",exact:true}).click();
       assert.equal(await importedEditor.getByRole("button",{name:"Propose change",exact:true}).isEnabled(),true);
+      // Selection commits before the nested overlay restores focus on a frame.
+      // Observe that boundary before sending the parent's single Escape.
+      await importedEditor.getByRole("listbox").waitFor({state:"hidden"});
+      await importedEditor.locator(".cs-select-field__popover").waitFor({state:"hidden"});
+      await page.waitForFunction(trigger=>trigger.getAttribute("aria-expanded")==="false"&&document.activeElement===trigger,await typeTrigger.elementHandle());
+      r.importedTypeDismissal=await typeTrigger.evaluate(trigger=>({expanded:trigger.getAttribute("aria-expanded"),focused:document.activeElement===trigger,listboxes:trigger.closest('[role="dialog"]').querySelectorAll('[role="listbox"]').length,popovers:trigger.closest('[role="dialog"]').querySelectorAll(".cs-select-field__popover").length}));
+      assert.deepEqual(r.importedTypeDismissal,{expanded:"false",focused:true,listboxes:0,popovers:0});
+      r.checks.importedTypePopoverClosed=true;r.checks.importedTypeFocusRestored=true;
       await page.keyboard.press("Escape");await importedEditor.waitFor({state:"hidden"});r.checks.importedTypeRequiresExplicitChoice=true;
       for(const label of ["Positions & roles","Data boundary"]){await page.getByRole("button",{name:label,exact:true}).click();await page.getByRole("dialog",{name:label,exact:true}).waitFor();await page.keyboard.press("Escape");await page.getByRole("dialog").waitFor({state:"hidden"});}r.checks.retainedPositionBoundaryEditorsOpen=true;
       await page.getByRole("button",{name:"Review area changes",exact:true}).click();await page.getByRole("dialog").waitFor();
