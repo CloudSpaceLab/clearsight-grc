@@ -85,7 +85,7 @@ async function capturePhonePositionHeader(page, scenario) {
   await settlePeopleAccessPaint(page);
   const geometry = await header.evaluate((node) => {
     const box = (element) => { const r = element.getBoundingClientRect(); return { x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom }; };
-    return { container: box(node), heading: box(node.querySelector("h3")), filters: box(node.querySelector(".identity-position-filters")), dialog: box(node.closest('[role="dialog"]')), contextBar: box(document.querySelector(".context-bar")) };
+    return { container: box(node), heading: box(node.querySelector("h2, h3")), filters: box(node.querySelector(".identity-position-filters")), dialog: box(node.closest('[role="dialog"]')), contextBar: box(document.querySelector(".context-bar")) };
   });
   const { container, heading, filters, dialog } = geometry;
   if ([heading, filters].some((box) => box.width <= 0 || box.height <= 0 || box.x < Math.max(container.x, dialog.x) - 1 || box.right > Math.min(container.right, dialog.right) + 1 || box.y < Math.max(0, dialog.y) || box.bottom > scenario.viewport.height) || heading.bottom > filters.y + 1) throw new Error(`${scenario.name}: phone position heading must fit above its filters within the sheet viewport`);

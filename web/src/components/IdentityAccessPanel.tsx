@@ -52,6 +52,10 @@ type Props = {
   onAreaChange?: (area: IdentityAccessArea) => void;
   organizationName?: string;
   legalEntityName?: string;
+  legalEntityCode?: string;
+  importsEnabled?: boolean;
+  selectedOrganizationScopeID?: string;
+  onSelectOrganizationScope?: (id: string | undefined) => void;
   scopeKey?: string;
   canRead?: boolean;
   active?: boolean;
@@ -65,7 +69,7 @@ export function IdentityAccessPanel(props: Props) {
   return <IdentityAccessWorkspace key={props.scopeKey || "access"} {...props}/>;
 }
 
-function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizationName, legalEntityName, canRead = true, active = true, selectedPersonID, onSelectPerson, selectedRoleID, onSelectRole }: Props) {
+function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizationName, legalEntityName, legalEntityCode, importsEnabled, selectedOrganizationScopeID, onSelectOrganizationScope, canRead = true, active = true, selectedPersonID, onSelectPerson, selectedRoleID, onSelectRole }: Props) {
   const [overview, setOverview] = useState<IdentityAccessOverview | null>(null);
   const [state, setState] = useState<"loading" | "live" | "restricted" | "unavailable">("loading");
   const [busy, setBusy] = useState("");
@@ -382,6 +386,11 @@ function IdentityAccessWorkspace({ area: controlledArea, onAreaChange, organizat
         canConfigure={overview.can_configure_organization && canChange}
         isBusy={isBusy}
         scopesTruncated={overview.organization_scopes_truncated === true}
+        legalEntityName={legalEntityName}
+        legalEntityCode={legalEntityCode}
+        importsEnabled={importsEnabled}
+        selectedScopeID={selectedOrganizationScopeID}
+        onSelectScope={onSelectOrganizationScope}
         mode={area}
         onProposeScope={proposeScope}
         onApproveScope={approveScope}

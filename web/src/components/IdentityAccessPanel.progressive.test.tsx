@@ -121,10 +121,13 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
 
   expect(screen.getByRole("tab", { name: "Organization", selected: true })).toBeTruthy();
+  expect(screen.getByText("2 loaded areas · Search covers this list")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
   expect(screen.getByText("Ada Okafor")).toBeTruthy();
   expect(screen.getByText("PROGRAM_OWNER")).toBeTruthy();
   expect(screen.getByText("Department / area")).toBeTruthy();
-  expect(screen.getByText("Active organization scopes in this legal entity")).toBeTruthy();
+  expect(screen.getByText("2 of 2 loaded positions · Up to 50 positions are returned.")).toBeTruthy();
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Positions & roles" })).getByRole("button", { name: "Close" }));
 
   fireEvent.click(screen.getByRole("tab", { name: "Reporting lines" }));
   expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent === "Chidi Eze reports to Ada Okafor")).toBeTruthy();
@@ -181,6 +184,7 @@ it("proposes a new position with occupant and reporting line from the Organizati
   render(<IdentityAccessPanel/>);
   await screen.findByRole("heading", { name: "Organization & access" });
 
+  fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
   fireEvent.click(screen.getByRole("button", { name: "Add position" }));
   const dialog = screen.getByRole("dialog", { name: "Add position" });
   fireEvent.change(within(dialog).getByRole("textbox", { name: /^Code/ }), { target: { value: "RISK_ANALYST" } });
@@ -228,6 +232,7 @@ it("governs workspace roles and keeps policy-managed roles read-only", async () 
   render(<IdentityAccessPanel/>);
   await screen.findByRole("heading", { name: "Organization & access" });
 
+  fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
   const ownerRow = screen.getByRole("row", { name: /Program Owner/ });
   fireEvent.click(within(ownerRow).getByRole("button", { name: "Roles" }));
 
@@ -275,6 +280,7 @@ it("shows pending workspace role changes for independent approval", async () => 
   api.approveOrganizationPositionRole.mockResolvedValue(undefined);
 
   render(<IdentityAccessPanel/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Positions & roles" }));
   await screen.findByText("Pending workspace role changes");
 
   const pending = screen.getByText("Pending workspace role changes").parentElement!;
@@ -323,6 +329,7 @@ it("shows pending position changes for independent approval", async () => {
   api.approveOrganizationPosition.mockResolvedValue(undefined);
 
   render(<IdentityAccessPanel/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Positions & roles" }));
   await screen.findByText("Position changes");
 
   fireEvent.click(screen.getByRole("button", { name: "Approve" }));
@@ -376,6 +383,7 @@ it("shows active work impact before approving an occupant change", async () => {
   });
 
   render(<IdentityAccessPanel/>);
+  fireEvent.click(await screen.findByRole("button", { name: "Positions & roles" }));
   await screen.findByText("Position changes");
   fireEvent.click(screen.getByRole("button", { name: "Approve" }));
 
@@ -466,6 +474,7 @@ it("proposes a governed restore from applied position history", async () => {
 
   render(<IdentityAccessPanel/>);
   await screen.findByRole("heading", { name: "Organization & access" });
+  fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
   fireEvent.click(screen.getByText("History"));
   fireEvent.click(screen.getByRole("button", { name: "Restore" }));
 
@@ -530,7 +539,7 @@ it("shows pending organization changes for independent approval", async () => {
   api.approveOrganizationScope.mockResolvedValue(undefined);
 
   render(<IdentityAccessPanel/>);
-  await screen.findByText("Pending changes");
+  fireEvent.click(await screen.findByRole("button", { name: "Review area changes" }));
 
   fireEvent.click(screen.getByRole("button", { name: "Approve" }));
   const dialog = screen.getByRole("dialog", { name: "Approve change" });

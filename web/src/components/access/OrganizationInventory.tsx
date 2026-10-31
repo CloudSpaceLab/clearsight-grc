@@ -18,7 +18,9 @@ import type {
 } from "../../identityAccessApi";
 import { OrganizationPositionManager } from "./OrganizationPositionManager";
 import { OrganizationScopeManager } from "./OrganizationScopeManager";
-import { SelectField, StatusBadge } from "../ui";
+import { enterpriseSetupRoute } from "../configure/enterpriseSetupRouting";
+import { peopleAccessHash } from "../configure/peopleAccessRouting";
+import { ActionLink, Button, FocusedSheet, Notice, SearchField, SelectField, StatusBadge, Surface } from "../ui";
 
 type Props = {
   positions: OrganizationPosition[];
@@ -36,6 +38,11 @@ type Props = {
   isBusy?: boolean;
   scopesTruncated?: boolean;
   mode: "positions" | "reporting";
+  legalEntityName?: string;
+  legalEntityCode?: string;
+  selectedScopeID?: string;
+  onSelectScope?: (id: string | undefined) => void;
+  importsEnabled?: boolean;
   onProposeScope?: (input: ProposeOrganizationScopeInput) => Promise<boolean>;
   onApproveScope?: (revision: OrganizationScopeRevision, rationale: string) => Promise<boolean>;
   onRejectScope?: (revision: OrganizationScopeRevision, rationale: string) => Promise<boolean>;
@@ -68,6 +75,11 @@ export function OrganizationInventory({
   isBusy = false,
   scopesTruncated = false,
   mode,
+  legalEntityName,
+  legalEntityCode,
+  selectedScopeID,
+  onSelectScope,
+  importsEnabled = false,
   onProposeScope,
   onApproveScope,
   onRejectScope,
@@ -84,6 +96,14 @@ export function OrganizationInventory({
   onRejectDataBoundary,
 }: Props) {
   const [query, setQuery] = useState("");
+  const [panel, setPanel] = useState<"positions" | "boundary">();
+  const [localSelection, setLocalSelection] = useState<string>();
+  const selected = onSelectScope ? selectedScopeID : localSelection;
+  const directoryHref = peopleAccessHash("organization", enterpriseSetupRoute(window.location.hash)?.selections, "directory");
+  useEffect(() => { setPanel(undefined); }, [selected]);
+  useEffect(() => { if (!canConfigure) setPanel(undefined); }, [canConfigure]);
+  function selectScope(id: string | undefined) { setLocalSelection(id); onSelectScope?.(id); }
+  function openPositions() { setArea(selected); setPanel("positions"); }
   const [area, setArea] = useState<string>();
   const [residencyRegion, setResidencyRegion] = useState("");
   const [transferMode, setTransferMode] = useState<DetailTransferMode>("AGGREGATE_ONLY");
@@ -128,6 +148,7 @@ export function OrganizationInventory({
 
   const visible = useMemo(() => positions.filter((position) => {
     const selectedScope = area ? scopeByID.get(area) : undefined;
+    if (area && !selectedScope) return false;
     const positionScope = position.organization_scope_id ? scopeByID.get(position.organization_scope_id) : undefined;
     const matchesArea = !selectedScope || Boolean(positionScope && isDescendantPath(positionScope.department_path, selectedScope.department_path));
     if (!matchesArea) return false;
@@ -147,11 +168,10 @@ export function OrganizationInventory({
   const occupied = positions.filter((position) => position.occupant_principal_id).length;
   const vacancies = positions.length - occupied;
 
-  return <div className="identity-organization-view">
-    {mode === "positions" && dataBoundary && <article className="config-card identity-data-boundary-card">
+  const boundaryContent = dataBoundary ? <article className="config-card identity-data-boundary-card">
       <div className="section-header identity-card-header">
         <div>
-          <h3>Data boundary</h3>
+          <h2>Data boundary</h2>
           <p>{dataBoundary.legal_entity_name || "Current legal entity"}</p>
         </div>
         <StatusBadge tone={dataBoundary.configured ? "success" : "neutral"}>
@@ -201,36 +221,16 @@ export function OrganizationInventory({
           <button className="text-button" disabled={isBusy || !boundaryRationale.trim()} type="button" onClick={() => void onRejectDataBoundary(pendingBoundary, boundaryRationale)}>Reject</button>
         </div>
       </form>}
-    </article>}
+    </article> : <Notice>Data boundary settings were not returned for this legal entity.</Notice>;
 
-    {mode === "positions" && onProposeScope && onApproveScope && onRejectScope && <OrganizationScopeManager
-      scopes={scopes}
-      revisions={revisions}
-      actorPrincipalID={actorPrincipalID}
-      canConfigure={canConfigure}
-      isBusy={isBusy}
-      onPropose={onProposeScope}
-      onApprove={onApproveScope}
-      onReject={onRejectScope}
-    />}
-    <div className="identity-organization-summary" aria-label="Active organization position summary">
-      <div><strong>{scopes.length}</strong><span>Active organization scopes in this legal entity</span></div>
-      <div><strong>{positions.length}</strong><span>Active positions in this legal entity</span></div>
-      <div><strong>{occupied}</strong><span>Positions with an active occupant</span></div>
-      <div><strong>{vacancies}</strong><span>Vacant positions requiring coverage</span></div>
-    </div>
-
-    <article className="config-card identity-organization-card">
+  const positionContent = <article className="config-card identity-organization-card">
       <div className="section-header identity-card-header">
         <div>
-          <h3>{mode === "positions" ? "Positions & roles" : "Reporting lines"}</h3>
+          <h2>{mode === "positions" ? "Positions & roles" : "Reporting lines"}</h2>
           <p>{mode === "positions" ? "Positions, occupants and roles." : "Active reporting relationships."}</p>
         </div>
         <div className="identity-position-filters">
-          <label className="identity-position-search">
-            <span>Search</span>
-            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Position, person, role or department"/>
-          </label>
+          <SearchField label="Search positions" value={query} onChange={setQuery} placeholder="Position, person, role or department"/>
           <SelectField
             label="Department / area"
             value={area}
@@ -241,7 +241,9 @@ export function OrganizationInventory({
         </div>
       </div>
 
-      {scopesTruncated && <div className="inline-notice" role="status">First 500 organization areas shown. Refine filters to see others.</div>}
+      <p className="organization-setup-note">{visible.length} of {positions.length} loaded positions · Up to 50 positions are returned.</p>
+      {area && !scopeByID.has(area) && <Notice tone="warning">The selected area is not in the loaded list. Choose an available area or clear the area filter.</Notice>}
+      {scopesTruncated && <Notice tone="warning">First 500 areas loaded. Area filters use this list; additional areas are not included.</Notice>}
       {mode === "positions" && onProposePosition && onApprovePosition && onRejectPosition
         ? <OrganizationPositionManager
           positions={visible}
@@ -273,12 +275,35 @@ export function OrganizationInventory({
         <strong>{positions.length ? "No positions match these filters" : "No active positions were recorded"}</strong>
         <span>{positions.length ? "Clear the search or choose another organization area." : "Organization positions must be recorded before reporting lines are available."}</span>
       </div>}
-    </article>
+    </article>;
 
-    <div className="identity-authority-note" role="note">
-      <strong>{mode === "positions" ? "Area changes require approval." : "Reporting lines do not grant approval authority."}</strong>
-      <span>{mode === "positions" ? "Home uses explicit Matter area scope." : "Authority comes from active policy."}</span>
+  if (mode === "reporting") return <div className="identity-organization-view">
+    <div className="identity-organization-summary" aria-label="Loaded organization position summary">
+      <div><strong>{scopes.length}</strong><span>Loaded organization areas</span></div>
+      <div><strong>{positions.length}</strong><span>Loaded positions</span></div>
+      <div><strong>{occupied}</strong><span>Occupied positions in this list</span></div>
+      <div><strong>{vacancies}</strong><span>Vacant positions in this list</span></div>
     </div>
+    {positionContent}
+    <div className="identity-authority-note" role="note"><strong>Reporting lines do not grant approval authority.</strong><span>Authority comes from active policy.</span></div>
+  </div>;
+
+  return <div className="identity-organization-view">
+    <OrganizationScopeManager
+      scopes={scopes} revisions={revisions} actorPrincipalID={actorPrincipalID}
+      canConfigure={canConfigure && Boolean(onProposeScope && onApproveScope && onRejectScope)} isBusy={isBusy}
+      scopesTruncated={scopesTruncated} legalEntityName={legalEntityName || dataBoundary?.legal_entity_name}
+      legalEntityCode={legalEntityCode || dataBoundary?.legal_entity_code}
+      selectedScopeID={selected} onSelectScope={selectScope}
+      onPropose={onProposeScope || (async () => false)} onApprove={onApproveScope || (async () => false)} onReject={onRejectScope || (async () => false)}
+    >
+      <div className="organization-setup-lower">
+        <Surface><section className="organization-setup-summary"><h2>Positions &amp; roles</h2><p>{positions.length} loaded positions · {occupied} occupied · {vacancies} vacant</p><p>Review occupants, reporting lines and workspace roles.</p><Button onPress={openPositions}>Positions &amp; roles</Button></section></Surface>
+        <Surface><section className="organization-setup-summary"><h2>Data &amp; identity</h2><p>{dataBoundary?.residency_region ? `Residency: ${dataBoundary.residency_region}` : "Residency region not set"}</p><div className="organization-setup-next-actions"><Button onPress={() => setPanel("boundary")}>Data boundary</Button><ActionLink href={directoryHref}>Provisioning</ActionLink>{importsEnabled && <ActionLink href="#imports">Review source files</ActionLink>}</div></section></Surface>
+      </div>
+    </OrganizationScopeManager>
+    {panel === "positions" && <FocusedSheet label="Positions & roles" size="wide" isDismissable={!isBusy} onClose={() => setPanel(undefined)}>{positionContent}</FocusedSheet>}
+    {panel === "boundary" && <FocusedSheet label="Data boundary" isDismissable={!isBusy} onClose={() => setPanel(undefined)}>{boundaryContent}</FocusedSheet>}
   </div>;
 }
 

@@ -53,6 +53,7 @@ describe("OrganizationInventory data boundary", () => {
       onProposeDataBoundary={propose}
     />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Data boundary" }));
     expect(screen.getByText("Aggregate only", { selector: ".cs-status-badge" })).toBeTruthy();
     expect(screen.getByText("Group totals only · Cross-entity records restricted.")).toBeTruthy();
 
@@ -83,6 +84,7 @@ describe("OrganizationInventory data boundary", () => {
       onRejectDataBoundary={reject}
     />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Data boundary" }));
     expect(screen.getByText("Proposed · NG-PRIMARY")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Propose change" })).toBeNull();
 
@@ -107,6 +109,7 @@ describe("OrganizationInventory data boundary", () => {
       canConfigure
     />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Data boundary" }));
     expect(screen.getByText("Awaiting independent approval")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Reject" })).toBeNull();
@@ -199,6 +202,7 @@ describe("OrganizationInventory position governance", () => {
       onRejectPosition={vi.fn().mockResolvedValue(true)}
     />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     fireEvent.change(screen.getByLabelText("Effective from"), { target: { value: "2026-10-10T09:30" } });
     fireEvent.click(screen.getByRole("button", { name: "Propose change" }));
@@ -242,6 +246,7 @@ describe("OrganizationInventory position governance", () => {
       onSimulatePosition={simulate}
     />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     fireEvent.click(screen.getByRole("button", { name: "Check route impact" }));
 
@@ -270,6 +275,7 @@ describe("OrganizationInventory position governance", () => {
       onRejectPosition={vi.fn().mockResolvedValue(true)}
     />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
     expect(screen.getByText("Scheduled", { selector: ".cs-status-badge" })).toBeTruthy();
     expect(screen.getByText("Current configuration remains active until this change applies.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
