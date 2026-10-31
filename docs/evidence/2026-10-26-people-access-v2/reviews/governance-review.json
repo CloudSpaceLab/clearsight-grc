@@ -1,0 +1,1299 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS_WITH_SCOPE_LIMITS",
+  "reviewer": {
+    "identity": "/root/people_runtime",
+    "role": "Independent governance code and rendered evidence reviewer",
+    "governanceAuthor": "/root/people_review",
+    "independence": "Reviewer did not author the governance components/API/parser. Reviewer authored the adjacent People/Role components and shared People layout CSS; root independently reviews those changes."
+  },
+  "inspectedCheckpoint": {
+    "publishedRevision": "1bde850512b9eb4045b23f306322a29ed0859292",
+    "localRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+    "tree": "b8ddfceddb8b767bd060362a2028c8a90de784e2",
+    "folder": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505",
+    "buildDigest": "63f2c03efd4db6ad4787a11e3d999144dde40c2b8612f64cbd80150b62591c41",
+    "evidenceInputDigest": "28b3e2f45b773b2a322e902a3f879a0b7af630bcc4e6d6657022750f6b2c0808",
+    "browser": {
+      "version": "140.0.7339.16",
+      "node": "v24.22.1",
+      "locale": "en-NG",
+      "timezone": "Africa/Lagos",
+      "reducedMotion": "reduce"
+    }
+  },
+  "source": {
+    "html": {
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/docs/design/references/clearsight-2026-10/source/clearsight-people-access-designs/people-access-preview.html",
+      "sha256": "3300853e7959e06f76e52b484e77c71c6f0c2af876351861921e0dead0aaa7f4"
+    },
+    "originalCaptureManifest": {
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/manifest.json",
+      "sha256": "0523eae039e299bf2b2dc46077655ac23e03a708a4dc9e05e46b0bb4ee6738a2"
+    },
+    "finalReferenceManifest": {
+      "file": "approved-reference/manifest.json",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/manifest.json",
+      "sha256": "e1ba5b17ab84007482acbdc5f3279b6425d1e616f5c1313366f477301188a48e"
+    },
+    "inspectedImageCount": 16,
+    "images": [
+      {
+        "file": "approved-people-access-delegations-1024x768.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-1024x768.png",
+        "directlyInspectedSHA256": "5239def0a0c6e499cf99dfe67b593f2ad6c8754b97c6147e7a5483f895efea7f",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-1024x768.png",
+        "originalCaptureSHA256": "5239def0a0c6e499cf99dfe67b593f2ad6c8754b97c6147e7a5483f895efea7f",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-delegations-1024x768.png",
+        "finalReferenceSHA256": "5239def0a0c6e499cf99dfe67b593f2ad6c8754b97c6147e7a5483f895efea7f",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-delegations-1280x800.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-1280x800.png",
+        "directlyInspectedSHA256": "73f376007b89af14ca8a1a84ff58a83fe1020e1b5ef0876fd955710650609bd6",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-1280x800.png",
+        "originalCaptureSHA256": "73f376007b89af14ca8a1a84ff58a83fe1020e1b5ef0876fd955710650609bd6",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-delegations-1280x800.png",
+        "finalReferenceSHA256": "73f376007b89af14ca8a1a84ff58a83fe1020e1b5ef0876fd955710650609bd6",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-delegations-1440x900.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-1440x900.png",
+        "directlyInspectedSHA256": "b7ca98420f0d496a0e8433ad50362c1f4fadcc2a3f552ae408383b665eaeef61",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-1440x900.png",
+        "originalCaptureSHA256": "b7ca98420f0d496a0e8433ad50362c1f4fadcc2a3f552ae408383b665eaeef61",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-delegations-1440x900.png",
+        "finalReferenceSHA256": "b7ca98420f0d496a0e8433ad50362c1f4fadcc2a3f552ae408383b665eaeef61",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-delegations-390x844.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-390x844.png",
+        "directlyInspectedSHA256": "987e1183e3e0b71aad17ceaf488e708ec2c45d08560e32ead88499efd437234b",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-390x844.png",
+        "originalCaptureSHA256": "987e1183e3e0b71aad17ceaf488e708ec2c45d08560e32ead88499efd437234b",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-delegations-390x844.png",
+        "finalReferenceSHA256": "987e1183e3e0b71aad17ceaf488e708ec2c45d08560e32ead88499efd437234b",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-delegations-768x900.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-768x900.png",
+        "directlyInspectedSHA256": "5eee761f2e48b55b8c622f72bfa443080bcfc4f91b8118d9a3b296172bf94869",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-768x900.png",
+        "originalCaptureSHA256": "5eee761f2e48b55b8c622f72bfa443080bcfc4f91b8118d9a3b296172bf94869",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-delegations-768x900.png",
+        "finalReferenceSHA256": "5eee761f2e48b55b8c622f72bfa443080bcfc4f91b8118d9a3b296172bf94869",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-delegations-context-1024x768.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/approved-reference/approved-people-access-delegations-context-1024x768.png",
+        "directlyInspectedSHA256": "7e14027ed1530622fa73d677c2bd7679272b0ecb1b64b538452baa80765fc700",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-context-1024x768.png",
+        "originalCaptureSHA256": "7e14027ed1530622fa73d677c2bd7679272b0ecb1b64b538452baa80765fc700",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-delegations-context-1024x768.png",
+        "finalReferenceSHA256": "7e14027ed1530622fa73d677c2bd7679272b0ecb1b64b538452baa80765fc700",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-delegations-context-390x844.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-context-390x844.png",
+        "directlyInspectedSHA256": "555f208dfc333f6e796bb3d61fd3ba6cbc3b4058ab649b6c026a36b6459bafff",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-context-390x844.png",
+        "originalCaptureSHA256": "555f208dfc333f6e796bb3d61fd3ba6cbc3b4058ab649b6c026a36b6459bafff",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-delegations-context-390x844.png",
+        "finalReferenceSHA256": "555f208dfc333f6e796bb3d61fd3ba6cbc3b4058ab649b6c026a36b6459bafff",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-delegations-context-768x900.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/approved-reference/approved-people-access-delegations-context-768x900.png",
+        "directlyInspectedSHA256": "0a17e9bc46b0e01fa3ede6ec10ec1f4665dea5eda667551717c5283efaf3b7df",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-delegations-context-768x900.png",
+        "originalCaptureSHA256": "0a17e9bc46b0e01fa3ede6ec10ec1f4665dea5eda667551717c5283efaf3b7df",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-delegations-context-768x900.png",
+        "finalReferenceSHA256": "0a17e9bc46b0e01fa3ede6ec10ec1f4665dea5eda667551717c5283efaf3b7df",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-routes-1024x768.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-1024x768.png",
+        "directlyInspectedSHA256": "5f2bd1b6c6222a05ee5fcedd9efc5d30627d2bfe99f94d3070d931e2f2ab5b9c",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-1024x768.png",
+        "originalCaptureSHA256": "5f2bd1b6c6222a05ee5fcedd9efc5d30627d2bfe99f94d3070d931e2f2ab5b9c",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-routes-1024x768.png",
+        "finalReferenceSHA256": "5f2bd1b6c6222a05ee5fcedd9efc5d30627d2bfe99f94d3070d931e2f2ab5b9c",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-routes-1280x800.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-1280x800.png",
+        "directlyInspectedSHA256": "e77c58f645234760a8a9b7807f75e421c0ac53f25ac795bc01b0bed709d268cd",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-1280x800.png",
+        "originalCaptureSHA256": "e77c58f645234760a8a9b7807f75e421c0ac53f25ac795bc01b0bed709d268cd",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-routes-1280x800.png",
+        "finalReferenceSHA256": "e77c58f645234760a8a9b7807f75e421c0ac53f25ac795bc01b0bed709d268cd",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-routes-1440x900.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-1440x900.png",
+        "directlyInspectedSHA256": "5b7523865efc49d0006f069306e3fd37d52b3f351c19bf33487003e29be8b05d",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-1440x900.png",
+        "originalCaptureSHA256": "5b7523865efc49d0006f069306e3fd37d52b3f351c19bf33487003e29be8b05d",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-routes-1440x900.png",
+        "finalReferenceSHA256": "5b7523865efc49d0006f069306e3fd37d52b3f351c19bf33487003e29be8b05d",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-routes-390x844.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-390x844.png",
+        "directlyInspectedSHA256": "72ad5a98af01c71418100d1e1edce896a93b50b3fe0a129460b3f38ced177394",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-390x844.png",
+        "originalCaptureSHA256": "72ad5a98af01c71418100d1e1edce896a93b50b3fe0a129460b3f38ced177394",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-routes-390x844.png",
+        "finalReferenceSHA256": "72ad5a98af01c71418100d1e1edce896a93b50b3fe0a129460b3f38ced177394",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-routes-768x900.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-768x900.png",
+        "directlyInspectedSHA256": "294617b72a86018ce8f9a3bcc7b68fa4f3a877945209add7aabbefe923a229dd",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-768x900.png",
+        "originalCaptureSHA256": "294617b72a86018ce8f9a3bcc7b68fa4f3a877945209add7aabbefe923a229dd",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-routes-768x900.png",
+        "finalReferenceSHA256": "294617b72a86018ce8f9a3bcc7b68fa4f3a877945209add7aabbefe923a229dd",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-routes-context-1024x768.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/approved-reference/approved-people-access-routes-context-1024x768.png",
+        "directlyInspectedSHA256": "e2cee9f26abaa1647af57f47edcfdd26f6457ca7e7e0e361814e05cff161ee62",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-context-1024x768.png",
+        "originalCaptureSHA256": "e2cee9f26abaa1647af57f47edcfdd26f6457ca7e7e0e361814e05cff161ee62",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-routes-context-1024x768.png",
+        "finalReferenceSHA256": "e2cee9f26abaa1647af57f47edcfdd26f6457ca7e7e0e361814e05cff161ee62",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-routes-context-390x844.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-context-390x844.png",
+        "directlyInspectedSHA256": "33d1cc43f3c0528acf976648e64e08df13fa357dc54c719d3cf19b312bb5653d",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-context-390x844.png",
+        "originalCaptureSHA256": "33d1cc43f3c0528acf976648e64e08df13fa357dc54c719d3cf19b312bb5653d",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-routes-context-390x844.png",
+        "finalReferenceSHA256": "33d1cc43f3c0528acf976648e64e08df13fa357dc54c719d3cf19b312bb5653d",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      },
+      {
+        "file": "approved-people-access-routes-context-768x900.png",
+        "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/approved-reference/approved-people-access-routes-context-768x900.png",
+        "directlyInspectedSHA256": "9b9f7d1e6199a8b2fb8a83f5179dc20f525a790a29f5abb6331e5456f335b04b",
+        "originalCapturePath": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-routes-context-768x900.png",
+        "originalCaptureSHA256": "9b9f7d1e6199a8b2fb8a83f5179dc20f525a790a29f5abb6331e5456f335b04b",
+        "finalReferencePath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-routes-context-768x900.png",
+        "finalReferenceSHA256": "9b9f7d1e6199a8b2fb8a83f5179dc20f525a790a29f5abb6331e5456f335b04b",
+        "finalReferenceBytesIdenticalToInspectedImage": true
+      }
+    ],
+    "sourceAdaptationLimit": "The approved HTML and original captures establish source anatomy. Their environment font fallback and illustrative records do not establish pixel-perfect runtime or production acceptance."
+  },
+  "code": [
+    {
+      "file": "web/src/components/GovernanceAdminPanel.tsx",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/components/GovernanceAdminPanel.tsx",
+      "sha256": "fe4c21771dea285a719047cfcad4df1f5bf83f306828bdfa01e8919174c2adc5",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "web/src/components/GovernanceAdminWorkspace.tsx",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/components/GovernanceAdminWorkspace.tsx",
+      "sha256": "4c43c10bd0ea547a23b9c72f4e5aca9475ba1ad6475e512cf5ff63cc5261b20a",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "web/src/components/PeopleGovernanceView.tsx",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/components/PeopleGovernanceView.tsx",
+      "sha256": "ccdedfe338de389b40eb67198d6f3a37467f18ab319062fee0c3aceba6239eb9",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent review of complete prior code plus final scoped delta; code hashes verified at final tree"
+    },
+    {
+      "file": "web/src/components/governancePolicyPresentation.ts",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/components/governancePolicyPresentation.ts",
+      "sha256": "01b9765d2fdb7db7df9b03efb490258403dde16363785e8a725702ae04fd0ad3",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "web/src/governanceAdminApi.ts",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/governanceAdminApi.ts",
+      "sha256": "efb03ecfa98929ca7078c2bf0747782285986ed599c6a335de9229234f7b19a1",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "web/src/people-governance.css",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/people-governance.css",
+      "sha256": "fb46e7ff0b98e35bc30aae9051d27d32956a6f6de0ef0c09c51ba7629e6e04cc",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "web/src/components/GovernanceAdminPanel.test.tsx",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/components/GovernanceAdminPanel.test.tsx",
+      "sha256": "dfa4a0f9e0d71724d887b94f18597138179987a20daf9650f9a57dfd2b82bb03",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "web/src/components/GovernanceAdminWorkspace.test.tsx",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/components/GovernanceAdminWorkspace.test.tsx",
+      "sha256": "5186621e3addefdc72ce726e72f3ef3a826fe81ef59d1f3cbb8fc86a75113d78",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "web/src/governanceAdminApi.test.ts",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/governanceAdminApi.test.ts",
+      "sha256": "f1b1edfc07e75fb2a248f8031150fb989d054c19fb9b6c29a8556a5e32984753",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "internal/httpapi/governance_handlers.go",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/internal/httpapi/governance_handlers.go",
+      "sha256": "52346eb6f6b7349d55d135d4604b7fae73e904ee07b42e9e5b19243b46af8cb1",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "internal/governance/model.go",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/internal/governance/model.go",
+      "sha256": "b8d0d1a2887e615772669a19e17e6c03109af0967db876a6724f5a2543fa0c7e",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "internal/governance/postgres.go",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/internal/governance/postgres.go",
+      "sha256": "13ab2e3431aa5dee98190b0fec022bafeb843908c57a2018d7aaedc7eb6b107c",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "internal/governance/service.go",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/internal/governance/service.go",
+      "sha256": "965d781b519effee0817b1b492bae8748505ab203c60721ef7df1ce2ea6c45c1",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent complete code review; exact unchanged-byte rebind to final tree"
+    },
+    {
+      "file": "web/src/components/access/people-access.css",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/components/access/people-access.css",
+      "sha256": "55ec4546bb2d9474889cf84eb79a6d8b951d1be8e9f1c654c2c5e3d8e0130cb2",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent review of complete prior code plus final scoped delta; code hashes verified at final tree"
+    },
+    {
+      "file": "web/src/design-system/components/index.css",
+      "path": "/workspace/scratch/992dce7dae5c/clearsight-grc/web/src/design-system/components/index.css",
+      "sha256": "aa7e4f54a7f1eaf85d394bcc9608b90e1e532027b1ebe535ed40e1713e096dd7",
+      "reviewedAtLocalRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+      "reviewMethod": "Independent review of complete prior code plus final scoped delta; code hashes verified at final tree"
+    }
+  ],
+  "inspectedImages": [
+    {
+      "file": "280-people-access-routes-layout-light-1440.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-light-1440.png",
+      "sha256": "6dc95af8fde1f7bf9e59dc9467f776db0da5e4a86cdf0a8e2f1ba4ec81aec178",
+      "manifestSHA256": "6dc95af8fde1f7bf9e59dc9467f776db0da5e4a86cdf0a8e2f1ba4ec81aec178",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-1440.png",
+      "directlyInspectedSHA256": "6dc95af8fde1f7bf9e59dc9467f776db0da5e4a86cdf0a8e2f1ba4ec81aec178",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-1440.png",
+      "previouslyReviewedSHA256": "6dc95af8fde1f7bf9e59dc9467f776db0da5e4a86cdf0a8e2f1ba4ec81aec178"
+    },
+    {
+      "file": "280-people-access-routes-layout-light-1280.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-light-1280.png",
+      "sha256": "8c1aac4ab7b8b221dfec2fce8032d3652d4a5beb5814d4aca73cec591d6b0a78",
+      "manifestSHA256": "8c1aac4ab7b8b221dfec2fce8032d3652d4a5beb5814d4aca73cec591d6b0a78",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-1280.png",
+      "directlyInspectedSHA256": "8c1aac4ab7b8b221dfec2fce8032d3652d4a5beb5814d4aca73cec591d6b0a78",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-1280.png",
+      "previouslyReviewedSHA256": "8c1aac4ab7b8b221dfec2fce8032d3652d4a5beb5814d4aca73cec591d6b0a78"
+    },
+    {
+      "file": "280-people-access-routes-layout-light-1024.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-light-1024.png",
+      "sha256": "9562acd9161c86c9db582548a6a4c20bc98d3558ca4ad11baac71a962d89ca16",
+      "manifestSHA256": "9562acd9161c86c9db582548a6a4c20bc98d3558ca4ad11baac71a962d89ca16",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-1024.png",
+      "directlyInspectedSHA256": "9562acd9161c86c9db582548a6a4c20bc98d3558ca4ad11baac71a962d89ca16",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-1024.png",
+      "previouslyReviewedSHA256": "9562acd9161c86c9db582548a6a4c20bc98d3558ca4ad11baac71a962d89ca16"
+    },
+    {
+      "file": "280-people-access-routes-layout-light-768.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-light-768.png",
+      "sha256": "68245db749ea4e77129119c29a1673a4757742a4ca66104498ca887ff7a35234",
+      "manifestSHA256": "68245db749ea4e77129119c29a1673a4757742a4ca66104498ca887ff7a35234",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-768.png",
+      "directlyInspectedSHA256": "68245db749ea4e77129119c29a1673a4757742a4ca66104498ca887ff7a35234",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-768.png",
+      "previouslyReviewedSHA256": "68245db749ea4e77129119c29a1673a4757742a4ca66104498ca887ff7a35234"
+    },
+    {
+      "file": "280-people-access-routes-layout-light-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-light-390.png",
+      "sha256": "f2baf160f29a2f7cefdbd1690ee61c642a178556df57ad1bd0ff921cb59399db",
+      "manifestSHA256": "f2baf160f29a2f7cefdbd1690ee61c642a178556df57ad1bd0ff921cb59399db",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-390.png",
+      "directlyInspectedSHA256": "f2baf160f29a2f7cefdbd1690ee61c642a178556df57ad1bd0ff921cb59399db",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-light-390.png",
+      "previouslyReviewedSHA256": "f2baf160f29a2f7cefdbd1690ee61c642a178556df57ad1bd0ff921cb59399db"
+    },
+    {
+      "file": "280-people-access-routes-layout-dark-1440.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-dark-1440.png",
+      "sha256": "0855aa26e1e085b02556a25208e5faf8c780f9de417c0b0d606515a517c7f42a",
+      "manifestSHA256": "0855aa26e1e085b02556a25208e5faf8c780f9de417c0b0d606515a517c7f42a",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-1440.png",
+      "directlyInspectedSHA256": "0855aa26e1e085b02556a25208e5faf8c780f9de417c0b0d606515a517c7f42a",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-1440.png",
+      "previouslyReviewedSHA256": "0855aa26e1e085b02556a25208e5faf8c780f9de417c0b0d606515a517c7f42a"
+    },
+    {
+      "file": "280-people-access-routes-layout-dark-1280.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-dark-1280.png",
+      "sha256": "0daf040eca22532b663bc4f1c1c5f5497584a386a1c195d0650f24b6d34a1471",
+      "manifestSHA256": "0daf040eca22532b663bc4f1c1c5f5497584a386a1c195d0650f24b6d34a1471",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-1280.png",
+      "directlyInspectedSHA256": "0daf040eca22532b663bc4f1c1c5f5497584a386a1c195d0650f24b6d34a1471",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-1280.png",
+      "previouslyReviewedSHA256": "0daf040eca22532b663bc4f1c1c5f5497584a386a1c195d0650f24b6d34a1471"
+    },
+    {
+      "file": "280-people-access-routes-layout-dark-1024.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-dark-1024.png",
+      "sha256": "07db2f959827fe6045639e5688d300345962347e3571f97562cf2f8f99b31e23",
+      "manifestSHA256": "07db2f959827fe6045639e5688d300345962347e3571f97562cf2f8f99b31e23",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-1024.png",
+      "directlyInspectedSHA256": "07db2f959827fe6045639e5688d300345962347e3571f97562cf2f8f99b31e23",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-1024.png",
+      "previouslyReviewedSHA256": "07db2f959827fe6045639e5688d300345962347e3571f97562cf2f8f99b31e23"
+    },
+    {
+      "file": "280-people-access-routes-layout-dark-768.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-dark-768.png",
+      "sha256": "146933426625ef9d67c36f1ed75243e2ccb5e90ef4ab11baa0ed72fc94338a08",
+      "manifestSHA256": "146933426625ef9d67c36f1ed75243e2ccb5e90ef4ab11baa0ed72fc94338a08",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-768.png",
+      "directlyInspectedSHA256": "146933426625ef9d67c36f1ed75243e2ccb5e90ef4ab11baa0ed72fc94338a08",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-768.png",
+      "previouslyReviewedSHA256": "146933426625ef9d67c36f1ed75243e2ccb5e90ef4ab11baa0ed72fc94338a08"
+    },
+    {
+      "file": "280-people-access-routes-layout-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-layout-dark-390.png",
+      "sha256": "c514e97635d6774d59d3a1f418a327c113405e6fff308f8807b9e53a1d803c15",
+      "manifestSHA256": "c514e97635d6774d59d3a1f418a327c113405e6fff308f8807b9e53a1d803c15",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-390.png",
+      "directlyInspectedSHA256": "c514e97635d6774d59d3a1f418a327c113405e6fff308f8807b9e53a1d803c15",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-layout-dark-390.png",
+      "previouslyReviewedSHA256": "c514e97635d6774d59d3a1f418a327c113405e6fff308f8807b9e53a1d803c15"
+    },
+    {
+      "file": "280-people-access-routes-context-light-1024.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-context-light-1024.png",
+      "sha256": "beaa99db94eaac0feeb53f05cd62a5f9c775e996c7895664567b918a4e72466a",
+      "manifestSHA256": "beaa99db94eaac0feeb53f05cd62a5f9c775e996c7895664567b918a4e72466a",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-light-1024.png",
+      "directlyInspectedSHA256": "beaa99db94eaac0feeb53f05cd62a5f9c775e996c7895664567b918a4e72466a",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-light-1024.png",
+      "previouslyReviewedSHA256": "beaa99db94eaac0feeb53f05cd62a5f9c775e996c7895664567b918a4e72466a"
+    },
+    {
+      "file": "280-people-access-routes-context-light-768.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-context-light-768.png",
+      "sha256": "98d5f8259b6fe89d01892eaa23fdba5830e6486b36ee10b6d8cb6b027c106d49",
+      "manifestSHA256": "98d5f8259b6fe89d01892eaa23fdba5830e6486b36ee10b6d8cb6b027c106d49",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-light-768.png",
+      "directlyInspectedSHA256": "98d5f8259b6fe89d01892eaa23fdba5830e6486b36ee10b6d8cb6b027c106d49",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-light-768.png",
+      "previouslyReviewedSHA256": "98d5f8259b6fe89d01892eaa23fdba5830e6486b36ee10b6d8cb6b027c106d49"
+    },
+    {
+      "file": "280-people-access-routes-context-light-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-context-light-390.png",
+      "sha256": "402fe9faea72523fb626b83511264930c7a09c437031ee41267c8b3af62a4015",
+      "manifestSHA256": "402fe9faea72523fb626b83511264930c7a09c437031ee41267c8b3af62a4015",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-light-390.png",
+      "directlyInspectedSHA256": "402fe9faea72523fb626b83511264930c7a09c437031ee41267c8b3af62a4015",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-light-390.png",
+      "previouslyReviewedSHA256": "402fe9faea72523fb626b83511264930c7a09c437031ee41267c8b3af62a4015"
+    },
+    {
+      "file": "280-people-access-routes-context-dark-1024.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-context-dark-1024.png",
+      "sha256": "a2c414aaab71cf9402ee1ef1ada83b9d42c9aefa5d6784686d7b9ca2c8356143",
+      "manifestSHA256": "a2c414aaab71cf9402ee1ef1ada83b9d42c9aefa5d6784686d7b9ca2c8356143",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-dark-1024.png",
+      "directlyInspectedSHA256": "a2c414aaab71cf9402ee1ef1ada83b9d42c9aefa5d6784686d7b9ca2c8356143",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-dark-1024.png",
+      "previouslyReviewedSHA256": "a2c414aaab71cf9402ee1ef1ada83b9d42c9aefa5d6784686d7b9ca2c8356143"
+    },
+    {
+      "file": "280-people-access-routes-context-dark-768.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-context-dark-768.png",
+      "sha256": "c31181cfb3f02f9d474f5090c38fac8fd0ca9ec4627ffcaaa096184dbc17e5b7",
+      "manifestSHA256": "c31181cfb3f02f9d474f5090c38fac8fd0ca9ec4627ffcaaa096184dbc17e5b7",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-dark-768.png",
+      "directlyInspectedSHA256": "c31181cfb3f02f9d474f5090c38fac8fd0ca9ec4627ffcaaa096184dbc17e5b7",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-dark-768.png",
+      "previouslyReviewedSHA256": "c31181cfb3f02f9d474f5090c38fac8fd0ca9ec4627ffcaaa096184dbc17e5b7"
+    },
+    {
+      "file": "280-people-access-routes-context-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-context-dark-390.png",
+      "sha256": "39c5f8fbcbf68ebadb5e1a629ce4e3ccec358bfade08ffd206c6e267a2c6e672",
+      "manifestSHA256": "39c5f8fbcbf68ebadb5e1a629ce4e3ccec358bfade08ffd206c6e267a2c6e672",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-dark-390.png",
+      "directlyInspectedSHA256": "39c5f8fbcbf68ebadb5e1a629ce4e3ccec358bfade08ffd206c6e267a2c6e672",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-routes-context-dark-390.png",
+      "previouslyReviewedSHA256": "39c5f8fbcbf68ebadb5e1a629ce4e3ccec358bfade08ffd206c6e267a2c6e672"
+    },
+    {
+      "file": "280-people-access-delegations-context-light-768.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-context-light-768.png",
+      "sha256": "c9eed35cbcacd62ec0516f0e28f61881bf3274c1897f5138cbd461bcfbf80f3f",
+      "manifestSHA256": "c9eed35cbcacd62ec0516f0e28f61881bf3274c1897f5138cbd461bcfbf80f3f",
+      "reviewMethod": "DIRECT_FINAL_IMAGE_INSPECTION",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-context-light-768.png",
+      "directlyInspectedSHA256": "c9eed35cbcacd62ec0516f0e28f61881bf3274c1897f5138cbd461bcfbf80f3f",
+      "byteIdentical": false,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-delegations-context-light-768.png",
+      "previouslyReviewedSHA256": "1fb5c5821f1688424e477abaafd61a34d30001b75175a4f0aa4c76bdf0784bda"
+    },
+    {
+      "file": "280-people-access-delegations-context-light-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-context-light-390.png",
+      "sha256": "dcc5cb30882663a784b5995d64a41545bd319ffe3e9d9cf7fb6ee6e548d4902e",
+      "manifestSHA256": "dcc5cb30882663a784b5995d64a41545bd319ffe3e9d9cf7fb6ee6e548d4902e",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-delegations-context-light-390.png",
+      "directlyInspectedSHA256": "dcc5cb30882663a784b5995d64a41545bd319ffe3e9d9cf7fb6ee6e548d4902e",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-delegations-context-light-390.png",
+      "previouslyReviewedSHA256": "dcc5cb30882663a784b5995d64a41545bd319ffe3e9d9cf7fb6ee6e548d4902e"
+    },
+    {
+      "file": "280-people-access-delegations-context-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-context-dark-390.png",
+      "sha256": "5c40ca8edb9fe5444dc6ee3a328372b13694ed68436a79dbe4a46cef6de29567",
+      "manifestSHA256": "5c40ca8edb9fe5444dc6ee3a328372b13694ed68436a79dbe4a46cef6de29567",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-delegations-context-dark-390.png",
+      "directlyInspectedSHA256": "5c40ca8edb9fe5444dc6ee3a328372b13694ed68436a79dbe4a46cef6de29567",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-delegations-context-dark-390.png",
+      "previouslyReviewedSHA256": "5c40ca8edb9fe5444dc6ee3a328372b13694ed68436a79dbe4a46cef6de29567"
+    },
+    {
+      "file": "280-people-access-delegations-layout-light-1440.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-light-1440.png",
+      "sha256": "e34c192a86cd0580111192896f183e9551550cb0b067b10efb0db958db4b44fc",
+      "manifestSHA256": "e34c192a86cd0580111192896f183e9551550cb0b067b10efb0db958db4b44fc",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-1440.png",
+      "directlyInspectedSHA256": "e34c192a86cd0580111192896f183e9551550cb0b067b10efb0db958db4b44fc",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-1440.png",
+      "previouslyReviewedSHA256": "e34c192a86cd0580111192896f183e9551550cb0b067b10efb0db958db4b44fc"
+    },
+    {
+      "file": "280-people-access-delegations-layout-light-1280.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-light-1280.png",
+      "sha256": "9250890c70b532ec0b934cf4b946cc54df6bbbbb7d7616af0cc07cc13e877801",
+      "manifestSHA256": "9250890c70b532ec0b934cf4b946cc54df6bbbbb7d7616af0cc07cc13e877801",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-1280.png",
+      "directlyInspectedSHA256": "9250890c70b532ec0b934cf4b946cc54df6bbbbb7d7616af0cc07cc13e877801",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-1280.png",
+      "previouslyReviewedSHA256": "9250890c70b532ec0b934cf4b946cc54df6bbbbb7d7616af0cc07cc13e877801"
+    },
+    {
+      "file": "280-people-access-delegations-layout-light-1024.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-light-1024.png",
+      "sha256": "c8f70936ae28a5ce5b0b2654f11ab7b1fcc180a19ef0fd481cada34e3bcef8e1",
+      "manifestSHA256": "c8f70936ae28a5ce5b0b2654f11ab7b1fcc180a19ef0fd481cada34e3bcef8e1",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-1024.png",
+      "directlyInspectedSHA256": "c8f70936ae28a5ce5b0b2654f11ab7b1fcc180a19ef0fd481cada34e3bcef8e1",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-1024.png",
+      "previouslyReviewedSHA256": "c8f70936ae28a5ce5b0b2654f11ab7b1fcc180a19ef0fd481cada34e3bcef8e1"
+    },
+    {
+      "file": "280-people-access-delegations-layout-light-768.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-light-768.png",
+      "sha256": "44b1ba19f39602fa460da7842a5c45f67d8486e51ddeff894ab9990f0a444546",
+      "manifestSHA256": "44b1ba19f39602fa460da7842a5c45f67d8486e51ddeff894ab9990f0a444546",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-768.png",
+      "directlyInspectedSHA256": "44b1ba19f39602fa460da7842a5c45f67d8486e51ddeff894ab9990f0a444546",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-768.png",
+      "previouslyReviewedSHA256": "44b1ba19f39602fa460da7842a5c45f67d8486e51ddeff894ab9990f0a444546"
+    },
+    {
+      "file": "280-people-access-delegations-layout-light-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-light-390.png",
+      "sha256": "8bd45c9500bc085720348a270e90c52db28d3a7105695bdaed84d495fa45115a",
+      "manifestSHA256": "8bd45c9500bc085720348a270e90c52db28d3a7105695bdaed84d495fa45115a",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-390.png",
+      "directlyInspectedSHA256": "8bd45c9500bc085720348a270e90c52db28d3a7105695bdaed84d495fa45115a",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-light-390.png",
+      "previouslyReviewedSHA256": "8bd45c9500bc085720348a270e90c52db28d3a7105695bdaed84d495fa45115a"
+    },
+    {
+      "file": "280-people-access-delegations-layout-dark-1440.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-dark-1440.png",
+      "sha256": "a05f9a9b1930d71510ba785c74dfd81fb22afdd4a60c332cb434e915548b1c77",
+      "manifestSHA256": "a05f9a9b1930d71510ba785c74dfd81fb22afdd4a60c332cb434e915548b1c77",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-1440.png",
+      "directlyInspectedSHA256": "a05f9a9b1930d71510ba785c74dfd81fb22afdd4a60c332cb434e915548b1c77",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-1440.png",
+      "previouslyReviewedSHA256": "a05f9a9b1930d71510ba785c74dfd81fb22afdd4a60c332cb434e915548b1c77"
+    },
+    {
+      "file": "280-people-access-delegations-layout-dark-1280.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-dark-1280.png",
+      "sha256": "fb04ee04fbe04c4dcffcca92e59d458bee2b5894529eebaec39158fd8975d5b9",
+      "manifestSHA256": "fb04ee04fbe04c4dcffcca92e59d458bee2b5894529eebaec39158fd8975d5b9",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-1280.png",
+      "directlyInspectedSHA256": "fb04ee04fbe04c4dcffcca92e59d458bee2b5894529eebaec39158fd8975d5b9",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-1280.png",
+      "previouslyReviewedSHA256": "fb04ee04fbe04c4dcffcca92e59d458bee2b5894529eebaec39158fd8975d5b9"
+    },
+    {
+      "file": "280-people-access-delegations-layout-dark-1024.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-dark-1024.png",
+      "sha256": "1c26bb1e2547540ab7ca6a69fdb4de456491413cb11319e59e2edcd9ff0c998f",
+      "manifestSHA256": "1c26bb1e2547540ab7ca6a69fdb4de456491413cb11319e59e2edcd9ff0c998f",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-1024.png",
+      "directlyInspectedSHA256": "1c26bb1e2547540ab7ca6a69fdb4de456491413cb11319e59e2edcd9ff0c998f",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-1024.png",
+      "previouslyReviewedSHA256": "1c26bb1e2547540ab7ca6a69fdb4de456491413cb11319e59e2edcd9ff0c998f"
+    },
+    {
+      "file": "280-people-access-delegations-layout-dark-768.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-dark-768.png",
+      "sha256": "0accb9c69175e5e4ba069273c09bfeae2c3e9a506be3bdf913115ba8ac2046a1",
+      "manifestSHA256": "0accb9c69175e5e4ba069273c09bfeae2c3e9a506be3bdf913115ba8ac2046a1",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-768.png",
+      "directlyInspectedSHA256": "0accb9c69175e5e4ba069273c09bfeae2c3e9a506be3bdf913115ba8ac2046a1",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-768.png",
+      "previouslyReviewedSHA256": "0accb9c69175e5e4ba069273c09bfeae2c3e9a506be3bdf913115ba8ac2046a1"
+    },
+    {
+      "file": "280-people-access-delegations-layout-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-layout-dark-390.png",
+      "sha256": "163c088ea275070ec782c57add75224165f5b18db8aab9a5f88f8bd926cfa3ba",
+      "manifestSHA256": "163c088ea275070ec782c57add75224165f5b18db8aab9a5f88f8bd926cfa3ba",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-390.png",
+      "directlyInspectedSHA256": "163c088ea275070ec782c57add75224165f5b18db8aab9a5f88f8bd926cfa3ba",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-layout-dark-390.png",
+      "previouslyReviewedSHA256": "163c088ea275070ec782c57add75224165f5b18db8aab9a5f88f8bd926cfa3ba"
+    },
+    {
+      "file": "280-people-access-delegations-context-light-1024.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-context-light-1024.png",
+      "sha256": "22c040046b29ce29feae2d29c642411f224f110f057e6ec0e16974ecccd808a1",
+      "manifestSHA256": "22c040046b29ce29feae2d29c642411f224f110f057e6ec0e16974ecccd808a1",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-context-light-1024.png",
+      "directlyInspectedSHA256": "22c040046b29ce29feae2d29c642411f224f110f057e6ec0e16974ecccd808a1",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-context-light-1024.png",
+      "previouslyReviewedSHA256": "22c040046b29ce29feae2d29c642411f224f110f057e6ec0e16974ecccd808a1"
+    },
+    {
+      "file": "280-people-access-delegations-context-dark-1024.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-context-dark-1024.png",
+      "sha256": "f64fa434dc23f1d6c600205ea9eae69e54e73ca660b4c1108d583bc7595f9919",
+      "manifestSHA256": "f64fa434dc23f1d6c600205ea9eae69e54e73ca660b4c1108d583bc7595f9919",
+      "reviewMethod": "DIRECT_FINAL_IMAGE_INSPECTION",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-context-dark-1024.png",
+      "directlyInspectedSHA256": "f64fa434dc23f1d6c600205ea9eae69e54e73ca660b4c1108d583bc7595f9919",
+      "byteIdentical": false,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-context-dark-1024.png",
+      "previouslyReviewedSHA256": "36daa58dd824ce6a5859bd4842a5f1dc147880ce48f88a05c460153183175891"
+    },
+    {
+      "file": "280-people-access-delegations-context-dark-768.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-context-dark-768.png",
+      "sha256": "70845a3743bd9ea51ede681d7345896679678277314313837e2c2d7c45fbb5eb",
+      "manifestSHA256": "70845a3743bd9ea51ede681d7345896679678277314313837e2c2d7c45fbb5eb",
+      "reviewMethod": "DIRECT_FINAL_IMAGE_INSPECTION",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-context-dark-768.png",
+      "directlyInspectedSHA256": "70845a3743bd9ea51ede681d7345896679678277314313837e2c2d7c45fbb5eb",
+      "byteIdentical": false,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-context-dark-768.png",
+      "previouslyReviewedSHA256": "a0e4c8ca4d9ec0ab0223a81e40a976dfa60f4dfa5b5158acc943b5f6a541c6b2"
+    },
+    {
+      "file": "280-people-access-routes-composer-light-1440.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-composer-light-1440.png",
+      "sha256": "5497ba8a1044e4e00b0addf6a2d5ce77cc39e3f4754ef46c6fb6ef11ea836cf2",
+      "manifestSHA256": "5497ba8a1044e4e00b0addf6a2d5ce77cc39e3f4754ef46c6fb6ef11ea836cf2",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-composer-light-1440.png",
+      "directlyInspectedSHA256": "5497ba8a1044e4e00b0addf6a2d5ce77cc39e3f4754ef46c6fb6ef11ea836cf2",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-composer-light-1440.png",
+      "previouslyReviewedSHA256": "5497ba8a1044e4e00b0addf6a2d5ce77cc39e3f4754ef46c6fb6ef11ea836cf2"
+    },
+    {
+      "file": "280-people-access-delegations-composer-light-1440.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-composer-light-1440.png",
+      "sha256": "b790d2d248badd8f44eeda39ae258afdf14f8452b81706049a501cde1438412f",
+      "manifestSHA256": "b790d2d248badd8f44eeda39ae258afdf14f8452b81706049a501cde1438412f",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-composer-light-1440.png",
+      "directlyInspectedSHA256": "b790d2d248badd8f44eeda39ae258afdf14f8452b81706049a501cde1438412f",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-composer-light-1440.png",
+      "previouslyReviewedSHA256": "b790d2d248badd8f44eeda39ae258afdf14f8452b81706049a501cde1438412f"
+    },
+    {
+      "file": "280-people-access-routes-composer-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-composer-dark-390.png",
+      "sha256": "e5a6d676214049351ed98592f6ce6c105379f42eb82b6469cfc88a0691ba56a4",
+      "manifestSHA256": "e5a6d676214049351ed98592f6ce6c105379f42eb82b6469cfc88a0691ba56a4",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-composer-dark-390.png",
+      "directlyInspectedSHA256": "e5a6d676214049351ed98592f6ce6c105379f42eb82b6469cfc88a0691ba56a4",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-composer-dark-390.png",
+      "previouslyReviewedSHA256": "e5a6d676214049351ed98592f6ce6c105379f42eb82b6469cfc88a0691ba56a4"
+    },
+    {
+      "file": "280-people-access-delegations-composer-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-composer-dark-390.png",
+      "sha256": "90f2361c347d087e0b80c13cd90ced1661a59fa82efe9668c3b4b90162a1c69f",
+      "manifestSHA256": "90f2361c347d087e0b80c13cd90ced1661a59fa82efe9668c3b4b90162a1c69f",
+      "reviewMethod": "DIRECT_FINAL_IMAGE_INSPECTION",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-composer-dark-390.png",
+      "directlyInspectedSHA256": "90f2361c347d087e0b80c13cd90ced1661a59fa82efe9668c3b4b90162a1c69f",
+      "byteIdentical": false,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-composer-dark-390.png",
+      "previouslyReviewedSHA256": "e4ab724a4e890e1f8ba9dfe7f95263e155c39188cf22c412d6bef82907c1256b"
+    },
+    {
+      "file": "280-people-access-routes-composer-dark-390-continuation.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-composer-dark-390-continuation.png",
+      "sha256": "660d3f1d00010fe181e04dd64f2bf6afdad0f735a89b2b56030f832307b5027f",
+      "manifestSHA256": "660d3f1d00010fe181e04dd64f2bf6afdad0f735a89b2b56030f832307b5027f",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-composer-dark-390-continuation.png",
+      "directlyInspectedSHA256": "660d3f1d00010fe181e04dd64f2bf6afdad0f735a89b2b56030f832307b5027f",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-composer-dark-390-continuation.png",
+      "previouslyReviewedSHA256": "660d3f1d00010fe181e04dd64f2bf6afdad0f735a89b2b56030f832307b5027f"
+    },
+    {
+      "file": "280-people-access-delegations-composer-dark-390-continuation.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-composer-dark-390-continuation.png",
+      "sha256": "f5c2931640b484dd8ce101ac75066ac2eacd6d63a3c54899885d42e785941f52",
+      "manifestSHA256": "f5c2931640b484dd8ce101ac75066ac2eacd6d63a3c54899885d42e785941f52",
+      "reviewMethod": "DIRECT_FINAL_IMAGE_INSPECTION",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-composer-dark-390-continuation.png",
+      "directlyInspectedSHA256": "f5c2931640b484dd8ce101ac75066ac2eacd6d63a3c54899885d42e785941f52",
+      "byteIdentical": false,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-composer-dark-390-continuation.png",
+      "previouslyReviewedSHA256": "037235b0e0cb50e05f49d70b7028d97b2073be23192f5c74ea796af675281aa1"
+    },
+    {
+      "file": "280-people-access-routes-definition-light-1440.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-definition-light-1440.png",
+      "sha256": "8dea2a13f42baac026ef47f0f097af35b8abcdc7503dd1061c4c114f9cb4873d",
+      "manifestSHA256": "8dea2a13f42baac026ef47f0f097af35b8abcdc7503dd1061c4c114f9cb4873d",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-definition-light-1440.png",
+      "directlyInspectedSHA256": "8dea2a13f42baac026ef47f0f097af35b8abcdc7503dd1061c4c114f9cb4873d",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-definition-light-1440.png",
+      "previouslyReviewedSHA256": "8dea2a13f42baac026ef47f0f097af35b8abcdc7503dd1061c4c114f9cb4873d"
+    },
+    {
+      "file": "280-people-access-routes-definition-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-definition-dark-390.png",
+      "sha256": "2e36e86387a5b6a619cb04f39f3134ccce87812a92354a98b24432d48a31c065",
+      "manifestSHA256": "2e36e86387a5b6a619cb04f39f3134ccce87812a92354a98b24432d48a31c065",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-definition-dark-390.png",
+      "directlyInspectedSHA256": "2e36e86387a5b6a619cb04f39f3134ccce87812a92354a98b24432d48a31c065",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-definition-dark-390.png",
+      "previouslyReviewedSHA256": "2e36e86387a5b6a619cb04f39f3134ccce87812a92354a98b24432d48a31c065"
+    },
+    {
+      "file": "280-people-access-routes-definition-dark-390-continuation.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-definition-dark-390-continuation.png",
+      "sha256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae",
+      "manifestSHA256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/guards-1386b521/280-people-access-routes-definition-dark-390-continuation.png",
+      "directlyInspectedSHA256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/guards-1386b521/280-people-access-routes-definition-dark-390-continuation.png",
+      "previouslyReviewedSHA256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae",
+      "rejectedPriorImage": {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-definition-dark-390-continuation.png",
+        "sha256": "f336282a644fe4add70b31b6bb5396432df4f4305df3e71125da03063adbc888"
+      }
+    },
+    {
+      "file": "280-people-access-routes-empty-light-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-empty-light-390.png",
+      "sha256": "ea90ff64631a540a38487fdae2b61f528dbb220424188c36bcb1a2d4ff2b365d",
+      "manifestSHA256": "ea90ff64631a540a38487fdae2b61f528dbb220424188c36bcb1a2d4ff2b365d",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-empty-light-390.png",
+      "directlyInspectedSHA256": "ea90ff64631a540a38487fdae2b61f528dbb220424188c36bcb1a2d4ff2b365d",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-empty-light-390.png",
+      "previouslyReviewedSHA256": "ea90ff64631a540a38487fdae2b61f528dbb220424188c36bcb1a2d4ff2b365d"
+    },
+    {
+      "file": "280-people-access-routes-denied-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-denied-dark-390.png",
+      "sha256": "991cb913d76bc5b2a34cf0ed3723dcd3466d0f6accfe5e7428b4d5c5cd493077",
+      "manifestSHA256": "991cb913d76bc5b2a34cf0ed3723dcd3466d0f6accfe5e7428b4d5c5cd493077",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/guards-1386b521/280-people-access-routes-denied-dark-390.png",
+      "directlyInspectedSHA256": "991cb913d76bc5b2a34cf0ed3723dcd3466d0f6accfe5e7428b4d5c5cd493077",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/guards-1386b521/280-people-access-routes-denied-dark-390.png",
+      "previouslyReviewedSHA256": "991cb913d76bc5b2a34cf0ed3723dcd3466d0f6accfe5e7428b4d5c5cd493077",
+      "rejectedPriorImage": {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-denied-dark-390.png",
+        "sha256": "7e48009fd5c9f4e702a44e9883ea9e76eb08122ff1d0b4be87370efa7e6c102b"
+      }
+    },
+    {
+      "file": "280-people-access-delegations-empty-light-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-empty-light-390.png",
+      "sha256": "e39348198149aaa00ed52269969f7f63b59caa963e224a17dcc07a06dee5cac1",
+      "manifestSHA256": "e39348198149aaa00ed52269969f7f63b59caa963e224a17dcc07a06dee5cac1",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-empty-light-390.png",
+      "directlyInspectedSHA256": "e39348198149aaa00ed52269969f7f63b59caa963e224a17dcc07a06dee5cac1",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-empty-light-390.png",
+      "previouslyReviewedSHA256": "e39348198149aaa00ed52269969f7f63b59caa963e224a17dcc07a06dee5cac1"
+    },
+    {
+      "file": "280-people-access-delegations-denied-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-denied-dark-390.png",
+      "sha256": "822b4e47a10dab62ac10821cc6d7d4073f5dbe5b1ba92c8244045153903a0094",
+      "manifestSHA256": "822b4e47a10dab62ac10821cc6d7d4073f5dbe5b1ba92c8244045153903a0094",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/guards-1386b521/280-people-access-delegations-denied-dark-390.png",
+      "directlyInspectedSHA256": "822b4e47a10dab62ac10821cc6d7d4073f5dbe5b1ba92c8244045153903a0094",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/guards-1386b521/280-people-access-delegations-denied-dark-390.png",
+      "previouslyReviewedSHA256": "822b4e47a10dab62ac10821cc6d7d4073f5dbe5b1ba92c8244045153903a0094",
+      "rejectedPriorImage": {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-denied-dark-390.png",
+        "sha256": "8a244615fa830b1f4937da569e52d3abd8b3b8884d65674ae8d842cd95109c32"
+      }
+    },
+    {
+      "file": "280-people-access-routes-partial-light-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-partial-light-390.png",
+      "sha256": "c60117fcdd409944b0868595fc0b381ef6a6688580011c4ac787fba404451f1a",
+      "manifestSHA256": "c60117fcdd409944b0868595fc0b381ef6a6688580011c4ac787fba404451f1a",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/guards-1386b521/280-people-access-routes-partial-light-390.png",
+      "directlyInspectedSHA256": "c60117fcdd409944b0868595fc0b381ef6a6688580011c4ac787fba404451f1a",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/guards-1386b521/280-people-access-routes-partial-light-390.png",
+      "previouslyReviewedSHA256": "c60117fcdd409944b0868595fc0b381ef6a6688580011c4ac787fba404451f1a",
+      "rejectedPriorImage": {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-partial-light-390.png",
+        "sha256": "776cc82639240879e73efc1ae49ba7cccfb5145b11dc1557b7b3672ffed0c50f"
+      }
+    },
+    {
+      "file": "280-people-access-delegations-partial-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-partial-dark-390.png",
+      "sha256": "1dccaaf2448d9caf551f52312680a94fe39cb7bd1d0e00926097388da842cb21",
+      "manifestSHA256": "1dccaaf2448d9caf551f52312680a94fe39cb7bd1d0e00926097388da842cb21",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-partial-dark-390.png",
+      "directlyInspectedSHA256": "1dccaaf2448d9caf551f52312680a94fe39cb7bd1d0e00926097388da842cb21",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-partial-dark-390.png",
+      "previouslyReviewedSHA256": "1dccaaf2448d9caf551f52312680a94fe39cb7bd1d0e00926097388da842cb21"
+    },
+    {
+      "file": "280-people-access-routes-readonly-light-1440.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-readonly-light-1440.png",
+      "sha256": "23f2ac5682aa91d4469540665f7e363172eb3e6314a0f608cbb42c78b2904b5d",
+      "manifestSHA256": "23f2ac5682aa91d4469540665f7e363172eb3e6314a0f608cbb42c78b2904b5d",
+      "reviewMethod": "DIRECT_FINAL_IMAGE_INSPECTION",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-readonly-light-1440.png",
+      "directlyInspectedSHA256": "23f2ac5682aa91d4469540665f7e363172eb3e6314a0f608cbb42c78b2904b5d",
+      "byteIdentical": false,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-readonly-light-1440.png",
+      "previouslyReviewedSHA256": "765bc75518f62e85fa9284b1463f16734e4994233a2937a8f218f49b76ddd66d"
+    },
+    {
+      "file": "280-people-access-routes-missing-dark-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-routes-missing-dark-390.png",
+      "sha256": "61f9f8604b10ddd95b2115e098a2f030b30e57419b4ca7d015edbd1a466c310e",
+      "manifestSHA256": "61f9f8604b10ddd95b2115e098a2f030b30e57419b4ca7d015edbd1a466c310e",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-missing-dark-390.png",
+      "directlyInspectedSHA256": "61f9f8604b10ddd95b2115e098a2f030b30e57419b4ca7d015edbd1a466c310e",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-routes-missing-dark-390.png",
+      "previouslyReviewedSHA256": "61f9f8604b10ddd95b2115e098a2f030b30e57419b4ca7d015edbd1a466c310e"
+    },
+    {
+      "file": "280-people-access-delegations-missing-light-390.png",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-delegations-missing-light-390.png",
+      "sha256": "edbabb61c1c233ea108e831e95fe45725923888b2416fe7f61a4e2a8648e597a",
+      "manifestSHA256": "edbabb61c1c233ea108e831e95fe45725923888b2416fe7f61a4e2a8648e597a",
+      "reviewMethod": "BYTE_IDENTICAL_CARRY_FORWARD",
+      "directlyInspectedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-missing-light-390.png",
+      "directlyInspectedSHA256": "edbabb61c1c233ea108e831e95fe45725923888b2416fe7f61a4e2a8648e597a",
+      "byteIdentical": true,
+      "previouslyReviewedPath": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-delegations-missing-light-390.png",
+      "previouslyReviewedSHA256": "edbabb61c1c233ea108e831e95fe45725923888b2416fe7f61a4e2a8648e597a"
+    }
+  ],
+  "paintDiagnosticSupplement": {
+    "path": "/workspace/scratch/992dce7dae5c/people-evidence/policy-paint-settled.png",
+    "sha256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae",
+    "directlyViewed": true,
+    "rejectedImageSHA256": "f336282a644fe4add70b31b6bb5396432df4f4305df3e71125da03063adbc888",
+    "negativeControlReceipt": {
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/review-negative-controls-1386b521.json",
+      "sha256": "c76427cc2d35b463deccfe77b9d2ada154bef1f85bcbc364586738cde02e48e4"
+    },
+    "finalContinuations": [
+      {
+        "file": "280-people-access-routes-composer-dark-390-continuation.png",
+        "sha256": "660d3f1d00010fe181e04dd64f2bf6afdad0f735a89b2b56030f832307b5027f",
+        "targetLabel": "Create policy draft",
+        "disabled": true,
+        "targetBounds": {
+          "x": 46,
+          "y": 761.53125,
+          "width": 258,
+          "height": 44
+        },
+        "paintPresenceDiagnostic": {
+          "sample": {
+            "x": 103,
+            "y": 777,
+            "width": 144,
+            "height": 13
+          },
+          "background": "16,29,45",
+          "distinctColors": 293,
+          "contrastPixels": 945
+        },
+        "stability": {
+          "samples": 2,
+          "identicalConsecutiveFrames": true,
+          "settledAnimationFrames": 2
+        }
+      },
+      {
+        "file": "280-people-access-delegations-composer-dark-390-continuation.png",
+        "sha256": "f5c2931640b484dd8ce101ac75066ac2eacd6d63a3c54899885d42e785941f52",
+        "targetLabel": "Create delegation draft",
+        "disabled": true,
+        "targetBounds": {
+          "x": 46,
+          "y": 762.125,
+          "width": 258,
+          "height": 44
+        },
+        "paintPresenceDiagnostic": {
+          "sample": {
+            "x": 84,
+            "y": 777,
+            "width": 182,
+            "height": 13
+          },
+          "background": "16,29,45",
+          "distinctColors": 353,
+          "contrastPixels": 1224
+        },
+        "stability": {
+          "samples": 2,
+          "identicalConsecutiveFrames": true,
+          "settledAnimationFrames": 2
+        }
+      },
+      {
+        "file": "280-people-access-routes-definition-dark-390-continuation.png",
+        "sha256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae",
+        "targetLabel": "Return Independent evidence review for changes",
+        "disabled": true,
+        "targetBounds": {
+          "x": 85,
+          "y": 648.71875,
+          "width": 276,
+          "height": 44
+        },
+        "paintPresenceDiagnostic": {
+          "sample": {
+            "x": 107,
+            "y": 655,
+            "width": 232,
+            "height": 30
+          },
+          "background": "15,28,45",
+          "distinctColors": 398,
+          "contrastPixels": 2526
+        },
+        "stability": {
+          "samples": 2,
+          "identicalConsecutiveFrames": true,
+          "settledAnimationFrames": 2
+        }
+      }
+    ],
+    "interpretation": "contrastPixels counts non-background pixels inside the action label's DOM Range. It is only a raster glyph-presence check, not a WCAG contrast measurement, accessibility conformance result or authorization test. The rejected image had 0; settled Return has 2526. No runtime permission change was made for this capture timing defect."
+  },
+  "methods": {
+    "source": "Read the immutable original HTML and related CSS/notes, and visually inspect the original main/context PNGs. Compare whole-page structure and responsive behavior; preserve operational differences required by real API data.",
+    "images": "Directly view images in small batches. Carry forward an earlier direct visual review only after recomputing SHA-256 on both image files and proving exact byte identity. Matching filenames alone are never accepted.",
+    "coverage": "20 governance layouts at 1440x900,1280x800,1024x768,768x900,390x844 in light and dark; 12 stacked selected contexts; four composers; two full-definition views; three phone continuations; nine bounded/empty/restricted/partial/read-only/missing states. 47 scenarios, 50 runtime PNGs. State screenshots show their retained viewport tops; any selected missing/restricted details below the captured viewport are corroborated by the DOM recovery receipts and code, not by a separate lower-state screenshot.",
+    "automation": "Inspect final manifest rectangles, selected tabs, viewport overflow, command observations and accessibility diagnostics. Automated fixture interactions supplement direct screenshots and code review; they do not establish live backend authorization.",
+    "manualContrast": "Inspect rendered text/control affordances and classify each governance incomplete category with the raw axe/rendered diagnostics. Preserve unsupported, inactive and low-border readings rather than recoding them as automatic passes."
+  },
+  "findings": [
+    {
+      "id": "bounded-records",
+      "status": "reviewed",
+      "detail": "Entity-scoped policies/delegations request 51, show at most 50, and expose more-records state; all metrics describe returned records. Names absent from the bounded people snapshot are displayed with their IDs and Name unavailable."
+    },
+    {
+      "id": "unknown-counts",
+      "status": "resolved",
+      "detail": "Unknown/loading/restricted counts use an em dash and unavailable/checking quality, not a false zero. Restricted reads clear records; transient reads preserve stale records with commands disabled."
+    },
+    {
+      "id": "policy-review-material",
+      "status": "resolved",
+      "detail": "The API's returned definition and checksum now reach the selected policy view. Actual rule facts and full JSON are available before policy metadata/actions. Missing or malformed rules block Approve and retain Return for changes."
+    },
+    {
+      "id": "policy-semantics",
+      "status": "reviewed",
+      "detail": "Rule facts preserve responsibility, selector, entity/record/decision scope, zero materiality, priority and lifecycle rules. The UI does not invent a staged decision path or claim checksum verification."
+    },
+    {
+      "id": "delegation-scope-time",
+      "status": "resolved",
+      "detail": "Delegation parties and all returned scope restrictions are disclosed. Effective authority windows show UTC date, time and seconds. Recorded status is not described as sufficient authorization."
+    },
+    {
+      "id": "maker-checker",
+      "status": "reviewed",
+      "detail": "Maker/checker and giver/receiver exclusions, expected record versions, rationale requirements and server command endpoints remain in place."
+    },
+    {
+      "id": "retained-lifecycle",
+      "status": "resolved",
+      "detail": "Inactive governance composers close, candidate generations invalidate, and late results cannot overwrite a new retained interaction. Controlled route selections reset on queryless Back. Entity/tenant/actor scope changes remount owners."
+    },
+    {
+      "id": "shared-composers",
+      "status": "resolved",
+      "detail": "Governance forms now use shared fields, select controls, textarea and buttons; desktop two-column forms become single-column on phone. Approval uses explicit primary treatment and Return secondary treatment."
+    },
+    {
+      "id": "source-layout",
+      "status": "reviewed",
+      "detail": "Four main tabs and compact four-metric/list/context anatomy follow the original HTML. The desktop list and context become stacked at 1024px and below; first loaded records are visible at all five captured widths in both themes."
+    },
+    {
+      "id": "tablet-geometry",
+      "status": "resolved",
+      "detail": "The public SearchField width token fills the intended row, heading wave is contained, and source-sized heading rhythm respects full first-record visibility."
+    },
+    {
+      "id": "sticky-context",
+      "status": "resolved",
+      "detail": "The measured 20px sticky card overlap with a 68px context bar was corrected to a scoped 96px offset and scroll margin. Stacked contexts remain static."
+    },
+    {
+      "id": "error-metric-wrap",
+      "status": "resolved",
+      "detail": "Root moved summary heading flow to the shared token and uses an owned unconfirmed-state class on phone. Direct inspection of corrected routes/delegations denied and routes partial frames confirms whole metric labels, a separate visible Unavailable line and honest em-dash values, with ready-state geometry unchanged."
+    },
+    {
+      "id": "return-action-paint",
+      "status": "resolved",
+      "detail": "Immediate post-scroll screenshots intermittently omitted Return and the authority notice despite correct DOM/styles/hit testing. Two settled frames paint both. Updated capture requires consecutive identical frames and action-label pixels; the bad image has 0 text-region contrast pixels, and the settled image has 2526. Directly inspected focused continuation matches settled SHA-256 a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae. The raw contrastPixels counter is only a raster glyph-presence diagnostic, not a WCAG contrast ratio or permission test."
+    }
+  ],
+  "contrast": {
+    "counts": {
+      "overall": {
+        "cases": 22,
+        "pass": 22,
+        "violations": 0,
+        "undersized": 0,
+        "incompleteCases": 17,
+        "incompleteNodes": 38,
+        "rendered": {
+          "PASS": 1413,
+          "INCOMPLETE": 157,
+          "REVIEW": 110,
+          "INACTIVE": 20
+        }
+      },
+      "governance": {
+        "cases": 14,
+        "pass": 14,
+        "violations": 0,
+        "undersized": 0,
+        "incompleteCases": 11,
+        "incompleteNodes": 26,
+        "rendered": {
+          "PASS": 775,
+          "INCOMPLETE": 137,
+          "REVIEW": 42,
+          "INACTIVE": 20
+        },
+        "axeReasons": {
+          "bgOverlap": 10,
+          "elmPartiallyObscured": 2,
+          "nonBmp": 14
+        }
+      }
+    },
+    "classifications": [
+      {
+        "category": "Desktop Organization settings overlap",
+        "axeReason": "bgOverlap",
+        "disposition": "No observed text obstruction in reviewed frames; nominal text contrast is approximately 16.28:1 light and 16.08:1 dark. The opaque shared button and contained low-opacity wave are visually distinct. Automated background uncertainty is retained."
+      },
+      {
+        "category": "Phone nonselected People tab",
+        "axeReason": "elmPartiallyObscured",
+        "disposition": "The local tab strip intentionally scrolls horizontally to keep Delegations selected and visible. A portion of the nonselected People label is clipped at the left edge; the selected tab remains readable. This is not evidence of a low contrast text color; the clipping incomplete remains documented."
+      },
+      {
+        "category": "Shared select chevrons",
+        "axeReason": "nonBmp",
+        "disposition": "The aria-hidden chevrons are decorative glyphs. Visible labels and selected values name each shared select. Chevrons are visible in the inspected composer images; no text-content contrast certification is inferred from the glyph diagnostic."
+      },
+      {
+        "category": "Modal and shared context filter uncertainty",
+        "renderedOutcome": "INCOMPLETE",
+        "disposition": "The computed-color model flags backdrop-filter ancestry. The opaque composer foreground is clear in screenshots. Nominal modal text minima are 5.41:1 light and 6.67:1 dark; essential input/select/textarea borders are 3.892:1 light and 4.589:1 dark. These values are not a pixel-composited proof for every blur/overlap state."
+      },
+      {
+        "category": "Quiet/secondary outlines and row separators",
+        "renderedOutcome": "REVIEW",
+        "disposition": "Low nonessential border readings (about 1.0–1.52:1) do not describe the visible action label, selected state, focus ring or essential field boundary. Inspectable text labels and selected/focus treatments identify controls. No blanket conversion of border readings to PASS."
+      },
+      {
+        "category": "Disabled Create/Retire/Return",
+        "renderedOutcome": "INACTIVE",
+        "disposition": "These actions remain disabled until required fields or rationale exist. Inactive readings are retained and are not counted as enabled-control contrast passes. The settled Return diagnostic shows its disabled label distinctly from the panel background."
+      },
+      {
+        "category": "Definition disclosure and approval action",
+        "disposition": "Actual rule facts, zero materiality, full returned JSON and metadata are legible in the reviewed frames. The final phone continuation paints primary Approve, rationale, secondary disabled Return and the authority notice. Its exact bytes match the directly reviewed settled diagnostic. This glyph-presence check is separate from the raw contrast diagnostics and is not a WCAG contrast result."
+      }
+    ],
+    "limits": "Canvas readings round colors to 8-bit sRGB and do not model sibling overlap, pseudo-elements, blur or position-dependent gradients. Manual screenshot review is not a complete assistive-technology, screen-reader, zoom, forced-colors or WCAG conformance assessment.",
+    "finalRawReport": {
+      "file": "accessibility.json",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/accessibility.json",
+      "sha256": "89e92b67d9da0579dd11004e5709f178e00be1834a6a078612ff09b599e57976"
+    },
+    "finalIncompleteCategories": [
+      {
+        "key": "bgOverlap <span>Organization settings</span>",
+        "scenario": "people-access-routes-light-1440"
+      },
+      {
+        "key": "elmPartiallyObscured <span>People</span>",
+        "scenario": "people-access-delegations-light-390"
+      },
+      {
+        "key": "nonBmp <span class=\"cs-select-field__chevron\" aria-hidden=\"true\">⌄</span>",
+        "scenario": "people-access-routes-composer-light-1440"
+      },
+      {
+        "key": "bgOverlap <input class=\"cs-field__control\" maxlength=\"100\" type=\"text\" value=\"\">",
+        "scenario": "people-access-delegations-composer-light-1440"
+      },
+      {
+        "key": "bgOverlap <span class=\"cs-select-field__label\">Person giving authority<span class=\"cs-field__required\" aria-hidden=\"true\"> *</span></span>",
+        "scenario": "people-access-delegations-composer-light-1440"
+      },
+      {
+        "key": "bgOverlap <span class=\"cs-select-field__value\" data-rac=\"\" data-placeholder=\"true\">Choose person</span>",
+        "scenario": "people-access-delegations-composer-light-1440"
+      },
+      {
+        "key": "bgOverlap <span class=\"cs-select-field__label\">Person receiving authority<span class=\"cs-field__required\" aria-hidden=\"true\"> *</span></span>",
+        "scenario": "people-access-delegations-composer-light-1440"
+      }
+    ],
+    "finalReportRechecked": true
+  },
+  "sourceAdaptations": [
+    "The four-tab source anatomy and desktop list/context split are retained, with stacking at 1024px and below.",
+    "Supported Organization settings replaces the source's unsupported Invite person action while preserving heading/action placement.",
+    "Returned bounded records replace the source's invented population metrics and activity data.",
+    "Actual policy rules and JSON replace the source's illustrative staged decision path. Approval depends on server policy, record, responsibility and conflict checks.",
+    "Real delegation parties, scope restrictions and exact UTC windows replace the source's date-only illustrative assignment.",
+    "Shared fonts, status semantics and 44px control targets take precedence over the prototype's smaller controls."
+  ],
+  "limits": {
+    "formalScreenAcceptance": "0/19",
+    "formalAcceptedScreenCount": 0,
+    "formalTotalScreenCount": 19,
+    "productionCutoverAccepted": false,
+    "liveAuthorizationProven": false,
+    "backendCommandExecutionProven": false,
+    "wholeTenantOrEntityCompletenessProven": false,
+    "effectiveAuthorityInferredFromStatus": false,
+    "fixtureCommandObservations": 0,
+    "independentBrowserExecutionByThisReviewer": false,
+    "browserExecutionOwner": "/root/people_evidence",
+    "scope": "Partial v2 governance layout integration, rendered fixture states and static code review only. No four-actor live backend authorization/outcome walkthrough or release acceptance is claimed.",
+    "fullJSONSimultaneouslyVisible": false,
+    "fullJSONVerification": "The complete returned JSON/checksum is compared in the browser receipt and available in an independently scrollable disclosure. Screenshots show representative visible portions, not all JSON text at once.",
+    "reviewScopeAccepted": true,
+    "productionAcceptanceIncrement": 0,
+    "unresolvedAccessibilityConformance": true
+  },
+  "scopedDisposition": "PASS — partial v2 Approval routes and Delegations implementation and rendered fixture integration",
+  "reviewedAtUTC": "2026-10-26 10:57:18 UTC",
+  "repositoryRoot": "/workspace/scratch/992dce7dae5c/clearsight-grc",
+  "evidenceIntegrity": {
+    "primaryManifest": {
+      "file": "manifest.json",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/manifest.json",
+      "sha256": "47b151724de989866bd68491f2bd27b2a15d09ec83d56011e04b906ebfd3c19b"
+    },
+    "accessibilityReport": {
+      "file": "accessibility.json",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/accessibility.json",
+      "sha256": "89e92b67d9da0579dd11004e5709f178e00be1834a6a078612ff09b599e57976"
+    },
+    "integrityReceipt": {
+      "file": "integrity-review.json",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/integrity-review.json",
+      "sha256": "91add4c9d711f051958ec913ce89746166531be82cd7ee085778a1725f035945"
+    },
+    "imageDifferenceReceipt": {
+      "file": "image-diff-from-d2.json",
+      "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/image-diff-from-d2.json",
+      "sha256": "e31a4e2f3f017be23c60d291733c2dd1e2146d4f238d529b1b03b214774a347b"
+    },
+    "governanceScenarioCount": 47,
+    "governanceImageCount": 50,
+    "directlyInspectedFinalImageCount": 6,
+    "exactByteCarryForwardCount": 44,
+    "sourceImageCount": 16,
+    "carryForwardMethod": "Recompute SHA-256 on each final PNG and its actual previously inspected file, require identical hashes, and check each final PNG against its manifest hash. Any changed image is directly inspected. The four rejected metric/blank-paint hashes are explicitly prohibited. All 50 final files and all 16 final source copies passed these checks.",
+    "rejectedHashes": [
+      "f336282a644fe4add70b31b6bb5396432df4f4305df3e71125da03063adbc888",
+      "7e48009fd5c9f4e702a44e9883ea9e76eb08122ff1d0b4be87370efa7e6c102b",
+      "8a244615fa830b1f4937da569e52d3abd8b3b8884d65674ae8d842cd95109c32",
+      "776cc82639240879e73efc1ae49ba7cccfb5145b11dc1557b7b3672ffed0c50f"
+    ],
+    "capturedGovernanceCommands": [],
+    "captureErrors": [],
+    "finalRuntimeCasesInPrimaryManifest": 92,
+    "finalRuntimeImagesReportedByIntegrityReceipt": 95,
+    "fullPackageAuditOwner": "/root/people_evidence",
+    "fullPackageAuditStatus": "PASS"
+  },
+  "openBlockingFindings": [],
+  "supersededCheckpoints": [
+    {
+      "revision": "712cd43113e6ba46c2b21215fd8d52d339c5aaec",
+      "disposition": "Rejected tablet width-cap and wave-overflow checkpoint; no final visual acceptance."
+    },
+    {
+      "revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+      "disposition": "Superseded; only exactly matching previously inspected PNG bytes may carry forward."
+    },
+    {
+      "revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+      "disposition": "Superseded for phone unavailable-metric fragmentation and an intermittently blank post-scroll Return capture. Rejected hashes retained; valid unchanged images may carry forward."
+    },
+    {
+      "revision": "b5629fab5900e3b084c7b2a69a66f384a5faad54",
+      "disposition": "Superseded before full capture because of an Organization boundary defect outside this governance scope. Governance code unchanged."
+    }
+  ]
+}

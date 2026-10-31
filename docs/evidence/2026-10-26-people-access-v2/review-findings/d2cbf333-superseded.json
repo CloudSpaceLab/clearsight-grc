@@ -1,0 +1,51 @@
+{
+  "status": "SUPERSEDED_AFTER_INDEPENDENT_VISUAL_REVIEW",
+  "runtimeRevision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+  "tree": "b3949dfb03358a7b7144c1511c8b2e0e96f0967c",
+  "reviewers": [
+    "/root/people_review",
+    "/root/people_runtime"
+  ],
+  "findings": [
+    {
+      "kind": "RUNTIME",
+      "finding": "WorkspaceSwitcher styling depended on visiting Insights or gallery. Cold Organization entry showed both unstyled desktop navigation and its compact selector.",
+      "correction": "Load the stylesheet through the shared components layer; preserve one navigation presentation per breakpoint."
+    },
+    {
+      "kind": "RUNTIME",
+      "finding": "Unavailable and Previous list quality labels crowded phone governance metric headings, splitting label words.",
+      "correction": "Use the existing heading-columns geometry token to stack uncertain metric labels and quality at680px and below."
+    },
+    {
+      "kind": "CAPTURE",
+      "finding": "The policy Return action had valid geometry and styles but its immediately scrolled screenshot intermittently painted blank.",
+      "correction": "Settle painting, require stable screenshots and verify text-region pixel content before accepting continuation evidence."
+    }
+  ],
+  "images": [
+    {
+      "image": "d2cb-secondary-navigation-desktop.png",
+      "original": "configuration/configuration-organization-desktop-light-1440x900.png",
+      "bytes": 103110,
+      "sha256": "2c789150e42b66cbd6a82622cb7472f5c89517c1ad0076fd35b2b976feaee29e"
+    },
+    {
+      "image": "d2cb-unavailable-summary-phone.png",
+      "original": "280-people-access-routes-denied-dark-390.png",
+      "bytes": 67787,
+      "sha256": "7e48009fd5c9f4e702a44e9883ea9e76eb08122ff1d0b4be87370efa7e6c102b"
+    },
+    {
+      "image": "d2cb-policy-action-paint-race.png",
+      "original": "280-people-access-routes-definition-dark-390-continuation.png",
+      "bytes": 50695,
+      "sha256": "f336282a644fe4add70b31b6bb5396432df4f4305df3e71125da03063adbc888"
+    }
+  ],
+  "limits": [
+    "The earlier automated PASS did not establish visual acceptance.",
+    "This superseded checkpoint remains in Git history and the retained diagnostic images.",
+    "Whole-screen acceptance stays0/19."
+  ]
+}

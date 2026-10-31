@@ -1,0 +1,26 @@
+.app-shell > main:has(> .people-access-workspace) { background: var(--cs-bg-canvas); }
+.people-access-workspace { min-inline-size: 0; max-inline-size: 1860px; }
+.people-access-workspace__heading { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: space-between; gap: 20px; min-block-size: 128px; margin-block-end: 8px; }
+.people-access-workspace__heading > div { position: relative; min-inline-size: 0; }
+.people-access-workspace__crumb { display: flex; align-items: center; gap: 8px; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); }
+.people-access-workspace__heading h1 { margin: 0; color: var(--cs-text-strong); font-size: 34px; font-weight: 750; letter-spacing: -.04em; line-height: 1.1; }
+.people-access-workspace__actions { display: flex; flex: none; gap: 10px; }
+.people-access-workspace__wave { position: absolute; z-index: auto; inset: 0 5% 0 auto; inline-size: 57%; block-size: 100%; color: var(--cs-action-primary); opacity: .06; pointer-events: none; }
+.people-access-workspace > .cs-tabs { --cs-tabs-gap: 22px; --cs-tabs-height: var(--cs-control-height); --cs-tabs-padding-inline: 7px; --cs-tabs-panel-gap: 14px; }
+.people-access-workspace > .cs-tabs > .cs-tabs__list { display: flex; flex-wrap: nowrap; overflow-x: auto; padding-inline: 20px; }
+.people-access-workspace > .cs-tabs > .cs-tabs__list > .cs-tabs__tab { flex: none; min-inline-size: var(--cs-target-min); inline-size: auto; white-space: nowrap; font-size: var(--cs-font-size-caption); }
+.people-access-workspace > .cs-tabs > .cs-tabs__panel { min-inline-size: 0; }
+.people-access-workspace__organization { display: grid; gap: 18px; min-inline-size: 0; }
+.people-access-workspace .configure-domain-header { min-block-size: 0; }
+@media (max-width: 1024px) {
+  .people-access-workspace__heading { min-block-size: 78px; }
+  .people-access-workspace__heading h1 { font-size: 29px; }
+}
+@media (max-width: 680px) {
+  .people-access-workspace__heading { display: block; min-block-size: 114px; padding-block-end: 15px; }
+  .people-access-workspace__heading h1 { font-size: 25px; }
+  .people-access-workspace__actions { margin-block-start: 13px; }
+  .people-access-workspace__wave { display: none; }
+  .people-access-workspace > .cs-tabs { --cs-tabs-gap: 12px; --cs-tabs-height: var(--cs-control-height); }
+  .people-access-workspace > .cs-tabs > .cs-tabs__list { padding-inline: 12px; }
+}

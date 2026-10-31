@@ -12,14 +12,16 @@ describe("governance administration API", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("loads bounded policy and delegation inventories", async () => {
+    const definition = { rules: [{ id: "review", responsibility: "REVIEWER", selector: { kind: "ROLE", ref: "CRO" } }] };
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({ items: [{ id: "policy-1", legal_entity_id: "entity-1" }] }))
+      .mockResolvedValueOnce(jsonResponse({ items: [{ id: "policy-1", legal_entity_id: "entity-1", definition, checksum: "a".repeat(64) }] }))
       .mockResolvedValueOnce(jsonResponse({ items: [{ id: "delegation-1", legal_entity_id: "entity-1" }] }));
     vi.stubGlobal("fetch", fetchMock);
 
     const inventory = await loadGovernanceInventory();
 
     expect(inventory.policies).toHaveLength(1);
+    expect(inventory.policies[0]).toMatchObject({ definition, checksum: "a".repeat(64) });
     expect(inventory.delegations).toHaveLength(1);
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
       "/api/v1/governance/policies?limit=51",
@@ -27,6 +29,25 @@ describe("governance administration API", () => {
     ]);
     expect(inventory.policiesAvailable).toBe(true);
     expect(inventory.delegationsAvailable).toBe(true);
+  });
+
+  it("keeps denied policies separate from unavailable delegations", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ error: "forbidden" }, 403))
+      .mockResolvedValueOnce(jsonResponse({ error: "unavailable" }, 503)));
+
+    expect(await loadGovernanceInventory()).toEqual({
+      policies: [], delegations: [], policiesAvailable: false, delegationsAvailable: false,
+      policiesState: "restricted", delegationsState: "unavailable",
+    });
+  });
+
+  it("binds both inventory reads to the caller's cancellation signal", async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ items: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    await loadGovernanceInventory(controller.signal);
+    expect(fetchMock.mock.calls.map(([, init]) => init.signal)).toEqual([controller.signal, controller.signal]);
   });
 
   it("creates a whole-entity delegation without browser-supplied actor or tenant fields", async () => {

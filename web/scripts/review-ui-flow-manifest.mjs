@@ -17,6 +17,8 @@ import { reviewRiskLossCaptures } from "./risk-loss-evidence-contract.mjs";
 import { privacyAccessibilityScenarios, privacyEvidenceScenarios, privacySupplementalScreenshotNames } from "./privacy-evidence-scenarios.mjs";
 import { reviewPrivacyCaptures } from "./privacy-evidence-contract.mjs";
 import { reviewWorkSourceEvidence } from "./review-work-source-evidence.mjs";
+import { peopleAccessAccessibilityScenarios, peopleAccessEvidenceScenarios, peopleAccessSupplementalScreenshotNames } from "./people-access-evidence-scenarios.mjs";
+import { reviewPeopleAccessCaptures } from "./people-access-evidence-contract.mjs";
 
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const homeT7ScenarioNames = [
@@ -36,6 +38,7 @@ const expectedNames = [
   ...vendorPortfolioEvidenceScenarios.map(({ name }) => name),
   ...riskLossEvidenceScenarios.map(({ name }) => name),
   ...privacyEvidenceScenarios.map(({ name }) => name),
+  ...peopleAccessEvidenceScenarios.map(({ name }) => name),
   "01-today-dark-comfortable-1440x900",
   "02-today-light-comfortable-1440x900",
   "03-today-dark-compact-1440x900",
@@ -212,6 +215,7 @@ const requiredStates = [
   ...vendorPortfolioEvidenceScenarios.map(({ state }) => state),
   ...riskLossEvidenceScenarios.map(({ state }) => state),
   ...privacyEvidenceScenarios.map(({ state }) => state),
+  ...peopleAccessEvidenceScenarios.map(({ state }) => state),
   "navigation-settings-denied-mobile",
   "navigation-menu-light-mobile",
   "navigation-menu-dark-mobile",
@@ -452,6 +456,9 @@ if (manifest) {
   const privacyReview = reviewPrivacyCaptures(manifest.captures);
   failures.push(...privacyReview.failures);
   checks.push(privacyReview.check);
+  const peopleAccessReview = reviewPeopleAccessCaptures(manifest.captures);
+  failures.push(...peopleAccessReview.failures);
+  checks.push(peopleAccessReview.check);
   const loadedReportVariants = reportOverviews.filter((capture) => capture.fixture === "report-overview-loaded"
     && capture.state !== "report-overview-selected-area");
   const reportSizes = ["1440x900", "1280x800", "1024x768", "768x900", "390x844"];
@@ -609,7 +616,7 @@ if (manifest) {
 let evidence = [];
 try {
   const files = (await readdir(outputDir)).filter((name) => name.endsWith(".png")).sort();
-  const expectedFiles = [...expectedNames.map((name) => `${name}.png`), ...homeT7ScreenshotNames, ...privacySupplementalScreenshotNames].sort();
+  const expectedFiles = [...expectedNames.map((name) => `${name}.png`), ...homeT7ScreenshotNames, ...privacySupplementalScreenshotNames, ...peopleAccessSupplementalScreenshotNames].sort();
   const missingFiles = expectedFiles.filter((name) => !files.includes(name));
   const unexpectedFiles = files.filter((name) => !expectedFiles.includes(name));
   if (missingFiles.length) failures.push(`screenshots are missing: ${missingFiles.join(", ")}`);
@@ -628,6 +635,15 @@ try {
     if (capture.pageRecovery) {
       const image = evidence.find((item) => item.file === capture.pageRecovery.image);
       if (!image || image.sha256 !== capture.pageRecovery.imageSHA256 || image.bytes !== capture.pageRecovery.imageBytes) failures.push(`${capture.name}: later-page state image differs from its recovery receipt`);
+    }
+  }
+  for (const capture of (manifest?.captures ?? []).filter((item) => item.peopleAccessView)) {
+    const image = evidence.find((item) => item.file === `${capture.name}.png`);
+    if (!image || image.sha256 !== capture.imageSHA256 || image.bytes !== capture.imageBytes || capture.buildDigest !== manifest.runtimeBuild?.digest
+      || capture.evidenceInputDigest !== manifest.peopleAccessEvidenceInputs?.digest) failures.push(`${capture.name}: retained People/access image/build/instructions differ from its capture receipt`);
+    if (capture.continuation) {
+      const image = evidence.find((item) => item.file === capture.continuation.image);
+      if (!image || image.sha256 !== capture.continuation.imageSHA256 || image.bytes !== capture.continuation.imageBytes) failures.push(`${capture.name}: lower-content image differs from its continuation receipt`);
     }
   }
   checks.push({ name: "review artifact completeness", status: missingFiles.length || unexpectedFiles.length ? "FAIL" : "PASS", detail: `${files.length}/${expectedFiles.length} screenshots retained` });
@@ -682,7 +698,11 @@ if (accessibility) {
     && actual.theme === scenario.theme && actual.viewport?.width === scenario.viewport.width && actual.viewport?.height === scenario.viewport.height
     && actual.scopeSelector === scenario.scopeSelector && actual.touchTargetMinimum === 44));
   if (missingPrivacy.length) failures.push(`Privacy scoped accessibility and touch evidence is missing: ${missingPrivacy.map(({ name }) => name).join(", ")}`);
-  checks.push({ name: "accessibility and touch", status: failed.length || missingReports.length || missingNotifications.length || missingVendorRelationships.length || missingVendorPortfolios.length || missingRiskLoss.length || missingPrivacy.length ? "FAIL" : "PASS", detail: `${accessibility.scenarios.length} rendered route states` });
+  const missingPeopleAccess = peopleAccessAccessibilityScenarios.filter((scenario) => !accessibility.scenarios.some((actual) => actual.name === scenario.name
+    && actual.theme === scenario.theme && actual.viewport?.width === scenario.viewport.width && actual.viewport?.height === scenario.viewport.height
+    && actual.scopeSelector === scenario.scopeSelector && actual.touchTargetMinimum === 44));
+  if (missingPeopleAccess.length) failures.push(`People/access scoped accessibility and touch evidence is missing: ${missingPeopleAccess.map(({ name }) => name).join(", ")}`);
+  checks.push({ name: "accessibility and touch", status: failed.length || missingReports.length || missingNotifications.length || missingVendorRelationships.length || missingVendorPortfolios.length || missingRiskLoss.length || missingPrivacy.length || missingPeopleAccess.length ? "FAIL" : "PASS", detail: `${accessibility.scenarios.length} rendered route states` });
 }
 
 let bundle = { javascript: { raw: 0, gzip: 0, initial_gzip: 0, largest_raw_chunk: 0 }, css: { raw: 0, gzip: 0, initial_gzip: 0 } };

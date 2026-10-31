@@ -1,0 +1,5764 @@
+{
+  "runtimeRevision": "ea84283f913755be6dc1b8e366282469745b3e9a",
+  "runtimeTree": "28f0b24ef1da098b46bfd345c466cecd79051675",
+  "fixture": "people-v2-current",
+  "fixtureNote": "Old runtime plus isolated evidence transport; no customer runtime changes.",
+  "build": [
+    {
+      "path": "assets/App-CRJdUh3q.css",
+      "sha256": "65df9543ebafa09bd24a83c3506e38646dd15050bf70fa5ee76bf969327003e7"
+    },
+    {
+      "path": "assets/App-DjlefKH6.js",
+      "sha256": "17ad4ceb0070239b3e2188ed310bac66bf388da241412eb2af61fd0db9d8bf9e"
+    },
+    {
+      "path": "assets/App-DjlefKH6.js.map",
+      "sha256": "19cb177233fe404b4d2268457c548428e176fc19500045c44931b4f17bd1f441"
+    },
+    {
+      "path": "assets/BankJourneysWorkspace-2AgH9f2G.css",
+      "sha256": "e58abe5444c09ecdecdda458acbeda1e610d27f9b81626eb722d6a8883a48353"
+    },
+    {
+      "path": "assets/BankJourneysWorkspace-DVFk_eGZ.js",
+      "sha256": "3f9d39ec608ba1cb53352e5bf909ac6ea489aa6432781d66b6637b42bfa3f651"
+    },
+    {
+      "path": "assets/BankJourneysWorkspace-DVFk_eGZ.js.map",
+      "sha256": "4508f564ae399ea8b9d3028e74905ace870a1f7060519c8108b946820dc49930"
+    },
+    {
+      "path": "assets/CommunicationsView-D42DsE_-.js",
+      "sha256": "6acc834f53fb3f63d80d37c190c9018ef9298f5093cbb9148bfada08d642b327"
+    },
+    {
+      "path": "assets/CommunicationsView-D42DsE_-.js.map",
+      "sha256": "613b32567912e0d8bd59eca1f1cb6b5de2610ae129f22f353f59ccc3c7dd1abf"
+    },
+    {
+      "path": "assets/ConfigureWorkspace-COYlClQh.css",
+      "sha256": "f801fbf4157506cacb6e1957d37e89cf1daa29ada38223b3b89e966333a5703d"
+    },
+    {
+      "path": "assets/ConfigureWorkspace-DyZibyFp.js",
+      "sha256": "25bd9e47211e797e1a94121f7212124f48f433b04e14b313e0b7f09edeb11e22"
+    },
+    {
+      "path": "assets/ConfigureWorkspace-DyZibyFp.js.map",
+      "sha256": "41739ed70778e95780000be468a1c3ee8d751f499c9d49a418e223f7b0c9dbf5"
+    },
+    {
+      "path": "assets/DistributionComposer-DLeZxbLt.css",
+      "sha256": "350b092b7f33a1a03f35e3d8610fb2acdaaa71fcb48dcaf6e67293c13c62132d"
+    },
+    {
+      "path": "assets/DistributionComposer-DlRhJwnZ.js",
+      "sha256": "eb6604c917ad4727cc3813f319ed6a4f5ead4557175db237b05466b76cfc9ba2"
+    },
+    {
+      "path": "assets/DistributionComposer-DlRhJwnZ.js.map",
+      "sha256": "4103d6f68197faee511ef30dfc67d877fa26251bf120b923acc53bef6dda5f02"
+    },
+    {
+      "path": "assets/EmployeeProfileWorkspace-DrJEN7Y_.js",
+      "sha256": "36306f50e96636f8be954a043d94e775cdf858d3fdd8fe6cc1b7114e228680a3"
+    },
+    {
+      "path": "assets/EmployeeProfileWorkspace-DrJEN7Y_.js.map",
+      "sha256": "9da67c35042688a518fb2dd2344944c89ce4dd8ec9794a24889874258f817b93"
+    },
+    {
+      "path": "assets/EmptyState-BhTs_6Db.js",
+      "sha256": "e99e69dbd688eafc222bbd91fc8810ef0be2a495dfd642f5b370da99defdc23c"
+    },
+    {
+      "path": "assets/EmptyState-BhTs_6Db.js.map",
+      "sha256": "f5dd2fdf136c09492790b7472d3a7a07cee49ad053f47062e73489cc3a8dafe1"
+    },
+    {
+      "path": "assets/FocusedSheet-BR3anp65.js",
+      "sha256": "1215e9d48e56ad3d535f5ff0f70ec85ffc150a9f253086ad64eaee288598349a"
+    },
+    {
+      "path": "assets/FocusedSheet-DrnLjgsp.js",
+      "sha256": "7849d4e15b79dc68e0710ffb37ccfc218a5e8978d645cc1db8e6d55fb9ca5ac5"
+    },
+    {
+      "path": "assets/FocusedSheet-DrnLjgsp.js.map",
+      "sha256": "c6d423e45077f417154b55e47c5d98bf0d4a127eb92f8abd9d191e0db7528087"
+    },
+    {
+      "path": "assets/FormBuilder-CY7VuhFX.js",
+      "sha256": "36d91153c9207774043875cd2c3bf91d4741c8b8a049f984e575c7025e60dde5"
+    },
+    {
+      "path": "assets/FormBuilder-DkNz5EQ_.css",
+      "sha256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1"
+    },
+    {
+      "path": "assets/FormBuilder-DvpHVaOU.js",
+      "sha256": "076cb505630e90ea07faea88827f7701a0686d102843094a848ac7c807baade0"
+    },
+    {
+      "path": "assets/FormBuilder-DvpHVaOU.js.map",
+      "sha256": "1991e70204ea47dc744cae995f2d1b22d0bd93bac04c5f3d66b91b49371e9fc8"
+    },
+    {
+      "path": "assets/FormPoliciesView-DG2eTyCQ.js",
+      "sha256": "a8fd4542ee048d78a88eeaf2dacbbad5ed5d1df88e6f7a3be356e744cf9883e9"
+    },
+    {
+      "path": "assets/FormPoliciesView-DG2eTyCQ.js.map",
+      "sha256": "1d7fb6986e08e3b9d184095c828ec77c070914d0ed371121f2b8d44281be215c"
+    },
+    {
+      "path": "assets/FormPreview-CvbhFbBW.js",
+      "sha256": "7b522d3db878192d64eacd0e8b83ab0bd0b6055fc93c153e02b3f0888067a98b"
+    },
+    {
+      "path": "assets/FormPreview-CvbhFbBW.js.map",
+      "sha256": "9b3ba239444bd991577d3f9fa0977557bc0e059c9f4e485900058de7cc80b442"
+    },
+    {
+      "path": "assets/FormProposalReview-DKZ84FvT.js",
+      "sha256": "c5b674c55651863a3534ff4ea836387c073cfd2ba3f23df9b3747170a44b93e3"
+    },
+    {
+      "path": "assets/FormProposalReview-DKZ84FvT.js.map",
+      "sha256": "737619af407e68241867d79186a35783bb3af4e61c2b0f96e137df54db011420"
+    },
+    {
+      "path": "assets/FormsWorkspace-C6GcR06Z.js",
+      "sha256": "f11fdd22d1407e79b78e6083b0de45352e889145c74a657d8ecde7426fc0e382"
+    },
+    {
+      "path": "assets/FormsWorkspace-C6GcR06Z.js.map",
+      "sha256": "814d0130faa3426e1743b675445479a31765ed932010ec7aa12e90d9967c6207"
+    },
+    {
+      "path": "assets/GroupOversightWorkspace-BJlNlXDx.js",
+      "sha256": "58dc7774c3148e728f37f2073c109963e88f3358a7b3878b1b92a150da7d6d98"
+    },
+    {
+      "path": "assets/GroupOversightWorkspace-BJlNlXDx.js.map",
+      "sha256": "446fcdb910e8feb93652bd7ff567ec50a9a00428289c4f93564f722f61cb7eca"
+    },
+    {
+      "path": "assets/GroupOversightWorkspace-BiptSJKV.js",
+      "sha256": "e8202a01a702a7e4798c2fd34e7fbfff91909325eeb7c186d525e65d09e70fe5"
+    },
+    {
+      "path": "assets/GroupOversightWorkspace-FAWTwerR.css",
+      "sha256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242"
+    },
+    {
+      "path": "assets/IndicatorDetail-CbJkDCgs.js",
+      "sha256": "f3edea47820501cca591bdb17c473535e675c2446db87b068b3747ccda57f54f"
+    },
+    {
+      "path": "assets/IndicatorDetail-CbJkDCgs.js.map",
+      "sha256": "2061e0c5d1c8eaa0c4c46729b36889020292c386a69137ce11ca7af09c82c6ee"
+    },
+    {
+      "path": "assets/InsightsWorkspace-DQs7DQlq.css",
+      "sha256": "2b42cb30025d7eb19b2ecdd47876b5f5f5cdf489ac3c662436d7c5688e79b6b8"
+    },
+    {
+      "path": "assets/InsightsWorkspace-Dpfvfuy6.js",
+      "sha256": "2d9ea1b793b9837065e19b3cb9bc5c1b8978979a570955be0abf6de3d0c0c30a"
+    },
+    {
+      "path": "assets/InsightsWorkspace-Dpfvfuy6.js.map",
+      "sha256": "5e30c57bf2b4097c814c75433a5de68a67f04c3ed17a75ecf753e01ea5c2c75a"
+    },
+    {
+      "path": "assets/LossesWorkspace-CfOZfW8N.css",
+      "sha256": "ad89e0dd679a1d05cf1c74362e83840ef9298d2f73c603a83cc59fb6a21d9972"
+    },
+    {
+      "path": "assets/LossesWorkspace-D03_4Ggm.js",
+      "sha256": "3d42d1e05c847aa0469dc5d7c6a0e88c148fd6026ebc6c42874c1912e403b06c"
+    },
+    {
+      "path": "assets/LossesWorkspace-D03_4Ggm.js.map",
+      "sha256": "efc5090c5e17babf1f8465c6908bd344d5c427e537b85428209ca26ab9efb2dd"
+    },
+    {
+      "path": "assets/MetricMemberDrill-GWn2qRpT.js",
+      "sha256": "25398ca594008d48d203ace1a93b279368a85a2186f2a949f67378c4cead29c9"
+    },
+    {
+      "path": "assets/MetricMemberDrill-GWn2qRpT.js.map",
+      "sha256": "a9bb30dd3fdaff71e9690571ce177336235d376f92748a29b1c86428147f6c00"
+    },
+    {
+      "path": "assets/NavigationIcon-Cw28lXWO.js",
+      "sha256": "1ecfa7f3b854438575d1b465610ebef73a21e9ab1dba4e7872fded00aef1574d"
+    },
+    {
+      "path": "assets/NavigationIcon-Cw28lXWO.js.map",
+      "sha256": "691d0af21a1235d5ea3355929817c57146c86d7f0bf304f26f63e369918d244e"
+    },
+    {
+      "path": "assets/NotificationCenter-Cp51DZKn.js",
+      "sha256": "776463201a004314d827c467b5f6a86fe4ad48dd945f2cf5b205ffc1152ff293"
+    },
+    {
+      "path": "assets/NotificationCenter-Cp51DZKn.js.map",
+      "sha256": "de62002f8256aaab4ded5eb180e84448520ef066ae9d8ab478104e0c959e7021"
+    },
+    {
+      "path": "assets/NotificationCenter-y8gwOkyW.css",
+      "sha256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5"
+    },
+    {
+      "path": "assets/NotificationDeliveryHistory-DHa4DU01.js",
+      "sha256": "5bb96a95ae469f8fbe2eaddfdd0cf182d1302410d62b6e17df6e37d7dd928f3b"
+    },
+    {
+      "path": "assets/NotificationDeliveryHistory-DHa4DU01.js.map",
+      "sha256": "c0ff405dfce6d4e4b5b1c0b8ed98ac8cc8e37fb33284833fad2025c77e0ebf85"
+    },
+    {
+      "path": "assets/NotificationsWorkspace-BAmZg4MJ.css",
+      "sha256": "e988de36e966535d55a0d8b6677e22792ce5e22015eee29227a194d036817d83"
+    },
+    {
+      "path": "assets/NotificationsWorkspace-LP9MBhlw.js",
+      "sha256": "dfc058bdc55bce65efe1b0187a34d474da4e4b732456bb8836bfcd1222acf49f"
+    },
+    {
+      "path": "assets/NotificationsWorkspace-LP9MBhlw.js.map",
+      "sha256": "b982d532e093c67c3eef4a4a5155242ff034041fcf2cedf03f43e6a04f2180f2"
+    },
+    {
+      "path": "assets/OrganizationLossSummary-gdPPNscO.js",
+      "sha256": "f1e2c303e8704881420a857a3bf95d2717a8c05e24c49eeb51b3ff4505dcc805"
+    },
+    {
+      "path": "assets/OrganizationLossSummary-gdPPNscO.js.map",
+      "sha256": "1c086f572659801f8a435a5d663189672cfeee7ee148d3bd28552d186fd3445f"
+    },
+    {
+      "path": "assets/OversightPeriodPicker-BOv9yUcl.js",
+      "sha256": "a068d4e7f7e3dfe54489caafd8442ba1f34628cc5ccc12c94c32106ed8bd3dfb"
+    },
+    {
+      "path": "assets/OversightPeriodPicker-BOv9yUcl.js.map",
+      "sha256": "b011f0e534bd620d38d587ebe65913cba3cea587df5de17cd5870d1d1e9a0a88"
+    },
+    {
+      "path": "assets/OversightWorkspace-Bkk_w6ru.js",
+      "sha256": "f22a8c07af231498d684d21d396513b1f47cbd09d6d9d21a9d82ea751f8ec708"
+    },
+    {
+      "path": "assets/OversightWorkspace-CvJmPDFB.js",
+      "sha256": "6eb6b1eadad9afd775f37475e76de93861278cfd115b3f261cac3939bb4448d0"
+    },
+    {
+      "path": "assets/OversightWorkspace-CvJmPDFB.js.map",
+      "sha256": "014f2169a0d630a6cba59a1062c4c9dc239a9f4b2e13e308e4561ddc4f463476"
+    },
+    {
+      "path": "assets/RCSAWorkspace-BBbJ8vcX.css",
+      "sha256": "a9c017e87c917a08d0c14117e9c7f83049d84f4cd126a513d73cdefb818af265"
+    },
+    {
+      "path": "assets/RCSAWorkspace-BHMrSZdB.js",
+      "sha256": "105dcbf9a4928e9450dc546a806fb0947b3672fda52d2dfb4eac1ee891f8f95c"
+    },
+    {
+      "path": "assets/RCSAWorkspace-BHMrSZdB.js.map",
+      "sha256": "82e13bba804900d67fe039ac1de4ff12e45f006209ce0eeb9c6bd671aa9afca9"
+    },
+    {
+      "path": "assets/ReportsExplore-B0ekrrMv.js",
+      "sha256": "4075069c2cdee0e11123f1dc8f6cd7b92846093d961355839470fc620e81df70"
+    },
+    {
+      "path": "assets/ReportsExplore-B0ekrrMv.js.map",
+      "sha256": "bd4cd634ae87d0d2fe1eb1eaac34b5f60264fc485335f4d2bb30601f864894aa"
+    },
+    {
+      "path": "assets/ReportsExplore-DWws9bfr.css",
+      "sha256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85"
+    },
+    {
+      "path": "assets/ReportsWorkspace-8OBmKuVF.js",
+      "sha256": "a00eba153b7af4545ab1d343ea1582e0e5f807b03acd638e99a01733ac7c8b1c"
+    },
+    {
+      "path": "assets/ReportsWorkspace-8OBmKuVF.js.map",
+      "sha256": "356107ca663a2d93bfc5e0bdc11fbc7e9b641cd591bf6112090ba21e170c42fd"
+    },
+    {
+      "path": "assets/ReportsWorkspace-BE7QasEr.css",
+      "sha256": "5f19f164d10680e24761be28f0c87c2aebead00448cc67c52ed22825cbcc03dc"
+    },
+    {
+      "path": "assets/ResponseAssessment-C7qAQfrV.js",
+      "sha256": "62ccadf60da5dbdee0b09392637c7b0f2e219d2d263f438f4ffaa38e5baee32e"
+    },
+    {
+      "path": "assets/ResponseAssessment-C7qAQfrV.js.map",
+      "sha256": "663b20b7daf12e94e2c5d3aecca08e7e6543facf3314fbe21b5431e0dcaa2d50"
+    },
+    {
+      "path": "assets/ResponseAssessment-DYFP7xBk.css",
+      "sha256": "5c7d80d3beacc486aaa186cf58269b2818e23da389f14d02f35413813a2b486e"
+    },
+    {
+      "path": "assets/ResponseBrowser-DPenW2pK.js",
+      "sha256": "d743143263b97943a30de12f84f9b2dd12695e7d283b1d211f2ca6ae83162f19"
+    },
+    {
+      "path": "assets/ResponseBrowser-DPenW2pK.js.map",
+      "sha256": "3efce8744997f8969ee55d5548060ffb1e763730a95048675652136f69e8f737"
+    },
+    {
+      "path": "assets/RisksWorkspace-DairWCjP.css",
+      "sha256": "46f63dd3756f317b52ded15048e498d2dc4ff2cc5fe60f35d13515b1ccd5a5af"
+    },
+    {
+      "path": "assets/RisksWorkspace-Dtd8RJ8q.js",
+      "sha256": "45fbeb9c36044be06e001a60af2aacde6c090a5b6b5db4af9a6d734ca9a2351f"
+    },
+    {
+      "path": "assets/RisksWorkspace-Dtd8RJ8q.js.map",
+      "sha256": "d7dd7cb0f44ee2672af50d11e3354bcd6cf6a7ce37587d0d82b9c6955b855222"
+    },
+    {
+      "path": "assets/RopaActivityPage-Cuy0NHoh.css",
+      "sha256": "3778cf3eb9b83a47be52bb4f14d83a2ac08896503871211029635c1b8532b89e"
+    },
+    {
+      "path": "assets/RopaActivityPage-dpRAw4S8.js",
+      "sha256": "3541232dee01c4550564d3fbcc2d5480e9a0ca2ff84b90d8d80c76b923e1d5d7"
+    },
+    {
+      "path": "assets/RopaActivityPage-dpRAw4S8.js.map",
+      "sha256": "a8cec7440b83f17aefb6d4a614721e1def5d9ba8e0851dbf457c5c68347341c8"
+    },
+    {
+      "path": "assets/RopaRegisterPage-B-mJp67b.css",
+      "sha256": "1e291651a89e60b840eedc818debf6de459c4a95bbf2948841a42e5e3896c14d"
+    },
+    {
+      "path": "assets/RopaRegisterPage-B1SJfGXi.js",
+      "sha256": "f4f5b74664f07b32756c5d69598383a842490f8c4961355b57be3766871209fe"
+    },
+    {
+      "path": "assets/RopaRegisterPage-B1SJfGXi.js.map",
+      "sha256": "8ccbd5c4d6b08f69c6e8357f4004d1770b8729b4f3e2557fab42018b560e84cc"
+    },
+    {
+      "path": "assets/SentFormDetail-B6hrJ0zQ.js",
+      "sha256": "92e071f56a6d5a9b6059dbda38d5badeb03b0459ceeeb7615db9cc54e90b033a"
+    },
+    {
+      "path": "assets/SentFormDetail-B6hrJ0zQ.js.map",
+      "sha256": "8df82c08b3d71b85d50c224497024b9ad43e7015ffc35aa834d6ea743f6d066d"
+    },
+    {
+      "path": "assets/SentFormDetail-DFR_kdL0.css",
+      "sha256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a"
+    },
+    {
+      "path": "assets/SessionGate-2YaTco60.js",
+      "sha256": "c6a4eb75647acef4e92779c4bf8d6272165e25497d5aa5d616325ad7f4ab63d8"
+    },
+    {
+      "path": "assets/SessionGate-2YaTco60.js.map",
+      "sha256": "63f7b912326fd84b1aea7651e26fd556a7c359261d7be3facfe3d219b8990e83"
+    },
+    {
+      "path": "assets/SessionGate-DQGLgUmf.css",
+      "sha256": "1c80efd8569e632eab1275e25f88abf4f64a9bca5576af345aabd9081ad1f3d7"
+    },
+    {
+      "path": "assets/UIComponentGallery-8l3HwYGi.js",
+      "sha256": "0dbdb693b24021d276cacc17e0d766d1b0f16e34b60f65abe1f4973f13ea62e7"
+    },
+    {
+      "path": "assets/UIComponentGallery-8l3HwYGi.js.map",
+      "sha256": "5d5fcf50be3eca2f6e912ae1d8b773a103adc173ca19078b496f99c14e34e8b5"
+    },
+    {
+      "path": "assets/UIComponentGallery-BPfInqDu.css",
+      "sha256": "71cb8b148364a624690cd9beed8c98a909ae03606a8c20157f8c48d77974aa72"
+    },
+    {
+      "path": "assets/VendorComplianceOverview-C5qbO2Xx.js",
+      "sha256": "d72fc76f5783162132865885fd9eb0864398ac0aa666ef3561bdd90235cf8a1d"
+    },
+    {
+      "path": "assets/VendorComplianceOverview-C5qbO2Xx.js.map",
+      "sha256": "377a80456dd28154f6f1e6305601ec51458df9208dee9f83a65ddad2833e8c59"
+    },
+    {
+      "path": "assets/VendorComplianceOverview-DBsLWXEL.css",
+      "sha256": "1abb61830a311c923ce2925bbee828d9a7ddb86384dd21d4655c0963c06ff116"
+    },
+    {
+      "path": "assets/VendorWorkPanel-CU0uMlLg.css",
+      "sha256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8"
+    },
+    {
+      "path": "assets/VendorWorkPanel-DD_NKu0n.js",
+      "sha256": "b5d3e27a4548e40ed0bd4803ea1deb414ac2b364dffd7a5fef79d40afbae151f"
+    },
+    {
+      "path": "assets/VendorWorkPanel-DD_NKu0n.js.map",
+      "sha256": "358975c3342d97fa46f7d8a649b7a8b243e02542bec42a3ecc405db3350f1a3f"
+    },
+    {
+      "path": "assets/VendorsWorkspace-C9VxQNwU.css",
+      "sha256": "9e4c4450abe7d9c87101c99612949af5ae10185bed7459e8d8e0e4feb47e6fad"
+    },
+    {
+      "path": "assets/VendorsWorkspace-CPWkNpSk.js",
+      "sha256": "b3b0bcee9b578fc05ba7cebb301249200e3505bccab00d0db4d84c260f9cadd8"
+    },
+    {
+      "path": "assets/VendorsWorkspace-CPWkNpSk.js.map",
+      "sha256": "e1a505879464b0886ecef72a2ca1fdebfbf5c26f305b183f57e51e624f7648a2"
+    },
+    {
+      "path": "assets/WorkItemIcon-kUXpzmct.js",
+      "sha256": "7054836cce24f37280c5decc5a418257edf25211a8ba7e93bc999609bd175f87"
+    },
+    {
+      "path": "assets/WorkItemIcon-kUXpzmct.js.map",
+      "sha256": "9effd34d0c18af1a3e2e2f64cc7208cc97dcca25a6f326e263b9d732d0cc30fa"
+    },
+    {
+      "path": "assets/WorkspaceErrorBoundary-D6Uj8R6Z.js",
+      "sha256": "3b33a594b6a935593f5a12f59451dd89eef7f9b98e9c129184f9d57a8e192e94"
+    },
+    {
+      "path": "assets/WorkspaceErrorBoundary-D6Uj8R6Z.js.map",
+      "sha256": "8752d2052f121b037be59b88e04ed59db2282efc6a4692dc90d734e11dc3a140"
+    },
+    {
+      "path": "assets/api-C98UCreH.js",
+      "sha256": "6303325e498bcd58406be478f8fa1536a82077bfa12336a10b31f3aea986fb87"
+    },
+    {
+      "path": "assets/api-C98UCreH.js.map",
+      "sha256": "0851e488d20e4a788a5aa81c11910a135abe38a4959ef081dc14ed99e4a851c5"
+    },
+    {
+      "path": "assets/assessmentFieldResults-CYtGdiIt.css",
+      "sha256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326"
+    },
+    {
+      "path": "assets/assessmentFieldResults-JN5KNzXT.js",
+      "sha256": "3f27c7ff8105ff0be4ddae479738841bb100af106344489d39d2203d28aa6397"
+    },
+    {
+      "path": "assets/assessmentFieldResults-JN5KNzXT.js.map",
+      "sha256": "140636abfde3d10bd9cb44e08897b1dcbe6ebfe179d6a542173b0a6d0ec9fe6a"
+    },
+    {
+      "path": "assets/controlCatalogApi-Ce1062jj.js",
+      "sha256": "8ffa2afaf3a8b5d6a03a13c23413da5e06b59eb51890f0b0dd9b2c096418dc55"
+    },
+    {
+      "path": "assets/controlCatalogApi-Ce1062jj.js.map",
+      "sha256": "bdf89a20b3c11fd225faceae387495dc35f1bfd9ce42ef6fb9586ca3492c6fbd"
+    },
+    {
+      "path": "assets/form-policies-BhhrbjXs.js",
+      "sha256": "d728a10eb13d4ddca965d74eec3831eaf9765ca218dd896e0183be9eb2205081"
+    },
+    {
+      "path": "assets/form-policies-BhhrbjXs.js.map",
+      "sha256": "4e75d7bad18af3ddb3b376870169dd1f6edac934fe209c1c4221c28d38b0312e"
+    },
+    {
+      "path": "assets/form-policies-d4RnLy_e.css",
+      "sha256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2"
+    },
+    {
+      "path": "assets/formPoliciesApi-CW2ZHZyP.js",
+      "sha256": "892a5303cf6cee2f07499ff56b0ce543a4ca85006029f545a46477fcf9093cce"
+    },
+    {
+      "path": "assets/formPoliciesApi-CW2ZHZyP.js.map",
+      "sha256": "7264994bc021b20e98e0d62b1071a8c892752e6920b94741d56acf86cb770b90"
+    },
+    {
+      "path": "assets/forms-foundation-CINn4wyp.css",
+      "sha256": "ab82ca4d68089ebd1a8d9d62746cb6d191b3fd673d3de9ac62af0673fbc8f282"
+    },
+    {
+      "path": "assets/formsApi-Bu51RPL0.js",
+      "sha256": "f836b23a8b5dcce759ffe6c2e3b1c155160ea15b3759a79ef36ee2ff0757b0dd"
+    },
+    {
+      "path": "assets/formsApi-Bu51RPL0.js.map",
+      "sha256": "ab1ecb677819fd849865b7e09f5f0c234813997356cec51f9532246db2e16e08"
+    },
+    {
+      "path": "assets/groupOversightApi-CM8Hxwyf.js",
+      "sha256": "c417d1bcd3726fca2518410ce0517105ac967efbedfdb10b7d7916d9f0d31553"
+    },
+    {
+      "path": "assets/groupOversightApi-CM8Hxwyf.js.map",
+      "sha256": "98484bb2a8aa4506b38b8f799556aa86fd7e2985e6de318f350bed7e71fcca91"
+    },
+    {
+      "path": "assets/homeMetricPresentation-DRPLOH6L.js",
+      "sha256": "7bedd8148b1e9f464074877ca81b91f17074f9eb039fc69e491cb87b719e84bc"
+    },
+    {
+      "path": "assets/homeMetricPresentation-DRPLOH6L.js.map",
+      "sha256": "275533858b1c9b013644aa4ea2d19b35f8e295568bc2d4fcefdabca78d84649e"
+    },
+    {
+      "path": "assets/http-NFAQrmHm.js",
+      "sha256": "628b0ffe1e2a6e36f44bd8c29bb19e46defc50e45c188a5ebf5fed9ef01b4052"
+    },
+    {
+      "path": "assets/http-NFAQrmHm.js.map",
+      "sha256": "5111153239def54e28167a6c30ef260e23c89dbdd382eb3ce7440d112e301506"
+    },
+    {
+      "path": "assets/identityAccessApi-3W5ysg-Y.js",
+      "sha256": "2eb180d3a1a0e61930e67c523fa06a93e5d0538c2bac9fb2b695396cf4364408"
+    },
+    {
+      "path": "assets/identityAccessApi-3W5ysg-Y.js.map",
+      "sha256": "fc80021528f30eb0c8c0deb3dcc3adce9a7dc3a490e8514086fe99811d6655a1"
+    },
+    {
+      "path": "assets/index-BUJ_0Ap0.css",
+      "sha256": "555786f9390e746d429de31cd53a10ccbe15df0fd0ec38b151ed3eb3748a1698"
+    },
+    {
+      "path": "assets/index-KzdJDodz.js",
+      "sha256": "98ecc1170b045e3d8a18eddbaa61a8715fc4fd1bdc7f8b42623d297023fcc7c9"
+    },
+    {
+      "path": "assets/index-KzdJDodz.js.map",
+      "sha256": "dc8e4966dfa6d707f0a551a8c3920ff02a676ce95ee2731af24021c71181beb0"
+    },
+    {
+      "path": "assets/indicatorApi-D0EDXQnA.js",
+      "sha256": "7c17543016aac54a922c736d68b7c64ccf95d8f67d144759fd7b12b420ab3227"
+    },
+    {
+      "path": "assets/indicatorApi-D0EDXQnA.js.map",
+      "sha256": "41d30e90306674db944e911ea6abbdf56bfb289fcf1f693599cdc47156de4f72"
+    },
+    {
+      "path": "assets/indicatorPresentation-CikXSk_C.js",
+      "sha256": "d1635c9c6e6903eba8d8caa31b97ce9794c5f3d66827194d2b69d117356c456d"
+    },
+    {
+      "path": "assets/indicatorPresentation-CikXSk_C.js.map",
+      "sha256": "92eb2c6ff8e8c46384550b5c94ed1129403e68ee493283e14edbd330380dd1db"
+    },
+    {
+      "path": "assets/indicatorPresentation-CjxE_j0H.css",
+      "sha256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973"
+    },
+    {
+      "path": "assets/jsx-runtime-BKllkxft.js",
+      "sha256": "d570da413d217278b5e77a876b290849a78fccff86b5136bb55d83463eac3c5c"
+    },
+    {
+      "path": "assets/jsx-runtime-BKllkxft.js.map",
+      "sha256": "36d0c1623b35b66f718f88320193e8dc77ed28cf503c69904398b735fac1d846"
+    },
+    {
+      "path": "assets/lossApi-B_TcBYnM.js",
+      "sha256": "88755028d2985d4fa607730c42a75535070744c5ccda9119e5a388c703055879"
+    },
+    {
+      "path": "assets/lossApi-B_TcBYnM.js.map",
+      "sha256": "87baedb61d6cfc1c8dca9c500bd8ad8065faf8e69f88468a64a22a791ec1906a"
+    },
+    {
+      "path": "assets/lossOverviewPresentation-3X01BhiZ.js",
+      "sha256": "83237f9038c876949e9cce286264e7816cdf38966ee2802ca9d89cba82b38733"
+    },
+    {
+      "path": "assets/lossOverviewPresentation-3X01BhiZ.js.map",
+      "sha256": "5986c6b7029b92f606c661a2af92523c6fd7089ac36359b54c1745bbd47fc11b"
+    },
+    {
+      "path": "assets/lossPresentation-DWiNJvkI.js",
+      "sha256": "94dd80ad903db4fbb5ded3e3c30a29e431523bc728a6859cddd02513576591da"
+    },
+    {
+      "path": "assets/lossPresentation-DWiNJvkI.js.map",
+      "sha256": "95252c2c7be976281a647962abf328a3d14d5dada22de0c6a3f7e48c1d9974db"
+    },
+    {
+      "path": "assets/monitoringApi-CRENqx4k.js",
+      "sha256": "9cc94314a84aa2f99caa942ad163aa39482b03dd6aaf0d93aaed38c0cadba479"
+    },
+    {
+      "path": "assets/monitoringApi-CRENqx4k.js.map",
+      "sha256": "704dd101a5217d0c02acb13a65d017523a94a254866705d192b1e1b430650863"
+    },
+    {
+      "path": "assets/oversight-B7GD29gG.css",
+      "sha256": "2584bffc3a1cba9861263f45ba9b0a0f7ed08ac5f849fb1ca1d21fba9d047292"
+    },
+    {
+      "path": "assets/oversight-D0A2jaZg.js",
+      "sha256": "286ba9ac107148cba010cf3050460946e3c35bfbbeed9cab57a33bd64123418e"
+    },
+    {
+      "path": "assets/oversight-D0A2jaZg.js.map",
+      "sha256": "3695c67d7a07dcaebdcf9695e9c7678dc14a7a8c464044ed7e8f049388db7e07"
+    },
+    {
+      "path": "assets/preload-helper-Czpn1I53.js",
+      "sha256": "aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152"
+    },
+    {
+      "path": "assets/reportingApi-DY6dpKIv.js",
+      "sha256": "8081cf4b87876e1a705817225ca810bf23ccff5f5a675a9ed341ad383333609e"
+    },
+    {
+      "path": "assets/reportingApi-DY6dpKIv.js.map",
+      "sha256": "cba7af8c50ebe5ad78acb477c41ce3fb1daf6068b6a31eade513428823a8d320"
+    },
+    {
+      "path": "assets/reportingPeriod-ChMy94oa.js",
+      "sha256": "500d55e6ef0648551211513ec03c2d27bdef5de9f2db8c31aa607ce570d5adc6"
+    },
+    {
+      "path": "assets/reportingPeriod-ChMy94oa.js.map",
+      "sha256": "3a761d2605798a668d60cd9da399a4b3bc8ceab7c2fd9764ca9b63df2132ff5e"
+    },
+    {
+      "path": "assets/ropa-BZkz5VZm.css",
+      "sha256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587"
+    },
+    {
+      "path": "assets/ropa-TDXpe7CB.js",
+      "sha256": "1520252bc56533ce4e71222d948f30ad1a15efdc8e694151bc92444e95dd0c6d"
+    },
+    {
+      "path": "assets/ropa-TDXpe7CB.js.map",
+      "sha256": "e1abc2aec2803e5ffd5b1b6d70cc956e2ecf1b37fbdf42b9145605d08467c095"
+    },
+    {
+      "path": "assets/staticDemoFixtures-B_3l5bJf.json",
+      "sha256": "e9f86a878e9904635d67ef06997def27091245a672092f5f94b83613779545d2"
+    },
+    {
+      "path": "assets/staticDemoWorkflowRuntime-BhTozA-3.js",
+      "sha256": "bdb4b5cb54a492007b548cc82a17817de56f937b2ff98575e65585257552d0b5"
+    },
+    {
+      "path": "assets/systemActivityApi-Dix3I6gG.js",
+      "sha256": "221047906ba654f99101ad55d4cc5f5375e89e43fd0957483b5e29c1bf3c716b"
+    },
+    {
+      "path": "assets/systemActivityApi-Dix3I6gG.js.map",
+      "sha256": "434eb42213c105ba29e606cf3bd25da5a47b28a15af425e19af0bbf8a63d9d41"
+    },
+    {
+      "path": "assets/ui-BqQkgK9q.css",
+      "sha256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050"
+    },
+    {
+      "path": "assets/ui-j2TJEn9_.js",
+      "sha256": "994f5d6d23b6254deef3dcd48181b562cd9c3f70d3b74dcf67a6b3fac4e22340"
+    },
+    {
+      "path": "assets/ui-j2TJEn9_.js.map",
+      "sha256": "6f3e26bff5c89730c209c149f3f603fbbcc8f6ea0c84f394a9a2aaef44b07bd6"
+    },
+    {
+      "path": "assets/useRiskLossMetrics-U-M2bDtE.js",
+      "sha256": "829a1d2daf87df6d2fb747a1bb87d92e6ad2c23ddbd1fcf3546365b3a5dc5f46"
+    },
+    {
+      "path": "assets/useRiskLossMetrics-U-M2bDtE.js.map",
+      "sha256": "dbe6c425a28f3e1adc3f4d3ca5985c4b0e22c9e396f2ac7fc92b9b15de20b3e2"
+    },
+    {
+      "path": "assets/vendorFormsApi-DBEyKbo7.js",
+      "sha256": "797205efb31c8b6b245b7d83cff834bf2710d0c6fa954c0aa7442dafef1a801c"
+    },
+    {
+      "path": "assets/vendorFormsApi-DBEyKbo7.js.map",
+      "sha256": "c9afd3340c1af02486fb9bd87ffeb35d7c05dd3717f0d4c17b2cb33af0e0191b"
+    },
+    {
+      "path": "index.html",
+      "sha256": "56bfcebf07f4faaa107e34dd4bd33e50b7193e898d088405e40ea6c5774feca1"
+    }
+  ],
+  "buildDigest": "8a6b34ca9f23620233e6ba0b64f1337135d8c5b072c2950279f855259c2f35e0",
+  "inputs": [
+    {
+      "path": "web/src/evidenceMain.tsx",
+      "sha256": "0d79695148be0f443b87f2c72e7587c0651506abd6631b3161225cb69e4ccbd7"
+    },
+    {
+      "path": "web/src/peopleAccessEvidence.ts",
+      "sha256": "54bf1da6258144b4e8b524d50fd53499147571ea19818b789062bac085c3cb60"
+    }
+  ],
+  "inputDigest": "98027d3f997db615f369db5a75c781fcc3267279ffb1df9807831a50ff483812",
+  "captures": [
+    {
+      "name": "before-organization-light-1440.png",
+      "view": "organization",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "heading": null,
+        "firstPerson": {
+          "x": 735.59375,
+          "y": 1807.03125,
+          "width": 139.59375,
+          "height": 19.6875,
+          "bottom": 1826.71875,
+          "right": 875.1875
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "3a1212959bc7227e635707a1b681d9ba279b8fdeed4bc355647593470f07ff3e"
+    },
+    {
+      "name": "before-organization-light-1280.png",
+      "view": "organization",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "geometry": {
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "heading": null,
+        "firstPerson": {
+          "x": 703.59375,
+          "y": 1840.015625,
+          "width": 107.59375,
+          "height": 19.6875,
+          "bottom": 1859.703125,
+          "right": 811.1875
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "96d2f30c2eddcd39f0aca11921885696b592d6e763020c9ff7c3501714888f2e"
+    },
+    {
+      "name": "before-organization-light-1024.png",
+      "view": "organization",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "geometry": {
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "heading": null,
+        "firstPerson": {
+          "x": 532.96875,
+          "y": 2063.40625,
+          "width": 84.015625,
+          "height": 39.375,
+          "bottom": 2102.78125,
+          "right": 616.984375
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "ade4469d665e860411a6606140b65f812b3ae6b76215d760faff9be3e014523b"
+    },
+    {
+      "name": "before-organization-light-768.png",
+      "view": "organization",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "heading": null,
+        "firstPerson": {
+          "x": 252.390625,
+          "y": 2149.5625,
+          "width": 98.390625,
+          "height": 19.6875,
+          "bottom": 2169.25,
+          "right": 350.78125
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "59a762fd738b9c5340465643a8df345320a9e99bacd2206099829bd7d8b480ae"
+    },
+    {
+      "name": "before-organization-light-390.png",
+      "view": "organization",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "documentWidth": 390,
+        "scrollWidth": 553,
+        "heading": null,
+        "firstPerson": {
+          "x": 224,
+          "y": 2296.5,
+          "width": 291.03125,
+          "height": 19.6875,
+          "bottom": 2316.1875,
+          "right": 515.03125
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "ea55e09d81fbf5583ce388eb38adde9c2323ce5916aaa9cbac064eb199fc24cd"
+    },
+    {
+      "name": "before-organization-dark-1440.png",
+      "view": "organization",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "heading": null,
+        "firstPerson": {
+          "x": 735.59375,
+          "y": 1807.03125,
+          "width": 139.59375,
+          "height": 19.6875,
+          "bottom": 1826.71875,
+          "right": 875.1875
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "1ef6befc96c88feaca0da7a2d646e12b5b91fe85978090336595f32590e953fa"
+    },
+    {
+      "name": "before-organization-dark-1280.png",
+      "view": "organization",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "geometry": {
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "heading": null,
+        "firstPerson": {
+          "x": 703.59375,
+          "y": 1840.015625,
+          "width": 107.59375,
+          "height": 19.6875,
+          "bottom": 1859.703125,
+          "right": 811.1875
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "33547fe30d0127e12600654a3f8a1b416e59dd3b0892e131475ca3925679debe"
+    },
+    {
+      "name": "before-organization-dark-1024.png",
+      "view": "organization",
+      "theme": "dark",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "geometry": {
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "heading": null,
+        "firstPerson": {
+          "x": 532.96875,
+          "y": 2063.40625,
+          "width": 84.015625,
+          "height": 39.375,
+          "bottom": 2102.78125,
+          "right": 616.984375
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "f2ea86217db16c21c42dadf9a29c508e8c935885c8b55367afd6e39ce5fe3f52"
+    },
+    {
+      "name": "before-organization-dark-768.png",
+      "view": "organization",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "heading": null,
+        "firstPerson": {
+          "x": 252.390625,
+          "y": 2149.5625,
+          "width": 98.390625,
+          "height": 19.6875,
+          "bottom": 2169.25,
+          "right": 350.78125
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "ffa4ab5e981af5c12d3677a655453c88685d0b6c9c07d93f1640a34bf315c758"
+    },
+    {
+      "name": "before-organization-dark-390.png",
+      "view": "organization",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "documentWidth": 390,
+        "scrollWidth": 553,
+        "heading": null,
+        "firstPerson": {
+          "x": 224,
+          "y": 2296.5,
+          "width": 291.03125,
+          "height": 19.6875,
+          "bottom": 2316.1875,
+          "right": 515.03125
+        },
+        "firstPolicy": null,
+        "directory": null,
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "0fe5a2062e47dea2fca2c3e8df8b447f05a42df0d9321572b011ae8e3afa1358"
+    },
+    {
+      "name": "before-directory-light-1440.png",
+      "view": "directory",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "heading": null,
+        "firstPerson": {
+          "x": 566,
+          "y": 1040.90625,
+          "width": 176,
+          "height": 21,
+          "bottom": 1061.90625,
+          "right": 742
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 566,
+          "y": 949.125,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 970.125,
+          "right": 755.5
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "d438073622e0945eb4b21bdeeda84a0ce113d52ba731d7f826d7d5540e5b29be"
+    },
+    {
+      "name": "before-directory-light-1280.png",
+      "view": "directory",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "geometry": {
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "heading": null,
+        "firstPerson": {
+          "x": 566,
+          "y": 1040.90625,
+          "width": 136,
+          "height": 21,
+          "bottom": 1061.90625,
+          "right": 702
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 566,
+          "y": 949.125,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 970.125,
+          "right": 755.5
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "8433d17c7a1772688ac1dfe58141d50a080c09049653a3e140ae860ca2c4d010"
+    },
+    {
+      "name": "before-directory-light-1024.png",
+      "view": "directory",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "geometry": {
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "heading": null,
+        "firstPerson": {
+          "x": 418.953125,
+          "y": 1125.671875,
+          "width": 106.515625,
+          "height": 21,
+          "bottom": 1146.671875,
+          "right": 525.46875
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 418.953125,
+          "y": 1033.890625,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 1054.890625,
+          "right": 608.453125
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "0243d8a6a2ba6025aee1c3866df908b8b79d8d923395887c30aced687a56c7d3"
+    },
+    {
+      "name": "before-directory-light-768.png",
+      "view": "directory",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "heading": null,
+        "firstPerson": {
+          "x": 124,
+          "y": 1437.171875,
+          "width": 287,
+          "height": 21,
+          "bottom": 1458.171875,
+          "right": 411
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 124,
+          "y": 1345.390625,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 1366.390625,
+          "right": 313.5
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "e030783d2775e779b5ec5c8ec4071f0b44ddefc45bb8145c4ad6d32cd069b92c"
+    },
+    {
+      "name": "before-directory-light-390.png",
+      "view": "directory",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "documentWidth": 390,
+        "scrollWidth": 553,
+        "heading": null,
+        "firstPerson": {
+          "x": 102,
+          "y": 1726.890625,
+          "width": 197.515625,
+          "height": 21,
+          "bottom": 1747.890625,
+          "right": 299.515625
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 102,
+          "y": 1635.109375,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 1656.109375,
+          "right": 291.5
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "54ca4dac0a1f675e3da594a7f1ce4d829d0336b53e55e03252ead7a7910798b8"
+    },
+    {
+      "name": "before-directory-dark-1440.png",
+      "view": "directory",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "heading": null,
+        "firstPerson": {
+          "x": 566,
+          "y": 1040.90625,
+          "width": 176,
+          "height": 21,
+          "bottom": 1061.90625,
+          "right": 742
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 566,
+          "y": 949.125,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 970.125,
+          "right": 755.5
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "959e00997d8da738264277224123f6e511c482e57a778fb53252c7ca2b60f8f3"
+    },
+    {
+      "name": "before-directory-dark-1280.png",
+      "view": "directory",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "geometry": {
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "heading": null,
+        "firstPerson": {
+          "x": 566,
+          "y": 1040.90625,
+          "width": 136,
+          "height": 21,
+          "bottom": 1061.90625,
+          "right": 702
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 566,
+          "y": 949.125,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 970.125,
+          "right": 755.5
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "6e547e1340ba40f7ac29750355c30499a98ba1092bfc321a8d59f4678bc4237f"
+    },
+    {
+      "name": "before-directory-dark-1024.png",
+      "view": "directory",
+      "theme": "dark",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "geometry": {
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "heading": null,
+        "firstPerson": {
+          "x": 418.953125,
+          "y": 1125.671875,
+          "width": 106.515625,
+          "height": 21,
+          "bottom": 1146.671875,
+          "right": 525.46875
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 418.953125,
+          "y": 1033.890625,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 1054.890625,
+          "right": 608.453125
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "d5d9574b1d4d7bd5f33a3c8369903218d8a117d21157ba0b99424ec7219db9f8"
+    },
+    {
+      "name": "before-directory-dark-768.png",
+      "view": "directory",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "heading": null,
+        "firstPerson": {
+          "x": 124,
+          "y": 1437.171875,
+          "width": 287,
+          "height": 21,
+          "bottom": 1458.171875,
+          "right": 411
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 124,
+          "y": 1345.390625,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 1366.390625,
+          "right": 313.5
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "bf494a2602a34d8a7a49b272769c7365f352a607d0bc9fa0aaf87343fb87219c"
+    },
+    {
+      "name": "before-directory-dark-390.png",
+      "view": "directory",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "documentWidth": 390,
+        "scrollWidth": 553,
+        "heading": null,
+        "firstPerson": {
+          "x": 102,
+          "y": 1726.890625,
+          "width": 197.515625,
+          "height": 21,
+          "bottom": 1747.890625,
+          "right": 299.515625
+        },
+        "firstPolicy": null,
+        "directory": {
+          "x": 102,
+          "y": 1635.109375,
+          "width": 189.5,
+          "height": 21,
+          "bottom": 1656.109375,
+          "right": 291.5
+        },
+        "localTabs": [
+          "Organization",
+          "Reporting lines",
+          "Directory groups & access",
+          "Escalation routes"
+        ],
+        "peopleVisible": [
+          "Amina Yusuf",
+          "Chidi Okonkwo",
+          "Funke Adeyemi",
+          "Ibrahim Musa",
+          "Kemi Adebayo",
+          "Morgan Ellis",
+          "Nneka Okafor",
+          "Olumide Balogun"
+        ],
+        "reads": [
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "85a0546776c4896291594c291aa3790cf5e00c79edfaf5d62945cb9fbfc2aa1b"
+    },
+    {
+      "name": "before-authority-light-1440.png",
+      "view": "authority",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 522,
+          "y": 783.984375,
+          "width": 886,
+          "height": 21,
+          "bottom": 804.984375,
+          "right": 1408
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "5c7af23917484cdd98e565c5aef6bdd89352337f773588dab7adcbc3f7c4b637"
+    },
+    {
+      "name": "before-authority-light-1280.png",
+      "view": "authority",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "geometry": {
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 522,
+          "y": 789.296875,
+          "width": 726,
+          "height": 21,
+          "bottom": 810.296875,
+          "right": 1248
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "3692b915cb4f204f97a59d1ad36770126db471f07e333430d97d1d14c0a8e39f"
+    },
+    {
+      "name": "before-authority-light-1024.png",
+      "view": "authority",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "geometry": {
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 374.953125,
+          "y": 875.46875,
+          "width": 608.09375,
+          "height": 21,
+          "bottom": 896.46875,
+          "right": 983.046875
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "6149851b9d4e0acff96930158ada69166a2b09e6b15e9d623483ff04aee743f1"
+    },
+    {
+      "name": "before-authority-light-768.png",
+      "view": "authority",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 80,
+          "y": 1104.15625,
+          "width": 680,
+          "height": 21,
+          "bottom": 1125.15625,
+          "right": 760
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "dd5fa76cd50eb8695538fcb0e3d506de74560e2e1f3ade1862c1ec40b1de40f1"
+    },
+    {
+      "name": "before-authority-light-390.png",
+      "view": "authority",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 64,
+          "y": 1261.484375,
+          "width": 318,
+          "height": 21,
+          "bottom": 1282.484375,
+          "right": 382
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "0459a82c720529835943cf1500043b684a01f2002478625b6cee4259c5cf3c48"
+    },
+    {
+      "name": "before-authority-dark-1440.png",
+      "view": "authority",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 522,
+          "y": 783.984375,
+          "width": 886,
+          "height": 21,
+          "bottom": 804.984375,
+          "right": 1408
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "39d184d049079cba7a6a9f917fb6ca784a09062a001dc486b1a91569e2770725"
+    },
+    {
+      "name": "before-authority-dark-1280.png",
+      "view": "authority",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "geometry": {
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 522,
+          "y": 789.296875,
+          "width": 726,
+          "height": 21,
+          "bottom": 810.296875,
+          "right": 1248
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "f970cf91887aea6c4e4a3fd5df82f6f876d515d4905446cd8e26ba3d903b3077"
+    },
+    {
+      "name": "before-authority-dark-1024.png",
+      "view": "authority",
+      "theme": "dark",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "geometry": {
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 374.953125,
+          "y": 875.46875,
+          "width": 608.09375,
+          "height": 21,
+          "bottom": 896.46875,
+          "right": 983.046875
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "5b39d67142a43d2ced35cd819cba4e4f7da711c39c5647a877d797a3eb2a2ee3"
+    },
+    {
+      "name": "before-authority-dark-768.png",
+      "view": "authority",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "geometry": {
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 80,
+          "y": 1104.15625,
+          "width": 680,
+          "height": 21,
+          "bottom": 1125.15625,
+          "right": 760
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "f22dd44d9a26c91f68a4c5239b7c257ff31178e865d799ad39ab536c1100fd37"
+    },
+    {
+      "name": "before-authority-dark-390.png",
+      "view": "authority",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "heading": null,
+        "firstPerson": null,
+        "firstPolicy": {
+          "x": 64,
+          "y": 1261.484375,
+          "width": 318,
+          "height": 21,
+          "bottom": 1282.484375,
+          "right": 382
+        },
+        "directory": null,
+        "localTabs": [],
+        "peopleVisible": [],
+        "reads": [
+          {
+            "path": "/api/v1/governance/policies",
+            "query": "?limit=51",
+            "status": 200,
+            "policyIDs": [
+              "sample-policy-risk",
+              "sample-policy-evidence"
+            ],
+            "policyNames": [
+              "Material risk approval",
+              "Independent evidence review"
+            ],
+            "policyRecords": [
+              {
+                "id": "sample-policy-risk",
+                "name": "Material risk approval",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-policy-evidence",
+                "name": "Independent evidence review",
+                "status": "DRAFT"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/governance/delegations",
+            "query": "?limit=51",
+            "status": 200,
+            "delegationIDs": [
+              "sample-delegation-risk",
+              "sample-delegation-ops"
+            ],
+            "delegationRecords": [
+              {
+                "id": "sample-delegation-risk",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-delegation-ops",
+                "status": "PENDING_APPROVAL"
+              }
+            ]
+          },
+          {
+            "path": "/api/v1/access/overview",
+            "query": "?limit=50",
+            "status": 200,
+            "people": [
+              {
+                "id": "sample-person-amina",
+                "display_name": "Amina Yusuf",
+                "user_name": "amina.yusuf",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-chidi",
+                "display_name": "Chidi Okonkwo",
+                "user_name": "chidi.okonkwo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-funke",
+                "display_name": "Funke Adeyemi",
+                "user_name": "funke.adeyemi",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "DISABLED"
+              },
+              {
+                "id": "sample-person-ibrahim",
+                "display_name": "Ibrahim Musa",
+                "user_name": "ibrahim.musa",
+                "status": "INACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-kemi",
+                "display_name": "Kemi Adebayo",
+                "user_name": "kemi.adebayo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-morgan",
+                "display_name": "Morgan Ellis",
+                "status": "ACTIVE"
+              },
+              {
+                "id": "sample-person-nneka",
+                "display_name": "Nneka Okafor",
+                "user_name": "nneka.okafor",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-olumide",
+                "display_name": "Olumide Balogun",
+                "user_name": "olumide.balogun",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-sarah",
+                "display_name": "Sarah Ojo",
+                "user_name": "sarah.ojo",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-tunde",
+                "display_name": "Tunde Bello",
+                "user_name": "tunde.bello",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              },
+              {
+                "id": "sample-person-zainab",
+                "display_name": "Zainab Abubakar",
+                "user_name": "zainab.abubakar",
+                "status": "ACTIVE",
+                "source_code": "Legacy directory",
+                "source_state": "REVOKED"
+              },
+              {
+                "id": "sample-person-zara",
+                "display_name": "Zara Nwosu",
+                "user_name": "zara.nwosu",
+                "status": "ACTIVE",
+                "source_code": "Bank directory",
+                "source_state": "ACTIVE"
+              }
+            ],
+            "roleIDs": [
+              "sample-role-reviewer",
+              "sample-role-admin"
+            ],
+            "roleNames": [
+              "Risk reviewer",
+              "Access administrator"
+            ],
+            "counts": {
+              "people": 12,
+              "groups": 2,
+              "sources": 2,
+              "roles": 2
+            }
+          }
+        ],
+        "commands": []
+      },
+      "errors": [],
+      "sha256": "2f5c06c8c328ebe8ecef7f5360700a3d0b0e20dd24f6f00c4c30f78fc32f143f"
+    }
+  ]
+}

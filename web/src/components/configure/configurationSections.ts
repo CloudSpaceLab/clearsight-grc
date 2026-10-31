@@ -7,8 +7,8 @@ export type ConfigurationArea = {
 };
 
 export const configurationAreas: ConfigurationArea[] = [
-  { id: "access", label: "Organization & access", description: "Departments, positions, reporting lines, directory sources, groups and workspace access." },
-  { id: "authority", label: "Authority & routing", description: "Responsibilities, approval routes, delegations and escalation." },
+  { id: "access", label: "People & access", description: "People, roles, departments, provisioning and workspace access." },
+  { id: "authority", label: "Approval routes", description: "Routing policies, delegations, integrity checks and affected work." },
   { id: "data", label: "Data & integrations", description: "Document imports, connected sources, mappings and reconciliation." },
   { id: "automation", label: "Automation", description: "Automation policies and action limits." },
   { id: "ai", label: "AI governance", description: "AI workloads, security controls and policy rollout." },
