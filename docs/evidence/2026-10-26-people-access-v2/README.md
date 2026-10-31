@@ -4,6 +4,8 @@
 
 **Partial v2 layout integration. Whole-screen acceptance remains 0/19.** This evidence compares the original HTML with the implemented People, Roles, Approval routes and Delegations views. It verifies the recorded presentation and read-only interactions with isolated synthetic transport. Four-actor execution, live backend authorization, source-to-report reconciliation and production acceptance require their own evidence.
 
+The [31 October integration review](integration-2026-10-31/README.md) incorporates current main through #598, preserves the later Work APIs/search, and repeats the 92 People, 10 Configuration and 22 scoped accessibility cases. It supersedes the branch-integration checkpoint only; the original source and baseline evidence below remain unchanged.
+
 ## Authority and provenance
 
 The layout authority is [`people-access-preview.html`](../../design/references/clearsight-2026-10/source/clearsight-people-access-designs/people-access-preview.html), SHA-256 `3300853e7959e06f76e52b484e77c71c6f0c2af876351861921e0dead0aaa7f4`. The companion HTML, CSS, JavaScript, notes and archive manifest remain unchanged. The [decision](../../design/decisions/2026-10-26-people-access-v2.md) maps the source anatomy to existing runtime owners and records supported-data substitutions.
