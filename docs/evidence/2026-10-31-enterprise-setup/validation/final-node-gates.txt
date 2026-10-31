@@ -1,0 +1,12 @@
+✔ scripts/forms-evidence-scenarios.nodecheck.mjs (152.787429ms)
+✔ scripts/review-ui-flow-manifest.nodecheck.mjs (2497.657564ms)
+✔ scripts/runtime-fixture-boundary.nodecheck.mjs (863.237848ms)
+✔ scripts/ui-contract.nodecheck.mjs (368.272719ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2513.384335
