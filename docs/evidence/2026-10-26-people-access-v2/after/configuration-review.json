@@ -1,0 +1,367 @@
+{
+  "status": "PASS",
+  "evidenceDirectory": "configuration",
+  "scenarios": [
+    {
+      "name": "configuration-organization-desktop-light-1440x900",
+      "route": "#configure/access/positions",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "organization",
+      "organizationSwitcher": {
+        "viewportWidth": 1440,
+        "list": {
+          "x": 260,
+          "y": 296,
+          "width": 1148,
+          "height": 44,
+          "right": 1408,
+          "bottom": 340
+        },
+        "compact": null,
+        "listDisplay": "flex",
+        "compactDisplay": "none",
+        "selected": "Organization",
+        "selectedBounds": {
+          "x": 260,
+          "y": 296,
+          "width": 103.515625,
+          "height": 44,
+          "right": 363.515625,
+          "bottom": 340
+        },
+        "indicator": {
+          "x": 268,
+          "y": 339,
+          "width": 87.515625,
+          "height": 2,
+          "right": 355.515625,
+          "bottom": 341
+        },
+        "indicatorPosition": "absolute",
+        "indicatorColor": "rgb(10, 112, 128)",
+        "buttons": [
+          {
+            "label": "Organization",
+            "x": 260,
+            "y": 296,
+            "width": 103.515625,
+            "height": 44,
+            "right": 363.515625,
+            "bottom": 340
+          },
+          {
+            "label": "Reporting lines",
+            "x": 385.515625,
+            "y": 296,
+            "width": 119.078125,
+            "height": 44,
+            "right": 504.59375,
+            "bottom": 340
+          },
+          {
+            "label": "Provisioning",
+            "x": 526.59375,
+            "y": 296,
+            "width": 98.65625,
+            "height": 44,
+            "right": 625.25,
+            "bottom": 340
+          },
+          {
+            "label": "Escalation routes",
+            "x": 647.25,
+            "y": 296,
+            "width": 134.4375,
+            "height": 44,
+            "right": 781.6875,
+            "bottom": 340
+          }
+        ],
+        "trigger": null,
+        "compactValue": "Organization"
+      },
+      "imageBytes": 102962,
+      "imageSHA256": "fea22c349f00d8cdddeba45fcbe3bc9fe28d88da1dca3a5ac6b8743b898f75d6"
+    },
+    {
+      "name": "configuration-organization-mobile-dark-390x844",
+      "route": "#configure/access/positions",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "expectation": "organization",
+      "organizationSwitcher": {
+        "viewportWidth": 390,
+        "list": null,
+        "compact": {
+          "x": 64,
+          "y": 307.5,
+          "width": 318,
+          "height": 89,
+          "right": 382,
+          "bottom": 396.5
+        },
+        "listDisplay": "none",
+        "compactDisplay": "block",
+        "selected": "Organization",
+        "selectedBounds": null,
+        "indicator": null,
+        "indicatorPosition": "absolute",
+        "indicatorColor": "rgb(91, 198, 214)",
+        "buttons": [
+          {
+            "label": "Organization"
+          },
+          {
+            "label": "Reporting lines"
+          },
+          {
+            "label": "Provisioning"
+          },
+          {
+            "label": "Escalation routes"
+          }
+        ],
+        "trigger": {
+          "x": 64,
+          "y": 344.5,
+          "width": 318,
+          "height": 44,
+          "right": 382,
+          "bottom": 388.5
+        },
+        "compactValue": "Organization"
+      },
+      "imageBytes": 60931,
+      "imageSHA256": "57375fcab03b527a3dbc576188e287297c6a68216a55ff8564ce82b7ba47fdf5",
+      "positionHeader": {
+        "container": {
+          "x": 85,
+          "y": 309.140625,
+          "width": 276,
+          "height": 202.671875,
+          "right": 361,
+          "bottom": 511.8125
+        },
+        "heading": {
+          "x": 85,
+          "y": 309.140625,
+          "width": 276,
+          "height": 21,
+          "right": 361,
+          "bottom": 330.140625
+        },
+        "filters": {
+          "x": 85,
+          "y": 369.28125,
+          "width": 276,
+          "height": 142.53125,
+          "right": 361,
+          "bottom": 511.8125
+        },
+        "contextBar": {
+          "x": 56,
+          "y": 0,
+          "width": 334,
+          "height": 64,
+          "right": 390,
+          "bottom": 64
+        },
+        "image": "configuration-organization-mobile-dark-390x844-position-header.png",
+        "imageBytes": 62591,
+        "imageSHA256": "b8ae105673ff8a6e9a279fcbdf29411e4d644193e224ccc922e24bf469349d3e",
+        "stability": {
+          "samples": 2,
+          "identicalConsecutiveFrames": true,
+          "settledAnimationFrames": 2
+        }
+      }
+    },
+    {
+      "name": "configuration-organization-compact-light-600x900",
+      "route": "#configure/access/positions",
+      "viewport": {
+        "width": 600,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "organization",
+      "organizationSwitcher": {
+        "viewportWidth": 600,
+        "list": null,
+        "compact": {
+          "x": 80,
+          "y": 307.5,
+          "width": 512,
+          "height": 89,
+          "right": 592,
+          "bottom": 396.5
+        },
+        "listDisplay": "none",
+        "compactDisplay": "block",
+        "selected": "Organization",
+        "selectedBounds": null,
+        "indicator": null,
+        "indicatorPosition": "absolute",
+        "indicatorColor": "rgb(10, 112, 128)",
+        "buttons": [
+          {
+            "label": "Organization"
+          },
+          {
+            "label": "Reporting lines"
+          },
+          {
+            "label": "Provisioning"
+          },
+          {
+            "label": "Escalation routes"
+          }
+        ],
+        "trigger": {
+          "x": 80,
+          "y": 344.5,
+          "width": 512,
+          "height": 44,
+          "right": 592,
+          "bottom": 388.5
+        },
+        "compactValue": "Organization"
+      },
+      "imageBytes": 66572,
+      "imageSHA256": "a741a07da00ecc02c64c0595370da7bc0a8345cb35766ef07b320bdb2464d886",
+      "positionHeader": {
+        "container": {
+          "x": 101,
+          "y": 336.984375,
+          "width": 470,
+          "height": 202.671875,
+          "right": 571,
+          "bottom": 539.65625
+        },
+        "heading": {
+          "x": 101,
+          "y": 336.984375,
+          "width": 470,
+          "height": 21,
+          "right": 571,
+          "bottom": 357.984375
+        },
+        "filters": {
+          "x": 101,
+          "y": 397.125,
+          "width": 470,
+          "height": 142.53125,
+          "right": 571,
+          "bottom": 539.65625
+        },
+        "contextBar": {
+          "x": 72,
+          "y": 0,
+          "width": 528,
+          "height": 64,
+          "right": 600,
+          "bottom": 64
+        },
+        "image": "configuration-organization-compact-light-600x900-position-header.png",
+        "imageBytes": 65327,
+        "imageSHA256": "33ea6a8f2236087dacdbceddf99393213d0599d490864eadf1b024b08c9d42ec",
+        "stability": {
+          "samples": 2,
+          "identicalConsecutiveFrames": true,
+          "settledAnimationFrames": 2
+        }
+      }
+    },
+    {
+      "name": "configuration-checks-partial-desktop-dark-1440x900",
+      "route": "#configure/authority/checks",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "expectation": "checks",
+      "imageBytes": 115791,
+      "imageSHA256": "5bfc76abf158d65b7286dd04d7ac118c8f0a2bf38bad44f3662a5db7cb818736"
+    },
+    {
+      "name": "configuration-overview-desktop-light-1440x900",
+      "route": "#configure",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "overview",
+      "imageBytes": 208775,
+      "imageSHA256": "75bc3d8d3edb851589c34f8fa79e5e8193795f45ca27fcb8ab5a0b709ddeef16"
+    },
+    {
+      "name": "configuration-authority-desktop-dark-1440x900",
+      "route": "#configure/authority",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "expectation": "authority",
+      "imageBytes": 139281,
+      "imageSHA256": "0855aa26e1e085b02556a25208e5faf8c780f9de417c0b0d606515a517c7f42a"
+    },
+    {
+      "name": "configuration-access-desktop-light-1440x900",
+      "route": "#configure/access",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "access",
+      "imageBytes": 156497,
+      "imageSHA256": "ef6d0a927b54681a8af3f0862fa05e39a067d30b20e511cb91266615b83a1efc"
+    },
+    {
+      "name": "configuration-overview-tablet-dark-1024x768",
+      "route": "#configure",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "expectation": "overview",
+      "imageBytes": 163888,
+      "imageSHA256": "a6fa43a0661d7ad354bab915e1894c2063791a4f3cfe4c85b81a588f3a1bb6cb"
+    },
+    {
+      "name": "configuration-overview-mobile-light-390x844",
+      "route": "#configure",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "expectation": "mobile",
+      "imageBytes": 87945,
+      "imageSHA256": "a50bdf6c58675981a7f7438f8745106943c9851ba6b5a3a4644df279f9cef3dd"
+    },
+    {
+      "name": "configuration-overview-reflow-dark-320x800",
+      "route": "#configure",
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "theme": "dark",
+      "expectation": "mobile",
+      "imageBytes": 79713,
+      "imageSHA256": "b496cd7f4fd0b18f56c0802917f5fb427293bfa4b545a6e5fd79a1e0722213b4"
+    }
+  ]
+}

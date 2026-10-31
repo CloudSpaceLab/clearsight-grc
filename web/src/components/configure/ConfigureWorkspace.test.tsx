@@ -20,9 +20,9 @@ vi.mock("./ConfigureOverview", () => ({
 }));
 
 vi.mock("./PeopleAccessSection", () => ({
-  PeopleAccessSection: () => {
+  PeopleAccessSection: ({ onNavigate }: { onNavigate: (hash: string) => void }) => {
     mounts.access();
-    return <div>People and access surface</div>;
+    return <div>People and access surface<button onClick={() => onNavigate("#configure")}>Settings</button></div>;
   },
 }));
 
@@ -78,7 +78,7 @@ it("renders only the selected administrative domain and keeps selection in the r
   expect(mounts.ai).not.toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 
-  fireEvent.click(screen.getByRole("button", { name: /Organization & access/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^People & access/ }));
   expect(screen.getByText("People and access surface")).toBeTruthy();
   expect(window.location.hash).toBe("#configure/access");
   expect(mounts.access).toHaveBeenCalled();
@@ -88,6 +88,8 @@ it("renders only the selected administrative domain and keeps selection in the r
   expect(mounts.ai).not.toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 
+  expect(screen.queryByRole("navigation", { name: "Configuration areas" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Settings" }));
   fireEvent.click(screen.getByRole("button", { name: /^Automation/ }));
   expect(screen.getByText("Automation surface")).toBeTruthy();
   expect(window.location.hash).toBe("#configure/automation");

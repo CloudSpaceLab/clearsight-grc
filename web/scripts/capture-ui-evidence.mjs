@@ -51,7 +51,7 @@ const captures = [
   { name: "18-today-loading-dark-1440x900", route: "#today", title: "Oversight", fixture: "today-loading", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Loading assigned work…" },
   { name: "19-today-unavailable-light-1440x900", route: "#today", title: "Oversight", fixture: "today-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned work is unavailable" },
   { name: "20-evidence-partial-light-1440x900", route: "#work/evidence", title: "Work", fixture: "evidence-requests-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Evidence requests are unavailable" },
-  { name: "21-configure-partial-dark-1440x900", route: "#configure/authority", title: "Configuration", fixture: "configure-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable" },
+  { name: "21-configure-partial-dark-1440x900", route: "#configure/authority", title: "People & access", fixture: "people-v2-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable." },
   { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Oversight", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertNoConfigureNav: true },
   { name: "22a-no-config-access-dark-mobile-390x844", route: "#configure", title: "Oversight", fixture: "no-config-access", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, assertNoConfigureNav: true, state: "navigation-settings-denied-mobile" },
   ...["light", "dark"].map((theme) => ({ name: `221-navigation-menu-${theme}-mobile-390x844`, route: "#reports", title: "Reports & insights", fixture: "report-overview-loaded", theme, density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openPrimaryNavigation: true, state: `navigation-menu-${theme}-mobile` })),
@@ -1122,7 +1122,11 @@ async function capturePage(capture) {
       await inventory.locator("summary").click();
       await page.getByText("Identity and access records").waitFor({ state: "visible" });
     }
-    if (capture.fixture === "configure-partial" && !(await page.getByText("Confirm the final DPCO review date").isVisible())) throw new Error("Configure partial-degradation state hid still-available workflow ownership");
+    if (capture.fixture === "people-v2-partial") {
+      await page.getByRole("tab", { name: "Delegations", exact: true }).click();
+      await page.locator(".people-governance-layout__records .cs-selectable-record").first().waitFor();
+      if (await page.locator(".people-governance-layout__records .cs-selectable-record:visible").count() !== 2) throw new Error("Partial routing-policy failure hid available delegations");
+    }
   } finally {
     await context.close();
   }

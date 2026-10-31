@@ -1,4 +1,4 @@
-import type { GroupRoleBinding, IdentityGroup, IdentityPerson, IdentitySource } from "../../identityAccessApi";
+import type { GroupRoleBinding, IdentityGroup, IdentitySource } from "../../identityAccessApi";
 
 type SignIn = { mode: string; issuer?: string; assurance_level?: string };
 
@@ -6,7 +6,6 @@ type Props = {
   signIn: SignIn;
   sources: IdentitySource[];
   bindings: GroupRoleBinding[];
-  people: IdentityPerson[];
   groups: IdentityGroup[];
   canConfigure: boolean;
   busy: boolean;
@@ -17,7 +16,7 @@ type Props = {
   onRetireBinding: (binding: GroupRoleBinding) => void;
 };
 
-export function IdentityAccessInventory({ signIn, sources, bindings, people, groups, canConfigure, busy, onAddSource, onAddMapping, onRotateSource, onRevokeSource, onRetireBinding }: Props) {
+export function IdentityAccessInventory({ signIn, sources, bindings, groups, canConfigure, busy, onAddSource, onAddMapping, onRotateSource, onRevokeSource, onRetireBinding }: Props) {
   return <>
     <article className="config-card identity-source-card">
       <div className="section-header identity-card-header">
@@ -46,10 +45,9 @@ export function IdentityAccessInventory({ signIn, sources, bindings, people, gro
     </article>
 
     <article className="config-card">
-      <div className="section-header"><div><h3>People & groups</h3><p>Directory people and groups.</p></div></div>
-      <div className="identity-directory-columns">
-        <div><h4>People</h4>{people.slice(0, 8).map((person) => <div className="identity-mini-row" key={person.id}><strong>{person.display_name}</strong><span>{person.source_code ? `${person.source_code} · ${person.source_state}` : "Local principal"}</span></div>)}{!people.length && <p className="muted-copy">No people found.</p>}</div>
-        <div><h4>Groups</h4>{groups.slice(0, 8).map((group) => <div className="identity-mini-row" key={group.id}><strong>{group.display_name}</strong><span>{group.member_count} members · {group.source_code} · {group.source_state}</span></div>)}{!groups.length && <p className="muted-copy">No directory groups found.</p>}</div>
+      <div className="section-header"><div><h3>Directory groups</h3><p>Up to 50 groups across the organization.</p></div></div>
+      <div>
+        {groups.map((group) => <div className="identity-mini-row" key={group.id}><strong>{group.display_name}</strong><span>{group.member_count} members · {group.source_code} · {humanize(group.source_state)}</span></div>)}{!groups.length && <p className="muted-copy">No directory groups returned.</p>}
       </div>
     </article>
   </>;

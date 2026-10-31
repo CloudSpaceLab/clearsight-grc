@@ -1,4 +1,3 @@
-@import "./design-system/components/workspace-switcher.css" layer(components);
 
 @layer features {
   .ui-gallery { max-inline-size: var(--cs-content-wide); margin-inline: auto; padding: var(--cs-space-page); color: var(--cs-text-primary); }

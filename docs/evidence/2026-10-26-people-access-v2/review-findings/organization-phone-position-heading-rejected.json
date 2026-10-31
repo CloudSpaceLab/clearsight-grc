@@ -1,0 +1,35 @@
+{
+  "viewport": 390,
+  "header": {
+    "x": 85,
+    "y": 223.28125,
+    "width": 276,
+    "height": 148.5625,
+    "top": 223.28125,
+    "right": 361,
+    "bottom": 371.84375,
+    "left": 85
+  },
+  "heading": {
+    "x": 85,
+    "y": 223.28125,
+    "width": 0,
+    "height": 63,
+    "top": 223.28125,
+    "right": 85,
+    "bottom": 286.28125,
+    "left": 85
+  },
+  "filters": {
+    "x": 99,
+    "y": 223.28125,
+    "width": 276,
+    "height": 148.5625,
+    "top": 223.28125,
+    "right": 375,
+    "bottom": 371.84375,
+    "left": 99
+  },
+  "display": "flex",
+  "direction": "row"
+}
