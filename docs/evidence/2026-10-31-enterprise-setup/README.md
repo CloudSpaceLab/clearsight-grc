@@ -99,3 +99,9 @@ The original analysis is preserved verbatim. Its final paragraph describes the e
 - The BEFORE receipt intentionally has `baseline: true` and no passing behavior scenarios. It cannot pass the current AFTER reviewer.
 - The final ten axe scans have zero violations and retain 28 color-contrast incomplete nodes. The [targeted contrast follow-up](after/contrast-review-ed46dd.json) found no concrete low-contrast blocker for the actual header handoff label and hierarchy carets; its computed CSS and sampled hit-test method is not full WCAG acceptance. Its earlier exact revision is preserved, and all 31 CSS assets match the final build.
 - These records do not advance the 0/19 whole-screen acceptance register or remove the production cutover block. The final result is a named, scoped synthetic layout and interaction review.
+
+## Hosted follow-up and release status
+
+[PR #599](https://github.com/CloudSpaceLab/clearsight-grc/pull/599) is the authoritative record for hosted checks, artifact review, merge and exact-SHA non-production demo verification. Its later release receipts supersede the local checkpoints above without changing their identities or acceptance limits.
+
+The [hosted follow-up](hosted-followup/README.md) preserves the initial failed editor-dismissal capture and the subsequent focused correction. The corrected capture observes the nested Type picker closing and natural focus returning before a single parent Escape; runtime code is unchanged. Its full matrix passes with CI's pinned Chromium (10 layouts / 11 behaviors / 42 images), and the reviewer rejects missing or contradictory focus evidence. The exact timing of the earlier hosted failure was not reproduced locally; the original failed result remains explicitly retained. Whole-screen acceptance remains **0/19**.

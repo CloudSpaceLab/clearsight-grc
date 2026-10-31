@@ -42,3 +42,21 @@ The hosted build digest and input hashes match the [retained local receipt](../a
 The workflow skipped approved-design reference capture, the Risk/Losses source-runtime follow-up, proposal-source rows, and assessment-follow-up recovery after the browser-review failure. Their later artifacts, including the separate 217-view approved-reference set, were **not produced**. This is expected diagnostic incompleteness, not evidence of an additional runtime failure.
 
 Earlier retained evidence remains unchanged. Synthetic browser checks do not establish live backend authorization, four-actor outcomes, complete WCAG conformance or whole-screen acceptance.
+
+
+## Correction supplement: local CI-pinned capture
+
+The failed-attempt record above remains **FAILED** and unchanged. Its one-PNG retention statement describes that historical diagnostic. This separate supplement retains a new complete local capture using the same browser as CI; it does not relabel the failed hosted run.
+
+- [Named scoped review](corrected-named-review.md)
+- [Exact provenance and image comparisons](corrected-review.json)
+- [Full corrected receipt and 42 PNGs](corrected-capture/enterprise-setup/receipt.json)
+- [Archived-input gate replay](corrected-gate-replay.json)
+- [Bounded probe summary](corrected-probe-summary.json) and [filtered focus trace](corrected-focus-trace.json)
+- [Independent negative reviewer checks](corrected-reviewer-negative-verification.json)
+
+Local correction `5381850f1f2ebff340e4d9fde57e197253da0348` maps to remote commit object `bd0f45be0ce96eb1fd2bcf029b0343468203eb19`, both tree `9662a00fc7117326a983fd4ccce2c1a9d5a6a463`. The complete Chromium 140 capture passes **10 layouts / 11 behavior scenarios / 42 image hashes**, with unchanged application build digest `28e6d798572e8d37da39a977b639694fb68842515f73b4011517ff51cfe3d4b1`. Its full receipt SHA-256 is `696fc531b1c7e89ed3099b82503eb2ce5ca2730e8136d2fd48d57572b8bb639d`.
+
+The capture observes listbox/popover closure and actual Type-trigger focus before the unchanged single parent Escape. All original bounded local probes also passed, so the precise hosted failure is not claimed as locally reproduced. The image comparison retains the earlier browser identities and all changes; seven changed/new frames received direct inspection. Application runtime files were not changed.
+
+At this local review, final-head hosted CI/UI and release verification were pending. Current rollout status is maintained in [PR #599](https://github.com/CloudSpaceLab/clearsight-grc/pull/599). Whole-screen acceptance remains a separate gate.

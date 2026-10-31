@@ -1,0 +1,79 @@
+{
+  "status": "FOUR_BOUNDED_LOCAL_PROBES_PASS_EXACT_HOSTED_FAILURE_NOT_REPRODUCED",
+  "reviewer": "/root/people_integration",
+  "retentionReviewer": "/root/ci_review",
+  "probes": [
+    {
+      "name": "original-cpu1",
+      "mode": "original",
+      "cpuRate": 1,
+      "browser": "140.0.7339.16",
+      "fixtureInjected": true,
+      "status": "PASS",
+      "pageErrors": [],
+      "commandCount": 0,
+      "pending": 0,
+      "sourceReceiptBytes": 24107,
+      "sourceReceiptSHA256": "2f24c928d175af6c03692d140104824734848ae2f8d422d64042914c3d32d587",
+      "finalDialogCount": 0,
+      "importedTypeDismissal": null
+    },
+    {
+      "name": "original-cpu4",
+      "mode": "original",
+      "cpuRate": 4,
+      "browser": "140.0.7339.16",
+      "fixtureInjected": true,
+      "status": "PASS",
+      "pageErrors": [],
+      "commandCount": 0,
+      "pending": 0,
+      "sourceReceiptBytes": 24108,
+      "sourceReceiptSHA256": "07b34a064d112160257477c5e501252674540b37f1050b1f3b5b4b0e5a63cfa5",
+      "finalDialogCount": 0,
+      "importedTypeDismissal": null
+    },
+    {
+      "name": "original-minimal-cpu1",
+      "mode": "original-minimal",
+      "cpuRate": 1,
+      "browser": "140.0.7339.16",
+      "fixtureInjected": true,
+      "status": "PASS",
+      "pageErrors": [],
+      "commandCount": 0,
+      "pending": 0,
+      "sourceReceiptBytes": 8301,
+      "sourceReceiptSHA256": "0bfa1475edf3b50ac21750d385dd761ffe33748ea47035cc6d5c11c26e0bbe3d",
+      "finalDialogCount": 0,
+      "importedTypeDismissal": null
+    },
+    {
+      "name": "synchronized-cpu1",
+      "mode": "synchronized",
+      "cpuRate": 1,
+      "browser": "140.0.7339.16",
+      "fixtureInjected": true,
+      "status": "PASS",
+      "pageErrors": [],
+      "commandCount": 0,
+      "pending": 0,
+      "sourceReceiptBytes": 24229,
+      "sourceReceiptSHA256": "7f58a4a805e4d633ad37fc970de334f017d171cb88630d807c4a93e7feef85be",
+      "finalDialogCount": 0,
+      "importedTypeDismissal": {
+        "expanded": "false",
+        "focused": true,
+        "listboxes": 0,
+        "popovers": 0
+      }
+    }
+  ],
+  "focusTrace": {
+    "file": "corrected-focus-trace.json",
+    "bytes": 2932,
+    "sha256": "18e20c611f8a43d33346c3c0a02b0d129d497574108f0f27a82c1015e47a2fcd"
+  },
+  "observation": "The synchronized probe records BODY after Department selection with no listbox/popover at 1883 ms, trigger focus at 1888 ms, one Escape at 1916 ms, and the dialog absent at 1926 ms.",
+  "interpretationLimit": "The original and synchronized probes all passed. These observations justify waiting for an observable lifecycle boundary; they do not prove an unobserved root cause of the hosted failure."
+}
