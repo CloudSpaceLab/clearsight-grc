@@ -8,20 +8,14 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/today"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 )
 
 func (a *API) actorWorkAssignments(w http.ResponseWriter, r *http.Request) {
-	actor, err := identity.Require(r.Context())
-	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required.")
-		return
-	}
-	if actor.TenantID == "" || actor.LegalEntityID == "" || actor.PrincipalID == "" {
-		httpx.WriteError(w, http.StatusForbidden, "work_scope_required", "Your assigned work scope could not be verified.")
+	actor, ok := verifiedWorkActor(w, r)
+	if !ok {
 		return
 	}
 	if a.deps.Workflow == nil {
@@ -29,6 +23,18 @@ func (a *API) actorWorkAssignments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	params := r.URL.Query()
+	for name, values := range params {
+		switch name {
+		case "tenant_id", "legal_entity_id", "principal_id", "q", "cursor", "limit", "status", "due_from", "due_before":
+			if len(values) != 1 {
+				httpx.WriteError(w, http.StatusBadRequest, "work_filter_invalid", "Specify each work filter once.")
+				return
+			}
+		default:
+			httpx.WriteError(w, http.StatusBadRequest, "work_filter_unsupported", "This work filter is unavailable.")
+			return
+		}
+	}
 	for name, expected := range map[string]string{
 		"tenant_id": actor.TenantID, "legal_entity_id": actor.LegalEntityID, "principal_id": actor.PrincipalID,
 	} {
@@ -44,7 +50,7 @@ func (a *API) actorWorkAssignments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	search := strings.TrimSpace(params.Get("q"))
-	if utf8.RuneCountInString(search) > 120 {
+	if strings.ContainsRune(search, 0) || utf8.RuneCountInString(search) > 120 {
 		httpx.WriteError(w, http.StatusBadRequest, "work_search_invalid", "Search is limited to 120 characters.")
 		return
 	}
@@ -93,6 +99,10 @@ func (a *API) actorWorkAssignments(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteJSON(w, http.StatusOK, map[string]any{
 			"items": items, "next_cursor": page.NextCursor, "has_more": page.HasMore,
 			"as_of": page.AsOf, "coverage": page.Coverage, "count_basis": page.CountBasis,
+			"scope": map[string]string{
+				"tenant_id": actor.TenantID, "legal_entity_id": actor.LegalEntityID,
+				"principal_id": actor.PrincipalID,
+			},
 		})
 	}
 }
