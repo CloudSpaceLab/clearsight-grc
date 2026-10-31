@@ -81,6 +81,12 @@ All ten final viewport captures begin at `scrollY = 0` and show the first organi
 
 This is a scoped local result from an isolated synthetic transport, not proof of backend identity, authorization or material command execution. The original is light-only, remote font requests were blocked and environment fallback fonts were used. Axe's incomplete color-contrast results are disclosed separately; zero reported violations is not a complete contrast or accessibility certification. [PR #599](https://github.com/CloudSpaceLab/clearsight-grc/pull/599) records hosted CI, artifact inspection, merge and demo release status for this tranche.
 
+## First-opening runtime follow-up
+
+Hosted CI subsequently exposed a dropped first Positions & roles activation. A deterministic one-click regression reproduced the initial passive reset overriding the open state; changing only the two panel-reset hooks to layout effects made the same interaction pass. Runtime `3a32ab85e0cb0615903f76fcac1c08362db306c8` (local `aa666af542fdcba2f2883a58821434f3fbc18740`, shared tree `9e670cd7477ddd25b0e5c9e1d01961ae3ecfbacc`) preserves selection-change and permission-revocation closure, plus read-only viewing. The original progressive workflow assertions are unchanged.
+
+The [first-opening evidence](../../evidence/2026-10-31-enterprise-setup/first-open-followup/README.md) retains the failed CI checkpoint, red/green proof, 19 focused tests, full 277-file/2,301-test suite and fresh 10-layout/11-behavior/42-image capture at build `40e12a493b9e595206607cba4729db53c7d685dc39cd5169c330fc268542649c`. Earlier captures remain historical, including the separate Select-focus synchronization and its unproven historical timing. Hosted release status remains recorded in [PR #599](https://github.com/CloudSpaceLab/clearsight-grc/pull/599).
+
 ## Acceptance
 
 Organization and the final visible-truncation correction pass the scoped local browser/evidence gate. Groups of organization units and operating-jurisdiction selection remain unsupported; their truthful unavailable panels retain the source navigation positions and existing alternatives. This is **partial V2 layout integration**. Whole-screen acceptance remains **0/19**, and the production cutover block remains in place. Live four-actor execution, backend authorization and source-to-report reconciliation require separate retained evidence. [PR #599](https://github.com/CloudSpaceLab/clearsight-grc/pull/599) is the release record for the published revision, merge and demo deployment receipts.

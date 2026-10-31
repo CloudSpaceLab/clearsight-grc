@@ -1,0 +1,17 @@
+{
+  "revision": "aa666af542fdcba2f2883a58821434f3fbc18740",
+  "metrics": {
+    "javascript": {
+      "raw": 2427640,
+      "gzip": 672927,
+      "initial_gzip": 161940,
+      "largest_raw_chunk": 573982
+    },
+    "css": {
+      "raw": 656235,
+      "gzip": 112601,
+      "initial_gzip": 32126
+    }
+  },
+  "failures": []
+}
