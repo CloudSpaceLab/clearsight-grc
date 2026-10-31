@@ -127,6 +127,8 @@
 }
 
 .assigned-workspace .intervention-heading { flex-wrap: wrap; align-items: center; }
+.assigned-workspace .intervention-heading h2 { margin-block: 0; font-size: 20px; }
+.assigned-workspace__receipt { margin: 0 0 var(--cs-primitive-space-3); color: var(--cs-text-muted); font-size: 11px; }
 .assigned-workspace__due-window { flex: 0 1 240px; min-inline-size: min(100%, 220px); }
 .assigned-workspace__due-window .cs-select-field { inline-size: 100%; }
 @container assigned-work (max-width: 620px) {
@@ -140,15 +142,22 @@
   margin-block: var(--cs-space-group);
 }
 .assigned-workspace__signals > * { min-inline-size: 0; }
-/* The bounded-feed qualifier is already present above the cards. Keep card
-   headings readable in the approved 2×2 mobile composition. */
-.assigned-workspace__signals .cs-metric-card__heading { grid-template-columns: minmax(0, 1fr); }
-.assigned-workspace__signals .cs-metric-card__quality { display: none; }
-@container assigned-work (max-width: 950px) {
-  .assigned-workspace__signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.assigned-workspace__signals .cs-metric-card {
+  --cs-metric-card-min-height: 99px;
+  --cs-metric-card-padding: var(--cs-primitive-space-3);
+  --cs-metric-card-gap: var(--cs-primitive-space-1);
+  --cs-metric-card-heading-columns: minmax(0, 1fr);
+  --cs-metric-card-label-transform: none;
+  --cs-metric-card-label-spacing: 0;
+  --cs-metric-card-value-size: 28px;
 }
-@container assigned-work (max-width: 310px) {
-  .assigned-workspace__signals { grid-template-columns: minmax(0, 1fr); }
+.assigned-workspace__signals .cs-metric-card__measure { order: -1; }
+/* The original Work strip keeps four columns through tablet widths. */
+@media (max-width: 1130px) {
+  .assigned-workspace__signals .cs-metric-card { --cs-metric-card-min-height: 85px; }
+}
+@media (max-width: 760px) {
+  .assigned-workspace__signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* The approved phone Work view uses a short intent row and compact 2x2
@@ -178,11 +187,8 @@
     margin-block: var(--cs-primitive-space-2);
   }
   .assigned-workspace__signals .cs-metric-card {
-    block-size: 82px;
-    min-block-size: 0;
-    padding: var(--cs-primitive-space-2);
+    --cs-metric-card-padding: var(--cs-primitive-space-2);
     align-content: center;
-    gap: var(--cs-primitive-space-1);
   }
   .assigned-workspace__signals .cs-metric-card__measure { order: -1; }
   .assigned-workspace__signals .cs-metric-card__measure strong { font-size: 26px; }

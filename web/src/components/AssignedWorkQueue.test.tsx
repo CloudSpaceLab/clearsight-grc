@@ -73,7 +73,7 @@ describe("AssignedWorkQueue approved Work presentation", () => {
     const soon = { ...request, id: "soon", title: "Due tomorrow", due_at: new Date(now + 86400000).toISOString() };
     const exception = { ...request, id: "gap", title: "Evidence gap", intervention_class: "EVIDENCE_EXCEPTION" as const, due_at: "" };
     render(<AssignedWorkQueue presentation="workspace" state="live" items={[overdue, soon, approval, exception]} onOpenItem={vi.fn()}/>);
-    const measures = screen.getByLabelText("Loaded work measures");
+    const measures = screen.getByLabelText("Work measures");
     expect(within(measures).getByRole("button", { name: /Overdue: 1/ })).toBeTruthy();
     expect(within(measures).getByRole("button", { name: /Due next 7 days: 1/ })).toBeTruthy();
     expect(within(measures).getByRole("button", { name: /Your approvals: 1/ })).toBeTruthy();
@@ -105,7 +105,7 @@ describe("AssignedWorkQueue approved Work presentation", () => {
     const snapshot = "2026-10-19T12:00:00Z";
     const nearDeadline = { ...request, due_at: "2026-10-20T12:00:00Z" };
     render(<AssignedWorkQueue presentation="workspace" state="live" asOf={snapshot} items={[nearDeadline]} onOpenItem={vi.fn()}/>);
-    const measures = screen.getByLabelText("Loaded work measures");
+    const measures = screen.getByLabelText("Work measures");
     expect(within(measures).getByRole("button", { name: /Due next 7 days: 1/ })).toBeTruthy();
     expect(within(measures).getByRole("button", { name: /Overdue: 0/ })).toBeTruthy();
   });
@@ -113,7 +113,7 @@ describe("AssignedWorkQueue approved Work presentation", () => {
   it("qualifies loaded counts when the authorized backend reports more assignments", () => {
     render(<AssignedWorkQueue presentation="workspace" state="live" items={[request]}
       hasMore onOpenItem={vi.fn()}/>);
-    expect(screen.getByText("More assignments exist. Counts and search cover loaded work only.")).toBeTruthy();
+    expect(screen.getByText("More assignments available. The queue shows loaded work.")).toBeTruthy();
     expect(screen.getByText("1 item loaded")).toBeTruthy();
   });
 

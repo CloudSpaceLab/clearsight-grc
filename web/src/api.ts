@@ -173,24 +173,27 @@ export function loadToday(): Promise<TodaySnapshot> {
   return request<TodaySnapshot>("/api/v1/today");
 }
 
-export type ActorWorkPage = {
+export type ActorWorkScope = { tenantID: string; legalEntityID: string; principalID: string };
+
+type ActorWorkReceipt = {
+  as_of: string;
+  coverage: "WORKFLOW_ASSIGNMENTS_ONLY";
+  scope: { tenant_id: string; legal_entity_id: string; principal_id: string };
+};
+
+export type ActorWorkPage = ActorWorkReceipt & {
   items: AttentionItem[];
   next_cursor?: string;
   has_more: boolean;
-  as_of: string;
-  coverage: "WORKFLOW_ASSIGNMENTS_ONLY";
   count_basis: "NOT_AVAILABLE";
 };
 
-export type ActorWorkDueCounts = {
+export type ActorWorkDueCounts = ActorWorkReceipt & {
   total: number;
   overdue: number;
   due_soon: number;
   undated: number;
-  as_of: string;
-  coverage: "WORKFLOW_ASSIGNMENTS_ONLY";
   count_basis: "SOURCE_SNAPSHOT";
-  scope: { tenant_id: string; legal_entity_id: string; principal_id: string };
 };
 
 export function loadActorWorkDueCounts(): Promise<ActorWorkDueCounts> {

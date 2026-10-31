@@ -131,6 +131,12 @@ The final approved light dashboard reference is a **presentation direction**, no
 
 ## Structural patterns
 
+### Work deadline measures — 31 October 2026
+
+Work keeps the original four-column measure strip through 768px and replaces it with two columns at 760px and below. Shared metric tokens provide compact geometry; source and loaded-work qualifiers remain visible. Count freshness is one compact UTC line so the first assignment stays in the initial viewport. The existing table, inspector, local menu and shared shell retain their owners.
+
+Overdue and upcoming source totals open the authenticated assignment reader with date bounds fixed to the count receipt, including microsecond precision, before cursor pagination. Approval/evidence cards describe the loaded Today feed. Competing filters clear when opening a metric; scope changes, denied reads and mismatched receipts invalidate retained source data. Counts and result pages keep separate read timestamps. The [decision](docs/design/decisions/2026-10-31-work-source-deadline-drills.md) records the boundaries and rendered acceptance; this remains partial V2 integration.
+
 ### Privacy Overview and ROPA — 25 October 2026
 
 Privacy keeps one heading and the supported source-order Overview / ROPA menu. `#ropa` remains the register; `#ropa/overview` shows the existing summary. ROPA places compact search/status controls directly above source-shaped records, using the shared table's labelled cards below 700px of container space. Selected activities open the existing exact reader in a 480px `FocusedSheet`, with full-phone replacement. The register remains mounted so query and cursor survive record opening and browser history.

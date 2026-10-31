@@ -138,6 +138,8 @@ try {
     for (const capture of captures.filter((item) => item.vendorPortfolioView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-portfolio-states" || item.vendorPortfolioCheck))) await capturePage(capture);
   } else if (["vendor-relationship", "vendor-relationship-states"].includes(process.env.UI_EVIDENCE_SCOPE)) {
     for (const capture of captures.filter((item) => item.vendorRelationshipView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-relationship-states" || item.vendorRelationshipCheck))) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "work") {
+    for (const capture of captures.filter((item) => ["work-assigned-desktop", "work-assigned-mobile", "work-inspection-mobile"].includes(item.state))) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "reports") {
     for (const capture of captures.filter((item) => item.route === "#reports")) await capturePage(capture);
   } else if (process.env.UI_EVIDENCE_SCOPE === "report-design") {
@@ -1805,7 +1807,7 @@ async function assertWorkMeasureLabels(page, capture) {
     }
     const sourceQualified = index < 2 && item.accessible.includes("Workflow assignments");
     const loadedQualified = item.accessible.includes("Loaded work");
-    if (item.qualityDisplay !== "none" || (!sourceQualified && !loadedQualified) ||
+    if (item.qualityDisplay === "none" || (!sourceQualified && !loadedQualified) ||
         (index >= 2 && !loadedQualified)) {
       throw new Error(`${capture.name}: Work measure source coverage is missing or incorrect`);
     }
