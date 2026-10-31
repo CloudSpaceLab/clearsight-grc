@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState, type FormEvent } from "react";
 import type {
   DetailTransferMode,
   IdentityPerson,
@@ -100,8 +100,10 @@ export function OrganizationInventory({
   const [localSelection, setLocalSelection] = useState<string>();
   const selected = onSelectScope ? selectedScopeID : localSelection;
   const directoryHref = peopleAccessHash("organization", enterpriseSetupRoute(window.location.hash)?.selections, "directory");
-  useEffect(() => { setPanel(undefined); }, [selected]);
-  useEffect(() => { if (!canConfigure) setPanel(undefined); }, [canConfigure]);
+  // A passive mount reset can overwrite the first open after an async overview
+  // load. Reset contextual sheets before they become interactive instead.
+  useLayoutEffect(() => { setPanel(undefined); }, [selected]);
+  useLayoutEffect(() => { if (!canConfigure) setPanel(undefined); }, [canConfigure]);
   function selectScope(id: string | undefined) { setLocalSelection(id); onSelectScope?.(id); }
   function openPositions() { setArea(selected); setPanel("positions"); }
   const [area, setArea] = useState<string>();

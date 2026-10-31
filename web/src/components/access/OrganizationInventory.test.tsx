@@ -182,6 +182,40 @@ function positionRevision(overrides: Partial<OrganizationPositionRevision> = {})
   };
 }
 
+describe("OrganizationInventory sheet permissions", () => {
+  it("closes an editable sheet on permission revocation and keeps read-only sheets available", () => {
+    const proposeBoundary = vi.fn().mockResolvedValue(true);
+    const proposePosition = vi.fn().mockResolvedValue(true);
+    const props = {
+      positions: [position], people: [], scopes: [scope], mode: "positions" as const,
+      canConfigure: true, dataBoundary: boundary(),
+      onProposeDataBoundary: proposeBoundary,
+      onProposePosition: proposePosition,
+      onApprovePosition: vi.fn().mockResolvedValue(true),
+      onRejectPosition: vi.fn().mockResolvedValue(true),
+    };
+    const { rerender } = render(<OrganizationInventory {...props}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Data boundary" }));
+    fireEvent.change(screen.getByLabelText("Residency region"), { target: { value: "NG" } });
+
+    rerender(<OrganizationInventory {...props} canConfigure={false}/>);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
+    let dialog = screen.getByRole("dialog", { name: "Positions & roles" });
+    expect(within(dialog).getByText("Alice")).toBeTruthy();
+    expect(within(dialog).queryByRole("button", { name: "Add position" })).toBeNull();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Data boundary" }));
+    dialog = screen.getByRole("dialog", { name: "Data boundary" });
+    expect(within(dialog).getByText("Residency region not set")).toBeTruthy();
+    expect(within(dialog).queryByLabelText("Residency region")).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "Propose change" })).toBeNull();
+    expect(proposeBoundary).not.toHaveBeenCalled();
+    expect(proposePosition).not.toHaveBeenCalled();
+  });
+});
+
 describe("OrganizationInventory area filtering", () => {
   function input(scopes: OrganizationScope[], positions: OrganizationPosition[], selectedScopeID?: string) {
     return {

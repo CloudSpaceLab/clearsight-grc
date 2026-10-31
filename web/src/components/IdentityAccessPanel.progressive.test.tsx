@@ -159,6 +159,35 @@ it("keeps access inventory primary and opens one focused creation workflow at a 
   expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
 });
 
+it("keeps the first positions sheet open when activated as the overview arrives", async () => {
+  let activations = 0;
+  // The overview arrives asynchronously. Activate the newly available control
+  // before passive mount effects can run, without a second click or a delay.
+  const observer = new MutationObserver(() => {
+    const trigger = screen.queryByRole("button", { name: "Positions & roles" });
+    if (!trigger || activations) return;
+    observer.disconnect();
+    activations += 1;
+    fireEvent.click(trigger);
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  try {
+    render(<IdentityAccessPanel/>);
+    const dialog = await screen.findByRole("dialog", { name: "Positions & roles" });
+    expect(activations).toBe(1);
+    expect(within(dialog).getByText("Ada Okafor")).toBeTruthy();
+    expect(within(dialog).getByText("PROGRAM_OWNER")).toBeTruthy();
+    expect(within(dialog).getByText("2 of 2 loaded positions · Up to 50 positions are returned.")).toBeTruthy();
+    expect(api.loadIdentityAccessOverview).toHaveBeenCalledTimes(1);
+    for (const [name, call] of Object.entries(api)) {
+      if (name !== "loadIdentityAccessOverview") expect(call).not.toHaveBeenCalled();
+    }
+  } finally {
+    observer.disconnect();
+  }
+});
+
 
 it("proposes a new position with occupant and reporting line from the Organization tab", async () => {
   api.proposeOrganizationPosition.mockResolvedValue({
