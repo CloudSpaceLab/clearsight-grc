@@ -38,11 +38,6 @@ function EnterpriseSetupWorkspace({ hash, onNavigate, runtimeContext, importsEna
 
   const peopleHash = peopleAccessHash("people", route.selections);
   const organizationHash = (view: "organization" | "groups" | "jurisdictions", unit = route.unit) => enterpriseSetupHash(view, unit, route.selections);
-  const contextualLinks = [
-    { area: "reporting" as const, label: "Reporting lines" },
-    { area: "directory" as const, label: "Provisioning" },
-    { area: "escalation" as const, label: "Escalation routes" },
-  ];
   const currentEntity = runtimeContext?.scope_hierarchy?.legal_entities.find((entity) => entity.id === runtimeContext.legal_entity.id)
     ?? (runtimeContext?.scope_hierarchy?.current.id === runtimeContext?.legal_entity.id ? runtimeContext?.scope_hierarchy?.current : undefined);
 
@@ -75,9 +70,6 @@ function EnterpriseSetupWorkspace({ hash, onNavigate, runtimeContext, importsEna
     </section>
     <Tabs ariaLabel="Enterprise configuration" variant="surface" keyboardActivation="manual" items={setupTabs} selectedKey={unavailableImports === hash && !importsEnabled ? "imports" : route.view} onSelectionChange={select}>
       {(view) => view === "organization" ? <>
-        <nav className="enterprise-setup-workspace__contextual" aria-label="Organization settings">
-          {contextualLinks.map(({ area, label }) => <ActionLink key={area} href={peopleAccessHash("organization", route.selections, area)}>{label}</ActionLink>)}
-        </nav>
         {!runtimeContext ? <p role="status">Loading organization settings…</p> : <IdentityAccessPanel
           area="positions" active scopeKey={scopeKey}
           canRead={runtimeContext.capabilities?.identity_read !== false}

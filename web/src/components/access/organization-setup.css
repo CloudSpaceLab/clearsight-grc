@@ -6,7 +6,8 @@
 .organization-setup-card-heading > div { min-inline-size: 0; }
 .organization-setup-layout h2, .organization-setup-layout h3 { margin: 0; color: var(--cs-text-strong); font-size: 14px; line-height: 1.35; letter-spacing: -.015em; }
 .organization-setup-layout p { margin: 6px 0 14px; color: var(--cs-text-muted); font-size: var(--cs-font-size-caption); line-height: 1.5; }
-.organization-setup-tools { display: flex; align-items: start; justify-content: end; gap: 8px; flex-wrap: wrap; }
+.organization-setup-card-heading p { margin-block-end: 0; }
+.organization-setup-tools { display: flex; flex: none; align-items: start; justify-content: end; gap: 8px; }
 .organization-setup-tools .cs-search-field { inline-size: 152px; min-inline-size: 0; }
 .organization-setup-tools .cs-button { flex: none; }
 .organization-setup-tree { min-inline-size: 0; }
@@ -26,7 +27,7 @@
 .organization-setup-change-preview { list-style: none; display: grid; gap: 12px; padding: 0; margin: 14px 0; }
 .organization-setup-change-preview li { display: grid; gap: 3px; font-size: var(--cs-font-size-caption); overflow-wrap: anywhere; }
 .organization-setup-change-preview span { color: var(--cs-text-muted); }
-.organization-setup-structure { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.organization-setup-structure { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr) minmax(0, 1fr); gap: 8px; margin: 14px 0; }
 .organization-setup-structure > div { display: flex; flex-direction: column-reverse; gap: 4px; min-inline-size: 0; }
 .organization-setup-structure dt { color: var(--cs-text-muted); font-size: 11px; overflow-wrap: anywhere; }
 .organization-setup-structure dd { margin: 0; font-size: 24px; font-weight: 700; color: var(--cs-text-strong); }

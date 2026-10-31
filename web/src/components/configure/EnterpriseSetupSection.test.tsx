@@ -33,8 +33,7 @@ it("uses the complete source-order Setup menu and verified scope without a readi
   expect(screen.queryByRole("progressbar")).toBeNull();
   expect(screen.getByText("Example Bank Nigeria")).toBeTruthy();
   expect(identityProps).toHaveBeenLastCalledWith(expect.objectContaining({ area: "positions", active: true, scopeKey: "tenant:entity:actor", legalEntityCode: "NG", importsEnabled: true }));
-  const links = within(screen.getByRole("navigation", { name: "Organization settings" })).getAllByRole("link");
-  expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([["Reporting lines", "#configure/access/reporting"], ["Provisioning", "#configure/access/directory"], ["Escalation routes", "#configure/access/escalation"]]);
+  expect(screen.queryByRole("navigation", { name: "Organization settings" })).toBeNull();
 });
 
 it("retains selected unit and People identities through Groups and Jurisdictions", () => {

@@ -87,6 +87,8 @@ export function OrganizationScopeManager({
   const groupsHref = enterpriseSetupHash("groups", selectedID, selections);
   const peopleHref = peopleAccessHash("people", selections);
   const directoryHref = peopleAccessHash("organization", selections, "directory");
+  const reportingHref = peopleAccessHash("organization", selections, "reporting");
+  const escalationHref = peopleAccessHash("organization", selections, "escalation");
 
   useEffect(() => {
     if (!canConfigure) { setEditor(undefined); setDecision(undefined); }
@@ -126,7 +128,7 @@ export function OrganizationScopeManager({
               </div>
               <ul aria-label="Loaded organization areas">
                 {visible.rows.map((row) => <li key={row.scope.id} className="organization-setup-row" style={{ "--organization-depth": Math.min(row.depth + 1, 3) } as CSSProperties}>
-                  {row.childCount > 0 ? <IconButton variant="quiet" aria-label={`${collapsed.has(row.scope.id) && !query.trim() ? "Expand" : "Collapse"} ${row.scope.name}`} aria-expanded={query.trim() ? true : !collapsed.has(row.scope.id)} isDisabled={Boolean(query.trim())} onPress={() => toggle(row.scope.id)}><span aria-hidden="true">{collapsed.has(row.scope.id) && !query.trim() ? "›" : "⌄"}</span></IconButton> : <span className="organization-setup-expander" aria-hidden="true"/>}
+                  {row.childCount > 0 ? <IconButton variant="quiet" aria-label={`${collapsed.has(row.scope.id) && !query.trim() ? "Expand" : "Collapse"} ${row.scope.name}`} aria-expanded={query.trim() ? true : !collapsed.has(row.scope.id)} title={query.trim() ? "Search shows matching areas and their parents. Clear search to collapse areas." : undefined} isDisabled={Boolean(query.trim())} onPress={() => toggle(row.scope.id)}><span aria-hidden="true">{collapsed.has(row.scope.id) && !query.trim() ? "›" : "⌄"}</span></IconButton> : <span className="organization-setup-expander" aria-hidden="true"/>}
                   <SelectableRecord id={recordID(row.scope.id)} variant="list" title={row.scope.name} metadata={scopeKindLabel(row.scope.kind)} aria-label={`Inspect ${row.scope.name}`} isSelected={selectedID === row.scope.id} onPress={() => select(row.scope.id)} startContent={<NavigationIcon view={row.scope.kind === "BRANCH" ? "programs" : row.scope.kind === "DEPARTMENT" ? "people" : "frameworks"}/>}/>
                 </li>)}
               </ul>
@@ -155,7 +157,7 @@ export function OrganizationScopeManager({
         </> : selectedID ? <><p>The selected area was not returned for this legal entity. It may be outside the loaded list or no longer available.</p><Button onPress={() => select(undefined)}>View legal entity</Button></> : <><dl className="organization-setup-facts"><dt>Type</dt><dd>Legal entity</dd>{legalEntityCode && <><dt>Code</dt><dd>{legalEntityCode}</dd></>}<dt>Areas</dt><dd>{scopes.length} loaded</dd></dl><p className="organization-setup-note">Select an area to review its current structure and proposed changes.</p></>}
         <Button variant="quiet" onPress={returnToHierarchy}>Back to organization structure</Button>
       </div></Surface>
-      <Surface><section className="organization-setup-summary"><h2>Next actions</h2><p>Review pending area changes or maintain existing positions and access.</p><div className="organization-setup-next-actions"><ActionLink href={peopleHref}>People &amp; access</ActionLink><ActionLink href={directoryHref}>Directory groups &amp; access</ActionLink></div></section></Surface>
+      <Surface><section className="organization-setup-summary"><h2>Next actions</h2><p>Review pending area changes or maintain existing positions and access.</p><div className="organization-setup-next-actions"><ActionLink href={peopleHref}>People &amp; access</ActionLink><ActionLink href={reportingHref}>Reporting lines</ActionLink><ActionLink href={directoryHref}>Directory groups &amp; access</ActionLink><ActionLink href={escalationHref}>Escalation routes</ActionLink></div></section></Surface>
     </aside>
 
     {reviewOpen && <FocusedSheet label="Area changes" onClose={() => setReviewOpen(false)}><div className="cs-sheet-heading"><span className="eyebrow">Organization</span><h2>Area changes</h2><p>Up to 100 pending proposals. Current areas change only after independent approval.</p></div><div className="identity-scope-changes">
@@ -334,6 +336,7 @@ function OrganizationScopeDecision({
   const title = state.action === "approve" ? "Approve change" : "Reject change";
   const revision = state.revision;
   const current = scopeByID.get(revision.scope_id);
+  const proposedParent = revision.proposed_parent_scope_id ? scopeByID.get(revision.proposed_parent_scope_id) : undefined;
   return <FocusedSheet label={title} onClose={onClose} isDismissable={!isBusy}>
     <div className="cs-sheet-heading"><span className="eyebrow">Organization</span><h2>{title}</h2></div>
     <div className="identity-scope-editor">
@@ -348,7 +351,7 @@ function OrganizationScopeDecision({
         {current && <><dt>Current name</dt><dd>{current.name}</dd><dt>Current type</dt><dd>{scopeKindLabel(current.kind)}</dd></>}
         {revision.proposed_name && <><dt>Proposed name</dt><dd>{revision.proposed_name}</dd></>}
         {revision.proposed_kind && <><dt>Proposed type</dt><dd>{scopeKindLabel(revision.proposed_kind)}</dd></>}
-        {(revision.operation === "CREATE" || revision.operation === "MOVE") && <><dt>Proposed parent</dt><dd>{revision.proposed_parent_scope_id ? scopeByID.get(revision.proposed_parent_scope_id)?.name || `${revision.proposed_parent_scope_id} — outside loaded areas` : "Legal entity"}</dd></>}
+        {(revision.operation === "CREATE" || revision.operation === "MOVE") && <><dt>Proposed parent</dt><dd>{revision.proposed_parent_scope_id ? proposedParent ? `${proposedParent.department_path.join(" / ")} · ${proposedParent.code}` : `${revision.proposed_parent_scope_id} — outside loaded areas` : "Legal entity"}</dd></>}
         <dt>Proposed by</dt><dd>{revision.maker_id}</dd><dt>Proposed at</dt><dd><time dateTime={revision.created_at}>{revision.created_at.replace("T", " ").replace(/Z$/, " UTC")}</time></dd>
       </dl>
       <TextArea label="Rationale" value={rationale} onChange={setRationale} rows={3} maxLength={1000} isRequired/>

@@ -147,11 +147,7 @@ export function OrganizationInventory({
   }
 
   const visible = useMemo(() => positions.filter((position) => {
-    const selectedScope = area ? scopeByID.get(area) : undefined;
-    if (area && !selectedScope) return false;
-    const positionScope = position.organization_scope_id ? scopeByID.get(position.organization_scope_id) : undefined;
-    const matchesArea = !selectedScope || Boolean(positionScope && isDescendantPath(positionScope.department_path, selectedScope.department_path));
-    if (!matchesArea) return false;
+    if (area && (!scopeByID.has(area) || !isWithinScope(position.organization_scope_id, area, scopeByID))) return false;
     if (!normalizedQuery) return true;
     return [
       position.code,
@@ -328,8 +324,17 @@ function ReportingList({ positions, positionByID }: { positions: OrganizationPos
   </ol>;
 }
 
-function isDescendantPath(candidate: string[], ancestor: string[]) {
-  return ancestor.length <= candidate.length && ancestor.every((part, index) => part.toUpperCase() === candidate[index]?.toUpperCase());
+function isWithinScope(candidateID: string | undefined, ancestorID: string, scopes: ReadonlyMap<string, OrganizationScope>) {
+  const visited = new Set<string>();
+  let id = candidateID;
+  while (id && !visited.has(id)) {
+    const scope = scopes.get(id);
+    if (!scope) return false;
+    if (id === ancestorID) return true;
+    visited.add(id);
+    id = scope.parent_scope_id;
+  }
+  return false;
 }
 
 function scopeLabel(position: OrganizationPosition, scopeByID: Map<string, OrganizationScope>) {

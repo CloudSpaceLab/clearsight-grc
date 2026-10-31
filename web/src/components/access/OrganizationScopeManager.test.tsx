@@ -38,6 +38,26 @@ function openChanges() {
 }
 
 describe("OrganizationScopeManager contracts", () => {
+  it("preserves the selected unit and safe People identities in the relocated owner links", () => {
+    const previousURL = window.location.href;
+    window.history.replaceState(null, "", "#configure/access/positions?unit=scope-risk&person=person-2&role=role-3&tenant=untrusted");
+    try {
+      render(<OrganizationScopeManager {...props({ selectedScopeID: risk.id, onSelectScope: vi.fn() })}/>);
+      expect(screen.getByRole("link", { name: "Organization groups" }).getAttribute("href")).toBe("#configure/access/positions?person=person-2&role=role-3&setup=groups&unit=scope-risk");
+      const expected = [
+        ["People & access", "#configure/access"],
+        ["Directory groups & access", "#configure/access/directory"],
+        ["Reporting lines", "#configure/access/reporting"],
+        ["Escalation routes", "#configure/access/escalation"],
+      ];
+      for (const [name, destination] of expected) {
+        expect(screen.getByRole("link", { name }).getAttribute("href")).toBe(`${destination}?person=person-2&role=role-3`);
+      }
+    } finally {
+      window.history.replaceState(null, "", previousURL);
+    }
+  });
+
   it("keeps an unreturned controlled selection explicit and never selects another area after refresh", () => {
     const select = vi.fn();
     const input = props({ selectedScopeID: "not-returned", onSelectScope: select });
@@ -170,6 +190,21 @@ describe("OrganizationScopeManager contracts", () => {
     fireEvent.click(submit);
     await waitFor(() => expect(action === "Approve" ? input.onApprove : input.onReject).toHaveBeenCalledExactlyOnceWith(other, "Reviewed the area change"));
     expect(action === "Approve" ? input.onReject : input.onApprove).not.toHaveBeenCalled();
+  });
+
+  it("identifies the proposed Move parent by its path and code when parent names repeat", () => {
+    const branchOperations = { ...operations, id: "scope-branch-operations", code: "BRANCH_OPS", parent_scope_id: branch.id, department_path: ["BANK", "LAGOS", "BRANCH_OPS"] };
+    const move = { ...revision(risk), operation: "MOVE" as const, proposed_parent_scope_id: branchOperations.id };
+    const input = props({ scopes: [risk, operations, branch, branchOperations], revisions: [move] });
+    const { rerender } = render(<OrganizationScopeManager {...input}/>);
+    fireEvent.click(within(openChanges()).getByRole("button", { name: "Approve" }));
+    const dialog = screen.getByRole("dialog", { name: "Approve change" });
+    expect(within(dialog).getByText("Proposed parent").nextElementSibling?.textContent).toBe("BANK / LAGOS / BRANCH_OPS · BRANCH_OPS");
+    expect(within(dialog).queryByText("BANK / RISK / OPS · OPS")).toBeNull();
+
+    rerender(<OrganizationScopeManager {...input} scopes={[risk, operations, branch]}/>);
+    expect(within(dialog).getByText("Proposed parent").nextElementSibling?.textContent).toBe("scope-branch-operations — outside loaded areas");
+    expect(input.onApprove).not.toHaveBeenCalled();
   });
 
   it("closes an unsaved editor when the controlled selection changes and does not restore its draft", () => {

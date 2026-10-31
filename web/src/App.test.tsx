@@ -516,6 +516,9 @@ describe("legal entity scope selector", () => {
     const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Organization & access" }));
     await waitFor(() => expect(window.location.hash).toBe("#configure/access/positions"));
+    // The route starts a lazy workspace import; wait for that dependency rather
+    // than making the DOM query's deadline depend on concurrent suite transforms.
+    await act(async () => { await vi.dynamicImportSettled(); });
     expect(await screen.findByRole("heading", { name: "Enterprise setup" })).toBeTruthy();
   });
 

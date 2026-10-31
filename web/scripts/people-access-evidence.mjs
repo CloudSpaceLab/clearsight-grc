@@ -135,7 +135,7 @@ export async function verifyPeopleAccessHistory(page) {
   await page.getByRole("button", { name: "Organization settings", exact: true }).click();
   await page.getByRole("button", { name: "Positions & roles", exact: true }).waitFor();
   const organizationRoute = await page.evaluate(() => location.hash);
-  await page.getByRole("navigation", { name: "Organization settings", exact: true }).getByRole("link", { name: "Provisioning", exact: true }).click();
+  await page.locator(".enterprise-setup-workspace").getByRole("link", { name: "Provisioning", exact: true }).click();
   const sourceEntry = page.getByRole("button", { name: "Add source", exact: true });
   await sourceEntry.click();
   const sourceDialog = page.getByRole("dialog", { name: "Add provisioning source", exact: true });
@@ -260,12 +260,13 @@ export async function measureEnterpriseSetupNavigation(page) {
     const box=(node)=>{if(!node?.getClientRects().length)return null;const r=node.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
     const list=root.querySelector('[role="tablist"]'),selected=list?.querySelector('[aria-selected="true"]'),indicator=selected?.querySelector(".cs-tabs__indicator");
     const listBounds=box(list),selectedBounds=box(selected);
+    const links=[...root.querySelectorAll('a[href]')];
     return {viewportWidth:innerWidth,headingText:root.querySelector("h1")?.textContent.trim(),headingCount:root.querySelectorAll("h1").length,
       list:listBounds,listDisplay:list?getComputedStyle(list).display:null,selected:selected?.textContent.trim(),selectedBounds,
       selectedVisible:Boolean(listBounds&&selectedBounds&&selectedBounds.x>=listBounds.x-1&&selectedBounds.right<=listBounds.right+1),
       indicator:box(indicator),indicatorPosition:indicator?getComputedStyle(indicator).position:null,indicatorColor:indicator?getComputedStyle(indicator).backgroundColor:null,
       tabs:[...(list?.querySelectorAll('[role="tab"]')??[])].map((node)=>({label:node.textContent.trim(),...box(node)})),
-      links:[...root.querySelectorAll('.enterprise-setup-workspace__contextual a[href]')].map((node)=>({label:node.textContent.trim(),href:node.getAttribute("href"),...box(node)})),
+      links:["Reporting lines","Provisioning","Escalation routes"].map((label)=>{const node=links.find((link)=>link.textContent.trim()===label);return {label,href:node?.getAttribute("href"),...box(node)};}),
       legacyPeopleHeader:Boolean(document.querySelector(".people-access-workspace__heading")),legacySwitcher:Boolean(root.querySelector(".cs-workspace-switcher,.configure-navigation")),
       documentWidth:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth};
   });

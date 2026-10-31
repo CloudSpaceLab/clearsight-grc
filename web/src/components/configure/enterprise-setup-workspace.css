@@ -16,7 +16,6 @@
 .enterprise-setup-workspace > .cs-tabs > .cs-tabs__list { display: flex; flex-wrap: nowrap; overflow-x: auto; padding-inline: 12px; }
 .enterprise-setup-workspace > .cs-tabs > .cs-tabs__list > .cs-tabs__tab { flex: none; min-inline-size: var(--cs-target-min); inline-size: auto; white-space: nowrap; font-size: var(--cs-font-size-caption); }
 .enterprise-setup-workspace > .cs-tabs > .cs-tabs__panel { min-inline-size: 0; }
-.enterprise-setup-workspace__contextual { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; margin-block-end: 12px; }
 .enterprise-setup-workspace__unavailable { padding: 21px; border: 1px solid var(--cs-border-default); border-radius: var(--cs-primitive-radius-14); background: var(--cs-bg-surface-1); }
 .enterprise-setup-workspace__unavailable h2 { margin: 0 0 10px; color: var(--cs-text-strong); font-size: var(--cs-font-size-body); }
 .enterprise-setup-workspace__unavailable p { max-inline-size: 65ch; margin: 0 0 18px; color: var(--cs-text-muted); }
@@ -31,6 +30,5 @@
   .enterprise-setup-workspace__banner > span { display: block; margin-block-start: 10px; text-align: start; }
   .enterprise-setup-workspace > .cs-tabs { --cs-tabs-padding-inline: 12px; }
   .enterprise-setup-workspace > .cs-tabs > .cs-tabs__list { padding-inline: 8px; }
-  .enterprise-setup-workspace__contextual { justify-content: flex-start; }
   .enterprise-setup-workspace__unavailable { padding: 15px; }
 }

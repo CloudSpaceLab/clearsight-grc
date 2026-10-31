@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type {
   LegalEntityDataBoundary,
@@ -181,6 +181,60 @@ function positionRevision(overrides: Partial<OrganizationPositionRevision> = {})
     ...overrides,
   };
 }
+
+describe("OrganizationInventory area filtering", () => {
+  function input(scopes: OrganizationScope[], positions: OrganizationPosition[], selectedScopeID?: string) {
+    return {
+      scopes, positions, people: [], mode: "positions" as const, selectedScopeID, onSelectScope: vi.fn(),
+      onProposePosition: vi.fn().mockResolvedValue(true),
+      onApprovePosition: vi.fn().mockResolvedValue(true),
+      onRejectPosition: vi.fn().mockResolvedValue(true),
+    };
+  }
+
+  it("uses exact scope ancestry despite stale or duplicate paths and excludes missing or cyclic ancestry", () => {
+    const child = { ...scope, id: "scope-child", code: "CHILD", name: "Child", parent_scope_id: scope.id, department_path: ["OLD", "CHILD"] };
+    const descendant = { ...scope, id: "scope-descendant", code: "TEAM", name: "Team", parent_scope_id: child.id, department_path: ["OLD", "CHILD", "TEAM"] };
+    const duplicate = { ...scope, id: "scope-duplicate", code: "DUPLICATE", name: "Unrelated root", department_path: ["bank", "risk"] };
+    const wrongParent = { ...scope, id: "scope-wrong-parent", code: "WRONG", name: "Unrelated child", parent_scope_id: duplicate.id, department_path: ["BANK", "RISK", "WRONG"] };
+    const orphan = { ...scope, id: "scope-orphan", code: "ORPHAN", name: "Missing parent", parent_scope_id: "scope-not-loaded", department_path: ["BANK", "RISK", "ORPHAN"] };
+    const cycleA = { ...scope, id: "scope-cycle-a", code: "CYCLE_A", name: "Cycle A", parent_scope_id: "scope-cycle-b", department_path: ["BANK", "RISK", "CYCLE_A"] };
+    const cycleB = { ...scope, id: "scope-cycle-b", code: "CYCLE_B", name: "Cycle B", parent_scope_id: cycleA.id, department_path: ["BANK", "RISK", "CYCLE_B"] };
+    const scopes = [scope, child, descendant, duplicate, wrongParent, orphan, cycleA, cycleB];
+    const positions = scopes.map((area) => ({ ...position, id: `position-${area.id}`, code: `POSITION_${area.code}`, title: `${area.name} position`, organization_scope_id: area.id }));
+    render(<OrganizationInventory {...input(scopes, positions, scope.id)}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
+    const dialog = screen.getByRole("dialog", { name: "Positions & roles" });
+    expect(within(dialog).getByText("3 of 8 loaded positions · Up to 50 positions are returned.")).toBeTruthy();
+    for (const area of [scope, child, descendant]) expect(within(dialog).getByText(`${area.name} position`)).toBeTruthy();
+    for (const area of [duplicate, wrongParent, orphan, cycleA, cycleB]) expect(within(dialog).queryByText(`${area.name} position`)).toBeNull();
+  });
+
+  it("shows all loaded positions without an area and keeps a missing selection empty until the filter is cleared", async () => {
+    const positions = [
+      position,
+      { ...position, id: "position-missing", code: "MISSING", title: "Unreturned area position", organization_scope_id: "scope-not-loaded" },
+      { ...position, id: "position-unassigned", code: "UNASSIGNED", title: "Entity position", organization_scope_id: undefined },
+    ];
+    const props = input([scope], positions);
+    const { rerender } = render(<OrganizationInventory {...props}/>);
+    fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
+    let dialog = screen.getByRole("dialog", { name: "Positions & roles" });
+    for (const item of positions) expect(within(dialog).getByText(item.title)).toBeTruthy();
+
+    rerender(<OrganizationInventory {...props} selectedScopeID="scope-not-loaded"/>);
+    expect(screen.queryByRole("dialog", { name: "Positions & roles" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
+    dialog = screen.getByRole("dialog", { name: "Positions & roles" });
+    expect(within(dialog).getByText("0 of 3 loaded positions · Up to 50 positions are returned.")).toBeTruthy();
+    expect(within(dialog).getByText(/The selected area is not in the loaded list/)).toBeTruthy();
+    for (const item of positions) expect(within(dialog).queryByText(item.title)).toBeNull();
+
+    fireEvent.keyDown(within(dialog).getByRole("button", { name: /Department \/ area/ }), { key: "ArrowDown" });
+    fireEvent.click(within(await screen.findByRole("listbox")).getByRole("option", { name: "All areas" }));
+    for (const item of positions) expect(within(dialog).getByText(item.title)).toBeTruthy();
+  });
+});
 
 describe("OrganizationInventory position governance", () => {
   const people = [
