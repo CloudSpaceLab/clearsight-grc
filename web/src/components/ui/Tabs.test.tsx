@@ -171,6 +171,37 @@ describe("Tabs", () => {
     expect(document.activeElement).toBe(first);
   });
 
+  it("keeps manual arrow navigation separate from Enter and Space activation", () => {
+    const select = vi.fn();
+    const panel = (key: string) => <p>{key}</p>;
+    const { rerender } = render(<Tabs keyboardActivation="manual" ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={select}>{panel}</Tabs>);
+    const first = screen.getByRole("tab", { name: "Templates" });
+    const second = screen.getByRole("tab", { name: "Sent forms" });
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowRight" });
+
+    expect(document.activeElement).toBe(second);
+    expect(first.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel", { name: "Templates" }).textContent).toBe("TEMPLATES");
+    expect(select).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(second, { key: "Enter", code: "Enter" });
+    fireEvent.keyUp(second, { key: "Enter", code: "Enter" });
+    expect(select).toHaveBeenCalledExactlyOnceWith("SENT");
+    rerender(<Tabs keyboardActivation="manual" ariaLabel="Forms views" items={items} selectedKey="SENT" onSelectionChange={select}>{panel}</Tabs>);
+    expect(screen.getByRole("tabpanel", { name: "Sent forms" }).textContent).toBe("SENT");
+
+    fireEvent.keyDown(second, { key: "End" });
+    const last = screen.getByRole("tab", { name: "Responses" });
+    expect(document.activeElement).toBe(last);
+    expect(second.getAttribute("aria-selected")).toBe("true");
+    expect(select).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(last, { key: " ", code: "Space" });
+    fireEvent.keyUp(last, { key: " ", code: "Space" });
+    expect(select).toHaveBeenNthCalledWith(2, "RESPONSES");
+    expect(select).toHaveBeenCalledTimes(2);
+  });
+
   it("uses one selected indicator owned by the selected tab", () => {
     render(<Harness/>);
     const selected = screen.getByRole("tab", { name: "Templates" });

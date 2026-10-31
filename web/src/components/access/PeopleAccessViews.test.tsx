@@ -146,6 +146,7 @@ describe("access read recovery and isolation", () => {
     const search = await screen.findByRole("searchbox", { name: "Search people" });
     fireEvent.change(search, { target: { value: "Amina" } });
     rerender(<IdentityAccessPanel area="positions" active/>);
+    if (action === "Add position") fireEvent.click(screen.getByRole("button", { name: "Positions & roles" }));
     fireEvent.click(screen.getByRole("button", { name: action }));
     const dialog = screen.getByRole("dialog", { name: action });
     fireEvent.change(within(dialog).getByRole("textbox", { name: /^Code/ }), { target: { value: "UNSAVED" } });
@@ -159,6 +160,7 @@ describe("access read recovery and isolation", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
 
     rerender(<IdentityAccessPanel area="positions" active/>);
+    if (action === "Add position") fireEvent.click(await screen.findByRole("button", { name: "Positions & roles" }));
     fireEvent.click(await screen.findByRole("button", { name: action }));
     expect(within(screen.getByRole("dialog", { name: action })).getByRole("textbox", { name: /^Code/ })).toHaveProperty("value", "");
   });

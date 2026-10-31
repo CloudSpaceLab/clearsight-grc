@@ -438,7 +438,7 @@ function App({ presentation = "enterprise" }: { presentation?: RuntimePresentati
     if (!canOpenOrganization) return;
     setActiveView("configure");
     setTarget({});
-    if (window.location.hash !== "#configure/access") window.location.hash = "#configure/access";
+    if (window.location.hash !== "#configure/access/positions") window.location.hash = "#configure/access/positions";
   }
 
   function cancelVendorGuideIntent(reason: string) {

@@ -6,9 +6,11 @@ import { AutomationSection } from "./AutomationSection";
 import { ConfigureNavigation } from "./ConfigureNavigation";
 import { ConfigureOverview } from "./ConfigureOverview";
 import { DataIntegrationsSection } from "./DataIntegrationsSection";
+import { EnterpriseSetupSection } from "./EnterpriseSetupSection";
 import { PeopleAccessSection } from "./PeopleAccessSection";
 import { SystemOperationsSection } from "./SystemOperationsSection";
 import { configurationHash, configurationSectionFromHash, type ConfigurationSection } from "./configurationSections";
+import { enterpriseSetupRoute } from "./enterpriseSetupRouting";
 
 type Props = {
   importsEnabled: boolean;
@@ -40,6 +42,7 @@ export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onO
     if (window.location.hash !== next) window.history.pushState(null, "", next);
   }
 
+  if (enterpriseSetupRoute(hash)) return <EnterpriseSetupSection hash={hash} onNavigate={navigate} runtimeContext={runtimeContext} importsEnabled={importsEnabled} onOpenImports={onOpenImports}/>;
   if (section === "access" || section === "authority") return <PeopleAccessSection hash={hash} onNavigate={navigate} runtimeContext={runtimeContext}/>;
 
   return <div className="configure-workspace" id="configure-workspace">

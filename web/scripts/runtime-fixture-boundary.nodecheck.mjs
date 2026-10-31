@@ -13,6 +13,8 @@ const forbiddenRuntimeMarkers = [
   "ui-gallery",
   "notificationWorkspaceEvidence",
   "peopleAccessEvidence",
+  "staticDemoEnterpriseSetupRuntime",
+  "enterpriseSetupEvidence",
   "VITE_STATIC_DEMO",
   "VITE_UI_EVIDENCE",
 ];

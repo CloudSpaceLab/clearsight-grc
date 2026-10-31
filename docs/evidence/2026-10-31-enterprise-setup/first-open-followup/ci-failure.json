@@ -1,0 +1,83 @@
+{
+  "kind": "FAILED_CI_WITH_SUCCESSFUL_BACKEND",
+  "reviewer": "/root/work_contract",
+  "workflow": {
+    "id": 41203345467,
+    "url": "https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/41203345467",
+    "attempt": 1,
+    "event": "pull_request",
+    "status": "completed",
+    "conclusion": "failure",
+    "head": "c1d5185e769cf2c555b6fc83bafd1beeedd61d7f",
+    "completedAt": "2026-10-31T13:05:29Z"
+  },
+  "checkout": {
+    "actualBothJobLogs": "8b3712b67036f3d74da9f09bcc24737ab8b058eb",
+    "tree": "23a20a10a165a84b9f3be111a358d21a1374b054",
+    "parents": [
+      "c40f4edd7ad4107fc2b36ebfd65af87bd5d5502b",
+      "c1d5185e769cf2c555b6fc83bafd1beeedd61d7f"
+    ],
+    "proof": "Both terminal job logs explicitly print this full checkout SHA; Git commit API independently gives this tree and these parents. Published head has the same tree."
+  },
+  "web": {
+    "id": 124543387376,
+    "url": "https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/41203345467/job/124543387376",
+    "status": "completed",
+    "conclusion": "failure",
+    "startedAt": "2026-10-31T12:57:03Z",
+    "completedAt": "2026-10-31T13:00:19Z",
+    "tests": {
+      "filesPassed": 276,
+      "filesFailed": 1,
+      "totalFiles": 277,
+      "testsPassed": 2298,
+      "testsFailed": 1,
+      "totalTests": 2299,
+      "durationSeconds": 169.12
+    },
+    "failure": {
+      "file": "web/src/components/IdentityAccessPanel.progressive.test.tsx",
+      "test": "keeps access inventory primary and opens one focused creation workflow at a time",
+      "line": 126,
+      "message": "Unable to find an element with the text: Ada Okafor.",
+      "precedingAction": "Single fireEvent.click on Positions & roles",
+      "observed": "Failure DOM contains Organization tree and no sheet"
+    },
+    "typecheck": "PASS",
+    "runtimeFixtureBoundary": "PASS",
+    "customerBuild": "SKIPPED_AFTER_TEST_FAILURE"
+  },
+  "backend": {
+    "id": 124543387599,
+    "url": "https://github.com/CloudSpaceLab/clearsight-grc/actions/runs/41203345467/job/124543387599",
+    "status": "completed",
+    "conclusion": "success",
+    "startedAt": "2026-10-31T12:57:03Z",
+    "completedAt": "2026-10-31T13:05:29Z",
+    "racePackages": 57,
+    "deploymentVerifierTests": 35,
+    "postgresCompositionPackages": 57,
+    "migrationLedger": {
+      "uniqueApplications": 155,
+      "first": "000001_foundation.up.sql",
+      "last": "000138_framework_mapping_review.up.sql",
+      "rerunChecks": "PASS",
+      "checksumMismatchNegativeCheck": "PASS",
+      "referenceVerifierTests": 8
+    },
+    "sourceAccess": "PASS incl. binding migration rollback/reapply",
+    "aiGatewayT3": "PASS",
+    "aiGovernanceT4T5": "PASS",
+    "v1ContractGate": "PASS incl. 5 web tests",
+    "realPostgresIntegration": {
+      "packages": 53,
+      "command": "go test -count=1 -p 1 -tags \"postgres postgresintegration\" ./internal/... ./cmd/seed-bank-reference",
+      "seedBankReferenceSeconds": 77.8
+    },
+    "oversightHistoryAndProjection": "PASS",
+    "goVet": "PASS",
+    "failedSteps": []
+  },
+  "limitation": "This CI run failed and does not validate the later lifecycle correction or authorize merge."
+}

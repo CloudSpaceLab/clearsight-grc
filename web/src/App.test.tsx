@@ -505,6 +505,23 @@ describe("notification shell integration", () => {
 });
 
 describe("legal entity scope selector", () => {
+  it("opens Enterprise Setup Organization from the scope selector's Organization & access action", async () => {
+    const scoped = switchableRuntime();
+    scoped.capabilities.identity_read = true;
+    scoped.capabilities.config_read = true;
+    vi.mocked(loadContext).mockResolvedValue(scoped);
+    render(<App/>);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Organization scope/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Change organization scope" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Organization & access" }));
+    await waitFor(() => expect(window.location.hash).toBe("#configure/access/positions"));
+    // The route starts a lazy workspace import; wait for that dependency rather
+    // than making the DOM query's deadline depend on concurrent suite transforms.
+    await act(async () => { await vi.dynamicImportSettled(); });
+    expect(await screen.findByRole("heading", { name: "Enterprise setup" })).toBeTruthy();
+  });
+
   it("keeps the context bar quiet when only one scope is available", async () => {
     vi.mocked(loadContext).mockResolvedValue(runtime(false));
     render(<App/>);

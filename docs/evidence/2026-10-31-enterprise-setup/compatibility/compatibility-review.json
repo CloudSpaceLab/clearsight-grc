@@ -1,0 +1,38 @@
+{
+  "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "status": "PASS",
+  "reviewer": "/root/ci_review",
+  "runtime": {
+    "revision": "2264dfd18bc070fe6d5260422272b1533966b8dc",
+    "tree": "a56a650c8e087d27c2f29ff9595a1936c6dd1361",
+    "buildDigest": "7d92d25660e43fdf132676b7f3099ef82430bbd763422c00a12045b0a5e5acc3"
+  },
+  "configuration": {
+    "status": "PASS",
+    "scenarios": 10,
+    "positionHeaders": 2
+  },
+  "people": {
+    "name": "People/access original-layout behavior",
+    "status": "PASS",
+    "detail": "92 bounded directory/roles/routes/delegation states; original-layout pair review retained separately",
+    "scenarios": 92
+  },
+  "imagesVerified": 107,
+  "instructionHashes": {
+    "scripts/capture-configuration-evidence.mjs": "168a8006ba5a2cff74510166a903c596896b1a07d3331922feed81f6af1824e7",
+    "scripts/capture-people-access-evidence.mjs": "fec36b3994bc3aec2de65d3ea43a44fd1295d49405809e97d4a58aee1b3c4407",
+    "scripts/people-access-evidence.mjs": "445a645f3bfd92f43672e19f37fc410ae4ce7abfaee92ec2ccb2fd8532bbd677",
+    "scripts/people-access-evidence-scenarios.mjs": "f5f4532937f73a1fede0adb6b2797d0ac236f0d09666320a9c083331ff980668",
+    "scripts/people-access-evidence-contract.mjs": "84d95655477864eec053c9cfaa830567c67beadeed8d0281b5a1708bbc2014bf"
+  },
+  "visualInspection": [
+    "390 px dark retained position header: readable painted heading, filters and actions; no overlap",
+    "600 px light retained position header: readable painted heading, filters and actions; no overlap"
+  ],
+  "limitations": [
+    "Compatibility review only; original/runtime Enterprise layout review is retained separately.",
+    "Synthetic browser transport does not prove backend authorization, four-actor execution or production acceptance."
+  ],
+  "failures": []
+}

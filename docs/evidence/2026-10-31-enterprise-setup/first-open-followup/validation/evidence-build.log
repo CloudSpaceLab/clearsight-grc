@@ -1,0 +1,117 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> @clearsight/web@0.1.0 build:evidence
+> tsc -b && vite build --config vite.evidence.config.ts
+
+vite v8.1.5 building client environment for production...
+[2Ktransforming...✓ 1834 modules transformed.
+rendering chunks...
+computing gzip size...
+dist-evidence/index.html                                        4.55 kB │ gzip:   1.06 kB
+dist-evidence/assets/staticDemoFixtures-B_3l5bJf.json          23.04 kB │ gzip:   5.19 kB
+dist-evidence/assets/staticDemoWorkflowRuntime-BhTozA-3.js     41.43 kB
+dist-evidence/assets/SentFormDetail-DFR_kdL0.css                0.48 kB │ gzip:   0.26 kB
+dist-evidence/assets/GroupOversightWorkspace-FAWTwerR.css       1.42 kB │ gzip:   0.46 kB
+dist-evidence/assets/NotificationCenter-y8gwOkyW.css            1.55 kB │ gzip:   0.54 kB
+dist-evidence/assets/ui-BqQkgK9q.css                            1.62 kB │ gzip:   0.58 kB
+dist-evidence/assets/UIComponentGallery-NkyqwFG5.css            1.85 kB │ gzip:   0.61 kB
+dist-evidence/assets/RopaActivityPage-Cuy0NHoh.css              2.12 kB │ gzip:   0.62 kB
+dist-evidence/assets/VendorComplianceOverview-DBsLWXEL.css      3.00 kB │ gzip:   0.71 kB
+dist-evidence/assets/indicatorPresentation-CjxE_j0H.css         3.10 kB │ gzip:   0.64 kB
+dist-evidence/assets/ReportsExplore-DWws9bfr.css                4.17 kB │ gzip:   0.88 kB
+dist-evidence/assets/VendorWorkPanel-CU0uMlLg.css               4.79 kB │ gzip:   1.08 kB
+dist-evidence/assets/BankJourneysWorkspace-2AgH9f2G.css         4.93 kB │ gzip:   1.53 kB
+dist-evidence/assets/RopaRegisterPage-B-mJp67b.css              5.53 kB │ gzip:   1.41 kB
+dist-evidence/assets/form-policies-d4RnLy_e.css                 5.59 kB │ gzip:   1.15 kB
+dist-evidence/assets/InsightsWorkspace-Ddu4RP1E.css             5.86 kB │ gzip:   1.32 kB
+dist-evidence/assets/RisksWorkspace-DairWCjP.css                5.89 kB │ gzip:   1.32 kB
+dist-evidence/assets/LossesWorkspace-CfOZfW8N.css               6.59 kB │ gzip:   1.42 kB
+dist-evidence/assets/assessmentFieldResults-CYtGdiIt.css        7.25 kB │ gzip:   1.51 kB
+dist-evidence/assets/RCSAWorkspace-BBbJ8vcX.css                 7.92 kB │ gzip:   1.69 kB
+dist-evidence/assets/ResponseAssessment-DYFP7xBk.css            9.31 kB │ gzip:   1.82 kB
+dist-evidence/assets/DistributionComposer-DLeZxbLt.css          9.37 kB │ gzip:   1.92 kB
+dist-evidence/assets/ropa-BZkz5VZm.css                         12.27 kB │ gzip:   2.13 kB
+dist-evidence/assets/oversight-B7GD29gG.css                    13.48 kB │ gzip:   2.96 kB
+dist-evidence/assets/NotificationsWorkspace-BAmZg4MJ.css       14.88 kB │ gzip:   2.32 kB
+dist-evidence/assets/ReportsWorkspace-BE7QasEr.css             18.72 kB │ gzip:   2.98 kB
+dist-evidence/assets/FormBuilder-DkNz5EQ_.css                  24.47 kB │ gzip:   4.74 kB
+dist-evidence/assets/forms-foundation-CINn4wyp.css             49.49 kB │ gzip:   8.13 kB
+dist-evidence/assets/VendorsWorkspace-C9VxQNwU.css             55.71 kB │ gzip:   8.61 kB
+dist-evidence/assets/SessionGate-DQGLgUmf.css                  55.74 kB │ gzip:   8.69 kB
+dist-evidence/assets/ConfigureWorkspace-Bp-P8t-f.css           67.88 kB │ gzip:  10.18 kB
+dist-evidence/assets/App-CRJdUh3q.css                          71.05 kB │ gzip:  11.34 kB
+dist-evidence/assets/index-BLwgMqzN.css                       180.06 kB │ gzip:  30.62 kB
+dist-evidence/assets/FocusedSheet-BR3anp65.js                   0.03 kB │ gzip:   0.05 kB
+dist-evidence/assets/FormBuilder-DkzwJtkX.js                    0.07 kB │ gzip:   0.07 kB
+dist-evidence/assets/OversightWorkspace-CtnMHrHC.js             0.08 kB │ gzip:   0.08 kB
+dist-evidence/assets/GroupOversightWorkspace-CotmzzEf.js        0.09 kB │ gzip:   0.08 kB
+dist-evidence/assets/groupOversightApi-CM8Hxwyf.js              0.19 kB │ gzip:   0.18 kB │ map:     1.79 kB
+dist-evidence/assets/EmptyState-BhTs_6Db.js                     0.43 kB │ gzip:   0.31 kB │ map:     1.19 kB
+dist-evidence/assets/controlCatalogApi-Ce1062jj.js              0.50 kB │ gzip:   0.36 kB │ map:     2.25 kB
+dist-evidence/assets/indicatorApi-D0EDXQnA.js                   0.52 kB │ gzip:   0.32 kB │ map:     1.57 kB
+dist-evidence/assets/vendorFormsApi-DBEyKbo7.js                 0.59 kB │ gzip:   0.39 kB │ map:     4.22 kB
+dist-evidence/assets/WorkspaceErrorBoundary-D6Uj8R6Z.js         0.78 kB │ gzip:   0.45 kB │ map:     1.71 kB
+dist-evidence/assets/reportingPeriod-ChMy94oa.js                0.83 kB │ gzip:   0.48 kB │ map:     3.02 kB
+dist-evidence/assets/homeMetricPresentation-DRPLOH6L.js         1.12 kB │ gzip:   0.60 kB │ map:     3.37 kB
+dist-evidence/assets/systemActivityApi-W5xC4wFJ.js              1.18 kB │ gzip:   0.57 kB │ map:     3.58 kB
+dist-evidence/assets/preload-helper-Czpn1I53.js                 1.19 kB │ gzip:   0.67 kB
+dist-evidence/assets/lossApi-B_TcBYnM.js                        1.21 kB │ gzip:   0.51 kB │ map:     4.15 kB
+dist-evidence/assets/NotificationCenter-C0mw7PUY.js             1.25 kB │ gzip:   0.71 kB │ map:     2.63 kB
+dist-evidence/assets/WorkItemIcon-kUXpzmct.js                   1.33 kB │ gzip:   0.61 kB │ map:     2.71 kB
+dist-evidence/assets/formPoliciesApi-CW2ZHZyP.js                1.54 kB │ gzip:   0.58 kB │ map:     8.92 kB
+dist-evidence/assets/ropa-CSq7WkIC.js                           1.54 kB │ gzip:   0.76 kB │ map:     5.54 kB
+dist-evidence/assets/http-NFAQrmHm.js                           2.48 kB │ gzip:   1.14 kB │ map:     7.53 kB
+dist-evidence/assets/reportingApi-UzpgZ86d.js                   2.58 kB │ gzip:   1.10 kB │ map:    12.70 kB
+dist-evidence/assets/lossPresentation-DWiNJvkI.js               2.74 kB │ gzip:   1.27 kB │ map:     8.85 kB
+dist-evidence/assets/NotificationDeliveryHistory-DaR-smUH.js    2.75 kB │ gzip:   1.14 kB │ map:     8.18 kB
+dist-evidence/assets/MetricMemberDrill-B0CtEfQ6.js              2.89 kB │ gzip:   1.22 kB │ map:     7.22 kB
+dist-evidence/assets/OversightPeriodPicker-D_xiv7tA.js          2.95 kB │ gzip:   1.20 kB │ map:     7.48 kB
+dist-evidence/assets/monitoringApi-DIdjscUN.js                  3.06 kB │ gzip:   1.03 kB │ map:     9.31 kB
+dist-evidence/assets/formsApi-Bu51RPL0.js                       3.07 kB │ gzip:   1.00 kB │ map:    10.01 kB
+dist-evidence/assets/useRiskLossMetrics-U-M2bDtE.js             3.24 kB │ gzip:   1.44 kB │ map:    10.64 kB
+dist-evidence/assets/NavigationIcon-Cw28lXWO.js                 3.37 kB │ gzip:   1.08 kB │ map:     6.86 kB
+dist-evidence/assets/EmployeeProfileWorkspace-DQL7MfF3.js       3.94 kB │ gzip:   1.30 kB │ map:     8.36 kB
+dist-evidence/assets/lossOverviewPresentation-3X01BhiZ.js       3.94 kB │ gzip:   1.36 kB │ map:    18.78 kB
+dist-evidence/assets/indicatorPresentation-CikXSk_C.js          4.06 kB │ gzip:   1.59 kB │ map:    12.75 kB
+dist-evidence/assets/identityAccessApi-COeRCgsk.js              4.65 kB │ gzip:   0.99 kB │ map:    24.13 kB
+dist-evidence/assets/oversight-D8mON0Hr.js                      4.80 kB │ gzip:   1.96 kB │ map:    12.77 kB
+dist-evidence/assets/api-BWTJJbXX.js                            5.42 kB │ gzip:   1.82 kB │ map:    24.47 kB
+dist-evidence/assets/jsx-runtime-BKllkxft.js                    8.45 kB │ gzip:   3.25 kB │ map:    28.99 kB
+dist-evidence/assets/ResponseBrowser-B4GufTj0.js                8.90 kB │ gzip:   3.22 kB │ map:    23.35 kB
+dist-evidence/assets/IndicatorDetail-BcsB6McF.js                9.72 kB │ gzip:   2.98 kB │ map:    25.04 kB
+dist-evidence/assets/assessmentFieldResults-JN5KNzXT.js         9.77 kB │ gzip:   3.69 kB │ map:    29.83 kB
+dist-evidence/assets/InsightsWorkspace-D-lPUeu9.js             11.81 kB │ gzip:   3.75 kB │ map:    37.04 kB
+dist-evidence/assets/form-policies-D6BFWxDb.js                 12.81 kB │ gzip:   3.97 kB │ map:    28.35 kB
+dist-evidence/assets/RopaActivityPage-Cuf48Qkd.js              13.17 kB │ gzip:   3.84 kB │ map:    34.43 kB
+dist-evidence/assets/OrganizationLossSummary-BsPoebb6.js       13.31 kB │ gzip:   4.59 kB │ map:    41.06 kB
+dist-evidence/assets/BankJourneysWorkspace-Duyh7Vxl.js         13.32 kB │ gzip:   4.07 kB │ map:    35.45 kB
+dist-evidence/assets/SentFormDetail-Dds479kg.js                14.01 kB │ gzip:   4.33 kB │ map:    34.50 kB
+dist-evidence/assets/VendorComplianceOverview-C-RivCVM.js      14.63 kB │ gzip:   5.19 kB │ map:    37.78 kB
+dist-evidence/assets/ReportsExplore-CoLWM652.js                14.79 kB │ gzip:   5.00 kB │ map:    42.98 kB
+dist-evidence/assets/RopaRegisterPage-CyJkeUJm.js              14.85 kB │ gzip:   4.71 kB │ map:    35.73 kB
+dist-evidence/assets/FormPoliciesView-Cro4awCi.js              15.76 kB │ gzip:   5.00 kB │ map:    37.10 kB
+dist-evidence/assets/RCSAWorkspace-BDCj0JOT.js                 15.86 kB │ gzip:   4.37 kB │ map:    38.99 kB
+dist-evidence/assets/FormProposalReview-IQs_OAFC.js            15.93 kB │ gzip:   4.96 kB │ map:    40.54 kB
+dist-evidence/assets/GroupOversightWorkspace-Dualqarz.js       16.87 kB │ gzip:   5.09 kB │ map:    49.15 kB
+dist-evidence/assets/DistributionComposer-DlZkmtqc.js          17.73 kB │ gzip:   5.64 kB │ map:    57.43 kB
+dist-evidence/assets/UIComponentGallery-BB5CmhVs.js            20.71 kB │ gzip:   6.17 kB │ map:    40.35 kB
+dist-evidence/assets/OversightWorkspace-stoeUz5a.js            22.68 kB │ gzip:   6.96 kB │ map:    64.18 kB
+dist-evidence/assets/LossesWorkspace-DjV2XM1m.js               23.33 kB │ gzip:   6.69 kB │ map:    64.89 kB
+dist-evidence/assets/NotificationsWorkspace-DjMDeB4y.js        26.09 kB │ gzip:   7.57 kB │ map:    62.74 kB
+dist-evidence/assets/FormPreview-CvbhFbBW.js                   29.58 kB │ gzip:   8.14 kB │ map:    77.59 kB
+dist-evidence/assets/RisksWorkspace-PGvdUbdh.js                30.81 kB │ gzip:   8.38 kB │ map:    84.76 kB
+dist-evidence/assets/VendorWorkPanel-mZ7t6TU4.js               30.94 kB │ gzip:   8.97 kB │ map:    80.35 kB
+dist-evidence/assets/ResponseAssessment-O4INgzad.js            40.66 kB │ gzip:  11.86 kB │ map:   107.98 kB
+dist-evidence/assets/ReportsWorkspace-DBjqvq6a.js              50.50 kB │ gzip:  13.85 kB │ map:   123.93 kB
+dist-evidence/assets/FormsWorkspace-xKcJHJjE.js                65.19 kB │ gzip:  18.66 kB │ map:   180.77 kB
+dist-evidence/assets/FormBuilder-DdR_LmeP.js                   84.30 kB │ gzip:  22.33 kB │ map:   233.20 kB
+dist-evidence/assets/FocusedSheet-DrnLjgsp.js                 100.42 kB │ gzip:  32.36 kB │ map:   663.10 kB
+dist-evidence/assets/ui-IvtL9fgR.js                           122.84 kB │ gzip:  37.50 kB │ map:   625.18 kB
+dist-evidence/assets/SessionGate-BfT4kDfY.js                  166.98 kB │ gzip:  42.07 kB │ map:   439.80 kB
+dist-evidence/assets/VendorsWorkspace-_4-JsVQ6.js             179.70 kB │ gzip:  46.41 kB │ map:   474.48 kB
+dist-evidence/assets/ConfigureWorkspace-BCgDzCus.js           223.45 kB │ gzip:  53.55 kB │ map:   593.90 kB
+dist-evidence/assets/CommunicationsView-j-h_UrK5.js           266.82 kB │ gzip:  82.75 kB │ map:   756.11 kB
+dist-evidence/assets/App-D4Trd5lc.js                          440.77 kB │ gzip: 104.49 kB │ map: 1,056.03 kB
+dist-evidence/assets/index-Cu2M5UiU.js                        480.16 kB │ gzip: 136.84 kB │ map: 1,493.14 kB
+
+✓ built in 1.18s

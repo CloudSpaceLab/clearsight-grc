@@ -6,6 +6,7 @@ export type TabItem<T extends string> = { id: T; label: string; isContextual?: b
 
 export type TabsProps<T extends string> = {
   variant?: "underline" | "surface";
+  keyboardActivation?: "automatic" | "manual";
   ariaLabel: string;
   compactLabel?: string;
   retainVisitedPanels?: boolean;
@@ -15,7 +16,7 @@ export type TabsProps<T extends string> = {
   children: (key: T) => ReactNode;
 };
 
-export function Tabs<T extends string>({ ariaLabel, compactLabel, variant = "underline", retainVisitedPanels = false, items, selectedKey, onSelectionChange, children }: TabsProps<T>) {
+export function Tabs<T extends string>({ ariaLabel, compactLabel, variant = "underline", keyboardActivation = "automatic", retainVisitedPanels = false, items, selectedKey, onSelectionChange, children }: TabsProps<T>) {
   // Contextual destinations are entered by a command elsewhere in the workspace.
   // Keep their panel identity even while their inactive trigger is absent.
   const visibleItems = items.filter((item) => !item.isContextual || item.id === selectedKey);
@@ -55,7 +56,7 @@ export function Tabs<T extends string>({ ariaLabel, compactLabel, variant = "und
     if (typeof key === "string" && key !== selectedKey) onSelectionChange(key as T);
   }
 
-  return <AriaTabs className={`cs-tabs${variant === "surface" ? " cs-tabs--surface" : ""}${compactLabel ? " cs-tabs--compact-select" : ""}`} selectedKey={selectedKey} onSelectionChange={select} keyboardActivation="automatic">
+  return <AriaTabs className={`cs-tabs${variant === "surface" ? " cs-tabs--surface" : ""}${compactLabel ? " cs-tabs--compact-select" : ""}`} selectedKey={selectedKey} onSelectionChange={select} keyboardActivation={keyboardActivation}>
     {compactLabel && <div className="cs-tabs__compact"><SelectField label={compactLabel} value={selectedKey} placeholder={compactLabel}
       options={visibleItems} allowsEmpty={false} onChange={(key) => { if (key !== undefined && key !== selectedKey) onSelectionChange(key); }}/></div>}
     <TabList aria-label={ariaLabel} className="cs-tabs__list" items={visibleItems} dependencies={[selectedKey]}>

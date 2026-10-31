@@ -1,0 +1,16 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> @clearsight/web@0.1.0 check:ui-contracts
+> node --test scripts/ui-contract.nodecheck.mjs scripts/review-ui-flow-manifest.nodecheck.mjs scripts/forms-evidence-scenarios.nodecheck.mjs
+
+✔ scripts/forms-evidence-scenarios.nodecheck.mjs (134.10524ms)
+✔ scripts/review-ui-flow-manifest.nodecheck.mjs (2310.040714ms)
+✔ scripts/ui-contract.nodecheck.mjs (350.311065ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2324.396216

@@ -1,0 +1,9 @@
+{
+  "reviewer": "/root/ci_review",
+  "kind": "ARCHIVED_INPUTS_AND_IMAGES_REPLAY",
+  "revision": "5381850f1f2ebff340e4d9fde57e197253da0348",
+  "buildDigest": "28e6d798572e8d37da39a977b639694fb68842515f73b4011517ff51cfe3d4b1",
+  "status": "PASS",
+  "failures": [],
+  "detail": "10 layouts, 11 behavior scenarios, 42 retained images; whole-screen acceptance not assessed"
+}

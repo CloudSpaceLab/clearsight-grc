@@ -1,0 +1,8 @@
+{
+  "reviewer": "/root/people_integration",
+  "kind": "ARCHIVED_INPUTS_AND_IMAGES_REPLAY",
+  "revision": "613f07f705c383201f576504f7debf7b84592151",
+  "digest": "28e6d798572e8d37da39a977b639694fb68842515f73b4011517ff51cfe3d4b1",
+  "failures": [],
+  "detail": "10 layouts, 11 behavior scenarios, 42 retained images; whole-screen acceptance not assessed"
+}

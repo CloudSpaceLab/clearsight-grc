@@ -55,7 +55,6 @@ it("keeps governance and organization operations reachable without duplicating t
   fireEvent.click(screen.getByRole("button", { name: "Routing checks" }));
   expect(screen.getByText("Routing checks only")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Organization settings" }));
-  expect(screen.getByRole("region", { name: "Identity positions" })).toBeTruthy();
   expect(window.location.hash).toBe("#configure/access/positions");
   expect(screen.queryByRole("navigation", { name: "Configuration areas" })).toBeNull();
   expect(screen.getByRole("link", { name: "Settings" })).toHaveProperty("hash", "#configure");
@@ -76,13 +75,20 @@ it("waits for verified context and resets retained state when the actor or legal
   expect(loads.identity).toHaveBeenLastCalledWith("people", "tenant:new-entity:actor");
 });
 
-it("remounts secondary area owners when navigating within Organization settings", () => {
+it("hands selected People records to the canonical Enterprise Setup owner", () => {
+  const navigate = vi.fn();
+  render(<PeopleAccessSection hash="#configure/access?person=person-2&role=role-3" onNavigate={navigate} runtimeContext={context}/>);
+  fireEvent.click(screen.getByRole("button", { name: "Organization settings" }));
+  expect(navigate).toHaveBeenCalledWith("#configure/access/positions?person=person-2&role=role-3");
+});
+
+it("remounts the retained secondary owners when navigating between Provisioning and Reporting lines", () => {
   const navigate = vi.fn();
   const { rerender } = render(<PeopleAccessSection hash="#configure/access/directory" onNavigate={navigate} runtimeContext={context}/>);
   const provisioning = screen.getByRole("region", { name: "Identity directory" });
   fireEvent.change(within(provisioning).getByLabelText("Directory search"), { target: { value: "Previous form state" } });
-  rerender(<PeopleAccessSection hash="#configure/access/positions" onNavigate={navigate} runtimeContext={context}/>);
-  expect(screen.getByRole("region", { name: "Identity positions" })).not.toBe(provisioning);
+  rerender(<PeopleAccessSection hash="#configure/access/reporting" onNavigate={navigate} runtimeContext={context}/>);
+  expect(screen.getByRole("region", { name: "Identity reporting" })).not.toBe(provisioning);
   expect(provisioning.isConnected).toBe(false);
   rerender(<PeopleAccessSection hash="#configure/access/directory" onNavigate={navigate} runtimeContext={context}/>);
   const next = screen.getByRole("region", { name: "Identity directory" });

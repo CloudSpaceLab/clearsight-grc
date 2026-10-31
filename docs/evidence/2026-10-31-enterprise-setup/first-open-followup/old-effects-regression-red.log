@@ -1,0 +1,166 @@
+
+ RUN  v4.1.7 /workspace/scratch/aa58e6ac8126/clearsight-grc/web
+
+ ↓ src/components/IdentityAccessPanel.progressive.test.tsx > keeps access inventory primary and opens one focused creation workflow at a time
+ × src/components/IdentityAccessPanel.progressive.test.tsx > keeps the first positions sheet open when activated as the overview arrives 1032ms
+   → Unable to find role="dialog" and name "Positions & roles"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33maria-label[39m=[32m"Identity and access configuration"[39m
+      [33mclass[39m=[32m"identity-access-panel"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"section-header identity-access-heading"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mOrganization & access[0m
+          [36m</span>[39m
+          [36m<h2>[39m
+            [0mOrganization & access[0m
+          [36m</h2>[39m
+        [36m</div>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"identity-health"[39m
+        [36m>[39m
+          [0m1[0m
+          [0m active source[0m
+        [36m</span>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33maria-label[39m=[32m"Identity and access areas"[39m
+        [33mclass[39m=[32m"identity-access-tabs"[39m
+        [33mrole[39m=[32m"t...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33maria-label[39m=[32m"Identity and access configuration"[39m
+      [33mclass[39m=[32m"identity-access-panel"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"section-header identity-access-heading"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mOrganization & access[0m
+          [36m</span>[39m
+          [36m<h2>[39m
+            [0mOrganization & access[0m
+          [36m</h2>[39m
+        [36m</div>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"identity-health"[39m
+        [36m>[39m
+          [0m1[0m
+          [0m active source[0m
+        [36m</span>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33maria-label[39m=[32m"Identity and access areas"[39m
+        [33mclass[39m=[32m"identity-access-tabs"[39m
+        [33mrole[39m=[32m"t...
+ ↓ src/components/IdentityAccessPanel.progressive.test.tsx > proposes a new position with occupant and reporting line from the Organization tab
+ ↓ src/components/IdentityAccessPanel.progressive.test.tsx > governs workspace roles and keeps policy-managed roles read-only
+ ↓ src/components/IdentityAccessPanel.progressive.test.tsx > shows pending workspace role changes for independent approval
+ ↓ src/components/IdentityAccessPanel.progressive.test.tsx > shows pending position changes for independent approval
+ ↓ src/components/IdentityAccessPanel.progressive.test.tsx > shows active work impact before approving an occupant change
+ ↓ src/components/IdentityAccessPanel.progressive.test.tsx > proposes a governed restore from applied position history
+ ↓ src/components/IdentityAccessPanel.progressive.test.tsx > proposes a new organization area from the Organization tab
+ ↓ src/components/IdentityAccessPanel.progressive.test.tsx > shows pending organization changes for independent approval
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 skipped (10)
+   Start at  14:06:30
+   Duration  2.70s (transform 352ms, setup 103ms, import 770ms, tests 1.03s, environment 669ms)
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/IdentityAccessPanel.progressive.test.tsx > keeps the first positions sheet open when activated as the overview arrives
+TestingLibraryElementError: Unable to find role="dialog" and name "Positions & roles"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33maria-label[39m=[32m"Identity and access configuration"[39m
+      [33mclass[39m=[32m"identity-access-panel"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"section-header identity-access-heading"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mOrganization & access[0m
+          [36m</span>[39m
+          [36m<h2>[39m
+            [0mOrganization & access[0m
+          [36m</h2>[39m
+        [36m</div>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"identity-health"[39m
+        [36m>[39m
+          [0m1[0m
+          [0m active source[0m
+        [36m</span>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33maria-label[39m=[32m"Identity and access areas"[39m
+        [33mclass[39m=[32m"identity-access-tabs"[39m
+        [33mrole[39m=[32m"t...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33maria-label[39m=[32m"Identity and access configuration"[39m
+      [33mclass[39m=[32m"identity-access-panel"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"section-header identity-access-heading"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mOrganization & access[0m
+          [36m</span>[39m
+          [36m<h2>[39m
+            [0mOrganization & access[0m
+          [36m</h2>[39m
+        [36m</div>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"identity-health"[39m
+        [36m>[39m
+          [0m1[0m
+          [0m active source[0m
+        [36m</span>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33maria-label[39m=[32m"Identity and access areas"[39m
+        [33mclass[39m=[32m"identity-access-tabs"[39m
+        [33mrole[39m=[32m"t...
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ src/components/IdentityAccessPanel.progressive.test.tsx:177:33
+    175|   try {
+    176|     render(<IdentityAccessPanel/>);
+    177|     const dialog = await screen.findByRole("dialog", { name: "Position…
+       |                                 ^
+    178|     expect(activations).toBe(1);
+    179|     expect(within(dialog).getByText("Ada Okafor")).toBeTruthy();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
