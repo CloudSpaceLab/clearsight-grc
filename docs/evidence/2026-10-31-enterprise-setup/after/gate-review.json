@@ -1,0 +1,1105 @@
+{
+  "failures": [],
+  "detail": "10 layouts, 11 behavior scenarios, 42 retained images; whole-screen acceptance not assessed",
+  "revision": "613f07f705c383201f576504f7debf7b84592151",
+  "digest": "28e6d798572e8d37da39a977b639694fb68842515f73b4011517ff51cfe3d4b1",
+  "publishedRevision": "74603165763e69d00b8dc2cb8e804225053f6a68",
+  "tree": "c9adf95492efe0942d3d5803d9184ddb19ae6183",
+  "receiptSHA256": "3ac8caa8a93ba6eb2e5bf8e6440e6a7c75f338835be5f468b39a82ba348fafd0",
+  "imagesManifestSHA256": "160f61e07bd372c868a79b47a8005b366d742f2380f95882b7845afda9a65ad2",
+  "imageBytes": 4652719,
+  "inputs": {
+    "fixtureSHA256": "8b339301595a9525f3b21e22f88b0d5438e6679a3df63cd1d7d1a5158db444d8",
+    "captureSHA256": "b145c21a2ea5d57d9f0200ac7d4d8e34f8c948ef8d29582ec63431066c93a1ef",
+    "reviewerSHA256": "1595d0303e5df1dd1a246722764903ece1c6280d0f31e5d58fb8cabc29bfbb31"
+  },
+  "unchangedBuild": true,
+  "priorIdentical": 30,
+  "priorChanged": [
+    "layout-light-1280.png",
+    "layout-dark-1280.png",
+    "layout-light-768.png",
+    "layout-dark-768.png",
+    "layout-light-390.png",
+    "layout-light-390-full.png",
+    "layout-dark-390.png",
+    "layout-dark-390-full.png",
+    "selection-search-history-dark-390.png",
+    "empty.png",
+    "truncated.png",
+    "recovery.png"
+  ],
+  "imageBindings": [
+    {
+      "file": "source-organization-1440.png",
+      "finalSHA256": "a74b37773e65afae559fbbb6d37ee4cc0549fa283ba8749d050fa174c2d6c963",
+      "previousSHA256": "a74b37773e65afae559fbbb6d37ee4cc0549fa283ba8749d050fa174c2d6c963",
+      "identical": true
+    },
+    {
+      "file": "layout-light-1440.png",
+      "finalSHA256": "548de4a35720071b54e86a06fc5db0961518c7129ec27077569478972ca17798",
+      "previousSHA256": "548de4a35720071b54e86a06fc5db0961518c7129ec27077569478972ca17798",
+      "identical": true
+    },
+    {
+      "file": "layout-light-1440-full.png",
+      "finalSHA256": "f8a7b16e5757229cbd9c9564441581919d6a8f1bae7c33fea8de838230dd3aea",
+      "previousSHA256": "f8a7b16e5757229cbd9c9564441581919d6a8f1bae7c33fea8de838230dd3aea",
+      "identical": true
+    },
+    {
+      "file": "layout-dark-1440.png",
+      "finalSHA256": "f887ba00bedd7124a9f6a3c64c70afb050d129ca96ba5ed459a431247ad1411d",
+      "previousSHA256": "f887ba00bedd7124a9f6a3c64c70afb050d129ca96ba5ed459a431247ad1411d",
+      "identical": true
+    },
+    {
+      "file": "layout-dark-1440-full.png",
+      "finalSHA256": "5944d742bd32f7cadf421407693b8db074127cc9a690590187bd109e2c89ff78",
+      "previousSHA256": "5944d742bd32f7cadf421407693b8db074127cc9a690590187bd109e2c89ff78",
+      "identical": true
+    },
+    {
+      "file": "source-organization-1280.png",
+      "finalSHA256": "655ab34c554ff2a4b3620596fa0146b13f9cfdde298e70f889cdd51c61ce8187",
+      "previousSHA256": "655ab34c554ff2a4b3620596fa0146b13f9cfdde298e70f889cdd51c61ce8187",
+      "identical": true
+    },
+    {
+      "file": "source-organization-1280-context.png",
+      "finalSHA256": "2b13d91757559569d7996d26c3275771e54d9fd8381770c49ba5306c714992f0",
+      "previousSHA256": "2b13d91757559569d7996d26c3275771e54d9fd8381770c49ba5306c714992f0",
+      "identical": true
+    },
+    {
+      "file": "layout-light-1280.png",
+      "finalSHA256": "1685855569dfd86eaa6ac96f73032210f3ec92d3570400387284b9ca9aacd57c",
+      "previousSHA256": "817d4b7e11e7ee72782063e102ca6eca6cb3deaaae34dd95a83ed87782c1d5b0",
+      "identical": false
+    },
+    {
+      "file": "layout-light-1280-context.png",
+      "finalSHA256": "ab2821a0449e48afdddb6162f2171a8db88cc653679cc5ee5313c63b7f2041ef",
+      "previousSHA256": "ab2821a0449e48afdddb6162f2171a8db88cc653679cc5ee5313c63b7f2041ef",
+      "identical": true
+    },
+    {
+      "file": "layout-dark-1280.png",
+      "finalSHA256": "196d45bb3a198a520c4d96bc54b6e15c2d6ca992fe67891123d987fbfb2d01e6",
+      "previousSHA256": "ccf4d4c8a1e97060288d9734a45a44b4161504243b74b2591d5fa107ec571c67",
+      "identical": false
+    },
+    {
+      "file": "layout-dark-1280-context.png",
+      "finalSHA256": "ec49c2dcea8510c0698f037310e2d0f1cf9abea19e76e602f84c4e061a5c8386",
+      "previousSHA256": "ec49c2dcea8510c0698f037310e2d0f1cf9abea19e76e602f84c4e061a5c8386",
+      "identical": true
+    },
+    {
+      "file": "source-organization-1024.png",
+      "finalSHA256": "323e6fa985146122dd232f6e73fe0a510e25099735868154c9ddfe6c4a88e2c7",
+      "previousSHA256": "323e6fa985146122dd232f6e73fe0a510e25099735868154c9ddfe6c4a88e2c7",
+      "identical": true
+    },
+    {
+      "file": "source-organization-1024-context.png",
+      "finalSHA256": "8b5133457c4047a2e785323046e5bfabeae4c2e53e18a0c228d9f80e78f453f4",
+      "previousSHA256": "8b5133457c4047a2e785323046e5bfabeae4c2e53e18a0c228d9f80e78f453f4",
+      "identical": true
+    },
+    {
+      "file": "layout-light-1024.png",
+      "finalSHA256": "4450df7b1f8a6c848c7277f77aaaca4adf92d04807acb24a8ef9e2262ed0695d",
+      "previousSHA256": "4450df7b1f8a6c848c7277f77aaaca4adf92d04807acb24a8ef9e2262ed0695d",
+      "identical": true
+    },
+    {
+      "file": "layout-light-1024-context.png",
+      "finalSHA256": "28d5211b0e63a2616898443440959df8565243ef6e6ae9408ee72cb6b519a4a6",
+      "previousSHA256": "28d5211b0e63a2616898443440959df8565243ef6e6ae9408ee72cb6b519a4a6",
+      "identical": true
+    },
+    {
+      "file": "layout-dark-1024.png",
+      "finalSHA256": "13cd51823ce573e990af04295c6ebb2d32aa27fb8ff52e246e20c0b7b00ac3dc",
+      "previousSHA256": "13cd51823ce573e990af04295c6ebb2d32aa27fb8ff52e246e20c0b7b00ac3dc",
+      "identical": true
+    },
+    {
+      "file": "layout-dark-1024-context.png",
+      "finalSHA256": "0245d1cf1e6beb253e0c2bd1326d0758f06fa8445dbce5242e3e68ecc9635cdc",
+      "previousSHA256": "0245d1cf1e6beb253e0c2bd1326d0758f06fa8445dbce5242e3e68ecc9635cdc",
+      "identical": true
+    },
+    {
+      "file": "source-organization-768.png",
+      "finalSHA256": "0d0efa224b37259360e2247cae709f37b5c696baa1a25fdf543a1b86c55ffbd9",
+      "previousSHA256": "0d0efa224b37259360e2247cae709f37b5c696baa1a25fdf543a1b86c55ffbd9",
+      "identical": true
+    },
+    {
+      "file": "source-organization-768-context.png",
+      "finalSHA256": "147679cc95bd1aa8e72b6c7aac00dd2cd6d4710b47156623d2c93b210b63b4ce",
+      "previousSHA256": "147679cc95bd1aa8e72b6c7aac00dd2cd6d4710b47156623d2c93b210b63b4ce",
+      "identical": true
+    },
+    {
+      "file": "layout-light-768.png",
+      "finalSHA256": "da0a66205438846656595bbc2793b892bc86860bdb0b979e0f5c4683eeeb40b1",
+      "previousSHA256": "06455770fb1fc190cf28ea843eb1f9562b4c0143980540381ac6eb23e186594f",
+      "identical": false
+    },
+    {
+      "file": "layout-light-768-context.png",
+      "finalSHA256": "b994f4615b4dab6750270970cf6c5423db8b84bd7c209b54e22d9bcbd6691751",
+      "previousSHA256": "b994f4615b4dab6750270970cf6c5423db8b84bd7c209b54e22d9bcbd6691751",
+      "identical": true
+    },
+    {
+      "file": "layout-dark-768.png",
+      "finalSHA256": "0d7c7f56521044e8a4b746ecd68dbd1f59b78b8650e344e5bc2fee3ac54c60d3",
+      "previousSHA256": "bd23beba52411650d015684051b6707114d1ee90381dbe75062578ab86528c86",
+      "identical": false
+    },
+    {
+      "file": "layout-dark-768-context.png",
+      "finalSHA256": "f877864b6f6378c4b37560801471e7fc42c402d70b6cc07ac64237552010caba",
+      "previousSHA256": "f877864b6f6378c4b37560801471e7fc42c402d70b6cc07ac64237552010caba",
+      "identical": true
+    },
+    {
+      "file": "source-organization-390.png",
+      "finalSHA256": "b7d1ac11e34baf4d6b0e9260c33a55108dbc50cb50025aa9ae403dfd60bc3c5a",
+      "previousSHA256": "b7d1ac11e34baf4d6b0e9260c33a55108dbc50cb50025aa9ae403dfd60bc3c5a",
+      "identical": true
+    },
+    {
+      "file": "source-organization-390-context.png",
+      "finalSHA256": "d87e6f0b45378a83958d98a6a819e0f37f701a4d5afd08257c86e9d9fc6a5310",
+      "previousSHA256": "d87e6f0b45378a83958d98a6a819e0f37f701a4d5afd08257c86e9d9fc6a5310",
+      "identical": true
+    },
+    {
+      "file": "layout-light-390.png",
+      "finalSHA256": "0ce21b305963ce62213f11a2e7a2a501a9b552edefaf5bedbd8ad121cb72867c",
+      "previousSHA256": "bfb51b542f9ae5fb576bd263d875e1de13f6613a32d27e3b654f1a0344486dd4",
+      "identical": false
+    },
+    {
+      "file": "layout-light-390-full.png",
+      "finalSHA256": "e7fa0d89aa62492027a486b26f65748e5334a42fda6ca497b667286866775077",
+      "previousSHA256": "4b90b3f4287a048350184ace7b79f39b1627c869f178959d6fe4c8cd0047f08d",
+      "identical": false
+    },
+    {
+      "file": "layout-light-390-context.png",
+      "finalSHA256": "6b9bf4173d3f5bf0a9f143d5f79e619d3e9bbdaa9604e104c96c6c347cda4555",
+      "previousSHA256": "6b9bf4173d3f5bf0a9f143d5f79e619d3e9bbdaa9604e104c96c6c347cda4555",
+      "identical": true
+    },
+    {
+      "file": "layout-dark-390.png",
+      "finalSHA256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b",
+      "previousSHA256": "4322a170af1e236d158ca2c466226ddc3ea3fa99f90d6f824799b5e813c1bec3",
+      "identical": false
+    },
+    {
+      "file": "layout-dark-390-full.png",
+      "finalSHA256": "a39a9f4d0834c2f9e22d0629c2d6dc654213ffd2a0ba54b26991cad21f0ec8f3",
+      "previousSHA256": "2e20539dedfc411ee74becac32c4232ee7672171b48d34db1bff29d78f4cb05f",
+      "identical": false
+    },
+    {
+      "file": "layout-dark-390-context.png",
+      "finalSHA256": "afde9bc59449b4880a1271084806247c7fa8d4393327670548c624a3e087566a",
+      "previousSHA256": "afde9bc59449b4880a1271084806247c7fa8d4393327670548c624a3e087566a",
+      "identical": true
+    },
+    {
+      "file": "selection-search-history-light-1440.png",
+      "finalSHA256": "e38f14e0d6da8c611bcbb4e8aec85cea52122cce7b027cc282426f31caa5ffb9",
+      "previousSHA256": "e38f14e0d6da8c611bcbb4e8aec85cea52122cce7b027cc282426f31caa5ffb9",
+      "identical": true
+    },
+    {
+      "file": "selection-search-history-dark-390.png",
+      "finalSHA256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b",
+      "previousSHA256": "4322a170af1e236d158ca2c466226ddc3ea3fa99f90d6f824799b5e813c1bec3",
+      "identical": false
+    },
+    {
+      "file": "setup-navigation.png",
+      "finalSHA256": "d21c819e56e9526b3a4fe5fbbeb747f9e73db025e46bacda9fa7212ea062848f",
+      "previousSHA256": "d21c819e56e9526b3a4fe5fbbeb747f9e73db025e46bacda9fa7212ea062848f",
+      "identical": true
+    },
+    {
+      "file": "empty.png",
+      "finalSHA256": "97f35ffb0cc0e9896980b2466ee7e74099c79f1a78d66a7d4f3af782dfa516b2",
+      "previousSHA256": "767e46361e440ad7d4ed26a65c90db66c2f164e3aebff610f7857d327fc909b8",
+      "identical": false
+    },
+    {
+      "file": "truncated.png",
+      "finalSHA256": "1260879549ca922259d1188a0bae85f07a8aa139f675accb898d07d095ccf69a",
+      "previousSHA256": "ac309eb2f311e6ca600bf67e14a4076888206b34d0c7438f795f0327ae158cc6",
+      "identical": false
+    },
+    {
+      "file": "denied.png",
+      "finalSHA256": "67706795fcbbcab8e9406c2e3b58efc01df7803b3d15296afd14a63f112f8817",
+      "previousSHA256": "67706795fcbbcab8e9406c2e3b58efc01df7803b3d15296afd14a63f112f8817",
+      "identical": true
+    },
+    {
+      "file": "failure.png",
+      "finalSHA256": "77bd1a33ce26293a057285bbdac56cf35260212fe69803b240f6ba8a3867df15",
+      "previousSHA256": "77bd1a33ce26293a057285bbdac56cf35260212fe69803b240f6ba8a3867df15",
+      "identical": true
+    },
+    {
+      "file": "recovery.png",
+      "finalSHA256": "953d116409befee04ddc6253669c66f6ec9a026dbee88fbc8bc7141f6f989557",
+      "previousSHA256": "b50368ecf552b11ec55e76fdf6f940b5c3383740de93ba07b4baff39afabed1a",
+      "identical": false
+    },
+    {
+      "file": "readonly.png",
+      "finalSHA256": "929064352dd787acddbe08261cf43410906994236cb10845e025d67ab2a498fb",
+      "previousSHA256": "929064352dd787acddbe08261cf43410906994236cb10845e025d67ab2a498fb",
+      "identical": true
+    },
+    {
+      "file": "hierarchy-gaps.png",
+      "finalSHA256": "04309fd640029f44954a9a81e11586f89c07ae34848dc9cff92dc9481dddb9af",
+      "previousSHA256": "04309fd640029f44954a9a81e11586f89c07ae34848dc9cff92dc9481dddb9af",
+      "identical": true
+    },
+    {
+      "file": "existing-editors-and-import-guards.png",
+      "finalSHA256": "b9a26dde2d99dfb01ee5fd6772eabe94eebe3f17156c768c8c5f668bcdb227bf",
+      "previousSHA256": "b9a26dde2d99dfb01ee5fd6772eabe94eebe3f17156c768c8c5f668bcdb227bf",
+      "identical": true
+    }
+  ],
+  "sourceBindings": [
+    {
+      "file": "source-organization-1440.png",
+      "finalSHA256": "a74b37773e65afae559fbbb6d37ee4cc0549fa283ba8749d050fa174c2d6c963",
+      "beforeSHA256": "a74b37773e65afae559fbbb6d37ee4cc0549fa283ba8749d050fa174c2d6c963",
+      "identical": true
+    },
+    {
+      "file": "source-organization-1280.png",
+      "finalSHA256": "655ab34c554ff2a4b3620596fa0146b13f9cfdde298e70f889cdd51c61ce8187",
+      "beforeSHA256": "655ab34c554ff2a4b3620596fa0146b13f9cfdde298e70f889cdd51c61ce8187",
+      "identical": true
+    },
+    {
+      "file": "source-organization-1280-context.png",
+      "finalSHA256": "2b13d91757559569d7996d26c3275771e54d9fd8381770c49ba5306c714992f0",
+      "beforeSHA256": "2b13d91757559569d7996d26c3275771e54d9fd8381770c49ba5306c714992f0",
+      "identical": true
+    },
+    {
+      "file": "source-organization-1024.png",
+      "finalSHA256": "323e6fa985146122dd232f6e73fe0a510e25099735868154c9ddfe6c4a88e2c7",
+      "beforeSHA256": "323e6fa985146122dd232f6e73fe0a510e25099735868154c9ddfe6c4a88e2c7",
+      "identical": true
+    },
+    {
+      "file": "source-organization-1024-context.png",
+      "finalSHA256": "8b5133457c4047a2e785323046e5bfabeae4c2e53e18a0c228d9f80e78f453f4",
+      "beforeSHA256": "8b5133457c4047a2e785323046e5bfabeae4c2e53e18a0c228d9f80e78f453f4",
+      "identical": true
+    },
+    {
+      "file": "source-organization-768.png",
+      "finalSHA256": "0d0efa224b37259360e2247cae709f37b5c696baa1a25fdf543a1b86c55ffbd9",
+      "beforeSHA256": "0d0efa224b37259360e2247cae709f37b5c696baa1a25fdf543a1b86c55ffbd9",
+      "identical": true
+    },
+    {
+      "file": "source-organization-768-context.png",
+      "finalSHA256": "147679cc95bd1aa8e72b6c7aac00dd2cd6d4710b47156623d2c93b210b63b4ce",
+      "beforeSHA256": "147679cc95bd1aa8e72b6c7aac00dd2cd6d4710b47156623d2c93b210b63b4ce",
+      "identical": true
+    },
+    {
+      "file": "source-organization-390.png",
+      "finalSHA256": "b7d1ac11e34baf4d6b0e9260c33a55108dbc50cb50025aa9ae403dfd60bc3c5a",
+      "beforeSHA256": "b7d1ac11e34baf4d6b0e9260c33a55108dbc50cb50025aa9ae403dfd60bc3c5a",
+      "identical": true
+    },
+    {
+      "file": "source-organization-390-context.png",
+      "finalSHA256": "d87e6f0b45378a83958d98a6a819e0f37f701a4d5afd08257c86e9d9fc6a5310",
+      "beforeSHA256": "d87e6f0b45378a83958d98a6a819e0f37f701a4d5afd08257c86e9d9fc6a5310",
+      "identical": true
+    }
+  ],
+  "cssBindings": [
+    {
+      "file": "assets/App-CRJdUh3q.css",
+      "finalSHA256": "65df9543ebafa09bd24a83c3506e38646dd15050bf70fa5ee76bf969327003e7",
+      "previousSHA256": "65df9543ebafa09bd24a83c3506e38646dd15050bf70fa5ee76bf969327003e7",
+      "identical": true
+    },
+    {
+      "file": "assets/assessmentFieldResults-CYtGdiIt.css",
+      "finalSHA256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326",
+      "previousSHA256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326",
+      "identical": true
+    },
+    {
+      "file": "assets/BankJourneysWorkspace-2AgH9f2G.css",
+      "finalSHA256": "e58abe5444c09ecdecdda458acbeda1e610d27f9b81626eb722d6a8883a48353",
+      "previousSHA256": "e58abe5444c09ecdecdda458acbeda1e610d27f9b81626eb722d6a8883a48353",
+      "identical": true
+    },
+    {
+      "file": "assets/ConfigureWorkspace-Bp-P8t-f.css",
+      "finalSHA256": "90eff72f24d829fc9226c562fb1177e985df3df58ac2507c099b94295f240e25",
+      "previousSHA256": "90eff72f24d829fc9226c562fb1177e985df3df58ac2507c099b94295f240e25",
+      "identical": true
+    },
+    {
+      "file": "assets/DistributionComposer-DLeZxbLt.css",
+      "finalSHA256": "350b092b7f33a1a03f35e3d8610fb2acdaaa71fcb48dcaf6e67293c13c62132d",
+      "previousSHA256": "350b092b7f33a1a03f35e3d8610fb2acdaaa71fcb48dcaf6e67293c13c62132d",
+      "identical": true
+    },
+    {
+      "file": "assets/form-policies-d4RnLy_e.css",
+      "finalSHA256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2",
+      "previousSHA256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2",
+      "identical": true
+    },
+    {
+      "file": "assets/FormBuilder-DkNz5EQ_.css",
+      "finalSHA256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1",
+      "previousSHA256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1",
+      "identical": true
+    },
+    {
+      "file": "assets/forms-foundation-CINn4wyp.css",
+      "finalSHA256": "ab82ca4d68089ebd1a8d9d62746cb6d191b3fd673d3de9ac62af0673fbc8f282",
+      "previousSHA256": "ab82ca4d68089ebd1a8d9d62746cb6d191b3fd673d3de9ac62af0673fbc8f282",
+      "identical": true
+    },
+    {
+      "file": "assets/GroupOversightWorkspace-FAWTwerR.css",
+      "finalSHA256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242",
+      "previousSHA256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242",
+      "identical": true
+    },
+    {
+      "file": "assets/index-BLwgMqzN.css",
+      "finalSHA256": "fd11bcd7683fa7b81fff8a80e14b16fdc3bb9b860511df9f77398d980d6a7779",
+      "previousSHA256": "fd11bcd7683fa7b81fff8a80e14b16fdc3bb9b860511df9f77398d980d6a7779",
+      "identical": true
+    },
+    {
+      "file": "assets/indicatorPresentation-CjxE_j0H.css",
+      "finalSHA256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973",
+      "previousSHA256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973",
+      "identical": true
+    },
+    {
+      "file": "assets/InsightsWorkspace-Ddu4RP1E.css",
+      "finalSHA256": "efefab0edb13512d07a740b299eff949e777593820519123606ddb5de0497ca9",
+      "previousSHA256": "efefab0edb13512d07a740b299eff949e777593820519123606ddb5de0497ca9",
+      "identical": true
+    },
+    {
+      "file": "assets/LossesWorkspace-CfOZfW8N.css",
+      "finalSHA256": "ad89e0dd679a1d05cf1c74362e83840ef9298d2f73c603a83cc59fb6a21d9972",
+      "previousSHA256": "ad89e0dd679a1d05cf1c74362e83840ef9298d2f73c603a83cc59fb6a21d9972",
+      "identical": true
+    },
+    {
+      "file": "assets/NotificationCenter-y8gwOkyW.css",
+      "finalSHA256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5",
+      "previousSHA256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5",
+      "identical": true
+    },
+    {
+      "file": "assets/NotificationsWorkspace-BAmZg4MJ.css",
+      "finalSHA256": "e988de36e966535d55a0d8b6677e22792ce5e22015eee29227a194d036817d83",
+      "previousSHA256": "e988de36e966535d55a0d8b6677e22792ce5e22015eee29227a194d036817d83",
+      "identical": true
+    },
+    {
+      "file": "assets/oversight-B7GD29gG.css",
+      "finalSHA256": "2584bffc3a1cba9861263f45ba9b0a0f7ed08ac5f849fb1ca1d21fba9d047292",
+      "previousSHA256": "2584bffc3a1cba9861263f45ba9b0a0f7ed08ac5f849fb1ca1d21fba9d047292",
+      "identical": true
+    },
+    {
+      "file": "assets/RCSAWorkspace-BBbJ8vcX.css",
+      "finalSHA256": "a9c017e87c917a08d0c14117e9c7f83049d84f4cd126a513d73cdefb818af265",
+      "previousSHA256": "a9c017e87c917a08d0c14117e9c7f83049d84f4cd126a513d73cdefb818af265",
+      "identical": true
+    },
+    {
+      "file": "assets/ReportsExplore-DWws9bfr.css",
+      "finalSHA256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85",
+      "previousSHA256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85",
+      "identical": true
+    },
+    {
+      "file": "assets/ReportsWorkspace-BE7QasEr.css",
+      "finalSHA256": "5f19f164d10680e24761be28f0c87c2aebead00448cc67c52ed22825cbcc03dc",
+      "previousSHA256": "5f19f164d10680e24761be28f0c87c2aebead00448cc67c52ed22825cbcc03dc",
+      "identical": true
+    },
+    {
+      "file": "assets/ResponseAssessment-DYFP7xBk.css",
+      "finalSHA256": "5c7d80d3beacc486aaa186cf58269b2818e23da389f14d02f35413813a2b486e",
+      "previousSHA256": "5c7d80d3beacc486aaa186cf58269b2818e23da389f14d02f35413813a2b486e",
+      "identical": true
+    },
+    {
+      "file": "assets/RisksWorkspace-DairWCjP.css",
+      "finalSHA256": "46f63dd3756f317b52ded15048e498d2dc4ff2cc5fe60f35d13515b1ccd5a5af",
+      "previousSHA256": "46f63dd3756f317b52ded15048e498d2dc4ff2cc5fe60f35d13515b1ccd5a5af",
+      "identical": true
+    },
+    {
+      "file": "assets/ropa-BZkz5VZm.css",
+      "finalSHA256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587",
+      "previousSHA256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587",
+      "identical": true
+    },
+    {
+      "file": "assets/RopaActivityPage-Cuy0NHoh.css",
+      "finalSHA256": "3778cf3eb9b83a47be52bb4f14d83a2ac08896503871211029635c1b8532b89e",
+      "previousSHA256": "3778cf3eb9b83a47be52bb4f14d83a2ac08896503871211029635c1b8532b89e",
+      "identical": true
+    },
+    {
+      "file": "assets/RopaRegisterPage-B-mJp67b.css",
+      "finalSHA256": "1e291651a89e60b840eedc818debf6de459c4a95bbf2948841a42e5e3896c14d",
+      "previousSHA256": "1e291651a89e60b840eedc818debf6de459c4a95bbf2948841a42e5e3896c14d",
+      "identical": true
+    },
+    {
+      "file": "assets/SentFormDetail-DFR_kdL0.css",
+      "finalSHA256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a",
+      "previousSHA256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a",
+      "identical": true
+    },
+    {
+      "file": "assets/SessionGate-DQGLgUmf.css",
+      "finalSHA256": "1c80efd8569e632eab1275e25f88abf4f64a9bca5576af345aabd9081ad1f3d7",
+      "previousSHA256": "1c80efd8569e632eab1275e25f88abf4f64a9bca5576af345aabd9081ad1f3d7",
+      "identical": true
+    },
+    {
+      "file": "assets/ui-BqQkgK9q.css",
+      "finalSHA256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050",
+      "previousSHA256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050",
+      "identical": true
+    },
+    {
+      "file": "assets/UIComponentGallery-NkyqwFG5.css",
+      "finalSHA256": "bc0f566888bf2fa229402a3a9ed4eb04e54130896050a17e3421d6acb04e7558",
+      "previousSHA256": "bc0f566888bf2fa229402a3a9ed4eb04e54130896050a17e3421d6acb04e7558",
+      "identical": true
+    },
+    {
+      "file": "assets/VendorComplianceOverview-DBsLWXEL.css",
+      "finalSHA256": "1abb61830a311c923ce2925bbee828d9a7ddb86384dd21d4655c0963c06ff116",
+      "previousSHA256": "1abb61830a311c923ce2925bbee828d9a7ddb86384dd21d4655c0963c06ff116",
+      "identical": true
+    },
+    {
+      "file": "assets/VendorsWorkspace-C9VxQNwU.css",
+      "finalSHA256": "9e4c4450abe7d9c87101c99612949af5ae10185bed7459e8d8e0e4feb47e6fad",
+      "previousSHA256": "9e4c4450abe7d9c87101c99612949af5ae10185bed7459e8d8e0e4feb47e6fad",
+      "identical": true
+    },
+    {
+      "file": "assets/VendorWorkPanel-CU0uMlLg.css",
+      "finalSHA256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8",
+      "previousSHA256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8",
+      "identical": true
+    }
+  ],
+  "layoutMetrics": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "initialScrollY": 0,
+      "firstEntityTop": 495.890625,
+      "firstAreaBottom": 583.890625,
+      "visibleRows": 9,
+      "contextPlacement": "beside",
+      "innerColumns": 2,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria4866414631-_r_f_ > span"
+            ],
+            [
+              "#react-aria4866414631-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria4866414631-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "initialScrollY": 0,
+      "firstEntityTop": 495.890625,
+      "firstAreaBottom": 583.890625,
+      "visibleRows": 9,
+      "contextPlacement": "beside",
+      "innerColumns": 2,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria4297086455-_r_f_ > span"
+            ],
+            [
+              "#react-aria4297086455-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria4297086455-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "initialScrollY": 0,
+      "firstEntityTop": 479,
+      "firstAreaBottom": 567,
+      "visibleRows": 7,
+      "contextPlacement": "below",
+      "innerColumns": 2,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria4737660088-_r_f_ > span"
+            ],
+            [
+              "#react-aria4737660088-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria4737660088-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 239.390625,
+        "titleBottom": 265.03125,
+        "shellBottom": 68,
+        "viewportHeight": 800,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      }
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "initialScrollY": 0,
+      "firstEntityTop": 479,
+      "firstAreaBottom": 567,
+      "visibleRows": 7,
+      "contextPlacement": "below",
+      "innerColumns": 2,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria1413425014-_r_f_ > span"
+            ],
+            [
+              "#react-aria1413425014-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria1413425014-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 239.390625,
+        "titleBottom": 265.03125,
+        "shellBottom": 68,
+        "viewportHeight": 800,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      }
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "initialScrollY": 0,
+      "firstEntityTop": 511,
+      "firstAreaBottom": 599,
+      "visibleRows": 5,
+      "contextPlacement": "below",
+      "innerColumns": 2,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria2067293629-_r_8_ > span"
+            ],
+            [
+              "#react-aria2067293629-_r_t_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria2067293629-_r_19_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 239.390625,
+        "titleBottom": 265.03125,
+        "shellBottom": 68,
+        "viewportHeight": 768,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      }
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "initialScrollY": 0,
+      "firstEntityTop": 511,
+      "firstAreaBottom": 599,
+      "visibleRows": 5,
+      "contextPlacement": "below",
+      "innerColumns": 2,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria107235051-_r_f_ > span"
+            ],
+            [
+              "#react-aria107235051-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria107235051-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 239.390625,
+        "titleBottom": 265.03125,
+        "shellBottom": 68,
+        "viewportHeight": 768,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      }
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "initialScrollY": 0,
+      "firstEntityTop": 475,
+      "firstAreaBottom": 563,
+      "visibleRows": 9,
+      "contextPlacement": "below",
+      "innerColumns": 1,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria5580327869-_r_8_ > span"
+            ],
+            [
+              "#react-aria5580327869-_r_t_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria5580327869-_r_19_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 266.671875,
+        "titleBottom": 292.3125,
+        "shellBottom": 64,
+        "viewportHeight": 900,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      }
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "initialScrollY": 0,
+      "firstEntityTop": 475,
+      "firstAreaBottom": 563,
+      "visibleRows": 9,
+      "contextPlacement": "below",
+      "innerColumns": 1,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria1895429586-_r_f_ > span"
+            ],
+            [
+              "#react-aria1895429586-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria1895429586-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 266.671875,
+        "titleBottom": 292.3125,
+        "shellBottom": 64,
+        "viewportHeight": 900,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      }
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "initialScrollY": 0,
+      "firstEntityTop": 634.109375,
+      "firstAreaBottom": 733.890625,
+      "visibleRows": 4,
+      "contextPlacement": "below",
+      "innerColumns": 1,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria3754129188-_r_t_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria3754129188-_r_19_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 214.25,
+        "titleBottom": 239.890625,
+        "shellBottom": 64,
+        "viewportHeight": 844,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      }
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "initialScrollY": 0,
+      "firstEntityTop": 634.109375,
+      "firstAreaBottom": 733.890625,
+      "visibleRows": 4,
+      "contextPlacement": "below",
+      "innerColumns": 1,
+      "minimumTargetWidth": 44,
+      "minimumTargetHeight": 44,
+      "overflow": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria9897689550-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria9897689550-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 214.25,
+        "titleBottom": 239.890625,
+        "shellBottom": 64,
+        "viewportHeight": 844,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "name": "selection-search-history-light-1440",
+      "passed": true,
+      "checks": {
+        "searchFiltersLoadedScopes": true,
+        "searchRetainsAncestors": true,
+        "searchNoMatch": true,
+        "collapseHidesDescendants": true,
+        "selectionUpdatesContextAndURL": true,
+        "historyRestoresSelection": true,
+        "deepLinkRestoresContext": true,
+        "activation": "keyboard"
+      },
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "commands": 0
+    },
+    {
+      "name": "selection-search-history-dark-390",
+      "passed": true,
+      "checks": {
+        "searchFiltersLoadedScopes": true,
+        "searchRetainsAncestors": true,
+        "searchNoMatch": true,
+        "collapseHidesDescendants": true,
+        "selectionUpdatesContextAndURL": true,
+        "historyRestoresSelection": true,
+        "deepLinkRestoresContext": true,
+        "activation": "touch"
+      },
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "commands": 0
+    },
+    {
+      "name": "setup-navigation",
+      "passed": true,
+      "checks": {
+        "keyboardTraversalPreservesSelection": true,
+        "keyboardImportHandoff": true,
+        "importHandoff": true,
+        "unavailableDestinationsHonest": true,
+        "setupHistoryPreservesUnit": true,
+        "peopleHandoff": true,
+        "frameworkHandoff": true
+      },
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "commands": 0
+    },
+    {
+      "name": "empty",
+      "passed": true,
+      "checks": {
+        "emptyPopulationHonest": true,
+        "noHorizontalOverflow": true
+      },
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "commands": 0
+    },
+    {
+      "name": "truncated",
+      "passed": true,
+      "checks": {
+        "limitDisclosureInViewport": true,
+        "detailedLimitDisclosurePresent": true,
+        "actualBoundedPopulation": true,
+        "loadedPopulationLimitVisible": true,
+        "noHorizontalOverflow": true
+      },
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "commands": 0,
+      "limitGeometry": {
+        "text": "500 loaded areas · More areas not shown",
+        "top": 544.109375,
+        "bottom": 562.109375,
+        "left": 80,
+        "right": 328.125,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "shellBottom": 64
+      }
+    },
+    {
+      "name": "denied",
+      "passed": true,
+      "checks": {
+        "failedReadDoesNotShowRecords": true,
+        "noHorizontalOverflow": true
+      },
+      "statuses": [
+        403
+      ],
+      "commands": 0
+    },
+    {
+      "name": "failure",
+      "passed": true,
+      "checks": {
+        "failedReadDoesNotShowRecords": true,
+        "noHorizontalOverflow": true
+      },
+      "statuses": [
+        503
+      ],
+      "commands": 0
+    },
+    {
+      "name": "recovery",
+      "passed": true,
+      "checks": {
+        "failedReadDoesNotShowRecords": true,
+        "retryRestoresRecords": true,
+        "noHorizontalOverflow": true
+      },
+      "statuses": [
+        503,
+        200,
+        200,
+        200
+      ],
+      "commands": 0
+    },
+    {
+      "name": "readonly",
+      "passed": true,
+      "checks": {
+        "mutationActionsUnavailable": true,
+        "noHorizontalOverflow": true
+      },
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "commands": 0
+    },
+    {
+      "name": "hierarchy-gaps",
+      "passed": true,
+      "checks": {
+        "orphanAndCycleRemainReachable": true,
+        "noHorizontalOverflow": true
+      },
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "commands": 0
+    },
+    {
+      "name": "existing-editors-and-import-guards",
+      "passed": true,
+      "checks": {
+        "managedEditorsOpenWithoutCommands": true,
+        "importedMoveRetireGuard": true,
+        "importedTypeRequiresExplicitChoice": true,
+        "retainedPositionBoundaryEditorsOpen": true,
+        "independentMakerGuard": true
+      },
+      "statuses": [
+        200,
+        200,
+        200
+      ],
+      "commands": 0
+    }
+  ]
+}

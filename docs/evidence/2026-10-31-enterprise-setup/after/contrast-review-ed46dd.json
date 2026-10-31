@@ -1,0 +1,3498 @@
+{
+  "kind": "FOCUSED_COMPUTED_CONTRAST_REVIEW_NOT_FULL_WCAG_ACCEPTANCE",
+  "reviewer": "/root/ci_review",
+  "revision": "ed46dd743417ace1cd4af588aae2121055544ba1",
+  "buildDigest": "7d92d25660e43fdf132676b7f3099ef82430bbd763422c00a12045b0a5e5acc3",
+  "browser": "141.0.7390.37",
+  "fixtureSHA256": "8b339301595a9525f3b21e22f88b0d5438e6679a3df63cd1d7d1a5158db444d8",
+  "cases": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#react-aria366211906-_r_f_ > span"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined because it is overlapped by another element",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "10.5pt (14px)",
+                    "fontWeight": "bold",
+                    "messageKey": "bgOverlap",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": null
+                },
+                "text": "People & access",
+                "html": "<span>People &amp; access</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria366211906-_r_f_",
+                  "class": "cs-button cs-button--secondary cs-button--comfortable",
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": null,
+                  "name": "People & access",
+                  "text": "People & access"
+                },
+                "bounds": {
+                  "x": 1263.140625,
+                  "y": 144.59375,
+                  "width": 127.859375,
+                  "height": 16.796875,
+                  "right": 1391,
+                  "bottom": 161.390625
+                },
+                "hitSamples": [
+                  {
+                    "x": 1275.9265625,
+                    "y": 148.79296875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1275.9265625,
+                    "y": 152.9921875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1275.9265625,
+                    "y": 157.19140625,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1327.0703125,
+                    "y": 148.79296875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1327.0703125,
+                    "y": 152.9921875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1327.0703125,
+                    "y": 157.19140625,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1378.2140625,
+                    "y": 148.79296875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1378.2140625,
+                    "y": 152.9921875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1378.2140625,
+                    "y": 157.19140625,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "color(srgb 0.0458039 0.0861176 0.137255)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria366211906-_r_f_",
+                    "class": "cs-button cs-button--secondary cs-button--comfortable",
+                    "color": "color(srgb 0.0458039 0.0861176 0.137255)",
+                    "backgroundColor": "rgb(238, 243, 247)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 16.280676536195532,
+                  "foreground": [
+                    12,
+                    22,
+                    35,
+                    1
+                  ],
+                  "background": [
+                    238,
+                    243,
+                    247,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Header handoff button label. Axe bgOverlap incomplete retained; all nine sampled points hit the label within its own button. No gradient, opacity or filter ambiguity in its computed paint ancestry.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 9,
+                  "remainingAncestors": [
+                    {
+                      "tag": "header",
+                      "class": "enterprise-setup-workspace__heading",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "target": [
+                "#react-aria366211906-_r_14_ > span[aria-hidden=\"true\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element content contains only non-text characters",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element content contains only non-text characters",
+                  "data": {
+                    "messageKey": "nonBmp"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": "true"
+                },
+                "text": "\u2304",
+                "html": "<span aria-hidden=\"true\">\u2304</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria366211906-_r_14_",
+                  "class": "cs-icon-button cs-button--quiet",
+                  "role": null,
+                  "ariaLabel": "Collapse Head Office",
+                  "ariaHidden": null,
+                  "name": "Collapse Head Office",
+                  "text": "\u2304"
+                },
+                "bounds": {
+                  "x": 313.125,
+                  "y": 597.484375,
+                  "width": 11.734375,
+                  "height": 16.796875,
+                  "right": 324.859375,
+                  "bottom": 614.28125
+                },
+                "hitSamples": [
+                  {
+                    "x": 314.2984375,
+                    "y": 601.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 314.2984375,
+                    "y": 605.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 314.2984375,
+                    "y": 610.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 318.9921875,
+                    "y": 601.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 318.9921875,
+                    "y": 605.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 318.9921875,
+                    "y": 610.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 323.6859375,
+                    "y": 601.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 323.6859375,
+                    "y": 605.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 323.6859375,
+                    "y": 610.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria366211906-_r_14_",
+                    "class": "cs-icon-button cs-button--quiet",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "li",
+                    "id": null,
+                    "class": "organization-setup-row",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "ul",
+                    "id": null,
+                    "class": null,
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "organization-setup-tree",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "cs-surface",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgb(255, 255, 255)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 15.348490550841955,
+                  "foreground": [
+                    21,
+                    38,
+                    57,
+                    1
+                  ],
+                  "background": [
+                    255,
+                    255,
+                    255,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 21,
+                  "remainingAncestors": [
+                    {
+                      "tag": "section",
+                      "class": "organization-setup-hierarchy",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-grid",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-primary",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-layout identity-scope-manager",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-organization-view",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-access-area",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "identity-access-panel identity-access-panel--embedded",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs__panel",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs cs-tabs--surface",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "target": [
+                "#react-aria366211906-_r_1g_ > span[aria-hidden=\"true\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element content contains only non-text characters",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element content contains only non-text characters",
+                  "data": {
+                    "messageKey": "nonBmp"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": "true"
+                },
+                "text": "\u2304",
+                "html": "<span aria-hidden=\"true\">\u2304</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria366211906-_r_1g_",
+                  "class": "cs-icon-button cs-button--quiet",
+                  "role": null,
+                  "ariaLabel": "Collapse Technology",
+                  "ariaHidden": null,
+                  "name": "Collapse Technology",
+                  "text": "\u2304"
+                },
+                "bounds": {
+                  "x": 329.125,
+                  "y": 817.484375,
+                  "width": 11.734375,
+                  "height": 16.796875,
+                  "right": 340.859375,
+                  "bottom": 834.28125
+                },
+                "hitSamples": [
+                  {
+                    "x": 330.2984375,
+                    "y": 821.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 330.2984375,
+                    "y": 825.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 330.2984375,
+                    "y": 830.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 334.9921875,
+                    "y": 821.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 334.9921875,
+                    "y": 825.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 334.9921875,
+                    "y": 830.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 339.6859375,
+                    "y": 821.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 339.6859375,
+                    "y": 825.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 339.6859375,
+                    "y": 830.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria366211906-_r_1g_",
+                    "class": "cs-icon-button cs-button--quiet",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "li",
+                    "id": null,
+                    "class": "organization-setup-row",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "ul",
+                    "id": null,
+                    "class": null,
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "organization-setup-tree",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "cs-surface",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgb(255, 255, 255)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 15.348490550841955,
+                  "foreground": [
+                    21,
+                    38,
+                    57,
+                    1
+                  ],
+                  "background": [
+                    255,
+                    255,
+                    255,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 21,
+                  "remainingAncestors": [
+                    {
+                      "tag": "section",
+                      "class": "organization-setup-hierarchy",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-grid",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-primary",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-layout identity-scope-manager",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-organization-view",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-access-area",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "identity-access-panel identity-access-panel--embedded",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs__panel",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs cs-tabs--surface",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "readCount": 3,
+        "pending": 0,
+        "commands": []
+      }
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#react-aria569970128-_r_f_ > span"
+              ],
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined because it is overlapped by another element",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "10.5pt (14px)",
+                    "fontWeight": "bold",
+                    "messageKey": "bgOverlap",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": null
+                },
+                "text": "People & access",
+                "html": "<span>People &amp; access</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria569970128-_r_f_",
+                  "class": "cs-button cs-button--secondary cs-button--comfortable",
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": null,
+                  "name": "People & access",
+                  "text": "People & access"
+                },
+                "bounds": {
+                  "x": 1263.140625,
+                  "y": 144.59375,
+                  "width": 127.859375,
+                  "height": 16.796875,
+                  "right": 1391,
+                  "bottom": 161.390625
+                },
+                "hitSamples": [
+                  {
+                    "x": 1275.9265625,
+                    "y": 148.79296875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1275.9265625,
+                    "y": 152.9921875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1275.9265625,
+                    "y": 157.19140625,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1327.0703125,
+                    "y": 148.79296875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1327.0703125,
+                    "y": 152.9921875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1327.0703125,
+                    "y": 157.19140625,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1378.2140625,
+                    "y": 148.79296875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1378.2140625,
+                    "y": 152.9921875,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 1378.2140625,
+                    "y": 157.19140625,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "People & access",
+                      "belongsToControl": true
+                    }
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "rgb(255, 255, 255)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria569970128-_r_f_",
+                    "class": "cs-button cs-button--secondary cs-button--comfortable",
+                    "color": "rgb(255, 255, 255)",
+                    "backgroundColor": "rgb(19, 34, 52)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 16.078560503456977,
+                  "foreground": [
+                    255,
+                    255,
+                    255,
+                    1
+                  ],
+                  "background": [
+                    19,
+                    34,
+                    52,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Header handoff button label. Axe bgOverlap incomplete retained; all nine sampled points hit the label within its own button. No gradient, opacity or filter ambiguity in its computed paint ancestry.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 9,
+                  "remainingAncestors": [
+                    {
+                      "tag": "header",
+                      "class": "enterprise-setup-workspace__heading",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "target": [
+                "#react-aria569970128-_r_14_ > span[aria-hidden=\"true\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element content contains only non-text characters",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element content contains only non-text characters",
+                  "data": {
+                    "messageKey": "nonBmp"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": "true"
+                },
+                "text": "\u2304",
+                "html": "<span aria-hidden=\"true\">\u2304</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria569970128-_r_14_",
+                  "class": "cs-icon-button cs-button--quiet",
+                  "role": null,
+                  "ariaLabel": "Collapse Head Office",
+                  "ariaHidden": null,
+                  "name": "Collapse Head Office",
+                  "text": "\u2304"
+                },
+                "bounds": {
+                  "x": 313.125,
+                  "y": 597.484375,
+                  "width": 11.734375,
+                  "height": 16.796875,
+                  "right": 324.859375,
+                  "bottom": 614.28125
+                },
+                "hitSamples": [
+                  {
+                    "x": 314.2984375,
+                    "y": 601.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 314.2984375,
+                    "y": 605.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 314.2984375,
+                    "y": 610.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 318.9921875,
+                    "y": 601.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 318.9921875,
+                    "y": 605.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 318.9921875,
+                    "y": 610.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 323.6859375,
+                    "y": 601.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 323.6859375,
+                    "y": 605.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 323.6859375,
+                    "y": 610.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria569970128-_r_14_",
+                    "class": "cs-icon-button cs-button--quiet",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "li",
+                    "id": null,
+                    "class": "organization-setup-row",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "ul",
+                    "id": null,
+                    "class": null,
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "organization-setup-tree",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "cs-surface",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgb(13, 24, 38)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 13.377206558889451,
+                  "foreground": [
+                    215,
+                    224,
+                    233,
+                    1
+                  ],
+                  "background": [
+                    13,
+                    24,
+                    38,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 21,
+                  "remainingAncestors": [
+                    {
+                      "tag": "section",
+                      "class": "organization-setup-hierarchy",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-grid",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-primary",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-layout identity-scope-manager",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-organization-view",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-access-area",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "identity-access-panel identity-access-panel--embedded",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs__panel",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs cs-tabs--surface",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "target": [
+                "#react-aria569970128-_r_1g_ > span[aria-hidden=\"true\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element content contains only non-text characters",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element content contains only non-text characters",
+                  "data": {
+                    "messageKey": "nonBmp"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": "true"
+                },
+                "text": "\u2304",
+                "html": "<span aria-hidden=\"true\">\u2304</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria569970128-_r_1g_",
+                  "class": "cs-icon-button cs-button--quiet",
+                  "role": null,
+                  "ariaLabel": "Collapse Technology",
+                  "ariaHidden": null,
+                  "name": "Collapse Technology",
+                  "text": "\u2304"
+                },
+                "bounds": {
+                  "x": 329.125,
+                  "y": 817.484375,
+                  "width": 11.734375,
+                  "height": 16.796875,
+                  "right": 340.859375,
+                  "bottom": 834.28125
+                },
+                "hitSamples": [
+                  {
+                    "x": 330.2984375,
+                    "y": 821.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 330.2984375,
+                    "y": 825.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 330.2984375,
+                    "y": 830.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 334.9921875,
+                    "y": 821.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 334.9921875,
+                    "y": 825.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 334.9921875,
+                    "y": 830.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 339.6859375,
+                    "y": 821.68359375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 339.6859375,
+                    "y": 825.8828125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 339.6859375,
+                    "y": 830.08203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria569970128-_r_1g_",
+                    "class": "cs-icon-button cs-button--quiet",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "li",
+                    "id": null,
+                    "class": "organization-setup-row",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "ul",
+                    "id": null,
+                    "class": null,
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "organization-setup-tree",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "cs-surface",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgb(13, 24, 38)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 13.377206558889451,
+                  "foreground": [
+                    215,
+                    224,
+                    233,
+                    1
+                  ],
+                  "background": [
+                    13,
+                    24,
+                    38,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 21,
+                  "remainingAncestors": [
+                    {
+                      "tag": "section",
+                      "class": "organization-setup-hierarchy",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-grid",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-primary",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-layout identity-scope-manager",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-organization-view",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-access-area",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "identity-access-panel identity-access-panel--embedded",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs__panel",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs cs-tabs--surface",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "readCount": 3,
+        "pending": 0,
+        "commands": []
+      }
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#react-aria8280802076-_r_14_ > span[aria-hidden=\"true\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element content contains only non-text characters",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element content contains only non-text characters",
+                  "data": {
+                    "messageKey": "nonBmp"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": "true"
+                },
+                "text": "\u2304",
+                "html": "<span aria-hidden=\"true\">\u2304</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria8280802076-_r_14_",
+                  "class": "cs-icon-button cs-button--quiet",
+                  "role": null,
+                  "ariaLabel": "Collapse Head Office",
+                  "ariaHidden": null,
+                  "name": "Collapse Head Office",
+                  "text": "\u2304"
+                },
+                "bounds": {
+                  "x": 106.125,
+                  "y": 750.421875,
+                  "width": 11.734375,
+                  "height": 16.796875,
+                  "right": 117.859375,
+                  "bottom": 767.21875
+                },
+                "hitSamples": [
+                  {
+                    "x": 107.2984375,
+                    "y": 754.62109375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 107.2984375,
+                    "y": 758.8203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 107.2984375,
+                    "y": 763.01953125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 111.9921875,
+                    "y": 754.62109375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 111.9921875,
+                    "y": 758.8203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 111.9921875,
+                    "y": 763.01953125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 116.6859375,
+                    "y": 754.62109375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 116.6859375,
+                    "y": 758.8203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 116.6859375,
+                    "y": 763.01953125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria8280802076-_r_14_",
+                    "class": "cs-icon-button cs-button--quiet",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "li",
+                    "id": null,
+                    "class": "organization-setup-row",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "ul",
+                    "id": null,
+                    "class": null,
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "organization-setup-tree",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "cs-surface",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgb(255, 255, 255)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 15.348490550841955,
+                  "foreground": [
+                    21,
+                    38,
+                    57,
+                    1
+                  ],
+                  "background": [
+                    255,
+                    255,
+                    255,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 21,
+                  "remainingAncestors": [
+                    {
+                      "tag": "section",
+                      "class": "organization-setup-hierarchy",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-grid",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-primary",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-layout identity-scope-manager",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-organization-view",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-access-area",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "identity-access-panel identity-access-panel--embedded",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs__panel",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs cs-tabs--surface",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "target": [
+                "#react-aria8280802076-_r_1g_ > span[aria-hidden=\"true\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element content contains only non-text characters",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element content contains only non-text characters",
+                  "data": {
+                    "messageKey": "nonBmp"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": "true"
+                },
+                "text": "\u2304",
+                "html": "<span aria-hidden=\"true\">\u2304</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria8280802076-_r_1g_",
+                  "class": "cs-icon-button cs-button--quiet",
+                  "role": null,
+                  "ariaLabel": "Collapse Technology",
+                  "ariaHidden": null,
+                  "name": "Collapse Technology",
+                  "text": "\u2304"
+                },
+                "bounds": {
+                  "x": 116.125,
+                  "y": 999.875,
+                  "width": 11.734375,
+                  "height": 16.796875,
+                  "right": 127.859375,
+                  "bottom": 1016.671875
+                },
+                "hitSamples": [
+                  {
+                    "x": 117.2984375,
+                    "y": 1004.07421875,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 117.2984375,
+                    "y": 1008.2734375,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 117.2984375,
+                    "y": 1012.47265625,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 121.9921875,
+                    "y": 1004.07421875,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 121.9921875,
+                    "y": 1008.2734375,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 121.9921875,
+                    "y": 1012.47265625,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 126.6859375,
+                    "y": 1004.07421875,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 126.6859375,
+                    "y": 1008.2734375,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 126.6859375,
+                    "y": 1012.47265625,
+                    "inViewport": false,
+                    "top": null
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria8280802076-_r_1g_",
+                    "class": "cs-icon-button cs-button--quiet",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "li",
+                    "id": null,
+                    "class": "organization-setup-row",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "ul",
+                    "id": null,
+                    "class": null,
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "organization-setup-tree",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "cs-surface",
+                    "color": "color(srgb 0.0826667 0.14949 0.224157)",
+                    "backgroundColor": "rgb(255, 255, 255)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 15.348490550841955,
+                  "foreground": [
+                    21,
+                    38,
+                    57,
+                    1
+                  ],
+                  "background": [
+                    255,
+                    255,
+                    255,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 21,
+                  "remainingAncestors": [
+                    {
+                      "tag": "section",
+                      "class": "organization-setup-hierarchy",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-grid",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-primary",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-layout identity-scope-manager",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-organization-view",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-access-area",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "identity-access-panel identity-access-panel--embedded",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs__panel",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs cs-tabs--surface",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "readCount": 3,
+        "pending": 0,
+        "commands": []
+      }
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#react-aria7122015295-_r_14_ > span[aria-hidden=\"true\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element content contains only non-text characters",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element content contains only non-text characters",
+                  "data": {
+                    "messageKey": "nonBmp"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": "true"
+                },
+                "text": "\u2304",
+                "html": "<span aria-hidden=\"true\">\u2304</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria7122015295-_r_14_",
+                  "class": "cs-icon-button cs-button--quiet",
+                  "role": null,
+                  "ariaLabel": "Collapse Head Office",
+                  "ariaHidden": null,
+                  "name": "Collapse Head Office",
+                  "text": "\u2304"
+                },
+                "bounds": {
+                  "x": 106.125,
+                  "y": 750.421875,
+                  "width": 11.734375,
+                  "height": 16.796875,
+                  "right": 117.859375,
+                  "bottom": 767.21875
+                },
+                "hitSamples": [
+                  {
+                    "x": 107.2984375,
+                    "y": 754.62109375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 107.2984375,
+                    "y": 758.8203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 107.2984375,
+                    "y": 763.01953125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 111.9921875,
+                    "y": 754.62109375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 111.9921875,
+                    "y": 758.8203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 111.9921875,
+                    "y": 763.01953125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 116.6859375,
+                    "y": 754.62109375,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 116.6859375,
+                    "y": 758.8203125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  },
+                  {
+                    "x": 116.6859375,
+                    "y": 763.01953125,
+                    "inViewport": true,
+                    "top": {
+                      "tag": "span",
+                      "id": null,
+                      "class": null,
+                      "name": "\u2304",
+                      "belongsToControl": true
+                    }
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria7122015295-_r_14_",
+                    "class": "cs-icon-button cs-button--quiet",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "li",
+                    "id": null,
+                    "class": "organization-setup-row",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "ul",
+                    "id": null,
+                    "class": null,
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "organization-setup-tree",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "cs-surface",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgb(13, 24, 38)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 13.377206558889451,
+                  "foreground": [
+                    215,
+                    224,
+                    233,
+                    1
+                  ],
+                  "background": [
+                    13,
+                    24,
+                    38,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 21,
+                  "remainingAncestors": [
+                    {
+                      "tag": "section",
+                      "class": "organization-setup-hierarchy",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-grid",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-primary",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-layout identity-scope-manager",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-organization-view",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-access-area",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "identity-access-panel identity-access-panel--embedded",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs__panel",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs cs-tabs--surface",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "target": [
+                "#react-aria7122015295-_r_1g_ > span[aria-hidden=\"true\"]"
+              ],
+              "summary": "Fix any of the following:\n  Element content contains only non-text characters",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element content contains only non-text characters",
+                  "data": {
+                    "messageKey": "nonBmp"
+                  },
+                  "relatedNodes": []
+                }
+              ],
+              "inspection": {
+                "element": {
+                  "tag": "span",
+                  "id": null,
+                  "class": null,
+                  "role": null,
+                  "ariaLabel": null,
+                  "ariaHidden": "true"
+                },
+                "text": "\u2304",
+                "html": "<span aria-hidden=\"true\">\u2304</span>",
+                "control": {
+                  "tag": "button",
+                  "id": "react-aria7122015295-_r_1g_",
+                  "class": "cs-icon-button cs-button--quiet",
+                  "role": null,
+                  "ariaLabel": "Collapse Technology",
+                  "ariaHidden": null,
+                  "name": "Collapse Technology",
+                  "text": "\u2304"
+                },
+                "bounds": {
+                  "x": 116.125,
+                  "y": 999.875,
+                  "width": 11.734375,
+                  "height": 16.796875,
+                  "right": 127.859375,
+                  "bottom": 1016.671875
+                },
+                "hitSamples": [
+                  {
+                    "x": 117.2984375,
+                    "y": 1004.07421875,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 117.2984375,
+                    "y": 1008.2734375,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 117.2984375,
+                    "y": 1012.47265625,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 121.9921875,
+                    "y": 1004.07421875,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 121.9921875,
+                    "y": 1008.2734375,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 121.9921875,
+                    "y": 1012.47265625,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 126.6859375,
+                    "y": 1004.07421875,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 126.6859375,
+                    "y": 1008.2734375,
+                    "inViewport": false,
+                    "top": null
+                  },
+                  {
+                    "x": 126.6859375,
+                    "y": 1012.47265625,
+                    "inViewport": false,
+                    "top": null
+                  }
+                ],
+                "ancestry": [
+                  {
+                    "tag": "span",
+                    "id": null,
+                    "class": null,
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "button",
+                    "id": "react-aria7122015295-_r_1g_",
+                    "class": "cs-icon-button cs-button--quiet",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "700",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "li",
+                    "id": null,
+                    "class": "organization-setup-row",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "ul",
+                    "id": null,
+                    "class": null,
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "organization-setup-tree",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgba(0, 0, 0, 0)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  },
+                  {
+                    "tag": "div",
+                    "id": null,
+                    "class": "cs-surface",
+                    "color": "rgb(215, 224, 233)",
+                    "backgroundColor": "rgb(13, 24, 38)",
+                    "backgroundImage": "none",
+                    "opacity": "1",
+                    "fontSize": "14px",
+                    "fontWeight": "400",
+                    "textShadow": "none",
+                    "filter": "none",
+                    "backdropFilter": "none",
+                    "mixBlendMode": "normal"
+                  }
+                ],
+                "computedSolidContrast": {
+                  "reliableAgainstComputedAncestry": true,
+                  "mode": "CSS_FOREGROUND_TO_OPAQUE_ANCESTOR_ONLY",
+                  "ratio": 13.377206558889451,
+                  "foreground": [
+                    215,
+                    224,
+                    233,
+                    1
+                  ],
+                  "background": [
+                    13,
+                    24,
+                    38,
+                    1
+                  ],
+                  "limitations": []
+                },
+                "assessment": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure.",
+                "ancestryChecks": {
+                  "allOpacityOne": true,
+                  "allFiltersNone": true,
+                  "inspectedAncestorCount": 21,
+                  "remainingAncestors": [
+                    {
+                      "tag": "section",
+                      "class": "organization-setup-hierarchy",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-grid",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-primary",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "organization-setup-layout identity-scope-manager",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-organization-view",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "identity-access-area",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "identity-access-panel identity-access-panel--embedded",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs__panel",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "cs-tabs cs-tabs--surface",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "section",
+                      "class": "enterprise-setup-workspace",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "main",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": "app-shell app-shell--navigation",
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "div",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "body",
+                      "class": null,
+                      "opacity": "1"
+                    },
+                    {
+                      "tag": "html",
+                      "class": null,
+                      "opacity": "1"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "readCount": 3,
+        "pending": 0,
+        "commands": []
+      }
+    }
+  ],
+  "limitations": [
+    "Read-only review of remaining axe color-contrast incomplete nodes on the synthetic current-state Enterprise Setup fixture.",
+    "A computed solid-color ratio is reported only when the relevant ancestry has opaque backgrounds, no group opacity, and no background-image or filter ambiguity.",
+    "This is not full-page WCAG conformance or backend authorization evidence.",
+    "DOM hit tests are sampled and omit pointer-events:none painting. Computed ratios describe CSS color pairs, not a pixel-level or full WCAG audit; axe incompletes remain in the original capture receipt."
+  ],
+  "verdict": "NO_CONCRETE_LOW_CONTRAST_FOUND_IN_REMAINING_INCOMPLETE_NODES",
+  "method": "Fresh axe scan of the existing current-state fixture at 1440\u00d7900 and390\u00d7844, light/dark. CSS colors are converted to 8-bit sRGB through a 1px canvas; the standard relative-luminance ratio is computed against opaque ancestor backgrounds. Nine DOM hit-test samples across each target identify topmost pointer-hit elements. No screenshots were recaptured.",
+  "summary": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "control": "People & access",
+      "text": "People & access",
+      "ratioRounded": 16.28,
+      "foregroundRGBA": [
+        12,
+        22,
+        35,
+        1
+      ],
+      "backgroundRGBA": [
+        238,
+        243,
+        247,
+        1
+      ],
+      "note": "Header handoff button label. Axe bgOverlap incomplete retained; all nine sampled points hit the label within its own button. No gradient, opacity or filter ambiguity in its computed paint ancestry."
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "control": "Collapse Head Office",
+      "text": "\u2304",
+      "ratioRounded": 15.35,
+      "foregroundRGBA": [
+        21,
+        38,
+        57,
+        1
+      ],
+      "backgroundRGBA": [
+        255,
+        255,
+        255,
+        1
+      ],
+      "note": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure."
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "control": "Collapse Technology",
+      "text": "\u2304",
+      "ratioRounded": 15.35,
+      "foregroundRGBA": [
+        21,
+        38,
+        57,
+        1
+      ],
+      "backgroundRGBA": [
+        255,
+        255,
+        255,
+        1
+      ],
+      "note": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure."
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "control": "People & access",
+      "text": "People & access",
+      "ratioRounded": 16.08,
+      "foregroundRGBA": [
+        255,
+        255,
+        255,
+        1
+      ],
+      "backgroundRGBA": [
+        19,
+        34,
+        52,
+        1
+      ],
+      "note": "Header handoff button label. Axe bgOverlap incomplete retained; all nine sampled points hit the label within its own button. No gradient, opacity or filter ambiguity in its computed paint ancestry."
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "control": "Collapse Head Office",
+      "text": "\u2304",
+      "ratioRounded": 13.38,
+      "foregroundRGBA": [
+        215,
+        224,
+        233,
+        1
+      ],
+      "backgroundRGBA": [
+        13,
+        24,
+        38,
+        1
+      ],
+      "note": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure."
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "control": "Collapse Technology",
+      "text": "\u2304",
+      "ratioRounded": 13.38,
+      "foregroundRGBA": [
+        215,
+        224,
+        233,
+        1
+      ],
+      "backgroundRGBA": [
+        13,
+        24,
+        38,
+        1
+      ],
+      "note": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure."
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "control": "Collapse Head Office",
+      "text": "\u2304",
+      "ratioRounded": 15.35,
+      "foregroundRGBA": [
+        21,
+        38,
+        57,
+        1
+      ],
+      "backgroundRGBA": [
+        255,
+        255,
+        255,
+        1
+      ],
+      "note": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure."
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "control": "Collapse Technology",
+      "text": "\u2304",
+      "ratioRounded": 15.35,
+      "foregroundRGBA": [
+        21,
+        38,
+        57,
+        1
+      ],
+      "backgroundRGBA": [
+        255,
+        255,
+        255,
+        1
+      ],
+      "note": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure."
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "control": "Collapse Head Office",
+      "text": "\u2304",
+      "ratioRounded": 13.38,
+      "foregroundRGBA": [
+        215,
+        224,
+        233,
+        1
+      ],
+      "backgroundRGBA": [
+        13,
+        24,
+        38,
+        1
+      ],
+      "note": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure."
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "control": "Collapse Technology",
+      "text": "\u2304",
+      "ratioRounded": 13.38,
+      "foregroundRGBA": [
+        215,
+        224,
+        233,
+        1
+      ],
+      "backgroundRGBA": [
+        13,
+        24,
+        38,
+        1
+      ],
+      "note": "Decorative aria-hidden collapse caret. Actual buttons carry explicit Collapse Head Office / Collapse Technology accessible names; axe reports non-text-content uncertainty, not a measured low-contrast failure."
+    }
+  ]
+}
