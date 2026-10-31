@@ -1,0 +1,606 @@
+{
+  "status": "PASS",
+  "evidenceDirectory": "configuration",
+  "scenarios": [
+    {
+      "name": "configuration-organization-desktop-light-1440x900",
+      "route": "#configure/access/positions",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "organization",
+      "enterpriseNavigation": {
+        "viewportWidth": 1440,
+        "headingText": "Enterprise setup",
+        "headingCount": 1,
+        "list": {
+          "x": 260,
+          "y": 327,
+          "width": 1148,
+          "height": 54,
+          "right": 1408,
+          "bottom": 381
+        },
+        "listDisplay": "flex",
+        "selected": "Organization",
+        "selectedBounds": {
+          "x": 273,
+          "y": 332,
+          "width": 110.71875,
+          "height": 44,
+          "right": 383.71875,
+          "bottom": 376
+        },
+        "selectedVisible": true,
+        "indicator": {
+          "x": 281,
+          "y": 375,
+          "width": 94.71875,
+          "height": 2,
+          "right": 375.71875,
+          "bottom": 377
+        },
+        "indicatorPosition": "absolute",
+        "indicatorColor": "rgb(10, 112, 128)",
+        "tabs": [
+          {
+            "label": "Organization",
+            "x": 273,
+            "y": 332,
+            "width": 110.71875,
+            "height": 44,
+            "right": 383.71875,
+            "bottom": 376
+          },
+          {
+            "label": "Groups",
+            "x": 386.71875,
+            "y": 332,
+            "width": 76.796875,
+            "height": 44,
+            "right": 463.515625,
+            "bottom": 376
+          },
+          {
+            "label": "People & access",
+            "x": 466.515625,
+            "y": 332,
+            "width": 131.296875,
+            "height": 44,
+            "right": 597.8125,
+            "bottom": 376
+          },
+          {
+            "label": "Jurisdictions",
+            "x": 600.8125,
+            "y": 332,
+            "width": 106.453125,
+            "height": 44,
+            "right": 707.265625,
+            "bottom": 376
+          },
+          {
+            "label": "Frameworks",
+            "x": 710.265625,
+            "y": 332,
+            "width": 106.6875,
+            "height": 44,
+            "right": 816.953125,
+            "bottom": 376
+          },
+          {
+            "label": "Data imports",
+            "x": 819.953125,
+            "y": 332,
+            "width": 112.34375,
+            "height": 44,
+            "right": 932.296875,
+            "bottom": 376
+          }
+        ],
+        "links": [
+          {
+            "label": "Reporting lines",
+            "href": "#configure/access/reporting",
+            "x": 1139,
+            "y": 863.171875,
+            "width": 122.578125,
+            "height": 44,
+            "right": 1261.578125,
+            "bottom": 907.171875
+          },
+          {
+            "label": "Provisioning",
+            "href": "#configure/access/directory",
+            "x": 874.15625,
+            "y": 927.171875,
+            "width": 100.21875,
+            "height": 44,
+            "right": 974.375,
+            "bottom": 971.171875
+          },
+          {
+            "label": "Escalation routes",
+            "href": "#configure/access/escalation",
+            "x": 1139,
+            "y": 967.171875,
+            "width": 138.859375,
+            "height": 44,
+            "right": 1277.859375,
+            "bottom": 1011.171875
+          }
+        ],
+        "legacyPeopleHeader": false,
+        "legacySwitcher": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "imageBytes": 156403,
+      "imageSHA256": "dce9114aa6ca7c88d0790ae68936ca4fcb6883a6cfe1c128bafde9c3f10f00b1"
+    },
+    {
+      "name": "configuration-organization-mobile-dark-390x844",
+      "route": "#configure/access/positions",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "expectation": "organization",
+      "enterpriseNavigation": {
+        "viewportWidth": 390,
+        "headingText": "Enterprise setup",
+        "headingCount": 1,
+        "list": {
+          "x": 64,
+          "y": 432.21875,
+          "width": 318,
+          "height": 54,
+          "right": 382,
+          "bottom": 486.21875
+        },
+        "listDisplay": "flex",
+        "selected": "Organization",
+        "selectedBounds": {
+          "x": 73,
+          "y": 437.21875,
+          "width": 100.71875,
+          "height": 44,
+          "right": 173.71875,
+          "bottom": 481.21875
+        },
+        "selectedVisible": true,
+        "indicator": {
+          "x": 81,
+          "y": 480.21875,
+          "width": 84.71875,
+          "height": 2,
+          "right": 165.71875,
+          "bottom": 482.21875
+        },
+        "indicatorPosition": "absolute",
+        "indicatorColor": "rgb(91, 198, 214)",
+        "tabs": [
+          {
+            "label": "Organization",
+            "x": 73,
+            "y": 437.21875,
+            "width": 100.71875,
+            "height": 44,
+            "right": 173.71875,
+            "bottom": 481.21875
+          },
+          {
+            "label": "Groups",
+            "x": 176.71875,
+            "y": 437.21875,
+            "width": 66.796875,
+            "height": 44,
+            "right": 243.515625,
+            "bottom": 481.21875
+          },
+          {
+            "label": "People & access",
+            "x": 246.515625,
+            "y": 437.21875,
+            "width": 121.296875,
+            "height": 44,
+            "right": 367.8125,
+            "bottom": 481.21875
+          },
+          {
+            "label": "Jurisdictions",
+            "x": 370.8125,
+            "y": 437.21875,
+            "width": 96.453125,
+            "height": 44,
+            "right": 467.265625,
+            "bottom": 481.21875
+          },
+          {
+            "label": "Frameworks",
+            "x": 470.265625,
+            "y": 437.21875,
+            "width": 96.6875,
+            "height": 44,
+            "right": 566.953125,
+            "bottom": 481.21875
+          },
+          {
+            "label": "Data imports",
+            "x": 569.953125,
+            "y": 437.21875,
+            "width": 102.34375,
+            "height": 44,
+            "right": 672.296875,
+            "bottom": 481.21875
+          }
+        ],
+        "links": [
+          {
+            "label": "Reporting lines",
+            "href": "#configure/access/reporting",
+            "x": 223.859375,
+            "y": 2062.875,
+            "width": 122.578125,
+            "height": 44,
+            "right": 346.4375,
+            "bottom": 2106.875
+          },
+          {
+            "label": "Provisioning",
+            "href": "#configure/access/directory",
+            "x": 245.15625,
+            "y": 1560.34375,
+            "width": 100.21875,
+            "height": 44,
+            "right": 345.375,
+            "bottom": 1604.34375
+          },
+          {
+            "label": "Escalation routes",
+            "href": "#configure/access/escalation",
+            "x": 80,
+            "y": 2166.875,
+            "width": 138.859375,
+            "height": 44,
+            "right": 218.859375,
+            "bottom": 2210.875
+          }
+        ],
+        "legacyPeopleHeader": false,
+        "legacySwitcher": false,
+        "documentWidth": 390,
+        "scrollWidth": 390
+      },
+      "imageBytes": 62145,
+      "imageSHA256": "61b9f16e95126f6e036ec835bf5b896b6d4711b325a1f3fc2a0c5eef1ec9344a",
+      "positionHeader": {
+        "container": {
+          "x": 20,
+          "y": 66,
+          "width": 286,
+          "height": 198.140625,
+          "right": 306,
+          "bottom": 264.140625
+        },
+        "heading": {
+          "x": 20,
+          "y": 66,
+          "width": 286,
+          "height": 33,
+          "right": 306,
+          "bottom": 99
+        },
+        "filters": {
+          "x": 20,
+          "y": 138.140625,
+          "width": 286,
+          "height": 126,
+          "right": 306,
+          "bottom": 264.140625
+        },
+        "dialog": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844,
+          "right": 390,
+          "bottom": 844
+        },
+        "contextBar": {
+          "x": 56,
+          "y": -1023,
+          "width": 334,
+          "height": 64,
+          "right": 390,
+          "bottom": -959
+        },
+        "owner": "Positions & roles",
+        "image": "configuration-organization-mobile-dark-390x844-position-header.png",
+        "imageBytes": 40919,
+        "imageSHA256": "5a37ef8495d2371789e2c93cb52057229752fcbb67c6caaf1ed235f55bdc151f",
+        "stability": {
+          "samples": 2,
+          "identicalConsecutiveFrames": true,
+          "settledAnimationFrames": 2
+        }
+      }
+    },
+    {
+      "name": "configuration-organization-compact-light-600x900",
+      "route": "#configure/access/positions",
+      "viewport": {
+        "width": 600,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "organization",
+      "enterpriseNavigation": {
+        "viewportWidth": 600,
+        "headingText": "Enterprise setup",
+        "headingCount": 1,
+        "list": {
+          "x": 80,
+          "y": 323,
+          "width": 512,
+          "height": 54,
+          "right": 592,
+          "bottom": 377
+        },
+        "listDisplay": "flex",
+        "selected": "Organization",
+        "selectedBounds": {
+          "x": 93,
+          "y": 328,
+          "width": 110.71875,
+          "height": 44,
+          "right": 203.71875,
+          "bottom": 372
+        },
+        "selectedVisible": true,
+        "indicator": {
+          "x": 101,
+          "y": 371,
+          "width": 94.71875,
+          "height": 2,
+          "right": 195.71875,
+          "bottom": 373
+        },
+        "indicatorPosition": "absolute",
+        "indicatorColor": "rgb(10, 112, 128)",
+        "tabs": [
+          {
+            "label": "Organization",
+            "x": 93,
+            "y": 328,
+            "width": 110.71875,
+            "height": 44,
+            "right": 203.71875,
+            "bottom": 372
+          },
+          {
+            "label": "Groups",
+            "x": 206.71875,
+            "y": 328,
+            "width": 76.796875,
+            "height": 44,
+            "right": 283.515625,
+            "bottom": 372
+          },
+          {
+            "label": "People & access",
+            "x": 286.515625,
+            "y": 328,
+            "width": 131.296875,
+            "height": 44,
+            "right": 417.8125,
+            "bottom": 372
+          },
+          {
+            "label": "Jurisdictions",
+            "x": 420.8125,
+            "y": 328,
+            "width": 106.453125,
+            "height": 44,
+            "right": 527.265625,
+            "bottom": 372
+          },
+          {
+            "label": "Frameworks",
+            "x": 530.265625,
+            "y": 328,
+            "width": 106.6875,
+            "height": 44,
+            "right": 636.953125,
+            "bottom": 372
+          },
+          {
+            "label": "Data imports",
+            "x": 639.953125,
+            "y": 328,
+            "width": 112.34375,
+            "height": 44,
+            "right": 752.296875,
+            "bottom": 372
+          }
+        ],
+        "links": [
+          {
+            "label": "Reporting lines",
+            "href": "#configure/access/reporting",
+            "x": 365,
+            "y": 1640.125,
+            "width": 122.578125,
+            "height": 44,
+            "right": 487.578125,
+            "bottom": 1684.125
+          },
+          {
+            "label": "Provisioning",
+            "href": "#configure/access/directory",
+            "x": 365,
+            "y": 1339.234375,
+            "width": 100.21875,
+            "height": 44,
+            "right": 465.21875,
+            "bottom": 1383.234375
+          },
+          {
+            "label": "Escalation routes",
+            "href": "#configure/access/escalation",
+            "x": 365,
+            "y": 1744.125,
+            "width": 138.859375,
+            "height": 44,
+            "right": 503.859375,
+            "bottom": 1788.125
+          }
+        ],
+        "legacyPeopleHeader": false,
+        "legacySwitcher": false,
+        "documentWidth": 600,
+        "scrollWidth": 600
+      },
+      "imageBytes": 75146,
+      "imageSHA256": "4230c5c5439fbed032eaeab18b4922a3945d9849a83c801f48ad21921a7afdd6",
+      "positionHeader": {
+        "container": {
+          "x": 20,
+          "y": 66,
+          "width": 496,
+          "height": 198.140625,
+          "right": 516,
+          "bottom": 264.140625
+        },
+        "heading": {
+          "x": 20,
+          "y": 66,
+          "width": 496,
+          "height": 33,
+          "right": 516,
+          "bottom": 99
+        },
+        "filters": {
+          "x": 20,
+          "y": 138.140625,
+          "width": 496,
+          "height": 126,
+          "right": 516,
+          "bottom": 264.140625
+        },
+        "dialog": {
+          "x": 0,
+          "y": 0,
+          "width": 600,
+          "height": 900,
+          "right": 600,
+          "bottom": 900
+        },
+        "contextBar": {
+          "x": 72,
+          "y": -933,
+          "width": 528,
+          "height": 64,
+          "right": 600,
+          "bottom": -869
+        },
+        "owner": "Positions & roles",
+        "image": "configuration-organization-compact-light-600x900-position-header.png",
+        "imageBytes": 42302,
+        "imageSHA256": "fa44136ae4651498d8e05e6be799966cb06c4bc44493b39db7d29a25b1c988dc",
+        "stability": {
+          "samples": 2,
+          "identicalConsecutiveFrames": true,
+          "settledAnimationFrames": 2
+        }
+      }
+    },
+    {
+      "name": "configuration-checks-partial-desktop-dark-1440x900",
+      "route": "#configure/authority/checks",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "expectation": "checks",
+      "imageBytes": 115791,
+      "imageSHA256": "5bfc76abf158d65b7286dd04d7ac118c8f0a2bf38bad44f3662a5db7cb818736"
+    },
+    {
+      "name": "configuration-overview-desktop-light-1440x900",
+      "route": "#configure",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "overview",
+      "imageBytes": 208780,
+      "imageSHA256": "1d36a5fce494addbaf602074165553a245dfd99ecf6fc234abbeb50959ddf738"
+    },
+    {
+      "name": "configuration-authority-desktop-dark-1440x900",
+      "route": "#configure/authority",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "expectation": "authority",
+      "imageBytes": 139281,
+      "imageSHA256": "0855aa26e1e085b02556a25208e5faf8c780f9de417c0b0d606515a517c7f42a"
+    },
+    {
+      "name": "configuration-access-desktop-light-1440x900",
+      "route": "#configure/access",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "expectation": "access",
+      "imageBytes": 156546,
+      "imageSHA256": "3dfcc64a17949f699c951bd0c1326a56ae9aea26ef410f8172b650f28ce1d8b4"
+    },
+    {
+      "name": "configuration-overview-tablet-dark-1024x768",
+      "route": "#configure",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "expectation": "overview",
+      "imageBytes": 163888,
+      "imageSHA256": "a6fa43a0661d7ad354bab915e1894c2063791a4f3cfe4c85b81a588f3a1bb6cb"
+    },
+    {
+      "name": "configuration-overview-mobile-light-390x844",
+      "route": "#configure",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "expectation": "mobile",
+      "imageBytes": 87945,
+      "imageSHA256": "a50bdf6c58675981a7f7438f8745106943c9851ba6b5a3a4644df279f9cef3dd"
+    },
+    {
+      "name": "configuration-overview-reflow-dark-320x800",
+      "route": "#configure",
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "theme": "dark",
+      "expectation": "mobile",
+      "imageBytes": 79713,
+      "imageSHA256": "b496cd7f4fd0b18f56c0802917f5fb427293bfa4b545a6e5fd79a1e0722213b4"
+    }
+  ]
+}

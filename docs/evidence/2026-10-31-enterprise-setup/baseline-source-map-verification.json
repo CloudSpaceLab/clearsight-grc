@@ -1,0 +1,22 @@
+{
+  "src/components/access/OrganizationPositionManager.tsx": {
+    "matchesC40f": true,
+    "map": "runtime-build/assets/ConfigureWorkspace-CuBtjiJk.js.map"
+  },
+  "src/components/access/OrganizationScopeManager.tsx": {
+    "matchesC40f": true,
+    "map": "runtime-build/assets/ConfigureWorkspace-CuBtjiJk.js.map"
+  },
+  "src/components/access/OrganizationInventory.tsx": {
+    "matchesC40f": true,
+    "map": "runtime-build/assets/ConfigureWorkspace-CuBtjiJk.js.map"
+  },
+  "src/components/IdentityAccessPanel.tsx": {
+    "matchesC40f": true,
+    "map": "runtime-build/assets/ConfigureWorkspace-CuBtjiJk.js.map"
+  },
+  "src/components/configure/PeopleAccessSection.tsx": {
+    "matchesC40f": true,
+    "map": "runtime-build/assets/ConfigureWorkspace-CuBtjiJk.js.map"
+  }
+}
