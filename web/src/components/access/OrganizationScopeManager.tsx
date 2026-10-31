@@ -120,7 +120,7 @@ export function OrganizationScopeManager({
       <div className="organization-setup-grid">
         <section className="organization-setup-hierarchy" aria-label="Organization structure">
           <Surface>
-            <header className="organization-setup-card-heading"><div><h2>Organization structure</h2><p>{scopes.length} loaded areas · Search covers this list</p></div><div className="organization-setup-tools"><SearchField label="Find organization unit" value={query} onChange={setQuery} placeholder="Find a unit"/>{canConfigure && <Button onPress={() => setEditor({ mode: "add" })} isDisabled={isBusy}>Add area</Button>}</div></header>
+            <header className="organization-setup-card-heading"><div><h2>Organization structure</h2><p>{scopes.length} loaded areas · {scopesTruncated ? "More areas not shown" : "Search covers this list"}</p></div><div className="organization-setup-tools"><SearchField label="Find organization unit" value={query} onChange={setQuery} placeholder="Find a unit"/>{canConfigure && <Button onPress={() => setEditor({ mode: "add" })} isDisabled={isBusy}>Add area</Button>}</div></header>
             <div className="organization-setup-tree" ref={treeRef} tabIndex={-1}>
               <div className="organization-setup-row organization-setup-row--entity">
                 <span className="organization-setup-expander" aria-hidden="true"/>

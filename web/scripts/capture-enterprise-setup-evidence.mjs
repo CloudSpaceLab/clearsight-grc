@@ -224,7 +224,12 @@ try {
         }else if(scenario==="empty"){
           await page.getByText(/No (organization )?areas/i).first().waitFor();assert.equal(await inspect(page,"Technology").count(),0);r.checks.emptyPopulationHonest=true;
         }else if(scenario==="truncated"){
-          await inspect(page,"Technology").waitFor();await page.getByText(/500 loaded areas|500 areas loaded|first 500 areas/i).first().waitFor();
+          await inspect(page,"Technology").waitFor();
+          const limit=page.getByText("500 loaded areas · More areas not shown",{exact:true});await limit.waitFor();
+          r.limitGeometry=await limit.evaluate(node=>{const rect=node.getBoundingClientRect(),shell=document.querySelector(".context-bar")?.getBoundingClientRect();return{text:node.textContent.trim(),top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right,viewportWidth:innerWidth,viewportHeight:innerHeight,shellBottom:Math.max(0,shell?.bottom??0)};});
+          assert.ok(r.limitGeometry.top>=r.limitGeometry.shellBottom&&r.limitGeometry.bottom<=r.limitGeometry.viewportHeight&&r.limitGeometry.left>=0&&r.limitGeometry.right<=r.limitGeometry.viewportWidth,"The omitted-area disclosure must be visible in the viewport");
+          r.checks.limitDisclosureInViewport=true;
+          await page.getByText("First 500 areas loaded. Search filters this list; additional areas are not included.",{exact:true}).waitFor();r.checks.detailedLimitDisclosurePresent=true;
           assert.doesNotMatch(await page.locator(".enterprise-setup-workspace").innerText(),/refine.*filter.*(?:see|load).*other/i);
           const read=(await observation(page)).reads.filter(item=>item.status===200).at(-1);assert.equal(read.scopeIDs.length,500);assert.equal(read.truncated,true);
           r.checks.actualBoundedPopulation=true;r.checks.loadedPopulationLimitVisible=true;

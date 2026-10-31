@@ -10,7 +10,7 @@ const requiredBehaviors = {
   "selection-search-history-dark-390": ["searchFiltersLoadedScopes", "searchRetainsAncestors", "searchNoMatch", "collapseHidesDescendants", "selectionUpdatesContextAndURL", "historyRestoresSelection", "deepLinkRestoresContext"],
   "setup-navigation": ["keyboardTraversalPreservesSelection", "keyboardImportHandoff", "unavailableDestinationsHonest", "setupHistoryPreservesUnit", "peopleHandoff", "frameworkHandoff", "importHandoff"],
   empty: ["emptyPopulationHonest", "noHorizontalOverflow"],
-  truncated: ["actualBoundedPopulation", "loadedPopulationLimitVisible", "noHorizontalOverflow"],
+  truncated: ["actualBoundedPopulation", "loadedPopulationLimitVisible", "limitDisclosureInViewport", "detailedLimitDisclosurePresent", "noHorizontalOverflow"],
   denied: ["failedReadDoesNotShowRecords", "noHorizontalOverflow"],
   failure: ["failedReadDoesNotShowRecords", "noHorizontalOverflow"],
   recovery: ["failedReadDoesNotShowRecords", "retryRestoresRecords", "noHorizontalOverflow"],
@@ -68,6 +68,8 @@ export async function reviewEnterpriseSetupEvidence(outputDirectory, runtimeBuil
     if(expectedScenario==="truncated"){
       const read=log?.reads?.at(-1);
       if(read?.truncated!==true||read.scopeIDs?.length!==500) failures.push("Enterprise Setup truncated evidence did not load the 500-area bound");
+      const g=record.limitGeometry;
+      if(!g||g.text!=="500 loaded areas · More areas not shown"||g.top<g.shellBottom||g.bottom>g.viewportHeight||g.left<0||g.right>g.viewportWidth) failures.push("Enterprise Setup omitted-area disclosure is outside the viewport");
     }
   }
   const images = receipt.images ?? [], names = new Set(images.map(item => item.file));
