@@ -113,6 +113,7 @@ jobs:
             web/ui-evidence/finding-followup/*.png
             web/ui-evidence/finding-followup/*.json
             web/ui-evidence/work-source/**
+            web/ui-evidence/enterprise-setup/**
             web/ui-evidence/*.json
             web/ui-evidence/*.md
             web/ui-evidence/flow-logs/*.log

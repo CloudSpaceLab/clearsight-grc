@@ -17,6 +17,7 @@ import { reviewRiskLossCaptures } from "./risk-loss-evidence-contract.mjs";
 import { privacyAccessibilityScenarios, privacyEvidenceScenarios, privacySupplementalScreenshotNames } from "./privacy-evidence-scenarios.mjs";
 import { reviewPrivacyCaptures } from "./privacy-evidence-contract.mjs";
 import { reviewWorkSourceEvidence } from "./review-work-source-evidence.mjs";
+import { reviewEnterpriseSetupEvidence } from "./review-enterprise-setup-evidence.mjs";
 import { peopleAccessAccessibilityScenarios, peopleAccessEvidenceScenarios, peopleAccessSupplementalScreenshotNames } from "./people-access-evidence-scenarios.mjs";
 import { reviewPeopleAccessCaptures } from "./people-access-evidence-contract.mjs";
 
@@ -412,6 +413,9 @@ const manifest = await safeReadJSON("manifest.json");
 const workSource = await reviewWorkSourceEvidence(outputDir, manifest?.runtimeBuild);
 failures.push(...workSource.failures);
 checks.push({ name: "Work source-count drills and layouts", status: workSource.failures.length ? "FAIL" : "PASS", detail: workSource.detail });
+const enterpriseSetup = await reviewEnterpriseSetupEvidence(outputDir, manifest?.runtimeBuild);
+failures.push(...enterpriseSetup.failures);
+checks.push({ name: "Enterprise Setup organization layouts and handoffs", status: enterpriseSetup.failures.length ? "FAIL" : "PASS", detail: enterpriseSetup.detail });
 if (manifest) {
   if (manifest.failure) failures.push(`flow manifest recorded failure: ${manifest.failure}`);
   const names = manifest.captures.map((capture) => capture.name);

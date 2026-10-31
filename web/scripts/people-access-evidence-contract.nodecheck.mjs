@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { peopleAccessEvidenceScenarios, peopleAccessViews } from "./people-access-evidence-scenarios.mjs";
-import { peopleAccessAnatomyFailures, peopleAccessCaptureFailures, peopleAccessComposerFailures, peopleAccessContinuationFailures, peopleAccessDefinitionFailures, peopleAccessFilterFailures, peopleAccessHistoryFailures, peopleAccessMetricFailures, peopleAccessSourcePairFailures, peopleAccessSwitcherFailures } from "./people-access-evidence-contract.mjs";
+import { peopleAccessAnatomyFailures, peopleAccessCaptureFailures, peopleAccessComposerFailures, peopleAccessContinuationFailures, peopleAccessDefinitionFailures, peopleAccessFilterFailures, peopleAccessHistoryFailures, peopleAccessMetricFailures, peopleAccessSourcePairFailures, enterpriseSetupNavigationFailures } from "./people-access-evidence-contract.mjs";
 const rect=(x,y,width,height)=>({x,y,width,height,right:x+width,bottom:y+height});
-const switcherFixture=()=>({viewportWidth:1440,list:rect(260,300,1140,44),compact:null,listDisplay:"flex",compactDisplay:"none",selected:"Organization",selectedBounds:rect(260,300,120,44),indicator:rect(270,342,100,2),indicatorPosition:"absolute",indicatorColor:"rgb(0, 100, 120)",buttons:[0,1,2,3].map((index)=>({...rect(260+index*140,300,130,44)})),trigger:null,compactValue:"Organization"});
+const setupNavigationFixture=(width=1440)=>({viewportWidth:width,headingText:"Enterprise setup",headingCount:1,list:rect(64,300,width-80,54),listDisplay:"flex",selected:"Organization",selectedVisible:true,selectedBounds:rect(72,305,120,44),indicator:rect(82,347,100,2),indicatorPosition:"absolute",indicatorColor:"rgb(0, 100, 120)",tabs:["Organization","Groups","People & access","Jurisdictions","Frameworks","Data imports"].map((label,index)=>({label,...rect(72+index*140,305,130,44)})),links:[["Reporting lines","reporting"],["Provisioning","directory"],["Escalation routes","escalation"]].map(([label,area],index)=>({label,href:`#configure/access/${area}`,...rect(72,370+index*44,150,44)})),legacyPeopleHeader:false,legacySwitcher:false,documentWidth:width,scrollWidth:width});
 function fixture(){
  const scenario=peopleAccessEvidenceScenarios.find((item)=>item.peopleAccessView==="people"&&item.peopleAccessCheck==="layout"&&item.viewport.width===1440&&item.theme==="light");
  const names=["Amina Yusuf","Chidi Okonkwo","Funke Adeyemi","Ibrahim Musa","Kemi Adebayo","Morgan Ellis","Nneka Okafor","Olumide Balogun","Sarah Ojo","Tunde Bello","Zainab Abubakar","Zara Nwosu"];
@@ -37,7 +37,7 @@ test("directory filters must search beyond old eighth record and preserve popula
 });
 test("browser history cannot pass after replacing the document/menu or losing active tab containment",()=>{
  const steps=["delegations","back-routes","back-roles","back-people","forward-roles","selected-person","back-person","forward-person"];
- const history={provisioning:{organizationRoute:"#configure/access/positions",sourceRoute:"#configure/access/directory",back:{route:"#configure/access/positions",dialogCount:0},forward:{route:"#configure/access/directory",dialogCount:0}},organization:["Add position","Add area"].map((name)=>({name,focused:true,peopleRoute:"#configure/access",route:"#configure/access/positions",back:{route:"#configure/access",selected:"People",dialogCount:0},forward:{route:"#configure/access/positions",selected:"Organization settings",dialogCount:0},switcher:switcherFixture()})),queryless:peopleAccessViews.map(({id,route})=>({view:id,first:"First",second:"Second",restored:"First",querylessRoute:route,restoredRoute:route,selectedRoute:`${route}?record=second`})),snapshots:steps.map((step,index)=>({step,sameDocument:true,sameMenu:true,selectedVisible:true,...(index>=5?{search:"Zara",names:["Zara Nwosu"],detail:"Zara Nwosu"}:{})}))};assert.deepEqual(peopleAccessHistoryFailures(history),[]);
+ const history={provisioning:{organizationRoute:"#configure/access/positions",sourceRoute:"#configure/access/directory",back:{route:"#configure/access/positions",dialogCount:0},forward:{route:"#configure/access/directory",dialogCount:0}},organization:["Add position","Add area"].map((name)=>({name,focused:true,peopleRoute:"#configure/access",route:"#configure/access/positions",back:{route:"#configure/access",selected:"People",dialogCount:0},forward:{route:"#configure/access/positions",selected:"Organization",dialogCount:0},navigation:setupNavigationFixture()})),queryless:peopleAccessViews.map(({id,route})=>({view:id,first:"First",second:"Second",restored:"First",querylessRoute:route,restoredRoute:route,selectedRoute:`${route}?record=second`})),snapshots:steps.map((step,index)=>({step,sameDocument:true,sameMenu:true,selectedVisible:true,...(index>=5?{search:"Zara",names:["Zara Nwosu"],detail:"Zara Nwosu"}:{})}))};assert.deepEqual(peopleAccessHistoryFailures(history),[]);
  for(const key of ["sameDocument","sameMenu","selectedVisible"]){const changed=structuredClone(history);changed.snapshots[2][key]=false;assert.ok(peopleAccessHistoryFailures(changed).length);}
  const stale=structuredClone(history);stale.queryless[2].restored="Second";assert.ok(peopleAccessHistoryFailures(stale).length);
  const portal=structuredClone(history);portal.organization[0].back.dialogCount=1;assert.ok(peopleAccessHistoryFailures(portal).length);
@@ -48,12 +48,11 @@ test("unavailable summary copy must fit complete words and avoid quality-label c
  const narrow=structuredClone(metric);narrow.labelBounds=rect(10,10,22,18);assert.ok(peopleAccessMetricFailures([narrow]).length);
  const collision=structuredClone(metric);collision.qualityBounds=rect(20,10,120,18);assert.ok(peopleAccessMetricFailures([collision]).length);
 });
-test("secondary switcher rejects both desktop controls showing and an unstyled current indicator",()=>{
- const desktop=switcherFixture();assert.deepEqual(peopleAccessSwitcherFailures(desktop),[]);
- const doubled=structuredClone(desktop);doubled.compact=rect(260,344,1140,70);assert.ok(peopleAccessSwitcherFailures(doubled).length);
- const unstyled=structuredClone(desktop);unstyled.listDisplay="block";unstyled.indicator=null;assert.ok(peopleAccessSwitcherFailures(unstyled).length);
- const phone={...desktop,viewportWidth:390,list:null,listDisplay:"none",compact:rect(64,300,318,80),compactDisplay:"block",trigger:rect(64,330,318,44),indicator:null,selectedBounds:null};assert.deepEqual(peopleAccessSwitcherFailures(phone),[]);
- phone.list=rect(64,300,318,20);assert.ok(peopleAccessSwitcherFailures(phone).length);
+test("Enterprise Setup navigation rejects old anatomy, lost selection, wrong destinations and undersized targets",()=>{
+ for(const width of [1440,600,390])assert.deepEqual(enterpriseSetupNavigationFailures(setupNavigationFixture(width)),[]);
+ const desktop=setupNavigationFixture();
+ for(const mutate of [(n)=>{n.legacyPeopleHeader=true},(n)=>{n.legacySwitcher=true},(n)=>{n.tabs.reverse()},(n)=>{n.selectedVisible=false},(n)=>{n.listDisplay="block";n.indicator=null},(n)=>{n.links[1].href="#configure/access/reporting"},(n)=>{n.links[1].height=30;n.links[1].bottom=n.links[1].y+30},(n)=>{n.scrollWidth=n.documentWidth+20}]){const changed=structuredClone(desktop);mutate(changed);assert.ok(enterpriseSetupNavigationFailures(changed).length);}
+ const phone=setupNavigationFixture(390);phone.selectedBounds=rect(700,300,120,44);assert.ok(enterpriseSetupNavigationFailures(phone).length);
 });
 test("continuation rejects a geometrically visible action whose settled screenshot has blank label pixels",()=>{
  const scenario={name:"policy-phone",viewport:{width:390,height:844}},target={...rect(85,649,276,44),textBounds:rect(105,653,234,36)};

@@ -114,6 +114,10 @@ export async function verifyPeopleAccessHistory(page) {
   for (const name of ["Add position", "Add area"]) {
     const peopleRoute = await page.evaluate(() => location.hash);
     await page.getByRole("button", { name: "Organization settings", exact: true }).click();
+    if (name === "Add position") {
+      await page.getByRole("button", { name: "Positions & roles", exact: true }).click();
+      await page.getByRole("dialog", { name: "Positions & roles", exact: true }).waitFor();
+    }
     const entry = page.getByRole("button", { name, exact: true });
     await entry.click();
     const dialog = page.getByRole("dialog", { name, exact: true });
@@ -122,29 +126,27 @@ export async function verifyPeopleAccessHistory(page) {
     await page.goBack(); await dialog.waitFor({ state: "hidden" });
     await waitForPeopleAccess(page, { peopleAccessView: "people", peopleAccessCheck: "layout" });
     const back = { route: await page.evaluate(() => location.hash), selected: await tabs.getByRole("tab", { selected: true }).textContent(), dialogCount: await page.getByRole("dialog").count() };
-    await page.goForward(); await entry.waitFor();
-    const forward = { route: await page.evaluate(() => location.hash), selected: await tabs.getByRole("tab", { selected: true }).textContent(), dialogCount: await page.getByRole("dialog").count() };
-    const switcher = await measureOrganizationSwitcher(page);
-    organization.push({ name, peopleRoute, route, focused, back, forward, switcher });
+    await page.goForward(); await page.getByRole("button", { name: name === "Add position" ? "Positions & roles" : name, exact: true }).waitFor();
+    const forward = { route: await page.evaluate(() => location.hash), selected: await page.getByRole("tablist", { name: "Enterprise configuration" }).getByRole("tab", { selected: true }).textContent(), dialogCount: await page.getByRole("dialog").count() };
+    const navigation = await measureEnterpriseSetupNavigation(page);
+    organization.push({ name, peopleRoute, route, focused, back, forward, navigation });
     await page.goBack(); await waitForPeopleAccess(page, { peopleAccessView: "people", peopleAccessCheck: "layout" });
   }
   await page.getByRole("button", { name: "Organization settings", exact: true }).click();
-  await page.getByRole("button", { name: "Add position", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Positions & roles", exact: true }).waitFor();
   const organizationRoute = await page.evaluate(() => location.hash);
-  const provisioningButton = page.getByRole("navigation", { name: "Organization settings", exact: true }).getByRole("button", { name: "Provisioning", exact: true });
-  if (await provisioningButton.isVisible()) await provisioningButton.click();
-  else { await page.getByRole("button", { name: /Organization area/ }).click(); await page.getByRole("option", { name: "Provisioning", exact: true }).click(); }
+  await page.getByRole("navigation", { name: "Organization settings", exact: true }).getByRole("link", { name: "Provisioning", exact: true }).click();
   const sourceEntry = page.getByRole("button", { name: "Add source", exact: true });
   await sourceEntry.click();
   const sourceDialog = page.getByRole("dialog", { name: "Add provisioning source", exact: true });
   await sourceDialog.waitFor();
   const sourceRoute = await page.evaluate(() => location.hash);
   await page.goBack(); await sourceDialog.waitFor({ state: "hidden" });
-  await page.getByRole("button", { name: "Add position", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Positions & roles", exact: true }).waitFor();
   const back = { route: await page.evaluate(() => location.hash), dialogCount: await page.getByRole("dialog").count() };
   await page.goForward(); await sourceEntry.waitFor();
   const forward = { route: await page.evaluate(() => location.hash), dialogCount: await page.getByRole("dialog").count() };
-  await page.goBack(); await page.getByRole("button", { name: "Add position", exact: true }).waitFor();
+  await page.goBack(); await page.getByRole("button", { name: "Positions & roles", exact: true }).waitFor();
   await page.goBack(); await waitForPeopleAccess(page, { peopleAccessView: "people", peopleAccessCheck: "layout" });
   return { snapshots, queryless, organization, provisioning: { organizationRoute, sourceRoute, back, forward } };
 }
@@ -252,11 +254,20 @@ export async function measurePeopleAccessContinuationPaint(page, pngBase64, targ
     return {sample:{x,y,width,height},background,distinctColors:colors.size,contrastPixels};
   }, {pngBase64,target});
 }
-export async function measureOrganizationSwitcher(page) {
-  return page.locator(".people-access-workspace__organization .cs-workspace-switcher").evaluate((root) => {
+export async function measureEnterpriseSetupNavigation(page) {
+  await settlePeopleAccessPaint(page);
+  return page.locator(".enterprise-setup-workspace").evaluate((root) => {
     const box=(node)=>{if(!node?.getClientRects().length)return null;const r=node.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};};
-    const list=root.querySelector(".cs-workspace-switcher__list"),compact=root.querySelector(".cs-workspace-switcher__compact"),selected=list.querySelector('[aria-current="page"]'),indicator=selected?.querySelector(".cs-workspace-switcher__indicator"),trigger=compact.querySelector("button");
-    return {viewportWidth:innerWidth,list:box(list),compact:box(compact),listDisplay:getComputedStyle(list).display,compactDisplay:getComputedStyle(compact).display,selected:selected?.textContent.trim(),selectedBounds:box(selected),indicator:box(indicator),indicatorPosition:indicator?getComputedStyle(indicator).position:null,indicatorColor:indicator?getComputedStyle(indicator).backgroundColor:null,buttons:[...list.querySelectorAll("button")].map((node)=>({label:node.textContent.trim(),...box(node)})),trigger:box(trigger),compactValue:compact.querySelector(".cs-select-field__value")?.textContent.trim()};
+    const list=root.querySelector('[role="tablist"]'),selected=list?.querySelector('[aria-selected="true"]'),indicator=selected?.querySelector(".cs-tabs__indicator");
+    const listBounds=box(list),selectedBounds=box(selected);
+    return {viewportWidth:innerWidth,headingText:root.querySelector("h1")?.textContent.trim(),headingCount:root.querySelectorAll("h1").length,
+      list:listBounds,listDisplay:list?getComputedStyle(list).display:null,selected:selected?.textContent.trim(),selectedBounds,
+      selectedVisible:Boolean(listBounds&&selectedBounds&&selectedBounds.x>=listBounds.x-1&&selectedBounds.right<=listBounds.right+1),
+      indicator:box(indicator),indicatorPosition:indicator?getComputedStyle(indicator).position:null,indicatorColor:indicator?getComputedStyle(indicator).backgroundColor:null,
+      tabs:[...(list?.querySelectorAll('[role="tab"]')??[])].map((node)=>({label:node.textContent.trim(),...box(node)})),
+      links:[...root.querySelectorAll('.enterprise-setup-workspace__contextual a[href]')].map((node)=>({label:node.textContent.trim(),href:node.getAttribute("href"),...box(node)})),
+      legacyPeopleHeader:Boolean(document.querySelector(".people-access-workspace__heading")),legacySwitcher:Boolean(root.querySelector(".cs-workspace-switcher,.configure-navigation")),
+      documentWidth:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth};
   });
 }
 export async function measurePeopleAccessSourceLayout(page, view) {

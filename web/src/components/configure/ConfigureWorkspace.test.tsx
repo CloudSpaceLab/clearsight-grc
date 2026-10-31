@@ -4,6 +4,7 @@ import { ConfigureWorkspace } from "./ConfigureWorkspace";
 
 const mounts = vi.hoisted(() => ({
   overview: vi.fn(),
+  setup: vi.fn(),
   access: vi.fn(),
   authority: vi.fn(),
   data: vi.fn(),
@@ -23,6 +24,13 @@ vi.mock("./PeopleAccessSection", () => ({
   PeopleAccessSection: ({ onNavigate }: { onNavigate: (hash: string) => void }) => {
     mounts.access();
     return <div>People and access surface<button onClick={() => onNavigate("#configure")}>Settings</button></div>;
+  },
+}));
+
+vi.mock("./EnterpriseSetupSection", () => ({
+  EnterpriseSetupSection: ({ hash, onNavigate }: { hash: string; onNavigate: (hash: string) => void }) => {
+    mounts.setup(hash);
+    return <div>Enterprise setup surface<button onClick={() => onNavigate("#configure/access/directory")}>Provisioning</button></div>;
   },
 }));
 
@@ -117,4 +125,32 @@ it("opens a deep-linked configuration domain without mounting overview first", (
   expect(mounts.data).not.toHaveBeenCalled();
   expect(mounts.automation).not.toHaveBeenCalled();
   expect(mounts.ai).not.toHaveBeenCalled();
+});
+
+it("opens the existing Organization path in Setup and leaves secondary areas with their current owner", () => {
+  window.history.replaceState(null, "", "#configure/access/positions?unit=area-2&setup=groups");
+  render(<ConfigureWorkspace importsEnabled canReconcileProjection onOpenImports={vi.fn()}/>);
+  expect(screen.getByText("Enterprise setup surface")).toBeTruthy();
+  expect(mounts.setup).toHaveBeenCalledWith("#configure/access/positions?unit=area-2&setup=groups");
+  expect(mounts.overview).not.toHaveBeenCalled();
+  expect(mounts.access).not.toHaveBeenCalled();
+  expect(screen.queryByRole("navigation", { name: "Configuration areas" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Provisioning" }));
+  expect(window.location.hash).toBe("#configure/access/directory");
+  expect(screen.getByText("People and access surface")).toBeTruthy();
+  expect(screen.queryByText("Enterprise setup surface")).toBeNull();
+});
+
+it("restores Setup and People owners from browser history without pushing another entry", () => {
+  window.history.replaceState(null, "", "#configure/access");
+  render(<ConfigureWorkspace importsEnabled canReconcileProjection onOpenImports={vi.fn()}/>);
+  const push = vi.spyOn(window.history, "pushState");
+  window.history.replaceState(null, "", "#configure/access/positions?unit=area-2");
+  fireEvent.popState(window);
+  expect(screen.getByText("Enterprise setup surface")).toBeTruthy();
+  window.history.replaceState(null, "", "#configure/access?person=person-2");
+  fireEvent.popState(window);
+  expect(screen.getByText("People and access surface")).toBeTruthy();
+  expect(push).not.toHaveBeenCalled();
+  push.mockRestore();
 });
