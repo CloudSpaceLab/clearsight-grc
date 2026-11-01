@@ -15,6 +15,8 @@ const forbiddenRuntimeMarkers = [
   "peopleAccessEvidence",
   "staticDemoEnterpriseSetupRuntime",
   "enterpriseSetupEvidence",
+  "staticDemoAutomationRuntime",
+  "automationEvidence",
   "VITE_STATIC_DEMO",
   "VITE_UI_EVIDENCE",
 ];

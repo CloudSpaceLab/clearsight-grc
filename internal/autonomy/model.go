@@ -69,6 +69,20 @@ type Readiness struct {
 // AutomationPolicyState is the lifecycle state of one immutable policy revision.
 type AutomationPolicyState string
 
+const AutomationPolicyListLimit = 200
+
+// AutomationPolicyPage contains the latest revision of each returned policy
+// code, including drafts. It is not a list of currently executing policies.
+type AutomationPolicyPage struct {
+	Items         []AutomationPolicy `json:"items"`
+	TenantID      string             `json:"tenant_id"`
+	Scope         string             `json:"scope"`
+	RevisionBasis string             `json:"revision_basis"`
+	Limit         int                `json:"limit"`
+	ReturnedCount int                `json:"returned_count"`
+	Truncated     bool               `json:"truncated"`
+}
+
 const (
 	AutomationPolicyDraft           AutomationPolicyState = "DRAFT"
 	AutomationPolicyPendingApproval AutomationPolicyState = "PENDING_APPROVAL"

@@ -1492,7 +1492,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/workflow/tasks") return clone({ items: [{ id: "task-dpco", tenant_id: "bank-demo", workflow_id: "workflow-return", step_key: "DPCO_REVIEW", responsibility: "REVIEWER", principal_id: "role-dpco", title: "Confirm the final DPCO review date", status: "READY", due_at: future, context: { program: "Nigeria Data Protection Programme" }, version: 1 }] }) as T;
   if (pathname === "/api/v1/operations/projections") return clone({ items: [{ tenant_id: "bank-demo", projection: "program_state", display_name: "Program status", state: "CURRENT", pending: 0, failed: 0, lag_seconds: 3, last_completed: now, updated_at: now }] }) as T;
   if (pathname === "/api/v1/operations/projections/reconcile") return clone({ tenant_id: "bank-demo", checked: 1, queued: 0, already_queued: 0, current: 1 }) as T;
-  if (pathname === "/api/v1/compliance/automation-policies") return clone({ items: [] }) as T;
+  if (pathname === "/api/v1/compliance/automation-policies") return clone({ items: [], tenant_id: "bank-demo", scope: "TENANT", revision_basis: "LATEST_PER_CODE", limit: 200, returned_count: 0, truncated: false }) as T;
   if (pathname === "/api/v1/ai-governance/policies") return clone({ items: [] }) as T;
   if (pathname === "/api/v1/ai-governance/workloads") return clone({ items: [] }) as T;
   if (pathname === "/api/v1/bank-journeys") return clone({ items: [], sample: true }) as T;
