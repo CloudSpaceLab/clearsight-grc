@@ -1,0 +1,16 @@
+{
+  "metrics": {
+    "javascript": {
+      "raw": 4069938,
+      "gzip": 1098734,
+      "initial_gzip": 161947,
+      "largest_raw_chunk": 573982
+    },
+    "css": {
+      "raw": 738173,
+      "gzip": 124568,
+      "initial_gzip": 32403
+    }
+  },
+  "failures": []
+}

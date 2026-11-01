@@ -1,5 +1,11 @@
 # ClearSight implementation ledger
 
+## 1 November Automation & governance — V2 layout integration
+
+Continue from merged/demo-released Enterprise Organization #599 at `f9b5bfd9c27641c8acb7928b2e59d8c59b00ec64`. The [Automation decision](design/decisions/2026-11-01-automation-governance-v2.md) applies the original four-tab page, loaded latest-revision summaries, search/action/status filters and responsive selected-policy context to the existing `#configure/automation` owner. The policy reader adds tenant/revision/limit/truncation metadata and a 201st sentinel while returning at most 200 latest revisions by code. No action API, store or schema is added; unsupported schedules/history remain explicit and Escalations opens its existing workspace.
+
+The [retained review](evidence/2026-11-01-automation-v2/README.md) binds ten layouts, twelve behavior scenarios and 48 images to local `54bd6f192419c89a3713aa6c69e37205655c37e4`, published as `697b18e6e6319a2dbf430d82cc1bdf285b792eb5` with the same tree. Local web/backend tests, race checks, builds, source integrity and bundle budgets pass within their recorded scope. Real PostgreSQL execution, exact-head hosted checks, artifact review and demo release remain release gates tracked in the implementation PR. **Partial V2 layout integration; whole-screen operational acceptance remains 0/19.**
+
 ## 23 October Risk & Losses — four v2 pages
 
 Continue from released main `ba284eb24b01141666c93783c15221263a13d7b8` after the Vendor history correction in #585. The [decision brief](design/decisions/2026-10-22-risk-loss-pages-v2.md) covers **Risks / RCSA / Key indicators / Loss events** with a persistent common heading and local menu, compact register queries, source-shaped RCSA cycle cards, native indicator facts and a loss ledger with separate Gross / Recovered / Net columns. The approved menu reuses existing routes and the Reports/Work ownership boundaries.
