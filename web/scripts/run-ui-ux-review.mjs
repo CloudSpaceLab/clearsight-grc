@@ -20,6 +20,7 @@ const scripts = [
   "scripts/capture-people-access-evidence.mjs",
   "scripts/capture-work-source-evidence.mjs",
   "scripts/capture-enterprise-setup-evidence.mjs",
+  "scripts/capture-automation-evidence.mjs",
   "scripts/capture-home-t7-evidence.mjs",
   "scripts/capture-premium-first-run-evidence.mjs",
   "scripts/capture-forms-evidence.mjs",

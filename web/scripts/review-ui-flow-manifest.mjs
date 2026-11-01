@@ -18,6 +18,7 @@ import { privacyAccessibilityScenarios, privacyEvidenceScenarios, privacySupplem
 import { reviewPrivacyCaptures } from "./privacy-evidence-contract.mjs";
 import { reviewWorkSourceEvidence } from "./review-work-source-evidence.mjs";
 import { reviewEnterpriseSetupEvidence } from "./review-enterprise-setup-evidence.mjs";
+import { reviewAutomationEvidence } from "./review-automation-evidence.mjs";
 import { peopleAccessAccessibilityScenarios, peopleAccessEvidenceScenarios, peopleAccessSupplementalScreenshotNames } from "./people-access-evidence-scenarios.mjs";
 import { reviewPeopleAccessCaptures } from "./people-access-evidence-contract.mjs";
 
@@ -416,6 +417,9 @@ checks.push({ name: "Work source-count drills and layouts", status: workSource.f
 const enterpriseSetup = await reviewEnterpriseSetupEvidence(outputDir, manifest?.runtimeBuild);
 failures.push(...enterpriseSetup.failures);
 checks.push({ name: "Enterprise Setup organization layouts and handoffs", status: enterpriseSetup.failures.length ? "FAIL" : "PASS", detail: enterpriseSetup.detail });
+const automation = await reviewAutomationEvidence(outputDir, manifest?.runtimeBuild);
+failures.push(...automation.failures);
+checks.push({ name: "Automation policy layouts and existing handoffs", status: automation.failures.length ? "FAIL" : "PASS", detail: automation.detail });
 if (manifest) {
   if (manifest.failure) failures.push(`flow manifest recorded failure: ${manifest.failure}`);
   const names = manifest.captures.map((capture) => capture.name);
