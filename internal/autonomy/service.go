@@ -119,10 +119,30 @@ func (s *Service) Readiness(ctx context.Context, tenant string) (Readiness, erro
 }
 
 func (s *Service) ListAutomationPolicies(ctx context.Context, tenant string) ([]AutomationPolicy, error) {
-	if strings.TrimSpace(tenant) == "" {
-		return nil, fmt.Errorf("tenant_id is required")
+	page, err := s.ListAutomationPolicyPage(ctx, tenant)
+	return page.Items, err
+}
+
+func (s *Service) ListAutomationPolicyPage(ctx context.Context, tenant string) (AutomationPolicyPage, error) {
+	tenant = strings.TrimSpace(tenant)
+	if s == nil || s.repo == nil || tenant == "" {
+		return AutomationPolicyPage{}, fmt.Errorf("tenant_id and automation policy repository are required")
 	}
-	return s.repo.ListAutomationPolicies(ctx, tenant)
+	values, err := s.repo.ListAutomationPolicies(ctx, tenant)
+	if err != nil {
+		return AutomationPolicyPage{}, err
+	}
+	truncated := len(values) > AutomationPolicyListLimit
+	if truncated {
+		values = values[:AutomationPolicyListLimit]
+	}
+	if values == nil {
+		values = []AutomationPolicy{}
+	}
+	return AutomationPolicyPage{
+		Items: values, TenantID: tenant, Scope: "TENANT", RevisionBasis: "LATEST_PER_CODE",
+		Limit: AutomationPolicyListLimit, ReturnedCount: len(values), Truncated: truncated,
+	}, nil
 }
 
 func (s *Service) GetAutomationPolicy(ctx context.Context, tenant, policyID string, version int64) (AutomationPolicy, error) {
