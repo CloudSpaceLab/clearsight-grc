@@ -118,7 +118,7 @@ vi.mock("./captureApi", () => ({
 }));
 vi.mock("./api", () => ({
   loadActorWorkDueCounts: vi.fn().mockRejectedValue(new Error("Source counts unavailable in shell test")),
-  loadAutomationPolicies: vi.fn().mockResolvedValue([]),
+  loadAutomationPolicyPage: vi.fn().mockResolvedValue({ items: [], tenant_id: "bank-demo", scope: "TENANT", revision_basis: "LATEST_PER_CODE", limit: 200, returned_count: 0, truncated: false }),
   loadCaptureRequest: vi.fn(),
   loadContext: vi.fn(),
   loadEvidenceRequest: vi.fn(),

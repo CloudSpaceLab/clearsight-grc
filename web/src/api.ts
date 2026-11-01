@@ -1,5 +1,5 @@
 import { requestJSON, requestVoid } from "./http";
-import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceReviewSubmission, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
+import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicyPage, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceReviewSubmission, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { BackgroundJobSnapshot, JobRecoveryReceipt, ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
@@ -250,8 +250,8 @@ export function loadReadiness(): Promise<Readiness> {
   return scopedRequest<Readiness>("/api/v1/compliance/readiness");
 }
 
-export async function loadAutomationPolicies(): Promise<AutomationPolicy[]> {
-  return (await request<{ items: AutomationPolicy[] }>("/api/v1/compliance/automation-policies")).items;
+export async function loadAutomationPolicyPage(signal?: AbortSignal): Promise<AutomationPolicyPage> {
+  return request<AutomationPolicyPage>("/api/v1/compliance/automation-policies", { signal });
 }
 
 export async function loadAIGovernancePolicies(): Promise<AIGovernancePolicy[]> {

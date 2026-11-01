@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
+import type { RuntimeContext } from "../../api";
 import { ConfigureWorkspace } from "./ConfigureWorkspace";
 
 const mounts = vi.hoisted(() => ({
@@ -49,9 +50,9 @@ vi.mock("./DataIntegrationsSection", () => ({
 }));
 
 vi.mock("./AutomationSection", () => ({
-  AutomationSection: () => {
-    mounts.automation();
-    return <div>Automation surface</div>;
+  AutomationSection: ({ hash, onNavigate, runtimeContext }: { hash: string; onNavigate: (hash: string) => void; runtimeContext?: RuntimeContext | null }) => {
+    mounts.automation(hash, runtimeContext);
+    return <div>Automation surface<button onClick={() => onNavigate("#configure")}>Settings</button><button onClick={() => onNavigate("#configure/automation?tab=activity&policy=policy-2")}>Policy activity</button></div>;
   },
 }));
 
@@ -105,11 +106,31 @@ it("renders only the selected administrative domain and keeps selection in the r
   expect(mounts.ai).not.toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 
+  expect(screen.queryByRole("navigation", { name: "Configuration areas" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Settings" }));
   fireEvent.click(screen.getByRole("button", { name: /AI governance/ }));
   expect(screen.getByText("AI governance surface")).toBeTruthy();
   expect(window.location.hash).toBe("#configure/ai");
   expect(mounts.ai).toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
+});
+
+it("passes the current identity and route into the standalone Automation owner and restores history", () => {
+  const runtimeContext: RuntimeContext = { tenant: { id: "tenant", name: "Bank" }, legal_entity: { id: "entity", name: "Entity" }, actor: { id: "actor", name: "Operator" }, mode: "test", capabilities: { config_read: true } };
+  window.history.replaceState(null, "", "#configure/automation?policy=policy-1&q=refresh");
+  render(<ConfigureWorkspace importsEnabled canReconcileProjection onOpenImports={vi.fn()} runtimeContext={runtimeContext}/>);
+  expect(mounts.automation).toHaveBeenLastCalledWith("#configure/automation?policy=policy-1&q=refresh", runtimeContext);
+  expect(mounts.overview).not.toHaveBeenCalled();
+  expect(screen.queryByRole("heading", { name: "Configuration" })).toBeNull();
+  expect(screen.queryByRole("navigation", { name: "Configuration areas" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Policy activity" }));
+  expect(window.location.hash).toBe("#configure/automation?tab=activity&policy=policy-2");
+  const push = vi.spyOn(window.history, "pushState");
+  window.history.replaceState(null, "", "#configure/automation?policy=policy-1&q=refresh");
+  fireEvent.popState(window);
+  expect(mounts.automation).toHaveBeenLastCalledWith("#configure/automation?policy=policy-1&q=refresh", runtimeContext);
+  expect(push).not.toHaveBeenCalled();
+  push.mockRestore();
 });
 
 it("opens a deep-linked configuration domain without mounting overview first", () => {
