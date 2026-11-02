@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { loadProgram, loadProgramSummaries } from "../api";
 import { ProgramsWorkspace } from "./ProgramsWorkspace";
@@ -56,11 +56,82 @@ describe("Program projection truth", () => {
 
     render(<ProgramsWorkspace/>);
 
-    expect(await screen.findByRole("heading", { name: "1 loaded program needs setup, review or a current assessment" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Programs", level: 2 })).toBeTruthy();
+    expect(screen.getByText("1 program needs assessment or review · Loaded programs")).toBeTruthy();
     expect(screen.getByText("Out of date")).toBeTruthy();
     const rowLink = screen.getByRole("link", { name: /Privacy compliance/ });
     expect(rowLink.getAttribute("href")).toBe("#programs/program-stale");
-    const statusFacts = within(screen.getByLabelText("Loaded Program status"));
-    expect(statusFacts.getByText((_, element) => element?.textContent?.trim() === "0 current")).toBeTruthy();
+    expect(screen.getByText(/need assessment or review/)).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Program summary for displayed records" })).toBeTruthy();
   });
+  it("does not advertise the loaded page as the full enterprise Program total", async () => {
+    vi.mocked(loadProgramSummaries).mockResolvedValue({
+      generated_at: "2026-10-16T09:00:00Z",
+      next_cursor: "page-2",
+      items: [{
+        program: {
+          id: "program-loaded", name: "Control testing", code: "CT-01",
+          status: "ACTIVE", owning_function: "Risk", version: 3,
+        },
+        state_label: "Up to date",
+        overall_state: "CURRENT",
+        reasons: [],
+        requirement_count: 2, evidence_check_count: 2,
+        open_matter_count: 0,
+        program_version: 3, assessed_program_version: 3,
+        projection_stale: false,
+      } as unknown as ProgramSummary],
+    });
+
+    render(<ProgramsWorkspace/>);
+    expect(await screen.findByRole("heading", { name: "Programs", level: 2 })).toBeTruthy();
+    expect(screen.getByText("1 program is up to date · Loaded programs · More available")).toBeTruthy();
+    expect(screen.getByText("1 loaded · More available")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Load more programs" })).toBeTruthy();
+  });
+
+  it("groups Program counts into distinct scannable facts without treating unknowns as zero", async () => {
+    vi.mocked(loadProgramSummaries).mockResolvedValue({
+      generated_at: "2026-10-09T12:00:00Z",
+      items: [{
+        program: {
+          id: "program-privacy",
+          name: "Data protection",
+          code: "NDPA-2023",
+          status: "ACTIVE",
+          owning_function: "Data Protection Office",
+          jurisdiction: "Nigeria",
+          version: 5,
+        },
+        state_label: "Evidence incomplete",
+        overall_state: "EVIDENCE_INSUFFICIENT",
+        reasons: [],
+        requirement_count: 6,
+        evidence_check_count: 5,
+        open_matter_count: 8,
+        program_version: 5,
+        assessed_program_version: 5,
+        projection_stale: false,
+      } as unknown as ProgramSummary],
+    });
+
+    render(<ProgramsWorkspace/>);
+    const row = await screen.findByRole("link", { name: /Data protection/ });
+    const counts = within(row).getByLabelText("Program indicators");
+    expect(within(counts).getByText("6")).toBeTruthy();
+    expect(within(counts).getByText("5")).toBeTruthy();
+    expect(within(counts).getByText("8")).toBeTruthy();
+    expect(within(counts).getByText("Open issues")).toBeTruthy();
+    expect(within(counts).getByText("8").closest(".program-counts__attention")).toBeTruthy();
+    expect(within(row).getByText("Evidence incomplete")).toBeTruthy();
+    expect(within(row).getByText(/Open program/)).toBeTruthy();
+    expect(screen.getByText(/need follow-up/)).toBeTruthy();
+    expect(within(screen.getByLabelText("Programs with the most open issues in the displayed records")).getByText("Data protection")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Review 8 open issues for Data protection" }));
+    expect(window.location.hash).toBe("#programs/program-privacy/issues-actions");
+    fireEvent.click(screen.getByRole("button", { name: /1 evidence incomplete/i }));
+    await waitFor(() => expect(loadProgramSummaries).toHaveBeenCalledWith(expect.objectContaining({ overallState: "EVIDENCE_INSUFFICIENT" })));
+    expect(window.location.hash).toContain("overall_state=EVIDENCE_INSUFFICIENT");
+  });
+
 });

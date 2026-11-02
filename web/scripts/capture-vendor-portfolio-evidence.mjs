@@ -1,9 +1,11 @@
 import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { prepareVendorPortfolio, selectVendorPortfolioView } from "./vendor-portfolio-evidence.mjs";
+import { selectVendorRelationshipView } from './vendor-relationship-evidence.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
-const out = path.resolve('../docs/evidence/2026-09-10-vendor-findings');
+const out = path.resolve(process.env.UI_EVIDENCE_DIR ?? '../docs/evidence/2026-09-10-vendor-findings');
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const results = [];
@@ -13,8 +15,9 @@ try {
     await context.addInitScript(value => localStorage.setItem('clearsight.theme', value), theme);
     const page = await context.newPage();
     for (const state of ['live', 'unavailable']) {
-      const fixture = state === 'live' ? 'vendor-form-assessment' : 'vendor-form-assessment-error';
+      const fixture = 'vendor-form-assessment';
       await page.goto(`${process.env.PAGE_URL ?? 'http://127.0.0.1:18080'}/?tour=off&fixture=${fixture}#vendors/overview`, { waitUntil: 'networkidle' });
+      if (state === 'unavailable') await prepareVendorPortfolio(page, { vendorPortfolioView: 'overview', vendorPortfolioCheck: 'exceptions-unavailable' });
       await page.getByRole('region', { name: 'Vendor overview summary' }).waitFor();
       if (state === 'live') await page.getByRole('button', { name: '5 open exceptions', exact: true }).waitFor();
       else await page.getByText('Some vendor exceptions could not be checked. Totals unknown.', { exact: false }).waitFor();
@@ -24,17 +27,29 @@ try {
       if (overflow) throw new Error(`Horizontal overflow: ${file}`);
       if (await page.locator('.vendor-metric').count() !== 0) throw new Error(`Legacy metric card rendered: ${file}`);
       if (state === 'unavailable' && await page.getByRole('button', { name: 'Unknown overdue actions' }).count() !== 1) throw new Error('Missing exceptions represented as known');
-      if (state === 'live' && width === 1440) {
-        const heading = await page.getByRole('heading', { name: 'Vendors', exact: true }).boundingBox();
-        const queue = await page.getByRole('heading', { name: 'Vendor exceptions', exact: true }).boundingBox();
-        if (!heading || !queue || queue.y - heading.y > 220) throw new Error(`Exception queue starts too low: ${queue?.y - heading?.y}px`);
-        const visibleRows = await page.locator('.vendor-exception-row').evaluateAll(rows => rows.filter(row => row.getBoundingClientRect().top < innerHeight).length);
-        if (visibleRows < 5) throw new Error(`Only ${visibleRows} exception rows visible in desktop viewport`);
+      if (state === 'live') {
+        const cards = page.locator('.vendor-summary-counts > .cs-button');
+        const boxes = await Promise.all([0, 1, 2, 3].map(index => cards.nth(index).boundingBox()));
+        if (await cards.count() !== 4 || boxes.some(box => !box || box.height < 90)) {
+          throw new Error(`Approved Vendor measures not rendered as four cards: ${file}`);
+        }
+        const [first, second, third, fourth] = boxes;
+        if (width === 1440 && !(first.x < second.x && second.x < third.x && third.x < fourth.x &&
+            Math.abs(first.y - fourth.y) < 3)) {
+          throw new Error(`Vendor cards must form a single desktop row: ${file}`);
+        }
+        if (width === 390 && !(first.x < second.x && Math.abs(first.y - second.y) < 3 &&
+            third.x < fourth.x && third.y > first.y + first.height - 3)) {
+          throw new Error(`Vendor cards must form a 2x2 mobile grid: ${file}`);
+        }
       }
       results.push({ file, state, theme, width, overflow });
       if (state === 'live') {
-        if (await page.getByRole('heading', { name: 'Vendor register', exact: true }).count() !== 0) throw new Error('Register leaked into vendor overview');
-        await page.getByRole('navigation', { name: 'Vendor sections' }).getByRole('button', { name: 'Register', exact: true }).click();
+        if (await page.getByRole('heading', { name: 'Vendor register', exact: true }).count() !== 1
+            || !await page.locator('.vendor-portfolio-body .vendor-portfolio-main > .vendor-register--inline').isVisible()
+            || await page.locator('.vendor-portfolio-body .vendor-overview-insights > section').count() !== 2
+            || !await page.locator('.vendor-portfolio-body > .vendor-portfolio-rail').isVisible()) throw new Error('Vendor Overview lost its source inline register, two insights or context rail');
+        await selectVendorPortfolioView(page, 'register');
         await page.getByRole('heading', { name: 'Vendor register', exact: true }).waitFor();
         if (await page.getByRole('region', { name: 'Vendor overview summary' }).count() !== 0) throw new Error('Portfolio leaked into vendor register');
         if (!page.url().endsWith('#vendors/register')) throw new Error(`Register route not reflected in URL: ${page.url()}`);
@@ -43,16 +58,17 @@ try {
         const registerOverflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
         if (registerOverflow) throw new Error(`Horizontal overflow: ${registerFile}`);
         results.push({ file: registerFile, state: 'register', theme, width, overflow: registerOverflow });
-        await page.locator('.vendor-row').first().click();
+        await page.locator('.vendor-register .cs-selectable-record').first().click();
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).waitFor();
         if (await page.locator('.vendor-register').isVisible()) throw new Error('Vendor register did not yield to full-width detail');
-        await page.getByRole('button', { name: '5 open exceptions', exact: true }).waitFor();
         await page.getByText('Superseded', { exact: true }).waitFor();
+        await selectVendorRelationshipView(page, 'issues');
+        await page.getByRole('button', { name: '5 open exceptions', exact: true }).waitFor();
         await page.screenshot({ path: path.join(out, `detail-${theme}-${width}.png`), fullPage: true });
         await page.getByRole('button', { name: 'Back to vendor register', exact: true }).click();
         await page.getByRole('heading', { name: 'Vendor register', exact: true }).waitFor();
         if (await page.getByRole('region', { name: 'Vendor overview summary' }).count() !== 0) throw new Error('Back navigation left the register route');
-        await page.getByRole('navigation', { name: 'Vendor sections' }).getByRole('button', { name: 'Overview', exact: true }).click();
+        await selectVendorPortfolioView(page, 'overview');
         await page.getByRole('region', { name: 'Vendor overview summary' }).waitFor();
         if (!page.url().endsWith('#vendors/overview')) throw new Error(`Overview route not reflected in URL: ${page.url()}`);
       }

@@ -139,7 +139,7 @@ export function OrganizationPositionManager({
       <summary><strong>History</strong><span>{visibleHistory.length} recent change{visibleHistory.length === 1 ? "" : "s"}</span></summary>
       <ul>{visibleHistory.map((revision) => {
         const pending = pendingByPosition.get(revision.position_id);
-        const canRestore = Boolean(onRestore && revision.status === "APPLIED" && revision.operation !== "RETIRE" && positionByID.has(revision.position_id));
+        const canRestore = Boolean(canConfigure && onRestore && revision.status === "APPLIED" && revision.operation !== "RETIRE" && positionByID.has(revision.position_id));
         return <li key={revision.id}>
           <div>
             <b>{positionRevisionLabel(revision, positionByID)}</b>

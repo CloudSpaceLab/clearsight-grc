@@ -151,7 +151,7 @@ describe("EvidenceWorkspace response authority", () => {
     expect(screen.getByText("Yes")).toBeTruthy();
     expect(screen.getByText("ENC-2026-09")).toBeTruthy();
     expect(screen.getByText("Internal response")).toBeTruthy();
-    expect(screen.getByText("3 of 3 answered")).toBeTruthy();
+    expect(screen.getByText("3 of 3")).toBeTruthy();
     expect(screen.getByText("Read only")).toBeTruthy();
     expect(screen.getByText("Confirmed")).toBeTruthy();
     expect(loadEvidenceReviewSubmission).toHaveBeenCalledWith(submitted.id);

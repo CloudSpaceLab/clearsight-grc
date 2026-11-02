@@ -118,8 +118,8 @@ function ProposalReviewFields({ proposal: receivedProposal, sourceTitle, sourceE
     }
   }
 
-  if (proposal.status === "GENERATING") return <section className="form-proposal-state workspace-loading" aria-live="polite" aria-busy="true"><strong>Preparing proposed fields from the imported document…</strong><p>The imported file remains unchanged while candidate fields are prepared.</p></section>;
-  if (proposal.status === "FAILED") return <section className="form-proposal-state form-proposal-failed" role="alert"><strong>Field proposal needs attention</strong><p>{proposal.failure_message || "No reviewable field proposal was produced."}</p><small>The imported source is retained. You can use the manual form builder or retry after correcting the source.</small></section>;
+  if (proposal.status === "GENERATING") return <section className="form-proposal-state workspace-loading" aria-live="polite" aria-busy="true"><strong>Preparing proposed fields from the imported document…</strong></section>;
+  if (proposal.status === "FAILED") return <section className="form-proposal-state form-proposal-failed" role="alert"><strong>Field proposal needs attention</strong><p>{proposal.failure_message || "No reviewable field proposal was produced."}</p><small>Check the source file or use the form builder.</small></section>;
   if (proposal.status === "ACCEPTED") return <section className="form-proposal-state form-proposal-complete" role="status"><strong>Draft form template created</strong><p>{proposal.accepted_change_ids?.length ?? 0} selected field changes were applied to draft revision {proposal.result_template_version}.</p>{proposal.result_template_id && <a href={`#/forms/${encodeURIComponent(proposal.result_template_id)}`}>Open draft template</a>}</section>;
   if (proposal.status === "REJECTED") return <section className="form-proposal-state"><strong>Proposal rejected</strong><p>No form template was created or changed.</p></section>;
 
@@ -131,11 +131,11 @@ function ProposalReviewFields({ proposal: receivedProposal, sourceTitle, sourceE
     {error && <div className="form-proposal-feedback"><Notice tone="error">{error}</Notice></div>}
     {followUp && <div className="finding-followup-fields">
       <strong>{assessment?.label ?? "Selected historical assessment"}</strong>
-      <p>All findings are included. Check the historical details and remove any internal-only content in the draft before approval. Creating this draft does not send a request or close a finding.</p>
+      <p>All findings included. Remove internal-only content before approval. No requests are sent or findings closed.</p>
       <CheckboxField label="I have checked the vendor, service and historical assessment details" isSelected={assessmentConfirmed} onChange={setAssessmentConfirmed} isDisabled={Boolean(busy)}/>
     </div>}
     {proposal.unresolved_items.filter((item) => !item.field_change_id).map((item, index) => <Notice key={`${item.code}-${index}`} tone="warning">{item.message}</Notice>)}
-    {(proposal.provenance.extraction_status === "PARTIAL" || proposal.provenance.extraction_status === "TRUNCATED") && <p className="form-proposal-notice" role="status">Only the retained portion of this source was analyzed. Review source gaps and unresolved items before using the draft.</p>}
+    {(proposal.provenance.extraction_status === "PARTIAL" || proposal.provenance.extraction_status === "TRUNCATED") && <p className="form-proposal-notice" role="status">Source extraction incomplete. Review unresolved items before using the draft.</p>}
     <div className="form-proposal-toolbar">
       <label><input type="checkbox" checked={allSelected} disabled={followUp} onChange={() => setSelected(allSelected ? new Set() : new Set(proposal.field_changes.map((change) => change.id)))}/> {followUp ? "All assessment fields included" : "Select all proposed fields"}</label>
       {proposal.unresolved_items.length > 0 && <span>{proposal.unresolved_items.length} unresolved</span>}
@@ -146,7 +146,7 @@ function ProposalReviewFields({ proposal: receivedProposal, sourceTitle, sourceE
       </div>
       <aside className="form-proposal-preview">
         <FormPreview contract={preview} initialMode="CLASSIC"/>
-        {proposal.proposed_contract.scoring_mode === "NONE" && <p className="form-proposal-scoring-note">Scoring weights were not inferred. Add compliance weights only after a reviewer confirms the scoring policy and the total equals 100.</p>}
+        {proposal.proposed_contract.scoring_mode === "NONE" && <p className="form-proposal-scoring-note">Set scoring weights after reviewer confirmation. Total must equal 100%.</p>}
       </aside>
     </div>
     <footer className="form-proposal-actions">

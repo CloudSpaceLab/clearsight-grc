@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	maxLegalEntityScopes  = 256
-	maxOrganizationScopes = 512
+	maxLegalEntityScopes             = 256
+	maxOrganizationScopes            = 512
+	maxOrganizationScopeSelectionIDs = 50000
 )
 
 type PostgresResolver struct {
@@ -201,7 +202,7 @@ func (r *PostgresResolver) ResolveHierarchy(ctx context.Context, scope Scope) (S
 }
 
 func (r *PostgresResolver) resolveOrganizationScopes(ctx context.Context, scope Scope, currentEntityID string) ([]ScopeNode, HierarchyState, error) {
-	page, err := r.queryOrganizationScopes(ctx, scope, currentEntityID, "", maxOrganizationScopes)
+	page, err := r.queryOrganizationScopes(ctx, scope, currentEntityID, "", maxOrganizationScopes, "", []string{})
 	if err != nil {
 		return nil, HierarchyUnavailable, err
 	}
@@ -242,10 +243,88 @@ func (r *PostgresResolver) SearchOrganizationScopes(ctx context.Context, scope S
 	if err != nil {
 		return OrganizationScopeSearchPage{}, err
 	}
-	return r.queryOrganizationScopes(ctx, scope, currentEntityID, search, limit)
+	return r.queryOrganizationScopes(ctx, scope, currentEntityID, search, limit, "", []string{})
 }
 
-func (r *PostgresResolver) queryOrganizationScopes(ctx context.Context, scope Scope, currentEntityID, search string, limit int) (OrganizationScopeSearchPage, error) {
+func (r *PostgresResolver) ResolveOrganizationScopeSelection(
+	ctx context.Context,
+	scope Scope,
+	requested string,
+	includeDescendants bool,
+) (OrganizationScopeSelection, error) {
+	scope.TenantID = strings.TrimSpace(scope.TenantID)
+	scope.LegalEntityID = strings.TrimSpace(scope.LegalEntityID)
+	scope.PrincipalID = strings.TrimSpace(scope.PrincipalID)
+	requested = strings.TrimSpace(requested)
+	if r == nil || r.pool == nil || scope.TenantID == "" || scope.LegalEntityID == "" || scope.PrincipalID == "" || requested == "" {
+		return OrganizationScopeSelection{}, ErrInvalid
+	}
+	if _, err := r.Resolve(ctx, scope); err != nil {
+		return OrganizationScopeSelection{}, err
+	}
+
+	var currentEntityID string
+	err := r.pool.QueryRow(ctx, `
+		SELECT le.id::text
+		FROM tenants t
+		JOIN legal_entities le ON le.tenant_id=t.id
+		WHERE (t.id::text=$1 OR t.slug=$1)
+		  AND (le.id::text=$2 OR le.code=$2)
+		  AND le.valid_from<=clock_timestamp()
+		  AND (le.valid_until IS NULL OR clock_timestamp()<le.valid_until)
+		LIMIT 1`, scope.TenantID, scope.LegalEntityID).Scan(&currentEntityID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return OrganizationScopeSelection{}, ErrNotFound
+	}
+	if err != nil {
+		return OrganizationScopeSelection{}, err
+	}
+
+	selectedPage, err := r.queryOrganizationScopes(ctx, scope, currentEntityID, "", 1, requested, []string{})
+	if err != nil {
+		return OrganizationScopeSelection{}, err
+	}
+	if len(selectedPage.Items) != 1 || selectedPage.Items[0].ID != requested || !selectedPage.Items[0].Filterable {
+		return OrganizationScopeSelection{}, ErrNotFound
+	}
+	selected := selectedPage.Items[0]
+	result := OrganizationScopeSelection{Node: selected, IDs: []string{selected.ID}}
+	if !includeDescendants {
+		return result, nil
+	}
+
+	page, err := r.queryOrganizationScopes(
+		ctx, scope, currentEntityID, "", maxOrganizationScopeSelectionIDs, "", selected.DepartmentPath,
+	)
+	if err != nil {
+		return OrganizationScopeSelection{}, err
+	}
+	if page.HasMore {
+		return OrganizationScopeSelection{}, ErrInvalid
+	}
+	result.IDs = result.IDs[:0]
+	for _, item := range page.Items {
+		if item.Filterable {
+			result.IDs = append(result.IDs, item.ID)
+		}
+	}
+	if len(result.IDs) == 0 {
+		result.IDs = []string{selected.ID}
+	}
+	return result, nil
+}
+func (r *PostgresResolver) queryOrganizationScopes(
+	ctx context.Context,
+	scope Scope,
+	currentEntityID string,
+	search string,
+	limit int,
+	exactID string,
+	ancestorPath []string,
+) (OrganizationScopeSearchPage, error) {
+	if ancestorPath == nil {
+		ancestorPath = []string{}
+	}
 	rows, err := r.pool.Query(ctx, `
 		WITH principal AS (
 			SELECT p.id,p.tenant_id
@@ -360,6 +439,14 @@ func (r *PostgresResolver) queryOrganizationScopes(ctx context.Context, scope Sc
 		  AND s.valid_from<=clock_timestamp()
 		  AND (s.valid_until IS NULL OR clock_timestamp()<s.valid_until)
 		  AND ($4='' OR s.search_document @@ websearch_to_tsquery('simple'::regconfig,$4))
+		  AND ($6='' OR s.id::text=$6)
+		  AND (
+		    cardinality($7::text[])=0
+		    OR (
+		      cardinality(s.department_path)>=cardinality($7::text[])
+		      AND s.department_path[1:cardinality($7::text[])]=$7::text[]
+		    )
+		  )
 		  AND (
 			g.has_global_scope
 			OR EXISTS (
@@ -390,7 +477,7 @@ func (r *PostgresResolver) queryOrganizationScopes(ctx context.Context, scope Sc
 			)
 		  )
 		ORDER BY cardinality(s.department_path),s.department_path,s.id
-		LIMIT $5`, scope.TenantID, scope.PrincipalID, currentEntityID, search, limit+1)
+		LIMIT $5`, scope.TenantID, scope.PrincipalID, currentEntityID, search, limit+1, strings.TrimSpace(exactID), ancestorPath)
 	if err != nil {
 		return OrganizationScopeSearchPage{}, fmt.Errorf("query organization scopes: %w", err)
 	}
@@ -417,3 +504,4 @@ func (r *PostgresResolver) queryOrganizationScopes(ctx context.Context, scope Sc
 var _ Resolver = (*PostgresResolver)(nil)
 var _ HierarchyResolver = (*PostgresResolver)(nil)
 var _ OrganizationScopeSearcher = (*PostgresResolver)(nil)
+var _ OrganizationScopeSelectionResolver = (*PostgresResolver)(nil)

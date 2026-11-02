@@ -113,12 +113,12 @@ func (r *ObservationRepository) validateDefinitionRevision(ctx context.Context, 
 	stored := make(map[string]Definition, len(expected))
 	for rows.Next() {
 		var definition Definition
-		var basis, conditionRule, aggregationRule, consistency string
+		var unit, basis, conditionRule, aggregationRule, consistency string
 		if err := rows.Scan(
 			&definition.ID,
 			&definition.Revision,
 			&definition.Label,
-			&definition.Unit,
+			&unit,
 			&basis,
 			&conditionRule,
 			&aggregationRule,
@@ -128,6 +128,7 @@ func (r *ObservationRepository) validateDefinitionRevision(ctx context.Context, 
 		); err != nil {
 			return fmt.Errorf("scan metric definition: %w", err)
 		}
+		definition.Unit = MetricUnit(unit)
 		definition.Basis = MetricBasis(basis)
 		definition.ConditionRule = ConditionRule(conditionRule)
 		definition.AggregationRule = AggregationRule(aggregationRule)
@@ -272,7 +273,7 @@ func validObservationSet(values []Observation) bool {
 			return false
 		}
 		definition, ok := metricDefinition(value.MetricID)
-		if !ok || definition.Revision != revision {
+		if !ok || definition.Revision != revision || !validObservationMeasure(value, definition) {
 			return false
 		}
 		if _, duplicate := seen[value.MetricID]; duplicate {
@@ -302,12 +303,12 @@ func storeObservationRows(ctx context.Context, tx pgx.Tx, values []Observation) 
 				tenant_id,legal_entity_id,metric_id,definition_revision,
 				source_kind,source_id,source_revision,source_high_water,
 				generated_at,period_start,period_end,posture_as_of,
-				value,condition,freshness,completeness,population,excluded,unknown
+				value,condition,currency,member_count,freshness,completeness,population,excluded,unknown
 			) VALUES(
 				$1::uuid,$2::uuid,$3,$4,
 				$5,$6::uuid,$7,$8::jsonb,
 				$9,$10,$11,$12,
-				$13,$14,$15,$16,$17,$18,$19
+				$13,$14,NULLIF($15,''),$16,$17,$18,$19,$20,$21
 			)
 			ON CONFLICT(source_kind,source_id,metric_id,definition_revision) DO NOTHING`,
 			value.TenantID,
@@ -324,6 +325,8 @@ func storeObservationRows(ctx context.Context, tx pgx.Tx, values []Observation) 
 			value.PostureAsOf,
 			value.Value,
 			value.Condition,
+			value.Currency,
+			value.MemberCount,
 			value.Freshness,
 			value.Completeness,
 			value.Population,

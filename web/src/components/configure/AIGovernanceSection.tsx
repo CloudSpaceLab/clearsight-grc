@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import "../../ai-governance.css";
 import { loadAIGovernancePolicies, loadAIGovernanceWorkloads } from "../../api";
 import type { AIGovernancePolicy, AIGovernanceWorkload } from "../../types";
 import { AIGovernancePanel } from "../AIGovernancePanel";
@@ -42,7 +43,7 @@ export function AIGovernanceSection() {
   const degraded = policyState === "unavailable" || workloadState === "unavailable";
   return <section className="configure-domain" aria-labelledby="ai-governance-heading">
     <header className="configure-domain-header">
-      <div><span className="eyebrow">Configuration · AI governance</span><h2 id="ai-governance-heading">AI governance</h2><p>Operate the organization AI proxy, configure non-bypassable gateway guardrails, and review governed workloads and policy rollout. Human decisions remain in Today and Work.</p></div>
+      <div><span className="eyebrow">Configuration · AI governance</span><h2 id="ai-governance-heading">AI governance</h2><p>Manage AI routing, security controls, workloads and policies.</p></div>
       {degraded && <button className="secondary-button" type="button" onClick={() => void load()}>Retry unavailable AI data</button>}
     </header>
     <AIGatewayTransportControl/>

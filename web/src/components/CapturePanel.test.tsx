@@ -69,7 +69,7 @@ describe("CapturePanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit response" }));
     await waitFor(() => expect(submitInternalCaptureRequest).toHaveBeenCalledWith(request.id, 3, { owner: { text: "Treasury Technology" } }));
     expect(await screen.findByRole("heading", { name: "Response submitted" })).toBeTruthy();
-    expect(screen.getByText(/recorded for evidence review/i)).toBeTruthy();
+    expect(screen.queryByText(/recorded for evidence review/i)).toBeNull();
   });
 
   it("uses the native date control and preserves multiple answers", () => {
@@ -202,7 +202,7 @@ describe("CapturePanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit evidence" }));
 
     expect(await screen.findByRole("heading", { name: "Submitted" })).toBeTruthy();
-    expect(screen.getByText("Your response was recorded.")).toBeTruthy();
+    expect(screen.queryByText("Your response was recorded.")).toBeNull();
     expect(screen.queryByText("Your verification was recorded.")).toBeNull();
     expect(screen.queryByText(/verification/i)).toBeNull();
   });

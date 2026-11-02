@@ -1,0 +1,385 @@
+{
+  "schema": "clearsight.named-visual-review.v1",
+  "reviewer": "ChatGPT /root/vendor_contract_audit (AI reviewer)",
+  "reviewer_type": "AI assistant; not human design or operational sign-off",
+  "reviewed_at": "2026-10-22T07:54:32.135748+00:00",
+  "method": "Direct inspection of all 10 final runtime viewport images and five immutable source images; source-to-runtime anatomy and visible rendering review. Hashes recomputed after inspection. No thumbnail-only or hash-only visual review.",
+  "runtime_commit": "44c26f6ed8289fad97ffbd6fc01afca1f30f46d8",
+  "runtime_tree": "08f9d72cd1d94a00daab4108aada415b4762a91b",
+  "source_path": "docs/design/references/clearsight-2026-10/source/clearsight-vendor-management-designs/vendor-workspace-preview.html",
+  "source_sha256": "c37f35161878d2035335241fc104c41fb4c8f6176cfe81d8a2f0d7fbdba728fd",
+  "runtime_images": 10,
+  "source_images": 5,
+  "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+  "blockers": [],
+  "observations": [
+    "The selected vendor identity, Back to vendor register control, two real edit paths and Review onboarding action replace the register inspector. All are visible and legible in both themes at the reviewed sizes.",
+    "The top-level menu uses the five source destinations in order. Issues & actions is visibly selected at all sizes; the 390px shared labelled selector replaces the source horizontally scrolling tab strip.",
+    "The primary column and 316px context rail remain beside each other at 1440/1280/1024. At 768/390 the main column occupies the available width and the rail follows below the exception content.",
+    "Light/dark states retain readable headings, metric values, status emphasis and controls. No visible overlap or unintended horizontal clipping was found within the selected Issues workspace.",
+    "The first useful summary is visible in every frame. The longer real exception summary and filtering controls mean the first exception row is only partly visible at 1440x900 and is below the initial fold at the other four viewport sizes."
+  ],
+  "documented_adaptations": [
+    "The production Issues section uses canonical scoped vendor exceptions, actions and overdue counts in a 2x2 summary grid; the source uses an illustrative compact stage progression and two simplified findings. No workflow stage, overall risk rating or DPO state is fabricated.",
+    "Real status and vendor/owner/source-rating filters are retained. This increases vertical density relative to the source, and individual exception actions require scrolling at the reviewed viewports. The header review action remains visible.",
+    "The global shell retains the approved teal tokens and existing navigation. At 768px the long actor-chip label truncates in both themes; this is global-shell content outside the selected Issues body, with CRO still visible.",
+    "The production header retains distinct vendor-identity and relationship edit actions. At narrow widths labels wrap within the button bounds rather than dropping either command.",
+    "The source is light-only. Dark captures assess the same source anatomy using shared dark tokens, not an absent dark source design."
+  ],
+  "limitations": [
+    "This bounded AI visual review is not product/design acceptance, a pixel-parity claim or operational sign-off. Whole-screen acceptance remains 0/19.",
+    "These are viewport captures. Exception rows and context content below each image boundary are not independently visually assessed by this receipt; interaction and focus evidence are recorded separately.",
+    "Synthetic fixture screenshots do not establish live backend authorization, tenant isolation, four-actor execution, production performance or cutover readiness.",
+    "Final after/approved-reference copies are byte-identical to the five immutable source-only images directly inspected; path substitution does not represent an additional visual inspection.",
+    "No runtime or stylesheet files were changed for this review."
+  ],
+  "images": [
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "image": "233-vendor-relationship-issues-light-1440x900.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-light-1440x900.png",
+      "sha256": "99a3d62a2360c251b192d338ff221bead51e0452ec2d3804c0d81fcf0879fef2",
+      "bytes": 310030,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "tabs",
+      "context_placement": "beside",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": "partial",
+      "observations": "Selected identity, all five tabs, separate edit paths and review action are legible. Main exception column and 316px relationship/next-action rail remain side by side. Counts use a 2x2 grid. The first exception title/rating/owner begins near y762; its action is below the viewport."
+    },
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "image": "233-vendor-relationship-issues-dark-1440x900.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-dark-1440x900.png",
+      "sha256": "55e8c10ffb3cbf8147a049724a21e0ecaf39a5e91aebb1e89e2d39a88bcb58bc",
+      "bytes": 301104,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "tabs",
+      "context_placement": "beside",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": "partial",
+      "observations": "Selected identity, all five tabs, separate edit paths and review action are legible. Main exception column and 316px relationship/next-action rail remain side by side. Counts use a 2x2 grid. The first exception title/rating/owner begins near y762; its action is below the viewport."
+    },
+    {
+      "role": "source",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "image": "approved-vendor-relationship-issues-1440x900.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/approved-reference/approved-vendor-relationship-issues-1440x900.png",
+      "sha256": "8251c875e2ab60842a67f71e03d4135479dd6c52bd5fe92829dba4ee6d4509c9",
+      "bytes": 161095,
+      "verdict": "SOURCE_INSPECTED",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct immutable source image inspection using view_image at original resolution",
+      "observations": "Source has the selected vendor identity/actions and five tabs above a wide primary issue column and 316px relationship/next-action rail. A compact four-step card and two sample findings both fit in the initial viewport.",
+      "original_inspected_path": "/tmp/clearsight-vendor-layout-evidence/source-only/approved-reference/approved-vendor-relationship-issues-1440x900.png",
+      "final_source_copy_byte_identical": true
+    },
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "image": "233-vendor-relationship-issues-light-1280x800.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-light-1280x800.png",
+      "sha256": "495b1a25393e0530be0b58b44796b30af381238f1240a5d103212029338fc926",
+      "bytes": 281600,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "tabs",
+      "context_placement": "beside",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": false,
+      "observations": "Vendor name wraps to two lines without colliding with the two-row action group. Five tabs remain fully visible. Main column and context rail remain side by side. Counts and filters occupy the initial viewport; the first exception is below the fold."
+    },
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "image": "233-vendor-relationship-issues-dark-1280x800.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-dark-1280x800.png",
+      "sha256": "0bbfa9eb6ed92a9bf6626687bd88b258c7677300e3691ee9d58514b791a45676",
+      "bytes": 264306,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "tabs",
+      "context_placement": "beside",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": false,
+      "observations": "Vendor name wraps to two lines without colliding with the two-row action group. Five tabs remain fully visible. Main column and context rail remain side by side. Counts and filters occupy the initial viewport; the first exception is below the fold."
+    },
+    {
+      "role": "source",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "image": "approved-vendor-relationship-issues-1280x800.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/approved-reference/approved-vendor-relationship-issues-1280x800.png",
+      "sha256": "4a2346e9c9581ee3a3e17cdc6198c4a7746d0f8ec993e6bb0a0f039d5a3e69f0",
+      "bytes": 151694,
+      "verdict": "SOURCE_INSPECTED",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct immutable source image inspection using view_image at original resolution",
+      "observations": "Source keeps five tabs, compact four-step summary, both sample findings and 316px context rail visible beside the primary column.",
+      "original_inspected_path": "/tmp/clearsight-vendor-layout-evidence/source-only/approved-reference/approved-vendor-relationship-issues-1280x800.png",
+      "final_source_copy_byte_identical": true
+    },
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "image": "233-vendor-relationship-issues-light-1024x768.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-light-1024x768.png",
+      "sha256": "e91d26042018907d1078490c501fdb83a2975b7332f82acdebad2f60dab6d1d6",
+      "bytes": 241568,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "tabs",
+      "context_placement": "beside",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": false,
+      "observations": "Icon navigation, two-line vendor identity, actions, five tabs and side-by-side context rail remain readable. The next-action button is visible near the viewport bottom. Exception facet controls continue below the viewport; no exception row is visible in this frame."
+    },
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "dark",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "image": "233-vendor-relationship-issues-dark-1024x768.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-dark-1024x768.png",
+      "sha256": "48128dfd6172d4cee291e749ccd78500e19d05d9e6f315b0daa4911f70fbf3a7",
+      "bytes": 227044,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "tabs",
+      "context_placement": "beside",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": false,
+      "observations": "Icon navigation, two-line vendor identity, actions, five tabs and side-by-side context rail remain readable. The next-action button is visible near the viewport bottom. Exception facet controls continue below the viewport; no exception row is visible in this frame."
+    },
+    {
+      "role": "source",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "image": "approved-vendor-relationship-issues-1024x768.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/approved-reference/approved-vendor-relationship-issues-1024x768.png",
+      "sha256": "6a91b05f6b8b5074e0b533e5121854b2de51f27a73c551c431b46af03e8958e2",
+      "bytes": 126569,
+      "verdict": "SOURCE_INSPECTED",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct immutable source image inspection using view_image at original resolution",
+      "observations": "Source uses icon navigation with five tabs, compact four-step summary, two sample findings and a 316px context rail still beside the primary column.",
+      "original_inspected_path": "/tmp/clearsight-vendor-layout-evidence/source-only/approved-reference/approved-vendor-relationship-issues-1024x768.png",
+      "final_source_copy_byte_identical": true
+    },
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "image": "233-vendor-relationship-issues-light-768x900.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-light-768x900.png",
+      "sha256": "22a80d66fd2885250508269fe4af87f8db4d91b185fefb9e2b621e03459d9488",
+      "bytes": 206213,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "tabs",
+      "context_placement": "stacked_after_primary",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": false,
+      "observations": "Identity and actions wrap cleanly. All five tabs remain visible and the primary content uses the full available width. The 2x2 counts and all three exception facet labels/controls are visible; exception rows and stacked context rail are below the initial fold. The existing global actor chip truncates its long role label, while CRO remains visible."
+    },
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "image": "233-vendor-relationship-issues-dark-768x900.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-dark-768x900.png",
+      "sha256": "99221c9ecfe5decfd0499a407fe9eb7afba4e40715616dc18fd9383f2b0ec19f",
+      "bytes": 193746,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "tabs",
+      "context_placement": "stacked_after_primary",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": false,
+      "observations": "Identity and actions wrap cleanly. All five tabs remain visible and the primary content uses the full available width. The 2x2 counts and all three exception facet labels/controls are visible; exception rows and stacked context rail are below the initial fold. The existing global actor chip truncates its long role label, while CRO remains visible."
+    },
+    {
+      "role": "source",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "image": "approved-vendor-relationship-issues-768x900.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/approved-reference/approved-vendor-relationship-issues-768x900.png",
+      "sha256": "6627aa4930f25eeb286455dc309e5a93c50b1a141d979b9ea1e4ae627e5d3c34",
+      "bytes": 97031,
+      "verdict": "SOURCE_INSPECTED",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct immutable source image inspection using view_image at original resolution",
+      "observations": "Source wraps header actions and stacks the context rail after the issues content. Five tabs, the compact step summary and both sample findings are visible; the context card begins near the bottom.",
+      "original_inspected_path": "/tmp/clearsight-vendor-layout-evidence/source-only/approved-reference/approved-vendor-relationship-issues-768x900.png",
+      "final_source_copy_byte_identical": true
+    },
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "image": "233-vendor-relationship-issues-light-390x844.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-light-390x844.png",
+      "sha256": "5afd058c26e65d42b281330c2536502f613db4923731554ba54f031fa6d38c02",
+      "bytes": 111228,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "select",
+      "context_placement": "stacked_after_primary",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": false,
+      "observations": "Vendor name and edit/review button labels wrap within the available width. The labelled Vendor section selector clearly shows Issues & actions. Four count cards fit as a 2x2 grid. Vendor exceptions, sample-data label, match count and compact Status select are visible; exception rows and context rail remain below the viewport."
+    },
+    {
+      "role": "runtime",
+      "section": "issues",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "image": "233-vendor-relationship-issues-dark-390x844.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/233-vendor-relationship-issues-dark-390x844.png",
+      "sha256": "95520ecad7f44fc52f88d595afd165a556cabfdbd5b03e13b1bc62e4e135016c",
+      "bytes": 108330,
+      "verdict": "PASS_WITH_DOCUMENTED_ADAPTATIONS",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct final image inspection using view_image at original resolution",
+      "selected_section": "Issues & actions",
+      "menu_mode": "select",
+      "context_placement": "stacked_after_primary",
+      "first_useful_summary_visible": true,
+      "first_exception_row_visible": false,
+      "observations": "Vendor name and edit/review button labels wrap within the available width. The labelled Vendor section selector clearly shows Issues & actions. Four count cards fit as a 2x2 grid. Vendor exceptions, sample-data label, match count and compact Status select are visible; exception rows and context rail remain below the viewport."
+    },
+    {
+      "role": "source",
+      "section": "issues",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "image": "approved-vendor-relationship-issues-390x844.png",
+      "path": "/tmp/clearsight-vendor-layout-evidence/after/approved-reference/approved-vendor-relationship-issues-390x844.png",
+      "sha256": "53d7afc87026fd4e9df30929cf83ab43970ddf82b533a91c175422c8023c704e",
+      "bytes": 68629,
+      "verdict": "SOURCE_INSPECTED",
+      "reviewer": "ChatGPT /root/vendor_contract_audit",
+      "review_method": "Direct immutable source image inspection using view_image at original resolution",
+      "observations": "Source wraps header actions and uses a horizontal section strip; Activity is outside the visible strip. The step summary forms a 2x2 grid, and the first sample finding begins in the initial viewport.",
+      "original_inspected_path": "/tmp/clearsight-vendor-layout-evidence/source-only/approved-reference/approved-vendor-relationship-issues-390x844.png",
+      "final_source_copy_byte_identical": true
+    }
+  ],
+  "final_source_copy_verification": {
+    "verified_at": "2026-10-22T07:56:43.552573+00:00",
+    "count": 5,
+    "method": "Byte-for-byte equality and SHA256 equality against the source-only images directly inspected; all 10 runtime SHA256 hashes also reconfirmed.",
+    "images": [
+      {
+        "image": "approved-vendor-relationship-issues-1440x900.png",
+        "sha256": "8251c875e2ab60842a67f71e03d4135479dd6c52bd5fe92829dba4ee6d4509c9",
+        "byte_identical": true
+      },
+      {
+        "image": "approved-vendor-relationship-issues-1280x800.png",
+        "sha256": "4a2346e9c9581ee3a3e17cdc6198c4a7746d0f8ec993e6bb0a0f039d5a3e69f0",
+        "byte_identical": true
+      },
+      {
+        "image": "approved-vendor-relationship-issues-1024x768.png",
+        "sha256": "6a91b05f6b8b5074e0b533e5121854b2de51f27a73c551c431b46af03e8958e2",
+        "byte_identical": true
+      },
+      {
+        "image": "approved-vendor-relationship-issues-768x900.png",
+        "sha256": "6627aa4930f25eeb286455dc309e5a93c50b1a141d979b9ea1e4ae627e5d3c34",
+        "byte_identical": true
+      },
+      {
+        "image": "approved-vendor-relationship-issues-390x844.png",
+        "sha256": "53d7afc87026fd4e9df30929cf83ab43970ddf82b533a91c175422c8023c704e",
+        "byte_identical": true
+      }
+    ]
+  }
+}

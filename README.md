@@ -164,6 +164,7 @@ The installer is explicit and recoverable. It refuses `CLEARSIGHT_ENV=production
 
 ```bash
 go run -tags postgres ./cmd/seed-bank-reference \
+  -demo-journeys-only \
   -tenant <tenant-uuid-or-slug> \
   -legal-entity <legal-entity-uuid> \
   -actor <installer-principal-uuid> \

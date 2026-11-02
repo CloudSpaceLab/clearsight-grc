@@ -40,6 +40,12 @@ func (m *DomainMaintainer) Maintain(ctx context.Context, now time.Time, limit in
 			completed++
 		}
 	}
+	dailyCompleted, err := maintainOrganizationDailyHistory(ctx, m.Repository.pool, now, limit)
+	if err != nil {
+		return completed, err
+	}
+	completed += dailyCompleted
+
 	if _, err := m.Repository.pool.Exec(ctx, `
 		DELETE FROM domain_metric_snapshots
 		WHERE id IN (
@@ -143,10 +149,10 @@ func maintainDomainScope(ctx context.Context, pool *pgxpool.Pool, scope domainSc
 		for _, member := range result.Members {
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO domain_metric_snapshot_memberships(
-					source_id,metric_id,definition_revision,member_id,target_type,target_id,target_title,state
-				) VALUES($1::uuid,$2,$3,$4::uuid,$5,$6::uuid,$7,$8)`,
+					source_id,metric_id,definition_revision,member_id,target_type,target_id,organization_scope_id,target_title,state
+				) VALUES($1::uuid,$2,$3,$4::uuid,$5,$6::uuid,NULLIF($7,'')::uuid,$8,$9)`,
 				sourceID, result.Definition.ID, DomainDefinitionRevision, member.MemberID,
-				member.TargetType, member.TargetID, member.Title, member.State,
+				member.TargetType, member.TargetID, member.OrganizationScopeID, member.Title, member.State,
 			); err != nil {
 				return false, fmt.Errorf("store domain metric member: %w", err)
 			}
@@ -166,7 +172,7 @@ func maintainDomainScope(ctx context.Context, pool *pgxpool.Pool, scope domainSc
 			SourceKind: ObservationSourceDomainSnapshot, SourceID: sourceID, SourceRevision: DomainSourceRevision,
 			SourceHighWater: cloneHighWater(highWater), GeneratedAt: at.UTC(),
 			PeriodStart: at.UTC(), PeriodEnd: at.UTC(), PostureAsOf: at.UTC(),
-			Value: len(result.Members), Condition: condition, Freshness: oversight.FreshnessCurrent,
+			Value: int64(len(result.Members)), Condition: condition, Freshness: oversight.FreshnessCurrent,
 			Completeness: completeness, Population: result.Population, Excluded: &zero, Unknown: &unknown,
 		})
 	}

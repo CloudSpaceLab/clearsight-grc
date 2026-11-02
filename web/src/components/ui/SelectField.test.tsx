@@ -77,6 +77,30 @@ describe("SelectField", () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it("closes the compact list on Tab without consuming focus or changing selection", async () => {
+    const onChange = vi.fn();
+    render(<main>
+      <SelectField label="Forms section" value="OPEN" placeholder="Choose section" options={options} onChange={onChange}/>
+      <button type="button">Send form</button>
+      <div id="cs-overlay-root"/>
+    </main>);
+    const trigger = screen.getByRole("button", { name: /Forms section/ });
+    fireEvent.click(trigger);
+    const listbox = await screen.findByRole("listbox");
+    fireEvent.scroll(document);
+    const option = screen.getByRole("option", { name: "Responses open" });
+    act(() => option.focus());
+    expect(listbox.contains(document.activeElement)).toBe(true);
+
+    // The browser owns focus progression; the Select owns popover dismissal.
+    fireEvent.keyDown(window, { key: "Tab" });
+    act(() => screen.getByRole("button", { name: "Send form" }).focus());
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull());
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Send form" }));
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("portals the option list into the fixed workspace overlay root", async () => {
     render(<main data-testid="workspace"><main data-testid="canvas"><SelectField label="Status" placeholder="All states" options={options} onChange={() => undefined}/></main><div id="cs-overlay-root" data-testid="overlay-root"/></main>);
     fireEvent.click(screen.getByRole("button", { name: /Status/ }));

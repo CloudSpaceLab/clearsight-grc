@@ -42,4 +42,12 @@ describe("loadIdentityAccessOverview", () => {
     expect(overview.data_boundary_revisions).toEqual([]);
     expect(overview.escalation_policies).toEqual([]);
   });
+
+  it("keeps the overview bounded and forwards cancellation to the authenticated request", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const controller = new AbortController();
+    await loadIdentityAccessOverview(controller.signal);
+    expect(fetch).toHaveBeenCalledWith("/api/v1/access/overview?limit=50", expect.objectContaining({ credentials: "include", signal: controller.signal }));
+  });
 });

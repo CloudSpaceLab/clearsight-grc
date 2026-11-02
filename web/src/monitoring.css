@@ -120,6 +120,10 @@
   .format-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 650px) {
+  .collection-record { min-inline-size: 0; }
+  .collection-record > *,
+  .collection-record-work,
+  .monitoring-result { min-inline-size: 0; overflow-wrap: anywhere; }
   .workspace-brief-side { justify-items: stretch; width: 100%; }
   .setup-heading, .monitoring-section-heading, .monitoring-builder-heading, .setup-section-title { display: grid; }
   .setup-progress { grid-template-columns: 1fr; }
@@ -140,4 +144,22 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .monitoring-choice-grid button { transition: none; }
+}
+
+/* Prefer a compact existing-Form action over another large setup tile. */
+.monitoring-choice-grid .monitoring-existing-form-action {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  min-height: var(--cs-target-min);
+  gap: var(--cs-space-inline);
+  padding: var(--cs-space-group);
+  border-color: var(--cs-border-default);
+  background: var(--cs-bg-surface-1);
+}
+.monitoring-choice-grid .monitoring-existing-form-action span {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
 }

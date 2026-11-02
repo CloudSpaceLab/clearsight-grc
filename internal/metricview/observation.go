@@ -28,13 +28,26 @@ type Observation struct {
 	PeriodStart        time.Time
 	PeriodEnd          time.Time
 	PostureAsOf        time.Time
-	Value              int
+	Value              int64
 	Condition          Condition
+	Currency           string
+	MemberCount        *int64
 	Freshness          oversight.Freshness
 	Completeness       Completeness
 	Population         int
 	Excluded           *int
 	Unknown            *int
+}
+
+func validObservationMeasure(value Observation, definition Definition) bool {
+	switch definition.Unit {
+	case MetricUnitCount:
+		return value.Value >= 0 && strings.TrimSpace(value.Currency) == "" && value.MemberCount == nil
+	case MetricUnitMoney:
+		return validMetricCurrency(strings.TrimSpace(value.Currency)) && value.MemberCount != nil && *value.MemberCount >= 0
+	default:
+		return false
+	}
 }
 
 func ObservationsFromBundle(
@@ -87,7 +100,7 @@ func ObservationsFromBundle(
 			PeriodStart:        bundle.PeriodStart.UTC(),
 			PeriodEnd:          bundle.PeriodEnd.UTC(),
 			PostureAsOf:        postureAsOf,
-			Value:              item.Value,
+			Value:              int64(item.Value),
 			Condition:          item.Condition,
 			Freshness:          item.Freshness,
 			Completeness:       item.Completeness,

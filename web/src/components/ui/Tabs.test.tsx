@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Tabs, type TabItem } from "./index";
@@ -17,6 +17,90 @@ function Harness() {
 }
 
 describe("Tabs", () => {
+  it("reveals existing tabs after controlled selection changes without moving focus or vertical scroll", () => {
+    vi.useFakeTimers();
+    try {
+      const panel = (key: string) => <p>{key}</p>;
+      const view = render(<Tabs ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      const list = screen.getByRole("tablist");
+      const first = screen.getByRole("tab", { name: "Templates" });
+      const last = screen.getByRole("tab", { name: "Responses" });
+      const focused = document.activeElement;
+      vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 44));
+      vi.spyOn(first, "getBoundingClientRect").mockImplementation(() => new DOMRect(-list.scrollLeft, 0, 100, 44));
+      vi.spyOn(last, "getBoundingClientRect").mockImplementation(() => new DOMRect(330 - list.scrollLeft, 0, 100, 44));
+      list.scrollTop = 37;
+      act(() => vi.advanceTimersToNextFrame());
+
+      // Browser history changes the controlled key without clicking a tab.
+      // Reuse the same item objects so React Aria's collection cache is exercised.
+      view.rerender(<Tabs ariaLabel="Forms views" items={items} selectedKey="RESPONSES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      act(() => vi.advanceTimersToNextFrame());
+      expect(screen.getByRole("tablist")).toBe(list);
+      expect(screen.getByRole("tab", { name: "Responses", selected: true })).toBe(last);
+      expect(list.scrollLeft).toBe(130);
+      expect(list.scrollTop).toBe(37);
+      expect(document.activeElement).toBe(focused);
+
+      view.rerender(<Tabs ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      act(() => vi.advanceTimersToNextFrame());
+      expect(screen.getByRole("tablist")).toBe(list);
+      expect(screen.getByRole("tab", { name: "Templates", selected: true })).toBe(first);
+      expect(list.scrollLeft).toBe(0);
+      expect(list.scrollTop).toBe(37);
+      expect(document.activeElement).toBe(focused);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reveals a newly selected contextual tab horizontally and cancels pending reveals on unmount", () => {
+    vi.useFakeTimers();
+    try {
+      const contextual = [...items, { id: "EDITOR", label: "Edit report", isContextual: true }];
+      const panel = (key: string) => <p>{key}</p>;
+      const view = render(<Tabs ariaLabel="Reports views" items={contextual} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      view.rerender(<Tabs ariaLabel="Reports views" items={contextual} selectedKey="EDITOR" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      const list = screen.getByRole("tablist");
+      const editor = screen.getByRole("tab", { name: "Edit report", selected: true });
+      vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 44));
+      vi.spyOn(editor, "getBoundingClientRect").mockReturnValue(new DOMRect(330, 0, 100, 44));
+      list.scrollTop = 37;
+
+      act(() => vi.advanceTimersToNextFrame());
+      expect(list.scrollLeft).toBe(130);
+      expect(list.scrollTop).toBe(37);
+
+      view.rerender(<Tabs ariaLabel="Reports views" items={contextual} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      view.rerender(<Tabs ariaLabel="Reports views" items={contextual} selectedKey="EDITOR" onSelectionChange={() => undefined}>{panel}</Tabs>);
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      view.unmount();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shows contextual destinations only while selected and retains their hidden draft", () => {
+    const contextual = [...items, { id: "EDITOR", label: "Edit report", isContextual: true }];
+    const child = vi.fn((key: string) => key === "EDITOR" ? <input aria-label="Report title" defaultValue=""/> : <p>{key}</p>);
+    const view = render(<Tabs retainVisitedPanels ariaLabel="Reports views" items={contextual} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{child}</Tabs>);
+    expect(screen.queryByRole("tab", { name: "Edit report" })).toBeNull();
+    expect(child).not.toHaveBeenCalledWith("EDITOR");
+    view.rerender(<Tabs retainVisitedPanels ariaLabel="Reports views" items={contextual} selectedKey="EDITOR" onSelectionChange={() => undefined}>{child}</Tabs>);
+    const editor = screen.getByRole("textbox", { name: "Report title" });
+    fireEvent.change(editor, { target: { value: "Quarterly report" } });
+    const tab = screen.getByRole("tab", { name: "Edit report", selected: true });
+    expect(screen.getByRole("tabpanel").getAttribute("aria-labelledby")).toBe(tab.id);
+    view.rerender(<Tabs retainVisitedPanels ariaLabel="Reports views" items={contextual} selectedKey="SENT" onSelectionChange={() => undefined}>{child}</Tabs>);
+    expect(screen.queryByRole("tab", { name: "Edit report" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Report title" })).toBeNull();
+    expect(editor.closest(".cs-tabs__panel")?.hasAttribute("inert")).toBe(true);
+    view.rerender(<Tabs retainVisitedPanels ariaLabel="Reports views" items={contextual} selectedKey="EDITOR" onSelectionChange={() => undefined}>{child}</Tabs>);
+    expect(screen.getByRole("textbox", { name: "Report title" })).toBe(editor);
+    expect((editor as HTMLInputElement).value).toBe("Quarterly report");
+  });
+
   it("lazily retains visited panels and hides inactive editors from accessibility and focus", () => {
     const child = vi.fn((key: string) => <input aria-label={`${key} draft`} defaultValue=""/>);
     const view = render(<Tabs retainVisitedPanels ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={() => undefined}>{child}</Tabs>);
@@ -85,6 +169,37 @@ describe("Tabs", () => {
 
     fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Home" });
     expect(document.activeElement).toBe(first);
+  });
+
+  it("keeps manual arrow navigation separate from Enter and Space activation", () => {
+    const select = vi.fn();
+    const panel = (key: string) => <p>{key}</p>;
+    const { rerender } = render(<Tabs keyboardActivation="manual" ariaLabel="Forms views" items={items} selectedKey="TEMPLATES" onSelectionChange={select}>{panel}</Tabs>);
+    const first = screen.getByRole("tab", { name: "Templates" });
+    const second = screen.getByRole("tab", { name: "Sent forms" });
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowRight" });
+
+    expect(document.activeElement).toBe(second);
+    expect(first.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel", { name: "Templates" }).textContent).toBe("TEMPLATES");
+    expect(select).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(second, { key: "Enter", code: "Enter" });
+    fireEvent.keyUp(second, { key: "Enter", code: "Enter" });
+    expect(select).toHaveBeenCalledExactlyOnceWith("SENT");
+    rerender(<Tabs keyboardActivation="manual" ariaLabel="Forms views" items={items} selectedKey="SENT" onSelectionChange={select}>{panel}</Tabs>);
+    expect(screen.getByRole("tabpanel", { name: "Sent forms" }).textContent).toBe("SENT");
+
+    fireEvent.keyDown(second, { key: "End" });
+    const last = screen.getByRole("tab", { name: "Responses" });
+    expect(document.activeElement).toBe(last);
+    expect(second.getAttribute("aria-selected")).toBe("true");
+    expect(select).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(last, { key: " ", code: "Space" });
+    fireEvent.keyUp(last, { key: " ", code: "Space" });
+    expect(select).toHaveBeenNthCalledWith(2, "RESPONSES");
+    expect(select).toHaveBeenCalledTimes(2);
   });
 
   it("uses one selected indicator owned by the selected tab", () => {

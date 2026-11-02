@@ -24,7 +24,7 @@ describe("matterStatusPresentation", () => {
       sheet: "Authorize issue status",
       submit: "Record authorization",
       rationaleLabel: "Authorization basis",
-      consequence: "Records the authorized issue state and basis. It does not complete assigned work or confirm an outcome that has not been independently checked.",
+      consequence: "Authorizes issue status. Does not complete assigned work or verify outcomes.",
     });
     expect(matterStatusPresentation({ ...operation("ACCOUNTABLE_OWNER"), command: "matter.transition", label: "Change issue status" }).submit).toBe("Confirm issue status");
   });

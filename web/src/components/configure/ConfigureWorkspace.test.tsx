@@ -1,9 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
+import type { RuntimeContext } from "../../api";
 import { ConfigureWorkspace } from "./ConfigureWorkspace";
 
 const mounts = vi.hoisted(() => ({
   overview: vi.fn(),
+  setup: vi.fn(),
   access: vi.fn(),
   authority: vi.fn(),
   data: vi.fn(),
@@ -20,9 +22,16 @@ vi.mock("./ConfigureOverview", () => ({
 }));
 
 vi.mock("./PeopleAccessSection", () => ({
-  PeopleAccessSection: () => {
+  PeopleAccessSection: ({ onNavigate }: { onNavigate: (hash: string) => void }) => {
     mounts.access();
-    return <div>People and access surface</div>;
+    return <div>People and access surface<button onClick={() => onNavigate("#configure")}>Settings</button></div>;
+  },
+}));
+
+vi.mock("./EnterpriseSetupSection", () => ({
+  EnterpriseSetupSection: ({ hash, onNavigate }: { hash: string; onNavigate: (hash: string) => void }) => {
+    mounts.setup(hash);
+    return <div>Enterprise setup surface<button onClick={() => onNavigate("#configure/access/directory")}>Provisioning</button></div>;
   },
 }));
 
@@ -41,9 +50,9 @@ vi.mock("./DataIntegrationsSection", () => ({
 }));
 
 vi.mock("./AutomationSection", () => ({
-  AutomationSection: () => {
-    mounts.automation();
-    return <div>Automation surface</div>;
+  AutomationSection: ({ hash, onNavigate, runtimeContext }: { hash: string; onNavigate: (hash: string) => void; runtimeContext?: RuntimeContext | null }) => {
+    mounts.automation(hash, runtimeContext);
+    return <div>Automation surface<button onClick={() => onNavigate("#configure")}>Settings</button><button onClick={() => onNavigate("#configure/automation?tab=activity&policy=policy-2")}>Policy activity</button></div>;
   },
 }));
 
@@ -78,7 +87,7 @@ it("renders only the selected administrative domain and keeps selection in the r
   expect(mounts.ai).not.toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 
-  fireEvent.click(screen.getByRole("button", { name: /Organization & access/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^People & access/ }));
   expect(screen.getByText("People and access surface")).toBeTruthy();
   expect(window.location.hash).toBe("#configure/access");
   expect(mounts.access).toHaveBeenCalled();
@@ -88,6 +97,8 @@ it("renders only the selected administrative domain and keeps selection in the r
   expect(mounts.ai).not.toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 
+  expect(screen.queryByRole("navigation", { name: "Configuration areas" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Settings" }));
   fireEvent.click(screen.getByRole("button", { name: /^Automation/ }));
   expect(screen.getByText("Automation surface")).toBeTruthy();
   expect(window.location.hash).toBe("#configure/automation");
@@ -95,11 +106,31 @@ it("renders only the selected administrative domain and keeps selection in the r
   expect(mounts.ai).not.toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
 
+  expect(screen.queryByRole("navigation", { name: "Configuration areas" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Settings" }));
   fireEvent.click(screen.getByRole("button", { name: /AI governance/ }));
   expect(screen.getByText("AI governance surface")).toBeTruthy();
   expect(window.location.hash).toBe("#configure/ai");
   expect(mounts.ai).toHaveBeenCalled();
   expect(mounts.operations).not.toHaveBeenCalled();
+});
+
+it("passes the current identity and route into the standalone Automation owner and restores history", () => {
+  const runtimeContext: RuntimeContext = { tenant: { id: "tenant", name: "Bank" }, legal_entity: { id: "entity", name: "Entity" }, actor: { id: "actor", name: "Operator" }, mode: "test", capabilities: { config_read: true } };
+  window.history.replaceState(null, "", "#configure/automation?policy=policy-1&q=refresh");
+  render(<ConfigureWorkspace importsEnabled canReconcileProjection onOpenImports={vi.fn()} runtimeContext={runtimeContext}/>);
+  expect(mounts.automation).toHaveBeenLastCalledWith("#configure/automation?policy=policy-1&q=refresh", runtimeContext);
+  expect(mounts.overview).not.toHaveBeenCalled();
+  expect(screen.queryByRole("heading", { name: "Configuration" })).toBeNull();
+  expect(screen.queryByRole("navigation", { name: "Configuration areas" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Policy activity" }));
+  expect(window.location.hash).toBe("#configure/automation?tab=activity&policy=policy-2");
+  const push = vi.spyOn(window.history, "pushState");
+  window.history.replaceState(null, "", "#configure/automation?policy=policy-1&q=refresh");
+  fireEvent.popState(window);
+  expect(mounts.automation).toHaveBeenLastCalledWith("#configure/automation?policy=policy-1&q=refresh", runtimeContext);
+  expect(push).not.toHaveBeenCalled();
+  push.mockRestore();
 });
 
 it("opens a deep-linked configuration domain without mounting overview first", () => {
@@ -115,4 +146,32 @@ it("opens a deep-linked configuration domain without mounting overview first", (
   expect(mounts.data).not.toHaveBeenCalled();
   expect(mounts.automation).not.toHaveBeenCalled();
   expect(mounts.ai).not.toHaveBeenCalled();
+});
+
+it("opens the existing Organization path in Setup and leaves secondary areas with their current owner", () => {
+  window.history.replaceState(null, "", "#configure/access/positions?unit=area-2&setup=groups");
+  render(<ConfigureWorkspace importsEnabled canReconcileProjection onOpenImports={vi.fn()}/>);
+  expect(screen.getByText("Enterprise setup surface")).toBeTruthy();
+  expect(mounts.setup).toHaveBeenCalledWith("#configure/access/positions?unit=area-2&setup=groups");
+  expect(mounts.overview).not.toHaveBeenCalled();
+  expect(mounts.access).not.toHaveBeenCalled();
+  expect(screen.queryByRole("navigation", { name: "Configuration areas" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Provisioning" }));
+  expect(window.location.hash).toBe("#configure/access/directory");
+  expect(screen.getByText("People and access surface")).toBeTruthy();
+  expect(screen.queryByText("Enterprise setup surface")).toBeNull();
+});
+
+it("restores Setup and People owners from browser history without pushing another entry", () => {
+  window.history.replaceState(null, "", "#configure/access");
+  render(<ConfigureWorkspace importsEnabled canReconcileProjection onOpenImports={vi.fn()}/>);
+  const push = vi.spyOn(window.history, "pushState");
+  window.history.replaceState(null, "", "#configure/access/positions?unit=area-2");
+  fireEvent.popState(window);
+  expect(screen.getByText("Enterprise setup surface")).toBeTruthy();
+  window.history.replaceState(null, "", "#configure/access?person=person-2");
+  fireEvent.popState(window);
+  expect(screen.getByText("People and access surface")).toBeTruthy();
+  expect(push).not.toHaveBeenCalled();
+  push.mockRestore();
 });

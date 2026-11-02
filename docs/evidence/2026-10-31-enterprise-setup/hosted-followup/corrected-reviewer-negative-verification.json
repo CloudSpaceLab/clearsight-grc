@@ -1,0 +1,54 @@
+{
+  "reviewer": "/root/work_contract",
+  "reviewedAt": "2026-10-31T12:51:33.479Z",
+  "revision": "5381850f1f2ebff340e4d9fde57e197253da0348",
+  "buildDigest": "28e6d798572e8d37da39a977b639694fb68842515f73b4011517ff51cfe3d4b1",
+  "originalDirectory": "/tmp/clearsight-enterprise-ci-browser-5381850",
+  "originalReceiptSHA256": "696fc531b1c7e89ed3099b82503eb2ce5ca2730e8136d2fd48d57572b8bb639d",
+  "originalResult": {
+    "failures": [],
+    "detail": "10 layouts, 11 behavior scenarios, 42 retained images; whole-screen acceptance not assessed"
+  },
+  "negativeCases": [
+    {
+      "name": "missing-observation",
+      "status": "REJECTED_AS_EXPECTED",
+      "flags": true,
+      "observation": null,
+      "failures": [
+        "Enterprise Setup imported-type overlay did not close and restore trigger focus before sheet dismissal"
+      ]
+    },
+    {
+      "name": "focused-false",
+      "status": "REJECTED_AS_EXPECTED",
+      "flags": true,
+      "observation": {
+        "expanded": "false",
+        "focused": false,
+        "listboxes": 0,
+        "popovers": 0
+      },
+      "failures": [
+        "Enterprise Setup imported-type overlay did not close and restore trigger focus before sheet dismissal"
+      ]
+    },
+    {
+      "name": "popover-still-present",
+      "status": "REJECTED_AS_EXPECTED",
+      "flags": true,
+      "observation": {
+        "expanded": "false",
+        "focused": true,
+        "listboxes": 0,
+        "popovers": 1
+      },
+      "failures": [
+        "Enterprise Setup imported-type overlay did not close and restore trigger focus before sheet dismissal"
+      ]
+    }
+  ],
+  "originalFilesVerifiedUnchanged": 43,
+  "sourceImages": 42,
+  "noRepositoryFilesModified": true
+}

@@ -59,6 +59,16 @@ Labels are short and familiar:
 
 A technical code may appear in a tooltip, audit panel, export or API response, but not as the only visible label.
 
+## Working-screen copy hierarchy
+
+- **Heading:** Object or task, not product explanation.
+- **Status:** Actual stored state, scope or freshness. Distinguish received, reviewed and accepted.
+- **Action:** Verb plus immediate outcome.
+- **Description:** Only a missing condition, consequence, owner, source, restriction or recovery action. Omit it when labels already convey the same information.
+- **Specialist detail:** Keep audit versions, enforcement boundaries and control calculations in detail panels when relevant to the operator; do not foreground implementation architecture.
+
+Avoid describing process sequencing or asserting that subsystems operate separately. For a submitted response, show **Received** and **Read only** rather than a paragraph explaining that evidence assessment happens later. Keep reviewer status as an independent state only when the record supplies it.
+
 ## Content acceptance
 
 A screen passes when an intended user can answer, without product training:

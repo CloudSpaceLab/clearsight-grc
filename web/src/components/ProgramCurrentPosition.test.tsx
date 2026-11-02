@@ -3,12 +3,34 @@ import { describe, expect, it, vi } from "vitest";
 import type { ProgramAggregate } from "../types";
 import type { ProgramOperations } from "../programOperationsApi";
 import type { ProgramReviewDigest } from "../programReviewApi";
-import { ProgramCurrentPosition } from "./ProgramCurrentPosition";
+import { ProgramCurrentPosition, dominantProgramAction } from "./ProgramCurrentPosition";
 
 const aggregate = { program: { id: "program-1", version: 3 }, state_label: "Up to date", requirements: [] } as unknown as ProgramAggregate;
 const operations = { operations: [] } as unknown as ProgramOperations;
 const digest = { review_required: false } as ProgramReviewDigest;
 const current = { id: "state-1", program_version: 3, generated_at: "2026-09-09T09:00:00Z", reasons: [], open_matter_count: 0 } as unknown as NonNullable<ProgramAggregate["current_state"]>;
+
+describe("Program standard adoption truth", () => {
+  it("counts only approved active standards and never infers compliance", () => {
+    const value = {
+      ...aggregate,
+      framework_adoptions: [
+        { id: "adopted-a", status: "ACTIVE" },
+        { id: "proposed-b", status: "PENDING" },
+        { id: "rejected-c", status: "REJECTED" },
+        { id: "adopted-d", status: "ACTIVE" },
+      ],
+    } as unknown as ProgramAggregate;
+    const { rerender } = render(<ProgramCurrentPosition aggregate={value} operations={operations} digest={digest}/>);
+    expect(screen.getByText("Standards").parentElement?.textContent).toBe("Standards 2");
+    expect(screen.queryByText("Requirement compliance")).toBeNull();
+
+    rerender(<ProgramCurrentPosition aggregate={{
+      ...value, framework_adoptions: value.framework_adoptions?.filter((adoption) => adoption.status !== "ACTIVE"),
+    }} operations={operations} digest={digest}/>);
+    expect(screen.queryByText("Standards")).toBeNull();
+  });
+});
 
 describe("Program calculation truth", () => {
   it("keeps an absent calculation and issue population unknown", () => {
@@ -45,6 +67,67 @@ describe("Program calculation truth", () => {
     expect(screen.queryByText(/version 0|latest Program version/)).toBeNull();
   });
 
+  it("shows verified requirement compliance without collapsing zero into missing", () => {
+    const verified = {
+      ...aggregate,
+      program: {
+        ...aggregate.program,
+        calculation_policy: { last_revision: 1, active: {
+          number: 1, checksum: "verified", maker_id: "owner", approver_id: "reviewer",
+          proposed_at: "2026-09-08T00:00:00Z", approved_at: "2026-09-09T08:00:00Z",
+          definition: { revision: "program-v1", minimum_coverage_bps: 10000, categories: [{ code: "REQUIREMENTS", weight_bps: 10000 }] },
+        } },
+      },
+      current_state: { ...current, calculation: {
+        policy_revision: "program-v1", state: "FINAL" as const, score_bps: 0,
+        coverage_bps: 10000, eligible_count: 1, assessed_count: 1,
+        unknown_count: 0, excluded_count: 0, categories: [{
+          code: "REQUIREMENTS", weight_bps: 10000,
+          eligible_count: 1, assessed_count: 1, unknown_count: 0, excluded_count: 0,
+          coverage_bps: 10000, score_bps: 0,
+        }],
+      } },
+    } as ProgramAggregate;
+    const { rerender } = render(<ProgramCurrentPosition aggregate={verified} operations={operations} digest={digest}/>);
+    expect(screen.getByText("Requirement compliance").parentElement?.textContent).toBe("Requirement compliance 0% · 100% coverage");
+
+    rerender(<ProgramCurrentPosition aggregate={{ ...verified, current_state: {
+      ...verified.current_state!, calculation: { ...verified.current_state!.calculation!, state: "PROVISIONAL", score_bps: undefined, coverage_bps: 5000,
+        categories: [{ ...verified.current_state!.calculation!.categories[0]!, coverage_bps: 5000 }] },
+    } }} operations={operations} digest={digest}/>);
+    expect(screen.getByText("Requirement compliance").parentElement?.textContent).toBe("Requirement compliance Not assessed · 50% coverage");
+
+    rerender(<ProgramCurrentPosition aggregate={{ ...verified, program: { ...verified.program, version: 4 } }} operations={operations} digest={digest}/>);
+    expect(screen.queryByText("Requirement compliance")).toBeNull();
+
+    rerender(<ProgramCurrentPosition aggregate={{ ...verified, current_state: {
+      ...verified.current_state!, calculation: { ...verified.current_state!.calculation!,
+        categories: [{ ...verified.current_state!.calculation!.categories[0]!, coverage_bps: 9000 }],
+      },
+    } }} operations={operations} digest={digest}/>);
+    expect(screen.queryByText("Requirement compliance")).toBeNull();
+  });
+
+  it("does not show a requirements-only percentage for a different policy", () => {
+    const value = {
+      ...aggregate,
+      program: { ...aggregate.program, calculation_policy: { last_revision: 2, active: {
+        number: 2, checksum: "verified", maker_id: "owner", approver_id: "reviewer",
+        proposed_at: "2026-09-08T00:00:00Z", approved_at: "2026-09-09T08:00:00Z",
+        definition: { revision: "program-v2", minimum_coverage_bps: 10000, categories: [
+          { code: "REQUIREMENTS", weight_bps: 7000 }, { code: "VENDORS", weight_bps: 3000 },
+        ] },
+      } } },
+      current_state: { ...current, calculation: {
+        policy_revision: "program-v1", state: "FINAL" as const, score_bps: 10000,
+        coverage_bps: 10000, eligible_count: 1, assessed_count: 1,
+        unknown_count: 0, excluded_count: 0, categories: [],
+      } },
+    } as ProgramAggregate;
+    render(<ProgramCurrentPosition aggregate={value} operations={operations} digest={digest}/>);
+    expect(screen.queryByText("Requirement compliance")).toBeNull();
+  });
+
   it("names an expired Program assessment without implying that a vendor response is stale", () => {
     const onNavigate = vi.fn();
     render(<ProgramCurrentPosition aggregate={{ ...aggregate, current_state: { ...current, reasons: [{ code: "EVIDENCE_EXPIRED", summary: "Evidence is out of date for Annual control review.", object_type: "EVIDENCE_CONTRACT", object_id: "contract-1" }] } }} operations={operations} digest={digest} onNavigate={onNavigate}/>);
@@ -52,5 +135,62 @@ describe("Program calculation truth", () => {
     expect(screen.getByText("Validity has ended for these internal assessments.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review assessments" }));
     expect(onNavigate).toHaveBeenCalledWith("evidence-results");
+  });
+});
+
+
+describe("Program primary action ordering", () => {
+  it("navigates to the permitted primary action without forced motion", () => {
+    const onNavigate = vi.fn();
+    const scrollIntoView = vi.fn();
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { callback(0); return 1; });
+    const scrollSpy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(scrollIntoView);
+    try {
+      const permitted = { operations: [{ command: "program.requirement.add", label: "Add requirement", can_act: true }] } as ProgramOperations;
+      render(<><div id="program-requirements-panel"/><ProgramCurrentPosition aggregate={aggregate} operations={permitted} digest={digest} onNavigate={onNavigate}/></>);
+      fireEvent.click(screen.getByRole("button", { name: "Add requirement" }));
+      expect(onNavigate).toHaveBeenCalledWith("requirements-controls");
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+    } finally {
+      vi.unstubAllGlobals();
+      scrollSpy.mockRestore();
+    }
+  });
+
+  it("sends Program monitoring actions to the contextual collection panel, not Evidence", () => {
+    const onNavigate = vi.fn();
+    const scroll = vi.fn();
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({matches: true}));
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {callback(0); return 1;});
+    const output = render(<>
+      <div id="program-monitoring-panel"/>
+      <div id="program-evidence-panel"/>
+      <ProgramCurrentPosition aggregate={aggregate}
+        operations={{operations: [{command: "program.monitoring.define", label: "Add collection check", can_act: true}]} as ProgramOperations}
+        digest={digest} onNavigate={onNavigate}/>
+    </>);
+    const target = output.container.querySelector("#program-monitoring-panel")!;
+    Object.defineProperty(target, "scrollIntoView", {value: scroll});
+    try {
+      fireEvent.click(screen.getByRole("button", {name: "Add collection check"}));
+      expect(onNavigate).toHaveBeenCalledWith("monitoring");
+      expect(scroll).toHaveBeenCalledWith({behavior: "auto", block: "start"});
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("prefers a known ranked action over an unranked executable command", () => {
+    const allowed = [
+      { command: "program.future.action", label: "Future action", can_act: true },
+      { command: "program.requirement.add", label: "Add requirement", can_act: true },
+    ] as ProgramOperations["operations"];
+    expect(dominantProgramAction(allowed, digest)?.command).toBe("program.requirement.add");
+  });
+
+  it("retains an unranked action when it is the only permitted action", () => {
+    const allowed = [{ command: "program.future.action", label: "Future action", can_act: true }] as ProgramOperations["operations"];
+    expect(dominantProgramAction(allowed, digest)?.command).toBe("program.future.action");
   });
 });

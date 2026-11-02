@@ -1,0 +1,73 @@
+{
+  "revision": "aa666af542fdcba2f2883a58821434f3fbc18740",
+  "tree": "9e670cd7477ddd25b0e5c9e1d01961ae3ecfbacc",
+  "browser": "140.0.7339.16",
+  "build": "40e12a493b9e595206607cba4729db53c7d685dc39cd5169c330fc268542649c",
+  "afterBuild": "40e12a493b9e595206607cba4729db53c7d685dc39cd5169c330fc268542649c",
+  "receiptSHA256": "f9d493fcf9dec86f7d07883e45636fdd825dbfd85ab67ea23b703c7ac10999eb",
+  "receiptBytes": 408134,
+  "inputs": {
+    "fixtureSHA256": "8b339301595a9525f3b21e22f88b0d5438e6679a3df63cd1d7d1a5158db444d8",
+    "captureSHA256": "1983cea03d3ef0640ee3e35a7dfe1f8c0e6f2ebe3ff1b6ee6e37277a6885b755",
+    "reviewerSHA256": "9d173dec1e07234d5318759b6d536747560acd13fafc92c5067f4c5614fbf2d2"
+  },
+  "source": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-enterprise-setup-designs/enterprise-setup-preview.html",
+    "sha256": "cc7542e2a3047338b1d2fbbbe33756adbc9ee8c2084fb5920834da8aeedc04c7"
+  },
+  "layouts": 10,
+  "behaviors": 11,
+  "images": 42,
+  "imageBytes": 4652784,
+  "failure": null,
+  "review": {
+    "failures": [],
+    "detail": "10 layouts, 11 behavior scenarios, 42 retained images; whole-screen acceptance not assessed"
+  },
+  "comparison": {
+    "total": 42,
+    "identical": 41,
+    "changed": [
+      "layout-dark-1440.png"
+    ]
+  },
+  "budget": {
+    "revision": "aa666af542fdcba2f2883a58821434f3fbc18740",
+    "metrics": {
+      "javascript": {
+        "raw": 2427640,
+        "gzip": 672927,
+        "initial_gzip": 161940,
+        "largest_raw_chunk": 573982
+      },
+      "css": {
+        "raw": 656235,
+        "gzip": 112601,
+        "initial_gzip": 32126
+      }
+    },
+    "failures": []
+  },
+  "logs": [
+    {
+      "file": "/tmp/clearsight-enterprise-first-open-aa666af-customer-build.log",
+      "sha256": "d00ffe502d35a9a87c0ed66bb6ba314dbf23ffa0f844a4fd8723f4c57f8847c9",
+      "bytes": 9228
+    },
+    {
+      "file": "/tmp/clearsight-enterprise-first-open-aa666af-evidence-build.log",
+      "sha256": "bc3e386df1d6b1a67cbd9fce7d334eebe66815f257cbf1076d1e38867b0209c7",
+      "bytes": 11506
+    },
+    {
+      "file": "/tmp/clearsight-enterprise-first-open-aa666af-node-gates.log",
+      "sha256": "61edb37bc76a14ddf4225cd8efc4cb4c659ef9e694d9fea6f45471bdfe7f727c",
+      "bytes": 366
+    },
+    {
+      "file": "/tmp/clearsight-enterprise-first-open-aa666af-capture.log",
+      "sha256": "bfdad632a69c9a003d5fd5f78c20372845d51cf299e4618655245365992155f1",
+      "bytes": 69
+    }
+  ]
+}

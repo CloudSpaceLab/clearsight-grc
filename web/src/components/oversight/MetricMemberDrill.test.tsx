@@ -40,8 +40,8 @@ describe("MetricMemberDrill", () => {
       onOpenProgram={onOpenProgram}
     />);
 
-    expect(screen.getByText("2 exact records in this metric snapshot.")).toBeTruthy();
-    expect(screen.getByText("Some records are still part of this historical count but their current access has changed.")).toBeTruthy();
+    expect(screen.getByText("2 records in this metric snapshot.")).toBeTruthy();
+    expect(screen.getByText("Some records are included in this snapshot but are no longer accessible.")).toBeTruthy();
     expect(screen.getByText("Access changed")).toBeTruthy();
 
     const redactedAction = screen.getByRole("button", { name: /Open record for Record access changed/i }) as HTMLButtonElement;

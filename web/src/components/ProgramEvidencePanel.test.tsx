@@ -51,7 +51,7 @@ describe("Program evidence authority gating", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Define evidence check" }));
-    expect(screen.getByText("Create a linked issue when a result does not support the claim.")).toBeTruthy();
+    expect((screen.getByLabelText("If evidence fails") as HTMLSelectElement).value).toBe("MATTER");
     const contradiction = screen.getByLabelText("Contradiction handling") as HTMLSelectElement;
     expect(Array.from(contradiction.options).map((option) => [option.value, option.text])).toEqual([
       ["HOLD", "Hold the check"], ["REVIEW", "Require review"], ["FAIL", "Fail the check"],
@@ -110,14 +110,14 @@ describe("Program evidence authority gating", () => {
     expect(screen.getByRole("button", { name: "Edit Filing evidence" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Review Filing evidence status" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Record evidence result" })).toBeNull();
-    expect(screen.getByText(/reviewer must activate a Draft evidence check first/)).toBeTruthy();
+    expect(screen.getByText(/reviewer must activate a draft evidence check/)).toBeTruthy();
   });
 
   it("explains that editing an active check requires reviewer reactivation", async () => {
     render(<ProgramEvidencePanel aggregate={aggregate} operations={[...operations, { command: "program.evidence.revise", subresource_id: "contract-1", label: "Edit evidence", responsibility: "OWNER", can_act: true, reason: "You can edit this check." }]} actorPrincipalID="actor-1" canConfigureSources canOperate onUpdated={vi.fn()} onReload={vi.fn()}/>);
     fireEvent.click(await screen.findByRole("button", { name: "Edit Filing evidence" }));
-    expect(screen.getByText(/returns this evidence check to Draft/)).toBeTruthy();
-    expect(screen.getByText(/current reviewer must activate it again/)).toBeTruthy();
+    expect(screen.getByText(/Changes return this check to Draft/)).toBeTruthy();
+    expect(screen.getByText(/reviewer must reactivate it/)).toBeTruthy();
   });
 
   it("keeps manual evidence definition usable when connected sources are unavailable", async () => {
@@ -143,7 +143,7 @@ describe("Program evidence authority gating", () => {
     expect(await screen.findByText(/Showing 20 of 22 stored results for Program version 4/)).toBeTruthy();
     expect(screen.getByText(/assessed 2026-08-25 by Ada Okafor/)).toBeTruthy();
     expect(screen.getAllByText(/Sources: Regulatory filing register/)).toHaveLength(20);
-    expect(screen.getByText(/2 additional results/)).toBeTruthy();
+    expect(screen.getByText(/2 earlier results not shown/)).toBeTruthy();
     expect(screen.queryByText(/reviewer-hidden/)).toBeNull();
   });
 
@@ -179,7 +179,7 @@ describe("Program evidence authority gating", () => {
 
     expect(screen.queryByRole("button", { name: saveName })).toBeNull();
     expect(screen.queryByRole("button", { name: openName })).toBeNull();
-    expect(screen.getByText("Evidence changes are disabled until current Program responsibilities are available. Existing evidence checks and results remain visible.")).toBeTruthy();
+    expect(screen.getByText("Assignments unavailable. Evidence changes disabled.")).toBeTruthy();
     expect(addProgramEvidenceContract).not.toHaveBeenCalled();
     expect(recordProgramEvidenceAssessment).not.toHaveBeenCalled();
   });

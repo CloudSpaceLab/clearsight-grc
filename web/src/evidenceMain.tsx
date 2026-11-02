@@ -9,34 +9,21 @@ import { VendorCaptureEvidencePage, type VendorCaptureEvidenceState } from "./ve
 import { VendorReleaseEvidencePage } from "./vendorReleaseEvidence";
 import { installVendorComplianceEvidence, VendorComplianceEvidencePage } from "./vendorComplianceEvidence";
 import { installRopaEvidence } from "./ropaEvidence";
+import { installPeopleAccessEvidence } from "./peopleAccessEvidence";
 import { installReportingEvidence } from "./reportingEvidence";
+import { installNotificationWorkspaceEvidence } from "./notificationWorkspaceEvidence";
+import { installIssueWorkspaceFollowThroughEvidence } from "./issueWorkspaceFollowThroughEvidence";
 import { FindingFollowUpEvidence } from "./FindingFollowUpEvidence";
 import { consumeCaptureInvitation } from "./captureInvitationBrowser";
 import { ExternalCaptureApp } from "./components/ExternalCaptureApp";
 import { LifecycleTodayEvidencePage } from "./components/LifecycleTodayEvidencePage";
 import { OperatingMutationsEvidencePage } from "./components/OperatingMutationsEvidencePage";
 import { OversightEvidencePage } from "./components/oversight/OversightEvidencePage";
+import { HomeT7GroupEvidence } from "./homeT7Evidence";
 import { NativeIndicatorEvidencePage } from "./nativeIndicatorEvidence";
 import { DisplayPreferencesRoot } from "./components/DisplayPreferences";
 import { SessionGate } from "./components/SessionGate";
-import "./styles.css";
-import "./cinematic-guide.css";
-import "./evidence.css";
-import "./continuity.css";
-import "./journeys.css";
-import "./document-handoff.css";
-import "./interventions.css";
-import "./ai-governance.css";
-import "./product-finish.css";
-import "./design-system/index.css";
-import "./ui-preferences.css";
-import "./visual-review-fixes.css";
-import "./capture-inputs.css";
-import "./capture-access.css";
-import "./operating-mutations.css";
-import "./demo-login.css";
-import "./defect-review-fixes.css";
-import "./enterprise-shell.css";
+import "./appStyles";
 
 const UIComponentGallery = lazy(() => import("./components/ui-gallery/UIComponentGallery").then((module) => ({ default: module.UIComponentGallery })));
 const App = lazy(() => import("./App"));
@@ -51,7 +38,10 @@ installVendorCollectionEvidence();
 installUITruthEvidence();
 installVendorComplianceEvidence();
 installRopaEvidence();
+installPeopleAccessEvidence();
 installReportingEvidence();
+installIssueWorkspaceFollowThroughEvidence();
+installNotificationWorkspaceEvidence();
 const application = invitationToken !== null
   ? <ExternalCaptureApp invitationToken={invitationToken}/>
   : fixture === "finding-followup" ? <FindingFollowUpEvidence/>
@@ -62,7 +52,9 @@ const application = invitationToken !== null
   : fixture === "field-assessment-policy" ? <PolicyAssessmentEvidence/>
   : fixture === "field-assessment-builder" || fixture === "field-assessment-review"
     ? <FieldAssessmentEvidencePage review={fixture === "field-assessment-review"}/>
-  : fixture === "oversight"
+  : fixture === "home-t7-group" || fixture === "home-t7-group-partial"
+    ? <HomeT7GroupEvidence partial={fixture === "home-t7-group-partial"}/>
+    : fixture === "oversight"
     ? <OversightEvidencePage/>
     : fixture === "native-indicator"
       ? <NativeIndicatorEvidencePage/>

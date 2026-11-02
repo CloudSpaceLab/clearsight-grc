@@ -1,3 +1,5 @@
+import { selectVendorRelationshipView } from "./vendor-relationship-evidence.mjs";
+
 export const requiredFormsCapabilities = Object.freeze([
   "library-empty", "library-list", "library-search", "library-saved-filter", "library-context-detail", "library-bulk-action",
   "library-filter-picker", "library-advanced-filter", "library-status-scopes",
@@ -32,19 +34,9 @@ async function openFormsTab(page, tab, heading = tab) {
   await page.getByRole("heading", { name: heading, exact: true }).waitFor({ state: "visible" });
 }
 
-async function selectPortfolioLens(page, name) {
-  const navigation = page.getByRole("navigation", { name: "Portfolio lenses" });
-  const button = navigation.getByRole("button", { name, exact: true });
-  if (await button.isVisible()) {
-    await button.click();
-    return;
-  }
-  const compact = page.locator(".cs-workspace-switcher__compact .cs-select-field__trigger");
-  await compact.waitFor({ state: "visible" });
-  await compact.click();
-  const listbox = page.getByRole("listbox");
-  await listbox.waitFor({ state: "visible" });
-  await listbox.getByRole("option", { name, exact: true }).click();
+async function selectPrimaryDestination(page, name) {
+  const navigation = page.getByRole("complementary", { name: "Primary navigation" });
+  await navigation.getByRole("link", { name, exact: true }).click();
 }
 
 async function selectFormsSection(page, name) {
@@ -61,17 +53,17 @@ async function selectFormsSection(page, name) {
 }
 
 async function selectVendorSection(page, name) {
-  const tab = page.getByRole("tab", { name, exact: true });
-  if (await tab.isVisible()) {
-    await tab.click();
-    return;
+  const view = { "Due diligence": "due-diligence", Documents: "evidence" }[name];
+  if (!view) throw new Error(`Unsupported Vendor evidence destination: ${name}`);
+  await page.locator(".vendor-relationship-workspace").waitFor({ state: "visible" });
+  const relationshipRoute = new URL(page.url()).hash;
+  await selectVendorRelationshipView(page, view);
+  if (name === "Documents") {
+    const evidence = page.getByRole("region", { name: "Vendor evidence", exact: true });
+    await evidence.getByRole("tablist", { name: "Evidence views", exact: true }).getByRole("tab", { name, exact: true }).click();
+    await evidence.locator(".document-browser").waitFor({ state: "visible" });
   }
-  const compact = page.getByRole("button", { name: / Vendor section$/ });
-  await compact.scrollIntoViewIfNeeded();
-  await compact.click();
-  const listbox = page.getByRole("listbox");
-  await listbox.waitFor({ state: "visible" });
-  await listbox.getByRole("option", { name, exact: true }).click();
+  if (new URL(page.url()).hash !== relationshipRoute) throw new Error("Vendor navigation must retain the selected relationship.");
 }
 
 async function assertFormsSectionSelected(page, name) {
@@ -134,34 +126,103 @@ async function selectFileType(page, name) {
 }
 
 async function assertFileTypeSelected(page, name) {
-  const narrow = await page.locator(".document-browser").evaluate((browser) => matchMedia("(max-width: 760px)").matches
-    || browser.clientWidth <= (browser.classList.contains("document-browser--selecting") ? 760 : 960));
+  // Check the CSS container and its navigation in one browser read. Separate
+  // viewport/visibility reads can observe different responsive layout frames.
+  const expectedViewport = page.viewportSize()?.width;
+  await page.waitForFunction(({ expectedName, viewport }) => {
+    if (innerWidth !== viewport) return false;
+    const browser = document.querySelector(".document-browser");
+    const sidebar = browser?.querySelector(".document-kinds");
+    const selector = browser?.querySelector(".document-kind-selector");
+    if (!browser || !sidebar || !selector) return false;
+    const style = getComputedStyle(browser);
+    const inlineSize = browser.getBoundingClientRect().width
+      - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth)
+      - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    const narrow = inlineSize <= (browser.classList.contains("document-browser--selecting") ? 760 : 960);
+    const visible = (element) => getComputedStyle(element).display !== "none" && element.getBoundingClientRect().width > 0;
+    if (visible(selector) !== narrow || visible(sidebar) === narrow) return false;
+    const selected = [...sidebar.querySelectorAll('button[aria-pressed="true"]')];
+    return selected.length === 1
+      && selected[0].querySelector('.document-kind-label > span:not([aria-hidden="true"])')?.textContent === expectedName;
+  }, { expectedName: name, viewport: expectedViewport }).catch(async (error) => {
+    const state = await page.locator(".document-browser").evaluate((browser) => {
+      const style = getComputedStyle(browser);
+      const inlineSize = browser.getBoundingClientRect().width
+        - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth)
+        - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const sidebar = browser.querySelector(".document-kinds");
+      const selector = browser.querySelector(".document-kind-selector");
+      return {
+        viewport: innerWidth, inlineSize, selecting: browser.classList.contains("document-browser--selecting"),
+        sidebarDisplay: getComputedStyle(sidebar).display, selectorDisplay: getComputedStyle(selector).display,
+        pressed: [...sidebar.querySelectorAll('button[aria-pressed="true"]')].map((button) => button.textContent?.trim()),
+      };
+    });
+    throw new Error(`File type navigation must match its current CSS container: ${error.message}; ${JSON.stringify(state)}`);
+  });
   const compact = page.getByRole("button", { name: `${name} File type`, exact: true });
   const sidebar = page.locator(".document-kinds");
-  if (await compact.isVisible() !== narrow || await sidebar.isVisible() === narrow) throw new Error("File types must use one visible labelled navigation at the current width.");
-  const selected = sidebar.getByRole("button", { pressed: true, includeHidden: true });
-  const selectedLabel = selected.locator('.document-kind-label > span:not([aria-hidden="true"])');
-  if (await selected.count() !== 1 || await selectedLabel.textContent() !== name) throw new Error("Compact and desktop file types must share the selected value.");
-  if (!narrow && await sidebar.getByRole("button", { name, exact: true, pressed: true }).count() !== 1) throw new Error("The selected file type must retain its accessible label.");
+  // Resolve the accessible control in one query while the container settles.
+  // A separate visibility read can become stale before its label is checked.
+  await sidebar.getByRole("button", { name, exact: true, pressed: true })
+    .or(compact)
+    .waitFor({ state: "visible" });
 }
 
 async function assertDocumentNameWidth(page) {
-  const cards = await page.locator(".document-browser .cs-data-table").evaluate((table) => matchMedia("(max-width: 700px)").matches || table.clientWidth <= 700);
-  if (!cards) return;
-  // Even the reduced-motion transition duration needs a rendering frame when
-  // resize changes cell padding. Wait for the exact final width contract.
-  await page.waitForFunction(() => {
-    const cells = [...document.querySelectorAll('.document-browser td[data-label="Name"]')];
+  // Re-evaluate the active container contract on each animation frame. A
+  // preliminary narrow/wide snapshot can go stale across setViewportSize().
+  const expectedViewport = page.viewportSize()?.width;
+  await page.waitForFunction((width) => {
+    if (innerWidth !== width) return false;
+    const table = document.querySelector(".document-browser .cs-data-table");
+    if (!table) return false;
+    const style = getComputedStyle(table);
+    const availableWidth = table.getBoundingClientRect().width
+      - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth)
+      - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    const narrow = matchMedia("(max-width: 700px)").matches || availableWidth <= 700;
+    const cells = [...table.querySelectorAll('tbody td[data-label="Name"]')];
     return cells.length > 0 && cells.every((cell) => {
       const row = cell.closest("tr");
       const name = cell.querySelector(".document-file-name");
       const fullName = name?.querySelector("strong");
+      if (!row || !name || !fullName || fullName.textContent !== fullName.title) return false;
       const rowStyle = getComputedStyle(row);
+      if (!narrow) return rowStyle.display === "table-row";
       const available = row.clientWidth - parseFloat(rowStyle.paddingLeft) - parseFloat(rowStyle.paddingRight);
-      return rowStyle.display === "grid" && cell.getAttribute("data-mobile-layout") === "full-width" && Math.abs(cell.getBoundingClientRect().width - available) <= 2
-        && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2 && fullName.textContent === fullName.title;
+      return rowStyle.display === "grid" && cell.getAttribute("data-mobile-layout") === "full-width"
+        && Math.abs(cell.getBoundingClientRect().width - available) <= 2
+        && Math.abs(name.getBoundingClientRect().width - cell.getBoundingClientRect().width) <= 2;
     });
-  }).catch((error) => { throw new Error(`Complete document names must use the full available card width in narrow workspaces: ${error.message}`); });
+  }, expectedViewport).catch(async (error) => {
+    const dimensions = await page.locator(".document-browser .cs-data-table").evaluate((table) => {
+      const container = getComputedStyle(table);
+      const availableWidth = table.getBoundingClientRect().width
+        - parseFloat(container.borderLeftWidth) - parseFloat(container.borderRightWidth)
+        - parseFloat(container.paddingLeft) - parseFloat(container.paddingRight);
+      const rows = [...table.querySelectorAll('tbody tr')].map((row) => {
+        const cell = row.querySelector('td[data-label="Name"]');
+        const name = cell?.querySelector(".document-file-name");
+        const fullName = name?.querySelector("strong");
+        const style = getComputedStyle(row);
+        return {
+          rowDisplay: style.display,
+          rowWidth: row.clientWidth,
+          rowPadding: [style.paddingLeft, style.paddingRight],
+          cellWidth: cell?.getBoundingClientRect().width,
+          cellLayout: cell?.getAttribute("data-mobile-layout"),
+          nameWidth: name?.getBoundingClientRect().width,
+          titleMatches: fullName?.textContent === fullName?.title,
+        };
+      });
+      return { viewport: innerWidth, tableWidth: table.getBoundingClientRect().width,
+        narrow: matchMedia("(max-width: 700px)").matches || availableWidth <= 700,
+        containerName: container.containerName, rows };
+    });
+    throw new Error(`Document filenames must retain their responsive width and full titles: ${error.message}; ${JSON.stringify(dimensions)}`);
+  });
 }
 
 async function assertDocumentHeader(page) {
@@ -845,11 +906,11 @@ async function verifyFormsSectionResumption(page) {
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await selectFormsSection(page, "Documents");
-  await selectPortfolioLens(page, "Programs");
-  await page.getByRole("heading", { name: "Programs", exact: true }).waitFor({ state: "visible" });
-  await selectPortfolioLens(page, "Forms");
+  await selectPrimaryDestination(page, "Programs");
+  await page.getByRole("heading", { name: "Programs", exact: true, level: 2 }).waitFor({ state: "visible" });
+  await selectPrimaryDestination(page, "Forms");
   await selected("Templates");
-  if (new URL(page.url()).hash !== "#forms") throw new Error("Returning to the Forms Portfolio lens must open the Templates root.");
+  if (new URL(page.url()).hash !== "#forms") throw new Error("The primary Forms destination must open the Templates root.");
   await page.reload({ waitUntil: "networkidle" });
   await selected("Templates");
   await selectFormsSection(page, "Documents");

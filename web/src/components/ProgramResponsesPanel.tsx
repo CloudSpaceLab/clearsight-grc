@@ -18,7 +18,12 @@ type ListState = "loading" | "live" | "unavailable";
 type DetailState = "idle" | "loading" | "live" | "error";
 const responseSections = [{ id: "ANSWERS", label: "Answers" }, { id: "DOCUMENTS", label: "Documents" }, { id: "REVIEW", label: "Review" }] as const;
 
-export function ProgramResponsesPanel({ programID }: { programID: string }) {
+type RequestedResponse = Pick<CompletedResponseSummary, "id" | "revision" | "form_template_version">;
+
+export function ProgramResponsesPanel({ programID, requestedResponse }: {
+  programID: string;
+  requestedResponse?: RequestedResponse;
+}) {
   const [query, setQuery] = useState<CompletedResponseQuery>({ sort: "COMPLETED_DESC", limit: 20 });
   const [items, setItems] = useState<CompletedResponseSummary[]>([]);
   const [listState, setListState] = useState<ListState>("loading");
@@ -31,6 +36,7 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
   const [detailError, setDetailError] = useState<string>();
   const listSequence = useRef(0);
   const detailSequence = useRef(0);
+  const handledRequestKey = useRef("");
 
   const loadList = useCallback(async (cursor?: string) => {
     if (responseDateError(query)) return;
@@ -40,6 +46,11 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
     try {
       const page = await loadCompletedResponses({ ...query, subject_type: "PROGRAM", subject_id: programID, current_only: true, cursor });
       if (sequence !== listSequence.current) return;
+      // An authorized query is not proof that each returned row belongs to
+      // the routed Program. Never mix cross-subject results into review.
+      if (page.items.some((item) => item.subject_type !== "PROGRAM" || item.subject_id !== programID)) {
+        throw new Error("Returned responses do not match this Program. Retry the scoped list.");
+      }
       setItems((current) => cursor ? [...current, ...page.items] : page.items);
       setNextCursor(page.next_cursor);
       setListState("live");
@@ -89,7 +100,7 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
     await loadList(nextCursor);
   }
 
-  async function openResponse(id: string) {
+  async function openResponse(id: string, expected?: RequestedResponse) {
     const sequence = ++detailSequence.current;
     setSelectedID(id);
     setDetail(undefined);
@@ -98,6 +109,16 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
     try {
       const value = await loadCompletedResponse(id);
       if (sequence !== detailSequence.current) return;
+      if (value.response.id !== id || value.response.subject_type !== "PROGRAM" ||
+          value.response.subject_id !== programID) {
+        throw new Error("This response does not belong to the selected Program. Reload the Program's responses.");
+      }
+      if (expected && (value.response.revision !== expected.revision ||
+          value.revision.revision !== expected.revision ||
+          value.response.form_template_version !== expected.form_template_version ||
+          !value.response.current)) {
+        throw new Error("The response revision has changed. Reload assessments before reviewing.");
+      }
       setDetail(value);
       setDetailState("live");
     } catch (cause) {
@@ -106,6 +127,21 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
       setDetailState("error");
     }
   }
+
+  // Navigation from the approved Overview selects a specific, versioned
+  // submission. Never auto-open another revision when the source changes.
+  const requestedKey = requestedResponse
+    ? [programID, requestedResponse.id, requestedResponse.revision, requestedResponse.form_template_version].join(":")
+    : "";
+  useEffect(() => {
+    if (!requestedResponse) {
+      handledRequestKey.current = "";
+      return;
+    }
+    if (handledRequestKey.current === requestedKey) return;
+    handledRequestKey.current = requestedKey;
+    void openResponse(requestedResponse.id, requestedResponse);
+  }, [requestedKey]);
 
   const columns: readonly DataColumn<CompletedResponseSummary>[] = [
     { id: "form", header: "Form", render: (value) => <div className="program-responses__form"><strong>{value.title}</strong><span>Revision {value.revision}{value.current ? " · Current" : " · Historical"} · Form revision {value.form_template_version}</span></div>, accessibleText: (value) => `${value.title}, response revision ${value.revision}, form revision ${value.form_template_version}` },
@@ -116,13 +152,13 @@ export function ProgramResponsesPanel({ programID }: { programID: string }) {
   const visible = useResponseColumns(sortableResponseColumns(columns, query.sort ?? "COMPLETED_DESC", (sort) => updateQuery({ sort })));
 
   return <article className="program-record-panel program-wide-panel program-responses-panel" aria-labelledby="program-responses-heading">
-    <div className="program-panel-heading"><div><span className="eyebrow">Responses</span><h2 id="program-responses-heading">Submitted data</h2><p>Assessment scores do not establish document validity.</p></div></div>
+    <div className="program-panel-heading"><div><span className="eyebrow">Responses</span><h2 id="program-responses-heading">Submitted data</h2><p>Scores do not confirm document validity.</p></div></div>
 
     <ResponseBrowser query={query} onChange={updateQuery} count={listState === "live" ? items.length : undefined} hasMore={!!nextCursor} loading={listState === "loading" && !responseDateError(query)} columns={visible.picker}>
 
     {listState === "loading" && items.length === 0 && <p role="status">Loading submitted responses for this Program…</p>}
-    {listState === "unavailable" && items.length === 0 && <RecordEmptyState kind="unavailable" label="Completed responses for this Program" title="Submitted data could not be loaded" description="Retry before reviewing evidence." action="Retry submitted data" onAction={() => void loadList()}/>}
-    {listState === "live" && items.length === 0 && (hasResponseFilters(query) ? <EmptyState population="Program responses matching the current filters" title="No responses match these filters" description="Change or clear the response filters."/> : <RecordEmptyState label="Completed responses for this Program" title="No data collected yet" description="No completed responses are recorded for this Program. Start a form collection." action="Open Data collection" onAction={() => { window.location.hash = `#programs/${encodeURIComponent(programID)}/monitoring`; }}/>) }
+    {listState === "unavailable" && items.length === 0 && <RecordEmptyState kind="unavailable" label="Submitted responses for this Program" title="Submitted data could not be loaded" description="Retry before reviewing evidence." action="Retry submitted data" onAction={() => void loadList()}/>}
+    {listState === "live" && items.length === 0 && (hasResponseFilters(query) ? <EmptyState population="Program responses matching the current filters" title="No responses match these filters" description="Change or clear the response filters."/> : <RecordEmptyState label="Submitted responses for this Program" title="No data collected yet" description="No submitted responses. Start a form collection." action="Open Data collection" onAction={() => { window.location.hash = `#programs/${encodeURIComponent(programID)}/monitoring`; }}/>) }
     {error && items.length > 0 && <Notice tone="error">{error}</Notice>}
     {(listState === "live" || items.length > 0) && items.length > 0 && <DataTable
       ariaLabel="Submitted responses for this Program"

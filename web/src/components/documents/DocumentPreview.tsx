@@ -36,6 +36,6 @@ export function DocumentPreview({ file, onClose }: { file: DocumentOccurrence; o
         : !url ? <p role="status">Loading document preview…</p>
         : kind === "image" ? <img src={url} alt={`Submitted document: ${file.file_name}`} onError={() => setFailed(true)}/>
         : <iframe src={url} title={`Document preview: ${file.file_name}`} referrerPolicy="no-referrer"/>}
-    </div><aside className="document-preview-details"><h3>File details</h3><DocumentFacts file={file}/><p>File safety checks do not establish whether the document is genuine or suitable for its purpose.</p></aside></div>
+    </div><aside className="document-preview-details"><h3>File details</h3><DocumentFacts file={file}/><p>Safety checks do not confirm document authenticity or suitability.</p></aside></div>
   </FocusedDialog>;
 }

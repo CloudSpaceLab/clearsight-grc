@@ -56,7 +56,6 @@ export function CollectionPolicyForm({ initialValue, onSave, onCancel, submitLab
       <label htmlFor="collection-reminders">Reminders during renewal</label>
       <div><input id="collection-reminders" type="number" min="1" max="5" value={reminderCount} onChange={(event) => setReminderCount(event.target.value)}/><span>{reminderWord}</span></div>
     </div>
-    <p className="collection-policy-preview">Responses will be renewed {policy.renewal_window_days} days before they reach {policy.validity_months} months old. The initial request is followed by up to {policy.reminder_count} {reminderWord}.</p>
     {error && <p className="inline-form-error" role="alert">{error}</p>}
     <div className="monitoring-form-actions"><button className="text-button" type="button" onClick={onCancel}>Cancel</button><button className="primary-button" type="submit" disabled={saving}>{saving ? "Saving…" : submitLabel}</button></div>
   </form>;

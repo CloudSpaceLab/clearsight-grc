@@ -12,7 +12,7 @@ type Props = {
   onApply: (period: ReportingPeriodQuery) => void;
 };
 
-const presets = [30, 90, 180] as const;
+const presets = [7, 30, 90] as const;
 
 export function OversightPeriodPicker({ period, freshness, generatedAt, isChanging = false, error, onApply }: Props) {
   const [open, setOpen] = useState(false);
@@ -56,7 +56,7 @@ export function OversightPeriodPicker({ period, freshness, generatedAt, isChangi
       <div className="oversight-period-picker">
         <div className="oversight-period-picker__intro">
           <strong>Reporting period</strong>
-          <p>Current posture stays current. History measures use this window.</p>
+          <p>Reporting period applies to historical measures only.</p>
         </div>
 
         <div className="oversight-period-presets" aria-label="Reporting period presets">

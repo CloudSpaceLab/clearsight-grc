@@ -363,7 +363,7 @@ export function FormBuilder({
   async function persist(input: CreateFormTemplateInput) {
     if (saveDraft) return saveDraft(input);
     if (programID) return createFormTemplate(programID, input);
-    throw new Error("This form editor is not connected to a governed save command.");
+    throw new Error("Form saving is unavailable. Open the form from Programs or Forms and retry.");
   }
 
   function qualityError(sourceIssues = issues, fallback = "Resolve the approval-quality checks before continuing.") {

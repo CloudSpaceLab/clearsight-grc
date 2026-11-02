@@ -1,6 +1,17 @@
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { frameworkEvidenceScenarios } from "./framework-evidence-scenarios.mjs";
+import { reportsDesignEvidenceScenarios } from "./reports-design-evidence-scenarios.mjs";
+import { notificationsEvidenceScenarios } from "./notifications-evidence-scenarios.mjs";
+import { prepareNotifications, assertNotificationsLayout, verifyNotificationScenario } from "./notifications-evidence.mjs";
+import { vendorPortfolioEvidenceScenarios } from "./vendor-portfolio-evidence-scenarios.mjs";
+import { prepareVendorPortfolio, assertVendorPortfolioLayout, verifyVendorPortfolioScenario, selectVendorPortfolioView } from "./vendor-portfolio-evidence.mjs";
+import { vendorRelationshipEvidenceScenarios } from "./vendor-relationship-evidence-scenarios.mjs";
+import { prepareVendorRelationship, assertVendorRelationshipLayout, verifyVendorRelationshipScenario } from "./vendor-relationship-evidence.mjs";
+import { assertReportBuilderLayout, assertReportsExploreLayout, chooseReportExploreMeasure, chooseReportField,
+  selectReportOrganizationScope, verifyReportBuilderNavigation, verifyReportExploreNavigation,
+  verifyReportBuilderFlow, verifyReportExploreCurrency, verifyReportExploreMembers } from "./reports-design-evidence.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
@@ -8,14 +19,27 @@ const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const browser = await chromium.launch({ headless: true });
 const results = [];
 let failure = null;
+// The approved source destinations, with the existing authorized Work route
+// retained in the shared menu. Keep this evidence contract independent of App.
+const primaryNavigationLabels = ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Privacy", "Work & Approvals", "Reports"];
+const primaryNavigationHrefs = ["#oversight", "#programs/library", "#programs", "#forms", "#vendors", "#risks", "#ropa", "#work", "#reports"];
+const riskNavigationLabels = ["Risks", "RCSA", "Key indicators", "Loss events"];
 
 await mkdir(outputDir, { recursive: true });
 
 const captures = [
+  ...vendorPortfolioEvidenceScenarios,
+  ...vendorRelationshipEvidenceScenarios,
   { name: "01-today-dark-comfortable-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "02-today-light-comfortable-1440x900", route: "#today", title: "Oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "03-today-dark-compact-1440x900", route: "#today", title: "Oversight", theme: "dark", density: "compact", viewport: { width: 1440, height: 900 }, assertFirstActionVisible: true },
   { name: "04-program-light-1440x900", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
+  { name: "04-program-light-1280x800", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1280, height: 800 } },
+  { name: "04-program-light-mobile-390x844", route: "#programs/program-ndpa/overview", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true },
+  ...frameworkEvidenceScenarios,
+  { name: "150-work-queue-light-1440x900", route: "#work", title: "Work & approvals", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned to me", state: "work-assigned-desktop" },
+  { name: "151-work-queue-dark-mobile-390x844", route: "#work", title: "Work & approvals", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Assigned to me", state: "work-assigned-mobile" },
+  { name: "152-work-detail-dark-mobile-390x844", route: "#work", title: "Work & approvals", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openAssignedInspection: true, state: "work-inspection-mobile" },
   { name: "05-matter-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "06-evidence-light-1440x900", route: "#work/evidence", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } },
   { name: "07-import-dark-1440x900", route: "#imports", title: "Imports", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 } },
@@ -27,8 +51,10 @@ const captures = [
   { name: "18-today-loading-dark-1440x900", route: "#today", title: "Oversight", fixture: "today-loading", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Loading assigned work…" },
   { name: "19-today-unavailable-light-1440x900", route: "#today", title: "Oversight", fixture: "today-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Assigned work is unavailable" },
   { name: "20-evidence-partial-light-1440x900", route: "#work/evidence", title: "Work", fixture: "evidence-requests-unavailable", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Evidence requests are unavailable" },
-  { name: "21-configure-partial-dark-1440x900", route: "#configure/authority", title: "Configuration", fixture: "configure-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable" },
+  { name: "21-configure-partial-dark-1440x900", route: "#configure/authority", title: "People & access", fixture: "people-v2-partial", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Routing policies are unavailable." },
   { name: "22-no-config-access-light-1440x900", route: "#configure", title: "Oversight", fixture: "no-config-access", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, assertNoConfigureNav: true },
+  { name: "22a-no-config-access-dark-mobile-390x844", route: "#configure", title: "Oversight", fixture: "no-config-access", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, assertNoConfigureNav: true, state: "navigation-settings-denied-mobile" },
+  ...["light", "dark"].map((theme) => ({ name: `221-navigation-menu-${theme}-mobile-390x844`, route: "#reports", title: "Reports & insights", fixture: "report-overview-loaded", theme, density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openPrimaryNavigation: true, state: `navigation-menu-${theme}-mobile` })),
   { name: "27-evidence-long-content-mobile-390x844", route: "#work/evidence", title: "Work", fixture: "long-content", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Confirm the accountable owner for the processor register" },
   { name: "37-new-work-light-1440x900", route: "#work/matters", title: "Work", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openMatterSetup: true },
   { name: "38-new-work-dark-mobile-390x844", route: "#work/matters", title: "Work", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openMatterSetup: true },
@@ -38,25 +64,59 @@ const captures = [
   { name: "86-vendor-form-readiness-light-1440x900", route: "#vendors/register", title: "Vendors", fixture: "vendor-no-form", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-form-readiness", openFormReadiness: true },
   { name: "87-vendor-link-sheet-light-1440x900", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "vendor-link-focused-sheet", openVendorLink: true },
   { name: "88-vendor-link-sheet-dark-mobile-390x844", route: "#programs/program-ndpa/issues-actions", title: "Programs", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "vendor-link-focused-sheet-mobile", openVendorLink: true },
-  { name: "129-oversight-completeness-light-1440x900", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
-  { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Risk and delivery oversight", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
-  { name: "131-ropa-register-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-register" },
+  { name: "129-oversight-completeness-light-1440x900", route: "", title: "Enterprise Control Tower", fixture: "oversight", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "oversight-completeness" },
+  { name: "130-oversight-completeness-dark-mobile-390x844", route: "", title: "Enterprise Control Tower", fixture: "oversight", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "oversight-completeness-mobile" },
+  { name: "131-ropa-register-light-1440x900", route: "#ropa", title: "Privacy & data", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-register" },
   // The register capture sits above the activity table, so the per-row control
   // that opens an activity's details is proved by a capture scrolled to the
   // rows themselves. Without this the affordance exists in the DOM but is never
   // seen in review evidence.
-  { name: "131a-ropa-register-row-action-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "View details", state: "ropa-register-row-action", scrollIntoViewText: "View details" },
-  { name: "132-ropa-register-dark-mobile-390x844", route: "#ropa", title: "Processing activity register", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Customer account opening", state: "ropa-register-mobile" },
-  { name: "133-ropa-activity-light-1440x900", route: "#ropa", title: "Processing activity register", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-activity", openRopaActivity: true },
-  { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-library" },
-  { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
-  { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openFailedReport: true, expectText: "Generation stopped: Row Limit Exceeded", state: "report-run-failed" },
-  { name: "143-report-setups-dark-mobile-compact-390x844", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, openReportTemplates: true, expectText: "Program health review", state: "report-setups-mobile" },
-  { name: "144-report-generate-light-1440x900", route: "#reports", title: "Reports", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReportGenerate: true, expectText: "No ready vendors setup", state: "report-generate" },
+  { name: "131a-ropa-register-row-action-light-1440x900", route: "#ropa", title: "Privacy & data", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "View details", state: "ropa-register-row-action", scrollIntoViewText: "View details" },
+  { name: "132-ropa-register-dark-mobile-390x844", route: "#ropa", title: "Privacy & data", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Customer account opening", state: "ropa-register-mobile" },
+  { name: "133-ropa-activity-light-1440x900", route: "#ropa", title: "Privacy & data", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Customer account opening", state: "ropa-activity", openRopaActivity: true },
+  { name: "219-report-source-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReadyReport: true, state: "report-source-desktop" },
+  { name: "220-report-source-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, openReadyReport: true, state: "report-source-mobile" },
+  { name: "140-report-library-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, state: "report-library" },
+  // Loaded Overview is compared with the approved source at every exact width.
+  // Unavailable, partial and denied reads remain separate evidence states below.
+  ...[
+    { name: "140a-report-overview-light-1440x900", theme: "light", viewport: { width: 1440, height: 900 }, state: "report-overview-desktop" },
+    { name: "140b-report-overview-light-mobile-390x844", theme: "light", viewport: { width: 390, height: 844 }, state: "report-overview-mobile" },
+    { name: "140f-report-overview-light-1024x768", theme: "light", viewport: { width: 1024, height: 768 }, state: "report-overview-tablet" },
+    { name: "140g-report-overview-dark-768x900", theme: "dark", viewport: { width: 768, height: 900 }, state: "report-overview-narrow" },
+    { name: "140h-report-overview-light-1280x800", theme: "light", viewport: { width: 1280, height: 800 }, state: "report-overview-medium" },
+    { name: "140i-report-overview-light-768x900", theme: "light", viewport: { width: 768, height: 900 }, state: "report-overview-narrow-light" },
+    { name: "140j-report-overview-dark-1440x900", theme: "dark", viewport: { width: 1440, height: 900 }, state: "report-overview-desktop-dark" },
+    { name: "140k-report-overview-dark-1280x800", theme: "dark", viewport: { width: 1280, height: 800 }, state: "report-overview-medium-dark" },
+    { name: "140l-report-overview-dark-1024x768", theme: "dark", viewport: { width: 1024, height: 768 }, state: "report-overview-tablet-dark" },
+    { name: "140m-report-overview-dark-mobile-390x844", theme: "dark", viewport: { width: 390, height: 844 }, state: "report-overview-mobile-dark" },
+    { name: "140n-report-overview-unavailable-light-1440x900", fixture: "report-definitions", theme: "light", viewport: { width: 1440, height: 900 }, state: "report-overview-unavailable" },
+    { name: "140o-report-overview-partial-dark-1440x900", fixture: "report-overview-partial", theme: "dark", viewport: { width: 1440, height: 900 }, state: "report-overview-partial" },
+    { name: "140p-report-overview-denied-light-mobile-390x844", fixture: "report-overview-denied", theme: "light", viewport: { width: 390, height: 844 }, state: "report-overview-denied" },
+    { name: "140q-report-overview-area-light-1440x900", theme: "light", viewport: { width: 1440, height: 900 }, state: "report-overview-selected-area", reportOrganizationScope: "sample-scope-risk-ops" },
+  ].map((scenario) => ({ route: "#reports", title: "Reports & insights", fixture: "report-overview-loaded", density: "comfortable", openReportOverview: true, touch: scenario.viewport.width <= 1024, ...scenario })),
+  ...reportsDesignEvidenceScenarios,
+  ...notificationsEvidenceScenarios,
+
+  { name: "141-report-library-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, expectText: "Processing activities with open exceptions", state: "report-library-mobile" },
+  { name: "141a-report-library-records-dark-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, scrollToReportRecords: true, state: "report-library-records-mobile" },
+  { name: "141b-report-library-light-mobile-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, state: "report-library-mobile-light" },
+  ...[
+    { name: "141c-report-library-dark-1440x900", theme: "dark", viewport: { width: 1440, height: 900 }, state: "report-library-desktop-dark" },
+    { name: "141d-report-library-light-1280x800", theme: "light", viewport: { width: 1280, height: 800 }, state: "report-library-medium-light" },
+    { name: "141e-report-library-dark-1280x800", theme: "dark", viewport: { width: 1280, height: 800 }, state: "report-library-medium-dark" },
+    { name: "141f-report-library-light-1024x768", theme: "light", viewport: { width: 1024, height: 768 }, state: "report-library-tablet-light" },
+    { name: "141g-report-library-dark-1024x768", theme: "dark", viewport: { width: 1024, height: 768 }, state: "report-library-tablet-dark" },
+    { name: "141h-report-library-light-768x900", theme: "light", viewport: { width: 768, height: 900 }, state: "report-library-narrow-light" },
+    { name: "141i-report-library-dark-768x900", theme: "dark", viewport: { width: 768, height: 900 }, state: "report-library-narrow-dark" },
+  ].map((scenario) => ({ route: "#reports", title: "Reports & insights", fixture: "report-definitions", density: "comfortable", touch: scenario.viewport.width <= 1024, ...scenario })),
+  { name: "142-report-run-failed-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-run-failed", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openFailedReport: true, expectText: "Generation stopped: Row Limit Exceeded", state: "report-run-failed" },
+  { name: "143-report-setups-dark-mobile-compact-390x844", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "dark", density: "compact", viewport: { width: 390, height: 844 }, touch: true, openReportTemplates: true, expectText: "Program health review", state: "report-setups-mobile" },
+  { name: "144-report-generate-light-1440x900", route: "#reports", title: "Reports & insights", fixture: "report-definitions", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, openReportGenerate: true, expectText: "No ready vendors setup", state: "report-generate" },
   { name: "145-issue-workspace-overview-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, expectText: "Generate board brief", state: "issue-workspace-overview" },
   { name: "146-issue-workspace-work-dark-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "dark", density: "comfortable", viewport: { width: 1440, height: 900 }, matterTab: "Work", expectText: "Complete the annual return evidence checklist", scrollIntoViewText: "Complete the annual return evidence checklist", state: "issue-workspace-work" },
-  { name: "147-issue-workspace-evidence-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, matterTab: "Evidence and requests", expectText: "Annual return evidence owner confirmation", scrollIntoViewText: "Forms and requests", state: "issue-workspace-evidence" },
-  { name: "148-issue-workspace-evidence-dark-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, matterTab: "Evidence and requests", expectText: "Annual return evidence review", scrollIntoViewText: "Forms and requests", state: "issue-workspace-evidence-mobile" },
+  { name: "147-issue-workspace-evidence-light-1440x900", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 }, matterTab: "Evidence and requests", expectText: "Annual return evidence owner confirmation", scrollIntoViewText: "Form requests", state: "issue-workspace-evidence" },
+  { name: "148-issue-workspace-evidence-dark-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "dark", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, matterTab: "Evidence and requests", expectText: "Annual return evidence review", scrollIntoViewText: "Form requests", state: "issue-workspace-evidence-mobile" },
   { name: "149-issue-workspace-activity-light-mobile-390x844", route: "#work/matters/matter-gaid-change", title: "Work", fixture: "matter-workspace-complete", theme: "light", density: "comfortable", viewport: { width: 390, height: 844 }, touch: true, matterTab: "Activity", expectText: "Updates and history", scrollIntoViewText: "Updates and history", state: "issue-workspace-activity-mobile" },
 ];
 
@@ -69,8 +129,41 @@ try {
     await captureVendorActivationRecovery();
   } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-workflows") {
     await captureVendorWorkflows();
+  } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-measures") {
+    await captureApprovedVendorMeasures("217-vendor-approved-measures-light-1440x900", "light", { width: 1440, height: 900 });
+    await captureApprovedVendorMeasures("218-vendor-approved-measures-dark-mobile-390x844", "dark", { width: 390, height: 844 });
+  } else if (process.env.UI_EVIDENCE_SCOPE === "vendor-portfolio-returns") {
+    for (const capture of captures.filter((item) => ["onboarding-drill", "assessments-drill", "documents-drill"].includes(item.vendorPortfolioCheck))) await capturePage(capture);
+  } else if (["vendor-portfolio", "vendor-portfolio-states"].includes(process.env.UI_EVIDENCE_SCOPE)) {
+    for (const capture of captures.filter((item) => item.vendorPortfolioView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-portfolio-states" || item.vendorPortfolioCheck))) await capturePage(capture);
+  } else if (["vendor-relationship", "vendor-relationship-states"].includes(process.env.UI_EVIDENCE_SCOPE)) {
+    for (const capture of captures.filter((item) => item.vendorRelationshipView && (process.env.UI_EVIDENCE_SCOPE !== "vendor-relationship-states" || item.vendorRelationshipCheck))) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "work") {
+    for (const capture of captures.filter((item) => ["work-assigned-desktop", "work-assigned-mobile", "work-inspection-mobile"].includes(item.state))) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "reports") {
+    for (const capture of captures.filter((item) => item.route === "#reports")) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "report-design") {
+    for (const capture of captures.filter((item) => item.openReportExplore || item.openReportBuilder || item.openReportTemplates || item.openReportGenerate)) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "notifications") {
+    for (const capture of captures.filter((item) => item.notificationView)) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "privacy-legacy") {
+    for (const capture of captures.filter((item) => item.route === "#ropa")) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "reports-expectations") {
+    for (const capture of captures.filter((item) => item.route === "#reports" && !item.openReportOverview && !item.openReportExplore && !item.openReportBuilder)) await capturePage(capture);
+  } else if (process.env.UI_EVIDENCE_SCOPE === "navigation") {
+    for (const capture of captures.filter((item) => isNavigationMatrixCapture(item) || item.openPrimaryNavigation || item.assertNoConfigureNav)) await capturePage(capture);
   } else {
   for (const capture of captures) await capturePage(capture);
+  for (const scenario of [
+    { name: "211-internal-assessment-light-1440x900", viewport: { width: 1440, height: 900 }, theme: "light" },
+    { name: "212-internal-assessment-dark-1280x800", viewport: { width: 1280, height: 800 }, theme: "dark" },
+    { name: "215-internal-assessment-light-1024x768", viewport: { width: 1024, height: 768 }, theme: "light" },
+    { name: "216-internal-assessment-dark-768x900", viewport: { width: 768, height: 900 }, theme: "dark" },
+    { name: "213-internal-assessment-light-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "light" },
+    { name: "214-internal-assessment-dark-mobile-390x844", viewport: { width: 390, height: 844 }, theme: "dark" },
+  ]) await captureInternalAssessment(scenario);
+  await captureApprovedVendorMeasures("217-vendor-approved-measures-light-1440x900", "light", { width: 1440, height: 900 });
+  await captureApprovedVendorMeasures("218-vendor-approved-measures-dark-mobile-390x844", "dark", { width: 390, height: 844 });
   await captureRouting();
   await captureAuthorityForbidden();
   await captureEvidenceReviewAndReceipt();
@@ -92,12 +185,658 @@ try {
   await browser.close();
 }
 
-async function capturePage(capture) {
-  const { context, page } = await openPage(capture);
-  try {
-    if (capture.state === "report-library") {
-      await page.getByRole("table", { name: "Generated reports" }).waitFor({ state: "visible" });
+async function assertApprovedProgramHeading(page, mobile) {
+  const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+  const header = page.locator(".program-record-header");
+  const title = header.getByRole("heading", { level: 1 });
+  const back = breadcrumb.getByRole("button", { name: "Back to Programs" });
+  await Promise.all([header.waitFor({ state: "visible" }), back.waitFor({ state: "visible" })]);
+  await header.getByText("Owning function").waitFor({ state: "visible" });
+  const version = header.locator(".program-kicker abbr[title='Record version']");
+  await version.waitFor({ state: "visible" });
+  if (!/^v[0-9]+$/.test((await version.textContent())?.trim() ?? "")) {
+    throw new Error("Program header has no source-backed record version");
+  }
+
+  const [breadcrumbBox, headerBox, actionBox, headingStyle] = await Promise.all([
+    breadcrumb.boundingBox(), header.boundingBox(),
+    header.getByRole("button", { name: "Open data collection" }).boundingBox(),
+    header.evaluate((node) => ({
+      borderWidth: Number.parseFloat(getComputedStyle(node).borderTopWidth),
+      titleSize: Number.parseFloat(getComputedStyle(node.querySelector("h1")).fontSize),
+    })),
+  ]);
+  if (!breadcrumbBox || !headerBox || !actionBox ||
+      breadcrumbBox.y + breadcrumbBox.height > headerBox.y + 3 ||
+      headingStyle.borderWidth !== 0 ||
+      actionBox.height < 44 ||
+      (mobile ? headingStyle.titleSize < 22 : headingStyle.titleSize < 34)) {
+    throw new Error("Program heading does not match the approved open, source-backed responsive hierarchy");
+  }
+  if (!mobile && actionBox.x < headerBox.x + headerBox.width * .6) {
+    throw new Error("Program desktop action must follow the identity to the right");
+  }
+}
+
+async function assertApprovedShell(page, width) {
+  const navigation = page.locator(".app-shell > .sidebar");
+  const contextBar = page.locator(".app-shell > main > .context-bar");
+  await contextBar.waitFor({ state: "visible" });
+  const [navBox, barBox] = await Promise.all([navigation.boundingBox(), contextBar.boundingBox()]);
+  if (!barBox) throw new Error("The authenticated context bar is missing");
+  if (width <= 1024) {
+    if (width <= 820) {
+      const expectedRail = width <= 560 ? 56 : 72;
+      const bottomNavigationVisible = await page.locator(".mobile-nav").isVisible().catch(() => false);
+      const brandVisible = await navigation.locator(".brand-mark").isVisible();
+      const mainBox = await page.locator(".app-shell > main").boundingBox();
+      if (!brandVisible || !navBox || !mainBox || Math.abs(navBox.width - expectedRail) > 1 ||
+          navBox.x !== 0 || bottomNavigationVisible ||
+          Math.abs(mainBox.x - navBox.width) > 2 ||
+          Math.abs(mainBox.width - (width - navBox.width)) > 2 ||
+          Math.abs(barBox.x - mainBox.x) > 2 ||
+          Math.abs(barBox.width - mainBox.width) > 2 ||
+          barBox.y > 2 || barBox.height < 56 || barBox.height > 95) {
+        throw new Error(`Approved compact shell requires a ${expectedRail}px left rail, aligned context bar and adjacent content`);
+      }
+    } else if (width === 1024 && (!navBox || Math.abs(navBox.width - 72) > 1)) {
+      throw new Error("Approved 1024px shell must retain compact navigation");
     }
+    return;
+  }
+  const style = await contextBar.evaluate((node) => ({
+    borderRadius: Number.parseFloat(getComputedStyle(node).borderTopLeftRadius),
+    boxShadow: getComputedStyle(node).boxShadow,
+  }));
+  if (!navBox || Math.abs(navBox.width - 228) > 1 ||
+      barBox.y > 2 || Math.abs(barBox.x - (navBox.x + navBox.width)) > 2 ||
+      barBox.height < 68 || barBox.height > 105 ||
+      style.borderRadius !== 0 || style.boxShadow !== "none") {
+    throw new Error("Desktop shell does not match approved full rail and flat top context bar");
+  }
+  const activeIdentity = contextBar.locator(".context-identity > strong");
+  if (!(await activeIdentity.textContent())?.trim()) {
+    throw new Error("Desktop context bar lost the authorized organization identity");
+  }
+}
+
+function isNavigationMatrixCapture(capture) {
+  return capture.openReportOverview && capture.fixture === "report-overview-loaded" && !capture.reportOrganizationScope;
+}
+
+function expectedPrimaryDestination(hash, deniedSettings = false) {
+  if (deniedSettings) return "Home";
+  const route = hash.split("?")[0];
+  if (route.startsWith("#programs/library")) return "Frameworks";
+  if (route.startsWith("#programs")) return "Programs";
+  if (route.startsWith("#forms")) return "Forms";
+  if (route.startsWith("#vendors")) return "Vendors";
+  if (route === "#insights" && new URLSearchParams(hash.split("?")[1]).get("view") === "risk-loss") return "Reports";
+  if (/^#(?:risks|rcsa|losses|insights)(?:\/|$)/.test(route)) return "Risk & Losses";
+  if (route.startsWith("#ropa")) return "Privacy";
+  if (route.startsWith("#work") || route.startsWith("#notifications")) return "Work & Approvals";
+  if (route.startsWith("#reports")) return "Reports";
+  if (/^#(?:configure|imports)(?:\/|$)/.test(route)) return "Settings";
+  if (!route || /^#(?:today|oversight)(?:\/|$)/.test(route)) return "Home";
+  return null; // Contextual people and reference journeys have no invented owner.
+}
+
+async function assertPrimaryNavigation(page, capture) {
+  // App applies verified context after the initial Home reads settle. The
+  // intentional loading fixture has pending capabilities, not a denied grant.
+  const settingsCapabilityState = capture.fixture === "today-loading" ? "pending"
+    : capture.assertNoConfigureNav ? "denied" : "available";
+  if (settingsCapabilityState === "pending") await page.getByText("Loading assigned work…", { exact: true }).waitFor({ state: "visible" });
+  const sidebar = page.getByRole("complementary", { name: "Primary navigation", exact: true });
+  await sidebar.waitFor({ state: "visible" });
+  const reading = await sidebar.evaluate((root) => {
+    const visible = (node) => Boolean(node?.getClientRects().length && getComputedStyle(node).visibility !== "hidden" && getComputedStyle(node).display !== "none");
+    const rectangle = (node) => {
+      const box = node?.getBoundingClientRect();
+      return box ? { x: box.x, y: box.y, right: box.right, bottom: box.bottom, width: box.width, height: box.height } : null;
+    };
+    const labelRects = (node) => {
+      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+      const range = document.createRange();
+      const rectangles = [];
+      let text;
+      while ((text = walker.nextNode())) {
+        if (!text.textContent?.trim() || text.parentElement?.closest("svg")) continue;
+        range.selectNodeContents(text);
+        rectangles.push(...[...range.getClientRects()].filter((box) => box.width > 3 && box.height > 3));
+      }
+      return rectangles;
+    };
+    const primary = [...root.querySelectorAll("a[data-navigation-item]")];
+    const name = (node) => node.getAttribute("aria-label") ?? node.textContent.trim();
+    const current = [...root.querySelectorAll('[aria-current="page"]')];
+    const settings = root.querySelector('.sidebar-secondary a[href="#configure"]');
+    const opener = root.querySelector('button[aria-label="Open navigation"]');
+    const targets = [...primary, ...(settings ? [settings] : []), ...root.querySelectorAll("button")].filter(visible);
+    const boxes = targets.map(rectangle);
+    const labelBoxes = primary.map(labelRects);
+    const currentMarker = current[0] ? getComputedStyle(current[0], "::before") : null;
+    const rail = rectangle(root);
+    return {
+      labels: primary.map(name), hrefs: primary.map((node) => node.getAttribute("href")),
+      activePage: current.map(name), activeLocation: [...root.querySelectorAll('[aria-current="location"]')].map(name),
+      railWidth: rail.width, railX: rail.x,
+      labelMode: labelBoxes.every((boxes) => boxes.length > 0) ? "expanded" : labelBoxes.every((boxes) => boxes.length === 0) ? "icons" : "mixed",
+      maxLabelLines: Math.max(...labelBoxes.map((boxes) => new Set(boxes.map((box) => Math.round(box.top))).size)),
+      labelsContained: primary.every((node, index) => {
+        const box = rectangle(node);
+        return labelBoxes[index].every((text) => text.x >= box.x - 1 && text.right <= box.right + 1 && text.y >= box.y - 1 && text.bottom <= box.bottom + 1);
+      }),
+      minTargetWidth: Math.min(...boxes.map((box) => box.width)), minTargetHeight: Math.min(...boxes.map((box) => box.height)),
+      targetsContained: boxes.every((box) => box.x >= rail.x - 1 && box.right <= rail.right + 1),
+      primaryReachable: primary.every((node) => { const box = rectangle(node); return visible(node) && box.y >= -1 && box.bottom <= innerHeight + 1; }),
+      settingsPresent: Boolean(settings), settingsFooter: Boolean(settings?.closest(".sidebar-secondary")),
+      footerReachable: !settings || (rectangle(settings).bottom <= innerHeight + 1 && rectangle(settings).y >= rectangle(primary.at(-1)).bottom - 1),
+      compactMenuAvailable: visible(opener),
+      activeMarkerWidth: currentMarker ? parseFloat(currentMarker.width) || 0 : 0,
+      activeMarkerHeight: currentMarker ? parseFloat(currentMarker.height) || 0 : 0,
+      activeMarkerVisible: Boolean(currentMarker && !["none", "normal"].includes(currentMarker.content)
+        && !["transparent", "rgba(0, 0, 0, 0)"].includes(currentMarker.backgroundColor)),
+      duplicateMobileNavigation: [...document.querySelectorAll(".mobile-nav")].some(visible),
+      legacyPortfolioNavigation: Boolean(document.querySelector('[aria-label="Portfolio lenses"]')),
+    };
+  });
+  const compact = capture.viewport.width <= 1024;
+  const expectedWidth = capture.viewport.width <= 560 ? 56 : compact ? 72 : 228;
+  const expectedActive = expectedPrimaryDestination(new URL(page.url()).hash, capture.assertNoConfigureNav);
+  const expectedSettings = settingsCapabilityState === "available";
+  if (reading.labels.join("|") !== primaryNavigationLabels.join("|") || reading.hrefs.join("|") !== primaryNavigationHrefs.join("|")
+      || reading.activePage.join("|") !== (expectedActive ?? "")
+      || Math.abs(reading.railWidth - expectedWidth) > 1 || reading.railX !== 0
+      || reading.labelMode !== (compact ? "icons" : "expanded") || reading.maxLabelLines !== (compact ? 0 : 1) || !reading.labelsContained
+      || reading.minTargetWidth < 44 || reading.minTargetHeight < 44 || !reading.targetsContained || !reading.primaryReachable
+      || reading.settingsPresent !== expectedSettings || (expectedSettings && (!reading.settingsFooter || !reading.footerReachable))
+      || reading.compactMenuAvailable !== compact || reading.duplicateMobileNavigation || reading.legacyPortfolioNavigation
+      || (expectedActive && (!reading.activeMarkerVisible || reading.activeMarkerWidth < 3 || reading.activeMarkerHeight < 20))) {
+    throw new Error(`${capture.name}: source menu identity, selection or responsive geometry failed: ${JSON.stringify({ expectedActive, expectedWidth, ...reading })}`);
+  }
+  return { ...reading, settingsCapabilityState };
+}
+
+async function openAndVerifyNavigationDrawer(page, capture, expandRisk, requireCurrentVisible = true) {
+  const opener = page.getByRole("button", { name: "Open navigation", exact: true });
+  await opener.focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Navigation", exact: true });
+  await dialog.waitFor({ state: "visible" });
+  const close = dialog.getByRole("button", { name: "Close navigation", exact: true });
+  await close.focus();
+  for (const key of ["Shift+Tab", "Tab"]) {
+    await page.keyboard.press(key);
+    if (!await dialog.evaluate((element) => element.contains(document.activeElement))) throw new Error(`${capture.name}: Navigation allowed keyboard focus into the background`);
+  }
+  if (expandRisk) {
+    const disclosure = dialog.getByRole("button", { name: "Show risk sections", exact: true });
+    await disclosure.focus();
+    await page.keyboard.press("Space");
+    if (await dialog.getByRole("button", { name: "Hide risk sections", exact: true }).getAttribute("aria-expanded") !== "true") {
+      throw new Error(`${capture.name}: risk sections did not expand with the keyboard`);
+    }
+  }
+  const reading = await dialog.evaluate((root) => {
+    const primary = [...root.querySelectorAll("a[data-navigation-item]")];
+    const name = (node) => node.getAttribute("aria-label") ?? node.textContent.trim();
+    const targets = [...root.querySelectorAll("a, button")].filter((node) => node.getClientRects().length && getComputedStyle(node).visibility !== "hidden");
+    const boxes = targets.map((node) => node.getBoundingClientRect());
+    const outer = root.getBoundingClientRect();
+    const content = root.querySelector(".cs-sheet__content");
+    const contentBox = content?.getBoundingClientRect();
+    const contentStyle = content ? getComputedStyle(content) : null;
+    const workspaces = root.querySelector(".app-navigation__workspaces")?.getBoundingClientRect();
+    const expectedNavigationWidth = contentBox && contentStyle
+      ? contentBox.width - parseFloat(contentStyle.paddingLeft) - parseFloat(contentStyle.paddingRight) : null;
+    const current = root.querySelector('[aria-current="page"]');
+    const currentBox = current?.getBoundingClientRect();
+    const scrollport = current?.closest(".app-navigation__items");
+    const scrollBox = scrollport?.getBoundingClientRect();
+    const currentClipTop = Math.max(0, outer.top, scrollBox ? scrollBox.top + scrollport.clientTop : 0);
+    const currentClipBottom = Math.min(innerHeight, outer.bottom,
+      scrollBox ? scrollBox.top + scrollport.clientTop + scrollport.clientHeight : innerHeight);
+    const labelLineCounts = [];
+    const labelsVisible = primary.every((node) => {
+      const label = node.querySelector(".app-navigation__label");
+      if (!label?.getClientRects().length || getComputedStyle(label).visibility === "hidden") return false;
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      const textBoxes = [...range.getClientRects()].filter((box) => box.width > 3 && box.height > 5);
+      labelLineCounts.push(new Set(textBoxes.map((box) => Math.round(box.top))).size);
+      return textBoxes.length > 0 && textBoxes.every((box) => box.x >= outer.x - 1 && box.right <= outer.right + 1);
+    });
+    return { labels: primary.map(name), riskChildren: [...root.querySelectorAll("a[data-navigation-child]")].filter((node) => node.getClientRects().length).map(name),
+      activePage: [...root.querySelectorAll('[aria-current="page"]')].map(name),
+      settingsPresent: Boolean(root.querySelector('a[href="#configure"]')),
+      minTargetWidth: Math.min(...boxes.map((box) => box.width)), minTargetHeight: Math.min(...boxes.map((box) => box.height)),
+      labelsVisible, maxLabelLines: Math.max(...labelLineCounts),
+      currentPageBounds: currentBox ? { top: currentBox.top, bottom: currentBox.bottom, clipTop: currentClipTop, clipBottom: currentClipBottom } : null,
+      currentPageVisible: Boolean(currentBox && currentBox.top >= currentClipTop - 1 && currentBox.bottom <= currentClipBottom + 1),
+      dialogWidth: outer.width, contentWidth: contentBox?.width ?? 0, navigationWidth: workspaces?.width ?? 0, expectedNavigationWidth,
+      contentFillsDialog: Boolean(contentBox && Math.abs(contentBox.x - outer.x) <= 1 && Math.abs(contentBox.right - outer.right) <= 1),
+      navigationFillsContent: Boolean(workspaces && expectedNavigationWidth && Math.abs(workspaces.width - expectedNavigationWidth) <= 1),
+      targetsContained: boxes.every((box) => box.x >= outer.x - 1 && box.right <= outer.right + 1),
+      bounded: outer.height <= innerHeight + 1 && outer.width <= innerWidth + 1,
+    };
+  });
+  if (reading.labels.join("|") !== primaryNavigationLabels.join("|") || reading.activePage.length !== 1
+      || reading.activePage[0] !== expectedPrimaryDestination(new URL(page.url()).hash, capture.assertNoConfigureNav)
+      || reading.settingsPresent === Boolean(capture.assertNoConfigureNav)
+      || (expandRisk && reading.riskChildren.join("|") !== riskNavigationLabels.join("|"))
+      || (requireCurrentVisible && !reading.currentPageVisible)
+      || !reading.labelsVisible || reading.maxLabelLines !== 1 || !reading.contentFillsDialog || !reading.navigationFillsContent
+      || !reading.targetsContained || !reading.bounded || reading.minTargetWidth < 44 || reading.minTargetHeight < 44) {
+    throw new Error(`${capture.name}: labelled compact Navigation failed: ${JSON.stringify(reading)}`);
+  }
+  await close.focus();
+  return { ...reading, focusContained: true, riskExpandedByKeyboard: expandRisk };
+}
+
+async function waitForNavigationViewport(page, capture, viewport, focusCurrent = false) {
+  const expected = { ...viewport, railWidth: viewport.width <= 560 ? 56 : viewport.width <= 1024 ? 72 : 228, focusCurrent };
+  // The global reduced-motion duration can leave one frame at the old rail
+  // width after the sheet closes. Poll the same geometry and focus contract;
+  // a persistent wrong breakpoint must still fail within this bounded wait.
+  await page.waitForFunction(({ width, height, railWidth, focusCurrent }) => {
+    const shell = document.querySelector(".app-shell--navigation");
+    const rail = shell?.querySelector(":scope > .sidebar.app-navigation");
+    const opener = rail?.querySelector('[aria-label="Open navigation"]');
+    if (!shell || !rail || !opener || innerWidth !== width || innerHeight !== height) return false;
+    const compact = width <= 1024;
+    return matchMedia("(max-width: 1024px)").matches === compact
+      && Math.abs(rail.getBoundingClientRect().width - railWidth) <= 1
+      && Math.abs(parseFloat(getComputedStyle(rail).inlineSize) - railWidth) <= 1
+      && Math.abs(parseFloat(getComputedStyle(shell).gridTemplateColumns) - railWidth) <= 1
+      && Boolean(opener.getClientRects().length) === compact
+      && (!focusCurrent || document.activeElement === rail.querySelector('[aria-current="page"]'));
+  }, expected, { timeout: 5000 }).catch(async (error) => {
+    const geometry = await page.evaluate(() => {
+      const shell = document.querySelector(".app-shell--navigation");
+      const rail = shell?.querySelector(":scope > .sidebar.app-navigation");
+      const opener = rail?.querySelector('[aria-label="Open navigation"]');
+      return { innerWidth, innerHeight, compact: matchMedia("(max-width: 1024px)").matches,
+        railWidth: rail?.getBoundingClientRect().width,
+        railInlineSize: rail ? getComputedStyle(rail).inlineSize : null,
+        gridTemplateColumns: shell ? getComputedStyle(shell).gridTemplateColumns : null,
+        activeFocus: document.activeElement?.getAttribute("aria-label"),
+        openerHidden: opener ? !opener.getClientRects().length : null };
+    });
+    throw new Error(`${capture.name}: Navigation did not settle after resize: ${JSON.stringify({ expected, geometry })}; ${error.message}`);
+  });
+}
+
+async function verifyNavigationResizeRecovery(page, capture) {
+  const shortViewport = { width: 320, height: 568 };
+  const sidebar = page.getByRole("complementary", { name: "Primary navigation", exact: true });
+  const focusedTargetReachable = (target) => target.evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    const scrollport = node.closest(".app-navigation__items")?.getBoundingClientRect();
+    return document.activeElement === node && box.width >= 44 && box.height >= 44
+      && box.x >= -1 && box.right <= innerWidth + 1 && box.y >= -1 && box.bottom <= innerHeight + 1
+      && (!scrollport || (box.y >= scrollport.y - 1 && box.bottom <= scrollport.bottom + 1));
+  });
+  try {
+    await page.setViewportSize(shortViewport);
+    await waitForNavigationViewport(page, capture, shortViewport);
+    await sidebar.getByRole("link", { name: "Home", exact: true }).focus();
+    for (const [index, label] of primaryNavigationLabels.entries()) {
+      if (index) await page.keyboard.press("Tab");
+      if (!await focusedTargetReachable(sidebar.getByRole("link", { name: label, exact: true }))) {
+        throw new Error(`${capture.name}: 320×568 rail keyboard scrolling did not reveal ${label}`);
+      }
+    }
+    await page.keyboard.press("Tab");
+    if (!await focusedTargetReachable(sidebar.getByRole("link", { name: "Settings", exact: true }))) {
+      throw new Error(`${capture.name}: 320×568 Settings footer is not reachable`);
+    }
+    const shortGeometry = await sidebar.evaluate((root) => ({
+      railWidth: root.getBoundingClientRect().width,
+      horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      primaryScrolls: root.querySelector(".app-navigation__items").scrollHeight > root.querySelector(".app-navigation__items").clientHeight,
+    }));
+    if (Math.abs(shortGeometry.railWidth - 56) > 1 || shortGeometry.horizontalOverflow > 1 || !shortGeometry.primaryScrolls) {
+      throw new Error(`${capture.name}: short-height rail geometry is invalid: ${JSON.stringify(shortGeometry)}`);
+    }
+    // Short viewports prove every item through actual focus-driven scrolling;
+    // canonical 844px sheets separately require the current item to be visible.
+    await openAndVerifyNavigationDrawer(page, { ...capture, viewport: shortViewport }, true, false);
+    const dialog = page.getByRole("dialog", { name: "Navigation", exact: true });
+    const shortMenuOrder = ["Home", "Frameworks", "Programs", "Forms", "Vendors", "Risk & Losses", "Hide risk sections",
+      ...riskNavigationLabels, "Privacy", "Work & Approvals", "Reports", "Settings"];
+    await dialog.getByRole("link", { name: "Home", exact: true }).focus();
+    for (const [index, label] of shortMenuOrder.entries()) {
+      if (index) await page.keyboard.press("Tab");
+      const target = dialog.getByRole(label === "Hide risk sections" ? "button" : "link", { name: label, exact: true });
+      if (!await focusedTargetReachable(target)) throw new Error(`${capture.name}: expanded 320×568 Navigation could not reveal ${label} by keyboard`);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await dialog.waitFor({ state: "hidden" });
+    await waitForNavigationViewport(page, capture, { width: 1440, height: 900 }, true);
+    const desktopRecovery = await sidebar.evaluate((root) => ({
+      railWidth: root.getBoundingClientRect().width,
+      activeFocus: document.activeElement?.getAttribute("aria-label"),
+      openerHidden: !root.querySelector('[aria-label="Open navigation"]').getClientRects().length,
+    }));
+    if (Math.abs(desktopRecovery.railWidth - 228) > 1 || desktopRecovery.activeFocus !== "Reports" || !desktopRecovery.openerHidden) {
+      throw new Error(`${capture.name}: widening an open Navigation did not restore the desktop route: ${JSON.stringify(desktopRecovery)}`);
+    }
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await waitForNavigationViewport(page, capture, { width: 1024, height: 768 });
+    await openAndVerifyNavigationDrawer(page, { ...capture, viewport: { width: 1024, height: 768 } }, false, false);
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    const compactRecovery = await sidebar.getByRole("button", { name: "Open navigation", exact: true }).evaluate((node) => document.activeElement === node);
+    if (!compactRecovery) throw new Error(`${capture.name}: Navigation did not recover keyboard focus after returning to tablet width`);
+    return { viewport: shortViewport, primaryKeyboardReachable: true, expandedRiskKeyboardReachable: true, footerReachable: true,
+      ...shortGeometry, desktopRecovery, compactRecovery };
+  } finally {
+    await page.setViewportSize(capture.viewport);
+    await waitForNavigationViewport(page, capture, capture.viewport);
+  }
+}
+
+async function verifyPrimaryNavigationKeyboard(page, capture) {
+  const originalURL = page.url();
+  const compact = capture.viewport.width <= 1024;
+  const sidebar = page.getByRole("complementary", { name: "Primary navigation", exact: true });
+  let navigation = sidebar;
+  if (compact) {
+    await openAndVerifyNavigationDrawer(page, capture, false);
+    navigation = page.getByRole("dialog", { name: "Navigation", exact: true });
+  }
+  await navigation.getByRole("link", { name: "Home", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  const frameworks = navigation.getByRole("link", { name: "Frameworks", exact: true });
+  const focusVisible = await frameworks.evaluate((node) => {
+    const style = getComputedStyle(node);
+    return document.activeElement === node && node.matches(":focus-visible") && style.outlineStyle !== "none" && parseFloat(style.outlineWidth) >= 2;
+  });
+  if (!focusVisible) throw new Error(`${capture.name}: primary link Tab order or visible focus is missing`);
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(() => location.hash === "#programs/library");
+  await sidebar.getByRole("link", { name: "Frameworks", exact: true }).waitFor({ state: "visible" });
+  if (await sidebar.getByRole("link", { name: "Frameworks", exact: true }).getAttribute("aria-current") !== "page") throw new Error(`${capture.name}: Frameworks did not become the current direct destination`);
+  if (compact && await page.getByRole("dialog", { name: "Navigation", exact: true }).count()) throw new Error(`${capture.name}: selecting a compact destination did not close Navigation`);
+  await page.goBack();
+  await page.waitForFunction(() => location.hash === "#reports");
+  if (await sidebar.getByRole("link", { name: "Reports", exact: true }).getAttribute("aria-current") !== "page") throw new Error(`${capture.name}: browser Back did not restore the active Reports menu`);
+  if (compact) {
+    await openAndVerifyNavigationDrawer(page, capture, false);
+    navigation = page.getByRole("dialog", { name: "Navigation", exact: true });
+  } else navigation = sidebar;
+  const disclosure = navigation.getByRole("button", { name: "Show risk sections", exact: true });
+  await disclosure.focus();
+  await page.keyboard.press("Space");
+  for (const label of riskNavigationLabels) {
+    await page.keyboard.press("Tab");
+    if (!await navigation.getByRole("link", { name: label, exact: true }).evaluate((node) => document.activeElement === node)) throw new Error(`${capture.name}: risk-section keyboard order missed ${label}`);
+  }
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(() => location.hash === "#losses");
+  if (await sidebar.getByRole("link", { name: "Risk & Losses", exact: true }).getAttribute("aria-current") !== "page"
+      || await sidebar.getByRole("link", { name: "Loss events", exact: true, includeHidden: true }).getAttribute("aria-current") !== "location") {
+    throw new Error(`${capture.name}: risk-family navigation lost its current parent or exact child`);
+  }
+  await page.goto(originalURL, { waitUntil: "networkidle" });
+  // A same-document hash navigation retains disclosure state. Reload the
+  // original evidence URL so the paired source screenshot is the baseline.
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Reports & insights", exact: true }).waitFor({ state: "visible" });
+  const resizeRecovery = compact ? await verifyNavigationResizeRecovery(page, capture) : undefined;
+  if (resizeRecovery) {
+    await page.reload({ waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Reports & insights", exact: true }).waitFor({ state: "visible" });
+  }
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    window.scrollTo(0, 0);
+  });
+  const baselineRestored = await sidebar.getByRole("link", { name: "Reports", exact: true }).getAttribute("aria-current") === "page"
+    && await sidebar.getByRole("button", { name: "Show risk sections", exact: true, includeHidden: true }).getAttribute("aria-expanded") === "false"
+    && await page.getByRole("dialog", { name: "Navigation", exact: true }).count() === 0
+    && !await sidebar.evaluate((node) => node.contains(document.activeElement));
+  if (!baselineRestored) throw new Error(`${capture.name}: keyboard verification did not restore the closed Reports baseline`);
+  return { focusVisible, directDestination: "Frameworks", browserBack: "Reports", riskDestination: "Loss events", primaryCurrent: "Risk & Losses", childCurrent: "location", compactDrawer: compact, baselineRestored, resizeRecovery };
+}
+
+async function capturePage(capture) {
+  const { context, page, browserErrors } = await openPage(capture);
+  let reportsLayout;
+  let notificationsLayout;
+  let vendorRelationshipLayout;
+  let vendorPortfolioLayout;
+  try {
+    // evidenceMain mounts this named fixture outside SessionGate/App. All
+    // authenticated captures must still render and verify AppNavigation.
+    let navigation = capture.fixture === "oversight" ? undefined : await assertPrimaryNavigation(page, capture);
+    if (capture.vendorPortfolioView) {
+      await prepareVendorPortfolio(page, capture);
+      vendorPortfolioLayout = await assertVendorPortfolioLayout(page, capture);
+      const interaction = await verifyVendorPortfolioScenario(page, capture);
+      if (interaction) vendorPortfolioLayout = await assertVendorPortfolioLayout(page, capture);
+      if (interaction) vendorPortfolioLayout.interaction = interaction;
+      vendorPortfolioLayout.apiReads = await page.evaluate(() => window.vendorPortfolioEvidence?.reads ?? []);
+      vendorPortfolioLayout.commands = await page.evaluate(() => window.vendorPortfolioEvidence?.commands ?? []);
+    }
+    if (capture.vendorRelationshipView) {
+      await prepareVendorRelationship(page, capture);
+      vendorRelationshipLayout = await assertVendorRelationshipLayout(page, capture);
+      const interaction = await verifyVendorRelationshipScenario(page, capture);
+      if (interaction) vendorRelationshipLayout = await assertVendorRelationshipLayout(page, capture);
+      if (interaction) vendorRelationshipLayout.interaction = interaction;
+      vendorRelationshipLayout.apiReads = await page.evaluate(() => window.vendorRelationshipEvidence?.reads ?? []);
+      vendorRelationshipLayout.commands = await page.evaluate(() => window.vendorRelationshipEvidence?.commands ?? []);
+    }
+    if (capture.notificationView) {
+      await prepareNotifications(page, capture);
+      notificationsLayout = await assertNotificationsLayout(page, capture);
+      const interaction = await verifyNotificationScenario(page, capture);
+      if (capture.notificationMatrix && interaction) notificationsLayout = await assertNotificationsLayout(page, capture);
+      if (interaction) notificationsLayout.interaction = interaction;
+      notificationsLayout.apiReads = await page.evaluate(() => window.notificationEvidenceReads ?? []);
+      notificationsLayout.commands = await page.evaluate(() => window.notificationEvidenceCommands ?? []);
+    }
+    if (isNavigationMatrixCapture(capture) && capture.theme === "light" && [1440, 390].includes(capture.viewport.width)) {
+      const keyboard = await verifyPrimaryNavigationKeyboard(page, capture);
+      navigation = { ...await assertPrimaryNavigation(page, capture), keyboard };
+    }
+    if (["04-program-light-1440x900", "04-program-light-1280x800",
+         "09-today-dark-tablet-1024x768"].includes(capture.name)) {
+      await assertApprovedShell(page, capture.viewport.width);
+    }
+    const contextSwitcher = page.locator(".context-bar .context-scope-control");
+    if (await contextSwitcher.count()) {
+      if (!await page.locator(".context-bar > .context-scope > .context-scope-control").count()) {
+        throw new Error("Authorized scope selector must remain alongside active entity identity");
+      }
+      if (await page.locator(".context-bar > .context-role .context-scope-control").count()) {
+        throw new Error("Authorized scope selector must not be nested with notification controls");
+      }
+    }
+    if (capture.name === "200-framework-library-light-1440x900" ||
+        capture.name === "202-framework-library-light-mobile-390x844") {
+      const heading = page.locator(".cs-framework-library__page-heading");
+      await heading.waitFor({ state: "visible" });
+      await heading.getByText("Review an edition before adding it to a Program.").waitFor({ state: "visible" });
+      const title = page.getByRole("heading", { name: "Framework Library", exact: true });
+      const fontSize = await title.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize));
+      const desktop = capture.viewport.width > 900;
+      if (!Number.isFinite(fontSize) || (desktop ? fontSize < 35 || fontSize > 39 : fontSize < 27 || fontSize > 31)) {
+        throw new Error(`Framework Library title uses ${fontSize}px instead of the approved ${desktop ? "desktop" : "mobile"} heading scale`);
+      }
+    }
+    if (capture.name === "04-program-light-mobile-390x844") {
+      await assertApprovedProgramHeading(page, true);
+      const header = page.locator(".program-record-header");
+      const period = header.getByRole("combobox", { name: "Assessment activity period" });
+      const action = header.getByRole("button", { name: "Open data collection" });
+      const [headerBox, periodBox, actionBox] = await Promise.all([
+        header.boundingBox(), period.boundingBox(), action.boundingBox(),
+      ]);
+      if (!headerBox || !periodBox || !actionBox ||
+          headerBox.height > 230 ||
+          periodBox.x >= actionBox.x ||
+          Math.abs(periodBox.y + periodBox.height - actionBox.y - actionBox.height) > 3) {
+        throw new Error("Approved mobile Program requires a compact record heading and adjacent period / collection actions: " +
+          JSON.stringify({ headerBox, periodBox, actionBox }));
+      }
+    }
+    if (capture.name === "04-program-light-mobile-390x844") {
+      const tabs = page.getByRole("tablist", { name: "Program sections" });
+      await tabs.waitFor({ state: "visible" });
+      if (await tabs.getByRole("tab").count() !== 6 ||
+          await page.locator(".program-detail-sections .cs-tabs__compact").count()) {
+        throw new Error("Approved mobile Program requires six real tabs, not a duplicate compact selector");
+      }
+      const tabGeometry = await tabs.evaluate((element) => ({
+        display: getComputedStyle(element).display,
+        overflowX: getComputedStyle(element).overflowX,
+      }));
+      if (tabGeometry.display !== "flex" || tabGeometry.overflowX !== "auto") {
+        throw new Error("Program mobile tabs must remain a horizontally scrollable source-aligned row");
+      }
+      await page.getByRole("button", {name: "Open data collection"}).waitFor({state:"visible"});
+    }
+    if (capture.name === "04-program-light-mobile-390x844" ||
+        capture.name === "04-program-light-1440x900") {
+      const period = page.locator(".program-record-header__period select");
+      await period.waitFor({ state: "visible" });
+      if (await period.inputValue() !== "90") {
+        throw new Error("Program header does not own the real 90-day assessment period");
+      }
+      const coverage = page.getByRole("heading", { name: "Requirement coverage" });
+      const areas = page.getByRole("heading", { name: "By control area" });
+      const recent = page.getByRole("heading", { name: "Recent assessments" });
+      const attention = page.getByRole("heading", { name: "Needs attention" });
+      await Promise.all([coverage.waitFor(), areas.waitFor(), recent.waitFor(), attention.waitFor()]);
+      const ordered = await page.evaluate(() => {
+        const a = document.getElementById("program-overview-coverage-heading");
+        const b = document.getElementById("program-overview-areas-heading");
+        const c = document.getElementById("program-recent-assessments-heading");
+        const d = document.getElementById("program-overview-attention-heading");
+        const e = document.getElementById("program-overview-setup-heading");
+        const rail = document.querySelector(".program-overview-rail");
+        return Boolean(a && b && c && d && e && rail &&
+          a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          b.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          d.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          rail.contains(d) && rail.contains(e));
+      });
+      if (!ordered) throw new Error("Program Overview does not follow approved coverage → control area → recent assessments + attention rail structure");
+      if (await page.getByLabel("Program follow-up").count() > 1) {
+        throw new Error("Program attention is duplicated inside the current-position card");
+      }
+    }
+    if (capture.name === "04-program-light-mobile-390x844") {
+      const first = page.locator(".program-overview-metrics .cs-metric-card").first();
+      await first.waitFor({ state: "visible" });
+      const firstBox = await first.boundingBox();
+      if (!firstBox || firstBox.y > 520) {
+        await page.screenshot({ path: path.join(outputDir, "04-program-mobile-viewport-failure.png"), fullPage: false, animations: "disabled" });
+        throw new Error(`Approved mobile Program measures are pushed too far below the first viewport: ${firstBox?.y ?? "unavailable"}px`);
+      }
+      const measureLayout = await page.locator(".program-overview-metrics .cs-metric-card").evaluateAll((cards) =>
+        cards.map((card) => {
+          const { x, y, width, height } = card.getBoundingClientRect();
+          return { x, y, width, height, clipped: card.scrollHeight > card.clientHeight + 1 };
+        }));
+      if (measureLayout.length !== 4 ||
+          Math.abs(measureLayout[0].y - measureLayout[1].y) > 2 ||
+          Math.abs(measureLayout[2].y - measureLayout[3].y) > 2 ||
+          measureLayout[2].y <= measureLayout[0].y ||
+          measureLayout[0].x >= measureLayout[1].x ||
+          measureLayout[2].x >= measureLayout[3].x ||
+          measureLayout[2].y > 750 ||
+          measureLayout.some((measure) => measure.clipped)) {
+        throw new Error("Mobile Program must keep four readable measures in a dense 2×2 grid: " + JSON.stringify(measureLayout));
+      }
+      const collectionAction = page.getByRole("button", { name: "Open data collection" });
+      const actionBox = await collectionAction.boundingBox();
+      if (!actionBox || actionBox.height < 44) {
+        throw new Error("Compact Program collection action does not meet the 44px touch target");
+      }
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+      if (overflow) throw new Error("Compact Program introduces horizontal page overflow");
+    }
+    if (capture.name === "04-program-light-1440x900") await assertApprovedProgramHeading(page, false);
+    if (capture.name === "04-program-light-1440x900") {
+      const measures = page.locator(".program-overview-metrics");
+      await measures.waitFor({ state: "visible" });
+      const tabs = page.getByRole("tablist", { name: "Program sections" });
+      const names = await tabs.getByRole("tab").allTextContents();
+      if (names.join("|") !== "Overview|Requirements|Assessments|Evidence|Issues|Activity") {
+        throw new Error("Program tabs do not match approved HTML structure: " + names.join("|"));
+      }
+      const [tabBox, metricBox] = await Promise.all([tabs.boundingBox(), measures.boundingBox()]);
+      if (!tabBox || !metricBox || tabBox.y >= metricBox.y) {
+        throw new Error("Program section navigation must precede Overview measures");
+      }
+      const coverage = page.locator(".program-overview-coverage");
+      const rail = page.getByRole("complementary", {name:"Program attention and setup"});
+      const [coverageBox, railBox] = await Promise.all([coverage.boundingBox(), rail.boundingBox()]);
+      if (!coverageBox || !railBox || coverageBox.x >= railBox.x ||
+          Math.abs(coverageBox.y - railBox.y) > 24 || coverageBox.y <= metricBox.y) {
+        throw new Error("Program approved coverage/attention first-viewport composition is missing");
+      }
+      for (const label of ["Approved requirements", "Assessed requirements", "Open issues", "Active evidence checks"]) {
+        const card = measures.getByRole("button", { name: new RegExp("^" + label + ":") });
+        await card.waitFor({ state: "visible" });
+        const quality = await card.getAttribute("data-quality");
+        if (!["current", "partial", "stale", "unknown"].includes(quality)) {
+          throw new Error(`Program measure ${label} lacks a data-quality state`);
+        }
+        const clipped = await card.locator(".cs-metric-card__label").evaluate((node) =>
+          node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1);
+        if (clipped) throw new Error(`Program measure ${label} is visually clipped`);
+      }
+      if (await measures.getByRole("button").count() !== 4) {
+        throw new Error("Program Overview did not render exactly four grounded measures");
+      }
+    }
+    if (capture.route === "#reports" && !capture.openReportOverview && !capture.openReportExplore && !capture.openReportBuilder && !capture.openReportTemplates) {
+      await page.getByRole("tab", { name: "Reports", exact: true }).click();
+      reportsLayout = await assertReportsLibraryLayout(page, capture);
+    }
+    if (capture.openReportExplore) {
+      const workspace = page.locator(".reports-workspace");
+      if (capture.reportOrganizationScope) await selectReportOrganizationScope(page);
+      await workspace.getByRole("tab", { name: "Explore", exact: true }).click();
+      if (capture.reportExploreMeasure) await chooseReportExploreMeasure(page, capture.reportExploreMeasure);
+      if (capture.reportExploreCurrency) await chooseReportField(page, page.locator(".reports-explore"), "Currency", capture.reportExploreCurrency);
+      reportsLayout = await assertReportsExploreLayout(page, capture);
+      const interaction = capture.verifyReportNavigation ? await verifyReportExploreNavigation(page, capture) : null;
+      const currencyInteraction = capture.verifyReportCurrency ? await verifyReportExploreCurrency(page, capture) : null;
+      if (interaction || currencyInteraction) reportsLayout = {
+        ...await assertReportsExploreLayout(page, capture),
+        ...(interaction ? { interaction } : {}),
+        ...(currencyInteraction ? { currencyInteraction } : {}),
+      };
+      await page.evaluate(() => window.scrollTo(0, 0));
+      if (capture.openReportExploreMembers) reportsLayout.memberDrill = await verifyReportExploreMembers(page, capture, reportsLayout);
+    }
+    if (capture.openReportBuilder) {
+      await page.locator(".reports-workspace__actions").getByRole("button", { name: "New report", exact: true }).click();
+      reportsLayout = await assertReportBuilderLayout(page, capture);
+      if (capture.verifyReportNavigation) {
+        const interaction = await verifyReportBuilderNavigation(page, capture);
+        reportsLayout = { ...await assertReportBuilderLayout(page, capture), interaction };
+      }
+      if (capture.reportBuilderFlow) reportsLayout = await verifyReportBuilderFlow(page, capture, reportsLayout);
+      await page.evaluate(() => window.scrollTo(0, 0));
+    }
+
+    if (capture.openReportOverview) {
+      if (capture.reportOrganizationScope) {
+        await page.getByRole("button", { name: /^Organization scope,/ }).click();
+        await page.getByRole("dialog", { name: "Change organization scope" })
+          .getByRole("button", { name: /^Risk Operations/ }).click();
+        await page.getByRole("button", { name: /^Organization scope,.*Risk Operations/ }).waitFor({ state: "visible" });
+      }
+      reportsLayout = await assertReportsOverviewLayout(page, capture);
+    }
+
     if (capture.assertNoConfigureNav) {
       await page.locator("#today-brief").waitFor({ state: "visible" });
     }
@@ -109,28 +848,163 @@ async function capturePage(capture) {
       await page.getByRole("heading", { name: "Customer account opening", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.openReportTemplates) {
-      const templatesTab = page.getByRole("tab", { name: "Saved setups", exact: true });
-      if (await templatesTab.isVisible()) {
-        await templatesTab.click();
-      } else {
-        const compactReportsView = page.locator(".cs-tabs__compact .cs-select-field__trigger");
-        await compactReportsView.click();
-        await page.getByRole("option", { name: "Saved setups", exact: true }).click();
-      }
-      await page.getByRole("heading", { name: "Saved setups", exact: true }).waitFor({ state: "visible" });
+      await page.locator(".reports-workspace__actions").getByRole("button", { name: "New report", exact: true }).click();
+      await page.locator(".report-builder").getByRole("heading", { name: "Build report", exact: true }).waitFor({ state: "visible" });
+      await chooseReportField(page, page.locator(".report-builder"), "Saved setup", "Program health review");
+      await page.locator(".report-builder").getByRole("button", { name: "Activate setup", exact: true }).waitFor({ state: "visible" });
+      await page.evaluate(() => window.scrollTo(0, 0));
+    }
+    if (capture.openAssignedInspection) {
+      const table = page.getByRole("table", { name: "Assigned work" });
+      await table.waitFor({ state: "visible" });
+      await table.getByRole("button", { name: /^Inspect for / }).first().click();
+      await page.getByRole("dialog", { name: /^Selected work: / }).waitFor({ state: "visible" });
+    }
+    if (capture.openReadyReport) {
+      const library = activeReportsLibrary(page);
+      const records = library.getByRole("list", { name: "Generated report records" });
+      // The ready fixture is deliberately expired. Inspection remains valid,
+      // but download is not permitted, so do not select by a Download action.
+      await records.getByRole("button", { name: /^Select Processing activities with open exceptions, (Ready|Expired),/ }).click();
+      const inspector = library.getByRole("complementary", { name: "Selected report" });
+      await inspector.getByRole("heading", { name: "Processing activities with open exceptions", exact: true }).waitFor({ state: "visible" });
+      await inspector.getByRole("button", { name: "View report details", exact: true }).click();
+      const source = page.getByRole("dialog", { name: "Report details" }).getByRole("region", { name: "Source snapshot" });
+      await source.waitFor({ state: "visible" });
+      await source.getByText(/Population (complete|incomplete)|Coverage unknown/).waitFor({ state: "visible" });
     }
     if (capture.openFailedReport) {
-      const failedRow = page.getByRole("table", { name: "Generated reports" }).getByRole("row").filter({ hasText: "Failed" }).first();
-      await failedRow.waitFor({ state: "visible" });
-      await failedRow.getByRole("button", { name: /View for/ }).click();
+      const library = activeReportsLibrary(page);
+      await library.getByRole("list", { name: "Generated report records" }).getByRole("button", { name: /, Failed,/ }).first().click();
+      const inspector = library.getByRole("complementary", { name: "Selected report" });
+      await inspector.getByText("Generation stopped: Row Limit Exceeded", { exact: true }).waitFor({ state: "visible" });
+      await inspector.getByRole("button", { name: "View report details", exact: true }).click();
       await page.getByRole("dialog", { name: "Report details" }).waitFor({ state: "visible" });
     }
     if (capture.openReportGenerate) {
-      await page.getByRole("button", { name: "Generate report", exact: true }).click();
+      await page.locator(".reports-workspace__actions").getByRole("button", { name: "Generate report", exact: true }).click();
       await page.getByRole("dialog", { name: "Generate report" }).waitFor({ state: "visible" });
     }
     if (capture.matterTab) await openMatterWorkspaceTab(page, capture.matterTab);
-    if (capture.expectText) await page.getByText(capture.expectText, { exact: false }).first().waitFor({ state: "visible" });
+    if (capture.frameworkCatalog === "loaded") {
+      const views = page.getByRole("navigation", { name: "Library views" });
+      const search = page.getByRole("searchbox", { name: "Search loaded standards" });
+      const editions = page.getByRole("list", { name: "Published framework editions" });
+      await Promise.all([views.waitFor({ state: "visible" }), search.waitFor({ state: "visible" }), editions.waitFor({ state: "visible" })]);
+      if (await page.getByRole("navigation", { name: "Portfolio lenses" }).count()) {
+        throw new Error("Framework Library still mounts the generic Portfolio navigation above its approved Explore views.");
+      }
+      const [viewsBox, searchBox, listBox] = await Promise.all([views.boundingBox(), search.boundingBox(), editions.boundingBox()]);
+      if (!viewsBox || !searchBox || !listBox ||
+          viewsBox.y + viewsBox.height > searchBox.y + 3 ||
+          searchBox.y + searchBox.height > listBox.y + 5) {
+        throw new Error("Framework Library must preserve approved views → filters → edition-list content order.");
+      }
+      // V2 acceptance checks the whole specialist screen, not just a tab/list
+      // fragment that can pass while the heading and right-hand composition are missing.
+      const library = page.getByRole("region", { name: "Framework Library workspace" });
+      const pageHeading = library.getByRole("heading", { name: "Framework Library", exact: true, level: 1 });
+      const pageHeader = library.locator(".cs-framework-library__page-heading");
+      const filters = library.getByRole("region", { name: "Framework filters" });
+      const rights = library.locator(".cs-filter-bar .cs-select-field__trigger").first();
+      const listHeading = library.getByRole("heading", { name: "Reference editions" });
+      await Promise.all([pageHeading.waitFor({ state: "visible" }),
+        pageHeader.waitFor({ state: "visible" }),
+        rights.waitFor({ state: "visible" }),
+        listHeading.waitFor({ state: "visible" })]);
+      const [headerBox, filterBox, resultHeadingBox] = await Promise.all([
+        pageHeader.boundingBox(), filters.boundingBox(), listHeading.boundingBox(),
+      ]);
+      if (!headerBox || !filterBox || !resultHeadingBox ||
+          headerBox.y + headerBox.height > viewsBox.y + 4 ||
+          viewsBox.y + viewsBox.height > filterBox.y + 4 ||
+          filterBox.y + filterBox.height > resultHeadingBox.y + 14) {
+        throw new Error(`${capture.name}: V2 must compose heading → local navigation → filters → reference editions`);
+      }
+      const inspect = page.getByRole("button", { name: "Inspect edition for Sample security reference 2026" });
+      await inspect.waitFor({ state: "visible" });
+      const rowBox = await inspect.boundingBox();
+      if (!rowBox || rowBox.height < 85 || rowBox.y < resultHeadingBox.y + resultHeadingBox.height - 3 ||
+          (capture.viewport.width <= 900 && rowBox.y >= capture.viewport.height - 30)) {
+        throw new Error(`${capture.name}: V2 list rows must be source-sized and initially visible: ${JSON.stringify(rowBox)}`);
+      }
+      if (capture.viewport.width > 900) {
+        const inspector = library.getByRole("complementary", { name: "Framework edition details" });
+        const panel = await inspector.boundingBox();
+        if (!panel || panel.x < rowBox.x + rowBox.width - 6 || Math.abs(panel.y - resultHeadingBox.y) > 75 ||
+            !(await inspector.getByRole("heading", { name: "Edition details" }).count()) ||
+            !(await inspector.getByRole("heading", { name: "Use in a Program" }).count()) ||
+            !(await inspector.getByRole("list").count())) {
+          throw new Error(`${capture.name}: V2 is missing the side-by-side edition inspector, metadata and adoption workflow`);
+        }
+      }
+      const sidebar = page.locator(".app-shell > .sidebar");
+      if (capture.viewport.width >= 1440) {
+        const bounds = await sidebar.boundingBox();
+        if (!bounds || Math.abs(bounds.width - 228) > 1) throw new Error(`${capture.name} does not use the approved 228px desktop navigation rail.`);
+        await sidebar.locator(".sidebar-brand__name").getByText("ClearSight").waitFor({ state: "visible" });
+        const frameworks = sidebar.getByRole("link", { name: "Frameworks", exact: true });
+        if (await frameworks.getAttribute("aria-current") !== "page") throw new Error(`${capture.name} lost the active Frameworks navigation state.`);
+      }
+      if (capture.viewport.width <= 390) {
+        const record = await inspect.boundingBox();
+        const rail = await page.locator(".app-shell > .sidebar").boundingBox();
+        const searchInput = await search.boundingBox();
+        const localTabs = await views.locator(".cs-framework-library__view").all();
+        const tabBoxes = await Promise.all(localTabs.map((tab) => tab.boundingBox()));
+        if (!record || !rail || !searchInput || tabBoxes.length !== 3 || tabBoxes.some((box) => !box) ||
+            record.x < rail.x + rail.width - 2 ||
+            Math.abs(record.x - searchInput.x) > 8 ||
+            tabBoxes[2].x + tabBoxes[2].width > capture.viewport.width - 4 ||
+            tabBoxes[2].x <= tabBoxes[1].x ||
+            record.y > 590) {
+          throw new Error(`${capture.name} diverges from the V2 mobile full-width filters, visible three-tab row or first-record position: ${JSON.stringify({ record, searchInput, tabBoxes })}`);
+        }
+      }
+      if (capture.viewport.width > 900 || capture.frameworkDetailSheet) await inspect.click();
+      if (capture.viewport.width > 900) {
+        const details = page.getByRole("complementary", { name: "Framework edition details" });
+        await details.waitFor({ state: "visible" });
+        await details.getByText("sample-release").waitFor({ state: "visible" });
+        if (capture.viewport.width >= 1440) {
+          const band = details.locator(".cs-framework-library__detail-band");
+          const [hero, mark, state] = await Promise.all([
+            band.boundingBox(),
+            band.locator(".cs-framework-library__publisher-mark").boundingBox(),
+            band.locator(".cs-framework-library__detail-state").boundingBox(),
+          ]);
+          if (!hero || !mark || !state || hero.height < 110 || hero.height > 150 ||
+              mark.y < hero.y + 45 || state.x <= mark.x + mark.width) {
+            throw new Error(`${capture.name} does not match the approved Framework edition inspector hero layout`);
+          }
+          if (await band.getAttribute("data-selected") !== "true" ||
+              !await band.getByText("Selected edition", { exact: true }).isVisible()) {
+            throw new Error(`${capture.name} lost the explicit edition selection status`);
+          }
+        }
+
+      }
+      if (capture.frameworkDetailSheet) {
+        const sheet = page.getByRole("dialog", { name: "Edition details: Sample security reference" });
+        await sheet.waitFor({ state: "visible" });
+        const firstFact = sheet.locator(".cs-program-standards__facts > div").first();
+        const [label, value] = await Promise.all([
+          firstFact.locator("dt").boundingBox(),
+          firstFact.locator("dd").boundingBox(),
+        ]);
+        if (!label || !value || Math.abs(label.y - value.y) > 18) {
+          throw new Error(`${capture.name} stacks edition provenance labels and values vertically on mobile.`);
+        }
+        await sheet.getByRole("button", { name: "Choose Program" }).waitFor({ state: "visible" });
+      }
+    }
+
+    if (capture.expectText) {
+      const expected = capture.route === "#reports"
+        ? expectedReportsContent(page, capture)
+        : page.getByText(capture.expectText, { exact: false }).first();
+      await expected.waitFor({ state: "visible" });
+    }
     if (capture.scrollIntoViewText) {
       // Some controls sit below the fold at the capture viewport. Scroll them
       // into view so the screenshot proves the control is actually rendered,
@@ -205,8 +1079,27 @@ async function capturePage(capture) {
       await action.getByText("Overdue", { exact: true }).waitFor({ state: "visible" });
       await action.scrollIntoViewIfNeeded();
     }
+    if (capture.state === "work-assigned-desktop" || capture.state === "work-assigned-mobile") await assertWorkMeasureLabels(page, capture);
+    if (capture.scrollToReportRecords) await activeReportsLibrary(page).getByRole("list", { name: "Generated report records" }).scrollIntoViewIfNeeded();
+    if (capture.openPrimaryNavigation || (capture.assertNoConfigureNav && capture.viewport.width <= 1024)) {
+      navigation.drawer = await openAndVerifyNavigationDrawer(page, capture, !capture.assertNoConfigureNav);
+    }
+    // Earlier pointer interactions must not paint an unrelated menu item as
+    // hovered in a canonical source comparison or expanded-menu capture.
+    await page.mouse.move(0, 0);
+    if (capture.vendorPortfolioView && browserErrors.length) throw new Error(`${capture.name} emitted browser errors during portfolio interactions:\n${browserErrors.join("\n")}`);
     await saveScreenshot(page, capture.name);
-    const recordedCapture = capture.openRopaActivity ? { ...capture, route: new URL(page.url()).hash } : capture;
+    if (navigation?.drawer) {
+      await page.keyboard.press("Escape");
+      await page.getByRole("dialog", { name: "Navigation", exact: true }).waitFor({ state: "hidden" });
+      const opener = page.getByRole("button", { name: "Open navigation", exact: true });
+      if (!await opener.evaluate((element) => element === document.activeElement)) throw new Error(`${capture.name}: closing Navigation did not restore opener focus`);
+      navigation.drawer.dismissalRestoredFocus = true;
+    }
+    const recordedCapture = { ...capture, navigation, ...(reportsLayout ? { reportsLayout } : {}), ...(notificationsLayout ? { notificationsLayout } : {}),
+      ...(vendorRelationshipLayout ? { vendorRelationshipLayout } : {}),
+      ...(vendorPortfolioLayout ? { vendorPortfolioLayout } : {}),
+      ...(capture.openRopaActivity ? { route: new URL(page.url()).hash } : {}) };
     await record(page, recordedCapture, capture.state ?? (capture.openMatterSetup ? "matter-create-open" : capture.fixture ? `fixture:${capture.fixture}` : "baseline"));
     await assertNoHorizontalOverflow(page, capture.name);
     if (capture.name.startsWith("report-")) await assertReportLayout(page, capture.name);
@@ -216,32 +1109,26 @@ async function capturePage(capture) {
       await page.getByRole("button", { name: "Generate board brief", exact: true }).waitFor({ state: "visible" });
     }
     if (capture.state === "issue-workspace-evidence" || capture.state === "issue-workspace-evidence-mobile") {
-      await page.getByRole("button", { name: "Create linked form", exact: true }).waitFor({ state: "visible" });
-      await page.getByRole("button", { name: "Request employee form", exact: true }).waitFor({ state: "visible" });
+      await page.getByRole("button", { name: "Link existing form", exact: true }).waitFor({ state: "visible" });
       await page.getByText("1 response pending · 1 submitted response needs review.", { exact: true }).waitFor({ state: "visible" });
     }
     if (capture.state === "issue-workspace-activity-mobile") {
       if (await page.getByLabel("Issue activity").count() !== 1) throw new Error(`${capture.name} does not render exactly one narrow Activity instance`);
       if (await page.getByLabel("Add internal comment").count() !== 1) throw new Error(`${capture.name} duplicates the Activity composer`);
     }
-    if (capture.state === "report-library-mobile") {
-      const replacement = await page.evaluate(() => {
-        const table = document.querySelector('[aria-label="Generated reports"]');
-        const row = table?.querySelector("tbody tr");
-        const head = table?.querySelector("thead");
-        return { rowDisplay: row ? getComputedStyle(row).display : "", headPosition: head ? getComputedStyle(head).position : "" };
-      });
-      if (replacement.rowDisplay !== "grid" || replacement.headPosition !== "absolute") throw new Error(`${capture.name} did not replace the generated-report table with stacked mobile records`);
-    }
     await assertGuideLauncherDoesNotBlockNavigation(page, capture.name, capture.viewport.width);
     if (capture.assertFirstActionVisible) await assertFirstActionVisible(page, capture.viewport.height, capture.name, capture.touch === true);
-    if (capture.assertNoConfigureNav && await page.getByRole("button", { name: /Configure/ }).count()) throw new Error(`${capture.name} exposes Configure without config-read capability`);
+    if (capture.assertNoConfigureNav && await page.getByRole("link", { name: "Settings", exact: true }).count()) throw new Error(`${capture.name} exposes Settings without config-read capability`);
     if (capture.fixture === "evidence-requests-unavailable") {
       const inventory = page.locator(".source-inventory");
       await inventory.locator("summary").click();
       await page.getByText("Identity and access records").waitFor({ state: "visible" });
     }
-    if (capture.fixture === "configure-partial" && !(await page.getByText("Confirm the final DPCO review date").isVisible())) throw new Error("Configure partial-degradation state hid still-available workflow ownership");
+    if (capture.fixture === "people-v2-partial") {
+      await page.getByRole("tab", { name: "Delegations", exact: true }).click();
+      await page.locator(".people-governance-layout__records .cs-selectable-record").first().waitFor();
+      if (await page.locator(".people-governance-layout__records .cs-selectable-record:visible").count() !== 2) throw new Error("Partial routing-policy failure hid available delegations");
+    }
   } finally {
     await context.close();
   }
@@ -259,13 +1146,195 @@ async function openMatterWorkspaceTab(page, label) {
   await page.getByRole("option", { name: label, exact: true }).click();
 }
 
+async function assertReportsOverviewLayout(page, capture) {
+  const workspace = page.locator(".reports-workspace");
+  const views = workspace.getByRole("tablist", { name: "Reports workspace" });
+  const measures = workspace.getByRole("region", { name: "Reporting measures" });
+  await Promise.all([views, measures, workspace.getByRole("region", { name: "Reports Overview" })]
+    .map((item) => item.waitFor({ state: "visible" })));
+  const labels = (await views.getByRole("tab").allTextContents()).map((value) => value.trim());
+  if (labels.join("|") !== "Overview|Explore|Reports|Schedules" || await workspace.locator(".cs-tabs__compact").count()) {
+    throw new Error(`${capture.name}: Reports must show four stable local views with Build report contextual to the active builder`);
+  }
+  const hasRisk = ["report-overview-loaded", "report-overview-partial"].includes(capture.fixture);
+  const hasLoss = capture.fixture === "report-overview-loaded";
+  const expectedRisk = hasRisk ? capture.reportOrganizationScope ? "2" : "4" : "—";
+  await page.waitForFunction((riskValue) => {
+    const cards = [...document.querySelectorAll('.reports-v2-stats .cs-metric-card')];
+    return cards.length === 4 && cards.every((card) => !card.querySelector('.cs-metric-card__quality')?.textContent?.includes("Loading"))
+      && cards[0].querySelector('.cs-metric-card__measure strong')?.textContent === riskValue;
+  }, expectedRisk, { timeout: 12000 });
+  if (hasRisk) await workspace.getByRole("list", { name: "Outside-appetite risks by organization area" }).waitFor({ state: "visible" });
+  if (hasLoss) await workspace.getByRole("img", { name: "Net operational loss trend" }).waitFor({ state: "visible" });
+  else await workspace.getByText("Loss trend is unavailable for this period.", { exact: true }).waitFor({ state: "visible" });
+  await workspace.getByRole("table", { name: "Recent reports" }).waitFor({ state: "visible" });
+
+  const layout = await workspace.evaluate((root) => {
+    const box = (node) => {
+      const value = node?.getBoundingClientRect();
+      return value ? { x: value.x, y: value.y, right: value.right, bottom: value.bottom, width: value.width, height: value.height } : null;
+    };
+    const textLines = (node) => {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      return [...range.getClientRects()].filter((line) => line.width > 0 && line.height > 0);
+    };
+    const cards = [...root.querySelectorAll(".cs-metric-card")].map((card) => {
+      const outer = box(card);
+      const label = card.querySelector(".cs-metric-card__label");
+      const value = card.querySelector(".cs-metric-card__measure strong");
+      const content = [...card.querySelectorAll(".cs-metric-card__label, .cs-metric-card__quality, .cs-metric-card__measure strong, .cs-metric-card__detail")];
+      return { ...outer, label: label.textContent, value: value?.textContent,
+        valueFontSize: value ? parseFloat(getComputedStyle(value).fontSize) : 0,
+        quality: card.getAttribute("data-quality"), detail: card.querySelector(".cs-metric-card__detail")?.textContent,
+        labelLines: new Set(textLines(label).map((line) => Math.round(line.y))).size,
+        containsText: content.flatMap(textLines).every((line) => line.x >= outer.x - 1 && line.right <= outer.right + 1
+          && line.y >= outer.y - 1 && line.bottom <= outer.bottom + 1) };
+    });
+    const embedded = [...root.querySelectorAll(".organization-risk-summary, .loss-movement")].map((node) => {
+      const style = getComputedStyle(node);
+      return { embedded: node.hasAttribute("data-embedded"),
+        noFrame: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth,
+          style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft].every((value) => parseFloat(value) === 0)
+          && style.boxShadow === "none",
+        parentFrame: node.parentElement?.classList.contains("reports-v2-panel")
+          && parseFloat(getComputedStyle(node.parentElement).borderTopWidth) > 0 };
+    });
+    return { cards, embedded, primary: box(root.querySelector(".reports-v2-primary")),
+      measures: box(root.querySelector(".reports-v2-stats")), rail: box(root.querySelector(".reports-v2-rail")),
+      risk: box(root.querySelector('[aria-label="Risk concentration panel"]')),
+      coverage: box(root.querySelector(".reports-v2-coverage")), loss: box(root.querySelector('[aria-label="Loss movement panel"]')),
+      findings: box(root.querySelector(".reports-v2-findings")), recent: box(root.querySelector(".reports-overview__recent")),
+      recentActions: [...root.querySelectorAll(".reports-overview__recent .cs-data-table__action")]
+        .map((cell) => ({ cell: box(cell), button: box(cell.querySelector("button")) })),
+      riskBuckets: [...root.querySelectorAll(".organization-risk-summary .cs-ranked-bars__value")].map((node) => Number(node.textContent)),
+      lossSummary: root.querySelector(".loss-movement .risk-movement__summary strong")?.textContent ?? null,
+      expectedLoss: new Intl.NumberFormat(undefined, { style: "currency", currency: "NGN", currencyDisplay: "narrowSymbol" }).format(10400000),
+      expectedCompactLoss: new Intl.NumberFormat(undefined, { style: "currency", currency: "NGN", currencyDisplay: "narrowSymbol", notation: "compact", maximumFractionDigits: 1 }).format(10400000),
+      reads: window.reportingEvidenceReads ?? [] };
+  });
+  const boxes = [layout.primary, layout.measures, layout.rail, layout.risk, layout.coverage, layout.loss, layout.findings, layout.recent];
+  if (boxes.some((value) => !value)) throw new Error(`${capture.name}: Reports is missing an approved Overview section`);
+  const columns = capture.viewport.width >= 1440 ? 4 : 2;
+  const firstRow = layout.cards.filter((card) => Math.abs(card.y - layout.cards[0].y) <= 2);
+  const secondRow = layout.cards.slice(2);
+  if (firstRow.length !== columns || (columns === 2 && (Math.abs(secondRow[0].y - secondRow[1].y) > 2
+      || secondRow[0].y < Math.max(...firstRow.map((card) => card.bottom))))) {
+    throw new Error(`${capture.name}: Reporting measures must form ${columns} columns at ${capture.viewport.width}px`);
+  }
+  if (layout.cards.some((card) => card.height > 190 || card.labelLines > 3 || !card.containsText)) {
+    throw new Error(`${capture.name}: Reporting metric labels or values are wrapping excessively or leaving their cards: ${JSON.stringify(layout.cards)}`);
+  }
+  const minimumValueFontSize = capture.viewport.width <= 700 ? 22 : 28;
+  if (layout.cards.some((card) => !(card.valueFontSize >= minimumValueFontSize))) {
+    throw new Error(`${capture.name}: Reporting metric values must render at least ${minimumValueFontSize}px; computed sizes: ${layout.cards.map((card) => `${card.label} ${card.valueFontSize}px`).join(", ")}`);
+  }
+  const railPlacement = capture.viewport.width >= 1280 ? "beside" : "below";
+  if ((railPlacement === "beside" && (layout.rail.x < layout.primary.right + 1 || Math.abs(layout.rail.y - layout.measures.y) > 3))
+      || (railPlacement === "below" && layout.rail.y < layout.primary.bottom + 1)) {
+    throw new Error(`${capture.name}: Reporting context must sit ${railPlacement} the main analysis at ${capture.viewport.width}px`);
+  }
+  if (layout.measures.bottom > layout.risk.y || layout.risk.bottom > layout.loss.y
+      || layout.coverage.bottom > layout.findings.y || layout.findings.bottom > layout.recent.y
+      || (capture.viewport.width <= 390 && layout.measures.y >= 440)) {
+    throw new Error(`${capture.name}: Reports has lost the approved measures → analysis → recent-reports order`);
+  }
+  if (layout.embedded.length !== 2 || layout.embedded.some((panel) => !panel.embedded || !panel.noFrame || !panel.parentFrame)) {
+    throw new Error(`${capture.name}: Risk and loss charts must each use one containing panel without a nested frame`);
+  }
+  if (capture.viewport.width <= 700 && (!layout.recentActions.length || layout.recentActions.some(({ cell, button }) =>
+    !cell || !button || cell.width < 44 || button.width < 44 || button.height < 44
+      || Math.abs(button.width - cell.width) > 2))) {
+    throw new Error(`${capture.name}: Recent-report actions must fill their stacked action cell and provide at least a 44×44px touch target`);
+  }
+  const [risk, requirements, net, ready] = layout.cards;
+  if (risk.value !== expectedRisk || requirements.value !== "—" || ready.value !== "0"
+      || (hasRisk && (risk.detail !== `${capture.reportOrganizationScope ? 5 : 12} in scope`
+        || layout.riskBuckets.reduce((sum, value) => sum + value, 0) !== Number(expectedRisk)
+        || risk.quality !== (capture.fixture === "report-overview-partial" ? "partial" : "current")))
+      || (!hasRisk && layout.riskBuckets.length)
+      || (hasLoss ? net.value !== layout.expectedCompactLoss || layout.lossSummary !== layout.expectedLoss : net.value !== "—" || layout.lossSummary !== null)) {
+    throw new Error(`${capture.name}: Reports values no longer agree with the scoped evidence source or unavailable state`);
+  }
+  const sourceScope = capture.reportOrganizationScope ?? "";
+  if (hasRisk) {
+    const reads = layout.reads.map((value) => new URL(value, "https://evidence.invalid"));
+    const latest = (pathname) => reads.filter((url) => url.pathname === pathname).at(-1);
+    const paths = ["/api/v1/metrics/home", "/api/v1/metrics/domain", "/api/v1/metrics/domain/risks_outside_appetite/organization-breakdown", "/api/v1/metrics/losses/period"];
+    if (paths.some((pathname) => !latest(pathname) || (latest(pathname).searchParams.get("organization_scope_id") ?? "") !== sourceScope)
+        || latest(paths[2]).searchParams.get("source_id") !== `8f710000-0000-4000-8000-00000000000${sourceScope ? 2 : 1}`
+        || latest(paths[3]).searchParams.get("start_date") !== "2026-09-08" || latest(paths[3]).searchParams.get("end_date") !== "2026-10-07") {
+      throw new Error(`${capture.name}: Home, risk concentration and loss reads do not share the selected scope and source period`);
+    }
+  }
+  return { kind: "overview", metricColumns: columns, railPlacement,
+    maxMetricHeight: Math.max(...layout.cards.map((card) => card.height)), maxLabelLines: Math.max(...layout.cards.map((card) => card.labelLines)),
+    minMetricValueFontSize: Math.min(...layout.cards.map((card) => card.valueFontSize)),
+    minRecentActionCellWidth: Math.min(...layout.recentActions.map(({ cell }) => cell?.width ?? 0)),
+    minRecentActionButtonWidth: Math.min(...layout.recentActions.map(({ button }) => button?.width ?? 0)),
+    minRecentActionButtonHeight: Math.min(...layout.recentActions.map(({ button }) => button?.height ?? 0)),
+    embeddedPanels: layout.embedded.length, riskValue: risk.value, riskQuality: risk.quality,
+    lossAvailable: hasLoss, organizationScopeID: sourceScope || null };
+}
+
+function activeReportsLibrary(page) {
+  return page.getByRole("tabpanel", { name: "Reports", exact: true })
+    .getByRole("region", { name: "Generated reports", exact: true });
+}
+
+function expectedReportsContent(page, capture) {
+  // Visited panels remain mounted. Verify the active record, preview or sheet.
+  if (capture.openReportTemplates) {
+    return page.getByRole("tabpanel", { name: "Build report", exact: true })
+      .getByRole("article", { name: "Setup preview", exact: true })
+      .getByRole("heading", { name: capture.expectText, exact: true });
+  }
+  if (capture.openFailedReport || capture.openReportGenerate) {
+    return page.getByRole("dialog", { name: capture.openFailedReport ? "Report details" : "Generate report", exact: true })
+      .getByText(capture.expectText, { exact: true });
+  }
+  return activeReportsLibrary(page).getByRole("list", { name: "Generated report records" })
+    .getByRole("button", { pressed: true }).filter({ has: page.getByText(capture.expectText, { exact: true }) });
+}
+
+async function assertReportsLibraryLayout(page, capture) {
+  const library = activeReportsLibrary(page);
+  const records = library.getByRole("list", { name: "Generated report records" });
+  const inspector = library.getByRole("complementary", { name: "Selected report" });
+  await Promise.all([records, inspector, inspector.getByRole("button", { name: "View report details", exact: true })]
+    .map((item) => item.waitFor({ state: "visible" })));
+  if (await records.getByRole("button", { pressed: true }).count() !== 1 || await inspector.count() !== 1
+      || await page.getByRole("table", { name: "Generated reports" }).count()) {
+    throw new Error(`${capture.name}: Reports must use one selected record and one persistent inspector`);
+  }
+  const title = await records.getByRole("button", { pressed: true }).locator(".cs-selectable-record__title").textContent();
+  await inspector.getByRole("heading", { name: title, exact: true }).waitFor({ state: "visible" });
+  const [registerBox, inspectorBox, listBox] = await Promise.all([
+    library.locator(".reports-v2-library__register"), inspector, records,
+  ].map((item) => item.boundingBox()));
+  const beside = capture.viewport.width > 700;
+  if (!registerBox || !inspectorBox || !listBox
+      || (beside && (inspectorBox.x < registerBox.x + registerBox.width + 1 || Math.abs(inspectorBox.y - registerBox.y) > 3))
+      || (!beside && (inspectorBox.y + inspectorBox.height > registerBox.y || Math.abs(inspectorBox.x - registerBox.x) > 3))) {
+    throw new Error(`${capture.name}: Selected report inspector must sit ${beside ? "beside" : "above"} the generated-record register`);
+  }
+  const rows = await records.getByRole("button").evaluateAll((items) => items.map((item) => {
+    const outer = item.getBoundingClientRect();
+    return { height: outer.height, width: outer.width, contentWidth: item.scrollWidth, clientWidth: item.clientWidth };
+  }));
+  if (!rows.length || rows.some((row) => row.height < 44 || row.width > listBox.width + 1 || row.contentWidth > row.clientWidth + 1)) {
+    throw new Error(`${capture.name}: Generated-report records must be readable, full-width selection targets`);
+  }
+  return { kind: "library", recordCount: rows.length, selectedCount: 1, inspectorPlacement: beside ? "beside" : "above" };
+}
+
 async function assertGuideLauncherDoesNotBlockNavigation(page, name, viewportWidth) {
   if (viewportWidth <= 820) return;
   const launcher = page.locator(".guide-launcher");
   if (!await launcher.isVisible()) return;
   const launcherBox = await launcher.boundingBox();
   if (!launcherBox) return;
-  for (const button of await page.locator(".sidebar button").all()) {
+  for (const button of await page.locator(".sidebar a, .sidebar button").all()) {
     if (!await button.isVisible()) continue;
     const buttonBox = await button.boundingBox();
     if (!buttonBox) continue;
@@ -277,23 +1346,28 @@ async function assertGuideLauncherDoesNotBlockNavigation(page, name, viewportWid
   }
 }
 
-async function openPage({ route, title, theme, density, viewport, touch = false, fixture }) {
+async function openPage({ route, title, theme, density, viewport, touch = false, fixture, frameworkCatalog, fixtureTime }) {
   const context = await browser.newContext({ viewport, colorScheme: theme, hasTouch: touch, reducedMotion: "reduce", locale: "en-NG", timezoneId: "Africa/Lagos" });
   await context.addInitScript(({ theme, density }) => {
     localStorage.setItem("clearsight.theme", theme);
     localStorage.setItem("clearsight.density", density);
   }, { theme, density });
   const page = await context.newPage();
+  if (fixtureTime) await page.clock.setFixedTime(new Date(fixtureTime));
   const browserErrors = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") browserErrors.push(message.text()); });
   const params = new URLSearchParams({ tour: "off" });
   if (fixture) params.set("fixture", fixture);
+  if (frameworkCatalog) params.set("fixture", "framework-library-" + frameworkCatalog);
   await page.goto(`${baseURL}/?${params.toString()}${route}`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: title, exact: true }).first().waitFor({ state: "visible" });
+  const workspace = route.startsWith("#programs/") && !route.startsWith("#programs/library")
+    ? page.getByRole("region", { name: "Program record" })
+    : page.getByRole("heading", { name: title, exact: true }).first();
+  await workspace.waitFor({ state: "visible" });
   await page.evaluate(() => document.fonts?.ready);
   if (browserErrors.length) throw new Error(`${route} emitted browser errors:\n${browserErrors.join("\n")}`);
-  return { context, page };
+  return { context, page, browserErrors };
 }
 
 async function saveScreenshot(page, name) {
@@ -385,7 +1459,26 @@ async function assertFocusInsideSheet(page, name) {
 }
 
 async function record(page, capture, state) {
-  results.push({ name: capture.name, route: capture.route, fixture: capture.fixture ?? null, state, viewport: capture.viewport, theme: capture.theme, density: capture.density, metrics: await layoutMetrics(page) });
+  results.push({
+    name: capture.name,
+    route: capture.route,
+    fixture: capture.fixture ?? null,
+    ...(capture.fixtureTime ? { fixtureTime: capture.fixtureTime } : {}),
+    state,
+    viewport: capture.viewport,
+    theme: capture.theme,
+    density: capture.density,
+    ...(capture.frameworkCatalog ? {
+      frameworkCatalog: capture.frameworkCatalog,
+      frameworkDetailSheet: Boolean(capture.frameworkDetailSheet),
+    } : {}),
+    ...(capture.reportsLayout ? { reportsLayout: capture.reportsLayout } : {}),
+    ...(capture.notificationsLayout ? { notificationsLayout: capture.notificationsLayout } : {}),
+    ...(capture.vendorRelationshipLayout ? { vendorRelationshipLayout: capture.vendorRelationshipLayout } : {}),
+    ...(capture.vendorPortfolioLayout ? { vendorPortfolioLayout: capture.vendorPortfolioLayout } : {}),
+    ...(capture.navigation ? { navigation: capture.navigation } : {}),
+    metrics: await layoutMetrics(page),
+  });
   await writeManifest();
 }
 
@@ -589,8 +1682,7 @@ async function captureDocumentResultHandoffs() {
           if (!title || !implementation || implementation.y < title.y + title.height || Math.abs(title.x - implementation.x) > 1) throw new Error("Narrow control objective still squeezes its title beside implementation details");
         }
         await saveState("control-objective");
-        if (width <= 720) await page.locator(".program-section-selector select").selectOption("overview");
-        else await page.getByRole("tab", { name: "Overview", exact: true }).click();
+        await page.getByRole("tab", { name: "Overview", exact: true }).click();
         if (new URL(page.url()).hash !== "#programs/program-ndpa/overview") throw new Error("Changing Program sections retained the old item target");
         await page.goto(`${baseURL}/?tour=off&fixture=document-result-handoffs#programs/program-ndpa/requirements-controls/requirement/unavailable-item`, { waitUntil: "networkidle" });
         const unavailable = page.getByText("The requested requirement is unavailable in this Program.", { exact: false });
@@ -607,6 +1699,136 @@ async function captureDocumentResultHandoffs() {
       } finally {
         await context.close();
       }
+    }
+  }
+}
+
+async function captureApprovedVendorMeasures(name, theme, viewport) {
+  const capture = { name, route: "#vendors/overview", title: "Vendors", theme,
+    fixture: "vendor-form-assessment", density: "comfortable", viewport, touch: viewport.width <= 390 };
+  const { context, page } = await openPage(capture);
+  try {
+    await prepareVendorPortfolio(page, { ...capture, vendorPortfolioView: "overview" });
+    const summary = page.getByRole("region", { name: "Vendor overview summary" });
+    await summary.waitFor({ state: "visible" });
+    await summary.getByRole("button", { name: "5 open exceptions" }).waitFor({ state: "visible" });
+    const cards = summary.locator(".vendor-summary-counts > .cs-button");
+    if (await cards.count() !== 4) throw new Error(name + " is missing approved Vendor measure cards");
+    const boxes = await Promise.all([0, 1, 2, 3].map((index) => cards.nth(index).boundingBox()));
+    if (boxes.some((box) => !box || box.height < 90)) throw new Error(name + " has collapsed Vendor measure cards");
+    const anatomy = await cards.evaluateAll((elements) => elements.map((card) => {
+      const content = card.firstElementChild;
+      const label = content?.querySelector(":scope > span")?.getBoundingClientRect();
+      const measure = content?.querySelector(":scope > strong")?.getBoundingClientRect();
+      return { labelTop: label?.top, labelBottom: label?.bottom, labelLeft: label?.left,
+        valueTop: measure?.top, valueLeft: measure?.left, contentDisplay: content ? getComputedStyle(content).display : "" };
+    }));
+    for (const [index, item] of anatomy.entries()) {
+      if (item.contentDisplay !== "grid" || item.labelBottom === undefined || item.valueTop === undefined ||
+          item.labelLeft === undefined || item.valueLeft === undefined ||
+          item.labelBottom + 2 > item.valueTop || Math.abs(item.labelLeft - item.valueLeft) > 2) {
+        throw new Error(`${name} card ${index + 1} lacks approved label-over-measure anatomy: ${JSON.stringify(item)}`);
+      }
+    }
+    const [first, second, third, fourth] = boxes;
+    if (viewport.width >= 1280) {
+      if (!(first.x < second.x && second.x < third.x && third.x < fourth.x &&
+            Math.abs(first.y - fourth.y) < 3)) throw new Error(name + " is not a four-card desktop row");
+    } else if (!(first.x < second.x && Math.abs(first.y - second.y) < 3 &&
+                 third.x < fourth.x && third.y >= first.y + first.height - 3)) {
+      throw new Error(name + " is not a two-by-two mobile card grid");
+    }
+    await assertVendorPortfolioLayout(page, { ...capture, vendorPortfolioView: "overview" });
+    await assertNoHorizontalOverflow(page, name);
+    await saveScreenshot(page, name);
+    await record(page, capture, viewport.width >= 1280 ? "vendor-approved-measures-desktop" : "vendor-approved-measures-mobile");
+  } finally {
+    await context.close();
+  }
+}
+
+async function assertWorkMeasureLabels(page, capture) {
+  const work = page.locator(".assigned-workspace");
+  const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+  const home = breadcrumb.getByRole("link", { name: "Home" });
+  await home.waitFor({ state: "visible" });
+  if (await home.getAttribute("href") !== "#today") {
+    throw new Error(`${capture.name}: Work breadcrumb does not return to Home`);
+  }
+  const loadedSummary = (await page.locator(".work-topbar__basis").textContent())?.trim() ?? "";
+  const loadedCount = (await work.locator(".intervention-heading p").first().textContent())?.trim().match(/^(\d+) items? loaded$/)?.[1];
+  if (!/^\d+ loaded · \d+ overdue · \d+ approvals$/.test(loadedSummary) ||
+      loadedCount === undefined || !loadedSummary.startsWith(`${loadedCount} loaded ·`)) {
+    throw new Error(`${capture.name}: Work heading does not match authorized loaded work: ${loadedSummary}`);
+  }
+  const localTabs = work.getByRole("tablist", { name: "Assigned work queues" });
+  if (await page.getByRole("tablist", { name: "Work views" }).count() !== 0 ||
+      await page.getByRole("button", { name: "Work view" }).count() !== 0 ||
+      await work.locator(".cs-tabs").count() !== 1) {
+    throw new Error(`${capture.name}: Work renders duplicate navigation instead of the approved single intent`);
+  }
+  const sourceOrder = await work.evaluate((root) => {
+    const tabs = root.querySelector(".cs-tabs__list");
+    const measures = root.querySelector(".assigned-workspace__signals");
+    const queue = root.querySelector("#assigned-work-heading");
+    const filters = root.querySelector(".cs-filter-bar");
+    const before = (a, b) => a && b && Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    return before(tabs, measures) && before(measures, queue) && before(queue, filters);
+  });
+  if (!sourceOrder) throw new Error(`${capture.name}: Work must render intent → measures → queue → filters`);
+  const [navBox, measuresBox, queueBox] = await Promise.all([
+    localTabs.boundingBox(),
+    work.locator(".assigned-workspace__signals").boundingBox(),
+    work.getByRole("heading", { name: "Assigned to me" }).boundingBox(),
+  ]);
+  if (!navBox || !measuresBox || !queueBox || navBox.y >= measuresBox.y ||
+      measuresBox.y + measuresBox.height > queueBox.y + 8) {
+    throw new Error(`${capture.name}: approved Work intent and measures must precede selected queue`);
+  }
+  const cards = page.locator(".assigned-workspace__signals .cs-metric-card");
+  await cards.first().waitFor({ state: "visible" });
+  if (await cards.count() !== 4) throw new Error(`${capture.name}: expected four scoped Work measures`);
+
+  const measures = await cards.evaluateAll((elements) => elements.map((card) => {
+    const label = card.querySelector(".cs-metric-card__label");
+    const quality = card.querySelector(".cs-metric-card__quality");
+    const rect = card.getBoundingClientRect();
+    const labelRect = label?.getBoundingClientRect();
+    return {
+      accessible: card.getAttribute("aria-label") ?? "",
+      label: label?.textContent?.trim() ?? "",
+      width: labelRect?.width ?? 0,
+      overflow: label ? label.scrollWidth > label.clientWidth + 1 : true,
+      qualityDisplay: quality ? getComputedStyle(quality).display : "",
+      x: rect.x,
+      y: rect.y,
+    };
+  }));
+  const labels = ["Overdue", "Due next 7 days", "Your approvals", "Evidence needed"];
+  for (const [index, item] of measures.entries()) {
+    if (item.label !== labels[index] || item.width < 78 || item.overflow) {
+      throw new Error(`${capture.name}: unreadable Work measure label ${JSON.stringify(item)}`);
+    }
+    const sourceQualified = index < 2 && item.accessible.includes("Workflow assignments");
+    const loadedQualified = item.accessible.includes("Loaded work");
+    if (item.qualityDisplay === "none" || (!sourceQualified && !loadedQualified) ||
+        (index >= 2 && !loadedQualified)) {
+      throw new Error(`${capture.name}: Work measure source coverage is missing or incorrect`);
+    }
+  }
+  if (capture.viewport.width <= 390) {
+    const [first, second, third, fourth] = measures;
+    if (!(first.x < second.x && Math.abs(first.y - second.y) < 3 &&
+      third.x < fourth.x && third.y > first.y)) {
+      throw new Error(`${capture.name}: Work measures must retain the approved 2×2 mobile order`);
+    }
+    if (await work.locator(".cs-tabs__compact").count()) {
+      throw new Error(`${capture.name}: phone Work intent must be a short horizontal tab row`);
+    }
+    const firstRow = work.getByRole("table", { name: "Assigned work" }).locator("tbody tr").first();
+    const rowBox = await firstRow.boundingBox();
+    if (!rowBox || rowBox.y >= capture.viewport.height - 8) {
+      throw new Error(`${capture.name}: first Work assignment remains below the mobile first viewport: ${rowBox?.y ?? "unavailable"}`);
     }
   }
 }
@@ -720,6 +1942,129 @@ async function captureCaptureConflict() {
     await page.getByRole("button", { name: "Reload request" }).waitFor();
     await saveScreenshot(page, capture.name);
     await record(page, capture, "optimistic-conflict");
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureInternalAssessment({ name, viewport, theme }) {
+  const capture = { name, viewport, theme, route: "#today", title: "Oversight",
+    fixture: "internal-assessment-layout", density: "comfortable", touch: viewport.width <= 390 };
+  const { context, page } = await openPage(capture);
+  try {
+    if (viewport.width === 768) await assertApprovedShell(page, viewport.width);
+    const more = page.getByText("More actions", { exact: true });
+    if (await more.count() && await more.isVisible()) await more.click();
+    await page.getByRole("button", { name: "Respond to evidence request" }).click();
+    const workspace = page.getByRole("region", { name: "Internal assessment workspace" });
+    await workspace.getByRole("heading", { name: "Review annual-return control responses", level: 1 }).waitFor({ state: "visible" });
+    if (await page.getByRole("dialog", { name: "Evidence request" }).count()) {
+      throw new Error(name + " still mounts the authorized Assessment in a modal");
+    }
+    const facts = workspace.getByRole("group", { name: "Assessment details" });
+    await facts.getByText("Ready for response", { exact: true }).waitFor({ state: "visible" });
+    if (!await facts.locator("time[datetime]").count() ||
+        !await facts.getByText(/^Due /).count() ||
+        await workspace.getByRole("button", { name: "Save draft" }).count()) {
+      throw new Error(name + " lost verified request facts or exposed a fake draft action");
+    }
+    const views = workspace.getByRole("navigation", { name: "Assessment views" });
+    await views.waitFor({ state: "visible" });
+    if (await views.getByRole("button", { name: "Excel import" }).isEnabled()) {
+      throw new Error(name + " exposes an unreviewed Excel-answer import action");
+    }
+    const completion = workspace.getByRole("region", { name: "Assessment completion" });
+    const [viewsBox, completionBox] = await Promise.all([views.boundingBox(), completion.boundingBox()]);
+    if (!viewsBox || !completionBox || viewsBox.y + viewsBox.height > completionBox.y + 3) {
+      throw new Error(name + " must keep approved Assessment views above the completion strip");
+    }
+    const rail = workspace.getByRole("navigation", { name: "Assessment sections" });
+    const work = workspace.locator(".capture-wizard__main");
+    const readiness = workspace.getByRole("complementary", { name: "Response readiness and evidence" });
+    await Promise.all([rail.waitFor({ state: "visible" }), work.waitFor({ state: "visible" }),
+      readiness.waitFor({ state: "visible" })]);
+    const sectionProgress = await rail.locator("li > button").evaluateAll((buttons) => buttons.map((button) => ({
+      accessible: button.getAttribute("aria-label") ?? "",
+      count: button.querySelector(".capture-wizard__section-count")?.textContent?.trim() ?? "",
+    })));
+    if (!sectionProgress.length || sectionProgress.some((section) =>
+      !/^[0-9]+\/[0-9]+$/.test(section.count) ||
+      !section.accessible.includes(section.count.replace("/", " of ") + " answered"))) {
+      throw new Error(name + " lacks answer-derived section completion in the approved questionnaire navigator");
+    }
+    const layoutReady = (width) => {
+      if (innerWidth !== width) return false;
+      const host = document.querySelector(".internal-assessment-workspace");
+      const sections = host?.querySelector(".capture-wizard__sections");
+      const questions = host?.querySelector(".capture-wizard__main");
+      const evidence = host?.querySelector(".capture-wizard__readiness");
+      if (!host || !sections || !questions || !evidence) return false;
+      const outer = host.getBoundingClientRect();
+      const left = sections.getBoundingClientRect();
+      const middle = questions.getBoundingClientRect();
+      const right = evidence.getBoundingClientRect();
+      if (!left.width || !middle.width || !right.width || outer.width < 300) return false;
+      if (width >= 1280) return outer.width >= 900 &&
+        left.right <= middle.left + 3 && middle.right <= right.left + 3 &&
+        Math.abs(left.top - right.top) <= 15;
+      if (width >= 900) return left.right <= middle.left + 3 &&
+        Math.abs(right.left - middle.left) <= 3 && right.top >= middle.bottom - 3;
+      return left.bottom <= middle.top + 3 && middle.bottom <= right.top + 3;
+    };
+    await page.waitForFunction(layoutReady, viewport.width, { polling: "raf", timeout: 12000 })
+      .catch(async (error) => {
+        const geometry = await workspace.evaluate((node) => {
+          const bounds = (selector) => {
+            const element = selector === "host" ? node : node.querySelector(selector);
+            if (!element) return null;
+            const { x, y, width, height } = element.getBoundingClientRect();
+            return { x, y, width, height };
+          };
+          return { viewport: innerWidth, host: bounds("host"),
+            rail: bounds(".capture-wizard__sections"), work: bounds(".capture-wizard__main"),
+            readiness: bounds(".capture-wizard__readiness") };
+        });
+        throw new Error(`${name} does not match the approved full-page assessment composition: ${error.message}; ${JSON.stringify(geometry)}`);
+      });
+    await workspace.getByText("Required unanswered", { exact: true }).waitFor({ state: "visible" });
+    if (viewport.width <= 850) {
+      const geometry = await workspace.evaluate((node) => {
+        const heading = node.querySelector(".internal-assessment-workspace__header h1");
+        const completion = node.querySelector(".capture-wizard__completion");
+        const sections = node.querySelector(".capture-wizard__sections");
+        return {
+          fontSize: heading ? Number.parseFloat(getComputedStyle(heading).fontSize) : null,
+          completionBottom: completion?.getBoundingClientRect().bottom ?? null,
+          sectionsTop: sections?.getBoundingClientRect().top ?? null,
+        };
+      });
+      const approvedSize = viewport.width <= 600 ? 25 : 29;
+      if (geometry.fontSize !== approvedSize) {
+        throw new Error(`${name} assessment heading diverges from approved ${approvedSize}px size: ${JSON.stringify(geometry)}`);
+      }
+      if (viewport.width <= 390 &&
+          (geometry.completionBottom === null || geometry.completionBottom > viewport.height ||
+           geometry.sectionsTop === null || geometry.sectionsTop >= viewport.height)) {
+        throw new Error(`${name} hides Assessment progress or section navigation below the mobile first viewport: ${JSON.stringify(geometry)}`);
+      }
+    }
+    await saveScreenshot(page, name);
+    if (await workspace.locator(".capture-progress progress").count()) {
+      throw new Error(name + " duplicates the Assessment completion meter with a second step progress bar");
+    }
+    if (viewport.width === 390) {
+      const firstQuestion = await workspace.locator(".capture-field-shell").first().boundingBox();
+      if (!firstQuestion || firstQuestion.y >= viewport.height - 12) {
+        throw new Error(name + " hides the first questionnaire field below the mobile first viewport: " + JSON.stringify(firstQuestion));
+      }
+    }
+    const close = workspace.getByRole("button", { name: "Back to work" });
+    await close.focus();
+    if (!await close.evaluate((element) => element === document.activeElement)) {
+      throw new Error(name + " does not provide keyboard access to the Assessment return control");
+    }
+    await assertNoHorizontalOverflow(page, name);
+    await record(page, capture, viewport.width >= 1280 ? "assessment-internal-three-pane" : viewport.width >= 900 ? "assessment-internal-tablet" : "assessment-internal-mobile");
   } finally {
     await context.close();
   }
@@ -872,7 +2217,7 @@ async function captureVendorWorkflows() {
     }
   }
 
-  const partial = { name: "45-vendor-delivery-partial-light-1440x900", fixture: "vendor-partial-delivery", state: "vendor-delivery-partial", route: "#vendors/register", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
+  const partial = { name: "45-vendor-delivery-partial-light-1440x900", fixture: "vendor-partial-delivery", fixtureTime: "2026-09-08T12:00:00.000Z", state: "vendor-delivery-partial", route: "#vendors/register", title: "Vendors", theme: "light", density: "comfortable", viewport: { width: 1440, height: 900 } };
   const { context, page } = await openPage(partial);
   try {
     await page.getByRole("button", { name: /Acme Processing Limited/ }).click();
@@ -939,9 +2284,8 @@ async function captureVendorActivationRecovery() {
           return originalFetch(input, init);
         };
       });
-      await page.getByRole("button", { name: "Portfolio", exact: true }).click();
-      await page.getByRole("navigation", { name: "Portfolio lenses" }).getByRole("button", { name: "Vendors", exact: true }).click();
-      await page.getByRole("navigation", { name: "Vendor sections" }).getByRole("button", { name: "Register", exact: true }).click();
+      await page.getByRole("complementary", { name: "Primary navigation" }).getByRole("link", { name: "Vendors", exact: true }).click();
+      await selectVendorPortfolioView(page, "register");
       await page.getByRole("button", { name: /Sample · Acme Processing Limited/ }).click();
       await openVendorSection(page, "Due diligence");
       const panel = page.locator(".vendor-activation-panel");
@@ -971,7 +2315,7 @@ async function captureVendorActivationRecovery() {
       await page.waitForFunction(() => typeof window.__vendorActivationRecovery.releaseCommand === "function");
       const commands = await page.evaluate(() => window.__vendorActivationRecovery.commands);
       if (commands.length !== 2 || commands[0].expected_version !== 4 || commands[1].expected_version !== 6) throw new Error("Activation did not use the refreshed relationship version.");
-      if (width < 800) await page.getByRole("button", { name: "Back to vendor register", exact: true }).click();
+      await page.getByRole("button", { name: "Back to vendor register", exact: true }).click();
       await page.getByRole("button", { name: /Sample · Meridian Technology Limited/ }).click();
       await openVendorSection(page, "Due diligence");
       await panel.getByText("Policy 9, version 3 applies from", { exact: false }).waitFor();

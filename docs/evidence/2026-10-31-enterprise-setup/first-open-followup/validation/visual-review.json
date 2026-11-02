@@ -1,0 +1,56 @@
+{
+  "reviewer": "GPT-6 Astra Pro /root/people_integration",
+  "date": "2026-10-31",
+  "revision": "aa666af542fdcba2f2883a58821434f3fbc18740",
+  "build": "40e12a493b9e595206607cba4729db53c7d685dc39cd5169c330fc268542649c",
+  "receiptSHA256": "f9d493fcf9dec86f7d07883e45636fdd825dbfd85ab67ea23b703c7ac10999eb",
+  "verdict": "PASS: no material visual regression from the first-open lifecycle correction",
+  "scope": "All 42 PNGs were checked against both current and preceding receipts and their actual bytes. 41 are byte-identical to the preceding reviewed CI-browser capture. The sole changed dark 1440 overview was directly inspected beside that preceding image.",
+  "previousReview": "docs/evidence/2026-10-31-enterprise-setup/hosted-followup/corrected-named-review.md",
+  "comparison": {
+    "total": 42,
+    "identical": 41,
+    "changed": [
+      {
+        "file": "layout-dark-1440.png",
+        "before": {
+          "sha256": "e21e2cc801fb3e621dbe879e476d3dff8f578a494116b3fe8920d0e77105c093",
+          "bytes": 166048
+        },
+        "after": {
+          "sha256": "f887ba00bedd7124a9f6a3c64c70afb050d129ca96ba5ed459a431247ad1411d",
+          "bytes": 166012
+        },
+        "identical": false
+      }
+    ]
+  },
+  "changedImageAnalysis": {
+    "file": "layout-dark-1440.png",
+    "size": [
+      1440,
+      900
+    ],
+    "changedPixels": 37,
+    "boundingBox": [
+      1059,
+      18,
+      1369,
+      56
+    ],
+    "maximumChannelDifference": 1,
+    "location": "Existing top-shell controls; no changed pixels in the Enterprise Setup page body",
+    "assessment": "Both images retain the same composition, selected Technology row/context, source-order tabs, first useful hierarchy rows, and readable controls. Tiny top-shell rendering variance has no material visual consequence."
+  },
+  "importedTypeDismissal": {
+    "expanded": "false",
+    "focused": true,
+    "listboxes": 0,
+    "popovers": 0
+  },
+  "limitations": [
+    "Synthetic fixture evidence does not prove backend authorization, real commands, independent actors, or production acceptance.",
+    "Existing axe incomplete findings and prior targeted contrast limitations remain; no full WCAG claim.",
+    "The first-open lifecycle behavior is supported by the separately retained deterministic regression and old-effects negative control; screenshot equivalence is a layout regression check."
+  ]
+}

@@ -130,7 +130,7 @@ func (r *PostgresRepository) ListAutomationPolicies(ctx context.Context, tenant 
 		JOIN tenants t ON t.id=ap.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1)
 		ORDER BY ap.code,ap.version DESC
-		LIMIT 200`, tenant)
+		LIMIT $2`, tenant, AutomationPolicyListLimit+1)
 	if err != nil {
 		return nil, fmt.Errorf("list automation policies: %w", err)
 	}

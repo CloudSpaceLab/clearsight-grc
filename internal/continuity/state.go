@@ -90,6 +90,9 @@ func deriveProgramStateWithSourceState(aggregate ProgramAggregate, openMatters i
 
 	linkedRequirements := make(map[string]bool)
 	for _, link := range aggregate.RequirementControlLinks {
+		if !requirementControlLinkEffectiveAt(link, now) {
+			continue
+		}
 		linkedRequirements[link.RequirementID] = true
 	}
 	missingControlLinks := 0
@@ -124,6 +127,9 @@ func deriveProgramStateWithSourceState(aggregate ProgramAggregate, openMatters i
 	inactiveImplementations := 0
 	activeImplementations := 0
 	for _, link := range aggregate.RequirementControlLinks {
+		if !requirementControlLinkEffectiveAt(link, now) {
+			continue
+		}
 		item, ok := latestApplicability[link.RequirementID]
 		if !ok || (item.Status != ApplicabilityApplicable && item.Status != ApplicabilityPartial) {
 			continue
@@ -286,6 +292,14 @@ func deriveProgramStateWithSourceState(aggregate ProgramAggregate, openMatters i
 		GeneratedAt:     now,
 		ProgramVersion:  aggregate.Program.Version,
 	}
+}
+
+// A Program link has two time boundaries, unlike an approved Requirement's
+// effective period. Keep the same predicate for status and requirement coverage
+// so point-in-time compliance cannot use a future or retired safeguard mapping.
+func requirementControlLinkEffectiveAt(link RequirementControlLink, at time.Time) bool {
+	return (link.CreatedAt.IsZero() || !at.Before(link.CreatedAt)) &&
+		(link.RetiredAt == nil || at.Before(*link.RetiredAt))
 }
 
 func effectiveAt(from time.Time, until *time.Time, at time.Time) bool {

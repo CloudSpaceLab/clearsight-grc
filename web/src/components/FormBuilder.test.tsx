@@ -325,8 +325,8 @@ describe("FormBuilder", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send for approval" }));
     const handoff = within(await screen.findByRole("dialog", { name: "Send form for approval" }));
     expect(handoff.getByText("Ready for independent review")).toBeTruthy();
-    expect(handoff.getByText(/This does not activate the form/)).toBeTruthy();
-    expect(handoff.getByText("Activation still requires a separate approver.")).toBeTruthy();
+    expect(handoff.getByText("An independent approver must approve this form before activation.")).toBeTruthy();
+    expect(handoff.getByText("Saved draft unchanged; no new revision required.")).toBeTruthy();
     expect(transition).not.toHaveBeenCalled();
     expect(saveDraft).not.toHaveBeenCalled();
 

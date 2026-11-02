@@ -304,7 +304,7 @@ export function EscalationRoutesWorkspace({ overview, isBusy, onBusy, onNotice, 
 
         {pendingFromAnotherMaker && <form className="identity-inline-form identity-guard-approval" onSubmit={(event) => void approve(event)}>
           <h4>Independent approval</h4>
-          <p className="muted-copy">Approval rechecks role, group and position references before activation.</p>
+          <p className="muted-copy">Approval checks current roles, groups and positions.</p>
           <TextField label="Approval rationale" value={approvalRationale} onChange={setApprovalRationale} placeholder="Reviewed timing, recipients and unresolved routes" isRequired/>
           <Button type="submit" isLoading={isBusy} isDisabled={!approvalRationale.trim()}>Approve & activate v{pending?.version}</Button>
         </form>}
@@ -318,7 +318,7 @@ export function EscalationRoutesWorkspace({ overview, isBusy, onBusy, onNotice, 
 
         {simulation && <SimulationResults value={simulation}/>}
       </>}
-      <p className="identity-footnote">Escalation reassigns work only to one eligible recipient. Approval, review, challenge, authorization and signing permissions are unchanged.</p>
+      <p className="identity-footnote">Escalation changes the assignee only. Approval, review, challenge, authorization and signing rights remain unchanged.</p>
     </article>
   </div>;
 }

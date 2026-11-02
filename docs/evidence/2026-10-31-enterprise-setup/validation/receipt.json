@@ -1,0 +1,88 @@
+{
+  "reviewer": "GPT-6 Astra Pro /root",
+  "date": "2026-10-31",
+  "runtime": {
+    "local_revision": "2264dfd18bc070fe6d5260422272b1533966b8dc",
+    "published_revision": "f2cc3e90dbdada92be03c13ef6ba8e4ccec60e9a",
+    "tree": "a56a650c8e087d27c2f29ff9595a1936c6dd1361"
+  },
+  "capture": {
+    "local_revision": "ed46dd743417ace1cd4af588aae2121055544ba1",
+    "published_revision": "7da3ba6d998e65f034c31073737bd3f1b9410535",
+    "tree": "0c345728a5f523453eb5acddf094d46203cfc6c7",
+    "change": "Record-specific imported editor selector; customer runtime unchanged."
+  },
+  "web_tests": {
+    "files": 277,
+    "tests": 2299,
+    "passed": 2299,
+    "failed": 0
+  },
+  "typescript": "PASS via both builds",
+  "node_gate_files": {
+    "passed": 4,
+    "failed": 0
+  },
+  "customer_bundle": {
+    "metrics": {
+      "javascript": {
+        "raw": 2427600,
+        "gzip": 672896,
+        "initial_gzip": 161937,
+        "largest_raw_chunk": 573982
+      },
+      "css": {
+        "raw": 656235,
+        "gzip": 112601,
+        "initial_gzip": 32126
+      }
+    },
+    "failures": []
+  },
+  "immutable_source": {
+    "files": 96,
+    "failures": [],
+    "manifest_sha256": "4b9df107b35662e2b1c6b8975fd75e0478a58a72e1221c074ac61bcf351abf73"
+  },
+  "logs": [
+    {
+      "file": "tests.txt",
+      "command": "npm test -- --reporter=dot",
+      "exit_code": 0,
+      "sha256": "6417a8189a2d83dd39185e05ae40ca58b35eba077e3ce426e7f02fb60984c109",
+      "bytes": 5015
+    },
+    {
+      "file": "runtime-fixture-boundary.txt",
+      "command": "npm run check:runtime-truth",
+      "exit_code": 0,
+      "sha256": "fb0dce7b889d4326ab9b7a8effda6c01083069010165b036003fadf83bbe7d0e",
+      "bytes": 387
+    },
+    {
+      "file": "ui-contracts.txt",
+      "command": "npm run check:ui-contracts",
+      "exit_code": 0,
+      "sha256": "b26899b2c18513f00a1b64dd1211695f74156560b666b25b2e0f9a5d69744f59",
+      "bytes": 585
+    },
+    {
+      "file": "customer-build.txt",
+      "command": "npm run build",
+      "exit_code": 0,
+      "sha256": "77f1f2ed6c11414fdb43c60d2a66dfa723d7abefc0672cd147f99dc98fadc8f7",
+      "bytes": 9228
+    },
+    {
+      "file": "evidence-build.txt",
+      "command": "npm run build:evidence",
+      "exit_code": 0,
+      "sha256": "c6cb2601b49b978cb3b85e9e5c93c6016814a999eb22d2c5877709bfc9bf602e",
+      "bytes": 11506
+    }
+  ],
+  "limitations": [
+    "Local tests and synthetic browser fixtures do not establish live backend authorization, four-actor execution or production acceptance.",
+    "Hosted checks and release receipts are recorded in the pull request after final review."
+  ]
+}

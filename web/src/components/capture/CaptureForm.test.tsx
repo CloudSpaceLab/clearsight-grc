@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureFormContract, CapturePresentationMode } from "../../types";
 import { CaptureForm } from "./CaptureForm";
+import type { CaptureAttachment } from "./CaptureFieldControl";
 import { CaptureWorkspaceRecoveryProvider, type CaptureWorkspaceRecoveryUI } from "./CaptureWorkspaceRecoveryContext";
 
 function Harness({
@@ -12,6 +13,7 @@ function Harness({
   onReview = vi.fn(),
   onBeforeSectionNavigation,
   recoveryUI,
+  attachments = {},
 }: {
   contract: CaptureFormContract;
   initialAnswers?: CaptureAnswers;
@@ -19,13 +21,14 @@ function Harness({
   onReview?: () => void;
   onBeforeSectionNavigation?: () => Promise<boolean>;
   recoveryUI?: CaptureWorkspaceRecoveryUI;
+  attachments?: Record<string, CaptureAttachment[]>;
 }) {
   const [answers, setAnswers] = useState(initialAnswers);
   const [mode, setMode] = useState(initialMode);
   const form = <CaptureForm
     contract={contract}
     answers={answers}
-    attachments={{}}
+    attachments={attachments}
     mode={mode}
     external
     uploadingField={null}
@@ -138,6 +141,144 @@ describe("CaptureForm", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /Evidence note/ }), { target: { value: "Policy attached separately" } });
     fireEvent.click(screen.getByRole("button", { name: "Review and submit" }));
     expect(onReview).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows only visible recorded answers and unverified evidence in the approved readiness rail", () => {
+    const contract: CaptureFormContract = {
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+      sections: [{ id: "identity", title: "Identity" }, { id: "evidence", title: "Evidence" }],
+      fields: [
+        { id: "name", section_id: "identity", label: "Registered name", type: "short_text", required: true },
+        { id: "receipt", section_id: "evidence", label: "Existing certificate", type: "vendor_document", required: true, collection_received: true },
+        { id: "proof", section_id: "evidence", label: "Risk report", type: "file", required: true },
+        { id: "photo", section_id: "evidence", label: "Site photo", type: "photo", required: false },
+      ],
+    };
+    render(<Harness contract={contract} initialMode="WIZARD"/>);
+    const readiness = screen.getByRole("complementary", { name: "Response readiness and evidence" });
+    expect(within(readiness).getByText("Review readiness")).toBeTruthy();
+    expect(within(readiness).getByText("1 / 4")).toBeTruthy();
+    expect(within(readiness).getByText("Required unanswered").nextElementSibling?.textContent).toBe("2");
+    expect(within(readiness).getByText("1 / 3")).toBeTruthy();
+    expect(within(readiness).getByText("Existing certificate").nextElementSibling?.textContent).toBe("Received");
+    expect(within(readiness).getByText("Risk report").nextElementSibling?.textContent).toBe("Required");
+    expect(within(readiness).getByText("Site photo").nextElementSibling?.textContent).toBe("Not attached");
+    expect(within(readiness).queryByText(/approved|verified|compliant/i)).toBeNull();
+
+    fireEvent.change(screen.getByRole("textbox", { name: /Registered name/ }), {
+      target: { value: "Acme Processing" },
+    });
+    expect(within(readiness).getByText("2 / 4")).toBeTruthy();
+    expect(within(readiness).getByText("Required unanswered").nextElementSibling?.textContent).toBe("1");
+  });
+
+  it("does not treat a document title or metadata without an artifact as received", () => {
+    const contract: CaptureFormContract = {
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+      sections: [{ id: "evidence", title: "Evidence" }],
+      fields: [
+        { id: "certificate", section_id: "evidence", label: "Certificate", type: "vendor_document", required: true },
+      ],
+    };
+    render(<Harness contract={contract} initialMode="WIZARD"
+      initialAnswers={{ certificate: { document: { artifact_id: "", document_type: "ISO certification" } } }}/>);
+    const readiness = screen.getByRole("complementary", { name: "Response readiness and evidence" });
+    expect(within(readiness).getByText("Answers recorded").nextElementSibling?.textContent).toBe("0 / 1");
+    expect(within(readiness).getByText("Evidence received").nextElementSibling?.textContent).toBe("0 / 1");
+    expect(within(readiness).getByText("Certificate").nextElementSibling?.textContent).toBe("Required");
+    expect(within(readiness).getByText("Required unanswered").nextElementSibling?.textContent).toBe("1");
+  });
+
+  it("shows only confirmed artifact filenames, not stale or unuploaded filenames", () => {
+    const contract: CaptureFormContract = {
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+      sections: [{ id: "responses", title: "Responses" }],
+      fields: [{ id: "proof", section_id: "responses", label: "Proof", type: "file", required: true }],
+    };
+    const attachments: Record<string, CaptureAttachment[]> = {
+      proof: [
+        { id: "a-1", file_name: "Annual audit report.pdf", media_type: "application/pdf", size_bytes: 400 },
+        { id: "a-2", file_name: "Stale draft.pdf", media_type: "application/pdf", size_bytes: 200 },
+        { file_name: "Not yet uploaded.pdf", media_type: "application/pdf", size_bytes: 100 },
+      ],
+    };
+    render(<Harness contract={contract} initialMode="WIZARD"
+      initialAnswers={{ proof: { artifact_ids: ["a-1"] } }} attachments={attachments}/>);
+    const rail = screen.getByRole("complementary", { name: "Response readiness and evidence" });
+    expect(within(rail).getByText("Annual audit report.pdf")).toBeTruthy();
+    expect(within(rail).queryByText("Stale draft.pdf")).toBeNull();
+    expect(within(rail).queryByText("Not yet uploaded.pdf")).toBeNull();
+    expect(within(rail).getByText("Evidence received").nextElementSibling?.textContent).toBe("1 / 1");
+
+  });
+
+  it("does not count conditional questions or their evidence while hidden", () => {
+    const contract: CaptureFormContract = {
+      presentation: { default_mode: "WIZARD", allow_mode_switch: false },
+      sections: [
+        { id: "main", title: "Main" },
+        { id: "conditional", title: "Conditional evidence", condition: {
+          field_id: "include", operator: "EQUALS", values: ["Yes"],
+        } },
+      ],
+      fields: [
+        { id: "include", section_id: "main", label: "Include evidence", type: "yes_no", required: true },
+        { id: "proof", section_id: "conditional", label: "Requested proof", type: "file", required: true },
+      ],
+    };
+    render(<Harness contract={contract} initialMode="WIZARD"/>);
+    const rail = screen.getByRole("complementary", { name: "Response readiness and evidence" });
+    expect(within(rail).getByText("0 / 1")).toBeTruthy();
+    expect(within(rail).queryByText("Requested proof")).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Yes" }));
+    expect(within(rail).getByText("1 / 2")).toBeTruthy();
+    expect(within(rail).getByText("Requested proof")).toBeTruthy();
+  });
+
+  it("uses the approved Assessment section rail without bypassing field validation or draft persistence", async () => {
+    const save = vi.fn().mockResolvedValue(true);
+    render(<Harness contract={wizardContract()} initialMode="WIZARD" onBeforeSectionNavigation={save}/>);
+    const rail = screen.getByRole("navigation", { name: "Assessment sections" });
+    expect(rail).toBeTruthy();
+    const company = screen.getByRole("button", { name: "Company" });
+    const evidence = screen.getByRole("button", { name: "Evidence" });
+    expect(company.getAttribute("aria-current")).toBe("step");
+    expect(evidence.getAttribute("aria-current")).toBeNull();
+
+    fireEvent.click(evidence);
+    expect(screen.getByText("Step 1 of 2")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toContain("Registered name is required");
+    expect(save).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByRole("textbox", { name: /Registered name/ }), {
+      target: { value: "Acme Processing Limited" },
+    });
+    fireEvent.click(evidence);
+    await screen.findByText("Step 2 of 2");
+    expect(evidence.getAttribute("aria-current")).toBe("step");
+    expect(save).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(company);
+    await screen.findByText("Step 1 of 2");
+    expect(save).toHaveBeenCalledTimes(2);
+    expect((screen.getByRole("textbox", { name: /Registered name/ }) as HTMLInputElement).value).toBe("Acme Processing Limited");
+  });
+
+  it("prevents skipping future sections and keeps the current step when draft saving fails", async () => {
+    const contract = wizardContract();
+    contract.sections.push({ id: "third", title: "Additional details" });
+    contract.fields.push({ id: "extra", section_id: "third", label: "Additional note", type: "short_text", required: false });
+    const save = vi.fn().mockResolvedValue(false);
+    render(<Harness contract={contract} initialMode="WIZARD" onBeforeSectionNavigation={save}/>);
+    expect((screen.getByRole("button", { name: "Additional details" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByRole("textbox", { name: /Registered name/ }), {
+      target: { value: "Acme Processing Limited" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Evidence" }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("Step 1 of 3")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Company" }).getAttribute("aria-current")).toBe("step");
+    expect((screen.getByRole("textbox", { name: /Registered name/ }) as HTMLInputElement).value).toBe("Acme Processing Limited");
   });
 
   it("waits for a successful draft save before moving in either Wizard direction", async () => {

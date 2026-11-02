@@ -6,11 +6,12 @@ type EmptyStateProps = {
   description: string;
   action?: ReactNode;
   role?: "status" | "alert";
+  compact?: boolean;
 };
 
-export function EmptyState({ population, title, description, action, role }: EmptyStateProps) {
+export function EmptyState({ population, title, description, action, role, compact = false }: EmptyStateProps) {
   const titleID = useId();
-  return <section className="cs-empty-state" aria-labelledby={titleID} role={role}>
+  return <section className={compact ? "cs-empty-state cs-empty-state--compact" : "cs-empty-state"} aria-labelledby={titleID} role={role}>
     {population !== title && <p className="cs-empty-state__population">{population}</p>}
     <h3 className="cs-empty-state__title" id={titleID}>{title}</h3>
     <p className="cs-empty-state__description">{description}</p>

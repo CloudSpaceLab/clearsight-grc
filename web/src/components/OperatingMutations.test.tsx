@@ -103,7 +103,7 @@ describe("governed operating mutations", () => {
       type: "TREATMENT", status: "APPROVED", selectedOption: "Remediate", rationale: "Approved treatment.",
     })));
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ matter: expect.objectContaining({ version: 8 }) }));
-    expect(screen.getByText("Action recorded. The issue and assigned work have been updated.")).toBeTruthy();
+    expect(await screen.findByText("Action recorded. The issue and assigned work have been updated.")).toBeTruthy();
   });
 
   it("executes Matter Action transitions only from projected canonical targets", async () => {

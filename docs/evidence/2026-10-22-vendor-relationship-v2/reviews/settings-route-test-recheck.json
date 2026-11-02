@@ -1,0 +1,49 @@
+{
+  "schema": "clearsight.navigation-test-recheck.v1",
+  "recordedAt": "2026-10-22T08:38:11.817119+00:00",
+  "parentHead": "6048c4009193ffe024c7eda8df7bba087a1d636f",
+  "failure": {
+    "run": 39748050416,
+    "job": 119721364432,
+    "head": "6048c4009193ffe024c7eda8df7bba087a1d636f",
+    "failure": "-22T08:32:28.4738617Z \u23af\u23af\u23af\u23af\u23af\u23af\u23af Failed Tests 1 \u23af\u23af\u23af\u23af\u23af\u23af\u23af\n2026-10-22T08:32:28.4738972Z \n2026-10-22T08:32:28.4741304Z  FAIL  src/App.test.tsx > runtime navigation > keeps Settings hidden and rejects its direct route when configuration is denied\n2026-10-22T08:32:28.4746534Z AssertionError: expected null to be 'page' // Object.is equality\n2026-10-22T08:32:28.4746993Z \n2026-10-22T08:32:28.4747318Z - Expected:\n2026-10-22T08:32:28.4747588Z \"page\"\n2026-10-22T08:32:28.4747779Z \n2026-10-22T08:32:28.4747939Z + Received:\n2026-10-22T08:32:28.4748245Z null\n2026-10-22T08:32:28.4748387Z \n2026-10-22T08:32:28.4749417Z  \u276f src/App.test.tsx:1031:62\n2026-10-22T08:32:28.4976815Z     1029|     expect(screen.queryByLabelText(\"Administration\")).toBeNull();\n2026-10-22T08:32:28.4977620Z     1030|     expect(screen.queryByRole(\"heading\", { name: \"Configuration\" })).t\u2026\n2026-10-22T08:32:28.4978565Z     1031|     expect(primaryLink(\"Home\").getAttribute(\"aria-current\")).toBe(\"pag\u2026\n2026-10-22T08:32:28.4979309Z        |                                                              ^\n2026-10-22T08:32:28.4979800Z     1032|   });\n2026-10-22T08:32:28.4980139Z     1033|\n2026-10-22T08:32:28.4980301Z \n2026-10-22T08:32:28.4980606Z \u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af\u23af[1/1]\u23af\n2026-10-22T08:32:28.4980856Z \n2026-10-22T08:32:28.4983747Z \n2026-10-22T08:32:28.4995565Z  Test Files  1 failed | 261 passed (262)\n2026-10-22T08:32:28.5006441Z       Tests  1 failed | 2101 passed (2102)\n2026-10-22T08:32:28.5006918Z    Start at  08:29:25\n2026-10-22T08:32:28.5009949Z    Duration  182.79s (transform 10.36s, setup 23.54s, import 79.36s, tests 230.67s, environment 177.15s)\n2026-10-22T08:32:28.5011372Z \n2026-10-22T08:32:28.5032661Z \n2026-10-22T08:32:28.5055900Z ##[error]AssertionError: expected null to be 'page' // Object.is equality\n\n- Expected:\n\"page\"\n\n+ Received:\nnull\n\n \u276f src/App.test.tsx:1031:62\n\n\n2026-10-22T08:32:28.6457777Z ##[error]Process completed with exit code 1.\n2026-10-22T08:32:28.6583411Z Post job cleanup.\n2026-10-22T08:32:28.7261446Z [command]/usr/bin/git version\n2026-10-22T08:32:28.7300234Z git version 2.55.0\n2026-10-22T08:32:28.7333210Z Temporarily overriding HOME='/home/runner/work/_temp/0b741a50-4939-424a-ac56-05c31afa9c8c' before making global git config changes\n2026-10-22T08:32:28.7334287Z Adding repository directory to the temporary git global config as a safe directory\n2026-10-22T08:32:28.7337904Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/clearsight-grc/clearsight-grc\n2026-10-22T08:32:28.7370033Z [command]/usr/bin/git config --local --name-only --get-regexp core\\.sshCommand\n2026-10-22T08:32:28.7398834Z [command]/usr/bin/git submodule foreach --recursive sh -c \"git config --local --name-only --get-regexp 'core\\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\"\n2026-10-22T08:32:28.7614448Z [command]/usr/bin/git config --local --name-only --get-regexp http\\.https\\:\\/\\/github\\.com\\/\\.extraheader\n2026-10-22T08:32:28.7640024Z http.https://github.com/.extraheader\n2026-10-22T08:32:28.764"
+  },
+  "scope": "Settings-denied route test synchronization only; no runtime or Work queue/search behavior changes",
+  "diagnosis": {
+    "urlObservation": "#oversight is synchronous inside navigate after queued React state updates",
+    "immediateHomeAriaCurrent": null,
+    "settledHomeAriaCurrent": "page",
+    "settledSettingsVisible": false,
+    "settledConfigurationVisible": false,
+    "probe": "Temporary diagnostic copy observed the real pushState boundary, then awaited rendered Home without changing runtime. Probe removed."
+  },
+  "correction": "Wrap the existing Home aria-current page assertion in await waitFor; preserve URL and all Settings, Administration and Configuration denial assertions.",
+  "validation": {
+    "affectedFile": "src/App.test.tsx",
+    "testFiles": 1,
+    "tests": 74,
+    "passed": 74,
+    "runs": 1,
+    "status": "PASS",
+    "diffCheck": "PASS"
+  },
+  "correctedTestSHA256": "762750bbb3e7e1f3942fafd546be475b070437b6d4164954680ea7c7dc0c3543",
+  "logs": {
+    "originalSingleTestFailureExcerpt": {
+      "sha256": "4d3688062fe06ab45d5ad2d94302e077edb17c002ce24ee40be526edb60a2ef9",
+      "bytes": 1271,
+      "content": "Retained excerpt from the original, unchanged single-test tool output; this is not a rerun.\nCommand: npm test -- src/App.test.tsx -t 'keeps Settings hidden and rejects its direct route when configuration is denied' --reporter=verbose\nSource HEAD: 6048c4009193ffe024c7eda8df7bba087a1d636f\nTool session: 85404\n\n \u00d7 src/App.test.tsx > runtime navigation > keeps Settings hidden and rejects its direct route when configuration is denied 237ms\n   \u2192 expected null to be 'page' // Object.is equality\n\n FAIL  src/App.test.tsx > runtime navigation > keeps Settings hidden and rejects its direct route when configuration is denied\nAssertionError: expected null to be 'page' // Object.is equality\n\n- Expected:\n\"page\"\n\n+ Received:\nnull\n\n \u276f src/App.test.tsx:1031:62\n    1029|     expect(screen.queryByLabelText(\"Administration\")).toBeNull();\n    1030|     expect(screen.queryByRole(\"heading\", { name: \"Configuration\" })).t\u2026\n    1031|     expect(primaryLink(\"Home\").getAttribute(\"aria-current\")).toBe(\"pag\u2026\n       |                                                              ^\n\n Test Files  1 failed (1)\n      Tests  1 failed | 73 skipped (74)\n   Start at  11:34:05\n   Duration  3.34s (transform 1.55s, setup 111ms, import 2.22s, tests 240ms, environment 631ms)\nExit code: 1\n"
+    },
+    "commitBoundaryDiagnostic": {
+      "sha256": "384a962bf336260137bc7b43e13881541c640a92921818f5b8cfea942184f631",
+      "bytes": 974,
+      "content": "\n> @clearsight/web@0.1.0 test\n> vitest run src/App.denied-settings-probe.test.tsx -t keeps Settings hidden and rejects its direct route when configuration is denied --reporter=dot\n\n\n RUN  v4.1.7 /workspace/scratch/52b859deca91/clearsight-grc/web\n\n-----------------------------------------stdout | src/App.denied-settings-probe.test.tsx > runtime navigation > keeps Settings hidden and rejects its direct route when configuration is denied\nDENIED_SETTINGS_COMMIT_BOUNDARY {\"pushStateSnapshots\":[{\"hash\":\"#oversight\",\"homeAriaCurrent\":null}],\"rendered\":{\"hash\":\"#oversight\",\"homeAriaCurrent\":\"page\",\"settingsVisible\":false,\"configurationVisible\":false}}\n\n\u00b7--------------------------------\n\n Test Files  1 passed (1)\n      Tests  1 passed | 73 skipped (74)\n   Start at  11:36:26\n   Duration  3.15s (transform 1.51s, setup 109ms, import 2.09s, tests 268ms, environment 550ms)\n\n\nnpm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+    },
+    "affectedFileRecheck": {
+      "sha256": "8c26b4820fec3541b55e7f5dfbf270171b8148ff0af4a9e99c072c0d6cd25a0c",
+      "bytes": 566,
+      "content": "\n> @clearsight/web@0.1.0 test\n> vitest run src/App.test.tsx --reporter=dot\n\n\n RUN  v4.1.7 /workspace/scratch/52b859deca91/clearsight-grc/web\n\n\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\n\n Test Files  1 passed (1)\n      Tests  74 passed (74)\n   Start at  11:37:24\n   Duration  13.54s (transform 2.01s, setup 97ms, import 1.99s, tests 10.80s, environment 521ms)\n\n\nnpm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n"
+    }
+  },
+  "remoteVerification": "Final published-head CI is recorded separately in PR #582."
+}

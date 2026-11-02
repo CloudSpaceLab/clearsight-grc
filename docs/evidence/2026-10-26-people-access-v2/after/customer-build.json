@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-26T10:52:13.630Z",
+  "freshOutputDirectory": "/tmp/people-v2-customer-1bde8505",
+  "localRevision": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+  "publishedRevision": "1bde850512b9eb4045b23f306322a29ed0859292",
+  "tree": "b8ddfceddb8b767bd060362a2028c8a90de784e2",
+  "metrics": {
+    "javascript": {
+      "raw": 2400771,
+      "gzip": 665409,
+      "initial_gzip": 161876,
+      "largest_raw_chunk": 566368
+    },
+    "css": {
+      "raw": 646002,
+      "gzip": 111406,
+      "initial_gzip": 32097
+    }
+  },
+  "failures": [],
+  "fixtureMarkersAbsent": true,
+  "configureChunks": [
+    "ConfigureWorkspace-CuVJIbxv.js"
+  ]
+}

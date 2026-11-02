@@ -29,13 +29,14 @@ type Props = {
   state?: CaptureLoadState;
   onReload?: () => void;
   external?: boolean;
+  fullPage?: boolean;
   sessionToken?: string;
   workspacePersistence?: CaptureWorkspacePersistence;
   onSubmit?: (request: CaptureRequest, answers: CaptureAnswers) => Promise<SubmitResult>;
   onUploadArtifact?: (requestID: string, file: File, fieldID?: string) => Promise<CaptureArtifact>;
 };
 
-export function CapturePanel({ request, state = "live", onReload, external = false, sessionToken, workspacePersistence, onSubmit, onUploadArtifact }: Props) {
+export function CapturePanel({ request, state = "live", onReload, external = false, fullPage = false, sessionToken, workspacePersistence, onSubmit, onUploadArtifact }: Props) {
   const [answers, setAnswers] = useState<CaptureAnswers>({});
   const [attachments, setAttachments] = useState<Record<string, CaptureAttachment[]>>({});
   const [uploadingField, setUploadingField] = useState<string | null>(null);
@@ -353,24 +354,31 @@ export function CapturePanel({ request, state = "live", onReload, external = fal
     }
   }
 
-  if (receipt) return <div className="panel-content response-receipt"><span className="eyebrow">Receipt</span><div className="receipt-mark" aria-hidden="true">✓</div><h2>{external ? "Submitted" : "Response submitted"}</h2><p>{receipt}</p><p>{external ? "Your response was recorded." : "The response was recorded for evidence review."}</p></div>;
+  if (receipt) return <div className="panel-content response-receipt"><span className="eyebrow">Receipt</span><div className="receipt-mark" aria-hidden="true">✓</div><h2>{external ? "Submitted" : "Response submitted"}</h2><p>{receipt}</p></div>;
 
   if (external && (workspacePersistence || !sessionToken || draftReady) && allRequiredDocumentsReceived(contract, answers)) return <div className="panel-content response-receipt"><h2>Received</h2><p>{request.title}</p><p>All required documents received. No response needed.</p><ul>{visibleCaptureFields(contract, answers).filter((field) => field.required).map((field) => <li key={field.id}>{field.label}</li>)}</ul></div>;
 
   if (reviewing) return <CaptureReview request={request} fields={visibleCaptureFields(contract, answers)} answers={answers} attachments={attachments} external={external} submitting={submitting} error={error} errorKind={errorKind} onEdit={() => setReviewing(false)} onReload={onReload} onSubmit={() => void submit()}/>;
 
-  return <div className="panel-content">
+  return <div className={fullPage ? "panel-content capture-panel--full-page" : "panel-content"}>
     <span className="eyebrow">Evidence request · about {request.estimated_minutes} min</span><h2>{request.title}</h2><p>{request.purpose}</p>
     {external && <div className="external-request-context" aria-label="Request details">
       <strong>Due {formatCaptureDeadline(request.deadline)}</strong>
       <span>Your answers and files are shared with the organization that sent this request.</span>
       <span>For changes to the request or your access, contact the person who sent this link.</span>
     </div>}
-    <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
-    {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
+    {!fullPage && <>
+      <div className="why-you"><strong>Why this was sent to you</strong><span>{request.why_you}</span></div>
+      {Object.keys(request.known_facts).length > 0 && <><h3>Already filled in</h3><dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></>}
+    </>}
     {external && workspacePersistence ? <WorkspaceSaveStatus state={workspacePersistence.saveState} onRetry={workspacePersistence.onRetry}/>
       : external && sessionToken ? <DraftStatus state={draftState} onRetry={() => void retryDraftSave()}/> : null}
-    <CaptureForm request={request} contract={contract} answers={answers} attachments={attachments} mode={effectivePresentationMode(contract, answers, mode)} external={external} uploadingField={uploadingField} onAnswer={updateAnswer} onUpload={(field, files, previewURL) => void upload(field, files, previewURL)} onRemoveAttachment={removeAttachment} onModeChange={changeMode} onBeforeSectionNavigation={workspacePersistence || (external && sessionToken) ? saveBeforeSectionNavigation : undefined} onReview={() => { setError(null); setErrorKind(null); setReviewing(true); }}/>
+    <CaptureForm request={request} contract={contract} answers={answers} attachments={attachments} mode={effectivePresentationMode(contract, answers, mode)} external={external} fullPage={fullPage} uploadingField={uploadingField} onAnswer={updateAnswer} onUpload={(field, files, previewURL) => void upload(field, files, previewURL)} onRemoveAttachment={removeAttachment} onModeChange={changeMode} onBeforeSectionNavigation={workspacePersistence || (external && sessionToken) ? saveBeforeSectionNavigation : undefined} onReview={() => { setError(null); setErrorKind(null); setReviewing(true); }}/>
+    {fullPage && <details className="capture-panel__context">
+      <summary>Request context{Object.keys(request.known_facts).length ? ` · ${Object.keys(request.known_facts).length} known facts` : ""}</summary>
+      {request.why_you && <p>{request.why_you}</p>}
+      {Object.keys(request.known_facts).length > 0 && <dl className="known-facts">{Object.entries(request.known_facts).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl>}
+    </details>}
     {error && <p className="error-text" role="alert">{error}</p>}
   </div>;
 }

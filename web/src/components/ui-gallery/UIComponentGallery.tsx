@@ -15,6 +15,7 @@ import {
   MetricCard,
   Notice,
   PopoverDialog,
+  RankedBarList,
   ScopeBar,
   SearchField,
   SelectableRecord,
@@ -56,13 +57,17 @@ export function UIComponentGallery() {
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
   const [compactTab, setCompactTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
   const [retainedTab, setRetainedTab] = useState<(typeof tabs)[number]["id"]>("PENDING");
+  const [contextualTab, setContextualTab] = useState<"LIST" | "EDITOR">("LIST");
+  const [contextualTitle, setContextualTitle] = useState("");
   const [workspace, setWorkspace] = useState<"PROGRAMS" | "VENDORS" | "PRIVACY">("PROGRAMS");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [busySheetOpen, setBusySheetOpen] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState("request-1");
   const [openedRequest, setOpenedRequest] = useState<SampleRow>();
   const [requestSort, setRequestSort] = useState<"ascending" | "descending">("ascending");
+  const [openedSampleArea, setOpenedSampleArea] = useState<string>();
 
   return <main className="ui-gallery">
     <header className="ui-gallery__header">
@@ -77,6 +82,14 @@ export function UIComponentGallery() {
       </Contract>
       <Contract family="ActionCard" job="Offers one consequential route with concise supporting context." keyboard="Enter or Space activates it." prohibited="Do not rebuild a card-shaped button in a feature."><ActionCard title="Create sample request" description="Start a governed sample evidence request" icon={<span aria-hidden="true">+</span>}/></Contract>
       <Contract family="ActionLink" job="Navigates to another location." keyboard="Enter follows the link." prohibited="Do not use it for an in-place command."><ActionLink href="#sample-destination">Open sample destination</ActionLink></Contract>
+      <Contract family="ActionLink" job="Names the current page and contextual location in a navigation list." keyboard="Tab reaches each available destination; Enter follows its link." prohibited="Do not replace a destination with an in-place command or a private selected style.">
+        <nav aria-label="Sample workspace navigation">
+          <ActionLink variant="navigation" href="#gallery-actions" aria-current="page"><span aria-hidden="true">◫</span>Sample actions</ActionLink>
+          <ActionLink variant="navigation" href="#gallery-fields" aria-current="location">Sample fields</ActionLink>
+          <ActionLink variant="navigation" href="#gallery-navigation">Sample navigation</ActionLink>
+          <ActionLink variant="navigation" href="#sample-settings" isDisabled>Sample unavailable settings</ActionLink>
+        </nav>
+      </Contract>
       <Contract family="IconButton" job="Runs a compact, named icon action." keyboard="Enter or Space activates it." prohibited="Do not omit its accessible business name."><IconButton aria-label="Close sample panel"><span aria-hidden="true">×</span></IconButton></Contract>
     </GalleryGroup>
 
@@ -94,11 +107,12 @@ export function UIComponentGallery() {
     <GalleryGroup title="Selection">
       <Contract family="CheckboxField" job="Includes or excludes one named option." keyboard="Space changes the selection after focus." prohibited="Do not use it for mutually exclusive choices."><CheckboxField label="Include sample evidence" description="Adds the sample evidence to this review only." isSelected={included} onChange={setIncluded}/></Contract>
       <Contract family="SelectField" job="Selects one value from a bounded list." keyboard="Arrow keys move; Enter selects; Escape closes." prohibited="Do not replace searchable remote results with this control."><SelectField label="Sample response status" value={selection} placeholder="Select sample status" options={selections} onChange={(value) => value && setSelection(value)}/></Contract>
-      <Contract family="SelectableRecord" job="Selects one record for review while preserving its visible context." keyboard="Enter or Space selects the record." prohibited="Do not rebuild a raw list button with page-specific selected styles."><SelectableRecord title="Sample vendor response" metadata="Current · Submitted 27 August 2026" description="Email verified · Compliance score 86%" isSelected onPress={() => undefined}/></Contract>
+      <Contract family="SelectableRecord" job="Selects one record for review while preserving its visible context." keyboard="Enter or Space selects the record." prohibited="Do not rebuild a raw list button with page-specific selected styles."><SelectableRecord title="Sample vendor response" metadata="Current · Submitted 27 August 2026" description="Email verified · Compliance score 86%" startContent={<span>VD</span>} endContent={<StatusBadge tone="warning">Review open</StatusBadge>} isSelected onPress={() => undefined}/></Contract>
     </GalleryGroup>
 
     <GalleryGroup title="Navigation">
       <Contract family="Tabs" job="Moves between peer views in one workspace." keyboard="Arrow keys move and activate; Home and End jump." prohibited="Do not add a second selected indicator."><Tabs ariaLabel="Sample request views" items={tabs} selectedKey={tab} onSelectionChange={setTab}>{(key) => <p>{key === "PENDING" ? "Sample requests awaiting review." : "Sample requests completed in this fixture."}</p>}</Tabs></Contract>
+      <Contract family="Tabs" job="Shows a command-entered editor tab only while selected, retaining its draft after leaving." keyboard="Open the editor with its command; arrow keys return to peer views." prohibited="Do not delete a contextual panel from the item collection to hide its trigger."><Button variant="secondary" onPress={() => setContextualTab("EDITOR")}>Open sample editor</Button><Tabs retainVisitedPanels ariaLabel="Sample contextual views" items={[{ id: "LIST", label: "Sample reports" }, { id: "EDITOR", label: "Sample editor", isContextual: true }]} selectedKey={contextualTab} onSelectionChange={setContextualTab}>{(key) => key === "EDITOR" ? <TextField label="Sample report title" value={contextualTitle} onChange={setContextualTitle}/> : <p>Sample generated reports.</p>}</Tabs></Contract>
       <Contract family="Tabs" job="Retains each visited editor and its draft while keeping inactive panels hidden and inert." keyboard="Arrow keys or the compact selector switch sections without clearing drafts." prohibited="Do not start reads for unvisited sections or treat retained data as current authority."><Tabs retainVisitedPanels ariaLabel="Sample retained review" compactLabel="Sample review section" items={tabs} selectedKey={retainedTab} onSelectionChange={setRetainedTab}>{(key) => key === "PENDING" ? <label>Sample unsaved judgement<input defaultValue=""/></label> : <p>Sample completed review.</p>}</Tabs></Contract>
       <Contract family="Tabs" job="Replaces peer tabs with a labelled selector at widths up to 760px, retaining the mounted view." keyboard="Compact selector: Arrow keys move, Enter selects, Escape closes." prohibited="Do not mount a second content tree for the compact view."><Tabs ariaLabel="Sample responsive request views" compactLabel="Sample request section" items={tabs} selectedKey={compactTab} onSelectionChange={setCompactTab}>{(key) => <p>{key === "PENDING" ? "Sample requests awaiting review." : "Sample requests completed in this fixture."}</p>}</Tabs></Contract>
       <Contract family="WorkspaceSwitcher" job="Moves between peer workspaces while keeping each workspace authoritative and independently routed." keyboard="Tab reaches each workspace; Enter or Space selects. Compact selector uses standard select keyboard behavior." prohibited="Do not use it to duplicate a workspace, hide route changes, or carry unsaved state between unrelated records."><WorkspaceSwitcher ariaLabel="Sample portfolio lenses" compactLabel="Sample portfolio lens" items={[{ id: "PROGRAMS", label: "Programs" }, { id: "VENDORS", label: "Vendors" }, { id: "PRIVACY", label: "Processing activities" }]} selectedKey={workspace} onSelectionChange={setWorkspace}/></Contract>
@@ -125,6 +139,13 @@ export function UIComponentGallery() {
     </GalleryGroup>
 
     <GalleryGroup title="Data">
+      <Contract family="RankedBarList" job="Compares named quantities with optional authorized row actions." keyboard="Enter or Space activates an actionable row; static rows do not enter the tab order." prohibited="Do not remove labels or replace unavailable quantities with reassuring values.">
+        <div className="ui-gallery__grid">
+          <RankedBarList ariaLabel="Sample stacked area quantities" items={[{ id: "technology", label: "Sample Technology", value: 3 }, { id: "operations", label: "Sample Operations", value: 2, meta: "Sample recorded population" }]}/>
+          <RankedBarList ariaLabel="Sample inline area quantities" layout="inline" items={[{ id: "technology", label: "Sample Technology", value: 3 }, { id: "unattributed", label: "Sample unattributed", value: 1, meta: "Sample area unavailable", isDisabled: true }]} onAction={(item) => setOpenedSampleArea(item.label)}/>
+        </div>
+        {openedSampleArea && <Notice tone="info">Opened {openedSampleArea} in this sample.</Notice>}
+      </Contract>
       <Contract family="DataTable" job="Orders comparable records by a named column." keyboard="Enter or Space changes the order; the active header announces its direction." prohibited="Do not imply client-only sorting of a server-paginated population."><DataTable ariaLabel="Sample sorted requests" rows={[...sampleRows].sort((a, b) => (requestSort === "ascending" ? 1 : -1) * a.request.localeCompare(b.request))} rowKey={(row) => row.id} rowName={(row) => row.request} columns={sampleColumns.map((column) => column.id === "request" ? { ...column, sortDirection: requestSort, onSort: () => setRequestSort((current) => current === "ascending" ? "descending" : "ascending") } : column)}/></Contract>
       <Contract family="FilterBar" job="Groups filters, result count and reset handling." keyboard="Tab follows the visible field order." prohibited="Do not compress fields below their usable width."><FilterBar label="Sample request filters" fields={<><TextField label="Sample owner" value="" onChange={() => undefined}/><SelectField label="Sample state" placeholder="All sample states" options={selections} onChange={() => undefined}/></>} resultCount={2} onClear={() => undefined}/></Contract>
       <Contract family="FilterChip" job="Names and removes one applied filter or reopens advanced logic." keyboard="Enter or Space runs its named action." prohibited="Do not use a chip for a lifecycle status."><FilterChip label="Status" value="Responses open" onRemove={() => undefined}/></Contract>
@@ -139,10 +160,17 @@ export function UIComponentGallery() {
     </GalleryGroup>
 
     <GalleryGroup title="Overlays">
-      <Contract family="FocusedSheet" job="Keeps one focused detail or decision above its source view." keyboard="Tab remains inside; Escape closes unless consequential submission is in flight." prohibited="Do not customize the backdrop in a feature."><div className="ui-gallery__row"><Button onPress={() => setSheetOpen(true)}>Open sample sheet</Button><Button variant="secondary" onPress={() => setBusySheetOpen(true)}>Open in-flight sample</Button></div></Contract>
+      <Contract family="FocusedSheet" job="Keeps one focused detail or decision above its source view." keyboard="Tab remains inside; Escape closes unless consequential submission is in flight." prohibited="Do not customize the backdrop in a feature."><div className="ui-gallery__row"><Button onPress={() => setSheetOpen(true)}>Open sample sheet</Button><Button variant="secondary" onPress={() => setNavigationOpen(true)}>Open sample navigation</Button><Button variant="secondary" onPress={() => setBusySheetOpen(true)}>Open in-flight sample</Button></div></Contract>
       <Contract family="PopoverDialog" job="Keeps short contextual work anchored to its trigger." keyboard="Escape closes and focus returns to the trigger." prohibited="Do not use it for long or consequential workflows."><PopoverDialog label="Sample filter" isOpen={popoverOpen} onOpenChange={setPopoverOpen} trigger={<Button>Open sample filter</Button>}><p>Choose a bounded sample filter.</p><Button onPress={() => setPopoverOpen(false)}>Finish sample filter</Button></PopoverDialog></Contract>
     </GalleryGroup>
     {sheetOpen && <FocusedSheet label="Sample evidence detail" onClose={() => setSheetOpen(false)}><h2>Sample evidence detail</h2><p>This overlay contains labelled sample component data only.</p><Button onPress={() => setSheetOpen(false)}>Finish sample review</Button></FocusedSheet>}
+    {navigationOpen && <FocusedSheet label="Sample navigation" placement="start" closeLabel="Close sample navigation" onClose={() => setNavigationOpen(false)}>
+      <div className="cs-sheet-heading"><h2>Sample navigation</h2><p>Choose a section of this component gallery.</p></div>
+      <nav aria-label="Sample gallery destinations">
+        <ActionLink variant="navigation" href="#gallery-actions" onPress={() => setNavigationOpen(false)}>Sample actions</ActionLink>
+        <ActionLink variant="navigation" href="#gallery-fields" onPress={() => setNavigationOpen(false)}>Sample fields</ActionLink>
+      </nav>
+    </FocusedSheet>}
     {busySheetOpen && <FocusedSheet label="Sample request delivery" closeLabel="Sample request is being sent" isDismissable={false} onClose={() => setBusySheetOpen(false)}><h2>Sample request delivery</h2><Notice tone="info">The sample request is being sent. This sheet remains open until delivery finishes.</Notice><Button isLoading>Sending sample request</Button><Button variant="secondary" onPress={() => setBusySheetOpen(false)}>Finish sample delivery</Button></FocusedSheet>}
   </main>;
 }

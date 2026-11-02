@@ -1,0 +1,170 @@
+[
+  {
+    "file": "layout-light-1280.png",
+    "size": [
+      1280,
+      800
+    ],
+    "changedPixels": 39,
+    "bounds": [
+      493,
+      450,
+      500,
+      457
+    ]
+  },
+  {
+    "file": "layout-dark-1280.png",
+    "size": [
+      1280,
+      800
+    ],
+    "changedPixels": 39,
+    "bounds": [
+      493,
+      450,
+      500,
+      457
+    ]
+  },
+  {
+    "file": "layout-light-768.png",
+    "size": [
+      768,
+      900
+    ],
+    "changedPixels": 33,
+    "bounds": [
+      313,
+      446,
+      319,
+      453
+    ]
+  },
+  {
+    "file": "layout-dark-768.png",
+    "size": [
+      768,
+      900
+    ],
+    "changedPixels": 32,
+    "bounds": [
+      313,
+      446,
+      319,
+      453
+    ]
+  },
+  {
+    "file": "layout-light-390.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 33,
+    "bounds": [
+      292,
+      550,
+      298,
+      557
+    ]
+  },
+  {
+    "file": "layout-light-390-full.png",
+    "size": [
+      390,
+      3186
+    ],
+    "changedPixels": 33,
+    "bounds": [
+      292,
+      550,
+      298,
+      557
+    ]
+  },
+  {
+    "file": "layout-dark-390.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 32,
+    "bounds": [
+      292,
+      550,
+      298,
+      557
+    ]
+  },
+  {
+    "file": "layout-dark-390-full.png",
+    "size": [
+      390,
+      3186
+    ],
+    "changedPixels": 32,
+    "bounds": [
+      292,
+      550,
+      298,
+      557
+    ]
+  },
+  {
+    "file": "selection-search-history-dark-390.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 32,
+    "bounds": [
+      292,
+      550,
+      298,
+      557
+    ]
+  },
+  {
+    "file": "empty.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 78,
+    "bounds": [
+      181,
+      548,
+      202,
+      557
+    ]
+  },
+  {
+    "file": "truncated.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 834,
+    "bounds": [
+      196,
+      547,
+      328,
+      557
+    ]
+  },
+  {
+    "file": "recovery.png",
+    "size": [
+      390,
+      844
+    ],
+    "changedPixels": 32,
+    "bounds": [
+      292,
+      550,
+      298,
+      557
+    ]
+  }
+]

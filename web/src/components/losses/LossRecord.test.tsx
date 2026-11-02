@@ -1,7 +1,9 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { LossAggregate } from "../../lossTypes";
+import * as lossApi from "../../lossApi";
 import { LossRecord } from "./LossRecord";
+import { LossesWorkspace } from "./LossesWorkspace";
 
 const aggregate: LossAggregate = {
   loss: {
@@ -72,7 +74,8 @@ describe("LossRecord", () => {
 
     expect(await screen.findByRole("heading", { name: "Duplicate settlement" })).toBeTruthy();
     const currentState = screen.getByRole("group", { name: "Current loss state" });
-    expect(currentState.querySelector("dl")).toBeTruthy();
+    expect(within(currentState).getAllByRole("term").map((item) => item.textContent)).toEqual(["Gross loss", "Recovered", "Net loss", "Currency"]);
+    expect(within(currentState).getAllByRole("definition").map((item) => item.textContent)).toEqual(["₦5,000,000.00", "₦2,000,000.00", "₦3,000,000.00", "NGN"]);
     expect(await screen.findByText("RISK-042 · Settlement processing risk")).toBeTruthy();
     expect(screen.getByText("Nneka Okafor")).toBeTruthy();
     expect(screen.getByText("BANK / PAYMENTS")).toBeTruthy();
@@ -163,5 +166,48 @@ describe("LossRecord", () => {
       reference: "Bank adjustment",
     })));
     await waitFor(() => expect(loadLoss).toHaveBeenCalledTimes(2));
+  });
+
+  it("starts a fresh recovery draft when the exact loss route changes", async () => {
+    vi.spyOn(lossApi, "getLoss").mockImplementation(async (id) => ({
+      ...aggregate,
+      loss: { ...aggregate.loss, id, risk_id: undefined, title: id === "loss-1" ? "Duplicate settlement" : "Processing interruption" },
+    }));
+    const onTarget = vi.fn();
+    const { rerender } = render(<LossesWorkspace targetID="loss-1" onTarget={onTarget}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Record recovery" }));
+    const oldDialog = await screen.findByRole("dialog", { name: "Record recovery entry" });
+    fireEvent.change(within(oldDialog).getByLabelText(/^Amount/), { target: { value: "1000000.00" } });
+
+    rerender(<LossesWorkspace targetID="loss-2" onTarget={onTarget}/>);
+    await screen.findByRole("heading", { name: "Processing interruption" });
+    expect(screen.queryByRole("dialog", { name: "Record recovery entry" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Record recovery" }));
+    const newDialog = await screen.findByRole("dialog", { name: "Record recovery entry" });
+    expect((within(newDialog).getByLabelText(/^Amount/) as HTMLInputElement).value).toBe("");
+  });
+
+  it("does not navigate to a previous loss's intervention after the exact record changes", async () => {
+    vi.spyOn(lossApi, "getLoss").mockImplementation(async (id) => ({
+      ...aggregate,
+      loss: { ...aggregate.loss, id, risk_id: undefined, title: id === "loss-1" ? "Duplicate settlement" : "Processing interruption" },
+    }));
+    let resolveIntervention!: (value: Awaited<ReturnType<typeof lossApi.openLossIntervention>>) => void;
+    const openIntervention = vi.spyOn(lossApi, "openLossIntervention").mockReturnValue(new Promise((resolve) => { resolveIntervention = resolve; }));
+    const onTarget = vi.fn();
+    const onOpenMatter = vi.fn();
+    const { rerender } = render(<LossesWorkspace targetID="loss-1" onTarget={onTarget} onOpenMatter={onOpenMatter}/>);
+    fireEvent.click(await screen.findByRole("button", { name: "Open intervention" }));
+    await waitFor(() => expect(openIntervention).toHaveBeenCalledWith("loss-1", 2));
+
+    rerender(<LossesWorkspace targetID="loss-2" onTarget={onTarget} onOpenMatter={onOpenMatter}/>);
+    await screen.findByRole("heading", { name: "Processing interruption" });
+    await act(async () => resolveIntervention({
+      loss: { ...aggregate.loss, matter_id: "matter-1", version: 3 },
+      matter: { id: "matter-1", reference: "MAT-001", status: "INITIAL_REVIEW" },
+    }));
+
+    expect(onOpenMatter).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "Processing interruption" })).toBeTruthy();
   });
 });

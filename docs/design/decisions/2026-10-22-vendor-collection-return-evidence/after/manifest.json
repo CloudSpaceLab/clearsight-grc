@@ -1,0 +1,1389 @@
+{
+  "generatedAt": "2026-10-22T14:11:18.714Z",
+  "baseURL": "http://127.0.0.1:4318",
+  "failure": null,
+  "captures": [
+    {
+      "name": "245g-vendor-portfolio-documents-drill-dark-390",
+      "route": "#vendors/documents",
+      "fixture": "vendor-form-assessment",
+      "state": "vendor-portfolio-documents-drill",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "vendorPortfolioLayout": {
+        "kind": "documents",
+        "route": "#vendors/documents",
+        "heading": {
+          "x": 64,
+          "y": 132,
+          "width": 318,
+          "height": 195.375,
+          "right": 382,
+          "bottom": 327.375
+        },
+        "title": {
+          "x": 64,
+          "y": 178,
+          "width": 318,
+          "height": 32.1875,
+          "right": 382,
+          "bottom": 210.1875
+        },
+        "headingText": "Vendors",
+        "localTabs": [
+          "Overview",
+          "Register",
+          "Onboarding",
+          "Assessments",
+          "Documents"
+        ],
+        "selectedTab": "Documents",
+        "selectedPanelID": "react-aria3053362467-_r_jt_-tabpanel-documents",
+        "visiblePanelIDs": [
+          "react-aria3053362467-_r_jt_-tabpanel-documents"
+        ],
+        "selectedPanelControlsMatch": true,
+        "menuMode": "select",
+        "compactValue": "Documents",
+        "tablist": {
+          "x": 64,
+          "y": 327.375,
+          "width": 318,
+          "height": 73,
+          "right": 382,
+          "bottom": 400.375
+        },
+        "selectedTabBounds": {
+          "x": 64,
+          "y": 356.375,
+          "width": 318,
+          "height": 44,
+          "right": 382,
+          "bottom": 400.375
+        },
+        "selectedTabVisible": true,
+        "titleContained": true,
+        "main": null,
+        "aside": null,
+        "placement": null,
+        "metrics": [],
+        "insights": [],
+        "railHeadings": [],
+        "register": null,
+        "registerRows": 2,
+        "firstRecord": {
+          "x": 78,
+          "y": 613.96875,
+          "width": 290,
+          "height": 103,
+          "right": 368,
+          "bottom": 716.96875
+        },
+        "recordHeights": [
+          103,
+          124
+        ],
+        "recordIDs": [
+          "vendor-relationship-payments",
+          "sample-relationship-hosting"
+        ],
+        "firstRecordVisible": true,
+        "firstUsefulContent": {
+          "x": 78,
+          "y": 613.96875,
+          "width": 290,
+          "height": 103,
+          "right": 368,
+          "bottom": 716.96875
+        },
+        "firstUsefulContentVisible": true,
+        "selectedRelationshipVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "minTargetWidth": 88.203125,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "apiReads": [
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1335.0999999996275,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1475.199999999255,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/sample-relationship-hosting/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1475.199999999255,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/form-summaries",
+            "query": "?relationship_ids=vendor-relationship-payments%2Csample-relationship-hosting&limit=50",
+            "method": "GET",
+            "initiatedAt": 1475.5,
+            "status": 200,
+            "summaryIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "responseItems": 2
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 2057.199999999255,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 2059,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "initiatedAt": 2063.5999999996275,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "initiatedAt": 2319.300000000745,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 2485.800000000745,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 2687.9000000003725,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "initiatedAt": 2736.9000000003725,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 2737,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "initiatedAt": 2758.199999999255,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 6372.800000000745,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          }
+        ],
+        "commands": [],
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "interaction": {
+          "initialCollection": {
+            "action": "INITIAL_COLLECTION",
+            "route": "#vendors/documents",
+            "view": "documents",
+            "heading": "Vendors",
+            "portfolioVisible": true,
+            "collectionVisible": true,
+            "selectedRelationshipVisible": false,
+            "detailHeading": null,
+            "selectedTab": "Documents",
+            "selectedPanelVisible": true,
+            "recordTitles": [
+              "Acme Processing Limited",
+              "Sample · Northshore Hosting Limited"
+            ],
+            "recordCount": 2,
+            "pendingAPIRequests": 0,
+            "observedReadsSettled": true,
+            "loadingVisible": false,
+            "sameDocument": null,
+            "complete": true
+          },
+          "relationshipPreserved": true,
+          "protectedDocuments": true,
+          "browserBack": {
+            "action": "HISTORY_BACK",
+            "route": "#vendors/documents",
+            "view": "documents",
+            "heading": "Vendors",
+            "portfolioVisible": true,
+            "collectionVisible": true,
+            "selectedRelationshipVisible": false,
+            "detailHeading": null,
+            "selectedTab": "Documents",
+            "selectedPanelVisible": true,
+            "recordTitles": [
+              "Acme Processing Limited",
+              "Sample · Northshore Hosting Limited"
+            ],
+            "recordCount": 2,
+            "pendingAPIRequests": 0,
+            "observedReadsSettled": true,
+            "loadingVisible": false,
+            "sameDocument": true,
+            "complete": true
+          },
+          "returned": true,
+          "browserForward": {
+            "action": "HISTORY_FORWARD",
+            "route": "#vendors/register/vendor-relationship-payments",
+            "selectedRelationshipVisible": true,
+            "portfolioVisible": false,
+            "relationshipTitle": "Acme Processing Limited",
+            "sameDocument": true,
+            "observedReadsSettled": true
+          },
+          "refresh": {
+            "relationshipPreserved": true,
+            "initialSection": "Overview",
+            "reopenedSection": "Evidence",
+            "evidenceView": "Documents",
+            "directHashRoot": {
+              "action": "DIRECT_HASH_ROOT",
+              "route": "#vendors/documents",
+              "view": "documents",
+              "heading": "Vendors",
+              "portfolioVisible": true,
+              "collectionVisible": true,
+              "selectedRelationshipVisible": false,
+              "detailHeading": null,
+              "selectedTab": "Documents",
+              "selectedPanelVisible": true,
+              "recordTitles": [
+                "Acme Processing Limited",
+                "Sample · Northshore Hosting Limited"
+              ],
+              "recordCount": 2,
+              "pendingAPIRequests": 0,
+              "observedReadsSettled": true,
+              "loadingVisible": false,
+              "sameDocument": true,
+              "complete": true
+            },
+            "reloadedCollection": {
+              "action": "RELOAD_COLLECTION",
+              "route": "#vendors/documents",
+              "view": "documents",
+              "heading": "Vendors",
+              "portfolioVisible": true,
+              "collectionVisible": true,
+              "selectedRelationshipVisible": false,
+              "detailHeading": null,
+              "selectedTab": "Documents",
+              "selectedPanelVisible": true,
+              "recordTitles": [
+                "Acme Processing Limited",
+                "Sample · Northshore Hosting Limited"
+              ],
+              "recordCount": 2,
+              "pendingAPIRequests": null,
+              "observedReadsSettled": false,
+              "loadingVisible": false,
+              "sameDocument": null,
+              "complete": true,
+              "newDocument": true
+            },
+            "complete": true
+          },
+          "explicitRegisterReturn": {
+            "action": "IN_APP_REGISTER_RETURN",
+            "route": "#vendors/register",
+            "view": "register",
+            "heading": "Vendors",
+            "portfolioVisible": true,
+            "collectionVisible": true,
+            "selectedRelationshipVisible": false,
+            "detailHeading": null,
+            "selectedTab": "Register",
+            "selectedPanelVisible": true,
+            "recordTitles": [
+              "Acme Processing Limited",
+              "Sample · Northshore Hosting Limited"
+            ],
+            "recordCount": 2,
+            "pendingAPIRequests": 0,
+            "observedReadsSettled": true,
+            "loadingVisible": false,
+            "sameDocument": true,
+            "complete": true
+          }
+        }
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Vendors"
+        ],
+        "activeLocation": [],
+        "railWidth": 56,
+        "railX": 0,
+        "labelMode": "icons",
+        "maxLabelLines": 0,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": true,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1021,
+        "scrollY": 0,
+        "theme": "dark",
+        "density": "comfortable",
+        "activeElement": "Documents⌄"
+      }
+    },
+    {
+      "name": "245h-vendor-portfolio-onboarding-drill-light-1440",
+      "route": "#vendors/onboarding",
+      "fixture": "vendor-form-assessment",
+      "state": "vendor-portfolio-onboarding-drill",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "density": "comfortable",
+      "vendorPortfolioLayout": {
+        "kind": "onboarding",
+        "route": "#vendors/onboarding",
+        "heading": {
+          "x": 260,
+          "y": 92,
+          "width": 1148,
+          "height": 120.984375,
+          "right": 1408,
+          "bottom": 212.984375
+        },
+        "title": {
+          "x": 260,
+          "y": 125,
+          "width": 415.0625,
+          "height": 41.390625,
+          "right": 675.0625,
+          "bottom": 166.390625
+        },
+        "headingText": "Vendors",
+        "localTabs": [
+          "Overview",
+          "Register",
+          "Onboarding",
+          "Assessments",
+          "Documents"
+        ],
+        "selectedTab": "Onboarding",
+        "selectedPanelID": "react-aria5274856653-_r_gk_-tabpanel-onboarding",
+        "visiblePanelIDs": [
+          "react-aria5274856653-_r_gk_-tabpanel-onboarding"
+        ],
+        "selectedPanelControlsMatch": true,
+        "menuMode": "tabs",
+        "compactValue": "Onboarding",
+        "tablist": {
+          "x": 260,
+          "y": 212.984375,
+          "width": 1148,
+          "height": 45,
+          "right": 1408,
+          "bottom": 257.984375
+        },
+        "selectedTabBounds": {
+          "x": 455.5625,
+          "y": 212.984375,
+          "width": 113.984375,
+          "height": 44,
+          "right": 569.546875,
+          "bottom": 256.984375
+        },
+        "selectedTabVisible": true,
+        "titleContained": true,
+        "main": null,
+        "aside": null,
+        "placement": null,
+        "metrics": [],
+        "insights": [],
+        "railHeadings": [],
+        "register": null,
+        "registerRows": 2,
+        "firstRecord": {
+          "x": 282,
+          "y": 461.578125,
+          "width": 1104,
+          "height": 73,
+          "right": 1386,
+          "bottom": 534.578125
+        },
+        "recordHeights": [
+          73,
+          73
+        ],
+        "recordIDs": [
+          "vendor-relationship-payments",
+          "sample-relationship-hosting"
+        ],
+        "firstRecordVisible": true,
+        "firstUsefulContent": {
+          "x": 282,
+          "y": 461.578125,
+          "width": 1104,
+          "height": 73,
+          "right": 1386,
+          "bottom": 534.578125
+        },
+        "firstUsefulContentVisible": true,
+        "selectedRelationshipVisible": false,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "minTargetWidth": 88.203125,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "apiReads": [
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1296.800000000745,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1449.2000000011176,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/sample-relationship-hosting/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1449.2000000011176,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/form-summaries",
+            "query": "?relationship_ids=vendor-relationship-payments%2Csample-relationship-hosting&limit=50",
+            "method": "GET",
+            "initiatedAt": 1449.5,
+            "status": 200,
+            "summaryIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "responseItems": 2
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/activation",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 1860.4000000003725,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1860.800000000745,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 1861.0999999996275,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "initiatedAt": 1862.2000000011176,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/activation",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 1890.9000000003725,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 2068.0999999996275,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 2256.300000000745,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "initiatedAt": 2322.2000000011176,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 2322.5,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "initiatedAt": 2341.800000000745,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 5441.200000001118,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          }
+        ],
+        "commands": [],
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "interaction": {
+          "initialCollection": {
+            "action": "INITIAL_COLLECTION",
+            "route": "#vendors/onboarding",
+            "view": "onboarding",
+            "heading": "Vendors",
+            "portfolioVisible": true,
+            "collectionVisible": true,
+            "selectedRelationshipVisible": false,
+            "detailHeading": null,
+            "selectedTab": "Onboarding",
+            "selectedPanelVisible": true,
+            "recordTitles": [
+              "Acme Processing Limited",
+              "Sample · Northshore Hosting Limited"
+            ],
+            "recordCount": 2,
+            "pendingAPIRequests": 0,
+            "observedReadsSettled": true,
+            "loadingVisible": false,
+            "sameDocument": null,
+            "complete": true
+          },
+          "relationshipPreserved": true,
+          "dueDiligence": true,
+          "browserBack": {
+            "action": "HISTORY_BACK",
+            "route": "#vendors/onboarding",
+            "view": "onboarding",
+            "heading": "Vendors",
+            "portfolioVisible": true,
+            "collectionVisible": true,
+            "selectedRelationshipVisible": false,
+            "detailHeading": null,
+            "selectedTab": "Onboarding",
+            "selectedPanelVisible": true,
+            "recordTitles": [
+              "Acme Processing Limited",
+              "Sample · Northshore Hosting Limited"
+            ],
+            "recordCount": 2,
+            "pendingAPIRequests": 0,
+            "observedReadsSettled": true,
+            "loadingVisible": false,
+            "sameDocument": true,
+            "complete": true
+          },
+          "returned": true,
+          "browserForward": {
+            "action": "HISTORY_FORWARD",
+            "route": "#vendors/register/vendor-relationship-payments",
+            "selectedRelationshipVisible": true,
+            "portfolioVisible": false,
+            "relationshipTitle": "Acme Processing Limited",
+            "sameDocument": true,
+            "observedReadsSettled": true
+          },
+          "refresh": {
+            "relationshipPreserved": true,
+            "initialSection": "Overview",
+            "reopenedSection": "Due diligence",
+            "evidenceView": null,
+            "directHashRoot": {
+              "action": "DIRECT_HASH_ROOT",
+              "route": "#vendors/onboarding",
+              "view": "onboarding",
+              "heading": "Vendors",
+              "portfolioVisible": true,
+              "collectionVisible": true,
+              "selectedRelationshipVisible": false,
+              "detailHeading": null,
+              "selectedTab": "Onboarding",
+              "selectedPanelVisible": true,
+              "recordTitles": [
+                "Acme Processing Limited",
+                "Sample · Northshore Hosting Limited"
+              ],
+              "recordCount": 2,
+              "pendingAPIRequests": 0,
+              "observedReadsSettled": true,
+              "loadingVisible": false,
+              "sameDocument": true,
+              "complete": true
+            },
+            "reloadedCollection": {
+              "action": "RELOAD_COLLECTION",
+              "route": "#vendors/onboarding",
+              "view": "onboarding",
+              "heading": "Vendors",
+              "portfolioVisible": true,
+              "collectionVisible": true,
+              "selectedRelationshipVisible": false,
+              "detailHeading": null,
+              "selectedTab": "Onboarding",
+              "selectedPanelVisible": true,
+              "recordTitles": [
+                "Acme Processing Limited",
+                "Sample · Northshore Hosting Limited"
+              ],
+              "recordCount": 2,
+              "pendingAPIRequests": null,
+              "observedReadsSettled": false,
+              "loadingVisible": false,
+              "sameDocument": null,
+              "complete": true,
+              "newDocument": true
+            },
+            "complete": true
+          },
+          "explicitRegisterReturn": {
+            "action": "IN_APP_REGISTER_RETURN",
+            "route": "#vendors/register",
+            "view": "register",
+            "heading": "Vendors",
+            "portfolioVisible": true,
+            "collectionVisible": true,
+            "selectedRelationshipVisible": false,
+            "detailHeading": null,
+            "selectedTab": "Register",
+            "selectedPanelVisible": true,
+            "recordTitles": [
+              "Acme Processing Limited",
+              "Sample · Northshore Hosting Limited"
+            ],
+            "recordCount": 2,
+            "pendingAPIRequests": 0,
+            "observedReadsSettled": true,
+            "loadingVisible": false,
+            "sameDocument": true,
+            "complete": true
+          }
+        }
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Vendors"
+        ],
+        "activeLocation": [],
+        "railWidth": 228,
+        "railX": 0,
+        "labelMode": "expanded",
+        "maxLabelLines": 1,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": false,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "clientHeight": 900,
+        "scrollHeight": 900,
+        "scrollY": 0,
+        "theme": "light",
+        "density": "comfortable",
+        "activeElement": "Onboarding"
+      }
+    },
+    {
+      "name": "245i-vendor-portfolio-assessments-drill-dark-390",
+      "route": "#vendors/assessments",
+      "fixture": "vendor-form-assessment",
+      "state": "vendor-portfolio-assessments-drill",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "density": "comfortable",
+      "vendorPortfolioLayout": {
+        "kind": "assessments",
+        "route": "#vendors/assessments",
+        "heading": {
+          "x": 64,
+          "y": 132,
+          "width": 318,
+          "height": 195.375,
+          "right": 382,
+          "bottom": 327.375
+        },
+        "title": {
+          "x": 64,
+          "y": 178,
+          "width": 318,
+          "height": 32.1875,
+          "right": 382,
+          "bottom": 210.1875
+        },
+        "headingText": "Vendors",
+        "localTabs": [
+          "Overview",
+          "Register",
+          "Onboarding",
+          "Assessments",
+          "Documents"
+        ],
+        "selectedTab": "Assessments",
+        "selectedPanelID": "react-aria6041521638-_r_jj_-tabpanel-assessments",
+        "visiblePanelIDs": [
+          "react-aria6041521638-_r_jj_-tabpanel-assessments"
+        ],
+        "selectedPanelControlsMatch": true,
+        "menuMode": "select",
+        "compactValue": "Assessments",
+        "tablist": {
+          "x": 64,
+          "y": 327.375,
+          "width": 318,
+          "height": 73,
+          "right": 382,
+          "bottom": 400.375
+        },
+        "selectedTabBounds": {
+          "x": 64,
+          "y": 356.375,
+          "width": 318,
+          "height": 44,
+          "right": 382,
+          "bottom": 400.375
+        },
+        "selectedTabVisible": true,
+        "titleContained": true,
+        "main": null,
+        "aside": null,
+        "placement": null,
+        "metrics": [],
+        "insights": [],
+        "railHeadings": [],
+        "register": null,
+        "registerRows": 2,
+        "firstRecord": {
+          "x": 78,
+          "y": 613.96875,
+          "width": 290,
+          "height": 103,
+          "right": 368,
+          "bottom": 716.96875
+        },
+        "recordHeights": [
+          103,
+          124
+        ],
+        "recordIDs": [
+          "vendor-relationship-payments",
+          "sample-relationship-hosting"
+        ],
+        "firstRecordVisible": true,
+        "firstUsefulContent": {
+          "x": 78,
+          "y": 613.96875,
+          "width": 290,
+          "height": 103,
+          "right": 368,
+          "bottom": 716.96875
+        },
+        "firstUsefulContentVisible": true,
+        "selectedRelationshipVisible": false,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "minTargetWidth": 88.203125,
+        "minTargetHeight": 44,
+        "undersizedTargets": [],
+        "apiReads": [
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1126.5999999996275,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1222.4000000003725,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/sample-relationship-hosting/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1222.5,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/form-summaries",
+            "query": "?relationship_ids=vendor-relationship-payments%2Csample-relationship-hosting&limit=50",
+            "method": "GET",
+            "initiatedAt": 1222.800000000745,
+            "status": 200,
+            "summaryIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "responseItems": 2
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "initiatedAt": 1690.300000000745,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendor-work",
+            "query": "?relationship_id=vendor-relationship-payments&limit=20",
+            "method": "GET",
+            "initiatedAt": 1690.5,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1690.5,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1692.4000000003725,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 1692.7000000011176,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "initiatedAt": 1694.5,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 1701.5,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "initiatedAt": 1731.800000000745,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendor-work",
+            "query": "?relationship_id=vendor-relationship-payments&limit=20",
+            "method": "GET",
+            "initiatedAt": 1731.800000000745,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/links",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1731.800000000745,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 1764.5,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 1949.5,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 2144.5,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/forms",
+            "query": "?limit=25",
+            "method": "GET",
+            "initiatedAt": 2193,
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors/vendor-relationship-payments/assessments/current",
+            "query": "",
+            "method": "GET",
+            "initiatedAt": 2193.5,
+            "status": 404
+          },
+          {
+            "path": "/api/v1/authority/resolve",
+            "query": "",
+            "method": "POST",
+            "initiatedAt": 2210.7000000011176,
+            "queryInput": {
+              "object_type": "THIRD_PARTY_RELATIONSHIP",
+              "object_id": "vendor-relationship-payments"
+            },
+            "requestKind": "AUTHORITY_READ_QUERY",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/vendors",
+            "query": "?limit=50",
+            "method": "GET",
+            "initiatedAt": 5440.0999999996275,
+            "status": 200,
+            "responseItems": 2,
+            "relationshipIDs": [
+              "vendor-relationship-payments",
+              "sample-relationship-hosting"
+            ],
+            "nextCursor": false
+          }
+        ],
+        "commands": [],
+        "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "interaction": {
+          "initialCollection": {
+            "action": "INITIAL_COLLECTION",
+            "route": "#vendors/assessments",
+            "view": "assessments",
+            "heading": "Vendors",
+            "portfolioVisible": true,
+            "collectionVisible": true,
+            "selectedRelationshipVisible": false,
+            "detailHeading": null,
+            "selectedTab": "Assessments",
+            "selectedPanelVisible": true,
+            "recordTitles": [
+              "Acme Processing Limited",
+              "Sample · Northshore Hosting Limited"
+            ],
+            "recordCount": 2,
+            "pendingAPIRequests": 0,
+            "observedReadsSettled": true,
+            "loadingVisible": false,
+            "sameDocument": null,
+            "complete": true
+          },
+          "relationshipPreserved": true,
+          "forms": true,
+          "browserBack": {
+            "action": "HISTORY_BACK",
+            "route": "#vendors/assessments",
+            "view": "assessments",
+            "heading": "Vendors",
+            "portfolioVisible": true,
+            "collectionVisible": true,
+            "selectedRelationshipVisible": false,
+            "detailHeading": null,
+            "selectedTab": "Assessments",
+            "selectedPanelVisible": true,
+            "recordTitles": [
+              "Acme Processing Limited",
+              "Sample · Northshore Hosting Limited"
+            ],
+            "recordCount": 2,
+            "pendingAPIRequests": 0,
+            "observedReadsSettled": true,
+            "loadingVisible": false,
+            "sameDocument": true,
+            "complete": true
+          },
+          "returned": true,
+          "browserForward": {
+            "action": "HISTORY_FORWARD",
+            "route": "#vendors/register/vendor-relationship-payments",
+            "selectedRelationshipVisible": true,
+            "portfolioVisible": false,
+            "relationshipTitle": "Acme Processing Limited",
+            "sameDocument": true,
+            "observedReadsSettled": true
+          },
+          "refresh": {
+            "relationshipPreserved": true,
+            "initialSection": "Overview",
+            "reopenedSection": "Evidence",
+            "evidenceView": "Forms",
+            "directHashRoot": {
+              "action": "DIRECT_HASH_ROOT",
+              "route": "#vendors/assessments",
+              "view": "assessments",
+              "heading": "Vendors",
+              "portfolioVisible": true,
+              "collectionVisible": true,
+              "selectedRelationshipVisible": false,
+              "detailHeading": null,
+              "selectedTab": "Assessments",
+              "selectedPanelVisible": true,
+              "recordTitles": [
+                "Acme Processing Limited",
+                "Sample · Northshore Hosting Limited"
+              ],
+              "recordCount": 2,
+              "pendingAPIRequests": 0,
+              "observedReadsSettled": true,
+              "loadingVisible": false,
+              "sameDocument": true,
+              "complete": true
+            },
+            "reloadedCollection": {
+              "action": "RELOAD_COLLECTION",
+              "route": "#vendors/assessments",
+              "view": "assessments",
+              "heading": "Vendors",
+              "portfolioVisible": true,
+              "collectionVisible": true,
+              "selectedRelationshipVisible": false,
+              "detailHeading": null,
+              "selectedTab": "Assessments",
+              "selectedPanelVisible": true,
+              "recordTitles": [
+                "Acme Processing Limited",
+                "Sample · Northshore Hosting Limited"
+              ],
+              "recordCount": 2,
+              "pendingAPIRequests": null,
+              "observedReadsSettled": false,
+              "loadingVisible": false,
+              "sameDocument": null,
+              "complete": true,
+              "newDocument": true
+            },
+            "complete": true
+          },
+          "explicitRegisterReturn": {
+            "action": "IN_APP_REGISTER_RETURN",
+            "route": "#vendors/register",
+            "view": "register",
+            "heading": "Vendors",
+            "portfolioVisible": true,
+            "collectionVisible": true,
+            "selectedRelationshipVisible": false,
+            "detailHeading": null,
+            "selectedTab": "Register",
+            "selectedPanelVisible": true,
+            "recordTitles": [
+              "Acme Processing Limited",
+              "Sample · Northshore Hosting Limited"
+            ],
+            "recordCount": 2,
+            "pendingAPIRequests": 0,
+            "observedReadsSettled": true,
+            "loadingVisible": false,
+            "sameDocument": true,
+            "complete": true
+          }
+        }
+      },
+      "navigation": {
+        "labels": [
+          "Home",
+          "Frameworks",
+          "Programs",
+          "Forms",
+          "Vendors",
+          "Risk & Losses",
+          "Privacy",
+          "Work & Approvals",
+          "Reports"
+        ],
+        "hrefs": [
+          "#oversight",
+          "#programs/library",
+          "#programs",
+          "#forms",
+          "#vendors",
+          "#risks",
+          "#ropa",
+          "#work",
+          "#reports"
+        ],
+        "activePage": [
+          "Vendors"
+        ],
+        "activeLocation": [],
+        "railWidth": 56,
+        "railX": 0,
+        "labelMode": "icons",
+        "maxLabelLines": 0,
+        "labelsContained": true,
+        "minTargetWidth": 44,
+        "minTargetHeight": 44,
+        "targetsContained": true,
+        "primaryReachable": true,
+        "settingsPresent": true,
+        "settingsFooter": true,
+        "footerReachable": true,
+        "compactMenuAvailable": true,
+        "activeMarkerWidth": 4,
+        "activeMarkerHeight": 28,
+        "activeMarkerVisible": true,
+        "duplicateMobileNavigation": false,
+        "legacyPortfolioNavigation": false,
+        "settingsCapabilityState": "available"
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "clientHeight": 844,
+        "scrollHeight": 1177,
+        "scrollY": 0,
+        "theme": "dark",
+        "density": "comfortable",
+        "activeElement": "Assessments⌄"
+      }
+    }
+  ]
+}

@@ -411,7 +411,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
       setNewFormOpen(false);
       setEditor({ mode: "edit", template: created, canSendForApproval: false });
       choose(created.id);
-      setNotice("Starter copied into an ordinary draft. Review its exact fields and quality checks before approval.");
+      setNotice("Draft created. Review fields and checks before approval.");
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The starter template could not be copied.");
@@ -537,7 +537,7 @@ export function FormsWorkspace({ organizationName = "Organization", legalEntityN
           {saveViewOpen && <form className="forms-save-view" onSubmit={submitSavedView}><TextField label="View name" value={savedViewName} onChange={setSavedViewName} maxLength={120}/><Button type="submit" isDisabled={!savedViewName.trim() || busy === "save-view"}>Save</Button></form>}
         </div>}
 
-        {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <Button isLoading={busy === "bulk-transition"} onPress={() => void runBulkTransition()}>Send {selectedItems.length} for approval</Button> : <span>Bulk approval is available only when every selected row is an approval-ready draft with the same permitted lifecycle action.</span>}<Button variant="quiet" onPress={() => setSelectedIDs(new Set())}>Clear selection</Button></div>}
+        {selectedItems.length > 0 && <div className="forms-bulk" role="status"><strong>{selectedItems.length} selected</strong>{bulkTransition ? <Button isLoading={busy === "bulk-transition"} onPress={() => void runBulkTransition()}>Send {selectedItems.length} for approval</Button> : <span>Select approval-ready drafts with the same available action.</span>}<Button variant="quiet" onPress={() => setSelectedIDs(new Set())}>Clear selection</Button></div>}
 
         {state === "loading" ? <div className="forms-loading" aria-live="polite" aria-busy="true">Loading form templates…</div>
           : state === "unavailable" ? <FormsEmptyState population="Form templates in this legal entity" title="Forms are temporarily unavailable" detail="Retry." actions={<Button onPress={() => void refresh()}>Retry</Button>}/>

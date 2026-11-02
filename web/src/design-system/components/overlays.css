@@ -18,6 +18,8 @@
   backdrop-filter: blur(var(--cs-overlay-blur));
 }
 
+.cs-sheet__overlay--start { justify-content: flex-start; }
+
 .cs-sheet {
   inline-size: min(var(--cs-sheet-width), 100%);
   block-size: 100%;
@@ -30,6 +32,15 @@
 }
 
 .cs-sheet--wide { inline-size: min(var(--cs-sheet-wide-width), 100%); }
+
+.cs-sheet--start {
+  border-inline-start: 0;
+  border-inline-end: var(--cs-overlay-border-width) solid var(--cs-overlay-border);
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-start-end-radius: var(--cs-overlay-radius);
+  border-end-end-radius: var(--cs-overlay-radius);
+}
 
 .cs-sheet__dialog { position: relative; min-block-size: 100%; outline: none; }
 
@@ -78,13 +89,14 @@
 
 .cs-sheet[data-entering], .cs-sheet[data-exiting] { transition: transform var(--cs-overlay-transition); }
 .cs-sheet[data-entering] { transform: translateX(var(--cs-sheet-enter-distance)); }
+.cs-sheet--start[data-entering] { transform: translateX(calc(0px - var(--cs-sheet-enter-distance))); }
 
 @media (max-width: 640px) {
-  .cs-sheet { inline-size: 100%; border-inline-start: 0; border-radius: 0; }
+  .cs-sheet { inline-size: 100%; border-inline-start: 0; border-inline-end: 0; border-radius: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cs-sheet[data-entering], .cs-sheet[data-exiting] { transition: none; }
+  .cs-sheet[data-entering], .cs-sheet[data-exiting] { transition: none; transform: none; }
   .cs-popover[data-entering], .cs-popover[data-exiting] { animation: none; }
 }
 

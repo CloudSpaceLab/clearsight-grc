@@ -1,0 +1,3699 @@
+{
+  "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "baseline": true,
+  "revision": "f9b5bfd9c27641c8acb7928b2e59d8c59b00ec64",
+  "build": {
+    "digest": "40e12a493b9e595206607cba4729db53c7d685dc39cd5169c330fc268542649c",
+    "assets": {
+      "assets/api-BWTJJbXX.js": {
+        "bytes": 5425,
+        "sha256": "a07dd6f00330e8de6c7c818a3b8ce5978e08d69daa4f2a82a7f5d772f9634cf6"
+      },
+      "assets/api-BWTJJbXX.js.map": {
+        "bytes": 24477,
+        "sha256": "c7dd1614d1235105697eeaeb243c172f20394f9a90299195c92351942f1c4053"
+      },
+      "assets/App-CRJdUh3q.css": {
+        "bytes": 71054,
+        "sha256": "65df9543ebafa09bd24a83c3506e38646dd15050bf70fa5ee76bf969327003e7"
+      },
+      "assets/App-D4Trd5lc.js": {
+        "bytes": 440775,
+        "sha256": "4b5cbe0b0b3457bd66aa74e86bae2f11046be6be5854ff649db44a53be1f92f4"
+      },
+      "assets/App-D4Trd5lc.js.map": {
+        "bytes": 1056052,
+        "sha256": "9acaeced32317d0018c27cf6fb473249935c0fc1404e5d484cf30aacc8c37acc"
+      },
+      "assets/assessmentFieldResults-CYtGdiIt.css": {
+        "bytes": 7259,
+        "sha256": "17ccf27cecf770d311d438cb0258a61867b014a1bbafded4f1dbd64c2f5e3326"
+      },
+      "assets/assessmentFieldResults-JN5KNzXT.js": {
+        "bytes": 9772,
+        "sha256": "3f27c7ff8105ff0be4ddae479738841bb100af106344489d39d2203d28aa6397"
+      },
+      "assets/assessmentFieldResults-JN5KNzXT.js.map": {
+        "bytes": 29831,
+        "sha256": "5ab2ea17c9d8a30319e28500a22670092b10ba286e95d8d28a5868a6139e4d9e"
+      },
+      "assets/BankJourneysWorkspace-2AgH9f2G.css": {
+        "bytes": 4931,
+        "sha256": "e58abe5444c09ecdecdda458acbeda1e610d27f9b81626eb722d6a8883a48353"
+      },
+      "assets/BankJourneysWorkspace-Duyh7Vxl.js": {
+        "bytes": 13326,
+        "sha256": "57d02287ce565fd1275d38a18435b9b3f8502069550852c36b6a6818bde0cc57"
+      },
+      "assets/BankJourneysWorkspace-Duyh7Vxl.js.map": {
+        "bytes": 35457,
+        "sha256": "2957aab1711582d4f543bafd77ffc23d04d26f1fb72347e73d6f24e8feaab8a6"
+      },
+      "assets/CommunicationsView-j-h_UrK5.js": {
+        "bytes": 266823,
+        "sha256": "5f653eea530a7fdec82c96fd3c360546704354549d7ca101b39ba613e1bab34a"
+      },
+      "assets/CommunicationsView-j-h_UrK5.js.map": {
+        "bytes": 756116,
+        "sha256": "641f33d3cebeb0b0a0353f3a3896f2c7806739803a6ba1842ebe111f37962128"
+      },
+      "assets/ConfigureWorkspace-BCgDzCus.js": {
+        "bytes": 223453,
+        "sha256": "cb91977dca7789e133ff1b3a8188399bd76373ae74ac777917dd1291da37ed18"
+      },
+      "assets/ConfigureWorkspace-BCgDzCus.js.map": {
+        "bytes": 593906,
+        "sha256": "274ba372bcb6f7552c194b34cae186f93bd73338a849a6bc9de458ce06ac57ba"
+      },
+      "assets/ConfigureWorkspace-Bp-P8t-f.css": {
+        "bytes": 67887,
+        "sha256": "90eff72f24d829fc9226c562fb1177e985df3df58ac2507c099b94295f240e25"
+      },
+      "assets/controlCatalogApi-Ce1062jj.js": {
+        "bytes": 506,
+        "sha256": "8ffa2afaf3a8b5d6a03a13c23413da5e06b59eb51890f0b0dd9b2c096418dc55"
+      },
+      "assets/controlCatalogApi-Ce1062jj.js.map": {
+        "bytes": 2259,
+        "sha256": "dba98850190f1348a29a837a189f5b2364adf1ef74d736d9f082a2823974526d"
+      },
+      "assets/DistributionComposer-DLeZxbLt.css": {
+        "bytes": 9375,
+        "sha256": "350b092b7f33a1a03f35e3d8610fb2acdaaa71fcb48dcaf6e67293c13c62132d"
+      },
+      "assets/DistributionComposer-DlZkmtqc.js": {
+        "bytes": 17731,
+        "sha256": "d6df0b5dcdbb58e8d7345767e59439b0e26854014306dcd293d50f2df32d83f7"
+      },
+      "assets/DistributionComposer-DlZkmtqc.js.map": {
+        "bytes": 57430,
+        "sha256": "1c424d4d0aaf025d71df5d0cf39c47edc75c1907c6bd1d4e5cd3a1787ec62d64"
+      },
+      "assets/EmployeeProfileWorkspace-DQL7MfF3.js": {
+        "bytes": 3946,
+        "sha256": "36dc700c6ee108af07b9be053c93a8263dc7116596650c74f629680ae5763c87"
+      },
+      "assets/EmployeeProfileWorkspace-DQL7MfF3.js.map": {
+        "bytes": 8365,
+        "sha256": "8693e22eb7d72602d6688f9ded2afcd94368f624b2748c1ce6594e26fcfdbb84"
+      },
+      "assets/EmptyState-BhTs_6Db.js": {
+        "bytes": 439,
+        "sha256": "e99e69dbd688eafc222bbd91fc8810ef0be2a495dfd642f5b370da99defdc23c"
+      },
+      "assets/EmptyState-BhTs_6Db.js.map": {
+        "bytes": 1198,
+        "sha256": "4bac315fe897c625976abfcb342295335f45f7bc22f6451a67f8d3c49974062d"
+      },
+      "assets/FocusedSheet-BR3anp65.js": {
+        "bytes": 35,
+        "sha256": "1215e9d48e56ad3d535f5ff0f70ec85ffc150a9f253086ad64eaee288598349a"
+      },
+      "assets/FocusedSheet-DrnLjgsp.js": {
+        "bytes": 100422,
+        "sha256": "7849d4e15b79dc68e0710ffb37ccfc218a5e8978d645cc1db8e6d55fb9ca5ac5"
+      },
+      "assets/FocusedSheet-DrnLjgsp.js.map": {
+        "bytes": 663104,
+        "sha256": "b7d138ef50207e80e68d0ef8b79bc6267c9f0bbbdf58164f873a8c66793588d8"
+      },
+      "assets/form-policies-d4RnLy_e.css": {
+        "bytes": 5595,
+        "sha256": "30fc937bb7cdad9f93b941605f7931a7e36fb1b4583b656f0c245e43fd45acd2"
+      },
+      "assets/form-policies-D6BFWxDb.js": {
+        "bytes": 12815,
+        "sha256": "59c612ebcfdce21f90cfe56a571ea5ad140c8c88a90c94d0a516c25636f0a5e7"
+      },
+      "assets/form-policies-D6BFWxDb.js.map": {
+        "bytes": 28354,
+        "sha256": "9c70cab4ecf53b9b0c8c3bcf6d1cb9ef83a4cde9813a6e59e84e5f6188da0b50"
+      },
+      "assets/FormBuilder-DdR_LmeP.js": {
+        "bytes": 84302,
+        "sha256": "8b999acceccf717a9eee844de50b2155683560da272fbf1e49a14e8319da08a0"
+      },
+      "assets/FormBuilder-DdR_LmeP.js.map": {
+        "bytes": 233207,
+        "sha256": "731900234b3d08a6bfe57e33fdb3ca4be221901f806411e8f7e2f41a121d4f02"
+      },
+      "assets/FormBuilder-DkNz5EQ_.css": {
+        "bytes": 24472,
+        "sha256": "2e40c6420c62dcfccc8df334f5444799c067d6230bc645e8607e1efacc60b3a1"
+      },
+      "assets/FormBuilder-DkzwJtkX.js": {
+        "bytes": 71,
+        "sha256": "ad2b566d59a233fc800129ac1a3dc16e44ad7b4e6fe337aaf68bcde974973fdf"
+      },
+      "assets/formPoliciesApi-CW2ZHZyP.js": {
+        "bytes": 1541,
+        "sha256": "892a5303cf6cee2f07499ff56b0ce543a4ca85006029f545a46477fcf9093cce"
+      },
+      "assets/formPoliciesApi-CW2ZHZyP.js.map": {
+        "bytes": 8921,
+        "sha256": "7eba3c1935b3cbcc380418190051a56b3bbff98fba82c891c3fba193e4f5dd16"
+      },
+      "assets/FormPoliciesView-Cro4awCi.js": {
+        "bytes": 15763,
+        "sha256": "66ca950c964aba319eb409456d543dd8f4ee9d720d2a8ea9b2028c791ace18c9"
+      },
+      "assets/FormPoliciesView-Cro4awCi.js.map": {
+        "bytes": 37109,
+        "sha256": "239efafe678026b69e0f883c02bc53bd66375507c84ea54acc304de9922afbe1"
+      },
+      "assets/FormPreview-CvbhFbBW.js": {
+        "bytes": 29583,
+        "sha256": "7b522d3db878192d64eacd0e8b83ab0bd0b6055fc93c153e02b3f0888067a98b"
+      },
+      "assets/FormPreview-CvbhFbBW.js.map": {
+        "bytes": 77593,
+        "sha256": "cfca7fe13b086126dbac4a1b346d3f0e594128e2eca77cb76f610c0e4300d639"
+      },
+      "assets/FormProposalReview-IQs_OAFC.js": {
+        "bytes": 15937,
+        "sha256": "35ae6ee11ee34ac33d88d50eab640958fe4c18da4fe2025959d9cfb50b4f4321"
+      },
+      "assets/FormProposalReview-IQs_OAFC.js.map": {
+        "bytes": 40544,
+        "sha256": "112d66c9a35a448efc8b1fc898c466d2be326245efce8d4cd4aed51e33bdd41f"
+      },
+      "assets/forms-foundation-CINn4wyp.css": {
+        "bytes": 49494,
+        "sha256": "ab82ca4d68089ebd1a8d9d62746cb6d191b3fd673d3de9ac62af0673fbc8f282"
+      },
+      "assets/formsApi-Bu51RPL0.js": {
+        "bytes": 3079,
+        "sha256": "f836b23a8b5dcce759ffe6c2e3b1c155160ea15b3759a79ef36ee2ff0757b0dd"
+      },
+      "assets/formsApi-Bu51RPL0.js.map": {
+        "bytes": 10014,
+        "sha256": "5d7c8ef9ee90634edbd0c93242ad2c095a251a4595908a6ae2b8b02e9991f371"
+      },
+      "assets/FormsWorkspace-xKcJHJjE.js": {
+        "bytes": 65191,
+        "sha256": "40691a0dc9f972f6045b4195e19a15c18b982a865fbae1b38b7e68932bb86903"
+      },
+      "assets/FormsWorkspace-xKcJHJjE.js.map": {
+        "bytes": 180795,
+        "sha256": "dce01e62aaeb1823ef4adfefd0fbf616b96d6b36b7e05d344c52997e17413aa5"
+      },
+      "assets/groupOversightApi-CM8Hxwyf.js": {
+        "bytes": 190,
+        "sha256": "c417d1bcd3726fca2518410ce0517105ac967efbedfdb10b7d7916d9f0d31553"
+      },
+      "assets/groupOversightApi-CM8Hxwyf.js.map": {
+        "bytes": 1797,
+        "sha256": "bf530020aa892b7b0f68a5d21b9111b1abcbf556c89ced16b0d4ad1d4ca79aac"
+      },
+      "assets/GroupOversightWorkspace-CotmzzEf.js": {
+        "bytes": 95,
+        "sha256": "0c3be58d2cbc06cf036f4a2a7519079aa106562a233a890985075be2cb317124"
+      },
+      "assets/GroupOversightWorkspace-Dualqarz.js": {
+        "bytes": 16878,
+        "sha256": "811a5ea2df646b1e636a7d93e902c8a5197647e6d0e4ccf2c00d55a05923f0c2"
+      },
+      "assets/GroupOversightWorkspace-Dualqarz.js.map": {
+        "bytes": 49151,
+        "sha256": "ff6b386a4540432c9e30a102ad7bda6ad24898d7a142a3e9d31af7e54f5c5b3a"
+      },
+      "assets/GroupOversightWorkspace-FAWTwerR.css": {
+        "bytes": 1428,
+        "sha256": "b2b713d0e3bc731517f47626bee66dd6212a19d37bd364a988593bde4d53e242"
+      },
+      "assets/homeMetricPresentation-DRPLOH6L.js": {
+        "bytes": 1127,
+        "sha256": "7bedd8148b1e9f464074877ca81b91f17074f9eb039fc69e491cb87b719e84bc"
+      },
+      "assets/homeMetricPresentation-DRPLOH6L.js.map": {
+        "bytes": 3371,
+        "sha256": "36b2a464d26c07c94fc4d4f031aae51668cadbe21fc53a185282ef00350553b3"
+      },
+      "assets/http-NFAQrmHm.js": {
+        "bytes": 2481,
+        "sha256": "628b0ffe1e2a6e36f44bd8c29bb19e46defc50e45c188a5ebf5fed9ef01b4052"
+      },
+      "assets/http-NFAQrmHm.js.map": {
+        "bytes": 7538,
+        "sha256": "e8876bf150397a5e855be38263d1907227122ff62c36d4790a5721499f1d79c8"
+      },
+      "assets/identityAccessApi-COeRCgsk.js": {
+        "bytes": 4652,
+        "sha256": "6b217441507ead880c31359d7966f1092597ff369a0f78edb814dadf7180cbec"
+      },
+      "assets/identityAccessApi-COeRCgsk.js.map": {
+        "bytes": 24138,
+        "sha256": "705ed4a1d200d1170fdfdae76b0959be1d3cd3a22426d220fa551c55ba89f4db"
+      },
+      "assets/index-BLwgMqzN.css": {
+        "bytes": 180069,
+        "sha256": "fd11bcd7683fa7b81fff8a80e14b16fdc3bb9b860511df9f77398d980d6a7779"
+      },
+      "assets/index-Cu2M5UiU.js": {
+        "bytes": 480165,
+        "sha256": "ef93363ecf6cb5706acabd2d4c3d0daa2801d66c3c6672c8c5a03a837007b832"
+      },
+      "assets/index-Cu2M5UiU.js.map": {
+        "bytes": 1493170,
+        "sha256": "73f2f9f76fbb0f5d3aa0030922920978cb33af8166d1879790d243834f6a0e33"
+      },
+      "assets/indicatorApi-D0EDXQnA.js": {
+        "bytes": 520,
+        "sha256": "7c17543016aac54a922c736d68b7c64ccf95d8f67d144759fd7b12b420ab3227"
+      },
+      "assets/indicatorApi-D0EDXQnA.js.map": {
+        "bytes": 1577,
+        "sha256": "ce1129c9aea49235ca5997800d608d30d723f35d78d192281a16051f516cb7d7"
+      },
+      "assets/IndicatorDetail-BcsB6McF.js": {
+        "bytes": 9722,
+        "sha256": "b6ac90481e843c90e991dfd55001dbb84e087e22f323020d09df7507792c1d0e"
+      },
+      "assets/IndicatorDetail-BcsB6McF.js.map": {
+        "bytes": 25046,
+        "sha256": "c007255ea3a20cfed5b042da81d308c1ae414b89fbc90f0b639bd2e089d465fb"
+      },
+      "assets/indicatorPresentation-CikXSk_C.js": {
+        "bytes": 4060,
+        "sha256": "d1635c9c6e6903eba8d8caa31b97ce9794c5f3d66827194d2b69d117356c456d"
+      },
+      "assets/indicatorPresentation-CikXSk_C.js.map": {
+        "bytes": 12755,
+        "sha256": "71ee6c6bd6218f07ed50260a0f7bf9db5d54f09ce50cdfdcae58d4dd35a6dc9a"
+      },
+      "assets/indicatorPresentation-CjxE_j0H.css": {
+        "bytes": 3102,
+        "sha256": "f15ce54963dbd82218dc2e13b7d565e601a2ade8b4220d79058ef94c88cde973"
+      },
+      "assets/InsightsWorkspace-D-lPUeu9.js": {
+        "bytes": 11814,
+        "sha256": "9da95e1f6caf1295bf3c5be33be189af16f84911f0cc9cf82919acfb5cf5c13d"
+      },
+      "assets/InsightsWorkspace-D-lPUeu9.js.map": {
+        "bytes": 37043,
+        "sha256": "e75d6d61a35bef1bbe8f67ddf017ceea90997de6121cfc388d3d018812aebfa4"
+      },
+      "assets/InsightsWorkspace-Ddu4RP1E.css": {
+        "bytes": 5863,
+        "sha256": "efefab0edb13512d07a740b299eff949e777593820519123606ddb5de0497ca9"
+      },
+      "assets/jsx-runtime-BKllkxft.js": {
+        "bytes": 8457,
+        "sha256": "d570da413d217278b5e77a876b290849a78fccff86b5136bb55d83463eac3c5c"
+      },
+      "assets/jsx-runtime-BKllkxft.js.map": {
+        "bytes": 28999,
+        "sha256": "c8f64bf2ae05b2b05fa590e9fb39f89646a3fc136874f7d9846ea00c94e137c9"
+      },
+      "assets/lossApi-B_TcBYnM.js": {
+        "bytes": 1218,
+        "sha256": "88755028d2985d4fa607730c42a75535070744c5ccda9119e5a388c703055879"
+      },
+      "assets/lossApi-B_TcBYnM.js.map": {
+        "bytes": 4158,
+        "sha256": "0619e71abd12e89f2603e9a3247a21870474192fd2799445a8e51bcc554e4f39"
+      },
+      "assets/LossesWorkspace-CfOZfW8N.css": {
+        "bytes": 6591,
+        "sha256": "ad89e0dd679a1d05cf1c74362e83840ef9298d2f73c603a83cc59fb6a21d9972"
+      },
+      "assets/LossesWorkspace-DjV2XM1m.js": {
+        "bytes": 23339,
+        "sha256": "5a35bdbbdfd6c847063d6193fb1182a283fa091a54b7af8e5833bddcc103f721"
+      },
+      "assets/LossesWorkspace-DjV2XM1m.js.map": {
+        "bytes": 64899,
+        "sha256": "95c36169248f7f30327763785b8efb7a1287da0f1626fe24db85e3559cafab7c"
+      },
+      "assets/lossOverviewPresentation-3X01BhiZ.js": {
+        "bytes": 3948,
+        "sha256": "83237f9038c876949e9cce286264e7816cdf38966ee2802ca9d89cba82b38733"
+      },
+      "assets/lossOverviewPresentation-3X01BhiZ.js.map": {
+        "bytes": 18786,
+        "sha256": "9aedf6d4df56df13f28b06c73fc099f23231687f66fd27d0ac121bee7b7c6777"
+      },
+      "assets/lossPresentation-DWiNJvkI.js": {
+        "bytes": 2743,
+        "sha256": "94dd80ad903db4fbb5ded3e3c30a29e431523bc728a6859cddd02513576591da"
+      },
+      "assets/lossPresentation-DWiNJvkI.js.map": {
+        "bytes": 8853,
+        "sha256": "2a636e7a6ab962cf01e96b9a6b42578c9577ec91b5bdbaaa2dbbe4fc4a5e8e5c"
+      },
+      "assets/MetricMemberDrill-B0CtEfQ6.js": {
+        "bytes": 2894,
+        "sha256": "b1a77704aa401f27351088c0a3cbf6510df3ff75940f53097b803d4df6632340"
+      },
+      "assets/MetricMemberDrill-B0CtEfQ6.js.map": {
+        "bytes": 7226,
+        "sha256": "c451f4f6d76ea483730c20a5ab6e12cbc7706900134b479ad6af9586d7009c96"
+      },
+      "assets/monitoringApi-DIdjscUN.js": {
+        "bytes": 3061,
+        "sha256": "c9b8c3efbefec5ace814a3ca8ea0daee781b1dc5130d0e0032f42192fb2f1375"
+      },
+      "assets/monitoringApi-DIdjscUN.js.map": {
+        "bytes": 9319,
+        "sha256": "0c6f2d056ac134b964636d3e97e6bf4fa9933821859b6306315f358d3a28bc0f"
+      },
+      "assets/NavigationIcon-Cw28lXWO.js": {
+        "bytes": 3372,
+        "sha256": "1ecfa7f3b854438575d1b465610ebef73a21e9ab1dba4e7872fded00aef1574d"
+      },
+      "assets/NavigationIcon-Cw28lXWO.js.map": {
+        "bytes": 6861,
+        "sha256": "ef0680a628b276ccb362ad7ee6f5cde9cb9342729bb6428c9b516aceafc7b15c"
+      },
+      "assets/NotificationCenter-C0mw7PUY.js": {
+        "bytes": 1258,
+        "sha256": "2f7d5ba1e316a7360a084bad96c43724e21814280f7bee220fc4b27541667bc9"
+      },
+      "assets/NotificationCenter-C0mw7PUY.js.map": {
+        "bytes": 2637,
+        "sha256": "251e6498b761f978867c0d8f8f2d01840906a6c50c475a591b7e20c011536090"
+      },
+      "assets/NotificationCenter-y8gwOkyW.css": {
+        "bytes": 1555,
+        "sha256": "4854f3fa648a4e3fcd28745658ec95e3acb35cb490f1e7b820c2d535adce65b5"
+      },
+      "assets/NotificationDeliveryHistory-DaR-smUH.js": {
+        "bytes": 2756,
+        "sha256": "955baf569faec31248ec2ccaea92e2aa3ac42a7b5a9ef05d2a49185a41ba9c4f"
+      },
+      "assets/NotificationDeliveryHistory-DaR-smUH.js.map": {
+        "bytes": 8189,
+        "sha256": "8815df58d1b50f18bf0090dd9de389cad3961b16018948025b98ac9ff9c8dcb0"
+      },
+      "assets/NotificationsWorkspace-BAmZg4MJ.css": {
+        "bytes": 14887,
+        "sha256": "e988de36e966535d55a0d8b6677e22792ce5e22015eee29227a194d036817d83"
+      },
+      "assets/NotificationsWorkspace-DjMDeB4y.js": {
+        "bytes": 26099,
+        "sha256": "7876e40872fcc368a0d118675e862fbe28bac4b7e19762b65379a0e43cfcf2ff"
+      },
+      "assets/NotificationsWorkspace-DjMDeB4y.js.map": {
+        "bytes": 62746,
+        "sha256": "d89b825f75536903be0bcf2809155c47a5f9eb7f690327cb5720b60f8cdc6f0d"
+      },
+      "assets/OrganizationLossSummary-BsPoebb6.js": {
+        "bytes": 13311,
+        "sha256": "a18a2e1919bc01a4e532e32d61c7468268319fce2fdfd5cc2311e885460c7412"
+      },
+      "assets/OrganizationLossSummary-BsPoebb6.js.map": {
+        "bytes": 41060,
+        "sha256": "be20365f4e60024eede240d8e7403c3dd21d169583fbf3bebe2a951119b82c74"
+      },
+      "assets/oversight-B7GD29gG.css": {
+        "bytes": 13482,
+        "sha256": "2584bffc3a1cba9861263f45ba9b0a0f7ed08ac5f849fb1ca1d21fba9d047292"
+      },
+      "assets/oversight-D8mON0Hr.js": {
+        "bytes": 4804,
+        "sha256": "ad7d82ea8a014e81f1e3f15ae1739caadf7562856bda5351e529928f81b44355"
+      },
+      "assets/oversight-D8mON0Hr.js.map": {
+        "bytes": 12779,
+        "sha256": "fbd8df9b34293ea6a61c87a8f25d57b562bed2a9b56584b031c31c39e3a8e0e9"
+      },
+      "assets/OversightPeriodPicker-D_xiv7tA.js": {
+        "bytes": 2951,
+        "sha256": "0b192b27dbec3f0cadb92b4fc1192b8dd1e5892a0daddeb3483c943a1c72ad5e"
+      },
+      "assets/OversightPeriodPicker-D_xiv7tA.js.map": {
+        "bytes": 7483,
+        "sha256": "196b8988524b783d2b0cefecd629ffe8adb6c935d681d2dde8ccf29d058b0c2a"
+      },
+      "assets/OversightWorkspace-CtnMHrHC.js": {
+        "bytes": 85,
+        "sha256": "a952c68c4a9c4c577f90dade6b51f79767bc90a460699d2820729f2fcac02c2f"
+      },
+      "assets/OversightWorkspace-stoeUz5a.js": {
+        "bytes": 22683,
+        "sha256": "59bc113033b28c5267c71a9db5474e2a94ab10a01e03e197cb24693872208c06"
+      },
+      "assets/OversightWorkspace-stoeUz5a.js.map": {
+        "bytes": 64180,
+        "sha256": "25959ee3a16ec4b8b8f303444656e531df4a930e4de262ca53439109fd759304"
+      },
+      "assets/preload-helper-Czpn1I53.js": {
+        "bytes": 1196,
+        "sha256": "aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152"
+      },
+      "assets/RCSAWorkspace-BBbJ8vcX.css": {
+        "bytes": 7921,
+        "sha256": "a9c017e87c917a08d0c14117e9c7f83049d84f4cd126a513d73cdefb818af265"
+      },
+      "assets/RCSAWorkspace-BDCj0JOT.js": {
+        "bytes": 15865,
+        "sha256": "aaac021bae484f3e9024abf05994ef0254db49a76e2bab2c05c142c6a3caa35c"
+      },
+      "assets/RCSAWorkspace-BDCj0JOT.js.map": {
+        "bytes": 38992,
+        "sha256": "f3f1259f0a620b324261e92c4d2906fecd69ded95541d6a1d74747a022ca5c5a"
+      },
+      "assets/reportingApi-UzpgZ86d.js": {
+        "bytes": 2582,
+        "sha256": "b7dfd97b2c1525f8fbaa6f7e0a75ddd3845ffc0181cde5e358f2d4d13ce6a0da"
+      },
+      "assets/reportingApi-UzpgZ86d.js.map": {
+        "bytes": 12705,
+        "sha256": "b3d4fe4faf268d30226823a25e4d372dbe0d6182cfc455c9c94bf0a7932a163e"
+      },
+      "assets/reportingPeriod-ChMy94oa.js": {
+        "bytes": 833,
+        "sha256": "500d55e6ef0648551211513ec03c2d27bdef5de9f2db8c31aa607ce570d5adc6"
+      },
+      "assets/reportingPeriod-ChMy94oa.js.map": {
+        "bytes": 3020,
+        "sha256": "6c97be096e0bc382b75f36b871adde7085afe36b77f9cb47786ceeffa9f622d2"
+      },
+      "assets/ReportsExplore-CoLWM652.js": {
+        "bytes": 14795,
+        "sha256": "5ef16388673991b9c3df2e10bee105418d5881ed8606bd5958cd72598636d231"
+      },
+      "assets/ReportsExplore-CoLWM652.js.map": {
+        "bytes": 42981,
+        "sha256": "ab2c9c011dd3cf963e2f3bb61a01b7c7077164ab893c45057d92f5fc5049ee5a"
+      },
+      "assets/ReportsExplore-DWws9bfr.css": {
+        "bytes": 4179,
+        "sha256": "314d400e41cb06e16ceadbd6b24f360735762edb622e3be41d52fe045841cd85"
+      },
+      "assets/ReportsWorkspace-BE7QasEr.css": {
+        "bytes": 18729,
+        "sha256": "5f19f164d10680e24761be28f0c87c2aebead00448cc67c52ed22825cbcc03dc"
+      },
+      "assets/ReportsWorkspace-DBjqvq6a.js": {
+        "bytes": 50501,
+        "sha256": "3c7375c70605df2e026239fc5539603146ae4a8d1d0f00d95099934acf6e7963"
+      },
+      "assets/ReportsWorkspace-DBjqvq6a.js.map": {
+        "bytes": 123955,
+        "sha256": "7581e8a07b021b7c6c18dee78218146f5e891b6b4dbbcfd5f635966367812fc9"
+      },
+      "assets/ResponseAssessment-DYFP7xBk.css": {
+        "bytes": 9312,
+        "sha256": "5c7d80d3beacc486aaa186cf58269b2818e23da389f14d02f35413813a2b486e"
+      },
+      "assets/ResponseAssessment-O4INgzad.js": {
+        "bytes": 40662,
+        "sha256": "b3f472e4105be165ae0e42e1d5bd401f324cab91104330a28bb993ddb3ce3c34"
+      },
+      "assets/ResponseAssessment-O4INgzad.js.map": {
+        "bytes": 107986,
+        "sha256": "eb298d1840727a4ab79e1df243bd418393986d28455911673aafcae8e520aa02"
+      },
+      "assets/ResponseBrowser-B4GufTj0.js": {
+        "bytes": 8904,
+        "sha256": "896acdb58a17ba593e078e726facd1ed18761bfa02b830721ca17ca6b83d2c77"
+      },
+      "assets/ResponseBrowser-B4GufTj0.js.map": {
+        "bytes": 23357,
+        "sha256": "d6808d099ce8a3208beeb26f2ff5932084810c63c3b372e7216820499c2aa2eb"
+      },
+      "assets/RisksWorkspace-DairWCjP.css": {
+        "bytes": 5899,
+        "sha256": "46f63dd3756f317b52ded15048e498d2dc4ff2cc5fe60f35d13515b1ccd5a5af"
+      },
+      "assets/RisksWorkspace-PGvdUbdh.js": {
+        "bytes": 30814,
+        "sha256": "3aabbabe851615cb52b7e28a2ed12944a7c9487dc7d130ccf327fc89d5a385d6"
+      },
+      "assets/RisksWorkspace-PGvdUbdh.js.map": {
+        "bytes": 84763,
+        "sha256": "502aeedc893d3b9717156aa0f66e47dc36cb89b32d5beaffcc1f5b005c0277f0"
+      },
+      "assets/ropa-BZkz5VZm.css": {
+        "bytes": 12275,
+        "sha256": "130ea769039d0972d6675a803271bfa52c847f509ed1fd63236803f7873a9587"
+      },
+      "assets/ropa-CSq7WkIC.js": {
+        "bytes": 1542,
+        "sha256": "ae1a0a280ec19eff813aefe4eb0784ccf6c84c0b19781def8de06b2390aa2fe9"
+      },
+      "assets/ropa-CSq7WkIC.js.map": {
+        "bytes": 5540,
+        "sha256": "24182c9611f8b449c8bc0911a3117c43a3ba0c47da9a2d154208af1acee98b04"
+      },
+      "assets/RopaActivityPage-Cuf48Qkd.js": {
+        "bytes": 13176,
+        "sha256": "1a78d882abb3451bdd0da67ba9ae68d09f14fcbd7d74846394f6e5468ffaafd1"
+      },
+      "assets/RopaActivityPage-Cuf48Qkd.js.map": {
+        "bytes": 34438,
+        "sha256": "0b67d3a08b5492e0f77823cd8996cc3518dbcef6285aa48f00d8579f3b4a93e7"
+      },
+      "assets/RopaActivityPage-Cuy0NHoh.css": {
+        "bytes": 2126,
+        "sha256": "3778cf3eb9b83a47be52bb4f14d83a2ac08896503871211029635c1b8532b89e"
+      },
+      "assets/RopaRegisterPage-B-mJp67b.css": {
+        "bytes": 5534,
+        "sha256": "1e291651a89e60b840eedc818debf6de459c4a95bbf2948841a42e5e3896c14d"
+      },
+      "assets/RopaRegisterPage-CyJkeUJm.js": {
+        "bytes": 14852,
+        "sha256": "fa34dc2034d03678b0f5641fc48e82d7a62a5fa375120471c96116358bf2046d"
+      },
+      "assets/RopaRegisterPage-CyJkeUJm.js.map": {
+        "bytes": 35746,
+        "sha256": "e0dd8ca113afc505aa23bc7f7dfe091ef9d6854953698e5377252766ea8a6ef9"
+      },
+      "assets/SentFormDetail-Dds479kg.js": {
+        "bytes": 14019,
+        "sha256": "14263dca0bbbe7e06ae0cc3bae004343c6b5e2b033faa03c92069516e27695f9"
+      },
+      "assets/SentFormDetail-Dds479kg.js.map": {
+        "bytes": 34507,
+        "sha256": "76c168fca279c4a6fa18e29f08853088f7bdf5c2867cad46d29368648d5a0327"
+      },
+      "assets/SentFormDetail-DFR_kdL0.css": {
+        "bytes": 488,
+        "sha256": "baafc90a6bda2d4168d24faa8c890bda0cc63112ea7955f0e698abb05360c84a"
+      },
+      "assets/SessionGate-BfT4kDfY.js": {
+        "bytes": 166980,
+        "sha256": "812f22854be9cf53648c9c23762de5431b1af352d0b0acb2e4f67de8049f4c0d"
+      },
+      "assets/SessionGate-BfT4kDfY.js.map": {
+        "bytes": 439824,
+        "sha256": "beeab85524d3ff3fb68fb61641ab0a446e78b7b0a1422933b9b13a1789717282"
+      },
+      "assets/SessionGate-DQGLgUmf.css": {
+        "bytes": 55740,
+        "sha256": "1c80efd8569e632eab1275e25f88abf4f64a9bca5576af345aabd9081ad1f3d7"
+      },
+      "assets/staticDemoFixtures-B_3l5bJf.json": {
+        "bytes": 23043,
+        "sha256": "e9f86a878e9904635d67ef06997def27091245a672092f5f94b83613779545d2"
+      },
+      "assets/staticDemoWorkflowRuntime-BhTozA-3.js": {
+        "bytes": 41434,
+        "sha256": "bdb4b5cb54a492007b548cc82a17817de56f937b2ff98575e65585257552d0b5"
+      },
+      "assets/systemActivityApi-W5xC4wFJ.js": {
+        "bytes": 1185,
+        "sha256": "a97b33ce95a3692d76df90cc7b5fdf22b18babe152f483b4bee43a5f7c2b4841"
+      },
+      "assets/systemActivityApi-W5xC4wFJ.js.map": {
+        "bytes": 3589,
+        "sha256": "8d209fb8a7b2ec48b1801e3e1267ca3821a4b0eca0c8e7c9fd29b2494abc5b93"
+      },
+      "assets/ui-BqQkgK9q.css": {
+        "bytes": 1624,
+        "sha256": "acca22c7531c9ed94232ba19bae9aa9127777aa55ed3462d71669eb4f9ce0050"
+      },
+      "assets/ui-IvtL9fgR.js": {
+        "bytes": 122840,
+        "sha256": "8a054be76c6e04ccba400b42e1b8285bf5ec99654363b965f9d0af4a947065f2"
+      },
+      "assets/ui-IvtL9fgR.js.map": {
+        "bytes": 625188,
+        "sha256": "755ecb79276c2e119e91b0764144d3c40670c4625befc672a686195c69a8066c"
+      },
+      "assets/UIComponentGallery-BB5CmhVs.js": {
+        "bytes": 20712,
+        "sha256": "ebdcf2bb060df19050bc21a143bba82edcbbd177b90126342ebeb1d000225b6d"
+      },
+      "assets/UIComponentGallery-BB5CmhVs.js.map": {
+        "bytes": 40359,
+        "sha256": "73d0fdcba09f778754f44601c84190fe29aac255cd46913108577b229f8e43e2"
+      },
+      "assets/UIComponentGallery-NkyqwFG5.css": {
+        "bytes": 1850,
+        "sha256": "bc0f566888bf2fa229402a3a9ed4eb04e54130896050a17e3421d6acb04e7558"
+      },
+      "assets/useRiskLossMetrics-U-M2bDtE.js": {
+        "bytes": 3242,
+        "sha256": "829a1d2daf87df6d2fb747a1bb87d92e6ad2c23ddbd1fcf3546365b3a5dc5f46"
+      },
+      "assets/useRiskLossMetrics-U-M2bDtE.js.map": {
+        "bytes": 10643,
+        "sha256": "e65d20e8d3174bf1ae8ec3320792741fcaf6bc2c8de21aec834a58fde0543721"
+      },
+      "assets/VendorComplianceOverview-C-RivCVM.js": {
+        "bytes": 14638,
+        "sha256": "ad9feb872f685dd3907c68febf180368028341e20ce3e967b7a0a65994ac8493"
+      },
+      "assets/VendorComplianceOverview-C-RivCVM.js.map": {
+        "bytes": 37785,
+        "sha256": "f0c7881d2bb9f2249f6e96ac7c7d1340ec464d793bf755e81727be07786ea970"
+      },
+      "assets/VendorComplianceOverview-DBsLWXEL.css": {
+        "bytes": 3004,
+        "sha256": "1abb61830a311c923ce2925bbee828d9a7ddb86384dd21d4655c0963c06ff116"
+      },
+      "assets/vendorFormsApi-DBEyKbo7.js": {
+        "bytes": 598,
+        "sha256": "797205efb31c8b6b245b7d83cff834bf2710d0c6fa954c0aa7442dafef1a801c"
+      },
+      "assets/vendorFormsApi-DBEyKbo7.js.map": {
+        "bytes": 4227,
+        "sha256": "b059c7fd9a5107b05bfa4d3f080cca3c1a710e16767e47a0b561c595593f9c26"
+      },
+      "assets/VendorsWorkspace-_4-JsVQ6.js": {
+        "bytes": 179700,
+        "sha256": "f2db7b6275242e876dda103e61e83c2ebc9c21b67e3d12dd5362dbd79e7c5e22"
+      },
+      "assets/VendorsWorkspace-_4-JsVQ6.js.map": {
+        "bytes": 474481,
+        "sha256": "1ceecbacc8c0afc14f876776c45d007295650a5862f2ba36001b8ed2fdc2d66c"
+      },
+      "assets/VendorsWorkspace-C9VxQNwU.css": {
+        "bytes": 55717,
+        "sha256": "9e4c4450abe7d9c87101c99612949af5ae10185bed7459e8d8e0e4feb47e6fad"
+      },
+      "assets/VendorWorkPanel-CU0uMlLg.css": {
+        "bytes": 4790,
+        "sha256": "26816dc7cfe250585f803eb70f78b478c1961dcd33ab24214ea13c45c75613d8"
+      },
+      "assets/VendorWorkPanel-mZ7t6TU4.js": {
+        "bytes": 30940,
+        "sha256": "a5394e55924db999e645baa8c2c26d2845964e5279f7c479934aca642b307e57"
+      },
+      "assets/VendorWorkPanel-mZ7t6TU4.js.map": {
+        "bytes": 80353,
+        "sha256": "70d375bc31c04215654ad321aee5bb6b028d74bf51a224a26e3ad00e57970dd8"
+      },
+      "assets/WorkItemIcon-kUXpzmct.js": {
+        "bytes": 1338,
+        "sha256": "7054836cce24f37280c5decc5a418257edf25211a8ba7e93bc999609bd175f87"
+      },
+      "assets/WorkItemIcon-kUXpzmct.js.map": {
+        "bytes": 2719,
+        "sha256": "66abdfdeee9f4046408521da2a624666e8e92b9a51e7df860bec2caa8a9ef557"
+      },
+      "assets/WorkspaceErrorBoundary-D6Uj8R6Z.js": {
+        "bytes": 783,
+        "sha256": "3b33a594b6a935593f5a12f59451dd89eef7f9b98e9c129184f9d57a8e192e94"
+      },
+      "assets/WorkspaceErrorBoundary-D6Uj8R6Z.js.map": {
+        "bytes": 1718,
+        "sha256": "dc7438218f5adb43b65c35dffc46e48725ec28bf16af1bbca8a9db4e6d32717e"
+      },
+      "index.html": {
+        "bytes": 4558,
+        "sha256": "4edf5456b594282bbc2cf34a5642e00c4d319f49070126a85f626d9b6086103d"
+      }
+    },
+    "afterDigest": "40e12a493b9e595206607cba4729db53c7d685dc39cd5169c330fc268542649c"
+  },
+  "source": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-automation-governance-designs/automation-governance-preview.html",
+    "sha256": "7dad1ffc651fd03821cc996ff13f1203cb1ec1344a8a5bdec7b00b49035a7b6f"
+  },
+  "inputs": {
+    "fixtureSHA256": "df795d5107d9512e544904dee640b625ae246f7c25b5521db0e651e3708e7e28",
+    "captureSHA256": "79a9ea9fcdc6bb6622cb048d6b447db15575c055530bd8ee28b8d890436cf920",
+    "reviewerSHA256": "bda29c6df831773080381b0fe2d34bd30d38317bf87948ca155b8b1217603100"
+  },
+  "layouts": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "heading": {
+          "x": 260,
+          "y": 123,
+          "width": 469.671875,
+          "height": 51.828125,
+          "right": 729.671875,
+          "bottom": 174.828125
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 522,
+          "y": 474.75,
+          "width": 886,
+          "height": 131.046875,
+          "right": 1408,
+          "bottom": 605.796875
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 267,
+            "y": 233.515625,
+            "width": 216,
+            "height": 53.59375,
+            "right": 483,
+            "bottom": 287.109375
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 267,
+            "y": 291.109375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 357.296875
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 267,
+            "y": 361.296875,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 427.484375
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 267,
+            "y": 431.484375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 497.671875
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 267,
+            "y": 501.671875,
+            "width": 216,
+            "height": 53.59375,
+            "right": 483,
+            "bottom": 555.265625
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 267,
+            "y": 559.265625,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 625.453125
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 267,
+            "y": 629.453125,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 695.640625
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-light-1440.png",
+      "fullImage": "layout-light-1440-full.png"
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "heading": {
+          "x": 260,
+          "y": 123,
+          "width": 469.671875,
+          "height": 51.828125,
+          "right": 729.671875,
+          "bottom": 174.828125
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 522,
+          "y": 474.75,
+          "width": 886,
+          "height": 131.046875,
+          "right": 1408,
+          "bottom": 605.796875
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 267,
+            "y": 233.515625,
+            "width": 216,
+            "height": 53.59375,
+            "right": 483,
+            "bottom": 287.109375
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 267,
+            "y": 291.109375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 357.296875
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 267,
+            "y": 361.296875,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 427.484375
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 267,
+            "y": 431.484375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 497.671875
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 267,
+            "y": 501.671875,
+            "width": 216,
+            "height": 53.59375,
+            "right": 483,
+            "bottom": 555.265625
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 267,
+            "y": 559.265625,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 625.453125
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 267,
+            "y": 629.453125,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 695.640625
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 1440,
+        "scrollWidth": 1440,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-dark-1440.png",
+      "fullImage": "layout-dark-1440-full.png"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "light",
+      "geometry": {
+        "heading": {
+          "x": 260,
+          "y": 123,
+          "width": 469.671875,
+          "height": 51.828125,
+          "right": 729.671875,
+          "bottom": 174.828125
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 522,
+          "y": 474.75,
+          "width": 726,
+          "height": 131.046875,
+          "right": 1248,
+          "bottom": 605.796875
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 267,
+            "y": 233.515625,
+            "width": 216,
+            "height": 53.59375,
+            "right": 483,
+            "bottom": 287.109375
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 267,
+            "y": 291.109375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 357.296875
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 267,
+            "y": 361.296875,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 427.484375
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 267,
+            "y": 431.484375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 497.671875
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 267,
+            "y": 501.671875,
+            "width": 216,
+            "height": 53.59375,
+            "right": 483,
+            "bottom": 555.265625
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 267,
+            "y": 559.265625,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 625.453125
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 267,
+            "y": 629.453125,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 695.640625
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-light-1280.png"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "dark",
+      "geometry": {
+        "heading": {
+          "x": 260,
+          "y": 123,
+          "width": 469.671875,
+          "height": 51.828125,
+          "right": 729.671875,
+          "bottom": 174.828125
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 522,
+          "y": 474.75,
+          "width": 726,
+          "height": 131.046875,
+          "right": 1248,
+          "bottom": 605.796875
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 267,
+            "y": 233.515625,
+            "width": 216,
+            "height": 53.59375,
+            "right": 483,
+            "bottom": 287.109375
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 267,
+            "y": 291.109375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 357.296875
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 267,
+            "y": 361.296875,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 427.484375
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 267,
+            "y": 431.484375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 497.671875
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 267,
+            "y": 501.671875,
+            "width": 216,
+            "height": 53.59375,
+            "right": 483,
+            "bottom": 555.265625
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 267,
+            "y": 559.265625,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 625.453125
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 267,
+            "y": 629.453125,
+            "width": 216,
+            "height": 66.1875,
+            "right": 483,
+            "bottom": 695.640625
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 1280,
+        "scrollWidth": 1280,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-dark-1280.png"
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "geometry": {
+        "heading": {
+          "x": 112.953125,
+          "y": 155,
+          "width": 469.671875,
+          "height": 44.21875,
+          "right": 582.625,
+          "bottom": 199.21875
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 374.953125,
+          "y": 499.140625,
+          "width": 608.09375,
+          "height": 131.046875,
+          "right": 983.046875,
+          "bottom": 630.1875
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 119.953125,
+            "y": 257.90625,
+            "width": 216,
+            "height": 53.59375,
+            "right": 335.953125,
+            "bottom": 311.5
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 119.953125,
+            "y": 315.5,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 381.6875
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 119.953125,
+            "y": 385.6875,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 451.875
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 119.953125,
+            "y": 455.875,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 522.0625
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 119.953125,
+            "y": 526.0625,
+            "width": 216,
+            "height": 53.59375,
+            "right": 335.953125,
+            "bottom": 579.65625
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 119.953125,
+            "y": 583.65625,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 649.84375
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 119.953125,
+            "y": 653.84375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 720.03125
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-light-1024.png"
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "geometry": {
+        "heading": {
+          "x": 112.953125,
+          "y": 155,
+          "width": 469.671875,
+          "height": 44.21875,
+          "right": 582.625,
+          "bottom": 199.21875
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 374.953125,
+          "y": 499.140625,
+          "width": 608.09375,
+          "height": 131.046875,
+          "right": 983.046875,
+          "bottom": 630.1875
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 119.953125,
+            "y": 257.90625,
+            "width": 216,
+            "height": 53.59375,
+            "right": 335.953125,
+            "bottom": 311.5
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 119.953125,
+            "y": 315.5,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 381.6875
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 119.953125,
+            "y": 385.6875,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 451.875
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 119.953125,
+            "y": 455.875,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 522.0625
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 119.953125,
+            "y": 526.0625,
+            "width": 216,
+            "height": 53.59375,
+            "right": 335.953125,
+            "bottom": 579.65625
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 119.953125,
+            "y": 583.65625,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 649.84375
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 119.953125,
+            "y": 653.84375,
+            "width": 216,
+            "height": 66.1875,
+            "right": 335.953125,
+            "bottom": 720.03125
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 1024,
+        "scrollWidth": 1024,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-dark-1024.png"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "heading": {
+          "x": 80,
+          "y": 119,
+          "width": 469.671875,
+          "height": 36.71875,
+          "right": 549.671875,
+          "bottom": 155.71875
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 80,
+          "y": 595.015625,
+          "width": 680,
+          "height": 131.046875,
+          "right": 760,
+          "bottom": 726.0625
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 81,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 226,
+            "bottom": 323.78125
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 230,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 375,
+            "bottom": 323.78125
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 379,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 524,
+            "bottom": 323.78125
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 528,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 673,
+            "bottom": 323.78125
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 677,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 822,
+            "bottom": 323.78125
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 826,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 971,
+            "bottom": 323.78125
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 975,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 1120,
+            "bottom": 323.78125
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-light-768.png"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "heading": {
+          "x": 80,
+          "y": 119,
+          "width": 469.671875,
+          "height": 36.71875,
+          "right": 549.671875,
+          "bottom": 155.71875
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 80,
+          "y": 595.015625,
+          "width": 680,
+          "height": 131.046875,
+          "right": 760,
+          "bottom": 726.0625
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 81,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 226,
+            "bottom": 323.78125
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 230,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 375,
+            "bottom": 323.78125
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 379,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 524,
+            "bottom": 323.78125
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 528,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 673,
+            "bottom": 323.78125
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 677,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 822,
+            "bottom": 323.78125
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 826,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 971,
+            "bottom": 323.78125
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 975,
+            "y": 214.40625,
+            "width": 145,
+            "height": 109.375,
+            "right": 1120,
+            "bottom": 323.78125
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 768,
+        "scrollWidth": 768,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-dark-768.png"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "geometry": {
+        "heading": {
+          "x": 64,
+          "y": 119,
+          "width": 318,
+          "height": 36.71875,
+          "right": 382,
+          "bottom": 155.71875
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 64,
+          "y": 571.46875,
+          "width": 318,
+          "height": 199.046875,
+          "right": 382,
+          "bottom": 770.515625
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 63,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 208,
+            "bottom": 284.09375
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 212,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 357,
+            "bottom": 284.09375
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 361,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 506,
+            "bottom": 284.09375
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 510,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 655,
+            "bottom": 284.09375
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 659,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 804,
+            "bottom": 284.09375
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 808,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 953,
+            "bottom": 284.09375
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 957,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 1102,
+            "bottom": 284.09375
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-light-390.png",
+      "fullImage": "layout-light-390-full.png"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "geometry": {
+        "heading": {
+          "x": 64,
+          "y": 119,
+          "width": 318,
+          "height": 36.71875,
+          "right": 382,
+          "bottom": 155.71875
+        },
+        "menu": null,
+        "metrics": null,
+        "filters": null,
+        "firstRecord": {
+          "x": 64,
+          "y": 571.46875,
+          "width": 318,
+          "height": 199.046875,
+          "right": 382,
+          "bottom": 770.515625
+        },
+        "context": null,
+        "layout": null,
+        "controls": [
+          {
+            "label": "OverviewAdministrative status and entry points",
+            "x": 63,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 208,
+            "bottom": 284.09375
+          },
+          {
+            "label": "People & accessPeople, roles, departments, provisioning and workspace access.",
+            "x": 212,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 357,
+            "bottom": 284.09375
+          },
+          {
+            "label": "Approval routesRouting policies, delegations, integrity checks and affected work.",
+            "x": 361,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 506,
+            "bottom": 284.09375
+          },
+          {
+            "label": "Data & integrationsDocument imports, connected sources, mappings and reconciliation.",
+            "x": 510,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 655,
+            "bottom": 284.09375
+          },
+          {
+            "label": "AutomationAutomation policies and action limits.",
+            "x": 659,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 804,
+            "bottom": 284.09375
+          },
+          {
+            "label": "AI governanceAI workloads, security controls and policy rollout.",
+            "x": 808,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 953,
+            "bottom": 284.09375
+          },
+          {
+            "label": "System operationsBackground jobs and Program status checks.",
+            "x": 957,
+            "y": 228.09375,
+            "width": 145,
+            "height": 56,
+            "right": 1102,
+            "bottom": 284.09375
+          }
+        ],
+        "headings": [
+          "Configuration"
+        ],
+        "tabLabels": [],
+        "selectedTabs": [],
+        "metricColumns": 0,
+        "contextPlacement": "missing",
+        "sourceOrder": false,
+        "firstRecordInViewport": true,
+        "documentWidth": 390,
+        "scrollWidth": 390,
+        "settingsCurrent": "page"
+      },
+      "errors": [],
+      "observation": {
+        "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+        "scenario": "current",
+        "reads": [
+          {
+            "path": "/api/v1/compliance/automation-policies",
+            "method": "GET",
+            "query": {},
+            "status": 200,
+            "scope": {
+              "tenant_id": "bank-demo",
+              "legal_entity_id": "bank-ng",
+              "principal_id": "role-cro"
+            },
+            "policyIDs": [
+              "sample-auto-evidence",
+              "sample-auto-routing",
+              "sample-auto-source",
+              "sample-auto-vendor",
+              "sample-auto-control",
+              "sample-auto-policy"
+            ],
+            "count": 6,
+            "truncated": false,
+            "revisionBasis": "LATEST_PER_CODE"
+          }
+        ],
+        "commands": [],
+        "pending": 0,
+        "contextRead": {
+          "path": "/api/v1/context",
+          "status": 200,
+          "scope": {
+            "tenant_id": "bank-demo",
+            "legal_entity_id": "bank-ng",
+            "principal_id": "role-cro"
+          }
+        },
+        "scope": {
+          "tenant_id": "bank-demo",
+          "legal_entity_id": "bank-ng",
+          "principal_id": "role-cro"
+        }
+      },
+      "image": "layout-dark-390.png",
+      "fullImage": "layout-dark-390-full.png"
+    }
+  ],
+  "sources": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "geometry": {
+        "heading": {
+          "x": 255,
+          "y": 103,
+          "width": 1158,
+          "height": 125,
+          "right": 1413,
+          "bottom": 228
+        },
+        "menu": {
+          "x": 255,
+          "y": 228,
+          "width": 1158,
+          "height": 48,
+          "right": 1413,
+          "bottom": 276
+        },
+        "metrics": {
+          "x": 255,
+          "y": 291,
+          "width": 1158,
+          "height": 87,
+          "right": 1413,
+          "bottom": 378
+        },
+        "filters": {
+          "x": 256,
+          "y": 468,
+          "width": 809,
+          "height": 53,
+          "right": 1065,
+          "bottom": 521
+        },
+        "firstRecord": {
+          "x": 256,
+          "y": 557,
+          "width": 809,
+          "height": 79,
+          "right": 1065,
+          "bottom": 636
+        },
+        "context": {
+          "x": 1083,
+          "y": 395,
+          "width": 330,
+          "height": 716.5,
+          "right": 1413,
+          "bottom": 1111.5
+        },
+        "layout": {
+          "x": 255,
+          "y": 395,
+          "width": 1158,
+          "height": 840,
+          "right": 1413,
+          "bottom": 1235
+        },
+        "controls": [
+          {
+            "label": "New automation",
+            "x": 1245.6875,
+            "y": 145.5,
+            "width": 167.3125,
+            "height": 40,
+            "right": 1413,
+            "bottom": 185.5
+          },
+          {
+            "label": "Automations",
+            "x": 255,
+            "y": 228,
+            "width": 90.203125,
+            "height": 47,
+            "right": 345.203125,
+            "bottom": 275
+          },
+          {
+            "label": "Schedules",
+            "x": 377.203125,
+            "y": 228,
+            "width": 72.96875,
+            "height": 47,
+            "right": 450.171875,
+            "bottom": 275
+          },
+          {
+            "label": "Escalations",
+            "x": 482.171875,
+            "y": 228,
+            "width": 80.546875,
+            "height": 47,
+            "right": 562.71875,
+            "bottom": 275
+          },
+          {
+            "label": "Activity",
+            "x": 594.71875,
+            "y": 228,
+            "width": 55.75,
+            "height": 47,
+            "right": 650.46875,
+            "bottom": 275
+          },
+          {
+            "label": "Execution history",
+            "x": 914.609375,
+            "y": 427,
+            "width": 129.390625,
+            "height": 15,
+            "right": 1044,
+            "bottom": 442
+          },
+          {
+            "label": "Search automations",
+            "x": 308,
+            "y": 479.5,
+            "width": 463,
+            "height": 15,
+            "right": 771,
+            "bottom": 494.5
+          },
+          {
+            "label": "Category",
+            "x": 803,
+            "y": 480.5,
+            "width": 75,
+            "height": 13,
+            "right": 878,
+            "bottom": 493.5
+          },
+          {
+            "label": "Status",
+            "x": 924,
+            "y": 480.5,
+            "width": 99,
+            "height": 13,
+            "right": 1023,
+            "bottom": 493.5
+          },
+          {
+            "label": "High-risk remediationRisk managementRisk moves beyond appetiteRiskActive›",
+            "x": 256,
+            "y": 557,
+            "width": 809,
+            "height": 79,
+            "right": 1065,
+            "bottom": 636
+          },
+          {
+            "label": "Evidence renewal reminderEvidence & assuranceEvidence expires in 30 daysProgramsActive›",
+            "x": 256,
+            "y": 636,
+            "width": 809,
+            "height": 79,
+            "right": 1065,
+            "bottom": 715
+          },
+          {
+            "label": "Vendor document expiryThird-party riskRequired document expiresVendorsActive›",
+            "x": 256,
+            "y": 715,
+            "width": 809,
+            "height": 79,
+            "right": 1065,
+            "bottom": 794
+          },
+          {
+            "label": "Control review reminderControl assuranceControl review due in 21 daysTechnologyActive›",
+            "x": 256,
+            "y": 794,
+            "width": 809,
+            "height": 79,
+            "right": 1065,
+            "bottom": 873
+          },
+          {
+            "label": "KRI threshold breachOperational riskApproved threshold breachedRiskActive›",
+            "x": 256,
+            "y": 873,
+            "width": 809,
+            "height": 79,
+            "right": 1065,
+            "bottom": 952
+          },
+          {
+            "label": "Policy review cycleGovernancePolicy review due in 6 monthsProgramsIn review›",
+            "x": 256,
+            "y": 952,
+            "width": 809,
+            "height": 79,
+            "right": 1065,
+            "bottom": 1031
+          },
+          {
+            "label": "Vendor risk escalationThird-party riskHigh risk remains open 14 daysVendorsIn review›",
+            "x": 256,
+            "y": 1031,
+            "width": 809,
+            "height": 79,
+            "right": 1065,
+            "bottom": 1110
+          },
+          {
+            "label": "Issue inactivity reviewIssue managementNo update for 90 daysRiskPaused›",
+            "x": 256,
+            "y": 1110,
+            "width": 809,
+            "height": 79,
+            "right": 1065,
+            "bottom": 1189
+          },
+          {
+            "label": "Edit draft",
+            "x": 1106,
+            "y": 1005.5,
+            "width": 138,
+            "height": 40,
+            "right": 1244,
+            "bottom": 1045.5
+          },
+          {
+            "label": "Simulate",
+            "x": 1252,
+            "y": 1005.5,
+            "width": 138,
+            "height": 40,
+            "right": 1390,
+            "bottom": 1045.5
+          },
+          {
+            "label": "View execution history",
+            "x": 1106,
+            "y": 1054.5,
+            "width": 284,
+            "height": 36,
+            "right": 1390,
+            "bottom": 1090.5
+          }
+        ],
+        "headings": [
+          "Automation & governance"
+        ],
+        "tabLabels": [
+          "Automations",
+          "Schedules",
+          "Escalations",
+          "Activity"
+        ],
+        "selectedTabs": [
+          "Automations"
+        ],
+        "metricColumns": 4,
+        "contextPlacement": "beside",
+        "sourceOrder": true,
+        "firstRecordInViewport": true,
+        "documentWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "image": "source-1440.png"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "geometry": {
+        "heading": {
+          "x": 255,
+          "y": 103,
+          "width": 998,
+          "height": 125,
+          "right": 1253,
+          "bottom": 228
+        },
+        "menu": {
+          "x": 255,
+          "y": 228,
+          "width": 998,
+          "height": 48,
+          "right": 1253,
+          "bottom": 276
+        },
+        "metrics": {
+          "x": 255,
+          "y": 291,
+          "width": 998,
+          "height": 87,
+          "right": 1253,
+          "bottom": 378
+        },
+        "filters": {
+          "x": 256,
+          "y": 468,
+          "width": 649,
+          "height": 53,
+          "right": 905,
+          "bottom": 521
+        },
+        "firstRecord": {
+          "x": 256,
+          "y": 557,
+          "width": 649,
+          "height": 79,
+          "right": 905,
+          "bottom": 636
+        },
+        "context": {
+          "x": 923,
+          "y": 395,
+          "width": 330,
+          "height": 716.5,
+          "right": 1253,
+          "bottom": 1111.5
+        },
+        "layout": {
+          "x": 255,
+          "y": 395,
+          "width": 998,
+          "height": 840,
+          "right": 1253,
+          "bottom": 1235
+        },
+        "controls": [
+          {
+            "label": "New automation",
+            "x": 1085.6875,
+            "y": 145.5,
+            "width": 167.3125,
+            "height": 40,
+            "right": 1253,
+            "bottom": 185.5
+          },
+          {
+            "label": "Automations",
+            "x": 255,
+            "y": 228,
+            "width": 90.203125,
+            "height": 47,
+            "right": 345.203125,
+            "bottom": 275
+          },
+          {
+            "label": "Schedules",
+            "x": 377.203125,
+            "y": 228,
+            "width": 72.96875,
+            "height": 47,
+            "right": 450.171875,
+            "bottom": 275
+          },
+          {
+            "label": "Escalations",
+            "x": 482.171875,
+            "y": 228,
+            "width": 80.546875,
+            "height": 47,
+            "right": 562.71875,
+            "bottom": 275
+          },
+          {
+            "label": "Activity",
+            "x": 594.71875,
+            "y": 228,
+            "width": 55.75,
+            "height": 47,
+            "right": 650.46875,
+            "bottom": 275
+          },
+          {
+            "label": "Execution history",
+            "x": 754.609375,
+            "y": 427,
+            "width": 129.390625,
+            "height": 15,
+            "right": 884,
+            "bottom": 442
+          },
+          {
+            "label": "Search automations",
+            "x": 308,
+            "y": 479.5,
+            "width": 303,
+            "height": 15,
+            "right": 611,
+            "bottom": 494.5
+          },
+          {
+            "label": "Category",
+            "x": 643,
+            "y": 480.5,
+            "width": 75,
+            "height": 13,
+            "right": 718,
+            "bottom": 493.5
+          },
+          {
+            "label": "Status",
+            "x": 764,
+            "y": 480.5,
+            "width": 99,
+            "height": 13,
+            "right": 863,
+            "bottom": 493.5
+          },
+          {
+            "label": "High-risk remediationRisk managementRisk moves beyond appetiteRiskActive›",
+            "x": 256,
+            "y": 557,
+            "width": 649,
+            "height": 79,
+            "right": 905,
+            "bottom": 636
+          },
+          {
+            "label": "Evidence renewal reminderEvidence & assuranceEvidence expires in 30 daysProgramsActive›",
+            "x": 256,
+            "y": 636,
+            "width": 649,
+            "height": 79,
+            "right": 905,
+            "bottom": 715
+          },
+          {
+            "label": "Vendor document expiryThird-party riskRequired document expiresVendorsActive›",
+            "x": 256,
+            "y": 715,
+            "width": 649,
+            "height": 79,
+            "right": 905,
+            "bottom": 794
+          },
+          {
+            "label": "Control review reminderControl assuranceControl review due in 21 daysTechnologyActive›",
+            "x": 256,
+            "y": 794,
+            "width": 649,
+            "height": 79,
+            "right": 905,
+            "bottom": 873
+          },
+          {
+            "label": "KRI threshold breachOperational riskApproved threshold breachedRiskActive›",
+            "x": 256,
+            "y": 873,
+            "width": 649,
+            "height": 79,
+            "right": 905,
+            "bottom": 952
+          },
+          {
+            "label": "Policy review cycleGovernancePolicy review due in 6 monthsProgramsIn review›",
+            "x": 256,
+            "y": 952,
+            "width": 649,
+            "height": 79,
+            "right": 905,
+            "bottom": 1031
+          },
+          {
+            "label": "Vendor risk escalationThird-party riskHigh risk remains open 14 daysVendorsIn review›",
+            "x": 256,
+            "y": 1031,
+            "width": 649,
+            "height": 79,
+            "right": 905,
+            "bottom": 1110
+          },
+          {
+            "label": "Issue inactivity reviewIssue managementNo update for 90 daysRiskPaused›",
+            "x": 256,
+            "y": 1110,
+            "width": 649,
+            "height": 79,
+            "right": 905,
+            "bottom": 1189
+          },
+          {
+            "label": "Edit draft",
+            "x": 946,
+            "y": 1005.5,
+            "width": 138,
+            "height": 40,
+            "right": 1084,
+            "bottom": 1045.5
+          },
+          {
+            "label": "Simulate",
+            "x": 1092,
+            "y": 1005.5,
+            "width": 138,
+            "height": 40,
+            "right": 1230,
+            "bottom": 1045.5
+          },
+          {
+            "label": "View execution history",
+            "x": 946,
+            "y": 1054.5,
+            "width": 284,
+            "height": 36,
+            "right": 1230,
+            "bottom": 1090.5
+          }
+        ],
+        "headings": [
+          "Automation & governance"
+        ],
+        "tabLabels": [
+          "Automations",
+          "Schedules",
+          "Escalations",
+          "Activity"
+        ],
+        "selectedTabs": [
+          "Automations"
+        ],
+        "metricColumns": 4,
+        "contextPlacement": "beside",
+        "sourceOrder": true,
+        "firstRecordInViewport": true,
+        "documentWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "image": "source-1280.png"
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "geometry": {
+        "heading": {
+          "x": 99,
+          "y": 103,
+          "width": 898,
+          "height": 125,
+          "right": 997,
+          "bottom": 228
+        },
+        "menu": {
+          "x": 99,
+          "y": 228,
+          "width": 898,
+          "height": 48,
+          "right": 997,
+          "bottom": 276
+        },
+        "metrics": {
+          "x": 99,
+          "y": 291,
+          "width": 898,
+          "height": 186,
+          "right": 997,
+          "bottom": 477
+        },
+        "filters": {
+          "x": 100,
+          "y": 567,
+          "width": 896,
+          "height": 53,
+          "right": 996,
+          "bottom": 620
+        },
+        "firstRecord": {
+          "x": 100,
+          "y": 656,
+          "width": 896,
+          "height": 79,
+          "right": 996,
+          "bottom": 735
+        },
+        "context": {
+          "x": 99,
+          "y": 1351,
+          "width": 898,
+          "height": 669,
+          "right": 997,
+          "bottom": 2020
+        },
+        "layout": {
+          "x": 99,
+          "y": 494,
+          "width": 898,
+          "height": 1526,
+          "right": 997,
+          "bottom": 2020
+        },
+        "controls": [
+          {
+            "label": "New automation",
+            "x": 829.6875,
+            "y": 145.5,
+            "width": 167.3125,
+            "height": 40,
+            "right": 997,
+            "bottom": 185.5
+          },
+          {
+            "label": "Automations",
+            "x": 99,
+            "y": 228,
+            "width": 90.203125,
+            "height": 47,
+            "right": 189.203125,
+            "bottom": 275
+          },
+          {
+            "label": "Schedules",
+            "x": 221.203125,
+            "y": 228,
+            "width": 72.96875,
+            "height": 47,
+            "right": 294.171875,
+            "bottom": 275
+          },
+          {
+            "label": "Escalations",
+            "x": 326.171875,
+            "y": 228,
+            "width": 80.546875,
+            "height": 47,
+            "right": 406.71875,
+            "bottom": 275
+          },
+          {
+            "label": "Activity",
+            "x": 438.71875,
+            "y": 228,
+            "width": 55.75,
+            "height": 47,
+            "right": 494.46875,
+            "bottom": 275
+          },
+          {
+            "label": "Execution history",
+            "x": 845.609375,
+            "y": 526,
+            "width": 129.390625,
+            "height": 15,
+            "right": 975,
+            "bottom": 541
+          },
+          {
+            "label": "Search automations",
+            "x": 152,
+            "y": 578.5,
+            "width": 550,
+            "height": 15,
+            "right": 702,
+            "bottom": 593.5
+          },
+          {
+            "label": "Category",
+            "x": 734,
+            "y": 579.5,
+            "width": 75,
+            "height": 13,
+            "right": 809,
+            "bottom": 592.5
+          },
+          {
+            "label": "Status",
+            "x": 855,
+            "y": 579.5,
+            "width": 99,
+            "height": 13,
+            "right": 954,
+            "bottom": 592.5
+          },
+          {
+            "label": "High-risk remediationRisk managementRisk moves beyond appetiteRiskActive›",
+            "x": 100,
+            "y": 656,
+            "width": 896,
+            "height": 79,
+            "right": 996,
+            "bottom": 735
+          },
+          {
+            "label": "Evidence renewal reminderEvidence & assuranceEvidence expires in 30 daysProgramsActive›",
+            "x": 100,
+            "y": 735,
+            "width": 896,
+            "height": 79,
+            "right": 996,
+            "bottom": 814
+          },
+          {
+            "label": "Vendor document expiryThird-party riskRequired document expiresVendorsActive›",
+            "x": 100,
+            "y": 814,
+            "width": 896,
+            "height": 79,
+            "right": 996,
+            "bottom": 893
+          },
+          {
+            "label": "Control review reminderControl assuranceControl review due in 21 daysTechnologyActive›",
+            "x": 100,
+            "y": 893,
+            "width": 896,
+            "height": 79,
+            "right": 996,
+            "bottom": 972
+          },
+          {
+            "label": "KRI threshold breachOperational riskApproved threshold breachedRiskActive›",
+            "x": 100,
+            "y": 972,
+            "width": 896,
+            "height": 79,
+            "right": 996,
+            "bottom": 1051
+          },
+          {
+            "label": "Policy review cycleGovernancePolicy review due in 6 monthsProgramsIn review›",
+            "x": 100,
+            "y": 1051,
+            "width": 896,
+            "height": 79,
+            "right": 996,
+            "bottom": 1130
+          },
+          {
+            "label": "Vendor risk escalationThird-party riskHigh risk remains open 14 daysVendorsIn review›",
+            "x": 100,
+            "y": 1130,
+            "width": 896,
+            "height": 79,
+            "right": 996,
+            "bottom": 1209
+          },
+          {
+            "label": "Issue inactivity reviewIssue managementNo update for 90 daysRiskPaused›",
+            "x": 100,
+            "y": 1209,
+            "width": 896,
+            "height": 79,
+            "right": 996,
+            "bottom": 1288
+          },
+          {
+            "label": "Edit draft",
+            "x": 122,
+            "y": 1914,
+            "width": 422,
+            "height": 40,
+            "right": 544,
+            "bottom": 1954
+          },
+          {
+            "label": "Simulate",
+            "x": 552,
+            "y": 1914,
+            "width": 422,
+            "height": 40,
+            "right": 974,
+            "bottom": 1954
+          },
+          {
+            "label": "View execution history",
+            "x": 122,
+            "y": 1963,
+            "width": 852,
+            "height": 36,
+            "right": 974,
+            "bottom": 1999
+          }
+        ],
+        "headings": [
+          "Automation & governance"
+        ],
+        "tabLabels": [
+          "Automations",
+          "Schedules",
+          "Escalations",
+          "Activity"
+        ],
+        "selectedTabs": [
+          "Automations"
+        ],
+        "metricColumns": 2,
+        "contextPlacement": "below",
+        "sourceOrder": true,
+        "firstRecordInViewport": true,
+        "documentWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "image": "source-1024.png",
+      "contextImage": "source-1024-context.png"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "geometry": {
+        "heading": {
+          "x": 85,
+          "y": 82,
+          "width": 664,
+          "height": 111,
+          "right": 749,
+          "bottom": 193
+        },
+        "menu": {
+          "x": 85,
+          "y": 193,
+          "width": 664,
+          "height": 48,
+          "right": 749,
+          "bottom": 241
+        },
+        "metrics": {
+          "x": 85,
+          "y": 256,
+          "width": 664,
+          "height": 186,
+          "right": 749,
+          "bottom": 442
+        },
+        "filters": {
+          "x": 86,
+          "y": 532,
+          "width": 662,
+          "height": 53,
+          "right": 748,
+          "bottom": 585
+        },
+        "firstRecord": {
+          "x": 86,
+          "y": 621,
+          "width": 662,
+          "height": 79,
+          "right": 748,
+          "bottom": 700
+        },
+        "context": {
+          "x": 85,
+          "y": 1316,
+          "width": 664,
+          "height": 669,
+          "right": 749,
+          "bottom": 1985
+        },
+        "layout": {
+          "x": 85,
+          "y": 459,
+          "width": 664,
+          "height": 1526,
+          "right": 749,
+          "bottom": 1985
+        },
+        "controls": [
+          {
+            "label": "New automation",
+            "x": 581.6875,
+            "y": 117.5,
+            "width": 167.3125,
+            "height": 40,
+            "right": 749,
+            "bottom": 157.5
+          },
+          {
+            "label": "Automations",
+            "x": 85,
+            "y": 193,
+            "width": 90.203125,
+            "height": 47,
+            "right": 175.203125,
+            "bottom": 240
+          },
+          {
+            "label": "Schedules",
+            "x": 207.203125,
+            "y": 193,
+            "width": 72.96875,
+            "height": 47,
+            "right": 280.171875,
+            "bottom": 240
+          },
+          {
+            "label": "Escalations",
+            "x": 312.171875,
+            "y": 193,
+            "width": 80.546875,
+            "height": 47,
+            "right": 392.71875,
+            "bottom": 240
+          },
+          {
+            "label": "Activity",
+            "x": 424.71875,
+            "y": 193,
+            "width": 55.75,
+            "height": 47,
+            "right": 480.46875,
+            "bottom": 240
+          },
+          {
+            "label": "Execution history",
+            "x": 597.609375,
+            "y": 491,
+            "width": 129.390625,
+            "height": 15,
+            "right": 727,
+            "bottom": 506
+          },
+          {
+            "label": "Search automations",
+            "x": 138,
+            "y": 543.5,
+            "width": 316,
+            "height": 15,
+            "right": 454,
+            "bottom": 558.5
+          },
+          {
+            "label": "Category",
+            "x": 486,
+            "y": 544.5,
+            "width": 75,
+            "height": 13,
+            "right": 561,
+            "bottom": 557.5
+          },
+          {
+            "label": "Status",
+            "x": 607,
+            "y": 544.5,
+            "width": 99,
+            "height": 13,
+            "right": 706,
+            "bottom": 557.5
+          },
+          {
+            "label": "High-risk remediationRisk managementRisk moves beyond appetiteRiskActive›",
+            "x": 86,
+            "y": 621,
+            "width": 662,
+            "height": 79,
+            "right": 748,
+            "bottom": 700
+          },
+          {
+            "label": "Evidence renewal reminderEvidence & assuranceEvidence expires in 30 daysProgramsActive›",
+            "x": 86,
+            "y": 700,
+            "width": 662,
+            "height": 79,
+            "right": 748,
+            "bottom": 779
+          },
+          {
+            "label": "Vendor document expiryThird-party riskRequired document expiresVendorsActive›",
+            "x": 86,
+            "y": 779,
+            "width": 662,
+            "height": 79,
+            "right": 748,
+            "bottom": 858
+          },
+          {
+            "label": "Control review reminderControl assuranceControl review due in 21 daysTechnologyActive›",
+            "x": 86,
+            "y": 858,
+            "width": 662,
+            "height": 79,
+            "right": 748,
+            "bottom": 937
+          },
+          {
+            "label": "KRI threshold breachOperational riskApproved threshold breachedRiskActive›",
+            "x": 86,
+            "y": 937,
+            "width": 662,
+            "height": 79,
+            "right": 748,
+            "bottom": 1016
+          },
+          {
+            "label": "Policy review cycleGovernancePolicy review due in 6 monthsProgramsIn review›",
+            "x": 86,
+            "y": 1016,
+            "width": 662,
+            "height": 79,
+            "right": 748,
+            "bottom": 1095
+          },
+          {
+            "label": "Vendor risk escalationThird-party riskHigh risk remains open 14 daysVendorsIn review›",
+            "x": 86,
+            "y": 1095,
+            "width": 662,
+            "height": 79,
+            "right": 748,
+            "bottom": 1174
+          },
+          {
+            "label": "Issue inactivity reviewIssue managementNo update for 90 daysRiskPaused›",
+            "x": 86,
+            "y": 1174,
+            "width": 662,
+            "height": 79,
+            "right": 748,
+            "bottom": 1253
+          },
+          {
+            "label": "Edit draft",
+            "x": 108,
+            "y": 1879,
+            "width": 305,
+            "height": 40,
+            "right": 413,
+            "bottom": 1919
+          },
+          {
+            "label": "Simulate",
+            "x": 421,
+            "y": 1879,
+            "width": 305,
+            "height": 40,
+            "right": 726,
+            "bottom": 1919
+          },
+          {
+            "label": "View execution history",
+            "x": 108,
+            "y": 1928,
+            "width": 618,
+            "height": 36,
+            "right": 726,
+            "bottom": 1964
+          }
+        ],
+        "headings": [
+          "Automation & governance"
+        ],
+        "tabLabels": [
+          "Automations",
+          "Schedules",
+          "Escalations",
+          "Activity"
+        ],
+        "selectedTabs": [
+          "Automations"
+        ],
+        "metricColumns": 2,
+        "contextPlacement": "below",
+        "sourceOrder": true,
+        "firstRecordInViewport": true,
+        "documentWidth": 768,
+        "scrollWidth": 768
+      },
+      "image": "source-768.png",
+      "contextImage": "source-768-context.png"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "geometry": {
+        "heading": {
+          "x": 64,
+          "y": 80,
+          "width": 315,
+          "height": 155.828125,
+          "right": 379,
+          "bottom": 235.828125
+        },
+        "menu": {
+          "x": 64,
+          "y": 235.828125,
+          "width": 315,
+          "height": 43,
+          "right": 379,
+          "bottom": 278.828125
+        },
+        "metrics": {
+          "x": 64,
+          "y": 291.828125,
+          "width": 315,
+          "height": 147,
+          "right": 379,
+          "bottom": 438.828125
+        },
+        "filters": {
+          "x": 65,
+          "y": 533.828125,
+          "width": 313,
+          "height": 100,
+          "right": 378,
+          "bottom": 633.828125
+        },
+        "firstRecord": {
+          "x": 65,
+          "y": 633.828125,
+          "width": 313,
+          "height": 78,
+          "right": 378,
+          "bottom": 711.828125
+        },
+        "context": {
+          "x": 64,
+          "y": 1332.828125,
+          "width": 315,
+          "height": 712.5,
+          "right": 379,
+          "bottom": 2045.328125
+        },
+        "layout": {
+          "x": 64,
+          "y": 455.828125,
+          "width": 315,
+          "height": 1589.5,
+          "right": 379,
+          "bottom": 2045.328125
+        },
+        "controls": [
+          {
+            "label": "New automation",
+            "x": 64,
+            "y": 179.828125,
+            "width": 158.03125,
+            "height": 38,
+            "right": 222.03125,
+            "bottom": 217.828125
+          },
+          {
+            "label": "Automations",
+            "x": 64,
+            "y": 235.828125,
+            "width": 83.015625,
+            "height": 42,
+            "right": 147.015625,
+            "bottom": 277.828125
+          },
+          {
+            "label": "Schedules",
+            "x": 167.015625,
+            "y": 235.828125,
+            "width": 67.21875,
+            "height": 42,
+            "right": 234.234375,
+            "bottom": 277.828125
+          },
+          {
+            "label": "Escalations",
+            "x": 254.234375,
+            "y": 235.828125,
+            "width": 74.171875,
+            "height": 42,
+            "right": 328.40625,
+            "bottom": 277.828125
+          },
+          {
+            "label": "Activity",
+            "x": 348.40625,
+            "y": 235.828125,
+            "width": 51.4375,
+            "height": 42,
+            "right": 399.84375,
+            "bottom": 277.828125
+          },
+          {
+            "label": "Execution history",
+            "x": 234.609375,
+            "y": 487.828125,
+            "width": 129.390625,
+            "height": 15,
+            "right": 364,
+            "bottom": 502.828125
+          },
+          {
+            "label": "Search automations",
+            "x": 114,
+            "y": 545.328125,
+            "width": 239,
+            "height": 15,
+            "right": 353,
+            "bottom": 560.328125
+          },
+          {
+            "label": "Category",
+            "x": 87,
+            "y": 593.328125,
+            "width": 75,
+            "height": 13,
+            "right": 162,
+            "bottom": 606.328125
+          },
+          {
+            "label": "Status",
+            "x": 236,
+            "y": 593.328125,
+            "width": 99,
+            "height": 13,
+            "right": 335,
+            "bottom": 606.328125
+          },
+          {
+            "label": "High-risk remediationRisk managementRisk moves beyond appetiteRiskActive›",
+            "x": 65,
+            "y": 633.828125,
+            "width": 313,
+            "height": 78,
+            "right": 378,
+            "bottom": 711.828125
+          },
+          {
+            "label": "Evidence renewal reminderEvidence & assuranceEvidence expires in 30 daysProgramsActive›",
+            "x": 65,
+            "y": 711.828125,
+            "width": 313,
+            "height": 78,
+            "right": 378,
+            "bottom": 789.828125
+          },
+          {
+            "label": "Vendor document expiryThird-party riskRequired document expiresVendorsActive›",
+            "x": 65,
+            "y": 789.828125,
+            "width": 313,
+            "height": 78,
+            "right": 378,
+            "bottom": 867.828125
+          },
+          {
+            "label": "Control review reminderControl assuranceControl review due in 21 daysTechnologyActive›",
+            "x": 65,
+            "y": 867.828125,
+            "width": 313,
+            "height": 78,
+            "right": 378,
+            "bottom": 945.828125
+          },
+          {
+            "label": "KRI threshold breachOperational riskApproved threshold breachedRiskActive›",
+            "x": 65,
+            "y": 945.828125,
+            "width": 313,
+            "height": 78,
+            "right": 378,
+            "bottom": 1023.828125
+          },
+          {
+            "label": "Policy review cycleGovernancePolicy review due in 6 monthsProgramsIn review›",
+            "x": 65,
+            "y": 1023.828125,
+            "width": 313,
+            "height": 78,
+            "right": 378,
+            "bottom": 1101.828125
+          },
+          {
+            "label": "Vendor risk escalationThird-party riskHigh risk remains open 14 daysVendorsIn review›",
+            "x": 65,
+            "y": 1101.828125,
+            "width": 313,
+            "height": 78,
+            "right": 378,
+            "bottom": 1179.828125
+          },
+          {
+            "label": "Issue inactivity reviewIssue managementNo update for 90 daysRiskPaused›",
+            "x": 65,
+            "y": 1179.828125,
+            "width": 313,
+            "height": 78,
+            "right": 378,
+            "bottom": 1257.828125
+          },
+          {
+            "label": "Edit draft",
+            "x": 83,
+            "y": 1941.328125,
+            "width": 134.5,
+            "height": 40,
+            "right": 217.5,
+            "bottom": 1981.328125
+          },
+          {
+            "label": "Simulate",
+            "x": 225.5,
+            "y": 1941.328125,
+            "width": 134.5,
+            "height": 40,
+            "right": 360,
+            "bottom": 1981.328125
+          },
+          {
+            "label": "View execution history",
+            "x": 83,
+            "y": 1990.328125,
+            "width": 277,
+            "height": 36,
+            "right": 360,
+            "bottom": 2026.328125
+          }
+        ],
+        "headings": [
+          "Automation & governance"
+        ],
+        "tabLabels": [
+          "Automations",
+          "Schedules",
+          "Escalations",
+          "Activity"
+        ],
+        "selectedTabs": [
+          "Automations"
+        ],
+        "metricColumns": 2,
+        "contextPlacement": "below",
+        "sourceOrder": true,
+        "firstRecordInViewport": true,
+        "documentWidth": 390,
+        "scrollWidth": 390
+      },
+      "image": "source-390.png",
+      "contextImage": "source-390-context.png"
+    }
+  ],
+  "behaviors": [],
+  "images": [
+    {
+      "file": "source-1440.png",
+      "bytes": 203407,
+      "sha256": "2900ce2993375e744ca559d1b3ff3e20538071e5cf311a03f9b36d40de8e14f6"
+    },
+    {
+      "file": "layout-light-1440.png",
+      "bytes": 227081,
+      "sha256": "2322bafe921255e31aa53707a8477c92405ece0c68890e6ecd7c38124f674278"
+    },
+    {
+      "file": "layout-light-1440-full.png",
+      "bytes": 257960,
+      "sha256": "b8827b2a796184af150bbc357e93889a2d3fbd1f92d8002152c0852ca01dfa59"
+    },
+    {
+      "file": "layout-dark-1440.png",
+      "bytes": 235806,
+      "sha256": "eaa80e676a7f1337443125b9e974d0b17cb02b5cb33a74a604642643d5c1be8b"
+    },
+    {
+      "file": "layout-dark-1440-full.png",
+      "bytes": 266947,
+      "sha256": "bd7dbc3f0598c97308537614fba7ea63f191da649099c4062e9727eb1d18cf1b"
+    },
+    {
+      "file": "source-1280.png",
+      "bytes": 180164,
+      "sha256": "d21b0892893c43733e89060739b03a34cfc371ad8f9c97f475cde242f620745b"
+    },
+    {
+      "file": "layout-light-1280.png",
+      "bytes": 208437,
+      "sha256": "f098112ba402ea2e603d93ddf5ac5b2ef4b19f6f6d74763bffed4bf6425f7f30"
+    },
+    {
+      "file": "layout-dark-1280.png",
+      "bytes": 215041,
+      "sha256": "e1b7fee0bb1e9ec1b749318be9ecfa6a7c0caca2ced0bf490e1cc79269f1db5b"
+    },
+    {
+      "file": "source-1024.png",
+      "bytes": 107117,
+      "sha256": "88ff8da9f142da3537410a7db7dff600c1f8b3c1b47c6bfb03f1fdf8c3f92c05"
+    },
+    {
+      "file": "source-1024-context.png",
+      "bytes": 93305,
+      "sha256": "e41cb6be942543099c4d7798f423c4da5f52322d6a7b7375396c4a66023135b0"
+    },
+    {
+      "file": "layout-light-1024.png",
+      "bytes": 172092,
+      "sha256": "6b2fec5e9f1de43b7f7c00bc49699b2dc1dff99d91ded4753f7ad576d0744ec5"
+    },
+    {
+      "file": "layout-dark-1024.png",
+      "bytes": 177091,
+      "sha256": "82167f282432588aa21538cae0d5fa34f794669e1d2a85b4ec70415a6bc409b1"
+    },
+    {
+      "file": "source-768.png",
+      "bytes": 116724,
+      "sha256": "820d3e983f06eb87c14ce1e509d2dec4dff93ae4c2a47deb04da7ac5824c61fe"
+    },
+    {
+      "file": "source-768-context.png",
+      "bytes": 108857,
+      "sha256": "35721716a6e8abec025e5099171653bd5ceb118bdd39e464b32449a6bb15407d"
+    },
+    {
+      "file": "layout-light-768.png",
+      "bytes": 130747,
+      "sha256": "8144edbd3cdce160574a1cb4dea69e7dde0e7c6fdab0ec918de5b807d806acd4"
+    },
+    {
+      "file": "layout-dark-768.png",
+      "bytes": 136100,
+      "sha256": "7e6fcda489ef0cbe2a1f92ebefedceee3e896f42f16deb4f14e8a4f2c080a950"
+    },
+    {
+      "file": "source-390.png",
+      "bytes": 79897,
+      "sha256": "2bacee22e5c855f52c13bcfabd27f565308ea37a9186667787d46c2cce1289f1"
+    },
+    {
+      "file": "source-390-context.png",
+      "bytes": 78760,
+      "sha256": "6c07ae73398e0b40ad45ad7070767bbcc9acc5ffe612dc3d106aca01341b1872"
+    },
+    {
+      "file": "layout-light-390.png",
+      "bytes": 94190,
+      "sha256": "84ef85b33bb888506639435d4b9c9ef0a7dd588413bbefae6f704640137c1330"
+    },
+    {
+      "file": "layout-light-390-full.png",
+      "bytes": 142813,
+      "sha256": "9c57ba3d2f5fdc7a8414f3d71a02663e89b205d171290aebde41b58b49429d59"
+    },
+    {
+      "file": "layout-dark-390.png",
+      "bytes": 94056,
+      "sha256": "6c37f834171b44c67e3e9dfdac754ddac18fa03a95d31962c9cfe1892fe2b5c9"
+    },
+    {
+      "file": "layout-dark-390-full.png",
+      "bytes": 143115,
+      "sha256": "e958137e68ed11aca0891f4fc6011786ba14594c75f0c7c14a89ecd247e11407"
+    }
+  ],
+  "failure": null,
+  "limitations": [
+    "Synthetic transport does not prove live authorization or production acceptance.",
+    "The approved source is light-only; dark renders verify the runtime adaptation.",
+    "Remote source fonts are blocked; environment font fallback affects glyph widths.",
+    "Axe incomplete findings need separate review; this is not full WCAG certification."
+  ],
+  "browser": "140.0.7339.16"
+}

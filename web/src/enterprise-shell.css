@@ -1,6 +1,21 @@
-.sidebar-secondary { width: 100%; margin-top: auto; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent); }
-.sidebar-secondary .nav-item { width: 100%; }
-.sidebar > .avatar { margin-top: 14px; }
+/* Scope belongs with the active entity, not alongside notification/actions. */
+.context-bar > .context-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cs-space-group);
+}
+.context-bar .context-identity {
+  display: grid;
+  gap: var(--cs-space-inline);
+  min-width: 0;
+}
+.context-bar .context-identity > strong,
+.context-bar .context-identity > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .context-role { position: relative; }
 .context-scope-control { position: relative; display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .administration-menu, .demo-environment-menu { position: relative; }
@@ -94,4 +109,29 @@
 @media (max-width: 420px) {
   .context-scope-control { flex: 1 1 100%; max-width: none; }
   .context-scope-control .enterprise-scope-trigger { width: 100%; }
+}
+
+/* Desktop workspace context. Navigation geometry lives in approved-shell.css. */
+@media (min-width: 1025px) {
+  .app-shell > main {
+    width: 100%;
+    max-width: 1940px;
+    padding: 0 var(--cs-primitive-space-8) var(--cs-primitive-space-12);
+  }
+  .app-shell > main > .context-bar {
+    position: sticky;
+    top: 0;
+    z-index: var(--cs-primitive-z-sticky);
+    min-height: 76px;
+    margin: 0 calc(0px - var(--cs-primitive-space-8)) var(--cs-primitive-space-8);
+    padding: var(--cs-space-inline) var(--cs-primitive-space-8);
+    border: 0;
+    border-bottom: 1px solid var(--cs-border-default);
+    border-radius: 0;
+    background: var(--cs-bg-surface-1);
+    box-shadow: none;
+    backdrop-filter: blur(15px);
+  }
+  .app-shell > main > .context-bar .enterprise-scope-trigger { min-height: 40px; }
+
 }

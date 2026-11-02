@@ -22,7 +22,7 @@ export function CaptureFieldControl({ field, value, attachments = [], uploading,
   if (documentAlreadyReceived(field)) return <div className="capture-field" role="group" aria-labelledby={`capture-received-${field.id}`}>
     <strong id={`capture-received-${field.id}`}>{field.label}</strong><p role="status">Document received</p>
     <p className="field-help">No upload needed.</p>
-    {answerIsPresent(value) && <><p className="field-help">Document draft retained. Complete it to send another document, or remove it to use the received document.</p><CaptureFieldControl field={{ ...field, collection_received: false, required: false }} value={value} attachments={attachments} uploading={uploading} external={external} error={error} onChange={onChange} onUpload={onUpload} onRemove={onRemove}/><button className="secondary-button" type="button" disabled={uploading} onClick={() => onChange({})}>Remove document draft</button></>}
+    {answerIsPresent(value) && <><p className="field-help">Finish the replacement document or remove the draft to use the received file.</p><CaptureFieldControl field={{ ...field, collection_received: false, required: false }} value={value} attachments={attachments} uploading={uploading} external={external} error={error} onChange={onChange} onUpload={onUpload} onRemove={onRemove}/><button className="secondary-button" type="button" disabled={uploading} onClick={() => onChange({})}>Remove document draft</button></>}
   </div>;
 	if (field.record_baseline && field.collection_intent && field.collection_intent !== "CAPTURE") {
 		const captureField = { ...field, collection_intent: "CAPTURE" as const, record_baseline: undefined };

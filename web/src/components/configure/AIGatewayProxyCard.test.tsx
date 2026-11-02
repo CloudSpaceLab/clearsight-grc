@@ -34,7 +34,7 @@ it("does not imply runtime health when no public proxy URL is published", () => 
   />);
 
   expect(screen.getByText("Not published")).toBeTruthy();
-  expect(screen.getByText(/No public proxy URL is configured/)).toBeTruthy();
-  expect(screen.getByText(/Publishing a base URL does not imply/)).toBeTruthy();
+  expect(screen.getByText(/No public gateway URL configured/)).toBeTruthy();
+  expect(screen.getByText(/Check gateway and provider health/)).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Copy base URL" })).toBeNull();
 });

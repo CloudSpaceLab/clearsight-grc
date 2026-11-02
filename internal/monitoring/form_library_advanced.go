@@ -43,6 +43,10 @@ func (s *Service) ListAdvancedFormLibrary(ctx context.Context, filter FormLibrar
 	if err != nil {
 		return FormTemplatePage{}, err
 	}
+	originType, originID, err := normalizeFormLibraryOriginFilter(filter.OriginType, filter.OriginID)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
 	normalized, err := NormalizeFormFilterExpression(filter.Expression)
 	if err != nil {
 		return FormTemplatePage{}, err
@@ -50,6 +54,8 @@ func (s *Service) ListAdvancedFormLibrary(ctx context.Context, filter FormLibrar
 	filter.Expression = normalized
 	filter.TenantID = actor.TenantID
 	filter.LegalEntityID = actor.LegalEntityID
+	filter.OriginType = originType
+	filter.OriginID = originID
 	repo, ok := s.repo.(advancedFormLibraryRepository)
 	if !ok {
 		return FormTemplatePage{}, errors.Join(ErrInvalid, fmt.Errorf("advanced form filtering is unavailable"))

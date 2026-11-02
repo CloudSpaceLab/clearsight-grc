@@ -12,5 +12,5 @@ it("loads and clearly labels an exact point-in-time record without claiming chro
   expect(await screen.findByLabelText("Program record at selected time")).toBeTruthy();
   expect(screen.getByText("In Review")).toBeTruthy();
   expect(load).toHaveBeenCalledWith(expect.stringMatching(/^2026-08-20T/));
-  expect(screen.getByText(/not a list of changes/)).toBeTruthy();
+  expect(screen.getByText(/not its change history/)).toBeTruthy();
 });

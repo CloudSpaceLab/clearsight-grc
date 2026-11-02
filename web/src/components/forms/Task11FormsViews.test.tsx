@@ -80,9 +80,12 @@ describe("Task 11 governed form views", () => {
     expect(screen.queryByLabelText("Subject type")).toBeNull();
     expect(screen.queryByLabelText("Subject identifier")).toBeNull();
     expect(screen.queryByLabelText("External email")).toBeNull();
-    fireEvent.change(screen.getByLabelText("Find internal recipient"), { target: { value: "Jane" } });
+    expect(screen.getByRole("button", { name: /Select form/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Select form/ }));
+    fireEvent.click(await screen.findByRole("option", { name: /Control review/ }));
+    fireEvent.change(screen.getByLabelText("Find employee"), { target: { value: "Jane" } });
     fireEvent.click(await screen.findByRole("option", { name: /Jane Reviewer/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Create and dispatch" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send request" }));
     await waitFor(() => expect(distributionApi.createDistribution).toHaveBeenCalledTimes(1));
     expect(distributionApi.createDistribution.mock.calls[0]?.[0]).toMatchObject({
       subject_type: "MATTER", subject_id: "matter-a",

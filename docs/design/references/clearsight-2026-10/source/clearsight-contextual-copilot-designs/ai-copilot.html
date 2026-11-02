@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ClearSight — Contextual Copilot</title>
+<link rel="stylesheet" href="prototype-shared.css"/><link rel="stylesheet" href="ai-copilot.css"/>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" class="icons" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5c4-2 6-1 8 1 2-2 5-3 8-1v15c-3-2-6-1-8 1-2-2-4-3-8-1Z"/><path d="M12 6v15"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 3h9v10H3Z"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 20 5v6c0 5-3 8-8 11-5-3-8-6-8-11V5Z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3Z"/><path d="M17 5a3 3 0 0 1 0 6m0 4a5 5 0 0 1 4 5"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m12 3 10 18H2Z"/><path d="M12 9v5m0 3v.2"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 21h18M6 17v-5m6 5V5m6 12v-8"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M5 2h9l5 5v15H5Z"/><path d="M14 2v5h5M8 12h8M8 16h8"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-7-7 7 7-7 7"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.1 7.9L22 12l-7.9 2.1L12 22l-2.1-7.9L2 12l7.9-2.1Z"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 .5l2-2a5 5 0 0 0-7-7l-2 2m4 5a5 5 0 0 0-7-.5l-2 2a5 5 0 0 0 7 7l2-2"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="m3 3 18 9-18 9 4-9Z"/><path d="M7 12h14"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="#fff"/><circle cx="16" cy="12" r="2" fill="#fff"/><circle cx="8" cy="18" r="2" fill="#fff"/></symbol>
+</svg>
+<div class="app ai-app">
+<aside class="sidebar" aria-label="Main navigation">
+  <div class="logo"><span class="logo-mark" aria-hidden="true"><i class="a"></i><i class="b"></i><i class="c"></i></span><div><strong>ClearSight</strong><small>Governance. Risk. Compliance.</small></div></div>
+  <nav class="nav" aria-label="Product">
+  <a href="#home" class="nav-item"><svg class="icon"><use href="#i-home"/></svg>Home</a>
+  <a href="#search" class="nav-item"><svg class="icon"><use href="#i-search"/></svg>Search</a>
+  <a href="#frameworks" class="nav-item"><svg class="icon"><use href="#i-book"/></svg>Frameworks</a>
+  <a href="#programs" class="nav-item active"><svg class="icon"><use href="#i-folder"/></svg>Programs</a>
+  <a href="#assessments" class="nav-item"><svg class="icon"><use href="#i-doc"/></svg>Assessments</a>
+  <a href="#risks" class="nav-item"><svg class="icon"><use href="#i-alert"/></svg>Risks</a>
+  <a href="#vendors" class="nav-item"><svg class="icon"><use href="#i-users"/></svg>Vendors</a>
+  <a href="#controls" class="nav-item"><svg class="icon"><use href="#i-shield"/></svg>Controls</a>
+  <a href="#work" class="nav-item"><svg class="icon"><use href="#i-check"/></svg>Work & Approvals</a>
+  <a href="#reports" class="nav-item"><svg class="icon"><use href="#i-chart"/></svg>Reports</a>
+  </nav>
+  <div class="side-bottom"><button type="button" id="settings"><svg class="icon"><use href="#i-sliders"/></svg>Settings</button><div class="release">DESIGN PREVIEW<br/>Sample records · No changes submitted</div></div>
+</aside>
+<div class="main ai-main"><header class="topbar ai-topbar">
+  <button class="scope" type="button" id="group-trigger" aria-haspopup="true" aria-expanded="false"><svg class="icon"><use href="#i-grid"/></svg><span id="selected-group">All groups</span><svg class="icon chev"><use href="#i-chevron"/></svg></button>
+  <button class="scope" type="button" id="framework-trigger" aria-haspopup="true" aria-expanded="false"><svg class="icon"><use href="#i-book"/></svg>ISO 27001:2022 <svg class="icon chev"><use href="#i-chevron"/></svg></button>
+  <div class="grow"></div><button type="button" class="global-search" id="global-search"><svg class="icon"><use href="#i-search"/></svg>Search ClearSight <span class="key">⌘ K</span></button>
+  <button class="top-icon" aria-label="Notifications" type="button"><svg class="icon"><use href="#i-clock"/></svg></button>
+  <div class="profile"><div class="avatar">JE</div><div><strong>Jordan Ellis</strong><small>Risk & Compliance</small></div></div>
+</header>
+<main class="content ai-content">
+  <div class="ai-breadcrumb">Programs <span>›</span> Information Security <span>›</span> Overview</div>
+  <header class="ai-page-head">
+    <div><span class="ai-overline">PROGRAM · ISMS-NG-01</span><h1>Information Security</h1><p>ISO 27001:2022 <span>·</span> Nigeria <span>·</span> <span id="scope-copy">All groups</span></p></div>
+    <div class="ai-head-actions"><button type="button" class="button" id="view-program"><svg class="icon"><use href="#i-folder"/></svg>Program details</button><button type="button" class="button primary" id="toggle-copilot"><svg class="icon"><use href="#i-spark"/></svg><span id="toggle-label">Hide Copilot</span></button></div>
+  </header>
+  <div class="ai-period-bar"><div><span class="ai-quality-dot"></span><b>Current posture</b><span>·</span><span>Reviewed 14 Oct 2026</span></div><div class="ai-period-actions"><span class="ai-mini-quality">Illustrative records</span><button class="ai-plain" id="view-basis" type="button">View data basis <svg class="icon"><use href="#i-arrow"/></svg></button></div></div>
+  <div class="ai-workspace" id="workspace">
+   <section class="ai-program" aria-label="Program overview">
+    <div class="ai-metrics">
+      <article class="ai-stat"><div class="ai-stat-heading"><span class="ai-stat-icon blue"><svg class="icon"><use href="#i-check"/></svg></span><span>Assessment coverage</span></div><div class="ai-stat-value">46 <small>/ 52</small></div><div class="ai-progress-track"><span style="width:88.46%"></span></div><div class="ai-stat-foot">6 requirements not assessed</div></article>
+      <article class="ai-stat"><div class="ai-stat-heading"><span class="ai-stat-icon amber"><svg class="icon"><use href="#i-alert"/></svg></span><span>Control gaps</span></div><div class="ai-stat-value">6</div><div class="ai-stat-foot"><span class="ai-soft-warn">2 high priority</span><span> · Current</span></div></article>
+      <article class="ai-stat"><div class="ai-stat-heading"><span class="ai-stat-icon violet"><svg class="icon"><use href="#i-doc"/></svg></span><span>Evidence reviews</span></div><div class="ai-stat-value">3</div><div class="ai-stat-foot">1 due this week</div></article>
+    </div>
+    <div class="ai-program-tabs" role="tablist" aria-label="Program sections">
+      <button type="button" class="ai-program-tab selected" data-program-tab="overview" role="tab" aria-selected="true">Overview</button>
+      <button type="button" class="ai-program-tab" data-program-tab="controls" role="tab" aria-selected="false">Controls</button>
+      <button type="button" class="ai-program-tab" data-program-tab="evidence" role="tab" aria-selected="false">Evidence</button>
+      <button type="button" class="ai-program-tab" data-program-tab="assessments" role="tab" aria-selected="false">Assessments</button>
+    </div>
+    <section class="ai-program-panel active" data-program-panel="overview">
+       <div class="ai-surface ai-coverage"><div class="ai-section-head"><div><h2>Requirement coverage</h2><p>Reviewed requirements by control area</p></div><button class="ai-text-button" id="all-requirements" type="button">View requirements <svg class="icon"><use href="#i-arrow"/></svg></button></div>
+       <div class="ai-bars"><div><span>Access management</span><div class="ai-bar"><i style="width:88.89%"></i></div><b>16 / 18</b></div><div><span>Information policy</span><div class="ai-bar"><i style="width:83.33%"></i></div><b>10 / 12</b></div><div><span>Incident readiness</span><div class="ai-bar"><i style="width:81.82%"></i></div><b>9 / 11</b></div><div><span>Supplier controls</span><div class="ai-bar"><i style="width:100%"></i></div><b>11 / 11</b></div></div>
+       <div class="ai-inline-summary"><span><i></i> Reviewed</span><span>Unassessed requirements remain unknown</span></div></div>
+       <div class="ai-surface ai-attention"><div class="ai-section-head"><div><h2>Requires review</h2><p>Current evidence and control follow-up</p></div><button class="ai-text-button" id="open-work" type="button">Open work <svg class="icon"><use href="#i-arrow"/></svg></button></div>
+       <div class="ai-workitem"><span class="ai-event-icon red"><svg class="icon"><use href="#i-alert"/></svg></span><div><strong>Privileged access review</strong><small>Quarterly review evidence not approved</small></div><span class="ai-due">Due 17 Oct</span><button class="ai-row-action" type="button" data-detail="access" aria-label="Inspect privileged access review"><svg class="icon"><use href="#i-arrow"/></svg></button></div>
+       <div class="ai-workitem"><span class="ai-event-icon amber"><svg class="icon"><use href="#i-clock"/></svg></span><div><strong>Supplier access assessment</strong><small>Awaiting independent reviewer</small></div><span class="ai-due">Due 21 Oct</span><button class="ai-row-action" type="button" data-detail="supplier" aria-label="Inspect supplier assessment"><svg class="icon"><use href="#i-arrow"/></svg></button></div>
+       <div class="ai-workitem"><span class="ai-event-icon blue"><svg class="icon"><use href="#i-doc"/></svg></span><div><strong>Incident response exercise</strong><small>Approval record missing</small></div><span class="ai-due">Due 25 Oct</span><button class="ai-row-action" type="button" data-detail="incident" aria-label="Inspect incident response exercise"><svg class="icon"><use href="#i-arrow"/></svg></button></div>
+       </div>
+    </section>
+    <section class="ai-program-panel" data-program-panel="controls"><div class="ai-surface"><div class="ai-section-head"><div><h2>Control gaps</h2><p>6 open · 2 high priority</p></div></div><div id="control-list"></div></div></section>
+    <section class="ai-program-panel" data-program-panel="evidence"><div class="ai-surface"><div class="ai-section-head"><div><h2>Evidence</h2><p>3 records pending review</p></div></div><div id="evidence-list"></div></div></section>
+    <section class="ai-program-panel" data-program-panel="assessments"><div class="ai-surface"><div class="ai-section-head"><div><h2>Assessments</h2><p>Saved results and review dates</p></div></div><div id="assessment-list"></div></div></section>
+    <div class="ai-program-footer"><span>Program owner · Ada Okafor</span><span>Version 12 · Illustrative snapshot</span></div>
+   </section>
+   <aside class="ai-copilot" id="copilot" aria-labelledby="copilot-title">
+    <div class="ai-copilot-head"><div class="ai-copilot-identity"><span class="ai-spark-icon"><svg class="icon"><use href="#i-spark"/></svg></span><div><h2 id="copilot-title">ClearSight Copilot <span>BETA</span></h2><p>Information Security · Scope-aware</p></div></div><button id="close-copilot" class="ai-icon-btn" aria-label="Close Copilot" type="button"><svg class="icon"><use href="#i-close"/></svg></button></div>
+    <div class="ai-orb-zone"><div class="ai-orb" aria-hidden="true"><span class="orb-core"></span><span class="orb-point p1"></span><span class="orb-point p2"></span><span class="orb-point p3"></span></div><div class="ai-orb-status"><span class="ai-quality-dot"></span>4 linked sources <span>·</span> Reviewed 14 Oct</div></div>
+    <div class="ai-assistant-tabs" role="tablist" aria-label="Copilot modes">
+      <button type="button" class="ai-assistant-tab selected" role="tab" data-ai-tab="ask" aria-selected="true">Ask</button><button type="button" class="ai-assistant-tab" role="tab" data-ai-tab="evidence" aria-selected="false">Evidence</button><button type="button" class="ai-assistant-tab" role="tab" data-ai-tab="mapping" aria-selected="false">Mapping</button>
+    </div>
+    <div class="ai-assistant-body" id="assistant-body" aria-live="polite"></div>
+    <div class="ai-copilot-bottom"><div class="ai-suggestion-head"><span>Suggested next action</span><span id="suggestion-counter">1 / 3</span></div><div class="ai-suggestion-card"><button class="ai-icon-btn" aria-label="Previous suggestion" id="previous-suggestion" type="button">‹</button><button id="suggestion-action" class="ai-suggestion-target" type="button">Review missing access evidence</button><button class="ai-icon-btn" aria-label="Next suggestion" id="next-suggestion" type="button">›</button></div>
+      <form id="ai-question-form" class="ai-input-wrap"><input type="text" id="ai-question" aria-label="Ask about this Program" placeholder="Ask about this Program…" maxlength="300"/><button aria-label="Submit question" type="submit"><svg class="icon"><use href="#i-send"/></svg></button></form><div class="ai-footer-meta"><svg class="icon"><use href="#i-lock"/></svg>Review required before any change</div></div>
+   </aside>
+  </div>
+  <div class="ai-bottom-note">ClearSight design preview <span>·</span> Sample data only <span>·</span> No AI model or backend commands invoked</div>
+</main></div></div>
+<div class="ai-overlay" id="modal-overlay" hidden><div class="ai-backdrop" data-close-modal></div><section class="ai-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><header><div><span class="ai-overline" id="modal-eyebrow">Evidence</span><h2 id="modal-title">Review evidence</h2></div><button type="button" class="ai-icon-btn" aria-label="Close dialog" data-close-modal><svg class="icon"><use href="#i-close"/></svg></button></header><div class="ai-modal-content" id="modal-content"></div><footer><span>Preview only · No changes submitted</span><button class="button" data-close-modal type="button">Close</button><button class="button primary" id="modal-primary" type="button">Review source</button></footer></section></div>
+<div class="ai-toast" id="toast" role="status" aria-live="polite"></div>
+<script src="ai-copilot.js"></script>
+</body></html>

@@ -1,0 +1,6 @@
+SYNTHETIC FRAMEWORK REFERENCE
+Publisher: EXAMPLE
+Edition: 2026
+Clause A: Demonstrate access.
+Clause B: Review privileges.
+For tests only. Not a real standard.

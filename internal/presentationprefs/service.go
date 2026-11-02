@@ -72,7 +72,7 @@ func decorate(stored Stored, roleCodes []string) Preferences {
 
 func roleDefaults(roleCodes []string) (HomeFocus, PortfolioLens) {
 	roles := normalizeRoles(roleCodes)
-	for _, role := range []string{"CRO", "CCO", "CISO", "DPO", "GENERAL_COUNSEL", "EXECUTIVE"} {
+	for _, role := range []string{"CRO", "CCO", "CISO", "DPO", "GENERAL_COUNSEL", "EXECUTIVE", "GRC_ADMIN", "GRC_ADMINISTRATOR", "RISK_MANAGER"} {
 		if _, ok := roles[role]; ok {
 			if role == "DPO" {
 				return HomeFocusPosture, PortfolioLensProcessingActivities
@@ -81,13 +81,7 @@ func roleDefaults(roleCodes []string) (HomeFocus, PortfolioLens) {
 		}
 	}
 	if _, ok := roles["RISK_OWNER"]; ok {
-		return HomeFocusPosture, PortfolioLensRisks
-	}
-	if _, ok := roles["PROGRAM_OWNER"]; ok {
-		return HomeFocusPosture, PortfolioLensPrograms
-	}
-	if _, ok := roles["CONTROL_OWNER"]; ok {
-		return HomeFocusPosture, PortfolioLensPrograms
+		return HomeFocusMyWork, PortfolioLensRisks
 	}
 	if _, ok := roles["BUSINESS_OWNER"]; ok {
 		return HomeFocusMyWork, PortfolioLensVendors

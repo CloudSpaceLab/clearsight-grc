@@ -479,6 +479,27 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.Program = value.Program
+	case EventProgramCalculationPolicyProposed, EventProgramCalculationPolicyApproved, EventProgramCalculationPolicyRejected:
+		var value programCompliancePolicyChangedEvent
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.Program.CalculationPolicy = &value.Position
+	case EventFrameworkMappingProposed, EventFrameworkMappingApproved, EventFrameworkMappingRejected:
+		// Mapping identities live in their scoped relation; this Program event
+		// advances version/history without duplicating operating requirements.
+	case EventProgramFrameworkAdoptionProposed:
+		var value FrameworkAdoption
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value)
+	case EventProgramFrameworkAdoptionApproved, EventProgramFrameworkAdoptionRejected:
+		var value frameworkAdoptionDecision
+		if err := json.Unmarshal(event.Payload, &value); err != nil {
+			return err
+		}
+		aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value.Adoption)
 	case EventProgramOwnerChanged:
 		var value programOwnerChangedEvent
 		if err := json.Unmarshal(event.Payload, &value); err != nil {

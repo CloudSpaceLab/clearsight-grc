@@ -29,19 +29,25 @@ type todayJobStatus interface {
 // mode. Demo data must be seeded through the normal repositories; it must not
 // switch Today to a separate sample journey or static item source.
 func actorTodayService(workflowService *workflow.Service, matters *continuity.Service, authorityService authority.Service, identityStatus todayIdentityStatus, jobStatus todayJobStatus) *today.Service {
-	return today.NewDynamicService(func(loadCtx context.Context, actor identity.Actor) ([]today.AttentionItem, error) {
+	return today.NewSnapshotService(func(loadCtx context.Context, actor identity.Actor) (today.ActorWorkSnapshot, error) {
 		assigned, err := workflowService.List(loadCtx, workflow.ListFilter{
 			TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, PrincipalID: actor.PrincipalID,
-			ActiveOnly: true, VisibleActorWorkOnly: true, Limit: todayItemLimit,
+			ActiveOnly: true, VisibleActorWorkOnly: true, Limit: todayItemLimit + 1,
 		})
 		if err != nil {
-			return nil, err
+			return today.ActorWorkSnapshot{}, err
+		}
+		// The source read applies actor/source visibility before LIMIT, including
+		// linked Matter, evidence and document proposal permissions.
+		hasMore := len(assigned) > todayItemLimit
+		if hasMore {
+			assigned = assigned[:todayItemLimit]
 		}
 		items := today.FromWorkflowTasksForActor(assigned, actor.PrincipalID)
 		if matters != nil && authorityService != nil && identity.HasPermission(actor, identity.PermissionOversightRead) {
 			recovery, recoveryErr := unassignedMatterRecoveryItems(loadCtx, matters, authorityService, actor)
 			if recoveryErr != nil {
-				return nil, recoveryErr
+				return today.ActorWorkSnapshot{}, recoveryErr
 			}
 			items = append(items, recovery...)
 		}
@@ -49,18 +55,18 @@ func actorTodayService(workflowService *workflow.Service, matters *continuity.Se
 		if identityStatus != nil && identity.HasPermission(actor, identity.PermissionIdentityRead) {
 			overview, overviewErr := identityStatus.OperationalStatus(loadCtx, actor.TenantID, todayItemLimit)
 			if overviewErr != nil {
-				return nil, overviewErr
+				return today.ActorWorkSnapshot{}, overviewErr
 			}
 			items = append(items, identityAdministrationItems(overview)...)
 		}
 		if jobStatus != nil && identity.HasPermission(actor, identity.PermissionPlatformOperationsRead) {
 			snapshot, snapshotErr := jobStatus.Snapshot(loadCtx, actor.TenantID, todayItemLimit)
 			if snapshotErr != nil {
-				return nil, snapshotErr
+				return today.ActorWorkSnapshot{}, snapshotErr
 			}
 			items = append(items, failedJobItems(snapshot)...)
 		}
-		return items, nil
+		return today.ActorWorkSnapshot{Items: items, WorkflowHasMore: &hasMore}, nil
 	})
 }
 

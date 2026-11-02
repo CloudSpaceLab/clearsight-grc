@@ -4,13 +4,61 @@ import { OversightWorkspace } from "./OversightWorkspace";
 import type { AttentionItem } from "../../types";
 
 const api = vi.hoisted(() => ({ loadOversight: vi.fn() }));
-const metricApi = vi.hoisted(() => ({ loadHomeMetrics: vi.fn(), loadHomeMetricMembers: vi.fn() }));
+const metricApi = vi.hoisted(() => ({
+  loadHomeMetrics: vi.fn(),
+  loadHomeMetricMembers: vi.fn(),
+  loadDomainMetrics: vi.fn(),
+  loadDomainMetricMembers: vi.fn(),
+  loadDomainMetricOrganizationBreakdown: vi.fn(),
+  loadDomainMetricTrend: vi.fn(),
+  loadDomainMetricOrganizationTrend: vi.fn(),
+  loadLossPeriodMetrics: vi.fn(),
+  loadLossPeriodMetricMembers: vi.fn(),
+}));
 vi.mock("../../oversightApi", () => api);
 vi.mock("../../metricApi", () => metricApi);
 
 beforeEach(() => {
   metricApi.loadHomeMetricMembers.mockReset();
   metricApi.loadHomeMetricMembers.mockRejectedValue(new Error("Exact membership not configured"));
+  metricApi.loadDomainMetricMembers.mockReset();
+  metricApi.loadDomainMetricMembers.mockRejectedValue(new Error("Exact domain membership not configured"));
+  metricApi.loadDomainMetrics.mockReset();
+  metricApi.loadDomainMetricTrend.mockReset();
+  metricApi.loadDomainMetricTrend.mockRejectedValue(new Error("Risk history not configured"));
+  metricApi.loadDomainMetricOrganizationTrend.mockReset();
+  metricApi.loadDomainMetricOrganizationTrend.mockRejectedValue(new Error("Organization Risk history not configured"));
+  metricApi.loadLossPeriodMetricMembers.mockReset();
+  metricApi.loadLossPeriodMetricMembers.mockRejectedValue(new Error("Exact Loss membership not configured"));
+  metricApi.loadLossPeriodMetrics.mockReset();
+  metricApi.loadLossPeriodMetrics.mockResolvedValue(lossPeriodBundle());
+  metricApi.loadDomainMetricOrganizationBreakdown.mockReset();
+  metricApi.loadDomainMetricOrganizationBreakdown.mockResolvedValue({
+    source_id: "8f710000-0000-4000-8000-000000000001",
+    metric_id: "risks_outside_appetite",
+    definition_revision: "enterprise-domain-v1",
+    count: 9,
+    items: [
+      { key: "scope:technology", scope_id: "technology", label: "Technology", kind: "ORGANIZATION_SCOPE", value: 4 },
+      { key: "scope:operations", scope_id: "operations", label: "Operations", kind: "ORGANIZATION_SCOPE", value: 3 },
+      { key: "unattributed", label: "Unattributed", kind: "UNATTRIBUTED", value: 2 },
+    ],
+  });
+  metricApi.loadDomainMetrics.mockResolvedValue({
+    generated_at: "2026-09-01T07:55:00Z",
+    posture_as_of: "2026-09-01T07:55:00Z",
+    scope_id: "bank-ng",
+    scope_kind: "LEGAL_ENTITY",
+    source_id: "8f710000-0000-4000-8000-000000000001",
+    source_revision: "enterprise-domain-v1",
+    definition_revision: "enterprise-domain-v1",
+    items: [
+      domainMetric("risks_outside_appetite", "Outside appetite", 9, 20, 1),
+      domainMetric("indicator_breaches", "Indicator breaches", 4, 12, 0),
+      domainMetric("assurance_failures", "Assurance failures", 3, 20, 2),
+      domainMetric("losses_without_issue", "Losses without issue", 2, 5, 0),
+    ],
+  });
   metricApi.loadHomeMetrics.mockResolvedValue({
     generated_at: "2026-09-01T07:55:00Z",
     period_start: "2026-06-03T08:00:00Z",
@@ -53,12 +101,109 @@ beforeEach(() => {
   });
 });
 
+function lossPeriodBundle() {
+  return {
+    generated_at: "2026-09-01T07:56:00Z",
+    period_start: "2026-06-03T00:00:00Z",
+    period_end: "2026-09-01T23:59:59Z",
+    scope_id: "bank-ng",
+    scope_kind: "LEGAL_ENTITY",
+    source_id: "8f790000-0000-4000-8000-000000000001",
+    source_revision: "operational-loss-ledger-v1",
+    definition_revision: "operational-loss-period-v1",
+    event_count: 3,
+    contributing_loss_count: 4,
+    unattributed_event_count: 1,
+    mixed_currencies: false,
+    net_loss: { minor_units: "105000", currency: "NGN" },
+    currencies: [{
+      currency: "NGN",
+      gross: { minor_units: "150000", currency: "NGN" },
+      recovery: { minor_units: "50000", currency: "NGN" },
+      reversal: { minor_units: "5000", currency: "NGN" },
+      net: { minor_units: "105000", currency: "NGN" },
+      loss_event_count: 3,
+      recovery_event_count: 2,
+      reversal_event_count: 1,
+    }],
+    organization_breakdown: [
+      {
+        key: "scope:technology", scope_id: "technology", label: "Technology", kind: "ORGANIZATION_SCOPE",
+        loss_event_count: 2, contributing_loss_count: 3, mixed_currencies: false,
+        net_loss: { minor_units: "80000", currency: "NGN" },
+        currencies: [{
+          currency: "NGN",
+          gross: { minor_units: "100000", currency: "NGN" },
+          recovery: { minor_units: "25000", currency: "NGN" },
+          reversal: { minor_units: "5000", currency: "NGN" },
+          net: { minor_units: "80000", currency: "NGN" },
+          loss_event_count: 2, recovery_event_count: 1, reversal_event_count: 1,
+        }],
+      },
+      {
+        key: "unattributed", label: "Unattributed", kind: "UNATTRIBUTED",
+        loss_event_count: 1, contributing_loss_count: 1, mixed_currencies: false,
+        net_loss: { minor_units: "25000", currency: "NGN" },
+        currencies: [{
+          currency: "NGN",
+          gross: { minor_units: "50000", currency: "NGN" },
+          recovery: { minor_units: "25000", currency: "NGN" },
+          reversal: { minor_units: "0", currency: "NGN" },
+          net: { minor_units: "25000", currency: "NGN" },
+          loss_event_count: 1, recovery_event_count: 1, reversal_event_count: 0,
+        }],
+      },
+    ],
+    flow_resolution: "WEEK",
+    flow_points: [
+      {
+        start: "2026-06-03T00:00:00Z", end: "2026-06-09T23:59:59Z",
+        loss_event_count: 1, contributing_loss_count: 1, mixed_currencies: false,
+        net_loss: { minor_units: "50000", currency: "NGN" },
+        currencies: [{ currency: "NGN", gross: { minor_units: "50000", currency: "NGN" }, recovery: { minor_units: "0", currency: "NGN" }, reversal: { minor_units: "0", currency: "NGN" }, net: { minor_units: "50000", currency: "NGN" }, loss_event_count: 1, recovery_event_count: 0, reversal_event_count: 0 }],
+      },
+      {
+        start: "2026-08-27T00:00:00Z", end: "2026-09-01T23:59:59Z",
+        loss_event_count: 2, contributing_loss_count: 3, mixed_currencies: false,
+        net_loss: { minor_units: "55000", currency: "NGN" },
+        currencies: [{ currency: "NGN", gross: { minor_units: "100000", currency: "NGN" }, recovery: { minor_units: "50000", currency: "NGN" }, reversal: { minor_units: "5000", currency: "NGN" }, net: { minor_units: "55000", currency: "NGN" }, loss_event_count: 2, recovery_event_count: 2, reversal_event_count: 1 }],
+      },
+    ],
+    comparison: {
+      period_start: "2026-03-04T00:00:00Z",
+      period_end: "2026-06-02T23:59:59Z",
+      event_count: 2,
+      contributing_loss_count: 2,
+      mixed_currencies: false,
+      net_loss: { minor_units: "125000", currency: "NGN" },
+      currencies: [],
+      event_delta: 1,
+      net_delta: { minor_units: "-20000", currency: "NGN" },
+      direction: "IMPROVED",
+      comparison_quality: "COMPLETE",
+    },
+  };
+}
+
 function metric(id: string, label: string, value: number, filter: string) {
   return {
     id, label, value, unit: "COUNT", condition: value > 0 ? "ATTENTION" : "CLEAR",
     freshness: "CURRENT", completeness: "PARTIAL", population: 42, excluded: 1, unknown: 2,
     generated_at: "2026-09-01T07:55:00Z", source_revision: "oversight-v4", definition_revision: "home-oversight-v2", basis: "CURRENT_POSTURE",
     drill: { workspace: "oversight", filter, consistency: "CURRENT_STATE" },
+  };
+}
+
+function domainMetric(id: string, label: string, value: number, population: number, unknown: number) {
+  return {
+    id, label, value, unit: "COUNT", condition: value > 0 ? "ATTENTION" : "CLEAR",
+    freshness: "CURRENT", completeness: unknown > 0 ? "PARTIAL" : "COMPLETE",
+    population, excluded: 0, unknown,
+    generated_at: "2026-09-01T07:55:00Z",
+    source_revision: "enterprise-domain-v1",
+    definition_revision: "enterprise-domain-v1",
+    basis: "CURRENT_POSTURE",
+    drill: { workspace: id === "losses_without_issue" ? "losses" : "risks", filter: id, consistency: "SOURCE_SNAPSHOT" },
   };
 }
 
@@ -97,73 +242,144 @@ function exactMetricBundle() {
   };
 }
 
-it("leads with exact interventions and provides table alternatives for oversight measures", async () => {
-  const onOpenMatter = vi.fn();
-  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={onOpenMatter}/>);
+it("keeps oversight analysis separate from attention and assigned work", async () => {
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
 
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
-  expect(screen.getByText("7")).toBeTruthy();
-  expect(screen.getByText("42 issues checked · 1 excluded · 2 unknown")).toBeTruthy();
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
+  expect(screen.getByText(/^Risk, compliance and action (?:in the last|·)/)).toBeTruthy();
+  expect(screen.getByRole("tab", { name: "Oversight" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.getByRole("table", { name: "Risk pressure by issue type" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Outside appetite: 9/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Indicator breaches: 4/ })).toBeTruthy();
+  expect(await screen.findByText("Net operational loss")).toBeTruthy();
+  expect(screen.getByRole("tab", { name: "Risk analysis" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.queryByRole("heading", { name: "Loss trend" })).toBeNull();
+  expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
+  const riskConcentration = screen.getByRole("list", { name: "Outside-appetite risks by organization area" });
+  expect(riskConcentration.textContent).toContain("Technology");
+  expect(riskConcentration.textContent).toContain("Unattributed");
+  fireEvent.click(screen.getByRole("tab", { name: "Loss analysis" }));
+  expect(await screen.findByRole("list", { name: "Net operational Loss by organization area" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: "Net operational loss trend" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Risk trend" })).toBeNull();
+  fireEvent.click(screen.getByRole("tab", { name: "Risk analysis" }));
+  expect(await screen.findByRole("list", { name: "Outside-appetite risks by organization area" })).toBeTruthy();
+  expect(screen.queryByText("Critical and high")).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
+
   const period = screen.getByRole("button", { name: /Reporting period/ });
   expect(period.textContent).toContain("Period");
-  expect(period.textContent).toContain("Jun");
-  expect(period.textContent).toContain("Sep");
   expect(screen.getByText(/Current · Updated/)).toBeTruthy();
-  expect(screen.queryByText("Current snapshot")).toBeNull();
   fireEvent.click(screen.getByText("Data freshness"));
   expect(screen.getByText("Continuity Events")).toBeTruthy();
-  expect(screen.getByText("12 of 14 completed issues have complete lifecycle events · 2 excluded because an opened or closed event is missing · employee handling time follows each recorded owner assignment; reassignment, return, blocked and reopen counts remain visible separately")).toBeTruthy();
-  const pressureTable = screen.getByRole("table", { name: "Risk pressure by issue type" });
-  expect(pressureTable.closest(".oversight-pressure-table")).toBeTruthy();
-  expect(Array.from(pressureTable.querySelectorAll("thead th"), (header) => header.textContent)).toEqual(["Issue type", "Critical", "High", "Other", "Overdue"]);
-  expect(screen.queryByText(/employee score/i)).toBeNull();
-
-  fireEvent.click(screen.getByRole("button", { name: "Review Verify vendor address" }));
-  expect(onOpenMatter).toHaveBeenCalledWith("matter-1");
 
   fireEvent.click(screen.getByRole("tab", { name: "Operating performance" }));
   expect(screen.getByText("87.5%")).toBeTruthy();
   expect(screen.getByText("8 completed · 8 measured")).toBeTruthy();
-  expect(screen.getByText("2.2d p75 · 12h blocked")).toBeTruthy();
   expect(screen.getByRole("columnheader", { name: "Workflow history" })).toBeTruthy();
-  expect(screen.getByText("1 blocked · 1 reopened · 2 reassigned · 1 returned")).toBeTruthy();
+});
+
+it("keeps the four source-backed metric positions visible while switching bounded analysis", async () => {
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  expect(await screen.findByRole("tab", { name: "Risk analysis" })).toBeTruthy();
+  const metricNames = ["Outside appetite", "Indicator breaches", "Assurance failures", "Net operational loss"];
+  const metricRow = document.querySelector(".domain-posture .oversight-counts");
+  expect(metricRow?.querySelectorAll(".cs-metric-card")).toHaveLength(4);
+  for (const label of metricNames) expect(metricRow?.textContent).toContain(label);
+
+  fireEvent.click(screen.getByRole("tab", { name: "Loss analysis" }));
+  expect(await screen.findByRole("heading", { name: "Loss concentration" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Loss trend" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Risk trend" })).toBeNull();
+  expect(metricRow?.querySelectorAll(".cs-metric-card")).toHaveLength(4);
+  for (const label of metricNames) expect(metricRow?.textContent).toContain(label);
+
+  fireEvent.click(screen.getByRole("tab", { name: "Risk analysis" }));
+  expect(await screen.findByRole("heading", { name: "Risk trend" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Loss trend" })).toBeNull();
 });
 
 it("keeps canonical metrics visible when detailed analysis is unavailable", async () => {
   api.loadOversight.mockRejectedValueOnce(new Error("unavailable"));
-  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await waitFor(() => expect(screen.getByRole("heading", { name: "Oversight information is unavailable" })).toBeTruthy());
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()} homeTab="attention"/>);
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
   expect(screen.getByText("7")).toBeTruthy();
-  expect(screen.getByText("Detailed risk analysis is unavailable. Headline metrics remain separate and may still be current.")).toBeTruthy();
+  expect(screen.getByText("Priority intervention detail is unavailable. Headline metrics may still be current.")).toBeTruthy();
 });
 
 it("does not substitute Oversight counts when canonical metrics are unavailable", async () => {
   metricApi.loadHomeMetrics.mockRejectedValueOnce(new Error("unavailable"));
-  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()} homeTab="attention"/>);
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
   expect(screen.getByRole("article", { name: /Critical and high: —.*Unavailable/ })).toBeTruthy();
   expect(screen.getByRole("article", { name: /Overdue: —.*Unavailable/ })).toBeTruthy();
 });
 
-it("filters interventions from an accessible metric and keeps Today work available in oversight", async () => {
+it("does not mix initial Home metrics with a different reporting period", async () => {
+  const current = await metricApi.loadHomeMetrics();
+  metricApi.loadHomeMetrics.mockResolvedValueOnce({
+    ...current,
+    reporting_period: { ...current.reporting_period, start_date: "2026-08-01" },
+  });
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()} homeTab="attention"/>);
+
+  expect(await screen.findByRole("article", { name: /Critical and high: —.*Unavailable/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Critical and high: 7/ })).toBeNull();
+  expect(screen.getByRole("button", { name: /Reporting period/ })).toBeTruthy();
+});
+
+it("does not mix initial Home metrics with another organization scope", async () => {
+  const currentSnapshot = await api.loadOversight();
+  const currentMetrics = await metricApi.loadHomeMetrics();
+  api.loadOversight.mockResolvedValueOnce({ ...currentSnapshot, organization_scope_id: "technology" });
+  metricApi.loadHomeMetrics.mockResolvedValueOnce({
+    ...currentMetrics,
+    scope_id: "operations",
+    scope_kind: "ORGANIZATION_SCOPE",
+  });
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" organizationScopeID="technology" onOpenMatter={vi.fn()} homeTab="attention"/>);
+
+  expect(await screen.findByRole("article", { name: /Overdue: —.*Unavailable/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Overdue: 4/ })).toBeNull();
+});
+
+it("keeps Attention and My work isolated while preserving their actions", async () => {
   const onMetricFilterChange = vi.fn();
   const onOpenTodayItem = vi.fn();
+  const onOpenWork = vi.fn();
   const todayItems: AttentionItem[] = [{
     id: "today-1", type: "MATTER", title: "Confirm the NDPA evidence owner", state: "ACTION_IN_PROGRESS",
     why_now: "The evidence review is due this week.", scope: "Clear Bank Nigeria", evidence: "NDPA program", owner: "Hakeem",
     due_at: "2026-09-25T10:00:00Z", primary_action: "Confirm evidence owner", action_target_type: "MATTER", action_target_id: "matter-1",
   }];
-  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}
-    metricFilter="all" onMetricFilterChange={onMetricFilterChange} todayItems={todayItems} todayState="live" onOpenTodayItem={onOpenTodayItem}/>);
 
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    onOpenMatter={vi.fn()}
+    metricFilter="all"
+    onMetricFilterChange={onMetricFilterChange}
+    todayItems={todayItems}
+    todayState="live"
+    onOpenTodayItem={onOpenTodayItem}
+    onOpenWork={onOpenWork}
+    homeTab="attention"
+  />);
+
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
+  expect(screen.getByRole("heading", { name: "Priority interventions" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Your assigned work" })).toBeNull();
+  expect(metricApi.loadDomainMetrics).not.toHaveBeenCalled();
+  expect(metricApi.loadDomainMetricTrend).not.toHaveBeenCalled();
+  expect(metricApi.loadDomainMetricOrganizationTrend).not.toHaveBeenCalled();
+  expect(metricApi.loadLossPeriodMetrics).not.toHaveBeenCalled();
+
   fireEvent.click(screen.getByRole("button", { name: /Overdue.*4/i }));
   expect(onMetricFilterChange).toHaveBeenCalledWith("overdue");
-  expect(screen.getByRole("heading", { name: "Your assigned work" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Open Confirm the NDPA evidence owner" }));
-  expect(onOpenTodayItem).toHaveBeenCalledWith(todayItems[0]);
-});
 
+  fireEvent.click(screen.getByRole("button", { name: "Open Work" }));
+  expect(onOpenWork).toHaveBeenCalledTimes(1);
+});
 
 it("drills a retained v3 metric to the exact snapshot population with typed record actions", async () => {
   const onOpenMatter = vi.fn();
@@ -202,8 +418,8 @@ it("drills a retained v3 metric to the exact snapshot population with typed reco
     metricFilter="routing-gaps"
   />);
 
-  expect(await screen.findByText("2 exact records in this metric snapshot.")).toBeTruthy();
-  expect(screen.getByRole("table", { name: "Exact routing gaps snapshot members" })).toBeTruthy();
+  expect(await screen.findByText("2 records in this metric snapshot.")).toBeTruthy();
+  expect(screen.getByRole("table", { name: "Routing gaps records" })).toBeTruthy();
   expect(screen.getByText("Assign control gap")).toBeTruthy();
   expect(screen.getByText("Assign Program review")).toBeTruthy();
   expect(metricApi.loadHomeMetricMembers).toHaveBeenCalledWith(
@@ -239,8 +455,8 @@ it("fails closed when retained membership count disagrees with the selected card
     metricFilter="overdue"
   />);
 
-  expect(await screen.findByText("Exact snapshot detail is unavailable. The card value is unchanged.")).toBeTruthy();
-  expect(screen.queryByText(/exact records in this metric snapshot/i)).toBeNull();
+  expect(await screen.findByText("Records for this metric snapshot are unavailable.")).toBeTruthy();
+  expect(screen.queryByText(/records in this metric snapshot/i)).toBeNull();
 });
 
 it("keeps v2 current-state metric drills on the existing bounded intervention path", async () => {
@@ -256,13 +472,81 @@ it("keeps v2 current-state metric drills on the existing bounded intervention pa
   expect(screen.getByText(/ranked issue shown for overdue interventions/i)).toBeTruthy();
 });
 
+it("rejects a Loss response from a different reporting period", async () => {
+  metricApi.loadLossPeriodMetrics.mockResolvedValue({
+    ...lossPeriodBundle(),
+    period_start: "2026-08-03T00:00:00Z",
+  });
+
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  expect(await screen.findByText("Loss flow is unavailable for this period.")).toBeTruthy();
+  expect(screen.getByRole("article", { name: /Net operational loss: —.*Unavailable/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Net operational loss:/ })).toBeNull();
+});
+
+it("rejects a legal-entity Loss response for an organization-area selection", async () => {
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    organizationScopeID="scope-risk"
+    onOpenMatter={vi.fn()}
+  />);
+
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledWith(
+    { start_date: "2026-06-03", end_date: "2026-09-01" },
+    "scope-risk",
+    expect.any(AbortSignal),
+  ));
+  expect(await screen.findByText("Loss flow is unavailable for this period.")).toBeTruthy();
+  expect(screen.getByRole("article", { name: /Net operational loss: —.*Unavailable/ })).toBeTruthy();
+});
+
+it("does not show previous-period Loss amounts while the next period is loading", async () => {
+  const previous = lossPeriodBundle();
+  const neverSettles = new Promise<typeof previous>(() => undefined);
+  metricApi.loadLossPeriodMetrics.mockResolvedValueOnce(previous).mockReturnValue(neverSettles);
+
+  render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
+  expect(await screen.findByRole("button", { name: /Net operational loss:/ })).toBeTruthy();
+
+  const currentSnapshot = await api.loadOversight();
+  const currentMetrics = await metricApi.loadHomeMetrics();
+  const nextPeriod = {
+    ...currentSnapshot.reporting_period,
+    start_date: "2026-08-03",
+  };
+  api.loadOversight.mockResolvedValueOnce({ ...currentSnapshot, reporting_period: nextPeriod });
+  metricApi.loadHomeMetrics.mockResolvedValueOnce({ ...currentMetrics, reporting_period: nextPeriod });
+
+  fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
+  fireEvent.click(screen.getByRole("button", { name: "30 days" }));
+  expect(await screen.findByText("Risk, compliance and action in the last 30 days")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Net operational loss:/ })).toBeNull();
+  expect(screen.getByRole("article", { name: /Net operational loss: —.*Loading/ })).toBeTruthy();
+});
+
+it("passes the applied Home reporting period into Insights rather than opening current-only indicators", async () => {
+  const onOpenInsights = vi.fn();
+  render(<OversightWorkspace
+    organizationName="Clear Bank"
+    legalEntityName="Clear Bank Nigeria"
+    onOpenMatter={vi.fn()}
+    onOpenInsights={onOpenInsights}
+  />);
+  const action = await screen.findByRole("button", { name: "Open in Insights" });
+  fireEvent.click(action);
+  expect(onOpenInsights).toHaveBeenCalledExactlyOnceWith({ start_date: "2026-06-03", end_date: "2026-09-01" });
+  fireEvent.click(screen.getByRole("tab", { name: "My work" }));
+  expect(screen.queryByRole("button", { name: "Open in Insights" })).toBeNull();
+});
+
 it("applies one exact server-backed period to both Home reads and keeps the end date current", async () => {
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
 
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
   expect(screen.queryByLabelText("From")).toBeNull();
-  expect(screen.getByText("Current posture stays current. History measures use this window.")).toBeTruthy();
+  expect(screen.getByText("Reporting period applies to historical measures only.")).toBeTruthy();
 
   const nextPeriod = { start_date: "2026-08-03", end_date: "2026-09-01", mode: "CURRENT_WINDOW" as const, max_days: 365, historical_end_supported: false as const };
   const currentSnapshot = await vi.mocked(api.loadOversight).mock.results[0]!.value;
@@ -285,16 +569,25 @@ it("applies one exact server-backed period to both Home reads and keeps the end 
 
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }, undefined));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith({ start_date: "2026-08-03", end_date: "2026-09-01" }, undefined);
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledWith(
+    { start_date: "2026-08-03", end_date: "2026-09-01" },
+    undefined,
+    expect.any(AbortSignal),
+  ));
   expect(screen.getByRole("button", { name: /Reporting period/ }).textContent).toContain("Last 30 days");
-  expect(screen.getByText("7")).toBeTruthy();
+  expect(screen.getByText("Risk, compliance and action in the last 30 days")).toBeTruthy();
+  expect(screen.queryByText("7")).toBeNull();
 
+  fireEvent.click(screen.getByRole("tab", { name: "Attention" }));
+  expect(screen.getByText("7")).toBeTruthy();
+  fireEvent.click(screen.getByRole("tab", { name: "Oversight" }));
   fireEvent.click(screen.getByRole("tab", { name: "Operating performance" }));
   expect(screen.getByText("3 completed · 3 measured")).toBeTruthy();
 });
 
 it("submits a custom start date but never offers an editable historical end date", async () => {
   render(<OversightWorkspace organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
 
   fireEvent.click(screen.getByRole("button", { name: /Reporting period/ }));
   fireEvent.click(screen.getByRole("button", { name: "Custom start date" }));
@@ -352,44 +645,81 @@ it("reloads both Home reads for an organization scope and excludes unattributed 
 
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith(undefined, "scope-risk"));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledWith(undefined, "scope-risk");
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledWith(
+    { start_date: "2026-06-03", end_date: "2026-09-01" },
+    "scope-risk",
+    expect.any(AbortSignal),
+  ));
   expect(await screen.findByText(/4 issues/)).toBeTruthy();
   expect(screen.getByText(/unassigned area excluded/)).toBeTruthy();
-  expect(screen.getByText("Current issues in BANK / RISK and included sub-areas.")).toBeTruthy();
+  expect(screen.getByText("Clear Bank · Clear Bank Nigeria · BANK / RISK")).toBeTruthy();
+  expect(screen.getByText(/Risk, compliance and action ·|Risk, compliance and action in the last /)).toBeTruthy();
 });
 
 
-it("reorders existing Home sections for a my-work-first preference without hiding posture", async () => {
+it("shows My work as a separate bounded Home intent", async () => {
   const todayItems: AttentionItem[] = [{
     id: "today-focus", type: "MATTER", title: "Review assigned exception", state: "ACTION_IN_PROGRESS",
     why_now: "The exception needs a decision.", scope: "Clear Bank Nigeria", evidence: "Current issue", owner: "Ada",
     due_at: "2026-09-25T10:00:00Z", primary_action: "Review exception", action_target_type: "MATTER", action_target_id: "matter-1",
   }];
+
   render(<OversightWorkspace
     organizationName="Clear Bank"
     legalEntityName="Clear Bank Nigeria"
     onOpenMatter={vi.fn()}
     todayItems={todayItems}
     todayState="live"
-    homeFocus="MY_WORK"
+    homeTab="my-work"
   />);
 
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
-  const workspace = screen.getByRole("heading", { name: "Risk and delivery oversight" }).closest(".oversight-workspace");
-  const text = workspace?.textContent ?? "";
-  expect(text.indexOf("Your assigned work")).toBeGreaterThanOrEqual(0);
-  expect(text.indexOf("Critical and high")).toBeGreaterThanOrEqual(0);
-  expect(text.indexOf("Your assigned work")).toBeLessThan(text.indexOf("Critical and high"));
-  expect(screen.getByRole("button", { name: /Critical and high: 7/ })).toBeTruthy();
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
+  expect(screen.getByRole("heading", { name: "Your assigned work" })).toBeTruthy();
+  expect(screen.queryByText("Critical and high")).toBeNull();
+  expect(screen.queryByRole("table", { name: "Risk pressure by issue type" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Reporting period/ })).toBeNull();
+  expect(metricApi.loadDomainMetrics).not.toHaveBeenCalled();
+  expect(metricApi.loadDomainMetricTrend).not.toHaveBeenCalled();
+  expect(metricApi.loadDomainMetricOrganizationTrend).not.toHaveBeenCalled();
+  expect(metricApi.loadLossPeriodMetrics).not.toHaveBeenCalled();
 });
 
+it("ignores a previous organization-scope response that arrives after a newer scope", async () => {
+  const baselineSnapshot = await api.loadOversight();
+  const baselineMetrics = await metricApi.loadHomeMetrics();
+  let resolveOldSnapshot!: (value: typeof baselineSnapshot) => void;
+  let resolveOldMetrics!: (value: typeof baselineMetrics) => void;
+  const oldSnapshot = new Promise<typeof baselineSnapshot>((resolve) => { resolveOldSnapshot = resolve; });
+  const oldMetrics = new Promise<typeof baselineMetrics>((resolve) => { resolveOldMetrics = resolve; });
+  const currentSnapshot = { ...baselineSnapshot, organization_scope_id: "scope-new", coverage: { population: 7, excluded: 0 }, counts: { ...baselineSnapshot.counts, critical_high: 3 } };
+  const currentMetrics = { ...baselineMetrics, scope_id: "scope-new", scope_kind: "ORGANIZATION_SCOPE" as const, population: 7, items: baselineMetrics.items.map((item: any) => item.id === "critical_high_open" ? { ...item, value: 3 } : item) };
+  api.loadOversight.mockImplementation((_period: unknown, scope: string) => scope === "scope-old" ? oldSnapshot : Promise.resolve(currentSnapshot));
+  metricApi.loadHomeMetrics.mockImplementation((_period: unknown, scope: string) => scope === "scope-old" ? oldMetrics : Promise.resolve(currentMetrics));
+
+  const props = { organizationName: "Clear Bank", legalEntityName: "Clear Bank Nigeria", onOpenMatter: vi.fn(), homeTab: "attention" as const };
+  const { rerender } = render(<OversightWorkspace {...props} organizationScopeID="scope-old"/>);
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith(undefined, "scope-old"));
+  rerender(<OversightWorkspace {...props} organizationScopeID="scope-new"/>);
+  await waitFor(() => expect(api.loadOversight).toHaveBeenCalledWith(undefined, "scope-new"));
+  expect(await screen.findByText(/7 issues/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Critical and high: 3/ })).toBeTruthy();
+
+  resolveOldSnapshot({ ...baselineSnapshot, organization_scope_id: "scope-old", coverage: { population: 88, excluded: 0 } });
+  resolveOldMetrics({ ...baselineMetrics, scope_id: "scope-old", scope_kind: "ORGANIZATION_SCOPE" });
+  await waitFor(() => expect(screen.getByText(/7 issues/)).toBeTruthy());
+  expect(screen.queryByText(/88 issues/)).toBeNull();
+  expect(screen.getByRole("button", { name: /Critical and high: 3/ })).toBeTruthy();
+});
 
 it("reloads Home projections when the actor invalidation revision changes", async () => {
   const { rerender } = render(<OversightWorkspace refreshToken="rev-1" organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
-  await screen.findByRole("heading", { name: "Risk and delivery oversight" });
+  await screen.findByRole("heading", { name: "Enterprise Control Tower" });
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledTimes(1));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledTimes(1));
 
   rerender(<OversightWorkspace refreshToken="rev-2" organizationName="Clear Bank" legalEntityName="Clear Bank Nigeria" onOpenMatter={vi.fn()}/>);
   await waitFor(() => expect(api.loadOversight).toHaveBeenCalledTimes(2));
   expect(metricApi.loadHomeMetrics).toHaveBeenCalledTimes(2);
+  await waitFor(() => expect(metricApi.loadLossPeriodMetrics).toHaveBeenCalledTimes(2));
 });

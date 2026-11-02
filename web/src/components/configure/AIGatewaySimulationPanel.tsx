@@ -108,7 +108,7 @@ export function AIGatewaySimulationPanel({ workloads, workloadState }: { workloa
       <div>
         <span className="eyebrow">Gateway · deterministic validation</span>
         <h3 id="gateway-simulation-heading">Test policy before traffic moves</h3>
-        <p>Test the selected instructions, workload policy and routing versions. This simulation makes no model calls and does not retain test content.</p>
+        <p>Test instructions, policy and routing. No model requests or stored test content.</p>
       </div>
       <span className="ai-gateway-simulation__state">{running ? "Evaluating…" : result ? title(result.decision.action) : "No provider call"}</span>
     </div>
@@ -117,7 +117,7 @@ export function AIGatewaySimulationPanel({ workloads, workloadState }: { workloa
       <label><span>Environment</span><select aria-label="Environment" value={environment} onChange={(event) => { setEnvironment(event.target.value as GatewayEnvironment); setResult(null); }}>{environments.map((value) => <option key={value} value={value}>{title(value)}</option>)}</select></label>
       <label><span>Fixture</span><select aria-label="Fixture" value={fixture} onChange={(event) => { setFixture(event.target.value as GatewaySimulationFixture); setResult(null); }}>{fixtures.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><small>{fixtures.find((option) => option.value === fixture)?.note}</small></label>
       {requiresWorkload && <label><span>Workload</span><select aria-label="Workload" value={workloadId} disabled={workloadState !== "live" || workloadCandidates.length === 0} onChange={(event) => { setWorkloadId(event.target.value); setResult(null); }}><option value="">Select workload</option>{workloadCandidates.map((workload) => <option key={workload.id} value={workload.id}>{workload.name} · {title(workload.state)}</option>)}</select><small>{workloadState === "unavailable" ? "Workload inventory is unavailable." : `${workloadCandidates.length} workload${workloadCandidates.length === 1 ? "" : "s"} in this environment.`}</small></label>}
-      {requiresWorkload && <label><span>Logical model</span><select aria-label="Logical model" value={selectedAlias} disabled={availableAliases.length === 0} onChange={(event) => { setModelAlias(event.target.value); setResult(null); }}><option value="">Auto-select</option>{availableAliases.map((alias) => <option key={alias} value={alias}>{alias}</option>)}</select><small>Logical alias only; raw provider model selection is never exposed.</small></label>}
+      {requiresWorkload && <label><span>Logical model</span><select aria-label="Logical model" value={selectedAlias} disabled={availableAliases.length === 0} onChange={(event) => { setModelAlias(event.target.value); setResult(null); }}><option value="">Auto-select</option>{availableAliases.map((alias) => <option key={alias} value={alias}>{alias}</option>)}</select><small>Use a model alias.</small></label>}
     </div>
 
     <div className="ai-gateway-simulation__candidate" aria-label="Candidate revisions">
@@ -164,7 +164,7 @@ function SimulationResult({ result }: { result: GatewaySimulationResult }) {
     <section className="ai-gateway-simulation__instructions">
       <div><span className="eyebrow">Effective instruction stack</span><p>{result.instruction_precedence.map(title).join(" → ")}</p></div>
       {result.organization_instructions.length ? <div className="ai-gateway-simulation__instruction-list">{result.organization_instructions.map((instruction) => <div key={`${instruction.rule_id}:${instruction.reason_code}`}><span>{instruction.applied ? "Applied" : instruction.matched ? "Preview only" : "Not matched"}</span><strong>{instruction.content}</strong><small>{instruction.rule_id} · {instruction.reason_code}</small></div>)}</div> : <p>No organization instruction overlay is present in the selected baseline revision.</p>}
-      <small>Workload system/developer and user/retrieved content are represented only as precedence boundaries; their text is not returned by simulation.</small>
+      <small>Instruction order only. Prompt content is not shown.</small>
     </section>
   </section>;
 }

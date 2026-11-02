@@ -1,5 +1,7 @@
 export type RCSAStatus = "DRAFT" | "ASSESSMENT_OPEN" | "AWAITING_CHALLENGE" | "COMPLETED" | "CANCELLED";
 export type RCSATriggerKind = "SCHEDULED" | "CHANGE" | "MANUAL";
+export type RCSAPhaseStage = "COLLECTION" | "INDEPENDENT_CHALLENGE" | "RISK_ACCEPTANCE" | "REMEDIATION_VERIFICATION" | "COMPLETE" | "CANCELLED" | "UNKNOWN";
+export type RCSAPhase = { stage: RCSAPhaseStage; label: string; detail: string };
 
 export type RCSACycle = {
   id: string;
@@ -73,5 +75,6 @@ export type RCSACycleDetail = {
   assessment_period_end?: string;
   first_line_request_id?: string;
   handoff: RCSAHandoff;
+  phase: RCSAPhase;
   complete: boolean;
 };

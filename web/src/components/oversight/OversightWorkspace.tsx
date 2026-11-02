@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
-import { loadHomeMetricMembers, loadHomeMetrics, type HomeMetricBundle, type HomeMetricMemberPage } from "../../metricApi";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { loadDomainMetrics, loadHomeMetricMembers, loadHomeMetrics, loadLossPeriodMetrics, type DomainMetricBundle, type HomeMetricBundle, type HomeMetricMemberPage, type LossPeriodBundle } from "../../metricApi";
 import { homeMetricDetail, homeMetricFilter, homeMetricMeta, homeMetricQuality, homeMetricTone, headlineMetricDefinitions, type HomeMetricFilter } from "../../homeMetricPresentation";
 import { loadOversight, type OversightSnapshot } from "../../oversightApi";
-import type { ReportingPeriod, ReportingPeriodQuery } from "../../reportingPeriod";
+import type { HomeTab } from "../../appRouting";
+import { reportingPeriodLabel, type ReportingPeriod, type ReportingPeriodQuery } from "../../reportingPeriod";
 import { Button, DataTable, EmptyState, MetricCard, Notice, Tabs } from "../ui";
 import type { AttentionItem } from "../../types";
 import { OversightPeriodPicker } from "./OversightPeriodPicker";
+import { DomainPostureSummary } from "./DomainPostureSummary";
+import { OrganizationRiskSummary } from "./OrganizationRiskSummary";
+import { RiskMovement } from "./RiskMovement";
+import { OrganizationLossSummary } from "./OrganizationLossSummary";
+import { LossMovement } from "./LossMovement";
 import { MetricMemberDrill } from "./MetricMemberDrill";
 import "../../oversight.css";
 
@@ -21,15 +27,23 @@ type OversightWorkspaceProps = {
   organizationScopeName?: string;
   onOpenMatter: (id: string) => void;
   onOpenProgram?: (id: string) => void;
+  onOpenRisk?: (id: string) => void;
+  onOpenLoss?: (id: string) => void;
+  onOrganizationScopeChange?: (scopeID: string) => void;
   loadSnapshot?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<OversightSnapshot>;
   loadMetrics?: (period?: ReportingPeriodQuery, organizationScopeID?: string) => Promise<HomeMetricBundle>;
   loadMetricMembers?: typeof loadHomeMetricMembers;
+  loadDomainPosture?: typeof loadDomainMetrics;
+  loadLossMetrics?: typeof loadLossPeriodMetrics;
   metricFilter?: OversightMetricFilter;
   onMetricFilterChange?: (filter: OversightMetricFilter) => void;
   todayItems?: AttentionItem[];
   todayState?: TodayState;
   onOpenTodayItem?: (item: AttentionItem) => void;
-  homeFocus?: "POSTURE" | "MY_WORK";
+  homeTab?: HomeTab;
+  onHomeTabChange?: (tab: HomeTab) => void;
+  onOpenWork?: () => void;
+  onOpenInsights?: (period: ReportingPeriodQuery) => void;
 };
 
 export function OversightWorkspace({
@@ -40,22 +54,36 @@ export function OversightWorkspace({
   organizationScopeName,
   onOpenMatter,
   onOpenProgram,
+  onOpenRisk,
+  onOpenLoss,
+  onOrganizationScopeChange,
   loadSnapshot = loadOversight,
   loadMetrics = loadHomeMetrics,
   loadMetricMembers = loadHomeMetricMembers,
+  loadDomainPosture = loadDomainMetrics,
+  loadLossMetrics = loadLossPeriodMetrics,
   metricFilter = "all",
   onMetricFilterChange,
   todayItems = [],
   todayState = "loading",
   onOpenTodayItem,
-  homeFocus = "POSTURE",
+  homeTab,
+  onHomeTabChange,
+  onOpenWork,
+  onOpenInsights,
 }: OversightWorkspaceProps) {
   const [snapshot, setSnapshot] = useState<OversightSnapshot | null>(null);
   const [state, setState] = useState<"loading" | "live" | "unavailable">("loading");
   const [metrics, setMetrics] = useState<HomeMetricBundle | null>(null);
   const [metricState, setMetricState] = useState<"loading" | "live" | "unavailable">("loading");
+  const [domainMetrics, setDomainMetrics] = useState<DomainMetricBundle | null>(null);
+  const [domainState, setDomainState] = useState<"loading" | "live" | "unavailable">("loading");
+  const [lossMetrics, setLossMetrics] = useState<LossPeriodBundle | null>(null);
+  const [lossState, setLossState] = useState<"loading" | "live" | "unavailable">("loading");
   const [view, setView] = useState<DetailView>("pressure");
+  const [postureLens, setPostureLens] = useState<"risk" | "loss">("risk");
   const [localMetricFilter, setLocalMetricFilter] = useState<OversightMetricFilter>(metricFilter);
+  const homeReadRevision = useRef(0);
   const [periodState, setPeriodState] = useState<"idle" | "changing">("idle");
   const [periodError, setPeriodError] = useState("");
   const [activePeriod, setActivePeriod] = useState<ReportingPeriodQuery>();
@@ -63,6 +91,8 @@ export function OversightWorkspace({
   const [memberState, setMemberState] = useState<"idle" | "loading" | "live" | "unavailable">("idle");
   const [memberCursors, setMemberCursors] = useState<string[]>([]);
   const [memberRetry, setMemberRetry] = useState(0);
+  const [localHomeTab, setLocalHomeTab] = useState<HomeTab>(homeTab ?? (metricFilter === "all" ? "oversight" : "attention"));
+  const selectedHomeTab = onHomeTabChange ? (homeTab ?? "oversight") : localHomeTab;
   const selectedMetricFilter = onMetricFilterChange ? metricFilter : localMetricFilter;
   const selectedMetric = selectedMetricFilter === "all"
     ? undefined
@@ -78,6 +108,10 @@ export function OversightWorkspace({
   const memberCursor = memberCursors[memberCursors.length - 1];
 
   useEffect(() => { setLocalMetricFilter(metricFilter); }, [metricFilter]);
+  useEffect(() => {
+    if (homeTab) setLocalHomeTab(homeTab);
+    else if (metricFilter !== "all") setLocalHomeTab("attention");
+  }, [homeTab, metricFilter]);
 
   useEffect(() => {
     setMemberCursors([]);
@@ -86,7 +120,7 @@ export function OversightWorkspace({
   }, [exactDrillIdentity]);
 
   useEffect(() => {
-    if (!exactDrillIdentity || !exactMetricSourceID || !exactMetricID || !exactDefinitionRevision || exactMetricValue === undefined) return;
+    if (selectedHomeTab !== "attention" || !exactDrillIdentity || !exactMetricSourceID || !exactMetricID || !exactDefinitionRevision || exactMetricValue === undefined) return;
     const controller = new AbortController();
     setMemberState("loading");
     void loadMetricMembers(
@@ -126,11 +160,16 @@ export function OversightWorkspace({
     memberCursor,
     memberRetry,
     loadMetricMembers,
+    selectedHomeTab,
   ]);
 
   function selectMetric(filter: OversightMetricFilter) {
     if (onMetricFilterChange) onMetricFilterChange(filter);
     else setLocalMetricFilter(filter);
+    if (selectedHomeTab !== "attention") {
+      if (onHomeTabChange) onHomeTabChange("attention");
+      else setLocalHomeTab("attention");
+    }
     if (filter !== "all") {
       requestAnimationFrame(() => {
         const attention = document.getElementById("oversight-attention");
@@ -141,12 +180,17 @@ export function OversightWorkspace({
   }
 
   async function load(period = activePeriod) {
+    const revision = ++homeReadRevision.current;
     setState("loading");
     setMetricState("loading");
+    setSnapshot(null);
+    setMetrics(null);
+    setPeriodState("idle");
     const [snapshotResult, metricResult] = await Promise.allSettled([
       loadSnapshot(period, organizationScopeID),
       loadMetrics(period, organizationScopeID),
     ]);
+    if (revision !== homeReadRevision.current) return;
     if (snapshotResult.status === "fulfilled") {
       setSnapshot(snapshotResult.value);
       setState("live");
@@ -154,25 +198,94 @@ export function OversightWorkspace({
       setSnapshot(null);
       setState("unavailable");
     }
-    if (metricResult.status === "fulfilled") {
+    if (metricResult.status === "fulfilled" && (
+      snapshotResult.status !== "fulfilled" || (
+        sameReportingPeriod(snapshotResult.value.reporting_period, metricResult.value.reporting_period) &&
+        sameOrganizationScope(snapshotResult.value, metricResult.value, organizationScopeID)
+      )
+    )) {
       setMetrics(metricResult.value);
       setMetricState("live");
     } else {
+      // Keep the valid Oversight snapshot; never combine it with metrics from
+      // a different period or organization selection.
       setMetrics(null);
       setMetricState("unavailable");
     }
   }
 
-  useEffect(() => { void load(); }, [organizationScopeID, refreshToken]);
+  useEffect(() => {
+    void load();
+    return () => { homeReadRevision.current++; };
+  }, [organizationScopeID, refreshToken]);
+
+  useEffect(() => {
+    if (selectedHomeTab !== "oversight") return;
+    const controller = new AbortController();
+    setDomainState("loading");
+    setDomainMetrics(null);
+    void loadDomainPosture(organizationScopeID, controller.signal).then((value) => {
+      if (controller.signal.aborted) return;
+      setDomainMetrics(value);
+      setDomainState("live");
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      setDomainMetrics(null);
+      setDomainState("unavailable");
+    });
+    return () => controller.abort();
+  }, [loadDomainPosture, organizationScopeID, refreshToken, selectedHomeTab]);
+
+  const lossPeriod = activePeriod ?? (snapshot ? {
+    start_date: snapshot.reporting_period.start_date,
+    end_date: snapshot.reporting_period.end_date,
+  } : undefined);
+
+  useEffect(() => {
+    if (selectedHomeTab !== "oversight" || state !== "live" || !lossPeriod) return;
+    const controller = new AbortController();
+    setLossState("loading");
+    setLossMetrics(null);
+    void loadLossMetrics(lossPeriod, organizationScopeID, controller.signal).then((value) => {
+      if (controller.signal.aborted) return;
+      if (!lossResultMatchesContext(value, lossPeriod, organizationScopeID)) {
+        setLossMetrics(null);
+        setLossState("unavailable");
+        return;
+      }
+      setLossMetrics(value);
+      setLossState("live");
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      setLossMetrics(null);
+      setLossState("unavailable");
+    });
+    return () => controller.abort();
+  }, [
+    loadLossMetrics,
+    lossPeriod?.start_date,
+    lossPeriod?.end_date,
+    organizationScopeID,
+    selectedHomeTab,
+    state,
+  ]);
+
+  // A changed period or organization selection must never display the prior
+  // source snapshot while the next bounded Loss read is pending.
+  const visibleLossMetrics = lossMetrics && lossPeriod &&
+    lossResultMatchesContext(lossMetrics, lossPeriod, organizationScopeID) ? lossMetrics : null;
+  const visibleLossState = lossMetrics && !visibleLossMetrics ? "loading" : lossState;
 
   async function changePeriod(period: ReportingPeriodQuery) {
     if (periodState === "changing") return;
+    const revision = ++homeReadRevision.current;
     setPeriodState("changing");
     setPeriodError("");
     const [snapshotResult, metricResult] = await Promise.allSettled([
       loadSnapshot(period, organizationScopeID),
       loadMetrics(period, organizationScopeID),
     ]);
+    if (revision !== homeReadRevision.current) return;
     if (snapshotResult.status === "fulfilled" && metricResult.status === "fulfilled"
       && sameReportingPeriod(snapshotResult.value.reporting_period, metricResult.value.reporting_period)
       && sameOrganizationScope(snapshotResult.value, metricResult.value, organizationScopeID)) {
@@ -187,74 +300,163 @@ export function OversightWorkspace({
     setPeriodState("idle");
   }
 
-  if (state === "loading" && metricState === "loading") return <section className="oversight-workspace" aria-busy="true"><header className="oversight-header"><div><span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span><h1>Risk and delivery oversight</h1><p>Loading current risk posture and assigned work…</p></div></header></section>;
+  function selectHomeTab(tab: HomeTab) {
+    if (onHomeTabChange) onHomeTabChange(tab);
+    else {
+      setLocalHomeTab(tab);
+      if (tab !== "attention") setLocalMetricFilter("all");
+    }
+  }
 
   const headlineMetrics = <HomeMetricStrip metrics={metrics} state={metricState} selected={selectedMetricFilter} onSelect={selectMetric}/>;
+  const coverage = snapshot
+    ? organizationScopeID
+      ? `${snapshot.coverage.population} issues · ${formatKnown(snapshot.coverage.excluded)} excluded · unassigned area excluded`
+      : `${snapshot.coverage.population} issues checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`
+    : "";
+  const interventions = snapshot ? filterInterventions(snapshot.interventions, selectedMetricFilter) : [];
+  const visibleInterventions = interventions.slice(0, 10);
+  const periodSource = snapshot
+    ? { reporting_period: snapshot.reporting_period, freshness: snapshot.freshness, generated_at: snapshot.generated_at }
+    : metrics
+      ? { reporting_period: metrics.reporting_period, freshness: metrics.freshness, generated_at: metrics.generated_at }
+      : undefined;
 
-  if (state === "unavailable" || !snapshot) return <section className="oversight-workspace">
-    <header className="oversight-header">
-      <div><span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span><h1>Oversight information is unavailable</h1><p>Current risk posture remains separate from detailed analysis.</p></div>
-      {metrics && <OversightPeriodPicker period={metrics.reporting_period} freshness={metrics.freshness} generatedAt={metrics.generated_at} isChanging={periodState === "changing"} error={periodError} onApply={(period) => void changePeriod(period)}/>} 
-    </header>
-    {homeFocus === "MY_WORK" && <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>}
-    {headlineMetrics}
-    <Notice tone="warning">Detailed risk analysis is unavailable. Headline metrics remain separate and may still be current.</Notice>
-    <div className="workspace-recovery-actions"><Button onPress={() => void load()}>Retry Home data</Button></div>
-    {homeFocus !== "MY_WORK" && <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>}
-  </section>;
-
-  const coverage = organizationScopeID
-    ? `${snapshot.coverage.population} issues · ${formatKnown(snapshot.coverage.excluded)} excluded · unassigned area excluded`
-    : `${snapshot.coverage.population} issues checked · ${formatKnown(snapshot.coverage.excluded)} excluded · ${formatKnown(snapshot.coverage.unknown)} unknown`;
-  const interventions = filterInterventions(snapshot.interventions, selectedMetricFilter);
   return <section className="oversight-workspace">
     <header className="oversight-header">
-      <div><span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span><h1>Risk and delivery oversight</h1><p>{organizationScopeID ? `Current issues in ${organizationScopeName || "this area"} and included sub-areas.` : "Current issues across this legal entity."}</p></div>
-      <OversightPeriodPicker period={snapshot.reporting_period} freshness={snapshot.freshness} generatedAt={snapshot.generated_at} isChanging={periodState === "changing"} error={periodError} onApply={(period) => void changePeriod(period)}/>
+      <div>
+        <span className="eyebrow">{organizationName} · {legalEntityName}{organizationScopeName ? ` · ${organizationScopeName}` : ""}</span>
+        <h1>Enterprise Control Tower</h1>
+        <p>{selectedHomeTab === "oversight" ? periodSource ? controlTowerSummary(periodSource.reporting_period) : "Risk, compliance and action" : homeTabDescription(selectedHomeTab, organizationScopeName)}</p>
+      </div>
+      {selectedHomeTab !== "my-work" && periodSource && <div className="oversight-header__actions">
+        {selectedHomeTab === "oversight" && onOpenInsights && <Button
+          variant="secondary"
+          size="compact"
+          isDisabled={periodState === "changing" || state !== "live"}
+          onPress={() => onOpenInsights({
+            start_date: periodSource.reporting_period.start_date,
+            end_date: periodSource.reporting_period.end_date,
+          })}
+        >Open in Insights</Button>}
+        <OversightPeriodPicker
+          period={periodSource.reporting_period}
+          freshness={periodSource.freshness}
+          generatedAt={periodSource.generated_at}
+          isChanging={periodState === "changing"}
+          error={periodError}
+          onApply={(period) => void changePeriod(period)}
+        />
+      </div>}
     </header>
 
-    <div className="oversight-scope-line"><span>{coverage}</span></div>
-    <details className="oversight-data-freshness">
-      <summary>Data freshness</summary>
-      <div><p>This snapshot was generated {formatDateTime(snapshot.generated_at)} from projection {snapshot.projection_version}.</p><p>{historyQualityLabel(snapshot)}</p><dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl></div>
-    </details>
+    {selectedHomeTab !== "my-work" && snapshot && <>
+      <div className="oversight-scope-line"><span>{coverage}</span></div>
+      <details className="oversight-data-freshness">
+        <summary>Data freshness</summary>
+        <div>
+          <p>Updated {formatDateTime(snapshot.generated_at)}.</p>
+          <p>{historyQualityLabel(snapshot)}</p>
+          <dl>{orderedHighWater(snapshot.source_high_water).map(([source, at]) => <div key={source}><dt>{humanize(source)}</dt><dd>{formatDateTime(at)}</dd></div>)}</dl>
+        </div>
+      </details>
+    </>}
 
-    {homeFocus === "MY_WORK" && <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>}
-    {headlineMetrics}
-    {homeFocus !== "MY_WORK" && <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem}/>}
+    <div className="oversight-home-tabs">
+      <Tabs ariaLabel="Home views" compactLabel="Home view" items={homeIntentTabs} selectedKey={selectedHomeTab} onSelectionChange={selectHomeTab}>
+        {(tab) => <div className="oversight-home-panel">
+          {tab === "oversight" && <>
+            {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading oversight…</p>}
+            {state === "unavailable" && <><Notice tone="warning">Oversight information is unavailable.</Notice><div className="workspace-recovery-actions"><Button onPress={() => void load()}>Retry Home data</Button></div></>}
+            <DomainPostureSummary
+              bundle={domainMetrics}
+              state={domainState}
+              lossBundle={visibleLossMetrics}
+              lossState={visibleLossState}
+              organizationScopeID={organizationScopeID}
+              onOpenRisk={onOpenRisk}
+              onOpenLoss={onOpenLoss}
+            />
+            <section className="oversight-posture-analysis" aria-label="Risk and loss analysis">
+              <Tabs ariaLabel="Posture comparison" compactLabel="Posture comparison" items={postureComparisonViews} selectedKey={postureLens} onSelectionChange={setPostureLens}>
+                {(selected) => selected === "risk"
+                  ? <div className="oversight-risk-overview">
+                    <OrganizationRiskSummary
+                      bundle={domainMetrics}
+                      organizationScopeID={organizationScopeID}
+                      onOpenScope={onOrganizationScopeChange}
+                    />
+                    <RiskMovement
+                      bundle={domainMetrics}
+                      organizationScopeID={organizationScopeID}
+                    />
+                  </div>
+                  : <div className="oversight-loss-overview">
+                    <OrganizationLossSummary
+                      bundle={visibleLossMetrics}
+                      state={visibleLossState}
+                      onOpenScope={onOrganizationScopeChange}
+                    />
+                    <LossMovement
+                      bundle={visibleLossMetrics}
+                      state={visibleLossState}
+                    />
+                  </div>}
+              </Tabs>
+            </section>
+            {state === "live" && snapshot && <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
+              {selected === "pressure" && <RiskPressure snapshot={snapshot}/>}
+              {selected === "outlook" && <ResolutionOutlook snapshot={snapshot}/>}
+              {selected === "performance" && <OperatingPerformance snapshot={snapshot}/>}
+            </div>}</Tabs></div>}
+          </>}
 
-    <section id="oversight-attention" className="oversight-attention" aria-labelledby="oversight-attention-heading" tabIndex={-1}>
-      <div className="section-header"><div><span className="eyebrow">What needs attention now</span><h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Priority interventions" : metricFilterLabel(selectedMetricFilter)}</h2><p>{selectedMetricFilter === "all" ? "Ranked by overdue state, priority and current deadline." : exactDrillActive ? "Exact retained records counted in this metric snapshot." : "Current intervention records matching the selected measure."}</p></div><div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div></div>
-      {selectedMetricFilter !== "all" && exactDrillActive
-        ? <MetricMemberDrill
-          label={selectedMetric?.label ?? metricFilterLabel(selectedMetricFilter)}
-          state={memberState === "idle" ? "loading" : memberState}
-          page={memberPage}
-          hasPrevious={memberCursors.length > 0}
-          onPrevious={() => setMemberCursors((value) => value.slice(0, -1))}
-          onNext={() => {
-            if (!memberPage?.next_cursor) return;
-            setMemberCursors((value) => [...value, memberPage.next_cursor!]);
-          }}
-          onRetry={() => setMemberRetry((value) => value + 1)}
-          onOpenMatter={onOpenMatter}
-          onOpenProgram={onOpenProgram}
-        />
-        : <>
-          {selectedMetricFilter !== "all" && <p className="oversight-result-count" aria-live="polite">{interventions.length} ranked {interventions.length === 1 ? "issue" : "issues"} shown for {metricFilterLabel(selectedMetricFilter).toLowerCase()}.</p>}
-          {interventions.length ? <div className="oversight-intervention-list">{interventions.map((item) => <article key={`${item.target_type}-${item.target_id}`}>
-            <div className={`oversight-priority p${item.priority}`}><span>P{item.priority}</span></div>
-            <div><div className="oversight-intervention-title"><strong>{item.title}</strong><span>{humanize(item.category)}</span></div><p>{item.reason}</p><small>{item.owner_name || "No owner recorded"}{item.due_at ? ` · Due ${formatDate(item.due_at)}` : " · No due date recorded"} · {humanize(item.state)}</small></div>
-            <div className="oversight-action"><Button size="compact" onPress={() => onOpenMatter(item.target_id)} aria-label={`Review ${item.title}`}>{item.next_action}</Button></div>
-          </article>)}</div> : <EmptyState population={organizationScopeID ? `${snapshot.coverage.population} attributed issues in ${organizationScopeName || "this scope"}` : `${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Review the freshness and coverage above before treating this result as complete."/>}
-        </>}
-    </section>
+          {tab === "attention" && <>
+            {headlineMetrics}
+            {state === "loading" && <p className="oversight-today-status" role="status" aria-busy="true">Loading priority interventions…</p>}
+            {state === "unavailable" && <Notice tone="warning">Priority intervention detail is unavailable. Headline metrics may still be current.</Notice>}
+            {snapshot && <section id="oversight-attention" className="oversight-attention" aria-labelledby="oversight-attention-heading" tabIndex={-1}>
+              <div className="section-header">
+                <div>
+                  <span className="eyebrow">Attention</span>
+                  <h2 id="oversight-attention-heading">{selectedMetricFilter === "all" ? "Priority interventions" : metricFilterLabel(selectedMetricFilter)}</h2>
+                  <p>{selectedMetricFilter === "all" ? "Priority issues · View all in Work." : exactDrillActive ? "Records counted in this metric." : "Issues matching this measure."}</p>
+                </div>
+                <div className="oversight-attention-actions">
+                  <div className="oversight-inline-counts"><span>{snapshot.counts.due_soon} due soon</span><span>{snapshot.counts.unassigned} unassigned</span></div>
+                  {onOpenWork && <Button variant="secondary" size="compact" onPress={onOpenWork}>Open Work</Button>}
+                </div>
+              </div>
+              {selectedMetricFilter !== "all" && exactDrillActive
+                ? <MetricMemberDrill
+                  label={selectedMetric?.label ?? metricFilterLabel(selectedMetricFilter)}
+                  state={memberState === "idle" ? "loading" : memberState}
+                  page={memberPage}
+                  hasPrevious={memberCursors.length > 0}
+                  onPrevious={() => setMemberCursors((value) => value.slice(0, -1))}
+                  onNext={() => {
+                    if (!memberPage?.next_cursor) return;
+                    setMemberCursors((value) => [...value, memberPage.next_cursor!]);
+                  }}
+                  onRetry={() => setMemberRetry((value) => value + 1)}
+                  onOpenMatter={onOpenMatter}
+                  onOpenProgram={onOpenProgram}
+                />
+                : <>
+                  {selectedMetricFilter !== "all" && <p className="oversight-result-count" aria-live="polite">{visibleInterventions.length} ranked {visibleInterventions.length === 1 ? "issue" : "issues"} shown for {metricFilterLabel(selectedMetricFilter).toLowerCase()}.</p>}
+                  {visibleInterventions.length ? <div className="oversight-intervention-list">{visibleInterventions.map((item) => <article key={`${item.target_type}-${item.target_id}`}>
+                    <div className={`oversight-priority p${item.priority}`}><span>P{item.priority}</span></div>
+                    <div><div className="oversight-intervention-title"><strong>{item.title}</strong><span>{humanize(item.category)}</span></div><p>{item.reason}</p><small>{item.owner_name || "No owner recorded"}{item.due_at ? ` · Due ${formatDate(item.due_at)}` : " · No due date recorded"} · {humanize(item.state)}</small></div>
+                    <div className="oversight-action"><Button size="compact" onPress={() => onOpenMatter(item.target_id)} aria-label={`Review ${item.title}`}>{item.next_action}</Button></div>
+                  </article>)}</div> : state === "live" && <EmptyState population={organizationScopeID ? `${snapshot.coverage.population} attributed issues in ${organizationScopeName || "this scope"}` : `${snapshot.coverage.population} issues checked in ${legalEntityName}`} title={selectedMetricFilter === "all" ? "No issue meets the current intervention criteria" : "No ranked intervention matches this measure"} description="Check data freshness and coverage."/>}
+                </>}
+            </section>}
+          </>}
 
-    <div className="oversight-analysis"><Tabs ariaLabel="Oversight analysis" items={detailViews} selectedKey={view} onSelectionChange={setView}>{(selected) => <div className="oversight-detail">
-      {selected === "pressure" && <RiskPressure snapshot={snapshot}/>}
-      {selected === "outlook" && <ResolutionOutlook snapshot={snapshot}/>}
-      {selected === "performance" && <OperatingPerformance snapshot={snapshot}/>}
-    </div>}</Tabs></div>
+          {tab === "my-work" && <OversightToday items={todayItems} state={todayState} onOpenItem={onOpenTodayItem} onOpenWork={onOpenWork}/>}
+        </div>}
+      </Tabs>
+    </div>
   </section>;
 }
 
@@ -266,6 +468,14 @@ function sameOrganizationScope(snapshot: OversightSnapshot, metrics: HomeMetricB
 
 function sameReportingPeriod(left: ReportingPeriod, right: ReportingPeriod) {
   return left.start_date === right.start_date && left.end_date === right.end_date && left.mode === right.mode;
+}
+
+function lossResultMatchesContext(value: LossPeriodBundle, period: ReportingPeriodQuery, organizationScopeID?: string) {
+  return value.period_start.slice(0, 10) === period.start_date
+    && value.period_end.slice(0, 10) === period.end_date
+    && (organizationScopeID
+      ? value.scope_kind === "ORGANIZATION_SCOPE" && value.scope_id === organizationScopeID
+      : value.scope_kind === "LEGAL_ENTITY");
 }
 
 function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: HomeMetricBundle | null; state: "loading" | "live" | "unavailable"; selected: OversightMetricFilter; onSelect: (filter: OversightMetricFilter) => void }) {
@@ -283,7 +493,7 @@ function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: Home
         meta={homeMetricMeta(metric)}
         tone={homeMetricTone(metric)}
         quality={homeMetricQuality(metric)}
-        actionLabel={filter === "all" ? undefined : active ? "Show all priority interventions" : metric.drill.consistency === "SOURCE_SNAPSHOT" ? "Review exact snapshot records" : "Review current related interventions"}
+        actionLabel={filter === "all" ? undefined : active ? "Show all priority interventions" : metric.drill.consistency === "SOURCE_SNAPSHOT" ? "Review snapshot records" : "Review current related interventions"}
         isSelected={active}
         ariaControls={filter === "all" ? undefined : "oversight-attention"}
         onPress={filter === "all" ? undefined : () => onSelect(active ? "all" : filter)}
@@ -292,10 +502,10 @@ function HomeMetricStrip({ metrics, state, selected, onSelect }: { metrics: Home
   </div>;
 }
 
-function OversightToday({ items, state, onOpenItem }: { items: AttentionItem[]; state: TodayState; onOpenItem?: (item: AttentionItem) => void }) {
-  const visible = items.slice(0, 4);
+function OversightToday({ items, state, onOpenItem, onOpenWork }: { items: AttentionItem[]; state: TodayState; onOpenItem?: (item: AttentionItem) => void; onOpenWork?: () => void }) {
+  const visible = items.slice(0, 8);
   return <section className="oversight-today" aria-labelledby="oversight-today-heading">
-    <div className="section-header"><div><span className="eyebrow">Assigned work</span><h2 id="oversight-today-heading">Your assigned work</h2><p>Assigned decisions, evidence and exceptions requiring your current responsibility.</p></div></div>
+    <div className="section-header"><div><span className="eyebrow">My work</span><h2 id="oversight-today-heading">Your assigned work</h2><p>Assigned decisions, evidence and exceptions requiring your action.</p></div>{onOpenWork && <Button variant="secondary" size="compact" onPress={onOpenWork}>Open Work</Button>}</div>
     {state === "loading" ? <p className="oversight-today-status" aria-live="polite" aria-busy="true">Loading assigned work…</p> : state === "unavailable" ? <p className="oversight-today-status">Assigned work is unavailable. Refresh before relying on the current queue.</p> : visible.length ? <div className="oversight-today-list">{visible.map((item) => <button type="button" className="oversight-today-item" key={item.id} onClick={() => onOpenItem?.(item)} disabled={!onOpenItem} aria-label={`Open ${item.title}`}>
       <span className="oversight-today-item__main"><strong>{item.title}</strong><small>{item.why_now}</small></span><span className="oversight-today-item__meta"><span>{item.owner}</span><time>{formatTodayDue(item.due_at)}</time></span>
     </button>)}</div> : <p className="oversight-today-status">No assigned work or permitted operational exceptions are open for you.</p>}
@@ -313,19 +523,44 @@ function Aging({ snapshot }: { snapshot: OversightSnapshot }) {
 }
 
 function ResolutionOutlook({ snapshot }: { snapshot: OversightSnapshot }) {
-  return <div className="oversight-two-column"><article className="oversight-panel oversight-estimates"><div className="section-header"><div><h2>Historical resolution ranges</h2><p>Ranges use completed issues of the same type; they are not promised completion dates.</p></div></div>{snapshot.estimates.length ? snapshot.estimates.map((item) => <div key={item.category}><div><strong>{humanize(item.category)}</strong><span>{item.confidence.toLowerCase()} confidence · {item.sample_size} completed</span></div><p><b>{formatDuration(item.lower_hours)}–{formatDuration(item.upper_hours)}</b><span>Median {formatDuration(item.median_hours)}</span></p><small>{item.estimated_by}</small></div>) : <EmptyState population="Comparable completed issues in this legal entity" title="Not enough completed work for a resolution range" description="At least five comparable completed issues are required before a range is shown."/>}</article><Aging snapshot={snapshot}/></div>;
+  return <div className="oversight-two-column"><article className="oversight-panel oversight-estimates"><div className="section-header"><div><h2>Historical resolution ranges</h2><p>Based on completed issues of the same type; not a deadline.</p></div></div>{snapshot.estimates.length ? snapshot.estimates.map((item) => <div key={item.category}><div><strong>{humanize(item.category)}</strong><span>{item.confidence.toLowerCase()} confidence · {item.sample_size} completed</span></div><p><b>{formatDuration(item.lower_hours)}–{formatDuration(item.upper_hours)}</b><span>Median {formatDuration(item.median_hours)}</span></p><small>{item.estimated_by}</small></div>) : <EmptyState population="Comparable completed issues in this legal entity" title="Not enough completed work for a resolution range" description="Requires at least five comparable completed issues."/>}</article><Aging snapshot={snapshot}/></div>;
 }
 
 function OperatingPerformance({ snapshot }: { snapshot: OversightSnapshot }) {
-  return <article className="oversight-panel"><div className="section-header"><div><h2>Workload and completion context</h2><p>Current workload is shown with completion and handling history from the selected period; this is not an employee ranking.</p></div></div>{snapshot.performance.length ? <DataTable ariaLabel="Owner workload and completion context" rows={snapshot.performance} rowKey={(item) => item.owner_id} rowName={(item) => item.owner_name} columns={performanceColumns}/> : <EmptyState population="Issues with an accountable owner and recorded lifecycle dates" title="No owner-level measures are available" description="Completion and workload measures appear after issues have an accountable owner and recorded lifecycle dates."/>}</article>;
+  return <article className="oversight-panel"><div className="section-header"><div><h2>Workload and completion context</h2><p>Current workload and completion history for the selected period. Not a performance ranking.</p></div></div>{snapshot.performance.length ? <DataTable ariaLabel="Owner workload and completion context" rows={snapshot.performance} rowKey={(item) => item.owner_id} rowName={(item) => item.owner_name} columns={performanceColumns}/> : <EmptyState population="Issues with an accountable owner and recorded lifecycle dates" title="No owner-level measures are available" description="Requires assigned owners and recorded lifecycle dates."/>}</article>;
 }
 
-function EmptyMeasure() { return <EmptyState population="Open issues in this legal entity" title="No open issues in this measure" description="The current snapshot contains no rows for this breakdown."/>; }
+function EmptyMeasure() { return <EmptyState population="Open issues in this legal entity" title="No open issues in this measure" description="No records in this breakdown."/>; }
 
 function historyQualityLabel(snapshot: OversightSnapshot) {
   const quality = snapshot.history_quality;
   return `${quality.complete_lifecycle} of ${quality.completed_population} completed issues have complete lifecycle events · ${quality.excluded_from_durations} excluded because an opened or closed event is missing · employee handling time follows each recorded owner assignment; reassignment, return, blocked and reopen counts remain visible separately`;
 }
+
+function controlTowerSummary(period: ReportingPeriod) {
+  const label = reportingPeriodLabel(period);
+  return label.startsWith("Last ")
+    ? `Risk, compliance and action in the ${label.toLowerCase()}`
+    : `Risk, compliance and action · ${label}`;
+}
+
+function homeTabDescription(tab: HomeTab, organizationScopeName?: string) {
+  const scope = organizationScopeName ? ` in ${organizationScopeName}` : "";
+  if (tab === "attention") return `Current conditions requiring intervention${scope}.`;
+  if (tab === "my-work") return "Assigned decisions, reviews and evidence requiring your action.";
+  return `Current risk posture and operating context${scope}.`;
+}
+
+const homeIntentTabs = [
+  { id: "oversight", label: "Oversight" },
+  { id: "attention", label: "Attention" },
+  { id: "my-work", label: "My work" },
+] as const;
+
+const postureComparisonViews = [
+  { id: "risk", label: "Risk analysis" },
+  { id: "loss", label: "Loss analysis" },
+] as const;
 
 const detailViews = [
   { id: "pressure", label: "Risk pressure" },

@@ -21,12 +21,12 @@ export type NotificationPage = {
   as_of: string;
 };
 
-export function loadNotifications({ cursor, limit = 25, unreadOnly = false }: { cursor?: string; limit?: number; unreadOnly?: boolean } = {}): Promise<NotificationPage> {
+export function loadNotifications({ cursor, limit = 25, unreadOnly = false, signal }: { cursor?: string; limit?: number; unreadOnly?: boolean; signal?: AbortSignal } = {}): Promise<NotificationPage> {
   const params = new URLSearchParams({ limit: String(limit), unread_only: String(unreadOnly) });
   if (cursor) params.set("cursor", cursor);
-  return requestJSON<NotificationPage>(apiBase, `/api/v1/notifications?${params.toString()}`);
+  return requestJSON<NotificationPage>(apiBase, `/api/v1/notifications?${params.toString()}`, { signal });
 }
 
-export function markNotificationRead(id: string): Promise<InAppNotification> {
-  return requestJSON<InAppNotification>(apiBase, `/api/v1/notifications/${encodeURIComponent(id)}/read`, { method: "POST", body: "{}" });
+export function markNotificationRead(id: string, signal?: AbortSignal): Promise<InAppNotification> {
+  return requestJSON<InAppNotification>(apiBase, `/api/v1/notifications/${encodeURIComponent(id)}/read`, { method: "POST", body: "{}", signal });
 }

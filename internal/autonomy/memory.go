@@ -157,11 +157,11 @@ func (r *MemoryRepository) ListAutomationPolicies(_ context.Context, tenant stri
 		values = append(values, value)
 	}
 	sort.Slice(values, func(i, j int) bool {
-		if values[i].Name == values[j].Name {
-			return values[i].Code < values[j].Code
-		}
-		return values[i].Name < values[j].Name
+		return values[i].Code < values[j].Code
 	})
+	if len(values) > AutomationPolicyListLimit+1 {
+		values = values[:AutomationPolicyListLimit+1]
+	}
 	return values, nil
 }
 

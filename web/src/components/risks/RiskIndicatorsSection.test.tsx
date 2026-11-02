@@ -272,7 +272,7 @@ it("opens exact Indicator detail and keeps the source Program one step deeper", 
   fireEvent.click(screen.getByRole("button", { name: /Open indicator/ }));
   expect(await screen.findByRole("heading", { name: "Recovery health" })).toBeTruthy();
   await waitFor(() => expect(loadIndicatorResults).toHaveBeenCalledWith("check-1", 3));
-  expect(screen.getByText("Results from monitoring check revision 3. Earlier check definitions are excluded.")).toBeTruthy();
+  expect(screen.getByText("Results for check version 3.")).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Open Program" }));
   expect(onOpenProgram).toHaveBeenCalledWith("program-1");

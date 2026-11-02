@@ -9,6 +9,10 @@ func (r *MemoryRepository) ListAdvancedFormLibrary(_ context.Context, filter For
 	if filter.TenantID == "" || filter.LegalEntityID == "" {
 		return FormTemplatePage{}, ErrInvalid
 	}
+	originType, originID, err := normalizeFormLibraryOriginFilter(filter.OriginType, filter.OriginID)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
 	cursor, err := decodeFormLibraryCursor(filter.Cursor)
 	if err != nil {
 		return FormTemplatePage{}, err
@@ -30,7 +34,7 @@ func (r *MemoryRepository) ListAdvancedFormLibrary(_ context.Context, filter For
 	latest := make(map[string]FormTemplate)
 	activeVersions := make(map[string]FormTemplate)
 	for _, value := range r.forms {
-		if value.TenantID != filter.TenantID || value.LegalEntityID != filter.LegalEntityID {
+		if value.TenantID != filter.TenantID || value.LegalEntityID != filter.LegalEntityID || !formTemplateMatchesOrigin(value, originType, originID) {
 			continue
 		}
 		if prior, exists := latest[value.ID]; !exists || value.Version > prior.Version {

@@ -28,7 +28,7 @@ export function AIGatewayProxyCard({
       <div>
         <span className="eyebrow">Application endpoint</span>
         <h4 id="ai-gateway-proxy-heading">Governed proxy</h4>
-        <p>Approved applications use this stable base URL and logical model aliases. Provider routes can change behind it without changing the application contract.</p>
+        <p>Gateway URL and model aliases for approved applications.</p>
       </div>
       <span className="ai-gateway-proxy__state">{loading ? "Checking…" : proxy.configured ? "Published" : "Not published"}</span>
     </div>
@@ -37,12 +37,12 @@ export function AIGatewayProxyCard({
       <code>{proxy.base_url}</code>
       <button className="secondary-button" type="button" onClick={() => void copyBaseURL()}>Copy base URL</button>
     </div> : <div className="ai-gateway-proxy__empty">
-      <strong>No public proxy URL is configured for this deployment.</strong>
-      <span>Set the deployment public gateway base URL before asking applications to route AI traffic through ClearSight.</span>
+      <strong>No public gateway URL configured.</strong>
+      <span>Set a public gateway URL before connecting applications.</span>
     </div>}
 
     <div className="ai-gateway-proxy__capabilities">
-      <div><strong>Supported ingress</strong><span>Derived from the gateway's executable workload route registry.</span></div>
+      <div><strong>Supported ingress</strong><span>Available application routes.</span></div>
       <div className="ai-gateway-proxy__routes" aria-label="Supported gateway ingress routes">
         {proxy.ingress.map((route) => <code key={`${route.method}-${route.path}`}><b>{route.method}</b> {route.path}</code>)}
       </div>
@@ -50,8 +50,8 @@ export function AIGatewayProxyCard({
 
     <p className="ai-gateway-proxy__note">
       {runtimeStatus?.available
-        ? "Runtime status is connected. Published endpoint metadata is separate from provider health and does not by itself prove a provider request will succeed."
-        : "Runtime apply status is not currently available. Publishing a base URL does not imply the gateway or an upstream provider is healthy."}
+        ? "Runtime connected. Check provider health separately."
+        : "Runtime status unavailable. Check gateway and provider health."}
     </p>
     {copyState !== "idle" && <span className="ai-gateway-proxy__copy-result" aria-live="polite">{copyState === "copied" ? "Base URL copied." : "Copy failed. Select the URL and copy it manually."}</span>}
   </section>;

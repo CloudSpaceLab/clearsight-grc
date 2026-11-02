@@ -31,7 +31,7 @@ export function FieldAssessmentEditor({ field, onChange, scoringMode = "RISK" }:
   return <fieldset className="builder-subpanel field-assessment-editor">
     <legend>Field assessment</legend>
     <SelectField label="How this field is assessed" value={assessment?.mode} placeholder={field.scoring ? "Existing automatic rules" : "Keep existing form rules"} allowsEmpty={false} options={assessmentModes} onChange={(mode) => { if (mode) chooseMode(mode); }}/>
-    {assessment?.mode === "NONE" && <p className="field-note">This field collects an answer or evidence without adding assessment points. Required-response checks still apply.</p>}
+    {assessment?.mode === "NONE" && <p className="field-note">No assessment points. Required fields still apply.</p>}
     {(assessment?.mode === "AUTOMATIC" || assessment?.mode === "AUTOMATIC_REVIEW") && <p className="field-note">Configure answer points below or use the form’s scoring settings for conditions and rule testing.</p>}
     {assessment && assessment.mode !== "NONE" && <TextField label="Assessment weight" type="number" min={1} max={100} step={1} value={String(assessment.weight)} onChange={(value) => update({ weight: Number(value) })}/>}
     {bankReview && <>
@@ -39,7 +39,7 @@ export function FieldAssessmentEditor({ field, onChange, scoringMode = "RISK" }:
       <SelectField label="Reviewer responsibility" value={assessment?.reviewer_role} placeholder="Choose a reviewer responsibility" options={roleOptions} onChange={(reviewer_role) => update({ reviewer_role })}/>
       {rolesError && <Notice tone="warning">Reviewer responsibilities could not be loaded. The saved review route is retained; reopen this field to retry.</Notice>}
       <p className="field-note">The current approval route determines who may record each judgement. Every judgement requires a rationale.</p>
-      {(field.type === "file" || field.type === "vendor_document" || field.type === "photo") && <p className="field-note">A received document remains unassessed until a reviewer records the evidence outcome.</p>}
+      {(field.type === "file" || field.type === "vendor_document" || field.type === "photo") && <p className="field-note">Received documents require reviewer assessment.</p>}
       <fieldset className="builder-subpanel"><legend>Assessment rubric</legend>
         <p className="field-note">{scoringMode === "COMPLIANCE" ? "Higher points mean stronger compliance; lower points mean greater concern." : "Higher points mean greater risk; lower points mean less concern."}</p>
         {(assessment?.rubric ?? []).map((outcome, index) => <div key={outcome.id} className="field-assessment-editor__outcome">

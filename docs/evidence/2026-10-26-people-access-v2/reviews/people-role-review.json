@@ -1,0 +1,2580 @@
+{
+  "schema_version": 2,
+  "status": "PASS",
+  "reviewer": "/root/people_review",
+  "updated_at_utc": "2026-10-26T10:59:23.249098+00:00",
+  "scope": {
+    "independent": [
+      "PeopleDirectory",
+      "PeopleRoleCatalog",
+      "IdentityAccessPanel lifecycle and bounded read presentation",
+      "PeopleAccessSection and Configure routing/history integration",
+      "Organization secondary routing and cold-entry presentation",
+      "Routing checks secondary state presentation"
+    ],
+    "authored_excluded": [
+      "GovernanceAdminPanel",
+      "GovernanceAdminWorkspace",
+      "PeopleGovernanceView",
+      "governancePolicyPresentation",
+      "governanceAdminApi",
+      "people-governance.css"
+    ],
+    "authored_governance_independent_review_owners": [
+      "/root",
+      "/root/people_runtime"
+    ]
+  },
+  "revision": {
+    "published": "1bde850512b9eb4045b23f306322a29ed0859292",
+    "local": "2b2edf2ff1c3f4892dbe2c388973ae8a0cb86d3a",
+    "tree": "b8ddfceddb8b767bd060362a2028c8a90de784e2",
+    "build_digest": "63f2c03efd4db6ad4787a11e3d999144dde40c2b8612f64cbd80150b62591c41",
+    "evidence_input_digest": "28b3e2f45b773b2a322e902a3f879a0b7af630bcc4e6d6657022750f6b2c0808",
+    "web_inputs_match_reviewed_local_commit": true,
+    "working_head_observed": "127c65a6030d6d7b8b295f96e3fdac148ff986e0",
+    "worktree_note": "Documentation/evidence publication may advance HEAD independently of the frozen runtime pin. Web files match the reviewed local runtime commit; no claim that the entire worktree is clean."
+  },
+  "source": {
+    "html_path": "/workspace/scratch/992dce7dae5c/clearsight-grc/docs/design/references/clearsight-2026-10/source/clearsight-people-access-designs/people-access-preview.html",
+    "html_sha256": "3300853e7959e06f76e52b484e77c71c6f0c2af876351861921e0dead0aaa7f4",
+    "archive_sha256": "65dcc0e3f26e9d41e38efd1ae1d571f5db0f0582a2d561f8c942b25817a5f6e5",
+    "manifest_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/manifest.json",
+    "manifest_sha256": "0523eae039e299bf2b2dc46077655ac23e03a708a4dc9e05e46b0bb4ee6738a2",
+    "inspected_images": [
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-1440x900.png",
+        "filename": "approved-people-access-people-1440x900.png",
+        "sha256": "a805e069ed2970825f6d6f475673aa8f20490c7de637ffa9a617206a84cc9980",
+        "inspection": "direct_original_HTML_render",
+        "view": "people",
+        "context": false,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-1280x800.png",
+        "filename": "approved-people-access-people-1280x800.png",
+        "sha256": "d57863fe575d3a316a69ce312ab7d5850fa89769bc0ec05b7876f7e9d2e9e35d",
+        "inspection": "direct_original_HTML_render",
+        "view": "people",
+        "context": false,
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-1024x768.png",
+        "filename": "approved-people-access-people-1024x768.png",
+        "sha256": "3f16f48ebb8bd07675861dc3966b1baf3e13d1dd084a33494b448fbabdd80a44",
+        "inspection": "direct_original_HTML_render",
+        "view": "people",
+        "context": false,
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-768x900.png",
+        "filename": "approved-people-access-people-768x900.png",
+        "sha256": "b86fbd7edfb53535fe08f03d8b54d44033d417cf815794859b74e3611f5f05ab",
+        "inspection": "direct_original_HTML_render",
+        "view": "people",
+        "context": false,
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-390x844.png",
+        "filename": "approved-people-access-people-390x844.png",
+        "sha256": "e943d8b7668d12b793ea5f6e2614ec6acc6e9d5ab82770c4330aa77faf593676",
+        "inspection": "direct_original_HTML_render",
+        "view": "people",
+        "context": false,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-context-1024x768.png",
+        "filename": "approved-people-access-people-context-1024x768.png",
+        "sha256": "19977b6a18477977a1fdb5a37dbc23a3fba99f7942fe6fb5b52a2bf5f28e9b09",
+        "inspection": "direct_original_HTML_render",
+        "view": "people",
+        "context": true,
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-context-768x900.png",
+        "filename": "approved-people-access-people-context-768x900.png",
+        "sha256": "6f04fd057bd7666fe94449b1f9dd3ab3f14c46860f4bd5a4b76e49d94ff81d97",
+        "inspection": "direct_original_HTML_render",
+        "view": "people",
+        "context": true,
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-context-390x844.png",
+        "filename": "approved-people-access-people-context-390x844.png",
+        "sha256": "7bb3aa031976a6935bd2d227447817b16a83c4d33a65e2d0c4ad51e376e3d5b7",
+        "inspection": "direct_original_HTML_render",
+        "view": "people",
+        "context": true,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-1440x900.png",
+        "filename": "approved-people-access-roles-1440x900.png",
+        "sha256": "7bd0e6c626e039be1597751e9be96043112cd33591975a359eace16d37d371fc",
+        "inspection": "direct_original_HTML_render",
+        "view": "roles",
+        "context": false,
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-1280x800.png",
+        "filename": "approved-people-access-roles-1280x800.png",
+        "sha256": "964955e30fb7b46114fc9e3c9b265aa5f88aed7e5822ac7b1d517fa11128facd",
+        "inspection": "direct_original_HTML_render",
+        "view": "roles",
+        "context": false,
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-1024x768.png",
+        "filename": "approved-people-access-roles-1024x768.png",
+        "sha256": "3b1375194bdef3df0fad3c36c95ad8ce73deb936f131f1e788587491a7af518e",
+        "inspection": "direct_original_HTML_render",
+        "view": "roles",
+        "context": false,
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-768x900.png",
+        "filename": "approved-people-access-roles-768x900.png",
+        "sha256": "126a77b37221c3243a0ce185afaf95fe98def9f856d12e27d498057787187f5b",
+        "inspection": "direct_original_HTML_render",
+        "view": "roles",
+        "context": false,
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-390x844.png",
+        "filename": "approved-people-access-roles-390x844.png",
+        "sha256": "94cf1dabd45b975432d25d8532d95bd4ec63745cc2c405f0b91445d97a87c4a6",
+        "inspection": "direct_original_HTML_render",
+        "view": "roles",
+        "context": false,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-context-1024x768.png",
+        "filename": "approved-people-access-roles-context-1024x768.png",
+        "sha256": "d7db2412427269650ab4c47643dd37e574436a099cc09ebebd4cbec66918d55f",
+        "inspection": "direct_original_HTML_render",
+        "view": "roles",
+        "context": true,
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-context-768x900.png",
+        "filename": "approved-people-access-roles-context-768x900.png",
+        "sha256": "0709b18511c41ac079b1e8469b5405eb6360c69c5e47a2259823f91552652169",
+        "inspection": "direct_original_HTML_render",
+        "view": "roles",
+        "context": true,
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-context-390x844.png",
+        "filename": "approved-people-access-roles-context-390x844.png",
+        "sha256": "dec51baff8aa589b838a0f19496dddaf61b53d06be307f21a9b4929202d3ae11",
+        "inspection": "direct_original_HTML_render",
+        "view": "roles",
+        "context": true,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ],
+    "source_population_note": "Actual HTML has 10 sample People, eight active plus two invited. The 12-person test fixture is runtime evidence, not the original sample population. Original reference is light-only; dark review uses shared token readability and anatomy, not an invented dark source.",
+    "final_binding_manifest_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/manifest.json",
+    "final_binding_manifest_sha256": "e1ba5b17ab84007482acbdc5f3279b6425d1e616f5c1313366f477301188a48e",
+    "final_bound_inspected_images": [
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-people-1440x900.png",
+        "filename": "approved-people-access-people-1440x900.png",
+        "sha256": "a805e069ed2970825f6d6f475673aa8f20490c7de637ffa9a617206a84cc9980",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-1440x900.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-people-layout-light-1440.png",
+        "runtime_dark_capture": "280-people-access-people-layout-dark-1440.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-people-1280x800.png",
+        "filename": "approved-people-access-people-1280x800.png",
+        "sha256": "d57863fe575d3a316a69ce312ab7d5850fa89769bc0ec05b7876f7e9d2e9e35d",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-1280x800.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-people-layout-light-1280.png",
+        "runtime_dark_capture": "280-people-access-people-layout-dark-1280.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-people-1024x768.png",
+        "filename": "approved-people-access-people-1024x768.png",
+        "sha256": "3f16f48ebb8bd07675861dc3966b1baf3e13d1dd084a33494b448fbabdd80a44",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-1024x768.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-people-layout-light-1024.png",
+        "runtime_dark_capture": "280-people-access-people-layout-dark-1024.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-people-768x900.png",
+        "filename": "approved-people-access-people-768x900.png",
+        "sha256": "b86fbd7edfb53535fe08f03d8b54d44033d417cf815794859b74e3611f5f05ab",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-768x900.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-people-layout-light-768.png",
+        "runtime_dark_capture": "280-people-access-people-layout-dark-768.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-people-390x844.png",
+        "filename": "approved-people-access-people-390x844.png",
+        "sha256": "e943d8b7668d12b793ea5f6e2614ec6acc6e9d5ab82770c4330aa77faf593676",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-390x844.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-people-layout-light-390.png",
+        "runtime_dark_capture": "280-people-access-people-layout-dark-390.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-people-context-1024x768.png",
+        "filename": "approved-people-access-people-context-1024x768.png",
+        "sha256": "19977b6a18477977a1fdb5a37dbc23a3fba99f7942fe6fb5b52a2bf5f28e9b09",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-context-1024x768.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-people-context-light-1024.png",
+        "runtime_dark_capture": "280-people-access-people-context-dark-1024.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-people-context-768x900.png",
+        "filename": "approved-people-access-people-context-768x900.png",
+        "sha256": "6f04fd057bd7666fe94449b1f9dd3ab3f14c46860f4bd5a4b76e49d94ff81d97",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-context-768x900.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-people-context-light-768.png",
+        "runtime_dark_capture": "280-people-access-people-context-dark-768.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-people-context-390x844.png",
+        "filename": "approved-people-access-people-context-390x844.png",
+        "sha256": "7bb3aa031976a6935bd2d227447817b16a83c4d33a65e2d0c4ad51e376e3d5b7",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-people-context-390x844.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-people-context-light-390.png",
+        "runtime_dark_capture": "280-people-access-people-context-dark-390.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-roles-1440x900.png",
+        "filename": "approved-people-access-roles-1440x900.png",
+        "sha256": "7bd0e6c626e039be1597751e9be96043112cd33591975a359eace16d37d371fc",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-1440x900.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-roles-layout-light-1440.png",
+        "runtime_dark_capture": "280-people-access-roles-layout-dark-1440.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-roles-1280x800.png",
+        "filename": "approved-people-access-roles-1280x800.png",
+        "sha256": "964955e30fb7b46114fc9e3c9b265aa5f88aed7e5822ac7b1d517fa11128facd",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-1280x800.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-roles-layout-light-1280.png",
+        "runtime_dark_capture": "280-people-access-roles-layout-dark-1280.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-roles-1024x768.png",
+        "filename": "approved-people-access-roles-1024x768.png",
+        "sha256": "3b1375194bdef3df0fad3c36c95ad8ce73deb936f131f1e788587491a7af518e",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-1024x768.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-roles-layout-light-1024.png",
+        "runtime_dark_capture": "280-people-access-roles-layout-dark-1024.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-roles-768x900.png",
+        "filename": "approved-people-access-roles-768x900.png",
+        "sha256": "126a77b37221c3243a0ce185afaf95fe98def9f856d12e27d498057787187f5b",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-768x900.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-roles-layout-light-768.png",
+        "runtime_dark_capture": "280-people-access-roles-layout-dark-768.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-roles-390x844.png",
+        "filename": "approved-people-access-roles-390x844.png",
+        "sha256": "94cf1dabd45b975432d25d8532d95bd4ec63745cc2c405f0b91445d97a87c4a6",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-390x844.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-roles-layout-light-390.png",
+        "runtime_dark_capture": "280-people-access-roles-layout-dark-390.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-roles-context-1024x768.png",
+        "filename": "approved-people-access-roles-context-1024x768.png",
+        "sha256": "d7db2412427269650ab4c47643dd37e574436a099cc09ebebd4cbec66918d55f",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-context-1024x768.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-roles-context-light-1024.png",
+        "runtime_dark_capture": "280-people-access-roles-context-dark-1024.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-roles-context-768x900.png",
+        "filename": "approved-people-access-roles-context-768x900.png",
+        "sha256": "0709b18511c41ac079b1e8469b5405eb6360c69c5e47a2259823f91552652169",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-context-768x900.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-roles-context-light-768.png",
+        "runtime_dark_capture": "280-people-access-roles-context-dark-768.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/approved-reference/approved-people-access-roles-context-390x844.png",
+        "filename": "approved-people-access-roles-context-390x844.png",
+        "sha256": "dec51baff8aa589b838a0f19496dddaf61b53d06be307f21a9b4929202d3ae11",
+        "inspection": "direct_original_HTML_render_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/source-only/approved-reference/approved-people-access-roles-context-390x844.png",
+        "identical_bytes_verified": true,
+        "runtime_capture": "280-people-access-roles-context-light-390.png",
+        "runtime_dark_capture": "280-people-access-roles-context-dark-390.png",
+        "bound_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      }
+    ]
+  },
+  "baseline": {
+    "runtime_revision": "ea84283f913755be6dc1b8e366282469745b3e9a",
+    "runtime_tree": "28f0b24ef1da098b46bfd345c466cecd79051675",
+    "build_digest": "8a6b34ca9f23620233e6ba0b64f1337135d8c5b072c2950279f855259c2f35e0",
+    "input_digest": "98027d3f997db615f369db5a75c781fcc3267279ffb1df9807831a50ff483812",
+    "manifest_path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/manifest.json",
+    "manifest_sha256": "07eb90a6729a30a3815066c0267d6790b1d4e77e741fbd93baa62fedd122a6c3",
+    "inspected_images": [
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-light-1440.png",
+        "filename": "before-organization-light-1440.png",
+        "sha256": "3a1212959bc7227e635707a1b681d9ba279b8fdeed4bc355647593470f07ff3e",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-light-1280.png",
+        "filename": "before-organization-light-1280.png",
+        "sha256": "96d2f30c2eddcd39f0aca11921885696b592d6e763020c9ff7c3501714888f2e",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-light-1024.png",
+        "filename": "before-organization-light-1024.png",
+        "sha256": "ade4469d665e860411a6606140b65f812b3ae6b76215d760faff9be3e014523b",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-light-768.png",
+        "filename": "before-organization-light-768.png",
+        "sha256": "59a762fd738b9c5340465643a8df345320a9e99bacd2206099829bd7d8b480ae",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-light-390.png",
+        "filename": "before-organization-light-390.png",
+        "sha256": "ea55e09d81fbf5583ce388eb38adde9c2323ce5916aaa9cbac064eb199fc24cd",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-dark-1440.png",
+        "filename": "before-organization-dark-1440.png",
+        "sha256": "1ef6befc96c88feaca0da7a2d646e12b5b91fe85978090336595f32590e953fa",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-dark-1280.png",
+        "filename": "before-organization-dark-1280.png",
+        "sha256": "33547fe30d0127e12600654a3f8a1b416e59dd3b0892e131475ca3925679debe",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-dark-1024.png",
+        "filename": "before-organization-dark-1024.png",
+        "sha256": "f2ea86217db16c21c42dadf9a29c508e8c935885c8b55367afd6e39ce5fe3f52",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-dark-768.png",
+        "filename": "before-organization-dark-768.png",
+        "sha256": "ffa4ab5e981af5c12d3677a655453c88685d0b6c9c07d93f1640a34bf315c758",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-organization-dark-390.png",
+        "filename": "before-organization-dark-390.png",
+        "sha256": "0fe5a2062e47dea2fca2c3e8df8b447f05a42df0d9321572b011ae8e3afa1358",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "organization",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-light-1440.png",
+        "filename": "before-directory-light-1440.png",
+        "sha256": "d438073622e0945eb4b21bdeeda84a0ce113d52ba731d7f826d7d5540e5b29be",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-light-1280.png",
+        "filename": "before-directory-light-1280.png",
+        "sha256": "8433d17c7a1772688ac1dfe58141d50a080c09049653a3e140ae860ca2c4d010",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-light-1024.png",
+        "filename": "before-directory-light-1024.png",
+        "sha256": "0243d8a6a2ba6025aee1c3866df908b8b79d8d923395887c30aced687a56c7d3",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-light-768.png",
+        "filename": "before-directory-light-768.png",
+        "sha256": "e030783d2775e779b5ec5c8ec4071f0b44ddefc45bb8145c4ad6d32cd069b92c",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-light-390.png",
+        "filename": "before-directory-light-390.png",
+        "sha256": "54ca4dac0a1f675e3da594a7f1ce4d829d0336b53e55e03252ead7a7910798b8",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-dark-1440.png",
+        "filename": "before-directory-dark-1440.png",
+        "sha256": "959e00997d8da738264277224123f6e511c482e57a778fb53252c7ca2b60f8f3",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-dark-1280.png",
+        "filename": "before-directory-dark-1280.png",
+        "sha256": "6e547e1340ba40f7ac29750355c30499a98ba1092bfc321a8d59f4678bc4237f",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-dark-1024.png",
+        "filename": "before-directory-dark-1024.png",
+        "sha256": "d5d9574b1d4d7bd5f33a3c8369903218d8a117d21157ba0b99424ec7219db9f8",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-dark-768.png",
+        "filename": "before-directory-dark-768.png",
+        "sha256": "bf494a2602a34d8a7a49b272769c7365f352a607d0bc9fa0aaf87343fb87219c",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        }
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/before-canonical/before-directory-dark-390.png",
+        "filename": "before-directory-dark-390.png",
+        "sha256": "85a0546776c4896291594c291aa3790cf5e00c79edfaf5d62945cb9fbfc2aa1b",
+        "inspection": "direct_before_canonical_runtime_render",
+        "view": "directory",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    ],
+    "findings": [
+      "The old Directory rendered eight of twelve returned profiles; Zara Nwosu at position twelve was omitted.",
+      "At 390px the old Directory and Organization pages had scrollWidth 553, exceeding the viewport.",
+      "Extra Configuration navigation and repeated headings pushed the first People identity below the initial viewport."
+    ]
+  },
+  "final_evidence": {
+    "directory": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505",
+    "manifest_sha256": "47b151724de989866bd68491f2bd27b2a15d09ec83d56011e04b906ebfd3c19b",
+    "accessibility_sha256": "89e92b67d9da0579dd11004e5709f178e00be1834a6a078612ff09b599e57976",
+    "configuration_receipt_sha256": "bb631e8e266eec578bef184eb3b215486e4fe3f2e5865cd0c5f3d06f19933fd7",
+    "receipt_hashes": {
+      "manifest.json": "47b151724de989866bd68491f2bd27b2a15d09ec83d56011e04b906ebfd3c19b",
+      "accessibility.json": "89e92b67d9da0579dd11004e5709f178e00be1834a6a078612ff09b599e57976",
+      "configuration-review.json": "bb631e8e266eec578bef184eb3b215486e4fe3f2e5865cd0c5f3d06f19933fd7",
+      "approved-reference/manifest.json": "e1ba5b17ab84007482acbdc5f3279b6425d1e616f5c1313366f477301188a48e",
+      "organization-range/organization-range-review.json": "d0e9f99ab6f1bab2fe70b559a5e9e258714f8988b5e594c5c8c417a33d559a8b",
+      "image-diff-from-d2.json": "e31a4e2f3f017be23c60d291733c2dd1e2146d4f238d529b1b03b214774a347b",
+      "integrity-review.json": "91add4c9d711f051958ec913ce89746166531be82cd7ee085778a1725f035945"
+    },
+    "inspected_primary_images": [
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-light-1440.png",
+        "filename": "280-people-access-people-layout-light-1440.png",
+        "sha256": "ef6d0a927b54681a8af3f0862fa05e39a067d30b20e511cb91266615b83a1efc",
+        "view": "people",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-light-1440.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-light-1280.png",
+        "filename": "280-people-access-people-layout-light-1280.png",
+        "sha256": "d854aa7b8f1836a9fecaa0e69e666e92b3c35a47e1a5cc0a6c9fe3265aec0873",
+        "view": "people",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-light-1280.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-light-1024.png",
+        "filename": "280-people-access-people-layout-light-1024.png",
+        "sha256": "3e282e2d7a8ad3824102fa5c79ceab7a3c1ff930452481ad1bc8d6bd8060c5f3",
+        "view": "people",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-light-1024.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-light-768.png",
+        "filename": "280-people-access-people-layout-light-768.png",
+        "sha256": "a91172c0badc46d1ba444ca497c16511163fbc61b6ffe5479d4da14f53f43b28",
+        "view": "people",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-light-768.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-light-390.png",
+        "filename": "280-people-access-people-layout-light-390.png",
+        "sha256": "416d60019ce071b24bf5f5781ade9c4eca53f00f39608a375335220b5989e8d7",
+        "view": "people",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-light-390.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-dark-1440.png",
+        "filename": "280-people-access-people-layout-dark-1440.png",
+        "sha256": "0da706a4cf12a49e0e69ed0535d9190d965310439fb6cf5931a9c83357f73f11",
+        "view": "people",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-dark-1440.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-dark-1280.png",
+        "filename": "280-people-access-people-layout-dark-1280.png",
+        "sha256": "e0e1d99515dc2017d6e552db6d1fb0051f7abdc828a0e0a6d7b2ddff90480e43",
+        "view": "people",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-dark-1280.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-dark-1024.png",
+        "filename": "280-people-access-people-layout-dark-1024.png",
+        "sha256": "6186fe09e4d508937a87c9b0ffb3ea530ca8353630d8e8774000dbaed9c84f42",
+        "view": "people",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-dark-1024.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-dark-768.png",
+        "filename": "280-people-access-people-layout-dark-768.png",
+        "sha256": "235d3b89d202315fee7ab160fa41cc1b6d363c031cb7c317f51f1d32394e6b11",
+        "view": "people",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-dark-768.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-layout-dark-390.png",
+        "filename": "280-people-access-people-layout-dark-390.png",
+        "sha256": "d203ab30945516bd97876ad94868f6939bde19b37ec137c4254a1a4228ececcc",
+        "view": "people",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-people-layout-dark-390.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-light-1440.png",
+        "filename": "280-people-access-roles-layout-light-1440.png",
+        "sha256": "a210c02a132bda9927810035207ed9b52653d48d47ec5fb313ff7e506690ec6d",
+        "view": "roles",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-light-1440.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-light-1280.png",
+        "filename": "280-people-access-roles-layout-light-1280.png",
+        "sha256": "4f9e7271b2c033b89f5a8f3967622ce5fff07745a0fe603f76533a73903c79d8",
+        "view": "roles",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-light-1280.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-light-1024.png",
+        "filename": "280-people-access-roles-layout-light-1024.png",
+        "sha256": "455a3be2c85022c936e6e638206b194654ae94ddb972c2144d5ac35ecf280132",
+        "view": "roles",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-light-1024.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-light-768.png",
+        "filename": "280-people-access-roles-layout-light-768.png",
+        "sha256": "93ce4ada77a27ae7b90ff042cb6639355d626b28143f7776429d8314751e931d",
+        "view": "roles",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-light-768.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-light-390.png",
+        "filename": "280-people-access-roles-layout-light-390.png",
+        "sha256": "d84703b4c4fc0b1e03931e4e1a16d9ac5619c8debb04352b6ddf2b166f8281a7",
+        "view": "roles",
+        "state": "layout",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-light-390.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-dark-1440.png",
+        "filename": "280-people-access-roles-layout-dark-1440.png",
+        "sha256": "2eb3b4665874c69d54b92ce9ae67125e4aba054681b25662ec039f2a6591f4a1",
+        "view": "roles",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-dark-1440.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-dark-1280.png",
+        "filename": "280-people-access-roles-layout-dark-1280.png",
+        "sha256": "e50c9ebe383e3eeaee763e97eafddc81d167305278162df1b18e32949772de66",
+        "view": "roles",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-dark-1280.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-dark-1024.png",
+        "filename": "280-people-access-roles-layout-dark-1024.png",
+        "sha256": "d38112a23a5eb199bad0ee489033cc9090f2b770f432d550e073bb8271598bb8",
+        "view": "roles",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-dark-1024.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-dark-768.png",
+        "filename": "280-people-access-roles-layout-dark-768.png",
+        "sha256": "0089fd08bf723fd7ce31ec880c437ea42e79fecf146f974b01fbaddad0c09537",
+        "view": "roles",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-dark-768.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-layout-dark-390.png",
+        "filename": "280-people-access-roles-layout-dark-390.png",
+        "sha256": "a45858a871db791df60cc54331227e910a77ff1b5808182fbd5343c79bafe3cf",
+        "view": "roles",
+        "state": "layout",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/checkpoint-75cb676d-superseded/280-people-access-roles-layout-dark-390.png",
+        "directly_inspected_published_revision": "75cb676db7bb76752a1ba1522a7b6e87cd52c9a1",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-context-light-1024.png",
+        "filename": "280-people-access-people-context-light-1024.png",
+        "sha256": "cdd9990ff934a13e9e1d62d6692327e8a65e73f677e954b64a9f0c7a171d6f50",
+        "view": "people",
+        "state": "context",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-context-light-1024.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-context-light-768.png",
+        "filename": "280-people-access-people-context-light-768.png",
+        "sha256": "328699b0e4f30a5ba1fbf953fdf7370dbcb18436dca4f3f0f33fad1784ae2b30",
+        "view": "people",
+        "state": "context",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-context-light-768.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-context-light-390.png",
+        "filename": "280-people-access-people-context-light-390.png",
+        "sha256": "4319162bb0064c1481a162ce562c9e7009b9e0f1d1e5a7c8128fe05b7790f07c",
+        "view": "people",
+        "state": "context",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-context-light-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-context-dark-1024.png",
+        "filename": "280-people-access-people-context-dark-1024.png",
+        "sha256": "6e8e95786db35f168e23e00464d0201ee653a21d9d90bc1be5bfd483deec3be6",
+        "view": "people",
+        "state": "context",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-context-dark-1024.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-context-dark-768.png",
+        "filename": "280-people-access-people-context-dark-768.png",
+        "sha256": "0103574534c64bd9d7bfb1d6a66b8ab83e2434e3d8e2e7f42001b8081d65e196",
+        "view": "people",
+        "state": "context",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-context-dark-768.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-context-dark-390.png",
+        "filename": "280-people-access-people-context-dark-390.png",
+        "sha256": "e43b7c3445680fda88842732def87f612c1ae00095c3562e407ae7e13bd2e1ab",
+        "view": "people",
+        "state": "context",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-context-dark-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-context-light-1024.png",
+        "filename": "280-people-access-roles-context-light-1024.png",
+        "sha256": "1007248c88e88b61edb6b3c8c315c4e2f199b7e2286fa5dfa2200cd4ab158e14",
+        "view": "roles",
+        "state": "context",
+        "theme": "light",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-roles-context-light-1024.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-context-light-768.png",
+        "filename": "280-people-access-roles-context-light-768.png",
+        "sha256": "0841b97b055d0fa1350277c819a7cca45314f8164922e23fe0c7d48d78c74b9c",
+        "view": "roles",
+        "state": "context",
+        "theme": "light",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "direct_final_image",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-context-light-768.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "previous_checkpoint_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-roles-context-light-768.png",
+        "previous_checkpoint_sha256": "7a5ebed895821722724a260d6f3850f468ba9a34a8f86057c4a3fc7c0c73be93"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-context-light-390.png",
+        "filename": "280-people-access-roles-context-light-390.png",
+        "sha256": "7a00a0be6dc06cf30dde000dd22dc8afdaf250d156065c6f417076d4e53b3df1",
+        "view": "roles",
+        "state": "context",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-roles-context-light-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-context-dark-1024.png",
+        "filename": "280-people-access-roles-context-dark-1024.png",
+        "sha256": "4fbbbe4dc3abf5c1213e7e894cc0b1c30add8d7b92fbefc2446872c158fc9425",
+        "view": "roles",
+        "state": "context",
+        "theme": "dark",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-roles-context-dark-1024.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-context-dark-768.png",
+        "filename": "280-people-access-roles-context-dark-768.png",
+        "sha256": "fd65c10950fcb2626cf99ce44b974a2d8c81e533990accabfb272acecdf9ed6d",
+        "view": "roles",
+        "state": "context",
+        "theme": "dark",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-roles-context-dark-768.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-context-dark-390.png",
+        "filename": "280-people-access-roles-context-dark-390.png",
+        "sha256": "e746dff2fc27210f2ae11a1824ec677723fa92f53490e80b9e2937a6ac36b904",
+        "view": "roles",
+        "state": "context",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-roles-context-dark-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-history-light-1440.png",
+        "filename": "280-people-access-people-history-light-1440.png",
+        "sha256": "b6b34ae34e0ff1da6c01e64f334b06d6694b37c37b65837af6ce56561a3210e1",
+        "view": "people",
+        "state": "history",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-history-light-1440.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-filters-light-1440.png",
+        "filename": "280-people-access-people-filters-light-1440.png",
+        "sha256": "ef6d0a927b54681a8af3f0862fa05e39a067d30b20e511cb91266615b83a1efc",
+        "view": "people",
+        "state": "filters",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-filters-light-1440.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-history-dark-390.png",
+        "filename": "280-people-access-people-history-dark-390.png",
+        "sha256": "5621262c46cfdd1194db3e8f7a733022f107f7841e9dcd9f6a57a85e79cdcdb1",
+        "view": "people",
+        "state": "history",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_final_image",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-history-dark-390.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "previous_checkpoint_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-history-dark-390.png",
+        "previous_checkpoint_sha256": "1ef6cbca4e4b33ecb6dc2142d545a7f3e33e4f9b29b89848ff925379218513dc"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-filters-dark-390.png",
+        "filename": "280-people-access-people-filters-dark-390.png",
+        "sha256": "e74a82d513d5342c88489abadd053d1abb89e2bb533a9b970b1eb6da98ca41a3",
+        "view": "people",
+        "state": "filters",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-filters-dark-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-empty-light-390.png",
+        "filename": "280-people-access-people-empty-light-390.png",
+        "sha256": "e547611aee0cc19fae1557f2670673312debe58cac35602af435ca4a7ebf2be8",
+        "view": "people",
+        "state": "empty",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-empty-light-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-denied-dark-390.png",
+        "filename": "280-people-access-people-denied-dark-390.png",
+        "sha256": "3147dfe7bbd3a3f149010586eac1e492ee8bbc92b8c4d00a162b5d5a80157c11",
+        "view": "people",
+        "state": "denied",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-denied-dark-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-empty-light-390.png",
+        "filename": "280-people-access-roles-empty-light-390.png",
+        "sha256": "f3fd361b3b301238ef9425f6a539b186abcd250fcdf591a873f22a222ae60539",
+        "view": "roles",
+        "state": "empty",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-roles-empty-light-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-denied-dark-390.png",
+        "filename": "280-people-access-roles-denied-dark-390.png",
+        "sha256": "4f4669ef03d7effbacf57158deae8b503fdaa5d80014cb1e9373f8150984430d",
+        "view": "roles",
+        "state": "denied",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-roles-denied-dark-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-limited-light-390.png",
+        "filename": "280-people-access-people-limited-light-390.png",
+        "sha256": "0fad9f1ba2630e4214ca14d005cb841b57ac59cece0d24ecf61b61c8280bf11d",
+        "view": "people",
+        "state": "limited",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-limited-light-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-recovery-light-1440.png",
+        "filename": "280-people-access-people-recovery-light-1440.png",
+        "sha256": "ef6d0a927b54681a8af3f0862fa05e39a067d30b20e511cb91266615b83a1efc",
+        "view": "people",
+        "state": "recovery",
+        "theme": "light",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "visual_limit": "PNG depicts the successful post-retry state; the initial 503 state and retry are supported by transport/DOM receipts, not a pre-retry image.",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-recovery-light-1440.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-readonly-dark-390.png",
+        "filename": "280-people-access-people-readonly-dark-390.png",
+        "sha256": "d203ab30945516bd97876ad94868f6939bde19b37ec137c4254a1a4228ececcc",
+        "view": "people",
+        "state": "readonly",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-readonly-dark-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-people-missing-dark-390.png",
+        "filename": "280-people-access-people-missing-dark-390.png",
+        "sha256": "bd76f245bea8a56b29d8c6027d846e78f79cac5ec9c854e47e1c93c44a653d2c",
+        "view": "people",
+        "state": "missing",
+        "theme": "dark",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "visual_limit": "Unknown query is restored after proving Return recovery. The People inspector is below the viewport; the Role inspector heading is partly visible at the bottom. Full missing inspector styling was not visually inspected.",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-people-missing-dark-390.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-missing-light-390.png",
+        "filename": "280-people-access-roles-missing-light-390.png",
+        "sha256": "457b28c6f52cb94e85b5b5008a3e9a450fefbb3d0108ba07aa48a1e7d310c415",
+        "view": "roles",
+        "state": "missing",
+        "theme": "light",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "inspection": "direct_final_image",
+        "visual_limit": "Unknown query is restored after proving Return recovery. The People inspector is below the viewport; the Role inspector heading is partly visible at the bottom. Full missing inspector styling was not visually inspected.",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/280-people-access-roles-missing-light-390.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "previous_checkpoint_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/280-people-access-roles-missing-light-390.png",
+        "previous_checkpoint_sha256": "3fb32a31726795ca5b08e82848e05eebf2baef1b21b267d6b0d82e06fadc1cb7"
+      }
+    ],
+    "inspected_configuration_images": [
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-desktop-light-1440x900.png",
+        "filename": "configuration-organization-desktop-light-1440x900.png",
+        "sha256": "fea22c349f00d8cdddeba45fcbe3bc9fe28d88da1dca3a5ac6b8743b898f75d6",
+        "route": "#configure/access/positions",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "light",
+        "capture_kind": "primary",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_final_image",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-desktop-light-1440x900.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-mobile-dark-390x844.png",
+        "filename": "configuration-organization-mobile-dark-390x844.png",
+        "sha256": "57375fcab03b527a3dbc576188e287297c6a68216a55ff8564ce82b7ba47fdf5",
+        "route": "#configure/access/positions",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "dark",
+        "capture_kind": "primary",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_final_image",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-mobile-dark-390x844.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-mobile-dark-390x844-position-header.png",
+        "filename": "configuration-organization-mobile-dark-390x844-position-header.png",
+        "sha256": "b8ae105673ff8a6e9a279fcbdf29411e4d644193e224ccc922e24bf469349d3e",
+        "route": "#configure/access/positions",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "dark",
+        "capture_kind": "scrolled_position_header",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_final_image",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-mobile-dark-390x844-position-header.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-compact-light-600x900.png",
+        "filename": "configuration-organization-compact-light-600x900.png",
+        "sha256": "a741a07da00ecc02c64c0595370da7bc0a8345cb35766ef07b320bdb2464d886",
+        "route": "#configure/access/positions",
+        "viewport": {
+          "width": 600,
+          "height": 900
+        },
+        "theme": "light",
+        "capture_kind": "primary",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_final_image",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-compact-light-600x900.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-compact-light-600x900-position-header.png",
+        "filename": "configuration-organization-compact-light-600x900-position-header.png",
+        "sha256": "33ea6a8f2236087dacdbceddf99393213d0599d490864eadf1b024b08c9d42ec",
+        "route": "#configure/access/positions",
+        "viewport": {
+          "width": 600,
+          "height": 900
+        },
+        "theme": "light",
+        "capture_kind": "scrolled_position_header",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_final_image",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-compact-light-600x900-position-header.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-checks-partial-desktop-dark-1440x900.png",
+        "filename": "configuration-checks-partial-desktop-dark-1440x900.png",
+        "sha256": "5bfc76abf158d65b7286dd04d7ac118c8f0a2bf38bad44f3662a5db7cb818736",
+        "route": "#configure/authority/checks",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "dark",
+        "capture_kind": "primary",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/configuration/configuration-checks-partial-desktop-dark-1440x900.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-overview-desktop-light-1440x900.png",
+        "filename": "configuration-overview-desktop-light-1440x900.png",
+        "sha256": "75bc3d8d3edb851589c34f8fa79e5e8193795f45ca27fcb8ab5a0b709ddeef16",
+        "route": "#configure",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "light",
+        "capture_kind": "primary",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_final_image",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-overview-desktop-light-1440x900.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-authority-desktop-dark-1440x900.png",
+        "filename": "configuration-authority-desktop-dark-1440x900.png",
+        "sha256": "0855aa26e1e085b02556a25208e5faf8c780f9de417c0b0d606515a517c7f42a",
+        "route": "#configure/authority",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "dark",
+        "capture_kind": "primary",
+        "scope": "root_wrapper_only_governance_body_excluded",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/configuration/configuration-authority-desktop-dark-1440x900.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-access-desktop-light-1440x900.png",
+        "filename": "configuration-access-desktop-light-1440x900.png",
+        "sha256": "ef6d0a927b54681a8af3f0862fa05e39a067d30b20e511cb91266615b83a1efc",
+        "route": "#configure/access",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "theme": "light",
+        "capture_kind": "primary",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/configuration/configuration-access-desktop-light-1440x900.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-overview-tablet-dark-1024x768.png",
+        "filename": "configuration-overview-tablet-dark-1024x768.png",
+        "sha256": "a6fa43a0661d7ad354bab915e1894c2063791a4f3cfe4c85b81a588f3a1bb6cb",
+        "route": "#configure",
+        "viewport": {
+          "width": 1024,
+          "height": 768
+        },
+        "theme": "dark",
+        "capture_kind": "primary",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/configuration/configuration-overview-tablet-dark-1024x768.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-overview-mobile-light-390x844.png",
+        "filename": "configuration-overview-mobile-light-390x844.png",
+        "sha256": "a50bdf6c58675981a7f7438f8745106943c9851ba6b5a3a4644df279f9cef3dd",
+        "route": "#configure",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "theme": "light",
+        "capture_kind": "primary",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/configuration/configuration-overview-mobile-light-390x844.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-overview-reflow-dark-320x800.png",
+        "filename": "configuration-overview-reflow-dark-320x800.png",
+        "sha256": "b496cd7f4fd0b18f56c0802917f5fb427293bfa4b545a6e5fd79a1e0722213b4",
+        "route": "#configure",
+        "viewport": {
+          "width": 320,
+          "height": 800
+        },
+        "theme": "dark",
+        "capture_kind": "primary",
+        "scope": "secondary_configuration",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/configuration/configuration-overview-reflow-dark-320x800.png",
+        "directly_inspected_published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+        "identical_bytes_verified": true
+      }
+    ],
+    "inspected_organization_range_images": [
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/organization-range/organization-position-header-390.png",
+        "filename": "organization-position-header-390.png",
+        "sha256": "595e513806d8bf12eef24550f4ec7e8d26daed556de4eb40d64b284c5e550a79",
+        "viewport": {
+          "width": 390,
+          "height": 900
+        },
+        "theme": "light",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_final_image",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/organization-range/organization-position-header-390.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292"
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/organization-range/organization-position-table-390.png",
+        "filename": "organization-position-table-390.png",
+        "sha256": "f3cf1d386c21d8eceefa1950cb419d6d8e383aff9b574fa5b6a9c0ebf31c1c85",
+        "viewport": {
+          "width": 390,
+          "height": 900
+        },
+        "theme": "light",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/guards-organization-range/organization-position-table-390.png",
+        "directly_inspected_checkpoint": "Corrected Organization range guard before final publication",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/organization-range/organization-position-header-600.png",
+        "filename": "organization-position-header-600.png",
+        "sha256": "33ea6a8f2236087dacdbceddf99393213d0599d490864eadf1b024b08c9d42ec",
+        "viewport": {
+          "width": 600,
+          "height": 900
+        },
+        "theme": "light",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "identical_bytes_to_directly_inspected_final_image",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/configuration/configuration-organization-compact-light-600x900-position-header.png",
+        "directly_inspected_published_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/organization-range/organization-position-table-600.png",
+        "filename": "organization-position-table-600.png",
+        "sha256": "115e392af7afad4f53558cdeb45622351c54e3cf808e5f5785e37b1f694fcf01",
+        "viewport": {
+          "width": 600,
+          "height": 900
+        },
+        "theme": "light",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/guards-organization-range/organization-position-table-600.png",
+        "directly_inspected_checkpoint": "Corrected Organization range guard before final publication",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/organization-range/organization-position-header-768.png",
+        "filename": "organization-position-header-768.png",
+        "sha256": "c2cd77ccad7c9d3020b13692f6818432497ff745b5d247d75848891b2f14b277",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "light",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/guards-organization-range/organization-position-table-768.png",
+        "directly_inspected_checkpoint": "Corrected Organization range guard before final publication",
+        "identical_bytes_verified": true
+      },
+      {
+        "path": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/organization-range/organization-position-table-768.png",
+        "filename": "organization-position-table-768.png",
+        "sha256": "c2cd77ccad7c9d3020b13692f6818432497ff745b5d247d75848891b2f14b277",
+        "viewport": {
+          "width": 768,
+          "height": 900
+        },
+        "theme": "light",
+        "result": "PASS",
+        "reviewed_runtime_revision": "1bde850512b9eb4045b23f306322a29ed0859292",
+        "inspection": "direct_prior_image_identical_bytes_carried_forward",
+        "directly_inspected_path": "/workspace/scratch/992dce7dae5c/people-evidence/guards-organization-range/organization-position-table-768.png",
+        "directly_inspected_checkpoint": "Corrected Organization range guard before final publication",
+        "identical_bytes_verified": true
+      }
+    ],
+    "primary_image_hashes_verified": 45,
+    "configuration_image_hashes_verified": 12,
+    "organization_range_image_hashes_verified": 6,
+    "original_source_image_hashes_rebound": 16,
+    "final_artifact_image_hashes_independently_verified": 79,
+    "carried_forward_primary_images": 42,
+    "carried_forward_identical_layout_images": 20,
+    "direct_final_changed_primary_images": 3,
+    "direct_final_configuration_images": 6,
+    "carried_forward_configuration_images": 6,
+    "final_primary_state_count_in_scope": 45,
+    "broader_fixture_run_counts_observed": {
+      "runtime_states": 92,
+      "runtime_images": 95,
+      "a11y_cases": 22,
+      "configuration_cases": 10,
+      "configuration_images": 12,
+      "range_images": 6
+    },
+    "broader_run_note": "Broader counts come from the evidence receipts and do not expand this reviewer's independent governance or accessibility scope."
+  },
+  "disposition": {
+    "People_Role_source_layout": "PASS",
+    "People_Role_fixture_interaction": "PASS",
+    "root_primary_routing": "PASS",
+    "secondary_configuration_layout": "PASS",
+    "whole_workspace_visual_acceptance": "BLOCKED; program acceptance remains 0/19",
+    "automated_accessibility": "All eight scoped People/Role cases have zero axe violations and zero undersized primary controls. Twelve color-only incomplete nodes remain explicitly recorded and manually classified; no blanket accessibility claim.",
+    "scoped_review": "PASS"
+  },
+  "blocking_findings": [],
+  "source_anatomy_findings": [
+    "All five layout widths in light/dark preserve the source heading, four peer tabs, four summary facts, directory/catalog, and selected inspector.",
+    "Desktop uses approximately 1.6fr plus a 320px minimum inspector; at 1024 and below it stacks. The complete first People record is visible at every tested layout width.",
+    "The mobile tab strip intentionally scrolls; active tabs remain visible after history navigation.",
+    "Real loaded counts and bounded contract facts replace unsupported invitation, last-activity, membership, complete-directory totals, and prototype action claims.",
+    "Role capabilities and group mappings are returned data. Neither roles nor ACTIVE profile status are presented as effective approval authority.",
+    "Shared tokens, fonts, statuses, controls, and data population are explicit adaptations; no pixel-exact or invented dark-source identity is claimed."
+  ],
+  "resolved_findings": [
+    "Controlled selection now uses callback presence, so removing a record query with browser Back restores the first filtered returned record instead of a stale local selection.",
+    "Inactive secondary bodies unmount nested Position/Area portals; source/mapping open props are active-gated; changing Organization area remounts its owner.",
+    "Desktop sticky inspector top 96px clears the 68px context bar.",
+    "Search uses the public --cs-search-width:100% token, removing the inherited 420px cap on full-row toolbar layouts.",
+    "Header artwork uses block-size 100%, preventing the 128px wave from painting into tabs after the heading becomes 78px.",
+    "Loaded summary wrapper now has role=group, making its existing accessible name valid.",
+    "Shared WorkspaceSwitcher styling now loads through the shared components layer, so Organization cold entry renders the intended responsive selector.",
+    "Secondary Organization headings stack at 900px; identity record-card reflow applies through 680px, correcting the measured 600px gap without altering commands or data."
+  ],
+  "measured_people_geometry": [
+    {
+      "width": 1440,
+      "heading": {
+        "x": 260,
+        "y": 92,
+        "width": 1148,
+        "height": 128,
+        "right": 1408,
+        "bottom": 220
+      },
+      "heading_wave": {
+        "x": 696.25,
+        "y": 92,
+        "width": 654.359375,
+        "height": 128,
+        "right": 1350.609375,
+        "bottom": 220
+      },
+      "search": {
+        "x": 283,
+        "y": 489,
+        "width": 323.6875,
+        "height": 44,
+        "right": 606.6875,
+        "bottom": 533
+      },
+      "toolbar": {
+        "x": 283,
+        "y": 489,
+        "width": 746.3125,
+        "height": 44,
+        "right": 1029.3125,
+        "bottom": 533
+      },
+      "first_row": {
+        "x": 261,
+        "y": 593,
+        "width": 790.3125,
+        "height": 76,
+        "right": 1051.3125,
+        "bottom": 669
+      },
+      "first_row_fully_visible": true,
+      "document_width": 1440,
+      "scroll_width": 1440,
+      "context_placement": "beside"
+    },
+    {
+      "width": 1280,
+      "heading": {
+        "x": 260,
+        "y": 92,
+        "width": 988,
+        "height": 128,
+        "right": 1248,
+        "bottom": 220
+      },
+      "heading_wave": {
+        "x": 635.453125,
+        "y": 92,
+        "width": 563.15625,
+        "height": 128,
+        "right": 1198.609375,
+        "bottom": 220
+      },
+      "search": {
+        "x": 277,
+        "y": 489,
+        "width": 622.390625,
+        "height": 44,
+        "right": 899.390625,
+        "bottom": 533
+      },
+      "toolbar": {
+        "x": 277,
+        "y": 489,
+        "width": 622.390625,
+        "height": 97,
+        "right": 899.390625,
+        "bottom": 586
+      },
+      "first_row": {
+        "x": 261,
+        "y": 646,
+        "width": 654.390625,
+        "height": 96,
+        "right": 915.390625,
+        "bottom": 742
+      },
+      "first_row_fully_visible": true,
+      "document_width": 1280,
+      "scroll_width": 1280,
+      "context_placement": "beside"
+    },
+    {
+      "width": 1024,
+      "heading": {
+        "x": 112.953125,
+        "y": 124,
+        "width": 870.09375,
+        "height": 78,
+        "right": 983.046875,
+        "bottom": 202
+      },
+      "heading_wave": {
+        "x": 443.59375,
+        "y": 124,
+        "width": 495.953125,
+        "height": 78,
+        "right": 939.546875,
+        "bottom": 202
+      },
+      "search": {
+        "x": 129.953125,
+        "y": 541,
+        "width": 836.09375,
+        "height": 44,
+        "right": 966.046875,
+        "bottom": 585
+      },
+      "toolbar": {
+        "x": 129.953125,
+        "y": 541,
+        "width": 836.09375,
+        "height": 97,
+        "right": 966.046875,
+        "bottom": 638
+      },
+      "first_row": {
+        "x": 113.953125,
+        "y": 684,
+        "width": 868.09375,
+        "height": 76,
+        "right": 982.046875,
+        "bottom": 760
+      },
+      "first_row_fully_visible": true,
+      "document_width": 1024,
+      "scroll_width": 1024,
+      "context_placement": "stacked"
+    },
+    {
+      "width": 768,
+      "heading": {
+        "x": 80,
+        "y": 88,
+        "width": 680,
+        "height": 78,
+        "right": 760,
+        "bottom": 166
+      },
+      "heading_wave": {
+        "x": 338.40625,
+        "y": 88,
+        "width": 387.59375,
+        "height": 78,
+        "right": 726,
+        "bottom": 166
+      },
+      "search": {
+        "x": 97,
+        "y": 505,
+        "width": 646,
+        "height": 44,
+        "right": 743,
+        "bottom": 549
+      },
+      "toolbar": {
+        "x": 97,
+        "y": 505,
+        "width": 646,
+        "height": 97,
+        "right": 743,
+        "bottom": 602
+      },
+      "first_row": {
+        "x": 81,
+        "y": 648,
+        "width": 678,
+        "height": 76,
+        "right": 759,
+        "bottom": 724
+      },
+      "first_row_fully_visible": true,
+      "document_width": 768,
+      "scroll_width": 768,
+      "context_placement": "stacked"
+    },
+    {
+      "width": 390,
+      "heading": {
+        "x": 64,
+        "y": 88,
+        "width": 318,
+        "height": 143.5,
+        "right": 382,
+        "bottom": 231.5
+      },
+      "heading_wave": null,
+      "search": {
+        "x": 81,
+        "y": 551.5,
+        "width": 284,
+        "height": 44,
+        "right": 365,
+        "bottom": 595.5
+      },
+      "toolbar": {
+        "x": 81,
+        "y": 551.5,
+        "width": 284,
+        "height": 97,
+        "right": 365,
+        "bottom": 648.5
+      },
+      "first_row": {
+        "x": 65,
+        "y": 704.5,
+        "width": 316,
+        "height": 109.5,
+        "right": 381,
+        "bottom": 814
+      },
+      "first_row_fully_visible": true,
+      "document_width": 390,
+      "scroll_width": 390,
+      "context_placement": "stacked"
+    }
+  ],
+  "behavior_evidence": {
+    "transport_scope": "GET /api/v1/access/overview?limit=50; no broad query added. Roles remain backend-bounded to 100. Bindings are current-entity/current-valid data and have no invented 50 cap.",
+    "loaded_population": "Twelve fixture profiles are rendered/searchable; local search finds twelfth profile Zara. A separate limit fixture shows fifty profiles and labels loaded data, not an organization total.",
+    "filter_receipts": "Name/username/position search, profile status, source-not-returned, clearing, and restoration keep the overview read count unchanged.",
+    "history_receipts": "Real Back/Forward preserves the shared menu/document, restores queryless first selections, retains People filter state, and closes Add position/Add area/Add source portals across navigation.",
+    "denial_refresh_late_response": "Code and focused regressions cover AbortController/generation cancellation, actor/entity scope remounts, clear-on 401/403, same-scope stale 503 warning with mutations disabled, active revalidation, and late source/token-result guards.",
+    "routing_checks": "Unavailable integrity remains explicitly unavailable while an independently returned task remains visible with its returned count and Work & Approvals destination.",
+    "commands_observed_in_reviewed_primary_captures": 0,
+    "all45_primary_captures_read_only": true,
+    "independent_test_execution": "25 focused tests across PeopleAccessViews, PeopleAccessSection, peopleAccessRouting, AuthorityRoutingSection and ConfigureWorkspace passed; after the secondary-area key fix the updated four-test PeopleAccessSection suite also passed. These runs overlap and are not reported as 29 distinct tests.",
+    "final_rebind": {
+      "reviewed_capture_count": 45,
+      "commands_observed": 0,
+      "capture_errors": 0,
+      "all_scoped_primary_hashes_match_manifest": true,
+      "queryless_phone_history_final_selected_record": "Amina Yusuf",
+      "recovery_read_statuses": [
+        503,
+        200
+      ]
+    }
+  },
+  "manual_contrast_review": {
+    "cases": [
+      "people-access-people-light-1440",
+      "people-access-people-light-390",
+      "people-access-people-dark-1440",
+      "people-access-people-dark-390",
+      "people-access-roles-light-1440",
+      "people-access-roles-light-390",
+      "people-access-roles-dark-1440",
+      "people-access-roles-dark-390"
+    ],
+    "remaining_axe_incomplete_nodes": 12,
+    "raw_report_preserved": true,
+    "items": [
+      {
+        "category": "Organization settings label overlap",
+        "nodes": 4,
+        "assessment": "Reviewed visual frames and CSS paint order. The decorative wave is behind the opaque secondary button; supplemental foreground/background reads are 16.2807:1 light and 16.0786:1 dark. These colors and ratios were independently recomputed. No observed label occlusion.",
+        "limits": "Raw axe bgOverlap diagnostics remain; this is a scoped manual interpretation, not a whole-screen conformance claim."
+      },
+      {
+        "category": "Select chevron non-text glyph",
+        "nodes": 8,
+        "assessment": "The aria-hidden chevrons are decorative beside named SelectField controls. Their shared muted color on field fill gives 5.4103:1 light and 6.6673:1 dark; glyphs are visually clear. Essential field boundary minimums are 3.8921:1 light and 4.5890:1 dark.",
+        "limits": "The checker cannot classify the glyph as text; accessible names come from the control labels."
+      },
+      {
+        "category": "Supplemental transparent record/quiet-action borders and subtle secondary button borders",
+        "assessment": "Low nonessential boundary readings are not relied upon as the sole control or selected-state cue. Named text, structured record rows, selected outline/inset marker, current-tab underline, and visible focus provide the observed cues.",
+        "limits": "No general waiver of non-text contrast; raw REVIEW records are retained."
+      },
+      {
+        "category": "Supplemental sticky-shell filter uncertainty",
+        "assessment": "At the 1440/390 accessibility viewports, shared shell CSS uses opaque theme surfaces and the text is legible in both reviewed themes. Backdrop-filter uncertainty does not become an automated pass merely from visual inspection.",
+        "limits": "Position-dependent translucent/composited shell states beyond these captures are not certified."
+      }
+    ],
+    "bound_accessibility_report": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/accessibility.json",
+    "bound_accessibility_report_sha256": "89e92b67d9da0579dd11004e5709f178e00be1834a6a078612ff09b599e57976",
+    "final_case_results": [
+      {
+        "name": "people-access-people-light-1440",
+        "status": "PASS",
+        "violations": 0,
+        "undersized_primary_controls": 0,
+        "incomplete_nodes": 3,
+        "incomplete_rules": [
+          "color-contrast"
+        ]
+      },
+      {
+        "name": "people-access-people-light-390",
+        "status": "PASS",
+        "violations": 0,
+        "undersized_primary_controls": 0,
+        "incomplete_nodes": 2,
+        "incomplete_rules": [
+          "color-contrast"
+        ]
+      },
+      {
+        "name": "people-access-people-dark-1440",
+        "status": "PASS",
+        "violations": 0,
+        "undersized_primary_controls": 0,
+        "incomplete_nodes": 3,
+        "incomplete_rules": [
+          "color-contrast"
+        ]
+      },
+      {
+        "name": "people-access-people-dark-390",
+        "status": "PASS",
+        "violations": 0,
+        "undersized_primary_controls": 0,
+        "incomplete_nodes": 2,
+        "incomplete_rules": [
+          "color-contrast"
+        ]
+      },
+      {
+        "name": "people-access-roles-light-1440",
+        "status": "PASS",
+        "violations": 0,
+        "undersized_primary_controls": 0,
+        "incomplete_nodes": 1,
+        "incomplete_rules": [
+          "color-contrast"
+        ]
+      },
+      {
+        "name": "people-access-roles-light-390",
+        "status": "PASS",
+        "violations": 0,
+        "undersized_primary_controls": 0,
+        "incomplete_nodes": 0,
+        "incomplete_rules": []
+      },
+      {
+        "name": "people-access-roles-dark-1440",
+        "status": "PASS",
+        "violations": 0,
+        "undersized_primary_controls": 0,
+        "incomplete_nodes": 1,
+        "incomplete_rules": [
+          "color-contrast"
+        ]
+      },
+      {
+        "name": "people-access-roles-dark-390",
+        "status": "PASS",
+        "violations": 0,
+        "undersized_primary_controls": 0,
+        "incomplete_nodes": 0,
+        "incomplete_rules": []
+      }
+    ],
+    "final_binding_note": "The final report contains the same four decorative-wave overlap labels and eight decorative Select chevrons assessed in the prior direct review. Matching images, unchanged shared foreground/fill tokens, and the recorded paint-order review support carrying that narrow interpretation forward. Raw incomplete/REVIEW data remains unmodified."
+  },
+  "visual_limits": [
+    "The final missing-person context begins at y 2104.5 in a 390x844 PNG, below the viewport. The final missing-role heading begins at y 815.5 and is visible at the lower edge, with the rest of its inspector below the viewport. The script demonstrates Return recovery, then restores the unknown query before measuring/capturing. Exact unknown queries, no selected record, correct not-in-list headings, and Return recovery are supported by separate DOM/interaction assertions. Complete missing-inspector styling is not visually certified.",
+    "The recovery 503 PNG shows the successful result after retry; preceding failure copy and retry transport sequence were verified by receipts rather than a separate pre-action image.",
+    "Configuration authority screenshot was inspected only for the root wrapper/navigation. Its authored governance body is excluded from this reviewer's independent acceptance."
+  ],
+  "limitations": {
+    "whole_screen_acceptance": "0/19",
+    "live_backend_authorization_proof": false,
+    "production_cutover": "BLOCKED pending the program's live role, source-to-report, and whole-screen gates",
+    "evidence_kind": "Synthetic UI fixture transport and local browser/component review; not customer/live authorization proof.",
+    "human_approval": "No human visual approval or complete accessibility certification is claimed.",
+    "governance_self_review": "Authored governance requires the separate root/runtime-agent independent review.",
+    "final_scoped_pass": "This PASS concerns the listed source layouts, fixture interactions, routing, lifecycle code, and corrected secondary layouts only. It does not establish a production cutover or full-screen program acceptance."
+  },
+  "reviewer_type": "AI independent scoped reviewer",
+  "superseded_review_checkpoint": {
+    "published_revision": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+    "status": "PROVISIONAL_BLOCKED_SECONDARY_LAYOUT",
+    "reason": "Cold-entry shared switcher styling failed. Correcting it exposed the secondary Organization heading/card range defect, also resolved before this final review.",
+    "accepted_as_final": false
+  },
+  "resolved_review_findings": [
+    {
+      "id": "PEOPLE-SECONDARY-SWITCHER-CSS",
+      "status": "RESOLVED",
+      "finding": "Cold-entry Organization settings previously showed an unstyled concatenated desktop row and compact selector together.",
+      "rejected_frame": "/workspace/scratch/992dce7dae5c/people-evidence/final-d2cbf333/configuration/configuration-organization-desktop-light-1440x900.png",
+      "rejected_frame_sha256": "2c789150e42b66cbd6a82622cb7472f5c89517c1ad0076fd35b2b976feaee29e",
+      "fix": "workspace-switcher.css is now imported from the shared components/index.css inside the components layer. Redundant Insights/gallery imports are removed.",
+      "verification": "Final cold-entry desktop shows four separated 44px options with the active indicator and no compact selector; 390px and 600px show one labelled 44px compact selector.",
+      "verified_images": [
+        "configuration-organization-desktop-light-1440x900.png",
+        "configuration-organization-mobile-dark-390x844.png",
+        "configuration-organization-compact-light-600x900.png"
+      ]
+    },
+    {
+      "id": "PEOPLE-SECONDARY-HEADER-RANGE",
+      "status": "RESOLVED",
+      "finding": "The initial <=560px header correction left the heading at zero width and filters overflowing by 14px at 600px; table action labels split inside words.",
+      "fix": "Stack the owning identity-card-header at the existing 900px grid breakpoint and move existing identity table/card/scope reflow from 560px to 680px.",
+      "verification": "Final 390/600/768px probes show headings 276/470/638px wide, filters below, bounded tables/cards, and 44px action targets with intact Edit/Roles/Retire labels. The 600px list uses labelled cards; 768px retains the table.",
+      "receipt": "/workspace/scratch/992dce7dae5c/people-evidence/final-1bde8505/organization-range/organization-range-review.json",
+      "receipt_sha256": "d0e9f99ab6f1bab2fe70b559a5e9e258714f8988b5e594c5c8c417a33d559a8b"
+    }
+  ],
+  "measured_secondary_geometry": {
+    "switchers": [
+      {
+        "name": "configuration-organization-desktop-light-1440x900",
+        "measurements": {
+          "viewportWidth": 1440,
+          "list": {
+            "x": 260,
+            "y": 296,
+            "width": 1148,
+            "height": 44,
+            "right": 1408,
+            "bottom": 340
+          },
+          "compact": null,
+          "listDisplay": "flex",
+          "compactDisplay": "none",
+          "selected": "Organization",
+          "selectedBounds": {
+            "x": 260,
+            "y": 296,
+            "width": 103.515625,
+            "height": 44,
+            "right": 363.515625,
+            "bottom": 340
+          },
+          "indicator": {
+            "x": 268,
+            "y": 339,
+            "width": 87.515625,
+            "height": 2,
+            "right": 355.515625,
+            "bottom": 341
+          },
+          "indicatorPosition": "absolute",
+          "indicatorColor": "rgb(10, 112, 128)",
+          "buttons": [
+            {
+              "label": "Organization",
+              "x": 260,
+              "y": 296,
+              "width": 103.515625,
+              "height": 44,
+              "right": 363.515625,
+              "bottom": 340
+            },
+            {
+              "label": "Reporting lines",
+              "x": 385.515625,
+              "y": 296,
+              "width": 119.078125,
+              "height": 44,
+              "right": 504.59375,
+              "bottom": 340
+            },
+            {
+              "label": "Provisioning",
+              "x": 526.59375,
+              "y": 296,
+              "width": 98.65625,
+              "height": 44,
+              "right": 625.25,
+              "bottom": 340
+            },
+            {
+              "label": "Escalation routes",
+              "x": 647.25,
+              "y": 296,
+              "width": 134.4375,
+              "height": 44,
+              "right": 781.6875,
+              "bottom": 340
+            }
+          ],
+          "trigger": null,
+          "compactValue": "Organization"
+        }
+      },
+      {
+        "name": "configuration-organization-mobile-dark-390x844",
+        "measurements": {
+          "viewportWidth": 390,
+          "list": null,
+          "compact": {
+            "x": 64,
+            "y": 307.5,
+            "width": 318,
+            "height": 89,
+            "right": 382,
+            "bottom": 396.5
+          },
+          "listDisplay": "none",
+          "compactDisplay": "block",
+          "selected": "Organization",
+          "selectedBounds": null,
+          "indicator": null,
+          "indicatorPosition": "absolute",
+          "indicatorColor": "rgb(91, 198, 214)",
+          "buttons": [
+            {
+              "label": "Organization"
+            },
+            {
+              "label": "Reporting lines"
+            },
+            {
+              "label": "Provisioning"
+            },
+            {
+              "label": "Escalation routes"
+            }
+          ],
+          "trigger": {
+            "x": 64,
+            "y": 344.5,
+            "width": 318,
+            "height": 44,
+            "right": 382,
+            "bottom": 388.5
+          },
+          "compactValue": "Organization"
+        }
+      },
+      {
+        "name": "configuration-organization-compact-light-600x900",
+        "measurements": {
+          "viewportWidth": 600,
+          "list": null,
+          "compact": {
+            "x": 80,
+            "y": 307.5,
+            "width": 512,
+            "height": 89,
+            "right": 592,
+            "bottom": 396.5
+          },
+          "listDisplay": "none",
+          "compactDisplay": "block",
+          "selected": "Organization",
+          "selectedBounds": null,
+          "indicator": null,
+          "indicatorPosition": "absolute",
+          "indicatorColor": "rgb(10, 112, 128)",
+          "buttons": [
+            {
+              "label": "Organization"
+            },
+            {
+              "label": "Reporting lines"
+            },
+            {
+              "label": "Provisioning"
+            },
+            {
+              "label": "Escalation routes"
+            }
+          ],
+          "trigger": {
+            "x": 80,
+            "y": 344.5,
+            "width": 512,
+            "height": 44,
+            "right": 592,
+            "bottom": 388.5
+          },
+          "compactValue": "Organization"
+        }
+      }
+    ],
+    "organization_range": [
+      {
+        "width": 390,
+        "heading": {
+          "x": 85,
+          "y": 337.140625,
+          "width": 276,
+          "height": 21,
+          "top": 337.140625,
+          "right": 361,
+          "bottom": 358.140625,
+          "left": 85
+        },
+        "filters": {
+          "x": 85,
+          "y": 397.28125,
+          "width": 276,
+          "height": 142.53125,
+          "top": 397.28125,
+          "right": 361,
+          "bottom": 539.8125,
+          "left": 85
+        },
+        "table_cell_display": "grid",
+        "table_width": 276,
+        "table_scroll_width": 276,
+        "document_width": 390,
+        "scroll_width": 390,
+        "action_labels": [
+          "Edit",
+          "Roles",
+          "Retire"
+        ],
+        "action_heights": [
+          44,
+          44,
+          44
+        ]
+      },
+      {
+        "width": 600,
+        "heading": {
+          "x": 101,
+          "y": 336.984375,
+          "width": 470,
+          "height": 21,
+          "top": 336.984375,
+          "right": 571,
+          "bottom": 357.984375,
+          "left": 101
+        },
+        "filters": {
+          "x": 101,
+          "y": 397.125,
+          "width": 470,
+          "height": 142.53125,
+          "top": 397.125,
+          "right": 571,
+          "bottom": 539.65625,
+          "left": 101
+        },
+        "table_cell_display": "grid",
+        "table_width": 470,
+        "table_scroll_width": 470,
+        "document_width": 600,
+        "scroll_width": 600,
+        "action_labels": [
+          "Edit",
+          "Roles",
+          "Retire"
+        ],
+        "action_heights": [
+          44,
+          44,
+          44
+        ]
+      },
+      {
+        "width": 768,
+        "heading": {
+          "x": 101,
+          "y": 388.421875,
+          "width": 638,
+          "height": 21,
+          "top": 388.421875,
+          "right": 739,
+          "bottom": 409.421875,
+          "left": 101
+        },
+        "filters": {
+          "x": 101,
+          "y": 448.5625,
+          "width": 638,
+          "height": 73,
+          "top": 448.5625,
+          "right": 739,
+          "bottom": 521.5625,
+          "left": 101
+        },
+        "table_cell_display": "table-cell",
+        "table_width": 638,
+        "table_scroll_width": 638,
+        "document_width": 768,
+        "scroll_width": 768,
+        "action_labels": [
+          "Edit",
+          "Roles",
+          "Retire"
+        ],
+        "action_heights": [
+          44,
+          44,
+          44
+        ]
+      }
+    ]
+  }
+}

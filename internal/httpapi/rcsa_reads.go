@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
@@ -20,6 +21,12 @@ type rcsaHandoffRead struct {
 	Label      string `json:"label"`
 	TargetType string `json:"target_type,omitempty"`
 	TargetID   string `json:"target_id,omitempty"`
+}
+
+type rcsaPhaseRead struct {
+	Stage  string `json:"stage"`
+	Label  string `json:"label"`
+	Detail string `json:"detail"`
 }
 
 type rcsaCycleSummaryRead struct {
@@ -45,6 +52,7 @@ type rcsaCycleDetailRead struct {
 	AssessmentPeriodEnd       *time.Time             `json:"assessment_period_end,omitempty"`
 	FirstLineRequestID        string                 `json:"first_line_request_id,omitempty"`
 	Handoff                   rcsaHandoffRead        `json:"handoff"`
+	Phase                     rcsaPhaseRead          `json:"phase"`
 	Complete                  bool                   `json:"complete"`
 }
 
@@ -91,7 +99,7 @@ func (a *API) listRCSACycles(w http.ResponseWriter, r *http.Request) {
 			RiskCount:                 item.RiskCount,
 			ControlCount:              item.ControlCount,
 			FirstLineOwnerDisplayName: labels[item.Cycle.FirstLineOwnerID],
-			Handoff:                   rcsaCycleHandoff(item.Cycle, ""),
+			Handoff:                   rcsaCycleSummaryHandoff(item.Cycle),
 		})
 	}
 	httpx.WriteJSON(w, http.StatusOK, rcsaCyclePageRead{
@@ -118,7 +126,9 @@ func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	labels := a.exactAssessmentLabels(r.Context(), actor, actor.LegalEntityID, []string{value.Cycle.FirstLineOwnerID})
-	requestID, periodStart, periodEnd, complete := a.rcsaFirstLineContext(r.Context(), value.Cycle)
+	requestID, periodStart, periodEnd, firstLineComplete := a.rcsaFirstLineContext(r.Context(), value.Cycle)
+	phase, phaseComplete := a.rcsaCyclePhaseContext(r.Context(), value.Cycle)
+	handoff := rcsaCycleDetailHandoff(value.Cycle, requestID, phaseComplete)
 	httpx.WriteJSON(w, http.StatusOK, rcsaCycleDetailRead{
 		Cycle:                     value.Cycle,
 		Risks:                     value.Risks,
@@ -127,8 +137,9 @@ func (a *API) getRCSACycle(w http.ResponseWriter, r *http.Request) {
 		AssessmentPeriodStart:     periodStart,
 		AssessmentPeriodEnd:       periodEnd,
 		FirstLineRequestID:        requestID,
-		Handoff:                   rcsaCycleHandoff(value.Cycle, requestID),
-		Complete:                  complete,
+		Handoff:                   handoff,
+		Phase:                     phase,
+		Complete:                  firstLineComplete && phaseComplete,
 	})
 }
 
@@ -250,21 +261,102 @@ func (a *API) rcsaFirstLineContext(ctx context.Context, cycle rcsa.Cycle) (strin
 	return requestID, cloneRCSATime(request.CollectionPeriodStart), cloneRCSATime(request.CollectionPeriodEnd), true
 }
 
+func (a *API) rcsaCyclePhaseContext(ctx context.Context, cycle rcsa.Cycle) (rcsaPhaseRead, bool) {
+	fallback := rcsaSemanticPhase(cycle, nil)
+	if strings.TrimSpace(cycle.ChallengeMatterID) == "" {
+		return fallback, true
+	}
+	if a == nil || a.deps.Continuity == nil {
+		return fallback, false
+	}
+	aggregate, err := a.deps.Continuity.GetMatter(ctx, cycle.TenantID, cycle.ChallengeMatterID)
+	if err != nil || aggregate.Matter.LegalEntityID != cycle.LegalEntityID ||
+		aggregate.Matter.SourceType != "RCSA_CYCLE" || aggregate.Matter.SourceID != cycle.ID ||
+		!canReadMatterAggregate(ctx, aggregate) {
+		return fallback, false
+	}
+	return rcsaSemanticPhase(cycle, &aggregate), true
+}
+
+func rcsaSemanticPhase(cycle rcsa.Cycle, challenge *continuity.MatterAggregate) rcsaPhaseRead {
+	switch cycle.Status {
+	case rcsa.StatusDraft:
+		return rcsaPhaseRead{Stage: "COLLECTION", Label: "First-line collection", Detail: "Collection has not started."}
+	case rcsa.StatusAssessmentOpen:
+		return rcsaPhaseRead{Stage: "COLLECTION", Label: "First-line collection", Detail: "First-line assessment is in progress."}
+	case rcsa.StatusCancelled:
+		return rcsaPhaseRead{Stage: "CANCELLED", Label: "Cancelled", Detail: "The cycle was cancelled."}
+	}
+	if challenge != nil {
+		decision := continuity.CurrentDecisionForType(challenge.Decisions, rcsa.ChallengeDecisionType)
+		if decision != nil && rcsaChallengeDecisionFinal(decision.Status) {
+			switch decision.SelectedOption {
+			case rcsa.ChallengeOptionAcceptFirstLine:
+				if decision.Status == continuity.DecisionApproved || decision.Status == continuity.DecisionConditionallyApproved {
+					return rcsaPhaseRead{Stage: "RISK_ACCEPTANCE", Label: "Risk acceptance", Detail: "Independent challenge accepted the first-line assessment."}
+				}
+			case rcsa.ChallengeOptionRequireChanges, rcsa.ChallengeOptionDeficiencyConfirmed:
+				if challenge.Matter.Status == continuity.MatterClosed {
+					return rcsaPhaseRead{Stage: "REMEDIATION_VERIFICATION", Label: "Remediation verified", Detail: "Corrective work and outcome verification are complete."}
+				}
+				return rcsaPhaseRead{Stage: "REMEDIATION_VERIFICATION", Label: "Remediation verification", Detail: "Corrective work and independent outcome verification continue in challenge work."}
+			}
+		}
+	}
+	if cycle.Status == rcsa.StatusCompleted {
+		return rcsaPhaseRead{Stage: "COMPLETE", Label: "Challenge completed", Detail: "The challenge decision is complete."}
+	}
+	return rcsaPhaseRead{Stage: "INDEPENDENT_CHALLENGE", Label: "Independent challenge", Detail: "Independent review of the first-line assessment is in progress."}
+}
+
+func rcsaChallengeDecisionFinal(status continuity.DecisionStatus) bool {
+	switch status {
+	case continuity.DecisionApproved, continuity.DecisionConditionallyApproved, continuity.DecisionRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+func rcsaCycleDetailHandoff(cycle rcsa.Cycle, firstLineRequestID string, challengeContextComplete bool) rcsaHandoffRead {
+	value := rcsaCycleHandoff(cycle, firstLineRequestID)
+	if strings.TrimSpace(cycle.ChallengeMatterID) == "" || challengeContextComplete {
+		return value
+	}
+	value.TargetType = ""
+	value.TargetID = ""
+	if cycle.Status == rcsa.StatusCompleted {
+		value.Label = "Completed · challenge context unavailable"
+	} else {
+		value.Label = "Independent challenge context unavailable"
+	}
+	return value
+}
+
+func rcsaCycleSummaryHandoff(cycle rcsa.Cycle) rcsaHandoffRead {
+	value := rcsaCycleHandoff(cycle, "")
+	if value.TargetType == "MATTER" {
+		value.TargetType = ""
+		value.TargetID = ""
+	}
+	return value
+}
+
 func rcsaCycleHandoff(cycle rcsa.Cycle, firstLineRequestID string) rcsaHandoffRead {
 	switch cycle.Status {
 	case rcsa.StatusDraft:
 		return rcsaHandoffRead{Stage: "SETUP", Label: "First-line assessment not started"}
 	case rcsa.StatusAssessmentOpen:
-		value := rcsaHandoffRead{Stage: "FIRST_LINE", Label: "Complete first-line assessment"}
+		value := rcsaHandoffRead{Stage: "FIRST_LINE", Label: "First-line assessment in progress"}
 		if firstLineRequestID != "" {
 			value.TargetType, value.TargetID = "EVIDENCE_REQUEST", firstLineRequestID
 		}
 		return value
 	case rcsa.StatusAwaitingChallenge:
 		if cycle.ChallengeMatterID == "" {
-			return rcsaHandoffRead{Stage: "CHALLENGE", Label: "Start independent challenge"}
+			return rcsaHandoffRead{Stage: "CHALLENGE", Label: "Independent challenge ready"}
 		}
-		return rcsaHandoffRead{Stage: "CHALLENGE", Label: "Complete independent challenge", TargetType: "MATTER", TargetID: cycle.ChallengeMatterID}
+		return rcsaHandoffRead{Stage: "CHALLENGE", Label: "Independent challenge in progress", TargetType: "MATTER", TargetID: cycle.ChallengeMatterID}
 	case rcsa.StatusCompleted:
 		value := rcsaHandoffRead{Stage: "COMPLETE", Label: "Completed"}
 		if cycle.ChallengeMatterID != "" {

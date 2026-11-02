@@ -17,7 +17,7 @@ func (r *ObservationRepository) Trend(ctx context.Context, tenantID, legalEntity
 	legalEntityID = strings.TrimSpace(legalEntityID)
 	metricID = strings.TrimSpace(metricID)
 	definition, ok := trendDefinition(metricID)
-	if r == nil || r.pool == nil || ctx == nil || tenantID == "" || legalEntityID == "" || !ok {
+	if r == nil || r.pool == nil || ctx == nil || tenantID == "" || legalEntityID == "" || !ok || definition.Unit != MetricUnitCount {
 		return TrendSeries{}, ErrTrendInvalid
 	}
 	resolution, err := trendResolution(start, end)
@@ -215,7 +215,8 @@ func (r *ObservationRepository) maintainTrendRetention(ctx context.Context, now 
 				(observation.generated_at AT TIME ZONE 'UTC')::date bucket_date,
 				observation.id observation_id,observation.source_id,observation.source_revision,observation.source_high_water,
 				observation.generated_at,observation.period_start,observation.period_end,observation.posture_as_of,
-				observation.value,observation.condition,observation.freshness,observation.completeness,observation.population,observation.excluded,observation.unknown
+				observation.value,observation.condition,observation.currency,observation.member_count,
+				observation.freshness,observation.completeness,observation.population,observation.excluded,observation.unknown
 				FROM metric_observations observation
 				LEFT JOIN metric_observation_daily_rollups rollup
 				  ON rollup.tenant_id=observation.tenant_id
@@ -234,16 +235,19 @@ func (r *ObservationRepository) maintainTrendRetention(ctx context.Context, now 
 		)
 		INSERT INTO metric_observation_daily_rollups(
 			tenant_id,legal_entity_id,metric_id,definition_revision,bucket_date,observation_id,source_id,source_revision,
-			source_high_water,generated_at,period_start,period_end,posture_as_of,value,condition,freshness,completeness,population,excluded,unknown,rolled_at
+			source_high_water,generated_at,period_start,period_end,posture_as_of,value,condition,currency,member_count,
+			freshness,completeness,population,excluded,unknown,rolled_at
 		)
 		SELECT tenant_id,legal_entity_id,metric_id,definition_revision,bucket_date,observation_id,source_id,source_revision,
-		       source_high_water,generated_at,period_start,period_end,posture_as_of,value,condition,freshness,completeness,population,excluded,unknown,clock_timestamp()
+		       source_high_water,generated_at,period_start,period_end,posture_as_of,value,condition,currency,member_count,
+		       freshness,completeness,population,excluded,unknown,clock_timestamp()
 		FROM latest
 		ON CONFLICT(tenant_id,legal_entity_id,metric_id,definition_revision,bucket_date) DO UPDATE SET
 			observation_id=EXCLUDED.observation_id,source_id=EXCLUDED.source_id,source_revision=EXCLUDED.source_revision,
 			source_high_water=EXCLUDED.source_high_water,generated_at=EXCLUDED.generated_at,period_start=EXCLUDED.period_start,
 			period_end=EXCLUDED.period_end,posture_as_of=EXCLUDED.posture_as_of,value=EXCLUDED.value,
-			condition=EXCLUDED.condition,freshness=EXCLUDED.freshness,completeness=EXCLUDED.completeness,
+			condition=EXCLUDED.condition,currency=EXCLUDED.currency,member_count=EXCLUDED.member_count,
+			freshness=EXCLUDED.freshness,completeness=EXCLUDED.completeness,
 			population=EXCLUDED.population,excluded=EXCLUDED.excluded,unknown=EXCLUDED.unknown,rolled_at=clock_timestamp()
 		WHERE EXCLUDED.generated_at>metric_observation_daily_rollups.generated_at`, now, maintenanceLimit); err != nil {
 		return fmt.Errorf("roll up metric observations: %w", err)

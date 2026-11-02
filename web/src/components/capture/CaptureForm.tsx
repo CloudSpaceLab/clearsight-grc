@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CaptureAnswerValue, CaptureAnswers, CaptureField, CaptureFormContract, CapturePresentationMode, CaptureRequest } from "../../types";
 import { CaptureFieldControl, type CaptureAttachment } from "./CaptureFieldControl";
 import { useCaptureWorkspaceRecoveryUI } from "./CaptureWorkspaceRecoveryContext";
-import { answerText, documentAlreadyReceived, effectivePresentationMode, normalizeFieldType, validateCaptureFields, visibleCaptureSections } from "./contract";
+import { answerIsPresent, answerText, documentAlreadyReceived, effectivePresentationMode, normalizeFieldType, validateCaptureFields, visibleCaptureSections } from "./contract";
 import { CaptureFieldPreviousResponseNotice, CaptureFieldSourceNotice } from "./sourceProvenance";
 
 type Props = {
@@ -12,6 +12,7 @@ type Props = {
   attachments: Record<string, CaptureAttachment[]>;
   mode: CapturePresentationMode;
   external: boolean;
+  fullPage?: boolean;
   uploadingField: string | null;
   onAnswer: (fieldID: string, value: CaptureAnswerValue) => void;
   onUpload: (field: CaptureField, files: File[], previewURL?: string) => void;
@@ -21,7 +22,7 @@ type Props = {
   onReview: () => void;
 };
 
-export function CaptureForm({ request, contract, answers, attachments, mode, external, uploadingField, onAnswer, onUpload, onRemoveAttachment, onModeChange, onBeforeSectionNavigation, onReview }: Props) {
+export function CaptureForm({ request, contract, answers, attachments, mode, external, fullPage = false, uploadingField, onAnswer, onUpload, onRemoveAttachment, onModeChange, onBeforeSectionNavigation, onReview }: Props) {
   const sections = visibleCaptureSections(contract, answers);
   const effectiveMode = effectivePresentationMode(contract, answers, mode);
   const recoveryUI = useCaptureWorkspaceRecoveryUI();
@@ -98,7 +99,99 @@ export function CaptureForm({ request, contract, answers, attachments, mode, ext
 
   const section = sections[sectionIndex] ?? sections[0]!;
   const isLast = sectionIndex === sections.length - 1;
-  return <div className="capture-form capture-wizard">{modeSwitch}<div className="capture-progress"><span aria-live="polite">Step {sectionIndex + 1} of {sections.length}</span><progress max={sections.length} value={sectionIndex + 1} aria-label={`Section ${sectionIndex + 1} of ${sections.length}`}/></div>{errorSummary}{unsupported.length > 0 && <UnsupportedFields fields={unsupported}/>}<section className="capture-section" aria-labelledby={`capture-section-title-${section.id}`}><h3 id={`capture-section-title-${section.id}`}>{section.title}</h3>{section.help && <p className="field-help">{section.help}</p>}{renderFields(section.fields)}</section><div className="wizard-actions">{sectionIndex > 0 && <button className="secondary-button" type="button" disabled={navigating} onClick={() => navigateToSection(sectionIndex - 1)}>Back</button>}<button className="primary-button" type="button" disabled={unsupported.length > 0 || Boolean(uploadingField) || navigating} onClick={() => validate(section.fields, () => isLast ? onReview() : navigateToSection(sectionIndex + 1))}>{uploadingField ? "Uploading…" : navigating ? "Saving…" : isLast ? reviewLabel : "Continue"}</button></div></div>;
+  // Readiness is based only on currently visible questionnaire fields and
+  // already-received documents; neither presence nor upload implies approval.
+  const visibleFields = sections.flatMap((entry) => entry.fields);
+  const hasValue = (field: CaptureField) => {
+    if (documentAlreadyReceived(field)) return true;
+    const value = answers[field.id];
+    const type = normalizeFieldType(field.type);
+    if (type === "file" || type === "photo" || type === "vendor_document") {
+      return Boolean(value?.artifact_ids?.length || value?.document?.artifact_id);
+    }
+    return answerIsPresent(value);
+  };
+  const answeredCount = visibleFields.filter(hasValue).length;
+  const missingRequiredCount = visibleFields.filter((field) => field.required && !hasValue(field)).length;
+  const evidenceFields = visibleFields.filter((field) =>
+    ["file", "photo", "vendor_document"].includes(normalizeFieldType(field.type) ?? ""));
+  const attachedCount = evidenceFields.filter(hasValue).length;
+  const receivedFileNames = (field: CaptureField): string[] => {
+    const answer = answers[field.id];
+    const selected = new Set([...(answer?.artifact_ids ?? []), answer?.document?.artifact_id].filter((id): id is string => Boolean(id)));
+    return (attachments[field.id] ?? [])
+      .filter((file) => file.id && selected.has(file.id) && file.file_name.trim())
+      .map((file) => file.file_name);
+  };
+  return <div className={fullPage ? "capture-form capture-wizard capture-wizard--full-page" : "capture-form capture-wizard"}>
+    {fullPage && <nav className="capture-wizard__views" aria-label="Assessment views">
+      <span aria-current="page">Questions</span>
+      <button type="button" disabled title="Reviewed Excel-answer import is unavailable">Excel import</button>
+      <button type="button" disabled={Boolean(uploadingField) || unsupported.length > 0}
+        onClick={() => validate(visibleFields, onReview)}>Review</button>
+    </nav>}
+    {fullPage && <section className="capture-wizard__completion" aria-label="Assessment completion">
+      <div><span>Completion</span><strong>{answeredCount} of {visibleFields.length} answered</strong></div>
+      <progress max={Math.max(visibleFields.length, 1)} value={answeredCount} aria-label="Questions answered"/>
+      <strong>{visibleFields.length ? Math.round(answeredCount * 100 / visibleFields.length) : 0}%</strong>
+      <small>{missingRequiredCount} required unanswered · {attachedCount} documents received</small>
+    </section>}
+    {modeSwitch}
+    <div className={sections.length > 1 ? "capture-wizard__layout capture-wizard__layout--sectioned" : "capture-wizard__layout"}>
+      {sections.length > 1 && <nav className="capture-wizard__sections" aria-label="Assessment sections">
+        <strong>Sections</strong>
+        <ol>{sections.map((entry, index) => <li key={entry.id}>
+          <button type="button" aria-label={fullPage ? `${entry.title}, ${entry.fields.filter(hasValue).length} of ${entry.fields.length} answered` : entry.title}
+            aria-current={index === sectionIndex ? "step" : undefined}
+            disabled={navigating || Boolean(uploadingField) || (index > sectionIndex && unsupported.length > 0) || index > sectionIndex + 1}
+            onClick={() => {
+              if (index === sectionIndex) return;
+              if (index < sectionIndex) navigateToSection(index);
+              else validate(section.fields, () => navigateToSection(index));
+            }}>
+            <span className="capture-wizard__section-number" aria-hidden="true">{index + 1}</span>
+            <span>{entry.title}</span>
+            {fullPage && <small className="capture-wizard__section-count" aria-hidden="true">
+              {entry.fields.filter(hasValue).length}/{entry.fields.length}
+            </small>}
+          </button>
+        </li>)}</ol>
+      </nav>}
+      <div className="capture-wizard__main">
+        <div className="capture-progress"><span aria-live="polite">{fullPage ? "Section " : "Step "}{sectionIndex + 1} of {sections.length}</span>{!fullPage && <progress max={sections.length} value={sectionIndex + 1} aria-label={"Section " + (sectionIndex + 1) + " of " + sections.length}/>}</div>
+        {errorSummary}
+        {unsupported.length > 0 && <UnsupportedFields fields={unsupported}/>}
+        <section className="capture-section" aria-labelledby={"capture-section-title-" + section.id}><h3 id={"capture-section-title-" + section.id}>{section.title}</h3>{section.help && <p className="field-help">{section.help}</p>}{renderFields(section.fields)}</section>
+        <div className="wizard-actions">
+          {sectionIndex > 0 && <button className="secondary-button" type="button" disabled={navigating} onClick={() => navigateToSection(sectionIndex - 1)}>Back</button>}
+          <button className="primary-button" type="button" disabled={unsupported.length > 0 || Boolean(uploadingField) || navigating} onClick={() => validate(section.fields, () => isLast ? onReview() : navigateToSection(sectionIndex + 1))}>{uploadingField ? "Uploading…" : navigating ? "Saving…" : isLast ? reviewLabel : "Continue"}</button>
+        </div>
+      </div>
+      <aside className="capture-wizard__readiness" aria-label="Response readiness and evidence">
+        <section className="capture-wizard__summary" aria-labelledby="capture-readiness-heading">
+          <h3 id="capture-readiness-heading">Review readiness</h3>
+          <dl>
+            <div><dt>Answers recorded</dt><dd>{answeredCount} / {visibleFields.length}</dd></div>
+            <div><dt>Required unanswered</dt><dd>{missingRequiredCount}</dd></div>
+            <div><dt>Evidence received</dt><dd>{attachedCount} / {evidenceFields.length}</dd></div>
+          </dl>
+        </section>
+        {evidenceFields.length > 0 && <section className="capture-wizard__evidence" aria-labelledby="capture-evidence-heading">
+          <h3 id="capture-evidence-heading">Evidence</h3>
+          <ul>{evidenceFields.map((field) => {
+            const files = receivedFileNames(field);
+            return <li key={field.id}>
+              <span>{field.label}</span>
+              <span>{hasValue(field) ? "Received" : field.required ? "Required" : "Not attached"}</span>
+              {files.length > 0 && <small className="capture-wizard__evidence-files">
+                {files.slice(0, 3).join(" · ")}{files.length > 3 ? ` · +${files.length - 3} more` : ""}
+              </small>}
+            </li>;
+          })}</ul>
+        </section>}
+      </aside>
+    </div>
+  </div>;
 }
 
 function UnsupportedFields({ fields }: { fields: CaptureField[] }) {

@@ -1,6 +1,7 @@
 import { NavigationIcon } from "./NavigationIcon";
 import { TodayInterventions } from "./TodayInterventions";
 import type { AttentionItem, Readiness } from "../types";
+import "./LifecycleTodayEvidencePage.css";
 
 const generatedAt = "2026-08-07T22:45:00Z";
 

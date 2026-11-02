@@ -188,7 +188,7 @@ export function MatterDetailsPanel({ aggregate, operations, responsibleParties =
       <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || programsLoading || !programID}>{saving ? "Saving…" : "Save Program link"}</button><button className="text-button" type="button" onClick={() => setLinking(false)}>Cancel</button></div>
     </form>}
     {retiringLinkID && <form className="matter-operation-form" onSubmit={removeLink}>
-      <div className="matter-record-attention wide"><strong>Remove this Program link?</strong><p>The issue and Program remain available. The former relationship stays in history for audit and reconstruction.</p></div>
+      <div className="matter-record-attention wide"><strong>Remove this Program link?</strong><p>Link removed. Previous relationship retained in history.</p></div>
       <label className="wide"><span>Reason for removing this Program link</span><textarea value={retirementReason} onChange={(event) => setRetirementReason(event.target.value)} rows={2} required/></label>
       {error && <div className="matter-form-error wide" role="alert"><span>{error}</span>{conflict && <button className="secondary-button" type="button" onClick={onReload}>Reload current issue</button>}</div>}
       <div className="matter-form-actions wide"><button className="primary-button" type="submit" disabled={saving || !retirementReason.trim()}>{saving ? "Removing…" : "Remove link"}</button><button className="text-button" type="button" onClick={() => { setRetiringLinkID(""); setRetirementReason(""); }}>Cancel</button></div>

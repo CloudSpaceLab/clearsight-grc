@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { loadMonitoringResults } from "../../monitoringApi";
+import { comparableIndicatorObservations } from "../../indicatorObservationPresentation";
 import type { MonitoringResult } from "../../monitoringTypes";
 import type { RiskIndicatorDetail } from "../../riskTypes";
-import { Button, DataTable, EmptyState, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
+import { Button, DataTable, EmptyState, MetricTrend, Notice, StatusBadge, Surface, type DataColumn } from "../ui";
 import { IndicatorMovement } from "./IndicatorMovement";
 import { IndicatorValue, indicatorValueAccessibleText } from "./IndicatorValue";
 import { formatIndicatorCoverage, formatIndicatorDate, formatIndicatorPeriod, indicatorStateLabel, indicatorTone, monitoringBandLabel, nativeConditionLabel, nativeConditionTone } from "./indicatorPresentation";
@@ -10,6 +11,7 @@ import "./indicator.css";
 
 type Props = {
   indicator: RiskIndicatorDetail;
+  presentation?: "default" | "inspector";
   onOpenProgram?: (programID: string) => void;
   onOpenMatter?: (matterID: string) => void;
   loadResults?: (checkID: string, version?: number) => Promise<MonitoringResult[]>;
@@ -19,6 +21,7 @@ type LoadState = "loading" | "live" | "error";
 
 export function IndicatorDetail({
   indicator,
+  presentation = "default",
   onOpenProgram,
   onOpenMatter,
   loadResults = loadMonitoringResults,
@@ -43,6 +46,12 @@ export function IndicatorDetail({
     });
     return () => { active = false; };
   }, [indicator.check_id, indicator.check_version, loadResults, retry]);
+
+  const observations = state === "live" ? comparableIndicatorObservations(indicator, results) : undefined;
+  const actions = <div className="indicator-detail__actions">
+    {onOpenProgram && <Button variant="secondary" size="compact" onPress={() => onOpenProgram(indicator.program_id)}>Open Program</Button>}
+    {indicator.intervention && onOpenMatter && <Button size="compact" onPress={() => onOpenMatter(indicator.intervention!.matter_id)}>Open intervention</Button>}
+  </div>;
 
   const columns: readonly DataColumn<MonitoringResult>[] = [
     {
@@ -104,6 +113,8 @@ export function IndicatorDetail({
       </dl>
     </Surface>
 
+    {presentation === "inspector" && actions}
+
     <dl className="cs-sheet-facts">
       <div><dt>Business period</dt><dd>{formatIndicatorPeriod(indicator.native_measurement?.reporting_period_start, indicator.native_measurement?.reporting_period_end)}</dd></div>
       <div><dt>Program</dt><dd>{indicator.program_name}</dd></div>
@@ -112,21 +123,31 @@ export function IndicatorDetail({
       <div><dt>Freshness limit</dt><dd>{indicator.freshness_minutes} minutes</dd></div>
     </dl>
 
-    <div className="indicator-detail__actions">
-      {onOpenProgram && <Button variant="secondary" size="compact" onPress={() => onOpenProgram(indicator.program_id)}>Open Program</Button>}
-      {indicator.intervention && onOpenMatter && <Button size="compact" onPress={() => onOpenMatter(indicator.intervention!.matter_id)}>Open intervention</Button>}
-    </div>
+    {presentation !== "inspector" && actions}
 
     <section className="indicator-detail__history" aria-labelledby="indicator-history-heading">
       <div className="section-header">
         <div>
           <h3 id="indicator-history-heading">Recent observations</h3>
-          <p>Results from monitoring check revision {indicator.check_version}. Earlier check definitions are excluded.</p>
+          <p>Results for check version {indicator.check_version}.</p>
         </div>
       </div>
       {state === "loading" && results.length === 0 && <p role="status">Loading indicator history…</p>}
       {state === "error" && <Notice tone="error"><span>Indicator history could not be loaded.</span> <Button variant="secondary" size="compact" onPress={() => setRetry((value) => value + 1)}>Try again</Button></Notice>}
-      {state === "live" && results.length === 0 && <EmptyState population={indicator.check_name} title="No observations for this revision" description="No monitoring result has been recorded for the current check revision."/>}
+      {state === "live" && results.length === 0 && <EmptyState population={indicator.check_name} title="No readings yet" description="No readings for the current check version."/>}
+      {observations?.available && <Surface>
+        <section className="indicator-detail__trend" aria-label="Native indicator observations">
+          <div className="section-header">
+            <div>
+              <h4>Value history</h4>
+              <p>Latest recorded values for this check version.</p>
+            </div>
+          </div>
+          <MetricTrend ariaLabel={indicator.check_name + " native measurement observations"} points={observations.points} gapThresholdMs={0}/>
+          {observations.range && <p>Range: {observations.range.min}–{observations.range.max}.</p>}
+          {observations.omitted > 0 && <p>{observations.omitted} readings not shown because their values or check settings differ.</p>}
+        </section>
+      </Surface>}
       {results.length > 0 && <DataTable
         ariaLabel={`${indicator.check_name} observation history`}
         rows={results}
@@ -136,6 +157,7 @@ export function IndicatorDetail({
         onRowAction={setSelectedResult}
         rowActionLabel="Review observation"
         isLoading={state === "loading"}
+        responsiveTo={presentation === "inspector" ? "container" : "viewport"}
       />}
       {selectedResult && <Surface>
         <div className="indicator-detail__observation">
@@ -165,7 +187,7 @@ export function IndicatorDetail({
 
 function ObservationExceptions({ result }: { result: MonitoringResult }) {
   const exceptions = (result.evaluation.rule_results ?? []).filter((rule) => rule.outcome !== "PASS");
-  if (!exceptions.length) return <p className="indicator-detail__observation-clear">No failed or indeterminate checks were recorded for this observation.</p>;
+  if (!exceptions.length) return <p className="indicator-detail__observation-clear">No failed or inconclusive checks recorded.</p>;
   return <div className="indicator-detail__exceptions">
     <h5>Exceptions</h5>
     <ul>{exceptions.map((rule) => <li key={`${rule.rule_id ?? "rule"}:${rule.field_id}`}>

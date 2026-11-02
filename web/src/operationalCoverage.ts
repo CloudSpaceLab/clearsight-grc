@@ -7,6 +7,8 @@ type OperationalCoverageEntry = {
 
 export const matterOperationalCoverage = {
   "matter.create": { surface: "MattersWorkspace", states: ["list", "empty", "create"], testedBy: ["MatterSetupWorkspace.test.tsx"] },
+  "forms.subject.link": { surface: "MatterFormLinksPanel", states: ["approved_forms", "already_linked", "linked_without_send", "retry"], testedBy: ["FormLinkPicker.test.tsx", "MatterFormLinksPanel.test.tsx"] },
+  "forms.subject.unlink": { surface: "MatterFormLinksPanel", states: ["linked", "reason_required", "ended", "history_preserved"], testedBy: ["MatterFormLinksPanel.test.tsx"] },
   "matter.form-remediation.create": { surface: "MatterFormRemediationPanel", states: ["unbound", "approved_form_selected", "mapped"], testedBy: ["MatterFormRemediationPanel.test.tsx"] },
   "matter.form-remediation.send": { surface: "MatterFormRemediationPanel", states: ["ready_to_send", "sent", "existing_request"], testedBy: ["MatterFormRemediationPanel.test.tsx"] },
   "matter.form-remediation.apply": { surface: "MatterFormRemediationPanel", states: ["response_ready", "poor_score", "applied_for_outcome_check"], testedBy: ["MatterFormRemediationPanel.test.tsx"] },
@@ -33,6 +35,15 @@ export const matterOperationalCoverage = {
 export const programOperationalCoverage = {
   "program.create": { surface: "ProgramSetupWorkspace", states: ["list", "empty", "create"], testedBy: ["ProgramsWorkspace.test.tsx"] },
   "program.details.update": { surface: "ProgramDetailsPanel", states: ["current", "edit", "conflict", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
+  "program.framework.mapping.propose": { surface: "ProgramRequirementsPanel", states: ["suggested", "proposed", "pending", "failed"], testedBy: ["ProgramRequirementsPanel.framework.test.tsx"] },
+  "program.framework.mapping.approve": { surface: "ProgramRequirementsPanel", states: ["pending", "approved", "conflict"], testedBy: ["ProgramRequirementsPanel.framework.test.tsx"] },
+  "program.framework.mapping.reject": { surface: "ProgramRequirementsPanel", states: ["pending", "rejected", "conflict"], testedBy: ["ProgramRequirementsPanel.framework.test.tsx"] },
+  "program.framework.propose": { surface: "ProgramDetailsPanel", states: ["unlinked", "available_editions", "empty_catalog", "pending", "error"], testedBy: ["ProgramDetailsPanel.test.tsx"] },
+  "program.framework.approve": { surface: "ProgramDetailsPanel", states: ["pending", "approved"], testedBy: ["ProgramDetailsPanel.test.tsx"] },
+  "program.framework.reject": { surface: "ProgramDetailsPanel", states: ["pending", "rejected"], testedBy: ["ProgramDetailsPanel.test.tsx"] },
+  "program.compliance-policy.propose": { surface: "ProgramDetailsPanel", states: ["not_configured", "approved", "draft", "invalid_weights", "submitted"], testedBy: ["ProgramDetailsPanel.test.tsx"] },
+  "program.compliance-policy.approve": { surface: "ProgramDetailsPanel", states: ["pending_review", "approved", "error"], testedBy: ["ProgramDetailsPanel.test.tsx"] },
+  "program.compliance-policy.reject": { surface: "ProgramDetailsPanel", states: ["pending_review", "rejected", "error"], testedBy: ["ProgramDetailsPanel.test.tsx"] },
   "program.assign": { surface: "ProgramDetailsPanel", states: ["assigned", "eligible_candidate_selection", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
   "program.approval-authority.assign": { surface: "ProgramDetailsPanel", states: ["assigned", "eligible_candidate_selection", "conflict_separated", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx"] },
   "program.transition": { surface: "ProgramStatusPanel", states: ["draft", "active", "paused", "ended", "read_only"], testedBy: ["ProgramRecordWorkspace.test.tsx", "OperatingMutations.test.tsx"] },

@@ -51,7 +51,7 @@ describe("FormAIComposer", () => {
     render(<FormAIComposer onProposal={() => undefined}/>);
     fireEvent.change(screen.getByRole("textbox", { name: "What should this form collect or change?" }), { target: { value: "Collect vendor identity." } });
     fireEvent.click(screen.getByRole("button", { name: "Generate field proposal" }));
-    expect((await screen.findByRole("alert")).textContent).toMatch(/manual form builder remains available/i);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Use the form builder; no changes were saved/i);
   });
 
   it("omits an optional source when no exact passages are selected", async () => {

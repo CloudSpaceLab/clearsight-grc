@@ -1,0 +1,449 @@
+{
+  "kind": "LOCAL_RUNTIME_CORRECTION_AND_SYNTHETIC_UI_EVIDENCE_NOT_PRODUCTION_ACCEPTANCE",
+  "reviewer": "GPT-6 Astra Pro /root/ci_review",
+  "recordedAt": "2026-10-31T13:16:08.843598+00:00",
+  "releaseStatusAtReview": "Equivalent remote commit object exists; PR branch has not yet moved. Final-head hosted gates and release require separate records.",
+  "currentReleaseRecord": "https://github.com/CloudSpaceLab/clearsight-grc/pull/599",
+  "runtime": {
+    "localCommit": "aa666af542fdcba2f2883a58821434f3fbc18740",
+    "remoteEquivalentCommitObject": "3a32ab85e0cb0615903f76fcac1c08362db306c8",
+    "tree": "9e670cd7477ddd25b0e5c9e1d01961ae3ecfbacc",
+    "remoteParent": "c1d5185e769cf2c555b6fc83bafd1beeedd61d7f",
+    "treeEqualityVerified": true,
+    "remoteVerification": "https://api.github.com/repos/CloudSpaceLab/clearsight-grc/git/commits/3a32ab85e0cb0615903f76fcac1c08362db306c8"
+  },
+  "failedCICheckpoint": {
+    "record": "ci-failure.json",
+    "run": 41203345467,
+    "head": "c1d5185e769cf2c555b6fc83bafd1beeedd61d7f",
+    "actualCheckout": "8b3712b67036f3d74da9f09bcc24737ab8b058eb",
+    "tree": "23a20a10a165a84b9f3be111a358d21a1374b054",
+    "web": "FAIL: 1/2299 tests; 276/277 files pass",
+    "backend": "PASS",
+    "doesNotValidateCorrectedRuntime": true
+  },
+  "runtimeVerification": {
+    "record": "runtime-regression-verification.json",
+    "focusedFiles": 2,
+    "focusedTests": 19,
+    "typecheck": "PASS",
+    "positiveRawLogsRetained": false,
+    "positiveRecordBinding": "Actual execution responses; committed source adds only the documented explanatory comment after validation.",
+    "negativeControl": {
+      "file": "old-effects-regression-red.log",
+      "result": "EXPECTED_FAIL",
+      "mutation": "Only the two prior passive reset effects; retained early-open regression, one activation and no delay/retry/timeout override."
+    },
+    "fullWebSuite": {
+      "file": "full-web-tests.log",
+      "revision": "aa666af542fdcba2f2883a58821434f3fbc18740",
+      "files": 277,
+      "tests": 2301,
+      "durationSeconds": 104.67,
+      "exitCode": 0,
+      "exitCodeWitness": "/root execution response"
+    }
+  },
+  "capture": {
+    "directory": "capture/enterprise-setup",
+    "receipt": "capture/enterprise-setup/receipt.json",
+    "bytes": 408134,
+    "sha256": "f9d493fcf9dec86f7d07883e45636fdd825dbfd85ab67ea23b703c7ac10999eb",
+    "browser": "140.0.7339.16",
+    "buildDigest": "40e12a493b9e595206607cba4729db53c7d685dc39cd5169c330fc268542649c",
+    "afterBuildDigest": "40e12a493b9e595206607cba4729db53c7d685dc39cd5169c330fc268542649c",
+    "layouts": 10,
+    "behaviors": 11,
+    "images": 42,
+    "imageBytes": 4652784,
+    "failure": null,
+    "archivedReplay": "archived-review.json",
+    "materialCommands": 0,
+    "importedTypeDismissal": {
+      "expanded": "false",
+      "focused": true,
+      "listboxes": 0,
+      "popovers": 0
+    }
+  },
+  "source": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-enterprise-setup-designs/enterprise-setup-preview.html",
+    "sha256": "cc7542e2a3047338b1d2fbbbe33756adbc9ee8c2084fb5920834da8aeedc04c7"
+  },
+  "inputs": {
+    "fixtureSHA256": {
+      "file": "inputs/src/staticDemoEnterpriseSetupRuntime.js",
+      "bytes": 7937,
+      "sha256": "8b339301595a9525f3b21e22f88b0d5438e6679a3df63cd1d7d1a5158db444d8",
+      "origin": "aa666af542fdcba2f2883a58821434f3fbc18740:web/src/staticDemoEnterpriseSetupRuntime.js"
+    },
+    "captureSHA256": {
+      "file": "inputs/scripts/capture-enterprise-setup-evidence.mjs",
+      "bytes": 27452,
+      "sha256": "1983cea03d3ef0640ee3e35a7dfe1f8c0e6f2ebe3ff1b6ee6e37277a6885b755",
+      "origin": "aa666af542fdcba2f2883a58821434f3fbc18740:web/scripts/capture-enterprise-setup-evidence.mjs"
+    },
+    "reviewerSHA256": {
+      "file": "inputs/scripts/review-enterprise-setup-evidence.mjs",
+      "bytes": 10148,
+      "sha256": "9d173dec1e07234d5318759b6d536747560acd13fafc92c5067f4c5614fbf2d2",
+      "origin": "aa666af542fdcba2f2883a58821434f3fbc18740:web/scripts/review-enterprise-setup-evidence.mjs"
+    }
+  },
+  "validation": {
+    "summary": "validation/validation-summary.json",
+    "customerBuild": "validation/customer-build.log",
+    "evidenceBuild": "validation/evidence-build.log",
+    "nodeGates": "validation/node-gates.log",
+    "bundleBudgets": "validation/budget.json",
+    "captureLog": "validation/capture.log",
+    "logPathNote": "Original summaries retain scratch paths unchanged; files are copied byte-for-byte to these durable relative paths."
+  },
+  "comparison": {
+    "record": "validation/image-comparison.json",
+    "previousReceipt": "../hosted-followup/corrected-capture/enterprise-setup/receipt.json",
+    "previousReceiptSHA256": "696fc531b1c7e89ed3099b82503eb2ce5ca2730e8136d2fd48d57572b8bb639d",
+    "previousRuntime": "5381850f1f2ebff340e4d9fde57e197253da0348",
+    "previousBuild": "28e6d798572e8d37da39a977b639694fb68842515f73b4011517ff51cfe3d4b1",
+    "previousBrowser": "140.0.7339.16",
+    "images": 42,
+    "identical": 41,
+    "changed": [
+      "layout-dark-1440.png"
+    ],
+    "changedPixels": 37,
+    "maximumChannelDifference": 1,
+    "boundingBox": [
+      1059,
+      18,
+      1369,
+      56
+    ],
+    "location": "Existing top-shell controls; no Enterprise Setup body pixels differ",
+    "independentVisualRecord": "validation/visual-review.json",
+    "namedReview": "named-review.md"
+  },
+  "historicalEvidenceModified": false,
+  "limitations": [
+    "Exact timing of the prior hosted web failure was not instrumented; the local A/B proves a reproducible dropped-open runtime ordering with the same missing-sheet symptom.",
+    "The capture uses a synthetic fixture and issues no material commands. It does not prove backend authorization, independent actors, live result quality or production acceptance.",
+    "Existing accessibility incompletes and targeted contrast limitations remain; no complete WCAG claim.",
+    "Whole-screen acceptance remains 0/19. Final-head hosted generic flows, artifact identity and exact-SHA release are separate."
+  ],
+  "fileInventory": {
+    "root": "docs/evidence/2026-10-31-enterprise-setup/first-open-followup",
+    "scope": "All retained files except this self-referential provenance record",
+    "files": [
+      {
+        "file": "README.md",
+        "bytes": 5733,
+        "sha256": "47d66a6ab1070245119f87fb19b91723b8516e1ee94589324ec655d713e39b2a"
+      },
+      {
+        "file": "archived-review.json",
+        "bytes": 128,
+        "sha256": "c72f242395012c89559b7639348a7e0a7049e7cedf49fe53943f63c3a582c1b5"
+      },
+      {
+        "file": "capture/enterprise-setup/denied.png",
+        "bytes": 49751,
+        "sha256": "67706795fcbbcab8e9406c2e3b58efc01df7803b3d15296afd14a63f112f8817"
+      },
+      {
+        "file": "capture/enterprise-setup/empty.png",
+        "bytes": 61761,
+        "sha256": "97f35ffb0cc0e9896980b2466ee7e74099c79f1a78d66a7d4f3af782dfa516b2"
+      },
+      {
+        "file": "capture/enterprise-setup/existing-editors-and-import-guards.png",
+        "bytes": 214756,
+        "sha256": "b9a26dde2d99dfb01ee5fd6772eabe94eebe3f17156c768c8c5f668bcdb227bf"
+      },
+      {
+        "file": "capture/enterprise-setup/failure.png",
+        "bytes": 48033,
+        "sha256": "77bd1a33ce26293a057285bbdac56cf35260212fe69803b240f6ba8a3867df15"
+      },
+      {
+        "file": "capture/enterprise-setup/hierarchy-gaps.png",
+        "bytes": 48974,
+        "sha256": "04309fd640029f44954a9a81e11586f89c07ae34848dc9cff92dc9481dddb9af"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-1024-context.png",
+        "bytes": 89205,
+        "sha256": "0245d1cf1e6beb253e0c2bd1326d0758f06fa8445dbce5242e3e68ecc9635cdc"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-1024.png",
+        "bytes": 102147,
+        "sha256": "13cd51823ce573e990af04295c6ebb2d32aa27fb8ff52e246e20c0b7b00ac3dc"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-1280-context.png",
+        "bytes": 101018,
+        "sha256": "ec49c2dcea8510c0698f037310e2d0f1cf9abea19e76e602f84c4e061a5c8386"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-1280.png",
+        "bytes": 130442,
+        "sha256": "196d45bb3a198a520c4d96bc54b6e15c2d6ca992fe67891123d987fbfb2d01e6"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-1440-full.png",
+        "bytes": 236469,
+        "sha256": "5944d742bd32f7cadf421407693b8db074127cc9a690590187bd109e2c89ff78"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-1440.png",
+        "bytes": 166012,
+        "sha256": "f887ba00bedd7124a9f6a3c64c70afb050d129ca96ba5ed459a431247ad1411d"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-390-context.png",
+        "bytes": 50818,
+        "sha256": "afde9bc59449b4880a1271084806247c7fa8d4393327670548c624a3e087566a"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-390-full.png",
+        "bytes": 191610,
+        "sha256": "a39a9f4d0834c2f9e22d0629c2d6dc654213ffd2a0ba54b26991cad21f0ec8f3"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-390.png",
+        "bytes": 62588,
+        "sha256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-768-context.png",
+        "bytes": 80854,
+        "sha256": "f877864b6f6378c4b37560801471e7fc42c402d70b6cc07ac64237552010caba"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-dark-768.png",
+        "bytes": 92076,
+        "sha256": "0d7c7f56521044e8a4b746ecd68dbd1f59b78b8650e344e5bc2fee3ac54c60d3"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-1024-context.png",
+        "bytes": 88844,
+        "sha256": "28d5211b0e63a2616898443440959df8565243ef6e6ae9408ee72cb6b519a4a6"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-1024.png",
+        "bytes": 102586,
+        "sha256": "4450df7b1f8a6c848c7277f77aaaca4adf92d04807acb24a8ef9e2262ed0695d"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-1280-context.png",
+        "bytes": 101011,
+        "sha256": "ab2821a0449e48afdddb6162f2171a8db88cc653679cc5ee5313c63b7f2041ef"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-1280.png",
+        "bytes": 130117,
+        "sha256": "1685855569dfd86eaa6ac96f73032210f3ec92d3570400387284b9ca9aacd57c"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-1440-full.png",
+        "bytes": 235881,
+        "sha256": "f8a7b16e5757229cbd9c9564441581919d6a8f1bae7c33fea8de838230dd3aea"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-1440.png",
+        "bytes": 165643,
+        "sha256": "548de4a35720071b54e86a06fc5db0961518c7129ec27077569478972ca17798"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-390-context.png",
+        "bytes": 49899,
+        "sha256": "6b9bf4173d3f5bf0a9f143d5f79e619d3e9bbdaa9604e104c96c6c347cda4555"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-390-full.png",
+        "bytes": 189347,
+        "sha256": "e7fa0d89aa62492027a486b26f65748e5334a42fda6ca497b667286866775077"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-390.png",
+        "bytes": 62011,
+        "sha256": "0ce21b305963ce62213f11a2e7a2a501a9b552edefaf5bedbd8ad121cb72867c"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-768-context.png",
+        "bytes": 79388,
+        "sha256": "b994f4615b4dab6750270970cf6c5423db8b84bd7c209b54e22d9bcbd6691751"
+      },
+      {
+        "file": "capture/enterprise-setup/layout-light-768.png",
+        "bytes": 91693,
+        "sha256": "da0a66205438846656595bbc2793b892bc86860bdb0b979e0f5c4683eeeb40b1"
+      },
+      {
+        "file": "capture/enterprise-setup/readonly.png",
+        "bytes": 57453,
+        "sha256": "929064352dd787acddbe08261cf43410906994236cb10845e025d67ab2a498fb"
+      },
+      {
+        "file": "capture/enterprise-setup/receipt.json",
+        "bytes": 408134,
+        "sha256": "f9d493fcf9dec86f7d07883e45636fdd825dbfd85ab67ea23b703c7ac10999eb"
+      },
+      {
+        "file": "capture/enterprise-setup/recovery.png",
+        "bytes": 62588,
+        "sha256": "953d116409befee04ddc6253669c66f6ec9a026dbee88fbc8bc7141f6f989557"
+      },
+      {
+        "file": "capture/enterprise-setup/selection-search-history-dark-390.png",
+        "bytes": 62588,
+        "sha256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b"
+      },
+      {
+        "file": "capture/enterprise-setup/selection-search-history-light-1440.png",
+        "bytes": 166519,
+        "sha256": "a3f60d7e653b3d8aa8a3dfd2f329887e2bef41e85a56e37988b9fd8ac9ef2459"
+      },
+      {
+        "file": "capture/enterprise-setup/setup-navigation.png",
+        "bytes": 162583,
+        "sha256": "d21c819e56e9526b3a4fe5fbbeb747f9e73db025e46bacda9fa7212ea062848f"
+      },
+      {
+        "file": "capture/enterprise-setup/source-organization-1024-context.png",
+        "bytes": 93333,
+        "sha256": "8b5133457c4047a2e785323046e5bfabeae4c2e53e18a0c228d9f80e78f453f4"
+      },
+      {
+        "file": "capture/enterprise-setup/source-organization-1024.png",
+        "bytes": 124205,
+        "sha256": "323e6fa985146122dd232f6e73fe0a510e25099735868154c9ddfe6c4a88e2c7"
+      },
+      {
+        "file": "capture/enterprise-setup/source-organization-1280-context.png",
+        "bytes": 124833,
+        "sha256": "2b13d91757559569d7996d26c3275771e54d9fd8381770c49ba5306c714992f0"
+      },
+      {
+        "file": "capture/enterprise-setup/source-organization-1280.png",
+        "bytes": 162353,
+        "sha256": "655ab34c554ff2a4b3620596fa0146b13f9cfdde298e70f889cdd51c61ce8187"
+      },
+      {
+        "file": "capture/enterprise-setup/source-organization-1440.png",
+        "bytes": 210218,
+        "sha256": "a74b37773e65afae559fbbb6d37ee4cc0549fa283ba8749d050fa174c2d6c963"
+      },
+      {
+        "file": "capture/enterprise-setup/source-organization-390-context.png",
+        "bytes": 63742,
+        "sha256": "d87e6f0b45378a83958d98a6a819e0f37f701a4d5afd08257c86e9d9fc6a5310"
+      },
+      {
+        "file": "capture/enterprise-setup/source-organization-390.png",
+        "bytes": 80298,
+        "sha256": "b7d1ac11e34baf4d6b0e9260c33a55108dbc50cb50025aa9ae403dfd60bc3c5a"
+      },
+      {
+        "file": "capture/enterprise-setup/source-organization-768-context.png",
+        "bytes": 98534,
+        "sha256": "147679cc95bd1aa8e72b6c7aac00dd2cd6d4710b47156623d2c93b210b63b4ce"
+      },
+      {
+        "file": "capture/enterprise-setup/source-organization-768.png",
+        "bytes": 97350,
+        "sha256": "0d0efa224b37259360e2247cae709f37b5c696baa1a25fdf543a1b86c55ffbd9"
+      },
+      {
+        "file": "capture/enterprise-setup/truncated.png",
+        "bytes": 63253,
+        "sha256": "1260879549ca922259d1188a0bae85f07a8aa139f675accb898d07d095ccf69a"
+      },
+      {
+        "file": "ci-failure.json",
+        "bytes": 3161,
+        "sha256": "645582c77ce13c4c3601ff13401475f19c0330bc1aee5592e4cd16b27162d8bb"
+      },
+      {
+        "file": "full-web-tests.log",
+        "bytes": 407,
+        "sha256": "357cb98d776f9423775ce6fb59c4645add784859dea2b358d7aff6db77707d9d"
+      },
+      {
+        "file": "inputs/scripts/capture-enterprise-setup-evidence.mjs",
+        "bytes": 27452,
+        "sha256": "1983cea03d3ef0640ee3e35a7dfe1f8c0e6f2ebe3ff1b6ee6e37277a6885b755"
+      },
+      {
+        "file": "inputs/scripts/review-enterprise-setup-evidence.mjs",
+        "bytes": 10148,
+        "sha256": "9d173dec1e07234d5318759b6d536747560acd13fafc92c5067f4c5614fbf2d2"
+      },
+      {
+        "file": "inputs/src/staticDemoEnterpriseSetupRuntime.js",
+        "bytes": 7937,
+        "sha256": "8b339301595a9525f3b21e22f88b0d5438e6679a3df63cd1d7d1a5158db444d8"
+      },
+      {
+        "file": "named-review.md",
+        "bytes": 3902,
+        "sha256": "622c2bd2825cd90acdf7a0e45e5f5eb856df23fc9834989f90c48b42eeda33b6"
+      },
+      {
+        "file": "old-effects-regression-red.log",
+        "bytes": 6776,
+        "sha256": "fb7453122fc6275916581bef3145d94f35f0eb90881c6ae02a1185e8c6a265d2"
+      },
+      {
+        "file": "runtime-regression-verification.json",
+        "bytes": 3821,
+        "sha256": "cb2764c68b3668e1671b48c96c1081edb2eab8d8eac8ff929727a9bbea2d4d72"
+      },
+      {
+        "file": "validation/budget.json",
+        "bytes": 324,
+        "sha256": "55b2445f9d6f5e3f23ae3a6ec2af9cacac8cbb4ea418110bf6cd6e86b0f1f66e"
+      },
+      {
+        "file": "validation/capture.log",
+        "bytes": 69,
+        "sha256": "bfdad632a69c9a003d5fd5f78c20372845d51cf299e4618655245365992155f1"
+      },
+      {
+        "file": "validation/customer-build.log",
+        "bytes": 9228,
+        "sha256": "d00ffe502d35a9a87c0ed66bb6ba314dbf23ffa0f844a4fd8723f4c57f8847c9"
+      },
+      {
+        "file": "validation/evidence-build.log",
+        "bytes": 11506,
+        "sha256": "bc3e386df1d6b1a67cbd9fce7d334eebe66815f257cbf1076d1e38867b0209c7"
+      },
+      {
+        "file": "validation/gate-review.json",
+        "bytes": 128,
+        "sha256": "c72f242395012c89559b7639348a7e0a7049e7cedf49fe53943f63c3a582c1b5"
+      },
+      {
+        "file": "validation/image-comparison.json",
+        "bytes": 15420,
+        "sha256": "4562401188b75e29dd0c501f5dafb52c2e80e381cd4bf14efded81633569eef7"
+      },
+      {
+        "file": "validation/node-gates.log",
+        "bytes": 366,
+        "sha256": "61edb37bc76a14ddf4225cd8efc4cb4c659ef9e694d9fea6f45471bdfe7f727c"
+      },
+      {
+        "file": "validation/validation-summary.json",
+        "bytes": 2461,
+        "sha256": "bb3c3cb03a01da494c5aab8e9109657130f9c28ceb450308d620f325c056ab09"
+      },
+      {
+        "file": "validation/visual-review.json",
+        "bytes": 2381,
+        "sha256": "c5d0ffd0d9c5f257ea23988ca27f706ae0896f8fa4871e5eafa293a6ed805336"
+      }
+    ]
+  }
+}

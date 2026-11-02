@@ -24,8 +24,10 @@
     "src/components/ui/TextField.tsx",
     "src/components/ui/WorkspaceSwitcher.tsx",
     "src/components/ui-gallery/UIComponentGallery.tsx",
+    "src/components/AppNavigation.tsx",
     "src/components/FormsWorkspace.tsx",
     "src/components/VendorPortfolio.tsx",
+    "src/components/VendorRelationshipWorkspace.tsx",
     "src/components/VendorEvidenceChecklist.tsx",
     "src/components/documents/DocumentBrowser.tsx",
     "src/components/documents/DocumentPreview.tsx",
@@ -52,18 +54,37 @@
     "src/components/forms/filters/FilterPicker.tsx",
     "src/components/forms/filters/FormStatusScopes.tsx",
     "src/components/oversight/OversightWorkspace.tsx",
+    "src/components/reports/ReportsLibrary.tsx",
+    "src/components/reports/ReportsOverview.tsx",
     "src/components/VendorDueDiligence.tsx",
     "src/components/VendorWorkPanel.tsx",
-    "src/components/EmptyState.tsx"
+    "src/components/EmptyState.tsx",
+    "src/components/ReportingPage.tsx",
+    "src/components/reports/ReportsWorkspace.tsx",
+    "src/components/reports/ReportsExplore.tsx",
+    "src/components/NotificationCenter.tsx",
+    "src/components/NotificationPreferences.tsx",
+    "src/components/notifications/NotificationsWorkspace.tsx",
+    "src/components/notifications/NotificationActivity.tsx",
+    "src/components/risk-loss/RiskLossWorkspaceFrame.tsx",
+    "src/components/access/PeopleDirectory.tsx",
+    "src/components/access/PeopleRoleCatalog.tsx",
+    "src/components/GovernanceAdminWorkspace.tsx",
+    "src/components/PeopleGovernanceView.tsx",
+    "src/components/configure/PeopleAccessSection.tsx",
+    "src/components/configure/AuthorityRoutingSection.tsx"
   ],
   "migratedCss": [
+    "src/components/vendor-relationship-workspace.css",
     "src/design-system/components/actions.css",
     "src/design-system/components/data-display.css",
     "src/design-system/components/feedback.css",
     "src/design-system/components/fields.css",
     "src/design-system/components/navigation.css",
+    "src/design-system/components/workspace-switcher.css",
     "src/design-system/components/overlays.css",
     "src/design-system/components/surfaces.css",
+    "src/app-navigation.css",
     "src/ui-gallery.css",
     "src/forms-sent.css",
     "src/forms-dashboard-shell.css",
@@ -76,7 +97,18 @@
     "src/document-import.css",
     "src/components/documents/documents.css",
     "src/components/vendor-evidence-checklist.css",
-    "src/oversight.css"
+    "src/oversight.css",
+    "src/components/reports/reports-library.css",
+    "src/components/reports/reports-overview.css",
+    "src/components/reports/report-builder.css",
+    "src/components/reports/reports-explore.css",
+    "src/components/reports/reports.css",
+    "src/notification-center.css",
+    "src/components/notifications/notifications-workspace.css",
+    "src/components/risk-loss/risk-loss-workspace.css",
+    "src/components/access/people-access.css",
+    "src/people-governance.css",
+    "src/components/configure/people-access-workspace.css"
   ],
   "nativeControlExceptions": [
     {
@@ -131,6 +163,13 @@
       "selected",
       "drill"
     ],
+    "RankedBarList": [
+      "stacked",
+      "inline",
+      "static",
+      "authorized-row-action",
+      "supporting-context"
+    ],
     "Button": [
       "primary",
       "secondary",
@@ -142,7 +181,11 @@
       "loading"
     ],
     "ActionLink": [
-      "navigation"
+      "default",
+      "navigation",
+      "current-page",
+      "current-location",
+      "disabled"
     ],
     "IconButton": [
       "primary",
@@ -211,7 +254,9 @@
     ],
     "Tabs": [
       "automatic-activation",
-      "wrapped-compact"
+      "wrapped-compact",
+      "contextual-destination",
+      "retain-visited-panels"
     ],
     "WorkspaceSwitcher": [
       "selected",
@@ -273,6 +318,8 @@
       "focus-contained",
       "default",
       "wide",
+      "start",
+      "end",
       "full-height-mobile"
     ],
     "FocusedDialog": [

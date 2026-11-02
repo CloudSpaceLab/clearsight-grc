@@ -176,7 +176,7 @@ func writeFormPolicyError(w http.ResponseWriter, err error) {
 	case errors.Is(err, formpolicy.ErrMakerChecker):
 		httpx.WriteError(w, http.StatusConflict, "independent_approval_required", "A different authorized person must approve this policy.")
 	case errors.Is(err, formpolicy.ErrAuthorityUnavailable):
-		httpx.WriteError(w, http.StatusServiceUnavailable, "policy_authority_unavailable", "The current policy route could not be checked. No change was made.")
+		httpx.WriteError(w, http.StatusServiceUnavailable, "policy_authority_unavailable", "Policy permissions unavailable. No changes made.")
 	case errors.Is(err, formpolicy.ErrInvalid), errors.Is(err, formpolicy.ErrInvalidTransition), errors.Is(err, formpolicy.ErrPreviewRequired), errors.Is(err, formpolicy.ErrPreviewStale), errors.Is(err, formpolicy.ErrFormInactive), errors.Is(err, formpolicy.ErrShadowRequired), errors.Is(err, formpolicy.ErrActivationAuthority):
 		httpx.WriteError(w, http.StatusUnprocessableEntity, "policy_not_ready", "Check the policy definition, current form revision, simulation, and rollout state before continuing.")
 	default:

@@ -24,6 +24,7 @@ function formQuery(query: FormTemplateQuery = {}, options: FormTemplatePageOptio
   const values: Array<[string, string | number | undefined]> = [
     ["search", query.search?.trim() || undefined], ["status", query.status], ["owner", query.owner?.trim() || undefined],
     ["program", query.program?.trim() || undefined], ["use", query.use?.trim() || undefined], ["tag", query.tag?.trim() || undefined],
+    ["origin_type", query.origin_type], ["origin_id", query.origin_id?.trim() || undefined],
     ["cursor", query.cursor], ["limit", query.limit],
     ["sort", query.sort === "UPDATED_ASC" ? query.sort : undefined],
   ];

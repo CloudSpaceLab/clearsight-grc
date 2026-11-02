@@ -1,0 +1,71 @@
+{
+  "kind": "LOCAL_RUNTIME_REGRESSION_VERIFICATION",
+  "reviewer": "/root/work_contract",
+  "runtimeCommit": "aa666af542fdcba2f2883a58821434f3fbc18740",
+  "runtimeTree": "9e670cd7477ddd25b0e5c9e1d01961ae3ecfbacc",
+  "bindingNote": "Positive validation ran on the uncommitted runtime/test patch. The root then committed that patch with only an explanatory two-line comment added before the changed hooks. This is a compact execution record, not a reconstructed raw positive log.",
+  "cause": {
+    "component": "web/src/components/access/OrganizationInventory.tsx",
+    "before": "Two passive panel-reset effects run on initial mount. If the first opening is queued when the async overview enters the DOM, the subsequent initial reset can clear that opening.",
+    "after": "The same resets use layout effects and finish during commit before an available control can be activated. Selected-area changes and permission revocation retain their reset behavior.",
+    "probe": "One MutationObserver-triggered click when Positions & roles first becomes available; no second click, delay or timeout override.",
+    "oldEffectsProbe": {
+      "result": "FAIL",
+      "dialogsAfterClick": 0,
+      "dialogsNextMicrotask": 0,
+      "defaultAsyncDialogWait": "TIMED_OUT"
+    },
+    "layoutEffectsProbe": {
+      "result": "PASS",
+      "dialogsAfterClick": 1,
+      "dialogsNextMicrotask": 1,
+      "dialogsAfterAsyncFind": 1
+    },
+    "hostedTimingLimit": "The exact ordering of the earlier hosted failure was not instrumented. The local A/B establishes a real dropped-open runtime ordering with the same missing-sheet symptom."
+  },
+  "positiveFocused": {
+    "command": "npx vitest run src/components/IdentityAccessPanel.progressive.test.tsx src/components/access/OrganizationInventory.test.tsx --reporter=verbose",
+    "result": "PASS",
+    "files": 2,
+    "tests": 19,
+    "durationSeconds": 4.82,
+    "retainedAssertions": [
+      "Original progressive creation workflow assertions unchanged",
+      "One early activation retains the populated Positions & roles sheet",
+      "Loaded counts and one overview read preserved",
+      "No other API call issued by the early opening",
+      "Selected-area changes close the sheet and allow immediate reopening",
+      "Permission revocation closes an editable boundary sheet",
+      "Read-only Positions and Data boundary remain available without write controls or commands"
+    ]
+  },
+  "positiveTypecheck": {
+    "command": "npm run typecheck",
+    "result": "PASS",
+    "diagnostics": []
+  },
+  "diffCheck": {
+    "command": "git diff --check",
+    "result": "PASS"
+  },
+  "retainedRegressionNegative": {
+    "command": "npx vitest run src/components/IdentityAccessPanel.progressive.test.tsx -t \"keeps the first positions sheet open when activated as the overview arrives\" --reporter=verbose",
+    "mutation": "Temporarily restore only the two prior passive resets, run the retained regression once, and restore the layout-effect source byte-for-byte in finally.",
+    "result": "EXPECTED_FAIL",
+    "failed": 1,
+    "intentionallyFiltered": 9,
+    "durationSeconds": 2.7,
+    "failure": "Unable to find role=\"dialog\" and name \"Positions & roles\"",
+    "rawLog": "/tmp/clearsight-enterprise-early-open-old-effects-red.log",
+    "rawLogBytes": 6776,
+    "rawLogSHA256": "fb7453122fc6275916581bef3145d94f35f0eb90881c6ae02a1185e8c6a265d2"
+  },
+  "filesChanged": [
+    "web/src/components/access/OrganizationInventory.tsx",
+    "web/src/components/IdentityAccessPanel.progressive.test.tsx",
+    "web/src/components/access/OrganizationInventory.test.tsx"
+  ],
+  "temporaryDiagnosticRemoved": true,
+  "noRetryClickOrTimeoutRelaxation": true,
+  "fullSuiteAndFreshBuildStatusAtThisRecord": "Owned by root/people_integration; this report does not credit them before completion"
+}

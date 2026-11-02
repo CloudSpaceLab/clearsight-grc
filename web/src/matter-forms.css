@@ -1,0 +1,132 @@
+/* Matter Forms overview: layout only; shared components own interaction styling. */
+.matter-forms { container-type: inline-size; }
+
+.matter-forms__heading h2 {
+  margin: 4px 0 0;
+  color: var(--cs-text-strong);
+  font-size: 1.2rem;
+  line-height: var(--cs-leading-tight);
+}
+
+.matter-forms__heading p {
+  margin: 8px 0 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-body);
+  overflow-wrap: anywhere;
+}
+
+.matter-forms__heading strong { color: var(--cs-text-primary); font-weight: 600; }
+
+.matter-forms__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 210px));
+  max-width: none;
+  gap: 12px;
+  margin: 18px 0 22px;
+}
+
+.matter-forms__actions > .cs-action-card { width: 100%; min-width: 0; min-height: 76px; }
+.matter-forms__actions .cs-action-card__icon svg { width: 20px; height: 20px; }
+
+.matter-forms__activity-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 18px;
+  border-top: 1px solid var(--cs-border-default);
+}
+
+.matter-forms__activity-heading h3 {
+  margin: 0;
+  color: var(--cs-text-strong);
+  font-size: var(--cs-font-size-body);
+  font-weight: 700;
+}
+
+.matter-forms .subject-form-activity--cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 12px;
+  border: 1px solid var(--cs-border-default);
+  border-radius: 14px;
+  background: var(--cs-bg-surface-1);
+  overflow: hidden;
+}
+
+.matter-forms .subject-form-activity--cards > .cs-notice {
+  margin: 12px 16px;
+}
+
+.matter-forms .subject-form-activity__card {
+  min-width: 0;
+  padding: 16px 20px;
+  gap: 10px;
+  border: 0;
+  border-bottom: 1px solid var(--cs-border-default);
+  border-radius: 0;
+  background: transparent;
+}
+
+.matter-forms .subject-form-activity__card:last-child { border-bottom: 0; }
+
+.matter-forms .subject-form-activity__card > header {
+  min-width: 0;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.matter-forms .subject-form-activity__card > header h3 {
+  color: var(--cs-text-strong);
+  font-size: var(--cs-font-size-control);
+  font-weight: 700;
+}
+
+.matter-forms .subject-form-activity__card > header span {
+  flex: none;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+
+.matter-forms .subject-form-activity__card .cs-empty-state--compact {
+  padding: 2px 0 4px;
+  gap: 4px;
+  text-align: left;
+  align-items: flex-start;
+}
+
+.matter-forms .subject-form-activity__card .cs-empty-state__title {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-control);
+  font-weight: 500;
+}
+
+.matter-forms .subject-form-activity__card .cs-empty-state__description {
+  font-size: var(--cs-font-size-caption);
+  line-height: var(--cs-leading-body);
+}
+
+.matter-forms .subject-form-activity__card ul { gap: 0; }
+
+.matter-forms .subject-form-activity__card li {
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--cs-border-subtle, var(--cs-border-default));
+  border-radius: 0;
+  background: transparent;
+}
+
+.matter-forms .subject-form-activity__card li strong { overflow-wrap: anywhere; }
+.matter-forms .subject-form-activity__card .subject-form-activity__actions { flex-wrap: wrap; }
+
+@container (max-width: 520px) {
+  .matter-forms__actions { grid-template-columns: minmax(0, 1fr); }
+  .matter-forms .subject-form-activity__card { padding: 14px 16px; }
+  .matter-forms .subject-form-activity__card li { align-items: stretch; flex-direction: column; gap: 8px; }
+  .matter-forms .subject-form-activity__actions { align-items: flex-start; }
+}

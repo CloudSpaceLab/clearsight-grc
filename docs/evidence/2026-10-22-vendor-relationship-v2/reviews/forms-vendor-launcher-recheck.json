@@ -1,0 +1,846 @@
+{
+  "generatedAt": "2026-10-22T08:25:05.155Z",
+  "scope": "All Vendor document launcher cases plus both Due diligence call sites using the changed helper; frozen runtime build",
+  "failure": null,
+  "captures": [
+    {
+      "name": "108-forms-vendor-review-conflict-light-1440x900",
+      "state": "forms-vendor-review-conflict",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [],
+        "selectedOuterTab": "Due diligence"
+      },
+      "image": "108-forms-vendor-review-conflict-light-1440x900.png",
+      "sha256": "008504540b0330ec295e88eb3f3f66c80ac54c5b0feb335d2675f0aa21c3d394",
+      "status": "PASS"
+    },
+    {
+      "name": "109-forms-vendor-applied-light-1440x900",
+      "state": "forms-vendor-response-applied",
+      "fixture": "forms-vendor-applied",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [],
+        "selectedOuterTab": "Due diligence"
+      },
+      "image": "109-forms-vendor-applied-light-1440x900.png",
+      "sha256": "8b526373b32d59f0bf4612e5350a94b592f3687c2917299af21850d7051a23e8",
+      "status": "PASS"
+    },
+    {
+      "name": "127-forms-documents-vendors-light-1440",
+      "state": "submitted-document-browser",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=PDF&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=IMAGE&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=SPREADSHEET&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=OTHER&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&query=business+continuity&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&query=no+matching+file&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "image": "127-forms-documents-vendors-light-1440.png",
+      "sha256": "eec4054a03452e6a6c307dad835ed3d56dcc56c68889ef946858e00b61ad6216",
+      "status": "PASS"
+    },
+    {
+      "name": "128-forms-documents-vendors-dark-320",
+      "state": "submitted-document-browser",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "dark",
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "metrics": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=PDF&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=IMAGE&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=SPREADSHEET&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=OTHER&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&query=business+continuity&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&query=no+matching+file&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "image": "128-forms-documents-vendors-dark-320.png",
+      "sha256": "492552dbb34ef7106590dbabf50299b83634069390455d5ef7bd8fae19d0ec8b",
+      "status": "PASS"
+    },
+    {
+      "name": "127-forms-documents-vendors-light-1280",
+      "state": "submitted-document-browser",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "light",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=PDF&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=IMAGE&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=SPREADSHEET&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=OTHER&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&query=business+continuity&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&query=no+matching+file&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "image": "127-forms-documents-vendors-light-1280.png",
+      "sha256": "a9cd61019fcf1694d8b7a305ee0097e44711ccece58228a6609f5d26434d2586",
+      "status": "PASS"
+    },
+    {
+      "name": "128-forms-documents-vendors-dark-1280",
+      "state": "submitted-document-browser",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "dark",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=PDF&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=IMAGE&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=SPREADSHEET&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=OTHER&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&query=business+continuity&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&query=no+matching+file&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          },
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?file_kind=WORD&relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "image": "128-forms-documents-vendors-dark-1280.png",
+      "sha256": "3d261d544cf2aa19b8fbe4ac7d6753d9dbaeef4f3879d5ff7e6b823b8a277eb9",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-preview-light-1440",
+      "state": "demo-document-preview",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 2,
+        "warning_before_download": true,
+        "blocked": false,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-preview-light-1440.png",
+      "sha256": "08e7daa847578d6f31b11ef8011341b8a69f36ef18e48157fa3bf1f673df19f5",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-blocked-light-1440",
+      "state": "demo-document-blocked",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 0,
+        "warning_before_download": false,
+        "blocked": true,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-blocked-light-1440.png",
+      "sha256": "52e368a8ad10d182a50f98dbf149c5546d3b03342383f55bab681d47d19b6506",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-preview-light-390",
+      "state": "demo-document-preview",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 2,
+        "warning_before_download": true,
+        "blocked": false,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-preview-light-390.png",
+      "sha256": "0c3b555b405350869fafb6791bc66a761e4d7262777970d2c7c76189ee6db4ab",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-blocked-light-390",
+      "state": "demo-document-blocked",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 0,
+        "warning_before_download": false,
+        "blocked": true,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-blocked-light-390.png",
+      "sha256": "4459376fbe097269b251c80d7150b7a352b10acb272a919e550b4492be48987e",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-preview-light-320",
+      "state": "demo-document-preview",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "light",
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "metrics": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 2,
+        "warning_before_download": true,
+        "blocked": false,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-preview-light-320.png",
+      "sha256": "9fd261175417eef088142e257a6d3b013d7f1d2f4b35e39d6e031c804c86698c",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-blocked-light-320",
+      "state": "demo-document-blocked",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "light",
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "metrics": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 0,
+        "warning_before_download": false,
+        "blocked": true,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-blocked-light-320.png",
+      "sha256": "e754fc6c571787e351f93c77b5af7604a962c16e967b6cabd615bb125bb81b83",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-preview-dark-1440",
+      "state": "demo-document-preview",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 2,
+        "warning_before_download": true,
+        "blocked": false,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-preview-dark-1440.png",
+      "sha256": "1455316703d5449ab1dec59e91e7924efad5621f27148dcd1987367fbcc60b45",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-blocked-dark-1440",
+      "state": "demo-document-blocked",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 0,
+        "warning_before_download": false,
+        "blocked": true,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-blocked-dark-1440.png",
+      "sha256": "7d21b3d13f1bcb54b5be77248192f89ad104e62016e17ebe5dc34f6406d1679c",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-preview-dark-390",
+      "state": "demo-document-preview",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 2,
+        "warning_before_download": true,
+        "blocked": false,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-preview-dark-390.png",
+      "sha256": "90482ae1ad764a3e851908121102e3e72b249de549e16f2e53e943350ac8dd4a",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-blocked-dark-390",
+      "state": "demo-document-blocked",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 0,
+        "warning_before_download": false,
+        "blocked": true,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-blocked-dark-390.png",
+      "sha256": "6fa08b3b6552dca20247cb871547e58db43bb3c487c0629f4fecbda231642b8a",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-preview-dark-320",
+      "state": "demo-document-preview",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "dark",
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "metrics": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 2,
+        "warning_before_download": true,
+        "blocked": false,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-preview-dark-320.png",
+      "sha256": "dc0cbe0bf9eac26fcef6826e1c0b475c8c315a88c97e9e2160af5b0d3b532e7c",
+      "status": "PASS"
+    },
+    {
+      "name": "129-forms-demo-documents-vendors-blocked-dark-320",
+      "state": "demo-document-blocked",
+      "fixture": "forms-vendor-review-conflict",
+      "theme": "dark",
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "metrics": {
+        "clientWidth": 320,
+        "scrollWidth": 320,
+        "hash": "#vendors/register/vendor-relationship-payments",
+        "documentReads": [
+          {
+            "path": "/api/v1/forms/documents",
+            "query": "?relationship_id=vendor-relationship-payments&current_only=true&limit=25",
+            "method": "GET",
+            "status": 200
+          }
+        ],
+        "selectedOuterTab": "Evidence",
+        "selectedEvidenceTab": "Documents"
+      },
+      "scenarioMetrics": {
+        "content_reads": 0,
+        "warning_before_download": false,
+        "blocked": true,
+        "document_metadata": {
+          "issued_on": "2026-09-02",
+          "uploaded_at": "2026-09-08T09:00:00Z",
+          "submitted_at": "2026-09-08T09:15:00Z",
+          "expires_on": "2 Sept 2027"
+        }
+      },
+      "image": "129-forms-demo-documents-vendors-blocked-dark-320.png",
+      "sha256": "b180b817e0cfa818e92ca86cefcae46b759090db72b5c8825bfece29b72f2668",
+      "status": "PASS"
+    }
+  ],
+  "browser": "153.0.8010.0",
+  "buildIndexSHA256": "9afd2988237cdfab80eaa17c952b0801b99d106604545f7ee43e4cbdb1d38bc1",
+  "scenarioSourceSHA256": "0cadf978af0b5cba731dec67ed563e4b9a7e930833f73a6b5d25e8a4c77ee1f7"
+}

@@ -1,0 +1,14 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> @clearsight/web@0.1.0 test
+> vitest run --run
+
+
+ RUN  v4.1.7 /workspace/scratch/aa58e6ac8126/clearsight-grc/web
+
+
+ Test Files  277 passed (277)
+      Tests  2301 passed (2301)
+   Start at  14:07:39
+   Duration  104.67s (transform 23.89s, setup 26.36s, import 112.14s, tests 344.43s, environment 198.14s)
+

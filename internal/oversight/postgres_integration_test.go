@@ -113,12 +113,31 @@ func TestPostgresProjectionExcludesRestrictedAndUnknownMatterScopes(t *testing.T
 	if storedAfter != storedBefore {
 		t.Fatalf("on-demand reporting period persisted a snapshot: before=%d after=%d", storedBefore, storedAfter)
 	}
-	loaded, err := NewService(repository).Get(ctx, Scope{TenantID: tenantID, LegalEntityID: entityID})
-	if err != nil || loaded.Counts.CriticalHigh != 1 || loaded.Coverage.Excluded == nil || *loaded.Coverage.Excluded != 1 {
-		t.Fatalf("loaded projection=%#v err=%v", loaded, err)
-	}
-	if loaded.SnapshotID != snapshotID {
-		t.Fatalf("loaded exact source id=%q want=%q", loaded.SnapshotID, snapshotID)
+	for _, lookup := range []struct {
+		name  string
+		scope Scope
+	}{
+		{"uuid", Scope{TenantID: tenantID, LegalEntityID: entityID}},
+		{"aliases", Scope{TenantID: "oversight-scope-test", LegalEntityID: "SCOPE-NG"}},
+	} {
+		t.Run(lookup.name, func(t *testing.T) {
+			loaded, err := NewService(repository).Get(ctx, lookup.scope)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if loaded.TenantID != tenantID || loaded.LegalEntityID != entityID {
+				t.Fatalf("loaded scope tenant=%q entity=%q want canonical tenant=%q entity=%q", loaded.TenantID, loaded.LegalEntityID, tenantID, entityID)
+			}
+			if loaded.SnapshotID != snapshotID {
+				t.Fatalf("loaded exact source id=%q want=%q", loaded.SnapshotID, snapshotID)
+			}
+			if loaded.Counts != value.Counts || loaded.Coverage.Population != 3 || loaded.Coverage.Excluded == nil || *loaded.Coverage.Excluded != 1 || loaded.Coverage.Unknown == nil || *loaded.Coverage.Unknown != 1 {
+				t.Fatalf("loaded counts=%#v coverage=%#v want counts=%#v population=3 excluded=1 unknown=1", loaded.Counts, loaded.Coverage, value.Counts)
+			}
+			if loaded.ReportingPeriod.StartDate != value.PeriodStart.UTC().Format(ReportingDateLayout) || loaded.ReportingPeriod.EndDate != value.PeriodEnd.UTC().Format(ReportingDateLayout) {
+				t.Fatalf("loaded reporting period=%#v want start=%s end=%s", loaded.ReportingPeriod, value.PeriodStart, value.PeriodEnd)
+			}
+		})
 	}
 	var operatorID string
 	if err := pool.QueryRow(ctx, `INSERT INTO principals(tenant_id,kind,display_name) VALUES($1::uuid,'PERSON','Demo curator') RETURNING id::text`, tenantID).Scan(&operatorID); err != nil {

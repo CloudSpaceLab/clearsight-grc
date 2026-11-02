@@ -228,14 +228,14 @@ export function DocumentImportWorkspace() {
       <div>
         <span className="eyebrow">Document import</span>
         <h2 id="document-import-title">Imported documents</h2>
-        <p>Review imported documents and extracted obligations.</p>
+        <p>Review documents and extracted requirements.</p>
         {!intakeOpen && <button className="primary-button document-import-open" type="button" onClick={() => setIntakeOpen(true)}>Import document</button>}
       </div>
       {intakeOpen && <form className="document-import-form" onSubmit={submit} noValidate>
         <div className="document-import-form-heading"><div><strong>Import a document</strong><span>TXT, Markdown, CSV, DOCX, XLSX or PDF · maximum 20 MB</span></div>{documents.length > 0 && <button type="button" aria-label="Close import form" onClick={() => setIntakeOpen(false)}>Close</button>}</div>
         <FileDropzone
           label="Document"
-          description="Drop a supported file here or choose one from this device. Searchable PDFs are extracted automatically with page references. Scanned PDFs remain stored and clearly report when OCR is required."
+          description="Drop a file or choose one. Searchable PDFs include page references; scanned PDFs may require OCR."
           accept={documentAccept}
           disabled={uploading}
           busy={uploading}
@@ -263,7 +263,7 @@ export function DocumentImportWorkspace() {
       : state === "unavailable"
         ? <EmptyState kind="unavailable" label="Document imports" title="Imported documents could not be loaded" description="Try again before relying on this list." action="Try again" onAction={() => void refresh()}/>
         : !documents.length
-          ? <EmptyState label="Document imports" title="No documents imported" description="Import a TXT, Markdown, CSV, DOCX, XLSX or PDF document. Searchable PDFs are extracted automatically; scanned PDFs remain stored and report when OCR is required."/>
+          ? <EmptyState label="Document imports" title="No documents imported" description="Import TXT, Markdown, CSV, DOCX, XLSX or PDF. Scanned PDFs may require OCR."/>
           : <div className="document-import-layout">
               <div className="document-import-list" aria-label="Imported documents">{documents.map((document) => <button key={document.id} type="button" disabled={Boolean(reviewingProposalID)} className={selected?.id === document.id ? "document-import-row active" : "document-import-row"} onClick={() => void choose(document.id)}><strong>{document.file_name}</strong><span>{summaryLabel(document)}</span><small>{new Date(document.created_at).toLocaleString()}</small></button>)}</div>
               {selected && (
@@ -333,9 +333,9 @@ function DocumentInspector({ document, coverage, coverageActionID, coverageNotic
     {isRiskRegister(document.elements) && <RiskRegisterMigration key={`${document.id}:${document.version}`} documentID={document.id} />}
     <SourceAnalysis collapsed={isRiskRegister(document.elements)}>
     <div className="import-review-summary" aria-label="Import review summary">{coverage ? <><span><strong>{coverage.metrics.verified.denominator}</strong> eligible obligations</span><span><strong>{coveragePending}</strong> loaded for review</span><span><strong>{handoffsPending}</strong> awaiting review or authorization</span></> : <><span><strong>{pending.length}</strong> intake review</span><span><strong>{handoffsPending}</strong> awaiting review or authorization</span><span><strong>{document.sections.length}</strong> of {sectionsTotal} source sections retained</span></>}</div>
-    {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Extraction and analysis are running in the background. This page will update when processing completes.</p></section>}
+    {processing && <section className="workspace-loading" aria-live="polite" aria-busy="true"><strong>Original stored successfully.</strong><p>Processing document…</p></section>}
     {!processing && coverage && <CoverageAssessment coverage={coverage} actionID={coverageActionID} notice={coverageNotice} onReview={onCoverageReview} onApply={onApplySuggestion} onRecompare={onRecompare} onLoadMore={onLoadMore}/>}
-    {(document.degradations?.length ?? 0) > 0 && <section className="document-degradations" aria-labelledby="document-degradations-title"><h3 id="document-degradations-title">Source recovery needed</h3>{document.degradations!.map((item, index) => <div key={`${item.code}-${index}`}><strong>{human(item.code)}</strong><p>{item.message}</p><small>{item.recoverable ? "This source gap can be corrected without replacing retained results." : "A different source may be required for the missing content."}{item.anchor?.page ? ` Page ${item.anchor.page}.` : ""}</small></div>)}</section>}
+    {(document.degradations?.length ?? 0) > 0 && <section className="document-degradations" aria-labelledby="document-degradations-title"><h3 id="document-degradations-title">Source recovery needed</h3>{document.degradations!.map((item, index) => <div key={`${item.code}-${index}`}><strong>{human(item.code)}</strong><p>{item.message}</p><small>{item.recoverable ? "Correct the source; existing results are retained." : "A different source may be required for the missing content."}{item.anchor?.page ? ` Page ${item.anchor.page}.` : ""}</small></div>)}</section>}
     {document.limitations.length > 0 && <section className="document-limitations"><h3>Important limitations</h3>{document.limitations.map((item) => <p key={item}>{item}</p>)}</section>}
     {!processing && <section className="document-form-authoring" aria-labelledby="document-form-authoring-title">
       {!formProposal && <div><div><span className="eyebrow">Reusable form authoring</span><h3 id="document-form-authoring-title">Use this source to draft a form</h3><p>{canProposeForm ? "Extracted controls and tabular fields can be reviewed before any draft is created." : document.extraction_status === "UNSUPPORTED" ? "This file is retained, but no structured text is available. Provide a searchable source or use the manual form builder." : "No usable structured fields are available from this extraction. Correct the source or use the manual form builder."}</p></div>{canProposeForm && <button className="primary-button" type="button" disabled={formProposalBusy} onClick={() => void startFormProposal()}>{formProposalBusy ? "Preparing proposal…" : "Turn into form template"}</button>}</div>}

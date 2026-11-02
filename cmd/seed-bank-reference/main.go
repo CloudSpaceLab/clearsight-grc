@@ -23,13 +23,19 @@ import (
 
 func main() {
 	var seed bankverticals.SeedConfig
+	var demoJourneysOnly bool
 	var documentSamplesOnly bool
 	var sourceEmployeesOnly bool
 	var cloudspaceRelationshipID string
 	var sourceRecordsOnly bool
+	var sourceLossesOnly bool
+	var sourceRisksOnly bool
 	var sourceManifestDir string
 	flag.StringVar(&sourceManifestDir, "source-manifest-dir", "", "private directory containing the source-record manifests")
+	flag.BoolVar(&demoJourneysOnly, "demo-journeys-only", false, "explicitly install the complete non-production reference journeys (multiple sample workflows)")
 	flag.BoolVar(&sourceRecordsOnly, "source-records-only", false, "install the supplied IT, vendor and operational risk captures and linked issues only")
+	flag.BoolVar(&sourceLossesOnly, "source-losses-only", false, "import canonical OpsRisk losses from private manifests without rerunning Forms or Matters")
+	flag.BoolVar(&sourceRisksOnly, "source-risks-only", false, "reconcile persisted IT exception source records into canonical Risks")
 	flag.BoolVar(&sourceEmployeesOnly, "source-employees-only", false, "install named Fidelity and Ops Risk demo employees with scoped performer assignments")
 	flag.StringVar(&cloudspaceRelationshipID, "cloudspace-relationship", "", "install only the Cloudspace sample response for this exact existing demo relationship UUID")
 	flag.BoolVar(&documentSamplesOnly, "document-samples-only", false, "install only fictional submitted document samples after the normal worker is ready")
@@ -42,9 +48,12 @@ func main() {
 	flag.StringVar(&seed.ReviewerPrincipalID, "reviewer", "", "independent reviewer principal UUID")
 	flag.StringVar(&seed.SignatoryPrincipalID, "signatory", "", "authorized signatory principal UUID")
 	flag.Parse()
-	if (sourceRecordsOnly && (sourceEmployeesOnly || documentSamplesOnly || cloudspaceRelationshipID != "")) || (sourceEmployeesOnly && (documentSamplesOnly || cloudspaceRelationshipID != "")) || (documentSamplesOnly && cloudspaceRelationshipID != "") {
-		fatalIf(fmt.Errorf("choose one scoped sample operation"))
-	}
+	fatalIf(validateSeedMode(seedMode{
+		DemoJourneysOnly:  demoJourneysOnly,
+		SourceRecordsOnly: sourceRecordsOnly, SourceLossesOnly: sourceLossesOnly, SourceRisksOnly: sourceRisksOnly,
+		SourceEmployeesOnly: sourceEmployeesOnly, DocumentSamplesOnly: documentSamplesOnly,
+		CloudspaceRelationshipID: cloudspaceRelationshipID,
+	}))
 
 	cfg, err := config.Load()
 	fatalIf(err)
@@ -63,6 +72,23 @@ func main() {
 	pool, err := database.Open(ctx, cfg)
 	fatalIf(err)
 	defer pool.Close()
+	if sourceLossesOnly {
+		if strings.TrimSpace(sourceManifestDir) == "" {
+			fatalIf(fmt.Errorf("source-losses-only requires -source-manifest-dir"))
+		}
+		sourceRecordFiles = os.DirFS(sourceManifestDir)
+		receipt, installErr := installSourceLossesOnly(ctx, cfg, pool, seed)
+		fatalIf(installErr)
+		fatalIf(json.NewEncoder(os.Stdout).Encode(receipt))
+		return
+	}
+	if sourceRisksOnly {
+		fatalIf(validateSourceRiskSeedScope(seed.TenantID, seed.LegalEntityID))
+		receipt, installErr := reconcilePersistedSourceRisks(ctx, pool, seed)
+		fatalIf(installErr)
+		fatalIf(json.NewEncoder(os.Stdout).Encode(receipt))
+		return
+	}
 	if sourceRecordsOnly {
 		if strings.TrimSpace(sourceManifestDir) == "" {
 			fatalIf(fmt.Errorf("source-records-only requires -source-manifest-dir"))
@@ -109,6 +135,8 @@ func main() {
 	})
 	installedJourneys, err := installer.InstallSample(ctx, seed)
 	fatalIf(err)
+	sourceRisks, err := reconcilePersistedSourceRisks(ctx, pool, seed)
+	fatalIf(err)
 	operatingDemo, err := installer.EnsureOperatingDemo(ctx, seed)
 	fatalIf(err)
 	programID := referenceProgramID(installedJourneys)
@@ -146,7 +174,9 @@ func main() {
 	if oversightSnapshot.SourceHighWater["matters"].IsZero() || oversightSnapshot.SourceHighWater["continuity_events"].IsZero() {
 		fatalIf(fmt.Errorf("oversight snapshot is missing authoritative Matter or event high-water marks"))
 	}
-	journeys, err := installer.List(ctx, seed.TenantID)
+	// The release receipt must use the same explicit demo legal-entity scope
+	// as installation; an unscoped read can return definition-only journeys.
+	journeys, err := installer.List(continuity.WithTrustedSystemEntityScope(ctx, seed.TenantID, seed.LegalEntityID), seed.TenantID)
 	fatalIf(err)
 
 	fatalIf(installer.EnsureResponsePolicyAcceptanceForm(ctx, seed, programID))
@@ -169,6 +199,7 @@ func main() {
 		"reference_vendor_id":              referenceVendor.Vendor.ID,
 		"reference_vendor_relationship_id": referenceVendor.Relationship.ID,
 		"operating_demo":                   operatingDemo,
+		"source_risk_reconciliation":       sourceRisks,
 		"operating_vendor_count":           len(operatingVendors),
 		"operating_form_samples":           formSamples,
 		"oversight_projection":             oversightSnapshot.ProjectionVersion,

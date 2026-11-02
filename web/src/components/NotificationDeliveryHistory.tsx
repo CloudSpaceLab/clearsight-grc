@@ -60,7 +60,7 @@ export function NotificationDeliveryHistory({
     <div className="section-header">
       <div>
         <h2 id="notification-delivery-history-heading">Delivery history</h2>
-        <p>Email delivery status for governed notices on this record.</p>
+        <p>Email notification delivery history.</p>
       </div>
     </div>
     {!complete && <Notice tone="warning">Some delivery history is unavailable.</Notice>}

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>ClearSight — Interface System</title>
+<link rel="stylesheet" href="system.css">
+</head>
+<body data-theme="light" data-density="comfortable">
+<div class="frame">
+<aside class="nav-rail" aria-label="Design system navigation">
+ <a href="#top" class="brand"><span class="brand-symbol" aria-hidden="true"><i></i><b></b><em></em></span><span><strong>ClearSight</strong><small>Interface system</small></span></a>
+ <span class="rail-label">SYSTEM</span>
+ <nav class="rail-links">
+  <a href="#foundations" class="active"><span class="nav-glyph">◈</span> Foundations</a>
+  <a href="#components"><span class="nav-glyph">▦</span> Components</a>
+  <a href="#patterns"><span class="nav-glyph">▤</span> Work patterns</a>
+  <a href="#states"><span class="nav-glyph">◎</span> States & motion</a>
+  <a href="#screens"><span class="nav-glyph">▣</span> Screen library</a>
+ </nav>
+ <div class="rail-note"><span class="note-indicator"></span><b>Design reference</b><p>Visual examples only. No operational data or permissions are changed.</p></div>
+ <span class="rail-meta">ClearSight · 2026–2030<br>Specification 1.0</span>
+</aside>
+<div class="app">
+<header class="toolbar" id="top">
+ <div class="crumb">Design / <strong>Interface system</strong></div>
+ <div class="toolbar-right">
+  <label class="toolbar-choice">Appearance <select id="theme-select" aria-label="Appearance"><option value="light">Light</option><option value="dark">Dark</option></select></label>
+  <label class="toolbar-choice">Density <select id="density-select" aria-label="Density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label>
+  <a href="clearsight-design-system-spec.md" class="toolbar-download">Read specification <span aria-hidden="true">↗</span></a>
+  <span class="profile-avatar" aria-label="Design reviewer">CS</span>
+ </div>
+</header>
+<main class="body">
+ <div class="page-heading">
+  <div class="page-title"><span class="eyebrow">FOUNDATION / 01–19</span><h1>ClearSight interface system</h1><p>Shared visual and interaction rules for GRC workspaces.</p></div>
+  <div class="page-head-right"><span class="verified"><span></span>Approved visual direction</span><div class="version">v1.0 <span>·</span> 15 Oct 2026</div></div>
+ </div>
+ <div class="intro-band"><div class="intro-icon">✦</div><div><b>Shared UI contract</b><p>Shared components, explicit data quality, scoped filters and governed actions.</p></div><a href="#screens">View screen library <span>↗</span></a></div>
+
+ <section id="foundations" class="content-section">
+  <div class="section-title"><div><span class="eyebrow">01 / FOUNDATIONS</span><h2>Tokens & typography</h2></div><span>Derived from existing ClearSight primitives and semantic roles</span></div>
+  <div class="foundation-layout">
+   <article class="surface palette-surface"><div class="surface-title"><h3>Color roles</h3><span>Semantic · not page-specific</span></div>
+    <div class="swatches">
+     <div class="swatch"><span style="--s:#1268e6"></span><strong>Action</strong><small>Navigate / act</small></div>
+     <div class="swatch"><span style="--s:#12a893"></span><strong>Verified</strong><small>Complete / current</small></div>
+     <div class="swatch"><span style="--s:#e8a436"></span><strong>Attention</strong><small>Due / pending</small></div>
+     <div class="swatch"><span style="--s:#e25d6b"></span><strong>Blocking</strong><small>Failure / overdue</small></div>
+     <div class="swatch"><span style="--s:#6a66d9"></span><strong>Governance</strong><small>Review / policy</small></div>
+     <div class="swatch"><span style="--s:#8c9bb1"></span><strong>Unknown</strong><small>Unassessed / stale</small></div>
+    </div>
+    <div class="rule"><span>Use color with a label, never by itself.</span><span class="role-pill">WCAG AA</span></div>
+   </article>
+   <article class="surface typography-surface"><div class="surface-title"><h3>Type hierarchy</h3><span>Inter / Segoe UI / system</span></div><div class="type-display"><span class="spec-overline">PAGE TITLE · 28PX</span><div class="type-title">Risk management</div><span class="spec-overline">SECTION · 18PX</span><div class="type-h2">Controls requiring review</div><span class="spec-overline">BODY · 14PX</span><div class="type-body">6 items need an owner before the next review.</div><span class="spec-overline">METADATA · 12PX</span><div class="type-meta">Updated 14 Oct 2026 · 09:40</div></div></article>
+  </div>
+  <div class="foundation-strip"><div><strong>4px</strong><span>Base spacing</span></div><div><strong>8 / 16 / 24</strong><span>Grouping rhythm</span></div><div><strong>6 / 10 / 14</strong><span>Corner radius</span></div><div><strong>44px</strong><span>Touch target</span></div><div><strong>100–200ms</strong><span>Purposeful motion</span></div><div><strong>1–2px</strong><span>Border / focus cues</span></div></div>
+ </section>
+
+ <section id="components" class="content-section">
+  <div class="section-title"><div><span class="eyebrow">02 / SHARED COMPONENTS</span><h2>Controls & feedback</h2></div><span>Use existing <code>components/ui</code> exports</span></div>
+  <div class="component-grid">
+   <article class="surface component-panel"><div class="surface-title"><h3>Actions</h3><span>One primary action per context</span></div><div class="button-line"><button class="action primary" data-toast="New assessment draft opened">New assessment <span>↗</span></button><button class="action secondary" data-toast="Sample export prepared">Export</button><button class="action quiet" data-toast="More options opened">More options <span>⌄</span></button><button class="action secondary" disabled>Unavailable</button></div><div class="compact-explain"><span class="tiny-label">DEFAULT</span> Strong intent, quiet alternatives, disabled with reason.</div></article>
+   <article class="surface component-panel"><div class="surface-title"><h3>Scope & search</h3><span>Query-backed selectors</span></div><div class="filter-line"><label class="search-control"><span aria-hidden="true">⌕</span><input id="sample-search" type="search" placeholder="Search controls…" aria-label="Search sample controls"></label><label class="choice"><span class="sr-only">Group</span><select id="sample-scope"><option>All groups</option><option>Head Office</option><option>Retail Banking</option><option>Operations</option></select></label><button class="action secondary filter-trigger" id="period-button" aria-expanded="false" aria-controls="period-options">Last 90 days <span>⌄</span></button></div><div class="period-choices" id="period-options" hidden><button data-period="7">7 days</button><button data-period="30">30 days</button><button data-period="90">90 days</button></div><div class="compact-explain">Source, organization and effective period stay visible on drilldowns.</div></article>
+   <article class="surface component-panel"><div class="surface-title"><h3>Navigation & selection</h3><span>One selected destination</span></div><div class="tab-line" role="tablist" aria-label="Example workspace views"><button role="tab" aria-selected="true" class="selected" data-tab="overview">Overview</button><button role="tab" aria-selected="false" data-tab="requirements">Requirements</button><button role="tab" aria-selected="false" data-tab="evidence">Evidence</button><button role="tab" aria-selected="false" data-tab="activity">Activity</button></div><p class="tab-output" aria-live="polite" id="tab-output">Overview · 18 records in scope</p></article>
+   <article class="surface component-panel"><div class="surface-title"><h3>Governed states</h3><span>Quality is separate from status</span></div><div class="state-line"><span class="status ok"><i></i> Current</span><span class="status wait"><i></i> Needs review</span><span class="status bad"><i></i> Failed</span><span class="status unknown"><i></i> Unknown</span><span class="status stale"><i></i> Stale</span></div><div class="quality-meta"><span class="quality-mark"></span> Assessment coverage 46 / 52 <span class="quality-divider">·</span> 6 unassessed</div></article>
+  </div>
+ </section>
+
+ <section id="patterns" class="content-section">
+  <div class="section-title"><div><span class="eyebrow">03 / OPERATIONAL PATTERNS</span><h2>Metrics, charts & review</h2></div><span>Current posture, period activity, exact record context</span></div>
+  <div class="pattern-top">
+   <div class="metric sample-metric"><span>Risks outside appetite</span><div><strong>24</strong><span class="delta negative">+4 vs prior snapshot</span></div><small>Current · sample scope</small></div>
+   <div class="metric sample-metric"><span>Evidence reviews due</span><div><strong>6</strong><span class="delta warning">2 overdue</span></div><small>Next 30 days</small></div>
+   <div class="metric sample-metric"><span>Assessment coverage</span><div><strong>46 <em>/ 52</em></strong><span class="delta neutral">6 unassessed</span></div><small>Current · not a compliance score</small></div>
+   <div class="metric sample-metric"><span>Net operational loss</span><div><strong>₦3.2m</strong><span class="delta neutral">NGN only</span></div><small>Last 90 days · sample</small></div>
+  </div>
+  <div class="analysis-grid">
+   <article class="surface visual-analysis"><div class="surface-title"><h3>Risk concentration</h3><span>Current · 4 business units</span></div><div class="rank-row"><span>Technology</span><div class="rank-track"><i style="width:84%"></i></div><strong>12</strong></div><div class="rank-row"><span>Operations</span><div class="rank-track"><i style="width:58%"></i></div><strong>8</strong></div><div class="rank-row"><span>Retail banking</span><div class="rank-track"><i style="width:22%"></i></div><strong>3</strong></div><div class="rank-row"><span>Unattributed</span><div class="rank-track"><i style="width:9%"></i></div><strong>1</strong></div><p class="chart-note">Source: reviewed risk records · 14 Oct 2026</p></article>
+   <article class="surface visual-analysis"><div class="surface-title"><h3>Loss movement</h3><span>Period flow · NGN</span></div><div class="chart-plot" role="img" aria-label="Illustrative net loss trend: July 0.6 million naira; August 1.1 million; September 1.5 million."><div class="chart-grid"><span>₦1.5m</span><span>₦1.0m</span><span>₦0.5m</span><span>₦0</span></div><div class="plot-bars"><div><i style="height:39%"></i><span>Jul</span></div><div><i style="height:73%"></i><span>Aug</span></div><div><i style="height:96%"></i><span>Sep</span></div></div></div><p class="chart-note">Gross and recoveries remain separate in the ledger.</p></article>
+  </div>
+  <div class="record-layout">
+   <article class="surface register"><div class="surface-title"><h3>Focused work queue</h3><span id="record-count">3 records · sample data</span></div><div class="record-head"><span>Record</span><span>Owner</span><span>Due</span><span>Status</span></div><div class="record-rows" id="record-rows">
+    <button class="record selected" data-record="0"><span><b>Privileged access review</b><small>Access management · ISO 27001</small></span><span>Ada Okafor</span><span>17 Oct</span><span class="status wait"><i></i> Review</span></button>
+    <button class="record" data-record="1"><span><b>Vendor evidence renewal</b><small>Payments services · Vendor controls</small></span><span>Tunde Kola</span><span>21 Oct</span><span class="status bad"><i></i> Overdue</span></button>
+    <button class="record" data-record="2"><span><b>ROPA activity update</b><small>Customer onboarding · Privacy</small></span><span>Amina Bello</span><span>25 Oct</span><span class="status unknown"><i></i> Incomplete</span></button>
+   </div></article>
+   <article class="surface record-details"><div class="surface-title"><h3>Selected record</h3><button class="mini-action" id="inspect-action">Open review ↗</button></div><span class="detail-id" id="detail-id">ISMS-REV-1042</span><h4 id="detail-title">Privileged access review</h4><div class="detail-list"><div><span>Owner</span><b id="detail-owner">Ada Okafor</b></div><div><span>Next step</span><b id="detail-action">Validate quarterly evidence</b></div><div><span>Due</span><b id="detail-due">17 Oct 2026</b></div><div><span>Source</span><b id="detail-source">ISO 27001 · A.5.18</b></div></div><div class="record-basis"><span class="status wait"><i></i> Awaiting review</span><small>Source and approval state must be revalidated before action.</small></div></article>
+  </div>
+ </section>
+
+ <section id="states" class="content-section">
+  <div class="section-title"><div><span class="eyebrow">04 / INTERACTION QUALITY</span><h2>States & motion</h2></div><span>Clear, accessible and reversible</span></div>
+  <div class="states-grid"><article class="surface state-card"><h3>Complete states</h3><div class="state-example"><b>Loading</b><span class="skeleton"></span></div><div class="state-example"><b>Partial</b><span class="status wait"><i></i> 6 of 52 unassessed</span></div><div class="state-example"><b>Unavailable</b><span class="status unknown"><i></i> Retry source</span></div><p>Never substitute invented values or render unknown as a green zero.</p></article><article class="surface state-card"><h3>Interaction contract</h3><div class="motion-rail"><span class="motion-mark"></span><span>Focus / select</span><b>100ms</b></div><div class="motion-rail"><span class="motion-mark amber"></span><span>Popover / panel</span><b>150ms</b></div><div class="motion-rail"><span class="motion-mark blue"></span><span>Reflow / drill</span><b>200ms</b></div><p>Reduced motion removes decorative transitions; focus and status remain visible.</p></article></div>
+ </section>
+
+ <section id="screens" class="content-section screen-library">
+  <div class="section-title"><div><span class="eyebrow">05 / APPROVED SCREENS</span><h2>Workspace patterns</h2></div><span>Open full reference screenshots</span></div>
+  <div class="screen-grid">
+   <a href="assets/program-workspace.png" target="_blank" class="screen"><img src="assets/program-workspace.png" alt="Program Workspace reference" loading="lazy"><span><strong>Program workspace</strong><small>Scoped overview · details · issues</small></span></a>
+   <a href="assets/framework-library.png" target="_blank" class="screen"><img src="assets/framework-library.png" alt="Framework Library reference" loading="lazy"><span><strong>Framework library</strong><small>Edition discovery · adoption</small></span></a>
+   <a href="assets/assessment-workspace.png" target="_blank" class="screen"><img src="assets/assessment-workspace.png" alt="Assessment reference" loading="lazy"><span><strong>Assessment & forms</strong><small>Reviewable data capture</small></span></a>
+   <a href="assets/operational-risk.png" target="_blank" class="screen"><img src="assets/operational-risk.png" alt="Operational risk reference" loading="lazy"><span><strong>Operational risk</strong><small>Native RCSA / KRI / Loss</small></span></a>
+   <a href="assets/vendor-management.png" target="_blank" class="screen"><img src="assets/vendor-management.png" alt="Vendor management reference" loading="lazy"><span><strong>Vendors</strong><small>Relationship & review</small></span></a>
+   <a href="assets/privacy-workspace.png" target="_blank" class="screen"><img src="assets/privacy-workspace.png" alt="Privacy reference" loading="lazy"><span><strong>Privacy & data</strong><small>ROPA · DPIA · breaches</small></span></a>
+   <a href="assets/work-approvals.png" target="_blank" class="screen"><img src="assets/work-approvals.png" alt="Work and Approvals reference" loading="lazy"><span><strong>Work & approvals</strong><small>Queue · focused decision</small></span></a>
+   <a href="assets/reports-workspace.png" target="_blank" class="screen"><img src="assets/reports-workspace.png" alt="Reports reference" loading="lazy"><span><strong>Reports & insights</strong><small>Scoped comparisons · export</small></span></a>
+   <a href="assets/enterprise-setup.png" target="_blank" class="screen"><img src="assets/enterprise-setup.png" alt="Enterprise Setup reference" loading="lazy"><span><strong>Enterprise setup</strong><small>Hierarchy · groups · source</small></span></a>
+   <a href="assets/controls-policies.png" target="_blank" class="screen"><img src="assets/controls-policies.png" alt="Controls and Policies reference" loading="lazy"><span><strong>Controls & policies</strong><small>Register · effectiveness</small></span></a>
+   <a href="assets/search-command-center.png" target="_blank" class="screen"><img src="assets/search-command-center.png" alt="Search Command Center reference" loading="lazy"><span><strong>Global search</strong><small>Authorized result & preview</small></span></a>
+   <a href="assets/ai-copilot.png" target="_blank" class="screen"><img src="assets/ai-copilot.png" alt="Contextual Copilot reference" loading="lazy"><span><strong>Contextual Copilot</strong><small>3 source-backed suggestions</small></span></a>
+  </div>
+ </section>
+ <footer><span>ClearSight interface reference · Illustrative records · No backend integration</span><span>Design reference for issue #462</span></footer>
+</main>
+</div>
+</div>
+<div class="toast" role="status" aria-live="polite" id="toast"></div>
+<div class="overlay" id="review-overlay" hidden><section class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" tabindex="-1"><div class="drawer-header"><span class="eyebrow">REVIEW PREVIEW</span><button id="close-review" type="button" aria-label="Close review">✕</button></div><h2 id="drawer-title">Privileged access review</h2><p>Sample record preview. Approval and evidence status are verified by the product backend.</p><div class="drawer-facts"><div><span>Owner</span><strong id="drawer-owner">Ada Okafor</strong></div><div><span>Source</span><strong id="drawer-source">ISO 27001 · A.5.18</strong></div><div><span>Due</span><strong id="drawer-due">17 Oct 2026</strong></div></div><div class="notice-warning">Reviewer approval is required before the work can be closed.</div><button class="action primary drawer-done" id="review-done" type="button">Return to queue</button></section></div>
+<script src="system.js"></script>
+</body>
+</html>

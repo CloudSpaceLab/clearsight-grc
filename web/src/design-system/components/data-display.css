@@ -76,6 +76,23 @@
   .cs-data-table tbody tr td[data-mobile-layout="full-width"] { grid-template-columns: minmax(0, 1fr); }
   .cs-data-table[data-responsive-to="container"] tbody tr td { text-align: start; }
   .cs-data-table[data-responsive-to="container"] tbody tr td:not([data-mobile-layout="full-width"]) > * { justify-self: start; }
+  /* Full-width cells and row actions must fill the stacked card at the
+     container breakpoint, including in narrow record sheets. */
+  .cs-data-table[data-responsive-to="container"] tbody tr td[data-mobile-layout="full-width"],
+  .cs-data-table[data-responsive-to="container"] tbody tr td.cs-data-table__action {
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+  .cs-data-table[data-responsive-to="container"] tbody tr td[data-mobile-layout="full-width"] > * {
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+  .cs-data-table[data-responsive-to="container"] tbody tr td.cs-data-table__action > .cs-button {
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 @container cs-data-table (max-width: 360px) {
@@ -110,23 +127,22 @@ button.cs-metric-card {
 }
 
 .cs-metric-card__heading {
-  display: flex;
+  display: grid;
   min-width: 0;
-  align-items: center;
-  justify-content: space-between;
+  grid-template-columns: var(--cs-metric-card-heading-columns);
+  align-items: start;
   gap: var(--cs-primitive-space-2);
 }
 
 .cs-metric-card__label {
   min-width: 0;
-  overflow: hidden;
+  overflow-wrap: break-word;
   color: var(--cs-text-muted);
   font-size: var(--cs-font-size-caption);
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
+  letter-spacing: var(--cs-metric-card-label-spacing);
+  line-height: var(--cs-leading-body);
+  text-transform: var(--cs-metric-card-label-transform);
 }
 
 .cs-metric-card__quality {
@@ -222,5 +238,161 @@ button.cs-metric-card[data-disabled] {
 
   .cs-metric-card__quality > span {
     border: var(--cs-primitive-border-1) solid CanvasText;
+  }
+}
+
+
+.cs-ranked-bars {
+  display: grid;
+  gap: var(--cs-primitive-space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.cs-ranked-bars__row {
+  display: grid;
+  width: 100%;
+  gap: var(--cs-primitive-space-2);
+  padding: var(--cs-primitive-space-2) 0;
+  border: 0;
+  border-radius: var(--cs-primitive-radius-8);
+  background: transparent;
+  color: var(--cs-text-primary);
+  font: inherit;
+  text-align: start;
+}
+
+button.cs-ranked-bars__row {
+  cursor: pointer;
+}
+
+button.cs-ranked-bars__row[data-hovered],
+button.cs-ranked-bars__row[data-pressed] {
+  background: var(--cs-table-row-hover);
+}
+
+button.cs-ranked-bars__row[data-focus-visible] {
+  outline: var(--cs-focus-width) solid var(--cs-focus-ring);
+  outline-offset: var(--cs-focus-offset);
+}
+
+.cs-ranked-bars__heading {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cs-primitive-space-3);
+}
+
+.cs-ranked-bars__label {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-ranked-bars__value {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-ranked-bars__track {
+  display: block;
+  height: var(--cs-primitive-space-2);
+  overflow: hidden;
+  border-radius: var(--cs-primitive-radius-full);
+  background: var(--cs-table-heading-bg);
+}
+
+.cs-ranked-bars__fill {
+  display: block;
+  height: 100%;
+  min-width: var(--cs-primitive-border-2);
+  border-radius: var(--cs-primitive-radius-full);
+  background: var(--cs-action-primary);
+}
+
+.cs-ranked-bars__row small {
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+
+.cs-ranked-bars[data-layout="inline"] { gap: 0; }
+
+.cs-ranked-bars[data-layout="inline"] .cs-ranked-bars__row {
+  grid-template-columns: minmax(90px, .9fr) minmax(36px, 1fr) minmax(24px, max-content);
+  align-items: center;
+  min-block-size: var(--cs-target-min);
+}
+
+.cs-ranked-bars[data-layout="inline"] .cs-ranked-bars__value { justify-self: end; }
+.cs-ranked-bars[data-layout="inline"] .cs-ranked-bars__row > small { grid-column: 1 / -1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-ranked-bars__row {
+    scroll-behavior: auto;
+  }
+}
+
+@media (forced-colors: active) {
+  .cs-ranked-bars__track {
+    border: var(--cs-primitive-border-1) solid CanvasText;
+  }
+
+  .cs-ranked-bars__fill {
+    background: Highlight;
+  }
+}
+
+
+.cs-metric-trend {
+  display: grid;
+  gap: var(--cs-primitive-space-2);
+  margin: 0;
+}
+
+.cs-metric-trend__plot {
+  width: 100%;
+  height: 150px;
+  overflow: visible;
+}
+
+.cs-metric-trend__baseline {
+  stroke: var(--cs-border-default);
+  stroke-width: var(--cs-primitive-border-1);
+}
+
+.cs-metric-trend__line {
+  stroke: var(--cs-action-primary);
+  stroke-width: var(--cs-primitive-border-2);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cs-metric-trend__point {
+  fill: var(--cs-bg-surface-1);
+  stroke: var(--cs-action-primary);
+  stroke-width: var(--cs-primitive-border-2);
+}
+
+.cs-metric-trend__range {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--cs-primitive-space-3);
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+
+@media (forced-colors: active) {
+  .cs-metric-trend__baseline,
+  .cs-metric-trend__line,
+  .cs-metric-trend__point {
+    stroke: CanvasText;
+  }
+
+  .cs-metric-trend__point {
+    fill: Canvas;
   }
 }

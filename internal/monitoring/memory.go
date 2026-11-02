@@ -10,19 +10,21 @@ import (
 )
 
 type MemoryRepository struct {
-	mu               sync.RWMutex
-	forms            map[string]FormTemplate
-	starters         map[string]StarterTemplate
-	savedViews       map[string]SavedFormView
-	checks           map[string]MonitoringCheck
-	results          map[string]MonitoringResult
-	collectionCycles map[string]CollectionCycle
-	events           []MonitoringEvent
-	outbox           []MonitoringEvent
+	mu                sync.RWMutex
+	forms             map[string]FormTemplate
+	starters          map[string]StarterTemplate
+	savedViews        map[string]SavedFormView
+	subjectLinks      map[string]FormSubjectLink
+	subjectLinkEvents []FormSubjectLinkEvent
+	checks            map[string]MonitoringCheck
+	results           map[string]MonitoringResult
+	collectionCycles  map[string]CollectionCycle
+	events            []MonitoringEvent
+	outbox            []MonitoringEvent
 }
 
 func NewMemoryRepository() *MemoryRepository {
-	return &MemoryRepository{forms: map[string]FormTemplate{}, starters: map[string]StarterTemplate{}, savedViews: map[string]SavedFormView{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}, collectionCycles: map[string]CollectionCycle{}}
+	return &MemoryRepository{forms: map[string]FormTemplate{}, starters: map[string]StarterTemplate{}, savedViews: map[string]SavedFormView{}, subjectLinks: map[string]FormSubjectLink{}, checks: map[string]MonitoringCheck{}, results: map[string]MonitoringResult{}, collectionCycles: map[string]CollectionCycle{}}
 }
 
 func (r *MemoryRepository) SeedStarterTemplates(values ...StarterTemplate) {
@@ -120,6 +122,10 @@ func (r *MemoryRepository) ListFormLibrary(_ context.Context, filter FormLibrary
 	if filter.TenantID == "" || filter.LegalEntityID == "" {
 		return FormTemplatePage{}, ErrInvalid
 	}
+	originType, originID, err := normalizeFormLibraryOriginFilter(filter.OriginType, filter.OriginID)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
 	cursor, err := decodeFormLibraryCursor(filter.Cursor)
 	if err != nil {
 		return FormTemplatePage{}, err
@@ -138,7 +144,7 @@ func (r *MemoryRepository) ListFormLibrary(_ context.Context, filter FormLibrary
 	latest := make(map[string]FormTemplate)
 	activeVersions := make(map[string]FormTemplate)
 	for _, value := range r.forms {
-		if value.TenantID != filter.TenantID || value.LegalEntityID != filter.LegalEntityID {
+		if value.TenantID != filter.TenantID || value.LegalEntityID != filter.LegalEntityID || !formTemplateMatchesOrigin(value, originType, originID) {
 			continue
 		}
 		if prior, exists := latest[value.ID]; !exists || value.Version > prior.Version {

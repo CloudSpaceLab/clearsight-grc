@@ -1,9 +1,9 @@
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium } from "playwright";
 
 const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const manifestPath = path.join(outputDir, "manifest.json");
@@ -42,7 +42,7 @@ try {
       await page.getByText("Limit ≥ 99.50%", { exact: true }).first().waitFor({ state: "visible" });
       await page.getByRole("table", { name: "Mobile transaction success rate observation history" }).waitFor({ state: "visible" });
     } else {
-      await page.getByRole("heading", { name: "Insights" }).waitFor({ state: "visible" });
+      await page.getByRole("heading", { name: "Key indicators", exact: true }).waitFor({ state: "visible" });
       await page.getByRole("table", { name: "Risk indicators" }).waitFor({ state: "visible" });
       await page.getByText("Mobile transaction success rate", { exact: true }).first().waitFor({ state: "visible" });
       await page.getByText("Failed ATM transactions", { exact: true }).first().waitFor({ state: "visible" });
@@ -64,7 +64,25 @@ try {
       clientHeight: document.documentElement.clientHeight,
       scrollHeight: document.documentElement.scrollHeight,
     }));
-    if (metrics.scrollWidth > metrics.clientWidth + 1) throw new Error(`${capture.name} has horizontal overflow: ${metrics.scrollWidth}px in ${metrics.clientWidth}px`);
+    if (metrics.scrollWidth > metrics.clientWidth + 1) {
+      const overflowing = await page.evaluate(() => {
+        const rightEdge = document.documentElement.clientWidth;
+        return [...document.body.querySelectorAll("*")].map((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = window.getComputedStyle(element);
+          return {
+            tag: element.tagName.toLowerCase(),
+            cls: element.getAttribute("class")?.slice(0, 120),
+            parent: element.parentElement?.getAttribute("class")?.slice(0, 100),
+            left: Math.round(rect.left), right: Math.round(rect.right), width: Math.round(rect.width),
+            minWidth: style.minWidth, overflowX: style.overflowX,
+          };
+        }).filter((element) => element.right > rightEdge + 1 && element.left < element.right)
+          .sort((left, right) => right.right - left.right)
+          .slice(0, 18);
+      });
+      throw new Error(`${capture.name} has horizontal overflow: ${metrics.scrollWidth}px in ${metrics.clientWidth}px. Offenders: ${JSON.stringify(overflowing)}`);
+    }
 
     await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") });
     const violations = await page.evaluate(async () => {

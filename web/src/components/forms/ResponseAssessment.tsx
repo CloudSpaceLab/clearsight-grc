@@ -118,9 +118,9 @@ function AssessmentContent({ responseID, onUpdated, showResponseContext = true, 
           {needsBankReview(field) && editable && item.may_review === true && <>
             <SelectField label={`Decision for ${field.label}`} value={value.outcome_id || undefined} placeholder="Choose a rubric outcome" options={(field.assessment?.rubric ?? []).map((outcome) => ({ id: outcome.id, label: `${outcome.label} · ${outcome.points} points` }))} isDisabled={saving} onChange={(outcome_id) => update({ outcome_id: outcome_id ?? "" })}/>
             <TextArea label={`Rationale for ${field.label}`} value={value.rationale} onChange={(rationale) => update({ rationale })} maxLength={4000} rows={3} isDisabled={saving} description="Explain the evidence supporting this decision."/>
-            {field.assessment?.mode === "AUTOMATIC_REVIEW" && <p>The decision can confirm or increase the automatic concern. It cannot lower it; critical overrides and scoring limits still apply.</p>}
+            {field.assessment?.mode === "AUTOMATIC_REVIEW" && <p>Reviewer concern cannot fall below the automatic result. Critical overrides and scoring limits apply.</p>}
           </>}
-          {needsBankReview(field) && !decision && (!editable || item.may_review !== true) && <p>No decision is recorded for this response version. Your current responsibility does not allow review of this field.</p>}
+          {needsBankReview(field) && !decision && (!editable || item.may_review !== true) && <p>No decision recorded. Review unavailable under your current responsibility.</p>}
         </div>
       </div>
     </article>;

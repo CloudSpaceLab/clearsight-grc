@@ -156,7 +156,7 @@ export function ExternalAccessGate({ routeSelector, onRedeemed }: Props) {
     return <section className="external-capture-entry" aria-labelledby="external-access-title">
       <span className="eyebrow">Email verification</span>
       <h1 id="external-access-title">Choose your invitation</h1>
-      <p>Select the masked address the sender used. ClearSight will send a one-time code there.</p>
+      <p>Select the masked address for your verification code.</p>
       <form onSubmit={selectRecipient}>
         <fieldset className="external-recipient-options">
           <legend className="sr-only">Invitation recipient</legend>

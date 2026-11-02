@@ -1,4 +1,4 @@
-import { requestJSON } from "./http";
+import { ApiError, requestJSON } from "./http";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -10,6 +10,8 @@ export type GovernancePolicyRecord = {
   name: string;
   status: string;
   current_version: number;
+  definition?: unknown;
+  checksum?: string;
   maker_id: string;
   checker_id?: string;
   effective_from?: string;
@@ -40,7 +42,11 @@ export type GovernanceInventory = {
   delegations: GovernanceDelegationRecord[];
   policiesAvailable: boolean;
   delegationsAvailable: boolean;
+  policiesState?: GovernanceReadState;
+  delegationsState?: GovernanceReadState;
 };
+
+export type GovernanceReadState = "ready" | "restricted" | "unavailable";
 
 export type GovernanceDelegationCandidate = {
   principal_id: string;
@@ -79,21 +85,26 @@ function request<T>(path: string, init?: RequestInit): Promise<T> {
   return requestJSON<T>(apiBase, path, init);
 }
 
-export async function loadGovernanceInventory(): Promise<GovernanceInventory> {
+export async function loadGovernanceInventory(signal?: AbortSignal): Promise<GovernanceInventory> {
   const [policies, delegations] = await Promise.all([
-    settle(request<{ items?: GovernancePolicyRecord[] }>("/api/v1/governance/policies?limit=51")),
-    settle(request<{ items?: GovernanceDelegationRecord[] }>("/api/v1/governance/delegations?limit=51")),
+    settle(request<{ items?: GovernancePolicyRecord[] }>("/api/v1/governance/policies?limit=51", { signal })),
+    settle(request<{ items?: GovernanceDelegationRecord[] }>("/api/v1/governance/delegations?limit=51", { signal })),
   ] as const);
   return {
     policies: policies.value?.items ?? [],
     delegations: delegations.value?.items ?? [],
-    policiesAvailable: policies.available,
-    delegationsAvailable: delegations.available,
+    policiesAvailable: policies.state === "ready",
+    delegationsAvailable: delegations.state === "ready",
+    policiesState: policies.state,
+    delegationsState: delegations.state,
   };
 }
 
-function settle<T>(operation: Promise<T>): Promise<{ value?: T; available: boolean }> {
-  return operation.then((value) => ({ value, available: true })).catch(() => ({ available: false }));
+function settle<T>(operation: Promise<T>): Promise<{ value?: T; state: GovernanceReadState }> {
+  return operation.then((value) => ({ value, state: "ready" as const })).catch((error: unknown) => {
+    if (error instanceof Error && error.name === "AbortError") throw error;
+    return { state: error instanceof ApiError && (error.status === 401 || error.status === 403) ? "restricted" : "unavailable" };
+  });
 }
 
 export function createGovernanceDelegation(input: CreateGovernanceDelegationRequest): Promise<GovernanceDelegationRecord> {

@@ -4,12 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 import { FocusedSheet, SelectField, TextArea } from "./index";
 
 describe("FocusedSheet", () => {
-  it("labels focused work, contains focus and restores the invoker", async () => {
+  it.each([undefined, "start", "end"] as const)("contains keyboard focus and restores the invoker with %s placement", async (placement) => {
     function Harness() {
       const [open, setOpen] = useState(false);
       return <div className="app-shell">
         <main><button type="button" onClick={() => setOpen(true)}>Review evidence</button></main>
-        {open && <FocusedSheet label="Evidence review" onClose={() => setOpen(false)}>
+        {open && <FocusedSheet label="Evidence review" placement={placement} onClose={() => setOpen(false)}>
           <button type="button">First action</button>
           <button type="button">Last action</button>
         </FocusedSheet>}
@@ -21,9 +21,18 @@ describe("FocusedSheet", () => {
     fireEvent.click(invoker);
     const dialog = await screen.findByRole("dialog", { name: "Evidence review" });
     expect(document.body.contains(dialog)).toBe(true);
+    expect(dialog.closest(".cs-sheet")?.classList.contains(`cs-sheet--${placement ?? "end"}`)).toBe(true);
+    expect(dialog.closest(".cs-sheet__overlay")?.classList.contains(`cs-sheet__overlay--${placement ?? "end"}`)).toBe(true);
     expect(document.body.style.overflow).toBe("hidden");
     expect(document.body.style.paddingRight).not.toBe(`${window.innerWidth}px`);
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" })));
+
+    const last = screen.getByRole("button", { name: "Last action" });
+    last.focus();
+    fireEvent.keyDown(last, { key: "Tab", code: "Tab", keyCode: 9 });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close" })));
+    fireEvent.keyDown(document.activeElement!, { key: "Tab", code: "Tab", keyCode: 9, shiftKey: true });
+    await waitFor(() => expect(document.activeElement).toBe(last));
 
     fireEvent.keyDown(dialog, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -50,7 +59,7 @@ describe("FocusedSheet", () => {
 
   it("blocks Escape, backdrop and close controls while consequential work is running", async () => {
     const close = vi.fn();
-    render(<FocusedSheet label="Sending request" isDismissable={false} onClose={close}><p>Sending…</p></FocusedSheet>);
+    render(<FocusedSheet label="Sending request" placement="start" isDismissable={false} onClose={close}><p>Sending…</p></FocusedSheet>);
     const dialog = screen.getByRole("dialog", { name: "Sending request" });
 
     fireEvent.keyDown(dialog, { key: "Escape" });

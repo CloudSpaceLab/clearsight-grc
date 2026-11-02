@@ -1,0 +1,477 @@
+{
+  "generatedAt": "2026-10-23T15:10:50.554Z",
+  "status": "PASS",
+  "check": {
+    "name": "Risk & Losses source layout and bounded record workflows",
+    "status": "PASS",
+    "detail": "68/68 captures; four routes at five widths in two themes, exact readers, real Back/Forward, filters/paging, empty, denied and partial populations; Risks is an explicit table-anatomy adaptation"
+  },
+  "visualParity": "NOT_ASSESSED",
+  "liveAuthority": "NOT_ASSESSED",
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "sourceSHA256": "cf0a101d574904fc5f496cab0625889e640e2e30734d180d86b89171419e69dd",
+  "captures": 68,
+  "sourceFrames": 20,
+  "runtimeRevision": "527b348631e2f92fc920125b7da28692a2743e92",
+  "runtimeBuildDigest": "a20ab1aadace0972b9f35bb924c1d4361f805adca7af4a0b7131c84e1badc746",
+  "sourceRuntimePairs": 40,
+  "accessibilityScenarios": 16,
+  "files": [
+    {
+      "name": "manifest.json",
+      "bytes": 741470,
+      "sha256": "0710d67354f6dcdaa7140d84e2f077cc6893504be0ead99ec175aceba879b214"
+    },
+    {
+      "name": "250-risk-loss-risks-light-1440x900.png",
+      "bytes": 155265,
+      "sha256": "43655531528a49a70ccba1ce17cab44c247d6553b2156010ea50045bf8234af8"
+    },
+    {
+      "name": "250-risk-loss-risks-light-1280x800.png",
+      "bytes": 137547,
+      "sha256": "0bb2a0348b033e5ed5157de3becbfc5bf5781088affa4d8b072970d441bec3fe"
+    },
+    {
+      "name": "250-risk-loss-risks-light-1024x768.png",
+      "bytes": 99554,
+      "sha256": "1d81c3503b028fd57be31ea8afd6cdce8b10481f90c73e47fa969e78482dd9c8"
+    },
+    {
+      "name": "250-risk-loss-risks-light-768x900.png",
+      "bytes": 81940,
+      "sha256": "389b383190bc98f40c2e5e4acebbe46f02400dd282c767a3b5d8b2b61e196d6d"
+    },
+    {
+      "name": "250-risk-loss-risks-light-390x844.png",
+      "bytes": 66240,
+      "sha256": "6eecb2eaa4ef9db2add7d0bc159b3f480927768825d992ad4482862cdf3489f2"
+    },
+    {
+      "name": "250-risk-loss-risks-dark-1440x900.png",
+      "bytes": 155333,
+      "sha256": "135eb22099602f35a04fde382682eefdeb7b8eff1c514572cf7ddb81f47eb678"
+    },
+    {
+      "name": "250-risk-loss-risks-dark-1280x800.png",
+      "bytes": 137589,
+      "sha256": "5fbee4bfbe29c682cd416083baf4f3ebcc96e1bb36e2a3c0de2d472c41beb9e5"
+    },
+    {
+      "name": "250-risk-loss-risks-dark-1024x768.png",
+      "bytes": 98228,
+      "sha256": "3f5f44c52b715dde7617b73721f11d49f461e933f68eccdb197456e31e19c7d6"
+    },
+    {
+      "name": "250-risk-loss-risks-dark-768x900.png",
+      "bytes": 81890,
+      "sha256": "69549c6450a189e8ea143f961baa20712d10ba25227057033c25d32d39a22533"
+    },
+    {
+      "name": "250-risk-loss-risks-dark-390x844.png",
+      "bytes": 66570,
+      "sha256": "ab153695f14b07e12b52bd880d90d28f91ab5b69b1088d79469d93994a4d8cdc"
+    },
+    {
+      "name": "251-risk-loss-rcsa-light-1440x900.png",
+      "bytes": 120060,
+      "sha256": "07cceae2bcdb9ac77f09224644787cbc3411fa26e53cf4a9ed11b062ab075cf9"
+    },
+    {
+      "name": "251-risk-loss-rcsa-light-1280x800.png",
+      "bytes": 117767,
+      "sha256": "06de052f2af616a0c7b58613a66a8ee1532a9ffdb68dc38ea4ea22bdba283bdc"
+    },
+    {
+      "name": "251-risk-loss-rcsa-light-1024x768.png",
+      "bytes": 86721,
+      "sha256": "eb0d3f1eee0d3f9df3c96dc6c1a9aabee142bdd8ccc6f4da7c8e78d4c7a845c7"
+    },
+    {
+      "name": "251-risk-loss-rcsa-light-768x900.png",
+      "bytes": 80515,
+      "sha256": "f7d809c6b1e45c918743e49c27acbacaad8ec1c5e34d75f78c3ba77f301631ae"
+    },
+    {
+      "name": "251-risk-loss-rcsa-light-390x844.png",
+      "bytes": 63586,
+      "sha256": "8f41ad9f0adecd8891f714217f10815d13bee9b928560983c00edda61e133735"
+    },
+    {
+      "name": "251-risk-loss-rcsa-dark-1440x900.png",
+      "bytes": 118856,
+      "sha256": "b159937db706c2182f33449794c55eacf4d664911383834f46419af338b7957e"
+    },
+    {
+      "name": "251-risk-loss-rcsa-dark-1280x800.png",
+      "bytes": 116510,
+      "sha256": "86b22c8c70bb50ca6de3b379c02871657bd738238bfe042691dd79b6936ab14b"
+    },
+    {
+      "name": "251-risk-loss-rcsa-dark-1024x768.png",
+      "bytes": 85209,
+      "sha256": "a80a9345d3ae0ce37e37643a770623154f3955dc846fa39a022ab0338c579748"
+    },
+    {
+      "name": "251-risk-loss-rcsa-dark-768x900.png",
+      "bytes": 80058,
+      "sha256": "dbbb921697153138b0759cb240ca67639aa15e0fcb643fe7ccf458c1fb7a56a4"
+    },
+    {
+      "name": "251-risk-loss-rcsa-dark-390x844.png",
+      "bytes": 63674,
+      "sha256": "ab76a3fb2dc6adfdf7309b2a7f5351f38e1f69d618cb1629fadc4bcb9a404bb0"
+    },
+    {
+      "name": "252-risk-loss-insights-light-1440x900.png",
+      "bytes": 130153,
+      "sha256": "a6be45cce9f6966c2914d6c5854d850078dccaaafa12dfb4abbf921aca44abf1"
+    },
+    {
+      "name": "252-risk-loss-insights-light-1280x800.png",
+      "bytes": 128264,
+      "sha256": "e9344c6c346e6debbbb381ce71d660ab6b6c41df84c3698fda0f6a4c06aaa3d6"
+    },
+    {
+      "name": "252-risk-loss-insights-light-1024x768.png",
+      "bytes": 94910,
+      "sha256": "f5990e0d2396a997c3ce12f1ade1ac4b82adfecb21931b1cbab87529218b8fd3"
+    },
+    {
+      "name": "252-risk-loss-insights-light-768x900.png",
+      "bytes": 84140,
+      "sha256": "a9f3470347579db3188ebcb5da75797d05c554afa9b117c0d480606519174571"
+    },
+    {
+      "name": "252-risk-loss-insights-light-390x844.png",
+      "bytes": 71797,
+      "sha256": "232d3a0d66e9dd1da958018dac3b1628d594a8f2b59c97aa8619520baa4c687d"
+    },
+    {
+      "name": "252-risk-loss-insights-dark-1440x900.png",
+      "bytes": 130940,
+      "sha256": "9d105061e5547f6c856cd4c4dca4b8098da15c9f9bba39fda636a36808ce8652"
+    },
+    {
+      "name": "252-risk-loss-insights-dark-1280x800.png",
+      "bytes": 128091,
+      "sha256": "b9f2c397554a2bb0bd66b0168a773a46141e94d6630b046662ef7c3f572b2f5d"
+    },
+    {
+      "name": "252-risk-loss-insights-dark-1024x768.png",
+      "bytes": 94195,
+      "sha256": "fc8aa79e5446862e3ba75278934385c5b44b3b185d82ba7b1dd5ed5d9b1fbb35"
+    },
+    {
+      "name": "252-risk-loss-insights-dark-768x900.png",
+      "bytes": 84610,
+      "sha256": "14519e88a618f9e0d567b426ffc6dcc0b8612ccd6be2bab7a31c1500aa7e0ab2"
+    },
+    {
+      "name": "252-risk-loss-insights-dark-390x844.png",
+      "bytes": 72215,
+      "sha256": "9ae33e69f9dd59052c58bf20472df05821279b13b27d484ec89713e4db4e701f"
+    },
+    {
+      "name": "253-risk-loss-losses-light-1440x900.png",
+      "bytes": 117080,
+      "sha256": "355e5748e0ff9283ff60107b41d39e84bd1e48e4fd775b42310af7ddc047e15e"
+    },
+    {
+      "name": "253-risk-loss-losses-light-1280x800.png",
+      "bytes": 111626,
+      "sha256": "92ca055b081ff17ef61cd32ca1967b5e5b9f3e3dddd91cd6b90b65ede3d769dd"
+    },
+    {
+      "name": "253-risk-loss-losses-light-1024x768.png",
+      "bytes": 91593,
+      "sha256": "6d8192eb48bbbecb31d3a563a0604217512918156b71f307b35dbc3376f689cb"
+    },
+    {
+      "name": "253-risk-loss-losses-light-768x900.png",
+      "bytes": 82991,
+      "sha256": "1246bf62faece391e7f77e9abaf427485f1393346b816fee28e38351d0d740f3"
+    },
+    {
+      "name": "253-risk-loss-losses-light-390x844.png",
+      "bytes": 66032,
+      "sha256": "436028ddd9924558c3b8eb436917fc5cb34ee6edce1d661af6e5c12245f4da17"
+    },
+    {
+      "name": "253-risk-loss-losses-dark-1440x900.png",
+      "bytes": 117028,
+      "sha256": "feccb594d900378bf87cf1f052ebd3645976ec0e2e8867dd923c29315e7d5faf"
+    },
+    {
+      "name": "253-risk-loss-losses-dark-1280x800.png",
+      "bytes": 111458,
+      "sha256": "7ebbb7b33d8b57fdc6fb1961dc37ae46a3b568424988260747721d9e87a75309"
+    },
+    {
+      "name": "253-risk-loss-losses-dark-1024x768.png",
+      "bytes": 90688,
+      "sha256": "e9fb09b1071e1b2ea7af87947c88ed1a5db5f00719882171ac57dcf6a29b5baa"
+    },
+    {
+      "name": "253-risk-loss-losses-dark-768x900.png",
+      "bytes": 83028,
+      "sha256": "dab5e5948933258e53cf2793d0dfadf5ddfa0172578c0b296a2b193b75bb7c65"
+    },
+    {
+      "name": "253-risk-loss-losses-dark-390x844.png",
+      "bytes": 66428,
+      "sha256": "60400e6d8d0c72a994dba5eff79cea83a2bb8dab4eeddf5d2f6d7710a93bc2b3"
+    },
+    {
+      "name": "2540-risk-loss-risks-detail-light-1440.png",
+      "bytes": 188496,
+      "sha256": "f6695ec5394f17e6162fbbd2409b83947e5bc615fdf04f1ff88dedfbd584a572"
+    },
+    {
+      "name": "2550-risk-loss-risks-detail-dark-390.png",
+      "bytes": 82438,
+      "sha256": "83037dfd4bcd9451173be8862af15526c3ac7bcd0ba039fc03ff1757f8055a44"
+    },
+    {
+      "name": "2560-risk-loss-risks-history-light-1440.png",
+      "bytes": 155206,
+      "sha256": "c4a798a10e545aa25c5bffd94fb0bf3d2f655d8a3a9e9267cfd5407c96a3aa44"
+    },
+    {
+      "name": "2570-risk-loss-risks-empty-light-1440.png",
+      "bytes": 99889,
+      "sha256": "a2bd59c748a476da94adff59ae4c3ed634cc52796899e94385da46a93b1a1194"
+    },
+    {
+      "name": "2580-risk-loss-risks-denied-dark-390.png",
+      "bytes": 51318,
+      "sha256": "0c94d160fa1dc7dfc2c22c21627fd990a07322f7525b8daedcb2ffe958298516"
+    },
+    {
+      "name": "2590-risk-loss-risks-partial-dark-390.png",
+      "bytes": 65989,
+      "sha256": "dfa2fb93ee21aae038bafc8f6c3446030475b91e68447885f5af0a4fffbd753e"
+    },
+    {
+      "name": "2600-risk-loss-risks-filters-light-390.png",
+      "bytes": 66155,
+      "sha256": "47724f5c5b5918007dcf07c856e0c015bd582174ee336971ec152788d63bd38a"
+    },
+    {
+      "name": "2541-risk-loss-rcsa-detail-light-1440.png",
+      "bytes": 247868,
+      "sha256": "fd8fe70f52b2cbe8e36ec776c203d4092743a443571927a74d9191824f3c83db"
+    },
+    {
+      "name": "2551-risk-loss-rcsa-detail-dark-390.png",
+      "bytes": 59441,
+      "sha256": "1ebe58f7fa8ea857a721ef8699aabcd225dfbcdd3267c42107faa285bb36c470"
+    },
+    {
+      "name": "2561-risk-loss-rcsa-history-dark-390.png",
+      "bytes": 63674,
+      "sha256": "ab76a3fb2dc6adfdf7309b2a7f5351f38e1f69d618cb1629fadc4bcb9a404bb0"
+    },
+    {
+      "name": "2571-risk-loss-rcsa-empty-light-1440.png",
+      "bytes": 90528,
+      "sha256": "3dd2c2954048703459207a8952c5be484466fd2aa48ce66d00a160144e93e8fb"
+    },
+    {
+      "name": "2581-risk-loss-rcsa-denied-dark-390.png",
+      "bytes": 56449,
+      "sha256": "87919c8d7804f375ad9190e913fd5b89b325fec0f9a6c9a7d8630d10d6436ebd"
+    },
+    {
+      "name": "2591-risk-loss-rcsa-partial-light-1440.png",
+      "bytes": 127835,
+      "sha256": "bb1235d143a8e820c8f0a0bc9c667c44728a982808e2d79ae382d6715e382331"
+    },
+    {
+      "name": "2601-risk-loss-rcsa-filters-light-390.png",
+      "bytes": 64581,
+      "sha256": "b1c24ec418c2767eeb4c6f559790a31dd92ca23f198940df66e71742808777b1"
+    },
+    {
+      "name": "2542-risk-loss-insights-detail-light-1440.png",
+      "bytes": 242400,
+      "sha256": "412330e764be5ae917973a384b6b433fe5e9d7da4800973884ec88c22e9ec297"
+    },
+    {
+      "name": "2552-risk-loss-insights-detail-dark-390.png",
+      "bytes": 61230,
+      "sha256": "34b9f4159dc17a0a2792688ca8dce38c04b9ecbd89a6821392fa0b855c7ec7a0"
+    },
+    {
+      "name": "2562-risk-loss-insights-history-light-1440.png",
+      "bytes": 130191,
+      "sha256": "c817fe4e916efb4f0935827ab3134735e20bc3417403e099585a8c5c94f02cb0"
+    },
+    {
+      "name": "2572-risk-loss-insights-empty-light-1440.png",
+      "bytes": 93957,
+      "sha256": "544f3e1ac4a1a4c6cae8f0cb9b737c6e6a000055033b974f0980ca3dd5833cbc"
+    },
+    {
+      "name": "2582-risk-loss-insights-denied-dark-390.png",
+      "bytes": 57202,
+      "sha256": "5bf54d65725c4bf43dca6f16fdb1d04d8b87c3ea6e23a82cb006a828cda174e2"
+    },
+    {
+      "name": "2592-risk-loss-insights-partial-dark-390.png",
+      "bytes": 72448,
+      "sha256": "af6331d65ec954771a2a94673a485644b398be44df2d7374644872855b4c5f1d"
+    },
+    {
+      "name": "2602-risk-loss-insights-filters-light-390.png",
+      "bytes": 72720,
+      "sha256": "1712a910796441b092a0cb49e23d0edb59b03b7feb77317c0188e3c02f29c9f7"
+    },
+    {
+      "name": "2543-risk-loss-losses-detail-light-1440.png",
+      "bytes": 188804,
+      "sha256": "390fc864ae8feb2d196da867cad28d1b87721690706cf3e2604b5f556526cc0f"
+    },
+    {
+      "name": "2553-risk-loss-losses-detail-dark-390.png",
+      "bytes": 84628,
+      "sha256": "34285cb7119334fb905283bd8973f5dbea8b77e48a69eab66e50f15435e5b82f"
+    },
+    {
+      "name": "2563-risk-loss-losses-history-dark-390.png",
+      "bytes": 66428,
+      "sha256": "60400e6d8d0c72a994dba5eff79cea83a2bb8dab4eeddf5d2f6d7710a93bc2b3"
+    },
+    {
+      "name": "2573-risk-loss-losses-empty-light-1440.png",
+      "bytes": 100917,
+      "sha256": "c262d836eafec684c4431fa2fe683dd25c6dcdae4e28a4cc300e410796312adf"
+    },
+    {
+      "name": "2583-risk-loss-losses-denied-dark-390.png",
+      "bytes": 53590,
+      "sha256": "2b9fed736352b3e77dc4e70a82b5459c0ecad8dd2be8ac8c17245fdab7a3e278"
+    },
+    {
+      "name": "2593-risk-loss-losses-partial-light-1440.png",
+      "bytes": 140794,
+      "sha256": "101b113a0aac453d626d831cacd45723140ec128c3aa0fe5d2d84560075333d3"
+    },
+    {
+      "name": "2603-risk-loss-losses-filters-light-390.png",
+      "bytes": 66015,
+      "sha256": "64b275b26caca4e71e41ce129efb0fa9e156547c0652053141456bc685aa1ece"
+    },
+    {
+      "name": "approved-reference/manifest.json",
+      "bytes": 202955,
+      "sha256": "9b9df096694b1a6d9dd1c1397d6d812fee233188301b85a7f88be5dff5325c87"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-risks-1440x900.png",
+      "bytes": 170220,
+      "sha256": "5717f9696ba3731502320c1181d5fb395a567c451ea0f78e63bf01ddfcd5fc1f"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-risks-1280x800.png",
+      "bytes": 150069,
+      "sha256": "88949149b6125e2944bbe23b67e609ac21ff8ee54dec5ee7297d367c4e1eb8ea"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-risks-1024x768.png",
+      "bytes": 116391,
+      "sha256": "683feb8eb8e9474e2fd1d64c2ed3e745d0a36e35e8291a96c3fd4ab5040c955a"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-risks-768x900.png",
+      "bytes": 105872,
+      "sha256": "7606b1d3da3557ce622ec412dbacc0185d8f1cc22df68d497d3bd850658fd990"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-risks-390x844.png",
+      "bytes": 67730,
+      "sha256": "4eb706e0eeee927ae476bd3bbe420c673e00e50f8de2a6ac1d741ff3114a6869"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-rcsa-1440x900.png",
+      "bytes": 166337,
+      "sha256": "349df5a9dc1fe9421b6bc42d803001821e758ac9fa98bd944442a566362c2145"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-rcsa-1280x800.png",
+      "bytes": 137605,
+      "sha256": "527a6bee82fe59a2d0e9c1403134cda114400ff6ff4edf3c6e2490537c3156d9"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-rcsa-1024x768.png",
+      "bytes": 103966,
+      "sha256": "9b20b4957491a493cae6ddc3cc2c52273386d248e5285f8e2bfa865878ddda0c"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-rcsa-768x900.png",
+      "bytes": 113625,
+      "sha256": "cefe4dc072d20b8d288bc77e410b5794bc561f59af84c08d6bd0e81618bf839d"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-rcsa-390x844.png",
+      "bytes": 65162,
+      "sha256": "8f2df5fbbd30e900587fa253f1346d7f4b8fde1b56a50df47a6d90b41d403e89"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-insights-1440x900.png",
+      "bytes": 170220,
+      "sha256": "5717f9696ba3731502320c1181d5fb395a567c451ea0f78e63bf01ddfcd5fc1f"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-insights-1280x800.png",
+      "bytes": 150069,
+      "sha256": "88949149b6125e2944bbe23b67e609ac21ff8ee54dec5ee7297d367c4e1eb8ea"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-insights-1024x768.png",
+      "bytes": 116391,
+      "sha256": "683feb8eb8e9474e2fd1d64c2ed3e745d0a36e35e8291a96c3fd4ab5040c955a"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-insights-768x900.png",
+      "bytes": 105872,
+      "sha256": "7606b1d3da3557ce622ec412dbacc0185d8f1cc22df68d497d3bd850658fd990"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-insights-390x844.png",
+      "bytes": 67730,
+      "sha256": "4eb706e0eeee927ae476bd3bbe420c673e00e50f8de2a6ac1d741ff3114a6869"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-losses-1440x900.png",
+      "bytes": 158912,
+      "sha256": "bc4953735fb257c275e628067d52f504429aba22d4017744ded8b0e0a975fd06"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-losses-1280x800.png",
+      "bytes": 148047,
+      "sha256": "f4bfed76e0925243da44c3bcb4d018b2d07aaa5033498483cc20165ecb69a71e"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-losses-1024x768.png",
+      "bytes": 115605,
+      "sha256": "7ea0c978ff75569e549f83d31fcd01c952abd4e3d2492d654b046f6ab6bac483"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-losses-768x900.png",
+      "bytes": 107380,
+      "sha256": "95dd0a23a1fd8943981eb7ffac8231c7b226749051861103205263533ebdbb32"
+    },
+    {
+      "name": "approved-reference/approved-risk-loss-losses-390x844.png",
+      "bytes": 68278,
+      "sha256": "479bf589cc85a9e0a7b713a6ce29ff5141c94f21efea531dda51f8ee79d9b65d"
+    },
+    {
+      "name": "accessibility.json",
+      "bytes": 604226,
+      "sha256": "658762ceec7d9f7295abf78921855e87757e1f2f34ed6885e202684c86895945"
+    }
+  ],
+  "failures": []
+}

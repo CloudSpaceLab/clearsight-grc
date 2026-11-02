@@ -5,7 +5,7 @@ import { getRisk, linkRiskControl, type LinkRiskControlResponse } from "../../ri
 import type { RiskAggregate, RiskAppetiteStatement, RiskAssessment, RiskControlDetail } from "../../riskTypes";
 import { apiErrorKind } from "../../http";
 import { Button, DataTable, EmptyState, Notice, SelectField, StatusBadge, Surface, type DataColumn } from "../ui";
-import { appetiteLabel, appetiteTone, assessmentKindLabel, controlEvidenceSummary, controlImplementationStatusLabel, controlImplementationStatusTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskCurrentPositionAssessment, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
+import { appetiteLabel, appetiteTone, assessmentKindLabel, assessmentRatingLabel, assessmentRatingTone, controlEvidenceSummary, controlImplementationStatusLabel, controlImplementationStatusTone, currentAppetiteLabel, currentAppetiteTone, dimensionSummary, formatRiskDate, riskCurrentPositionAssessment, riskStatusLabel, riskStatusTone, scopeEntries } from "./riskPresentation";
 import { RiskIndicatorsSection } from "./RiskIndicatorsSection";
 import { NotificationDeliveryHistory } from "../NotificationDeliveryHistory";
 
@@ -156,18 +156,19 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
   }
 
   return <section className="risk-record-page" aria-labelledby="risk-record-heading">
-    <header className="topbar risk-page-header">
+    <header className="risk-record__heading">
       <div>
         <span className="eyebrow">{risk.code}{risk.category ? ` · ${risk.category}` : ""}</span>
         <h1 id="risk-record-heading">{risk.name}</h1>
+        <div className="risk-record__conditions" aria-label="Risk status"><StatusBadge tone={riskStatusTone(risk.status)}>{riskStatusLabel(risk.status)}</StatusBadge></div>
       </div>
       <Button variant="secondary" onPress={onBack}>Back to risks</Button>
     </header>
 
     <Surface>
       <dl className="risk-record__state" role="group" aria-label="Current risk state">
+        <div><dt>Current rating</dt><dd><StatusBadge tone={assessmentRatingTone(currentAssessment, risk.version)}>{assessmentRatingLabel(currentAssessment, risk.version)}</StatusBadge></dd></div>
         <div><dt>{currentAssessment ? `${assessmentKindLabel(currentAssessment.kind)} appetite` : "Appetite"}</dt><dd><StatusBadge tone={currentAppetiteTone(risk.version, currentAssessment, aggregate.active_appetite)}>{currentAppetiteLabel(risk.version, currentAssessment, aggregate.active_appetite)}</StatusBadge></dd></div>
-        <div><dt>Status</dt><dd><StatusBadge tone={riskStatusTone(risk.status)}>{riskStatusLabel(risk.status)}</StatusBadge></dd></div>
         <div><dt>Owner</dt><dd>{aggregate.owner_display_name || (risk.owner_principal_id ? "Assigned · name unavailable" : "Not assigned")}</dd></div>
         <div><dt>Updated</dt><dd>{formatRiskDate(risk.updated_at)}</dd></div>
       </dl>
@@ -196,11 +197,11 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
 
     <section className="risk-record__history" aria-labelledby="risk-controls-heading">
       <div className="section-header">
-        <div><h2 id="risk-controls-heading">Controls</h2><p>Existing Program controls linked to this risk. Evidence remains governed in the Program.</p></div>
+        <div><h2 id="risk-controls-heading">Controls</h2><p>Linked controls · Open a Program to review evidence.</p></div>
         {canLinkControl && !linkMode && <Button variant="secondary" size="compact" onPress={() => void beginLinkControl()}>Link control</Button>}
       </div>
       {linkMode && <div className="risk-record__link-form">
-        <div><h3>Link existing control</h3><p>Choose a reusable control already catalogued in this legal entity.</p></div>
+        <div><h3>Link existing control</h3></div>
         {candidateState === "loading" && <p role="status">Loading reusable controls…</p>}
         {candidateState === "error" && <Notice tone="error">{linkError || "Reusable controls could not be loaded."}</Notice>}
         {candidateState === "live" && !candidatePage.complete && <Notice tone="warning">Some reusable controls are unavailable in the current scope.</Notice>}
@@ -218,6 +219,7 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
       {aggregate.control_details_complete === false && <Notice tone="warning">Some linked control details are unavailable in the current scope.</Notice>}
       {aggregate.control_details?.length ? <DataTable
         ariaLabel="Risk controls"
+        responsiveTo="container"
         rows={aggregate.control_details}
         rowKey={(item) => item.link.id}
         rowName={(item) => `${item.definition.name}, ${item.implementation_name}, ${controlImplementationStatusLabel(item.implementation_status)}`}
@@ -251,17 +253,19 @@ export function RiskRecord({ riskID, actorID, onBack, onOpenProgram, onOpenMatte
       <div className="section-header"><div><h2 id="risk-assessments-heading">Assessments</h2><p>Approved assessment records and their appetite position.</p></div></div>
       {aggregate.assessments.length ? <DataTable
         ariaLabel="Risk assessments"
+        responsiveTo="container"
         rows={aggregate.assessments}
         rowKey={(item) => item.id}
         rowName={(item) => `${assessmentKindLabel(item.kind)}, ${item.method_code}, ${appetiteLabel(item.appetite_position)}`}
         columns={assessmentColumns}
-      /> : <EmptyState population={risk.name} title="No assessments" description="No governed assessment has been recorded for this risk."/>}
+      /> : <EmptyState population={risk.name} title="No assessments" description="No assessments recorded for this risk."/>}
     </section>
 
     <section className="risk-record__history" aria-labelledby="risk-appetite-heading">
-      <div className="section-header"><div><h2 id="risk-appetite-heading">Appetite history</h2><p>Versioned appetite statements retained for this risk.</p></div></div>
+      <div className="section-header"><div><h2 id="risk-appetite-heading">Appetite history</h2></div></div>
       {aggregate.appetite.length ? <DataTable
         ariaLabel="Risk appetite history"
+        responsiveTo="container"
         rows={aggregate.appetite}
         rowKey={(item) => item.id}
         rowName={(item) => `Appetite version ${item.version}, ${item.statement}`}

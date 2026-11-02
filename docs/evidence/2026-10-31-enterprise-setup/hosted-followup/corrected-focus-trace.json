@@ -1,0 +1,115 @@
+{
+  "kind": "FILTERED_LOCAL_FOCUS_TRACE_NOT_HOSTED_FAILURE_REPRODUCTION",
+  "sourceReceiptSHA256": "7f58a4a805e4d633ad37fc970de334f017d171cb88630d807c4a93e7feef85be",
+  "sourceReceiptBytes": 24229,
+  "browser": "140.0.7339.16",
+  "mode": "synchronized",
+  "cpuRate": 1,
+  "timeUnit": "browser-relative milliseconds",
+  "events": [
+    {
+      "time": 1883,
+      "reason": "DOM",
+      "focused": {
+        "tag": "BODY",
+        "role": null,
+        "label": null,
+        "text": "ClearSightGovernance, risk & complianceHomeFrameworksProgramsFormsVendorsRisk & LossesRisksRCSAKey i",
+        "expanded": null
+      },
+      "dialogs": [
+        "Edit Imported operations"
+      ],
+      "listboxes": 0,
+      "popovers": 0,
+      "typeTrigger": {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Department\u2304",
+        "expanded": "false"
+      }
+    },
+    {
+      "time": 1888,
+      "reason": "focusin",
+      "focused": {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Department\u2304",
+        "expanded": "false"
+      },
+      "dialogs": [
+        "Edit Imported operations"
+      ],
+      "listboxes": 0,
+      "popovers": 0,
+      "typeTrigger": {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Department\u2304",
+        "expanded": "false"
+      },
+      "target": {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Department\u2304",
+        "expanded": "false"
+      }
+    },
+    {
+      "time": 1916,
+      "reason": "window-keydown-capture",
+      "focused": {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Department\u2304",
+        "expanded": "false"
+      },
+      "dialogs": [
+        "Edit Imported operations"
+      ],
+      "listboxes": 0,
+      "popovers": 0,
+      "typeTrigger": {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Department\u2304",
+        "expanded": "false"
+      },
+      "target": {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Department\u2304",
+        "expanded": "false"
+      },
+      "key": "Escape",
+      "defaultPrevented": false
+    },
+    {
+      "time": 1926,
+      "reason": "DOM",
+      "focused": {
+        "tag": "BODY",
+        "role": null,
+        "label": null,
+        "text": "ClearSightGovernance, risk & complianceHomeFrameworksProgramsFormsVendorsRisk & LossesRisksRCSAKey i",
+        "expanded": null
+      },
+      "dialogs": [],
+      "listboxes": 0,
+      "popovers": 0,
+      "typeTrigger": null
+    }
+  ],
+  "limitations": [
+    "Only the four relevant recorded events are retained; other DOM/focus events are omitted.",
+    "This successful local probe observes a focus-restoration boundary. It does not establish the precise state at the failed hosted Escape."
+  ]
+}

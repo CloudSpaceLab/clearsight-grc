@@ -440,7 +440,7 @@ func safeReportFilename(value string) string {
 func writeReportError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, reporting.ErrAuthorityUnavailable):
-		httpx.WriteError(w, http.StatusServiceUnavailable, "report_authority_unavailable", "The current responsibility route for this report could not be checked. No change was made; try again when the authority service is available.")
+		httpx.WriteError(w, http.StatusServiceUnavailable, "report_authority_unavailable", "Report permissions unavailable. No changes made. Try again.")
 	case errors.Is(err, reporting.ErrNotFound):
 		httpx.WriteError(w, http.StatusNotFound, "report_not_found", "This report definition or run is not available in your legal entity.")
 	case errors.Is(err, reporting.ErrReportDownloadForbidden):
@@ -454,9 +454,9 @@ func writeReportError(w http.ResponseWriter, err error) {
 	case errors.Is(err, reporting.ErrConflict):
 		httpx.WriteError(w, http.StatusConflict, "report_version_conflict", "This report changed since you opened it. Review the current definition or run and try again.")
 	case errors.Is(err, reporting.ErrClosureBlocked):
-		httpx.WriteError(w, http.StatusUnprocessableEntity, "report_governance_blocked", "This report action cannot proceed because a required maker, reviewer, authorizer, approval or effective-date step is missing. Check the current report responsibility and try again.")
+		httpx.WriteError(w, http.StatusUnprocessableEntity, "report_governance_blocked", "Report approval requirements are incomplete. Check assignments, approvals and effective date.")
 	case errors.Is(err, reporting.ErrInvalid):
-		httpx.WriteError(w, http.StatusBadRequest, "report_request_invalid", "The report request is not valid. Check the dataset, scope, format, filter and expected version, then save it again.")
+		httpx.WriteError(w, http.StatusBadRequest, "report_request_invalid", "Check the report dataset, scope, format, filters and version before saving.")
 	default:
 		httpx.WriteError(w, http.StatusInternalServerError, "report_request_failed", "The report request could not be completed. No change was made; try again.")
 	}

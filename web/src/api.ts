@@ -1,5 +1,5 @@
 import { requestJSON, requestVoid } from "./http";
-import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicy, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceReviewSubmission, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
+import type { AIGovernancePolicy, AIGovernanceWorkload, AttentionItem, AutomationPolicyPage, AuthorityResolution, CaptureRequest, EvidenceRequest, EvidenceReviewSubmission, EvidenceSource, IntegrityFinding, MatterAggregate, PolicySummary, ProgramAggregate, Readiness, ResponseHistoryPage, WorkflowTask } from "./types";
 import type { MatterSummary, ProgramSummary, SummaryPage, SummaryQuery } from "./summaryTypes";
 import type { BackgroundJobSnapshot, JobRecoveryReceipt, ProjectionHealth, ReconcileResult } from "./operationsTypes";
 import type { BankJourneysResponse } from "./verticalTypes";
@@ -77,7 +77,7 @@ export type SessionStatus = {
   demo_login_available: boolean;
 };
 
-export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string };
+export type TodaySnapshot = { items: AttentionItem[]; generated_at?: string; count_basis?: "LOADED"; workflow_has_more?: boolean };
 export type EmployeeProfile = { person: { id: string; display_name: string; status: string; position?: string; function?: string; sample: boolean }; metrics: Record<string, { value?: number }>; as_of: string };
 export type EmployeeWorkItem = { id: string; record_type: string; record_id: string; responsibility: string; title: string; status: string; due_at?: string; updated_at: string };
 export type EmployeeActivityItem = { event_id: string; occurred_at: string; action: string; record_type: string; record_id: string; title: string; source: string };
@@ -173,6 +173,48 @@ export function loadToday(): Promise<TodaySnapshot> {
   return request<TodaySnapshot>("/api/v1/today");
 }
 
+export type ActorWorkScope = { tenantID: string; legalEntityID: string; principalID: string };
+
+type ActorWorkReceipt = {
+  as_of: string;
+  coverage: "WORKFLOW_ASSIGNMENTS_ONLY";
+  scope: { tenant_id: string; legal_entity_id: string; principal_id: string };
+};
+
+export type ActorWorkPage = ActorWorkReceipt & {
+  items: AttentionItem[];
+  next_cursor?: string;
+  has_more: boolean;
+  count_basis: "NOT_AVAILABLE";
+};
+
+export type ActorWorkDueCounts = ActorWorkReceipt & {
+  total: number;
+  overdue: number;
+  due_soon: number;
+  undated: number;
+  count_basis: "SOURCE_SNAPSHOT";
+};
+
+export function loadActorWorkDueCounts(): Promise<ActorWorkDueCounts> {
+  return scopedRequest<ActorWorkDueCounts>("/api/v1/work/assignment-counts");
+}
+
+export type ActorWorkFilters = {
+  status?: "READY" | "IN_PROGRESS" | "BLOCKED" | "ESCALATED";
+  due_from?: string;
+  due_before?: string;
+};
+
+export function loadActorWorkPage(search: string, cursor?: string, filters: ActorWorkFilters = {}): Promise<ActorWorkPage> {
+  return scopedRequest<ActorWorkPage>("/api/v1/work/assignments", {
+    q: search.trim(),
+    cursor,
+    limit: 50,
+    ...filters,
+  });
+}
+
 export function loadEmployeeProfile(personID: string): Promise<EmployeeProfile> { return scopedRequest<EmployeeProfile>(`/api/v1/people/${encodeURIComponent(personID)}`); }
 export function loadEmployeeWork(personID: string): Promise<{ items: EmployeeWorkItem[]; as_of: string }> { return scopedRequest(`/api/v1/people/${encodeURIComponent(personID)}/work`, { limit: 50 }); }
 export function loadEmployeeActivity(personID: string): Promise<{ items: EmployeeActivityItem[]; as_of: string }> { return scopedRequest(`/api/v1/people/${encodeURIComponent(personID)}/activity`, { limit: 50 }); }
@@ -208,8 +250,8 @@ export function loadReadiness(): Promise<Readiness> {
   return scopedRequest<Readiness>("/api/v1/compliance/readiness");
 }
 
-export async function loadAutomationPolicies(): Promise<AutomationPolicy[]> {
-  return (await request<{ items: AutomationPolicy[] }>("/api/v1/compliance/automation-policies")).items;
+export async function loadAutomationPolicyPage(signal?: AbortSignal): Promise<AutomationPolicyPage> {
+  return request<AutomationPolicyPage>("/api/v1/compliance/automation-policies", { signal });
 }
 
 export async function loadAIGovernancePolicies(): Promise<AIGovernancePolicy[]> {

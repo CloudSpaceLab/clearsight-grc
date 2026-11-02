@@ -1,10 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type {
   OrganizationScope,
   OrganizationScopeRevision,
   ProposeOrganizationScopeInput,
 } from "../../identityAccessApi";
-import { Button, FocusedSheet, SelectField, StatusBadge, TextArea, TextField } from "../ui";
+import { ActionLink, Button, FocusedSheet, IconButton, Notice, SearchField, SelectableRecord, SelectField, StatusBadge, Surface, TextArea, TextField } from "../ui";
+import { NavigationIcon } from "../NavigationIcon";
+import { enterpriseSetupHash, enterpriseSetupRoute } from "../configure/enterpriseSetupRouting";
+import { peopleAccessHash } from "../configure/peopleAccessRouting";
+import { filterOrganizationHierarchy, organizationHierarchy, scopeKindLabel } from "./organizationHierarchy";
+import "./organization-setup.css";
 
 type EditorState =
   | { mode: "add" }
@@ -21,6 +26,12 @@ type Props = {
   actorPrincipalID: string;
   canConfigure: boolean;
   isBusy?: boolean;
+  scopesTruncated?: boolean;
+  legalEntityName?: string;
+  legalEntityCode?: string;
+  selectedScopeID?: string;
+  onSelectScope?: (id: string | undefined) => void;
+  children?: ReactNode;
   onPropose: (input: ProposeOrganizationScopeInput) => Promise<boolean>;
   onApprove: (revision: OrganizationScopeRevision, rationale: string) => Promise<boolean>;
   onReject: (revision: OrganizationScopeRevision, rationale: string) => Promise<boolean>;
@@ -40,25 +51,117 @@ export function OrganizationScopeManager({
   actorPrincipalID,
   canConfigure,
   isBusy = false,
+  scopesTruncated = false,
+  legalEntityName = "Current legal entity",
+  legalEntityCode,
+  selectedScopeID,
+  onSelectScope,
+  children,
   onPropose,
   onApprove,
   onReject,
 }: Props) {
   const [editor, setEditor] = useState<EditorState>();
   const [decision, setDecision] = useState<DecisionState>();
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
+  const [localSelection, setLocalSelection] = useState<string>();
+  const detailRef = useRef<HTMLElement>(null);
+  const treeRef = useRef<HTMLDivElement>(null);
+  const identity = useId();
+  const selectedID = onSelectScope ? selectedScopeID : localSelection;
   const pendingByScope = useMemo(() => new Map(revisions.filter((item) => item.status === "PENDING").map((item) => [item.scope_id, item])), [revisions]);
   const scopeByID = useMemo(() => new Map(scopes.map((scope) => [scope.id, scope])), [scopes]);
-  const ordered = useMemo(() => [...scopes].sort((left, right) => left.department_path.join("/").localeCompare(right.department_path.join("/"))), [scopes]);
+  const hierarchy = useMemo(() => organizationHierarchy(scopes), [scopes]);
+  const visible = useMemo(() => filterOrganizationHierarchy(hierarchy, query, collapsed), [hierarchy, query, collapsed]);
+  const selected = selectedID ? scopeByID.get(selectedID) : undefined;
+  const selectedRow = selectedID ? hierarchy.find((row) => row.scope.id === selectedID) : undefined;
+  const pending = selectedID ? pendingByScope.get(selectedID) : undefined;
+  const pendingChanges = revisions.filter((revision) => revision.status === "PENDING");
+  const imported = selected?.kind === "ORGANIZATION_UNIT";
+  const branches = scopes.filter((scope) => scope.kind === "BRANCH").length;
+  const departments = scopes.filter((scope) => scope.kind === "DEPARTMENT").length;
+  const issueCount = hierarchy.filter((row) => row.issue).length;
+  const selections = enterpriseSetupRoute(window.location.hash)?.selections ?? {};
+  const groupsHref = enterpriseSetupHash("groups", selectedID, selections);
+  const peopleHref = peopleAccessHash("people", selections);
+  const directoryHref = peopleAccessHash("organization", selections, "directory");
+  const reportingHref = peopleAccessHash("organization", selections, "reporting");
+  const escalationHref = peopleAccessHash("organization", selections, "escalation");
 
-  return <div className="identity-scope-manager">
-    <div className="identity-scope-manager__header">
-      <div><h3>Areas</h3><span>{scopes.length} active</span></div>
-      {canConfigure && <Button size="compact" onPress={() => setEditor({ mode: "add" })}>Add area</Button>}
+  useEffect(() => {
+    if (!canConfigure) { setEditor(undefined); setDecision(undefined); }
+  }, [canConfigure]);
+  useEffect(() => { setEditor(undefined); setDecision(undefined); setReviewOpen(false); }, [selectedID]);
+
+  function recordID(id?: string) { return `${identity}-area-${id ?? "entity"}`; }
+  function select(id: string | undefined) {
+    setLocalSelection(id);
+    onSelectScope?.(id);
+    if (window.matchMedia("(max-width: 1300px)").matches) requestAnimationFrame(() => {
+      const headerBottom = document.querySelector(".context-bar")?.getBoundingClientRect().bottom ?? 0;
+      if (detailRef.current) detailRef.current.style.scrollMarginTop = `${Math.max(0, headerBottom) + 16}px`;
+      detailRef.current?.focus({ preventScroll: true });
+      detailRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+  }
+  function returnToHierarchy() {
+    const target = document.getElementById(recordID(selectedID)) ?? treeRef.current;
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({ block: "center", behavior: "instant" });
+  }
+  function toggle(id: string) {
+    setCollapsed((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  }
+
+  return <div className="organization-setup-layout identity-scope-manager">
+    <div className="organization-setup-primary">
+      <div className="organization-setup-grid">
+        <section className="organization-setup-hierarchy" aria-label="Organization structure">
+          <Surface>
+            <header className="organization-setup-card-heading"><div><h2>Organization structure</h2><p>{scopes.length} loaded areas · {scopesTruncated ? "More areas not shown" : "Search covers this list"}</p></div><div className="organization-setup-tools"><SearchField label="Find organization unit" value={query} onChange={setQuery} placeholder="Find a unit"/>{canConfigure && <Button onPress={() => setEditor({ mode: "add" })} isDisabled={isBusy}>Add area</Button>}</div></header>
+            <div className="organization-setup-tree" ref={treeRef} tabIndex={-1}>
+              <div className="organization-setup-row organization-setup-row--entity">
+                <span className="organization-setup-expander" aria-hidden="true"/>
+                <SelectableRecord id={recordID()} variant="list" title={legalEntityName} metadata="Legal entity" aria-label={`Inspect ${legalEntityName}`} isSelected={!selectedID} onPress={() => select(undefined)} startContent={<NavigationIcon view="frameworks"/>}/>
+              </div>
+              <ul aria-label="Loaded organization areas">
+                {visible.rows.map((row) => <li key={row.scope.id} className="organization-setup-row" style={{ "--organization-depth": Math.min(row.depth + 1, 3) } as CSSProperties}>
+                  {row.childCount > 0 ? <IconButton variant="quiet" aria-label={`${collapsed.has(row.scope.id) && !query.trim() ? "Expand" : "Collapse"} ${row.scope.name}`} aria-expanded={query.trim() ? true : !collapsed.has(row.scope.id)} title={query.trim() ? "Search shows matching areas and their parents. Clear search to collapse areas." : undefined} isDisabled={Boolean(query.trim())} onPress={() => toggle(row.scope.id)}><span aria-hidden="true">{collapsed.has(row.scope.id) && !query.trim() ? "›" : "⌄"}</span></IconButton> : <span className="organization-setup-expander" aria-hidden="true"/>}
+                  <SelectableRecord id={recordID(row.scope.id)} variant="list" title={row.scope.name} metadata={scopeKindLabel(row.scope.kind)} aria-label={`Inspect ${row.scope.name}`} isSelected={selectedID === row.scope.id} onPress={() => select(row.scope.id)} startContent={<NavigationIcon view={row.scope.kind === "BRANCH" ? "programs" : row.scope.kind === "DEPARTMENT" ? "people" : "frameworks"}/>}/>
+                </li>)}
+              </ul>
+              {!visible.rows.length && <div className="organization-setup-empty"><h3>{scopes.length ? "No areas match this search" : "No organization areas returned"}</h3><p>{scopes.length ? "Search checks only the loaded names, codes, types and paths." : "No active areas were returned for this legal entity."}</p>{query && <Button variant="quiet" onPress={() => setQuery("")}>Clear search</Button>}</div>}
+            </div>
+            <footer className="organization-setup-list-footer">{query.trim() ? `${visible.matches} matching areas · ${visible.rows.length} rows including parent context` : `${visible.rows.length} of ${scopes.length} loaded areas shown`}</footer>
+            {scopesTruncated && <Notice tone="warning">First 500 areas loaded. Search filters this list; additional areas are not included.</Notice>}
+            {issueCount > 0 && <Notice tone="warning">{issueCount} area relationship{issueCount === 1 ? " needs" : "s need"} review. Some parents are missing or form a loop. Review the area relationships.</Notice>}
+          </Surface>
+        </section>
+        <div className="organization-setup-summaries">
+          <Surface><section className="organization-setup-summary"><h2>Area changes</h2><p>{pendingChanges.length} pending proposal{pendingChanges.length === 1 ? "" : "s"} loaded</p><ul className="organization-setup-change-preview">{pendingChanges.slice(0, 3).map((revision) => <li key={revision.id}><strong>{revisionLabel(revision, scopeByID)}</strong><span>{revision.maker_id === actorPrincipalID ? "Awaiting approval" : "Independent review"}</span></li>)}</ul>{!pendingChanges.length && <p>No pending area changes were returned.</p>}<Button variant="quiet" onPress={() => setReviewOpen(true)}>Review area changes</Button></section></Surface>
+          <Surface><section className="organization-setup-summary"><h2>Structure</h2><p>Areas in this loaded list</p><dl className="organization-setup-structure"><div><dt>Branches</dt><dd>{branches}</dd></div><div><dt>Departments</dt><dd>{departments}</dd></div><div><dt>Other areas</dt><dd>{scopes.length - branches - departments}</dd></div></dl><ActionLink href={groupsHref}>Organization groups</ActionLink></section></Surface>
+        </div>
+      </div>
+      {children}
     </div>
+    <aside className="organization-setup-context" ref={detailRef} tabIndex={-1} aria-labelledby={`${identity}-context`}>
+      <Surface><div className="organization-setup-context-body">
+        <span className="organization-setup-kicker">Current selection</span>
+        <h2 id={`${identity}-context`}>{selected?.name || (selectedID ? "Area not in this list" : legalEntityName)}</h2>
+        {selected ? <><dl className="organization-setup-facts"><dt>Type</dt><dd>{scopeKindLabel(selected.kind)}</dd><dt>Code</dt><dd>{selected.code}</dd><dt>Parent</dt><dd>{selectedRow?.issue === "cycle" ? "Cyclic relationship — review required" : selected.parent_scope_id ? scopeByID.get(selected.parent_scope_id)?.name || "Parent outside loaded areas" : legalEntityName}</dd><dt>Path</dt><dd>{selected.department_path.join(" / ")}</dd><dt>Source</dt><dd>{selected.origin === "MANAGED" ? "Managed area" : "Imported department path"}</dd><dt>Version</dt><dd>{selected.version}</dd><dt>Effective from</dt><dd><time dateTime={selected.valid_from}>{selected.valid_from.replace("T", " ").replace(/Z$/, " UTC")}</time></dd>{selected.valid_until && <><dt>Effective until</dt><dd><time dateTime={selected.valid_until}>{selected.valid_until.replace("T", " ").replace(/Z$/, " UTC")}</time></dd></>}</dl><StatusBadge tone={pending ? "warning" : "neutral"}>{pending ? "Pending change" : "Active"}</StatusBadge>
+          {canConfigure && <div className="organization-setup-context-actions"><Button isDisabled={Boolean(pending) || isBusy} onPress={() => setEditor({ mode: "edit", scope: selected })}>Edit area</Button><Button isDisabled={Boolean(pending) || isBusy || imported} onPress={() => setEditor({ mode: "move", scope: selected })}>Move area</Button><Button variant="quiet" isDisabled={Boolean(pending) || isBusy || imported} onPress={() => setEditor({ mode: "retire", scope: selected })}>Retire area</Button></div>}
+          {imported && <p className="organization-setup-note">Choose a managed area type and have the change approved before moving or retiring this area.</p>}
+          {pending && <p className="organization-setup-note">{pending.maker_id === actorPrincipalID ? "Your proposal is awaiting independent approval." : "A proposed change awaits independent review."} The current area remains active.</p>}
+        </> : selectedID ? <><p>The selected area was not returned for this legal entity. It may be outside the loaded list or no longer available.</p><Button onPress={() => select(undefined)}>View legal entity</Button></> : <><dl className="organization-setup-facts"><dt>Type</dt><dd>Legal entity</dd>{legalEntityCode && <><dt>Code</dt><dd>{legalEntityCode}</dd></>}<dt>Areas</dt><dd>{scopes.length} loaded</dd></dl><p className="organization-setup-note">Select an area to review its current structure and proposed changes.</p></>}
+        <Button variant="quiet" onPress={returnToHierarchy}>Back to organization structure</Button>
+      </div></Surface>
+      <Surface><section className="organization-setup-summary"><h2>Next actions</h2><p>Review pending area changes or maintain existing positions and access.</p><div className="organization-setup-next-actions"><ActionLink href={peopleHref}>People &amp; access</ActionLink><ActionLink href={reportingHref}>Reporting lines</ActionLink><ActionLink href={directoryHref}>Directory groups &amp; access</ActionLink><ActionLink href={escalationHref}>Escalation routes</ActionLink></div></section></Surface>
+    </aside>
 
-    {revisions.length > 0 && <div className="identity-scope-changes">
-      <strong>Pending changes</strong>
-      <ul>{revisions.map((revision) => {
+    {reviewOpen && <FocusedSheet label="Area changes" onClose={() => setReviewOpen(false)}><div className="cs-sheet-heading"><span className="eyebrow">Organization</span><h2>Area changes</h2><p>Up to 100 pending proposals. Current areas change only after independent approval.</p></div><div className="identity-scope-changes">
+      <ul>{pendingChanges.map((revision) => {
         const own = revision.maker_id === actorPrincipalID;
         return <li key={revision.id}>
           <div>
@@ -67,54 +170,33 @@ export function OrganizationScopeManager({
           </div>
           <StatusBadge tone="warning">Pending</StatusBadge>
           {canConfigure && !own && <div className="identity-scope-change-actions">
-            <Button size="compact" variant="secondary" onPress={() => setDecision({ action: "approve", revision })}>Approve</Button>
-            <Button size="compact" variant="quiet" onPress={() => setDecision({ action: "reject", revision })}>Reject</Button>
+            <Button isDisabled={isBusy} variant="secondary" onPress={() => setDecision({ action: "approve", revision })}>Approve</Button>
+            <Button isDisabled={isBusy} variant="quiet" onPress={() => setDecision({ action: "reject", revision })}>Reject</Button>
           </div>}
           {own && <small>Awaiting approval</small>}
         </li>;
-      })}</ul>
-    </div>}
+      })}</ul>{!pendingChanges.length && <Notice>No pending area changes were returned.</Notice>}
+    </div></FocusedSheet>}
 
-    <div className="identity-scope-table-wrap">
-      <table className="identity-scope-table">
-        <thead><tr><th>Area</th><th>Type</th><th>State</th>{canConfigure && <th>Actions</th>}</tr></thead>
-        <tbody>{ordered.map((scope) => {
-          const pending = pendingByScope.get(scope.id);
-          return <tr key={scope.id}>
-            <td data-label="Area"><strong>{scope.name}</strong><span>{scope.department_path.join(" / ")}</span></td>
-            <td data-label="Type">{scopeKindLabel(scope.kind)}</td>
-            <td data-label="State">{pending ? <StatusBadge tone="warning">Pending change</StatusBadge> : <StatusBadge tone="neutral">Active</StatusBadge>}</td>
-            {canConfigure && <td data-label="Actions">
-              <div className="identity-scope-row-actions">
-                <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || isBusy} onPress={() => setEditor({ mode: "edit", scope })}>Edit</Button>
-                <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || isBusy} onPress={() => setEditor({ mode: "move", scope })}>Move</Button>
-                <Button size="compact" variant="quiet" isDisabled={Boolean(pending) || isBusy} onPress={() => setEditor({ mode: "retire", scope })}>Retire</Button>
-              </div>
-            </td>}
-          </tr>;
-        })}</tbody>
-      </table>
-    </div>
-
-    {!ordered.length && <div className="identity-empty-state"><strong>No areas</strong><span>Add a branch, department, function, business unit or critical service.</span></div>}
-
-    {editor && <OrganizationScopeEditor
+    {editor && canConfigure && <OrganizationScopeEditor
       state={editor}
       scopes={scopes}
       isBusy={isBusy}
       onClose={() => setEditor(undefined)}
       onSubmit={async (input) => {
+        if (isBusy || !canConfigure) return;
         const ok = await onPropose(input);
         if (ok) setEditor(undefined);
       }}
     />}
 
-    {decision && <OrganizationScopeDecision
+    {decision && canConfigure && <OrganizationScopeDecision
       state={decision}
       scopeByID={scopeByID}
       isBusy={isBusy}
       onClose={() => setDecision(undefined)}
       onSubmit={async (rationale) => {
+        if (isBusy || !canConfigure || decision.revision.maker_id === actorPrincipalID) return;
         const ok = decision.action === "approve"
           ? await onApprove(decision.revision, rationale)
           : await onReject(decision.revision, rationale);
@@ -140,12 +222,16 @@ function OrganizationScopeEditor({
   const scope = "scope" in state ? state.scope : undefined;
   const [name, setName] = useState(scope?.name ?? "");
   const [code, setCode] = useState("");
-  const [kind, setKind] = useState<OrganizationScope["kind"]>(managedKind(scope?.kind) ? scope!.kind : "DEPARTMENT");
+  const [kind, setKind] = useState<OrganizationScope["kind"] | undefined>(state.mode === "add" ? "DEPARTMENT" : managedKind(scope?.kind) ? scope!.kind : undefined);
   const [parentID, setParentID] = useState(scope?.parent_scope_id ?? "");
   const excluded = scope ? descendantIDs(scopes, scope.id) : new Set<string>();
-  const parentOptions = scopes
+  const availableParents = scopes
     .filter((item) => item.id !== scope?.id && !excluded.has(item.id))
     .map((item) => ({ id: item.id, label: item.department_path.join(" / "), description: scopeKindLabel(item.kind) }));
+  const unavailableParent = Boolean(parentID && !availableParents.some((item) => item.id === parentID));
+  const parentOptions = unavailableParent
+    ? [{ id: parentID, label: "Current parent unavailable", description: "Choose an available parent or the legal entity." }, ...availableParents]
+    : availableParents;
 
   const label = state.mode === "add"
     ? "Add area"
@@ -156,6 +242,7 @@ function OrganizationScopeEditor({
         : "Retire " + scope!.name;
 
   async function submit() {
+    if (isBusy || (state.mode === "move" && unavailableParent) || ((state.mode === "add" || state.mode === "edit") && (!kind || !managedKind(kind)))) return;
     if (state.mode === "add") {
       await onSubmit({
         operation: "CREATE",
@@ -195,8 +282,8 @@ function OrganizationScopeEditor({
   const invalid = state.mode === "add"
     ? !code.trim() || !name.trim()
     : state.mode === "edit"
-      ? !name.trim()
-      : false;
+      ? !name.trim() || !kind
+      : state.mode === "move" && unavailableParent;
 
   return <FocusedSheet label={label} onClose={onClose} isDismissable={!isBusy}>
     <div className="cs-sheet-heading"><span className="eyebrow">Organization</span><h2>{label}</h2></div>
@@ -209,11 +296,13 @@ function OrganizationScopeEditor({
       </>}
       {state.mode === "edit" && <>
         <div className="identity-scope-current"><span>Area</span><strong>{scope!.department_path.join(" / ")}</strong></div>
+        {!managedKind(scope?.kind) && <Notice>Choose a managed area type. The imported area keeps its current type until this change is approved.</Notice>}
         <TextField label="Name" value={name} onChange={setName} maxLength={240} isRequired/>
         <SelectField label="Type" value={kind} placeholder="Choose type" options={kinds} onChange={(value) => value && setKind(value)} allowsEmpty={false}/>
       </>}
       {state.mode === "move" && <>
         <div className="identity-scope-current"><span>Current</span><strong>{scope!.department_path.join(" / ")}</strong></div>
+        {unavailableParent && <Notice>The current parent is outside the available destinations. Choose a loaded area or the legal entity before proposing a move.</Notice>}
         <SelectField label="New parent" value={parentID || undefined} placeholder="Legal entity" options={parentOptions} onChange={(value) => setParentID(value ?? "")}/>
       </>}
       {state.mode === "retire" && <div className="identity-scope-current">
@@ -245,6 +334,9 @@ function OrganizationScopeDecision({
 }) {
   const [rationale, setRationale] = useState("");
   const title = state.action === "approve" ? "Approve change" : "Reject change";
+  const revision = state.revision;
+  const current = scopeByID.get(revision.scope_id);
+  const proposedParent = revision.proposed_parent_scope_id ? scopeByID.get(revision.proposed_parent_scope_id) : undefined;
   return <FocusedSheet label={title} onClose={onClose} isDismissable={!isBusy}>
     <div className="cs-sheet-heading"><span className="eyebrow">Organization</span><h2>{title}</h2></div>
     <div className="identity-scope-editor">
@@ -253,6 +345,15 @@ function OrganizationScopeDecision({
         <strong>{revisionLabel(state.revision, scopeByID)}</strong>
         <small>{impactLabel(state.revision)}</small>
       </div>
+      <dl className="organization-setup-facts">
+        <dt>Base version</dt><dd>{revision.base_version}</dd>
+        {revision.proposed_code && <><dt>Code</dt><dd>{revision.proposed_code}</dd></>}
+        {current && <><dt>Current name</dt><dd>{current.name}</dd><dt>Current type</dt><dd>{scopeKindLabel(current.kind)}</dd></>}
+        {revision.proposed_name && <><dt>Proposed name</dt><dd>{revision.proposed_name}</dd></>}
+        {revision.proposed_kind && <><dt>Proposed type</dt><dd>{scopeKindLabel(revision.proposed_kind)}</dd></>}
+        {(revision.operation === "CREATE" || revision.operation === "MOVE") && <><dt>Proposed parent</dt><dd>{revision.proposed_parent_scope_id ? proposedParent ? `${proposedParent.department_path.join(" / ")} · ${proposedParent.code}` : `${revision.proposed_parent_scope_id} — outside loaded areas` : "Legal entity"}</dd></>}
+        <dt>Proposed by</dt><dd>{revision.maker_id}</dd><dt>Proposed at</dt><dd><time dateTime={revision.created_at}>{revision.created_at.replace("T", " ").replace(/Z$/, " UTC")}</time></dd>
+      </dl>
       <TextArea label="Rationale" value={rationale} onChange={setRationale} rows={3} maxLength={1000} isRequired/>
       <div className="identity-scope-editor-actions">
         <Button variant="secondary" onPress={onClose} isDisabled={isBusy}>Cancel</Button>
@@ -278,10 +379,6 @@ function impactLabel(revision: OrganizationScopeRevision) {
   const impact = revision.impact;
   if (!impact) return "No impact count";
   return impact.child_scopes + " child areas · " + impact.positions + " positions · " + impact.access_mappings + " access mappings · " + impact.open_matters + " open matters";
-}
-
-function scopeKindLabel(value: OrganizationScope["kind"]) {
-  return value.toLowerCase().replaceAll("_", " ").replace(/(^|\\s)\\S/g, (letter) => letter.toUpperCase());
 }
 
 function managedKind(value: OrganizationScope["kind"] | undefined): value is OrganizationScope["kind"] {

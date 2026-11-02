@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/rcsa"
 )
@@ -57,6 +58,80 @@ func TestRCSAReviewerReadDoesNotExposeFirstLineStage(t *testing.T) {
 	}
 }
 
+func TestRCSASemanticPhaseDistinguishesGovernedCyclePaths(t *testing.T) {
+	accepted := continuity.MatterAggregate{
+		Matter: continuity.Matter{Status: continuity.MatterDecisionRequired},
+		Decisions: []continuity.Decision{{
+			Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionApproved,
+			SelectedOption: rcsa.ChallengeOptionAcceptFirstLine,
+		}},
+	}
+	remediation := continuity.MatterAggregate{
+		Matter: continuity.Matter{Status: continuity.MatterActionsInProgress},
+		Decisions: []continuity.Decision{{
+			Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionRejected,
+			SelectedOption: rcsa.ChallengeOptionDeficiencyConfirmed,
+		}},
+	}
+	verified := remediation
+	verified.Matter.Status = continuity.MatterClosed
+
+	cases := []struct {
+		name      string
+		cycle     rcsa.Cycle
+		challenge *continuity.MatterAggregate
+		stage     string
+		label     string
+	}{
+		{name: "collection draft", cycle: rcsa.Cycle{Status: rcsa.StatusDraft}, stage: "COLLECTION", label: "First-line collection"},
+		{name: "collection open", cycle: rcsa.Cycle{Status: rcsa.StatusAssessmentOpen}, stage: "COLLECTION", label: "First-line collection"},
+		{name: "independent challenge", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge}, challenge: &continuity.MatterAggregate{
+			Matter:    continuity.Matter{Status: continuity.MatterDecisionRequired},
+			Decisions: []continuity.Decision{{Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionInReview}},
+		}, stage: "INDEPENDENT_CHALLENGE", label: "Independent challenge"},
+		{name: "risk acceptance", cycle: rcsa.Cycle{Status: rcsa.StatusCompleted}, challenge: &accepted, stage: "RISK_ACCEPTANCE", label: "Risk acceptance"},
+		{name: "remediation verification", cycle: rcsa.Cycle{Status: rcsa.StatusCompleted}, challenge: &remediation, stage: "REMEDIATION_VERIFICATION", label: "Remediation verification"},
+		{name: "remediation verified", cycle: rcsa.Cycle{Status: rcsa.StatusCompleted}, challenge: &verified, stage: "REMEDIATION_VERIFICATION", label: "Remediation verified"},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			got := rcsaSemanticPhase(test.cycle, test.challenge)
+			if got.Stage != test.stage || got.Label != test.label {
+				t.Fatalf("phase=%#v", got)
+			}
+		})
+	}
+}
+
+func TestRCSASemanticPhaseDoesNotTreatRejectedAcceptanceAsRiskAcceptance(t *testing.T) {
+	challenge := continuity.MatterAggregate{
+		Matter: continuity.Matter{Status: continuity.MatterDecisionRequired},
+		Decisions: []continuity.Decision{{
+			Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionRejected,
+			SelectedOption: rcsa.ChallengeOptionAcceptFirstLine,
+		}},
+	}
+	got := rcsaSemanticPhase(rcsa.Cycle{Status: rcsa.StatusCompleted}, &challenge)
+	if got.Stage != "COMPLETE" || got.Label != "Challenge completed" {
+		t.Fatalf("phase=%#v", got)
+	}
+}
+
+func TestRCSAPhaseContextFailsClosedWhenChallengeWorkCannotBeRead(t *testing.T) {
+	api := &API{}
+	cycle := rcsa.Cycle{
+		ID: "cycle-1", TenantID: "bank", LegalEntityID: "entity-a",
+		Status: rcsa.StatusCompleted, ChallengeMatterID: "matter-restricted",
+	}
+	phase, complete := api.rcsaCyclePhaseContext(t.Context(), cycle)
+	if complete {
+		t.Fatal("restricted challenge work was presented as complete semantic context")
+	}
+	if phase.Stage != "COMPLETE" || phase.Label != "Challenge completed" {
+		t.Fatalf("fallback phase=%#v", phase)
+	}
+}
+
 func TestRCSAHandoffUsesExistingEvidenceAndMatterTargets(t *testing.T) {
 	cases := []struct {
 		name       string
@@ -68,9 +143,9 @@ func TestRCSAHandoffUsesExistingEvidenceAndMatterTargets(t *testing.T) {
 		targetID   string
 	}{
 		{name: "draft", cycle: rcsa.Cycle{Status: rcsa.StatusDraft}, stage: "SETUP", label: "First-line assessment not started"},
-		{name: "first line", cycle: rcsa.Cycle{Status: rcsa.StatusAssessmentOpen}, requestID: "request-1", stage: "FIRST_LINE", label: "Complete first-line assessment", targetType: "EVIDENCE_REQUEST", targetID: "request-1"},
-		{name: "challenge ready", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge}, stage: "CHALLENGE", label: "Start independent challenge"},
-		{name: "challenge work", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge, ChallengeMatterID: "matter-1"}, stage: "CHALLENGE", label: "Complete independent challenge", targetType: "MATTER", targetID: "matter-1"},
+		{name: "first line", cycle: rcsa.Cycle{Status: rcsa.StatusAssessmentOpen}, requestID: "request-1", stage: "FIRST_LINE", label: "First-line assessment in progress", targetType: "EVIDENCE_REQUEST", targetID: "request-1"},
+		{name: "challenge ready", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge}, stage: "CHALLENGE", label: "Independent challenge ready"},
+		{name: "challenge work", cycle: rcsa.Cycle{Status: rcsa.StatusAwaitingChallenge, ChallengeMatterID: "matter-1"}, stage: "CHALLENGE", label: "Independent challenge in progress", targetType: "MATTER", targetID: "matter-1"},
 		{name: "complete", cycle: rcsa.Cycle{Status: rcsa.StatusCompleted, ChallengeMatterID: "matter-1"}, stage: "COMPLETE", label: "Completed", targetType: "MATTER", targetID: "matter-1"},
 	}
 	for _, test := range cases {
@@ -80,6 +155,43 @@ func TestRCSAHandoffUsesExistingEvidenceAndMatterTargets(t *testing.T) {
 				t.Fatalf("handoff=%#v", got)
 			}
 		})
+	}
+}
+
+func TestRCSASummaryHandoffNeverExposesChallengeMatterID(t *testing.T) {
+	got := rcsaCycleSummaryHandoff(rcsa.Cycle{
+		Status: rcsa.StatusAwaitingChallenge, ChallengeMatterID: "restricted-matter",
+	})
+	if got.TargetType != "" || got.TargetID != "" {
+		t.Fatalf("summary handoff leaked challenge target: %#v", got)
+	}
+	if got.Label != "Independent challenge in progress" {
+		t.Fatalf("summary handoff label=%q", got.Label)
+	}
+}
+
+func TestRCSADetailHandoffRequiresExactChallengeContext(t *testing.T) {
+	cycle := rcsa.Cycle{
+		Status: rcsa.StatusAwaitingChallenge, ChallengeMatterID: "matter-1",
+	}
+	restricted := rcsaCycleDetailHandoff(cycle, "", false)
+	if restricted.TargetType != "" || restricted.TargetID != "" ||
+		restricted.Label != "Independent challenge context unavailable" {
+		t.Fatalf("restricted detail handoff=%#v", restricted)
+	}
+
+	allowed := rcsaCycleDetailHandoff(cycle, "", true)
+	if allowed.TargetType != "MATTER" || allowed.TargetID != "matter-1" ||
+		allowed.Label != "Independent challenge in progress" {
+		t.Fatalf("allowed detail handoff=%#v", allowed)
+	}
+
+	completed := rcsaCycleDetailHandoff(rcsa.Cycle{
+		Status: rcsa.StatusCompleted, ChallengeMatterID: "matter-1",
+	}, "", false)
+	if completed.TargetType != "" || completed.TargetID != "" ||
+		completed.Label != "Completed · challenge context unavailable" {
+		t.Fatalf("completed restricted handoff=%#v", completed)
 	}
 }
 

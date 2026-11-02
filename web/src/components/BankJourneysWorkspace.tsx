@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import "../journeys.css";
 import { loadBankJourneys, loadEvidenceRequest, loadMatter, loadProgram } from "../api";
 import type { EvidenceRequest, MatterAggregate, ProgramAggregate } from "../types";
 import type { BankJourney, JourneyActionTarget } from "../verticalTypes";

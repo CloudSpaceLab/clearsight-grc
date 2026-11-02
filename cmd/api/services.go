@@ -18,6 +18,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formpolicy"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/frameworkcatalog"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/invalidation"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/metricview"
@@ -105,33 +106,40 @@ type serviceSet struct {
 	RCSA                           *rcsa.Service
 	OperationalLoss                *oploss.Service
 	ControlCatalog                 *controlcatalog.Service
-	MatterFormRemediationRepo      continuity.MatterFormRemediationRepository
-	Today                          *today.Service
-	Oversight                      *oversight.Service
-	GroupOversight                 *oversight.GroupService
-	MetricMembership               metricview.MembershipReader
-	MetricTrends                   metricview.TrendReader
-	MetricMatrices                 metricview.MatrixReader
-	DomainMetrics                  metricview.DomainReader
-	PresentationPreferences        *presentationprefs.Service
-	NotificationPreferences        *notificationprefs.Service
-	Workflow                       *workflow.Service
-	EscalationSimulation           workflow.EscalationSimulator
-	Onboarding                     *onboarding.Service
-	Autonomy                       *autonomy.Service
-	AIGovernance                   *aigovernance.Service
-	BankVerticals                  *bankverticals.Service
-	BackgroundJobs                 *operations.Service
-	Activity                       *activity.Service
-	People                         *people.Service
-	AuditExports                   *activity.ExportService
-	Access                         access.Resolver
-	RuntimeContext                 runtimecontext.Resolver
-	Invalidations                  invalidation.Stream
-	AccessAdmin                    access.Administrator
-	SessionStore                   scs.Store
-	SCIM                           *scimapi.Service
-	Close                          func()
+	FrameworkCatalog               interface {
+		ListEditions(context.Context, string, string, int) ([]frameworkcatalog.Edition, error)
+		ListClauses(context.Context, string, string, int) ([]frameworkcatalog.Clause, error)
+		GetFrameworkEdition(context.Context, string) (continuity.FrameworkEditionReference, error)
+	}
+	MatterFormRemediationRepo continuity.MatterFormRemediationRepository
+	Today                     *today.Service
+	Oversight                 *oversight.Service
+	GroupOversight            *oversight.GroupService
+	MetricMembership          metricview.MembershipReader
+	MetricTrends              metricview.TrendReader
+	MetricMatrices            metricview.MatrixReader
+	DomainMetrics             metricview.DomainReader
+	GroupPostureMetrics       metricview.GroupPostureReader
+	LossPeriodMetrics         metricview.LossPeriodReader
+	PresentationPreferences   *presentationprefs.Service
+	NotificationPreferences   *notificationprefs.Service
+	Workflow                  *workflow.Service
+	EscalationSimulation      workflow.EscalationSimulator
+	Onboarding                *onboarding.Service
+	Autonomy                  *autonomy.Service
+	AIGovernance              *aigovernance.Service
+	BankVerticals             *bankverticals.Service
+	BackgroundJobs            *operations.Service
+	Activity                  *activity.Service
+	People                    *people.Service
+	AuditExports              *activity.ExportService
+	Access                    access.Resolver
+	RuntimeContext            runtimecontext.Resolver
+	Invalidations             invalidation.Stream
+	AccessAdmin               access.Administrator
+	SessionStore              scs.Store
+	SCIM                      *scimapi.Service
+	Close                     func()
 }
 
 type organizationScopeGetter interface {
@@ -188,8 +196,6 @@ func configureOperationalLosses(
 	})
 }
 
-const rcsaChallengeDecisionType = "RCSA_CHALLENGE"
-
 var rcsaChallengeOptions = json.RawMessage(`["ACCEPT_FIRST_LINE","REQUIRE_CHANGES","DEFICIENCY_CONFIRMED"]`)
 
 func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
@@ -238,10 +244,10 @@ func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
 			if err != nil || !validRCSAChallengeMatter(aggregate, scope, cycle) {
 				return "", rcsa.ErrInvalid
 			}
-			if continuity.CurrentDecisionForType(aggregate.Decisions, rcsaChallengeDecisionType) == nil {
+			if continuity.CurrentDecisionForType(aggregate.Decisions, rcsa.ChallengeDecisionType) == nil {
 				aggregate, err = matters.RecordDecisionLifecycle(trusted, continuity.AddDecisionInput{
 					TenantID: scope.TenantID, MatterID: aggregate.Matter.ID, ExpectedVersion: aggregate.Matter.Version,
-					Type: rcsaChallengeDecisionType, Status: continuity.DecisionProposed,
+					Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionProposed,
 					Options:    rcsaChallengeOptions,
 					Rationale:  "Independent challenge of the submitted first-line RCSA assessment.",
 					Conditions: json.RawMessage(`[]`), AuthorityPrincipalID: actorID,
@@ -261,7 +267,7 @@ func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
 			if err != nil || !validRCSAChallengeMatter(aggregate, scope, cycle) {
 				return rcsa.ErrInvalid
 			}
-			decision := continuity.CurrentDecisionForType(aggregate.Decisions, rcsaChallengeDecisionType)
+			decision := continuity.CurrentDecisionForType(aggregate.Decisions, rcsa.ChallengeDecisionType)
 			if decision == nil || decision.AuthorityPrincipalID == "" || decision.AuthorityPrincipalID == cycle.FirstLineOwnerID {
 				return rcsa.ErrInvalid
 			}
@@ -271,7 +277,7 @@ func configureRCSAChallenge(cycles *rcsa.Service, matters *continuity.Service) {
 				return rcsa.ErrInvalid
 			}
 			switch decision.SelectedOption {
-			case "ACCEPT_FIRST_LINE", "REQUIRE_CHANGES", "DEFICIENCY_CONFIRMED":
+			case rcsa.ChallengeOptionAcceptFirstLine, rcsa.ChallengeOptionRequireChanges, rcsa.ChallengeOptionDeficiencyConfirmed:
 				return nil
 			default:
 				return rcsa.ErrInvalid

@@ -1,0 +1,22 @@
+[
+  {
+    "image": "tablet-before-search-and-wave-fix.png",
+    "sha256": "6a5f0a8aa1fee908acd55de4e868f1eaaa6e28a62ebebae355fb8768bc148b15",
+    "origin": "checkpoint-712cd431-rejected/280-people-access-people-layout-light-1024.png"
+  },
+  {
+    "image": "tablet-before-first-row-fix.png",
+    "sha256": "36c3e97048b782dfa52dfe592990fa5e8de52ec85a7b614ed9177f4870330bca",
+    "origin": "iteration1/280-people-access-people-layout-light-1024-failure.png"
+  },
+  {
+    "image": "policy-composer-before-shared-controls.png",
+    "sha256": "b5cd7813bfc09c5d67e4fa94a8c48c0bde1af910f4841b383684756c1725b3f6",
+    "origin": "interaction4/280-people-access-routes-composer-light-1440-failure.png"
+  },
+  {
+    "image": "organization-editor-before-history-fix.png",
+    "sha256": "df26e0d2976b0150e2bb186770236902d98e0bd012a0f3a312679e46c0df18a1",
+    "origin": "organization-portal-before.png"
+  }
+]

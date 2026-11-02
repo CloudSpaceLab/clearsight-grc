@@ -52,7 +52,7 @@ describe("VendorRelationshipLinks", () => {
     vi.mocked(linkVendorRelationship).mockResolvedValue(activeLink);
 
     render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
-    await screen.findByText("No vendor relationships are linked to this Program.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
     fireEvent.change(screen.getByLabelText("Search vendor relationships"), { target: { value: "Acme payments" } });
     fireEvent.click(screen.getByRole("button", { name: "Search vendors" }));
@@ -72,7 +72,7 @@ describe("VendorRelationshipLinks", () => {
   it("opens vendor linking as a focused task with contextual vendor choices", async () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [acme] });
     render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
-    await screen.findByText("No vendor relationships are linked to this Program.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
 
     const dialog = screen.getByRole("dialog", { name: "Link vendor to this Program" });
@@ -88,7 +88,7 @@ describe("VendorRelationshipLinks", () => {
   it("searches after a short pause without requiring a separate button press", async () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [acme] });
     render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
-    await screen.findByText("No vendor relationships are linked to this Program.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
     fireEvent.change(screen.getByLabelText("Search vendor relationships"), { target: { value: "Acme" } });
 
@@ -100,7 +100,7 @@ describe("VendorRelationshipLinks", () => {
     vi.mocked(linkVendorRelationship).mockRejectedValue(new Error("unavailable"));
 
     render(<VendorRelationshipLinks targetType="MATTER" targetID="matter-1"/>);
-    await screen.findByText("No vendor relationships are linked to this issue or change.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
     const search = screen.getByLabelText("Search vendor relationships") as HTMLInputElement;
     fireEvent.change(search, { target: { value: "Acme" } });
@@ -124,7 +124,7 @@ describe("VendorRelationshipLinks", () => {
   it("keeps a failed search query and offers a concise retry", async () => {
     vi.mocked(loadVendorRelationships).mockRejectedValue(new Error("unavailable"));
     render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
-    await screen.findByText("No vendor relationships are linked to this Program.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
     const search = screen.getByLabelText("Search vendor relationships") as HTMLInputElement;
     fireEvent.change(search, { target: { value: "Acme" } });
@@ -141,7 +141,7 @@ describe("VendorRelationshipLinks", () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [acme] });
     vi.mocked(linkVendorRelationship).mockImplementation(() => new Promise((resolve) => { finishLink = resolve; }));
     const { rerender } = render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
-    await screen.findByText("No vendor relationships are linked to this Program.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
     fireEvent.change(screen.getByLabelText("Search vendor relationships"), { target: { value: "Acme" } });
     fireEvent.click(screen.getByRole("button", { name: "Search vendors" }));
@@ -150,7 +150,7 @@ describe("VendorRelationshipLinks", () => {
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
 
     rerender(<VendorRelationshipLinks targetType="MATTER" targetID="matter-1"/>);
-    await screen.findByText("No vendor relationships are linked to this issue or change.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     finishLink(activeLink);
 
     await waitFor(() => expect(screen.queryByText("Acme Processing Limited")).toBeNull());
@@ -160,7 +160,7 @@ describe("VendorRelationshipLinks", () => {
   it("uses Enter in the search field to run the current search instead of linking a prior result", async () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [acme] });
     render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
-    await screen.findByText("No vendor relationships are linked to this Program.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
     const search = screen.getByLabelText("Search vendor relationships");
     fireEvent.change(search, { target: { value: "Acme" } });
@@ -178,7 +178,7 @@ describe("VendorRelationshipLinks", () => {
     let finishSearch!: (page: { items: VendorRelationshipAggregate[] }) => void;
     vi.mocked(loadVendorRelationships).mockImplementation(() => new Promise((resolve) => { finishSearch = resolve; }));
     render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
-    await screen.findByText("No vendor relationships are linked to this Program.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
     const search = screen.getByLabelText("Search vendor relationships");
     fireEvent.change(search, { target: { value: "Acme" } });
@@ -211,7 +211,7 @@ describe("VendorRelationshipLinks", () => {
 
     expect(await screen.findByText("Acme Processing Limited")).toBeTruthy();
     expect(screen.getByText("Link ended")).toBeTruthy();
-    expect(screen.queryByText("No vendor relationships are linked to this Program.")).toBeNull();
+    expect(screen.queryByText("No related vendors. Use Link vendor to add an existing relationship.")).toBeNull();
     expect(screen.getByRole("button", { name: "Load more related vendors" })).toBeTruthy();
   });
 
@@ -237,7 +237,7 @@ describe("VendorRelationshipLinks", () => {
     vi.mocked(loadVendorRelationships).mockResolvedValue({ items: [acme] });
     vi.mocked(linkVendorRelationship).mockRejectedValue(new ApiError(409, "This vendor link changed.", "vendor_link_conflict"));
     render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
-    await screen.findByText("No vendor relationships are linked to this Program.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     fireEvent.click(screen.getByRole("button", { name: "Link vendor" }));
     const search = screen.getByLabelText("Search vendor relationships") as HTMLInputElement;
     fireEvent.change(search, { target: { value: "Acme" } });
@@ -257,7 +257,7 @@ describe("VendorRelationshipLinks", () => {
 
   it("moves focus into the link form and restores it when cancelled", async () => {
     render(<VendorRelationshipLinks targetType="PROGRAM" targetID="program-1"/>);
-    await screen.findByText("No vendor relationships are linked to this Program.");
+    await screen.findByText("No related vendors. Use Link vendor to add an existing relationship.");
     const open = screen.getByRole("button", { name: "Link vendor" });
     fireEvent.click(open);
 

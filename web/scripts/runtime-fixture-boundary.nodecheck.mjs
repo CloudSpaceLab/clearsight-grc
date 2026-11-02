@@ -11,6 +11,12 @@ const forbiddenRuntimeMarkers = [
   "OperatingMutationsEvidencePage",
   "OversightEvidencePage",
   "ui-gallery",
+  "notificationWorkspaceEvidence",
+  "peopleAccessEvidence",
+  "staticDemoEnterpriseSetupRuntime",
+  "enterpriseSetupEvidence",
+  "staticDemoAutomationRuntime",
+  "automationEvidence",
   "VITE_STATIC_DEMO",
   "VITE_UI_EVIDENCE",
 ];

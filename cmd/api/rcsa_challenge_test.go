@@ -82,15 +82,15 @@ func TestRCSAChallengeBridgeUsesOneCanonicalMatterAndDecision(t *testing.T) {
 		scope.ResponseRevision != "response-final-1" {
 		t.Fatalf("challenge scope=%#v", scope)
 	}
-	decision := continuity.CurrentDecisionForType(matter.Decisions, rcsaChallengeDecisionType)
+	decision := continuity.CurrentDecisionForType(matter.Decisions, rcsa.ChallengeDecisionType)
 	if decision == nil || decision.Status != continuity.DecisionProposed || decision.ProposedBy != "reviewer-1" {
 		t.Fatalf("challenge decision=%#v", decision)
 	}
 
 	matter, err = matters.RecordDecisionLifecycle(ctx, continuity.AddDecisionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
-		Type: rcsaChallengeDecisionType, Status: continuity.DecisionApproved,
-		Options: rcsaChallengeOptions, SelectedOption: "ACCEPT_FIRST_LINE",
+		Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionApproved,
+		Options: rcsaChallengeOptions, SelectedOption: rcsa.ChallengeOptionAcceptFirstLine,
 		Rationale:  "Independent challenge accepted the first-line assessment.",
 		Conditions: json.RawMessage(`[]`), AuthorityPrincipalID: "authorizer-1",
 	})
@@ -160,8 +160,8 @@ func TestRCSAChallengeCompletionRejectsFirstLineAuthorityDecision(t *testing.T) 
 	}
 	_, err = matters.RecordDecisionLifecycle(ctx, continuity.AddDecisionInput{
 		TenantID: "bank", MatterID: matter.Matter.ID, ExpectedVersion: matter.Matter.Version,
-		Type: rcsaChallengeDecisionType, Status: continuity.DecisionRejected,
-		Options: rcsaChallengeOptions, SelectedOption: "REQUIRE_CHANGES",
+		Type: rcsa.ChallengeDecisionType, Status: continuity.DecisionRejected,
+		Options: rcsaChallengeOptions, SelectedOption: rcsa.ChallengeOptionRequireChanges,
 		Rationale: "First-line outcome requires correction.", Conditions: json.RawMessage(`[]`),
 		AuthorityPrincipalID: "owner-1",
 	})

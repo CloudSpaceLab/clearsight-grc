@@ -2,7 +2,7 @@ import { loadContext } from "./api";
 import { continuityCommand } from "./continuityCommands";
 import { requestJSON } from "./http";
 import { normalizeProgramAggregate } from "./programAggregate";
-import type { AuthorityPrincipal, ProgramAggregate, RecordResponsibleParty } from "./types";
+import type { AuthorityPrincipal, ProgramAggregate, ProgramCalculationDefinition, RecordResponsibleParty } from "./types";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -124,6 +124,70 @@ async function programCommand(path: string, body: Record<string, unknown>): Prom
 
 export async function loadProgramOperations(programID: string): Promise<ProgramOperations> {
   return requestJSON<ProgramOperations>(apiBase, await tenantPath(`/api/v1/programs/${encodeURIComponent(programID)}/operations`));
+}
+
+export type FrameworkEditionOption = {
+  id: string;
+  publisher_code: string;
+  framework_code: string;
+  edition_code: string;
+  title: string;
+  jurisdiction: string;
+  source_url: string;
+  source_published_on: string;
+  license_basis: string;
+  license_reference?: string;
+  effective_on?: string;
+  source_sha256?: string;
+  release_sha256?: string;
+  approval_reference?: string;
+};
+
+export type FrameworkEditionPage = {
+  items: FrameworkEditionOption[];
+  next_after_id: string;
+};
+
+// The catalog endpoint supports an ID cursor, not global text search.
+// Request one extra row so the UI never infers that a full page is the end.
+export async function loadFrameworkEditionPage(
+  jurisdiction = "GLOBAL", afterID = "", pageSize = 25,
+): Promise<FrameworkEditionPage> {
+  const limit = Math.max(1, Math.min(99, Math.trunc(pageSize)));
+  const query = new URLSearchParams({ jurisdiction, limit: String(limit + 1) });
+  if (afterID) query.set("after_id", afterID);
+  const result = await requestJSON<{ items: FrameworkEditionOption[] }>(
+    apiBase, `${await tenantPath("/api/v1/framework-catalog/editions")}&${query.toString()}`,
+  );
+  const entries = result.items ?? [];
+  return {
+    items: entries.slice(0, limit),
+    next_after_id: entries.length > limit ? entries[limit - 1]!.id : "",
+  };
+}
+
+export function proposeProgramFrameworkAdoption(programID: string, expectedVersion: number, editionID: string, rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/standards/propose`, {
+    expected_version: expectedVersion, edition_id: editionID, rationale,
+  });
+}
+
+export function decideProgramFrameworkAdoption(programID: string, adoptionID: string, expectedVersion: number, action: "approve" | "reject", rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/standards/${encodeURIComponent(adoptionID)}/${action}`, {
+    expected_version: expectedVersion, rationale,
+  });
+}
+
+export function proposeProgramCalculationPolicy(programID: string, expectedVersion: number, definition: ProgramCalculationDefinition, rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/calculation-policy/propose`, {
+    expected_version: expectedVersion, definition, rationale,
+  });
+}
+
+export function decideProgramCalculationPolicy(programID: string, expectedVersion: number, action: "approve" | "reject", rationale: string): Promise<ProgramAggregate> {
+  return programCommand(`/api/v1/programs/${encodeURIComponent(programID)}/calculation-policy/${action}`, {
+    expected_version: expectedVersion, rationale,
+  });
 }
 
 export function updateProgramDetails(programID: string, expectedVersion: number, input: ProgramDetailsInput): Promise<ProgramAggregate> {

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ClearSight — Framework Adoption</title>
+<style>
+:root{font-family:Inter,'Inter Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#132547;background:#f5f8fd;font-size:14px;font-synthesis:none;-webkit-font-smoothing:antialiased;--blue:#246ff5;--navy:#0a1d43;--muted:#798aa5;--stroke:#e4ebf5;--surface:#fff;--soft:#f6f9fe;--shadow:0 12px 36px rgba(30,74,137,.045),0 2px 8px rgba(30,74,137,.025)}
+*{box-sizing:border-box}body{margin:0;min-width:375px}.icon{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #9bc2ff;outline-offset:3px}button:disabled{cursor:not-allowed;opacity:.58}
+.app{display:flex;min-height:100vh}.sidebar{width:228px;flex:none;background:linear-gradient(180deg,#fff 0%,#f8fbff 88%);border-right:1px solid var(--stroke);display:flex;flex-direction:column;padding:27px 14px 18px;position:sticky;top:0;height:100vh;min-height:840px}.logo{display:flex;align-items:center;gap:12px;padding:0 11px;margin-bottom:44px}.logo-mark{width:32px;height:32px;position:relative}.logo-mark i{position:absolute;display:block;border-radius:30px;transform:rotate(35deg)}.logo-mark .a{width:15px;height:27px;left:4px;top:2px;background:linear-gradient(135deg,#008fbd,#0f379c)}.logo-mark .b{width:9px;height:19px;left:19px;top:3px;background:linear-gradient(135deg,#22ddbb,#219de0)}.logo-mark .c{width:8px;height:11px;left:14px;top:20px;background:#8b72e7}.logo strong{font-size:24px;line-height:1;letter-spacing:-1.25px;color:#102a5f;font-weight:750}.logo small{display:block;color:#8b9ab3;font-size:10px;margin-top:7px;letter-spacing:-.1px}.nav{display:grid;gap:6px}.nav-item{display:flex;gap:14px;align-items:center;width:100%;height:49px;padding:0 14px;border-radius:11px;color:#435c87;text-decoration:none;font-size:13px;font-weight:560;position:relative}.nav-item .icon{width:20px;height:20px;color:#54729d}.nav-item:hover{background:#f1f6ff}.nav-item.active{background:#e8f1ff;color:#1767e9;font-weight:720}.nav-item.active .icon{color:#1767e9}.nav-item.active:before{position:absolute;content:"";left:-14px;width:4px;height:30px;border-radius:0 7px 7px 0;background:#2778fa}.nav-section{margin:27px 13px 11px;color:#a0aec4;text-transform:uppercase;letter-spacing:1.5px;font-size:10px;font-weight:800}.side-bottom{margin-top:auto;display:grid;gap:14px;padding:12px}.side-bottom button{border:0;background:none;display:flex;align-items:center;gap:12px;text-align:left;color:#6a7f9f;padding:8px 4px}.release{font-size:10px;color:#b5bfd0;line-height:1.5}
+.main{flex:1;min-width:0}.topbar{height:76px;background:rgba(255,255,255,.82);border-bottom:1px solid #e7edf7;display:flex;align-items:center;gap:10px;padding:0 38px;position:sticky;top:0;z-index:5;backdrop-filter:blur(15px)}.topbar .scope{height:37px;display:flex;align-items:center;gap:9px;border:1px solid #e3eaf5;border-radius:10px;background:#fff;box-shadow:0 3px 10px rgba(9,58,132,.025);padding:0 11px;color:#526b97;white-space:nowrap;font-size:11px;font-weight:620}.topbar .scope .icon{width:15px;height:15px;color:#3869b2}.topbar .scope svg.chev{width:12px;height:12px;margin-left:8px;color:#6c8bbf}.topbar .grow{flex:1}.global-search{height:38px;min-width:248px;display:flex;align-items:center;gap:9px;border:1px solid #e6edf7;background:#f7faff;border-radius:10px;padding:0 12px;color:#94a3ba;font-size:11px}.global-search .icon{width:15px;height:15px;color:#587baa}.key{border:1px solid #dfe8f4;border-radius:5px;padding:2px 4px;font-size:10px;color:#8a9bb8;margin-left:auto}.top-icon{width:37px;height:37px;border:0;background:none;color:#4f6b98;position:relative}.top-icon:after{content:"";position:absolute;width:7px;height:7px;background:#ed4b61;border:2px solid white;border-radius:50%;right:7px;top:5px}.profile{margin-left:5px;padding-left:18px;border-left:1px solid #e7edf6;display:flex;gap:10px;align-items:center;min-width:151px}.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#265f9f,#071f53);color:#fff;display:grid;place-items:center;font-weight:670;font-size:11px;box-shadow:0 3px 9px #2b68aa30}.profile strong{display:block;font-size:11px;color:#263e66;white-space:nowrap}.profile small{display:block;font-size:9px;color:#8c9bb3;margin-top:3px;white-space:nowrap}
+.content{padding:34px 38px 64px;max-width:1860px;margin:auto}.page-heading{position:relative;display:flex;align-items:flex-end;justify-content:space-between;padding:1px 0 27px;min-height:126px}.heading-copy{position:relative;z-index:1}.eyebrow{font-size:10px;color:#427bd0;letter-spacing:1.9px;text-transform:uppercase;font-weight:800;margin-bottom:14px}.heading-copy h1{font-size:37px;letter-spacing:-1.65px;color:var(--navy);font-weight:750;line-height:1.07;margin:0}.heading-copy p{margin:11px 0 0;color:#7586a4;font-size:14px;line-height:1.5}.decor{position:absolute;inset:0 15% 0 37%;z-index:0;pointer-events:none;opacity:.9;overflow:hidden}.decor svg{height:100%;width:100%}.heading-actions{display:flex;align-items:center;gap:12px;position:relative;z-index:1;padding-bottom:2px}.subtle-badge{display:inline-flex;gap:6px;align-items:center;padding:7px 9px;border-radius:7px;background:#f4f8ff;border:1px solid #e5ecf8;color:#7791b6;font-size:10px;white-space:nowrap}.button{height:40px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 15px;border-radius:10px;border:1px solid #e2eafa;background:#fff;color:#4365a0;font-weight:650;font-size:12px;white-space:nowrap;transition:background .14s,border-color .14s,transform .14s}.button:hover{background:#f5f9ff;border-color:#c3d8fa;transform:translateY(-1px)}.button .icon{width:16px;height:16px}.button.primary{background:linear-gradient(135deg,#287cfb,#145dda);color:#fff;border-color:#236fe7;box-shadow:0 7px 15px #1b65da23}.button.primary:hover{background:#155fde}.button.ghost{background:transparent;border-color:transparent;color:#366fca}.button.sm{height:34px;padding:0 11px;font-size:11px}.tabs{display:flex;align-items:center;gap:29px;height:51px;border-bottom:1px solid #e2eaf6;margin-bottom:20px}.tab{height:100%;border:0;background:none;padding:0 4px;color:#7e90ad;font-weight:600;position:relative;font-size:13px}.tab.selected{color:#145ddb;font-weight:730}.tab.selected:after{position:absolute;content:"";height:3px;border-radius:6px 6px 0 0;bottom:-1px;left:0;right:0;background:#2778fa}.tab .count{display:inline-block;margin-left:6px;font-size:10px;padding:2px 5px;border-radius:6px;background:#e7edf9;color:#6d87ab}.tab.selected .count{color:#2775e2;background:#e8f2ff}
+.searchbar{display:flex;gap:10px;align-items:center;margin-bottom:17px}.searchbox{display:flex;align-items:center;gap:11px;min-width:320px;width:min(570px,48%);height:44px;padding:0 13px;background:#fff;border:1px solid #dce7f5;border-radius:11px;box-shadow:var(--shadow);color:#8da0bd}.searchbox .icon{width:17px;height:17px;color:#6e91c7}.searchbox input{border:0;outline:none;background:transparent;min-width:0;width:100%;font-size:12px;color:#1d3358}.searchbox input::placeholder{color:#9aa9c0}.dropdown{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:11px;border:1px solid #e0e8f5;background:#fff;color:#4c6896;white-space:nowrap;font-weight:560;font-size:11px}.dropdown select{appearance:none;border:0;background:transparent;color:#47618e;padding-right:5px;outline:0;font-size:11px;max-width:165px}.dropdown .icon{width:15px;height:15px;color:#6685b9}.searchbar .clear{background:none;border:0;color:#4879be;padding:10px;font-size:11px;white-space:nowrap}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 394px;gap:19px;align-items:start}.results{min-width:0}.results-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 13px;padding:0 4px}.results-head h2{margin:0;font-size:13px;letter-spacing:-.14px;color:#234369;font-weight:740}.results-head span{font-size:11px;color:#90a1ba}.results-list{display:grid;gap:10px}.framework-row{min-width:0;display:grid;grid-template-columns:47px minmax(0,1fr) 190px 118px 20px;gap:14px;align-items:center;width:100%;text-align:left;padding:16px 16px 16px 17px;min-height:99px;border:1px solid var(--stroke);border-radius:14px;background:white;box-shadow:var(--shadow);position:relative;transition:border-color .15s,box-shadow .15s,transform .15s,background .15s}.framework-row:hover{border-color:#bcd2f9;transform:translateY(-1px)}.framework-row.selected{background:linear-gradient(93deg,#f5f9ff,#fff 36%);border:1.5px solid #a5c6fc;box-shadow:0 8px 24px #236cdd0d}.framework-row.selected:before{content:"";position:absolute;left:-1.5px;top:22%;height:56%;width:3px;border-radius:0 5px 5px 0;background:#2779fa}.fw-logo{height:46px;width:46px;display:grid;place-items:center;background:#f0f7ff;border:1px solid #e3edfc;border-radius:12px;font-weight:800;font-size:16px;letter-spacing:-.7px;color:#286ac7}.fw-logo.iso{color:#0879a5;background:#edfaff}.fw-logo.nist{color:#1669a1;background:#ebf5fe;font-size:15px}.fw-logo.pci{background:#e9f9fb;color:#007e87;font-size:16px}.fw-logo.eu{color:#295ad1;background:#f0f4ff;font-size:21px}.fw-logo.ng{color:#16a57e;background:#ebfcf6;font-size:19px}.fw-logo.uk{color:#785bd3;background:#f5f1ff;font-size:16px}.fw-logo.dora{color:#5576be;background:#f0f6ff;font-size:14px}.fw-title{font-size:13px;color:#17345e;font-weight:730;letter-spacing:-.15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fw-desc{margin-top:5px;font-size:11px;color:#8192ad;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fw-tags{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.tag{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#6881a6}.tag b{font-weight:500;color:#c3cee0}.edition{display:grid;gap:6px;font-size:11px;color:#6f819f}.edition strong{color:#436184;font-size:11px;font-weight:660}.edition small{font-size:10px;color:#95a5bf}.fw-status{font-size:10px;color:#7d8faa;display:grid;gap:9px;justify-items:start}.pill{padding:5px 8px;border:1px solid #e6edf6;border-radius:7px;background:#f8faff;color:#647da6;font-size:10px;font-weight:650;white-space:nowrap}.pill.blue{color:#2875e3;border-color:#dceafa;background:#edf5ff}.pill.gold{color:#a87d29;border-color:#f6edcc;background:#fffaf0}.pill.green{color:#15997c;border-color:#d7f0e7;background:#f0fbf7}.fw-chevron{width:17px;height:17px;color:#9cb0ce}.framework-row.selected .fw-chevron{color:#2279f3}.empty{padding:50px 22px;background:#fff;border:1px solid var(--stroke);border-radius:14px;text-align:center;color:#7c8daa}
+.detail-card{border:1px solid #e0e9f7;background:#fff;border-radius:17px;box-shadow:0 12px 34px #2e61a70e;overflow:hidden;position:sticky;top:98px}.detail-hero{height:128px;position:relative;overflow:hidden;background:linear-gradient(130deg,#f8fcff 4%,#e8f4ff 100%)}.detail-hero:before{content:"";position:absolute;width:270px;height:270px;border:1px solid #ffffffb8;border-radius:50%;left:95px;top:-125px;box-shadow:0 0 0 24px #fff5,0 0 0 47px #fff4}.detail-hero:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 61% 45%,#a8ddff66,transparent 35%);opacity:.8}.detail-hero .mesh{position:absolute;right:28px;top:13px;width:175px;height:115px;z-index:1}.detail-icon{width:49px;height:49px;border:1px solid #ffffffb6;border-radius:14px;background:#ffffffb8;display:grid;place-items:center;position:absolute;bottom:16px;left:22px;color:#196ad9;font-weight:780;font-size:17px;z-index:2;box-shadow:0 3px 12px #2973b51c}.detail-kicker{position:absolute;right:23px;bottom:21px;z-index:2;display:flex;align-items:center;gap:5px;color:#447bb6;font-weight:680;font-size:10px;letter-spacing:.25px}.dot{height:6px;width:6px;background:#5ccab9;display:inline-block;border-radius:50%}.detail-body{padding:23px}.detail-title{font-size:20px;line-height:1.23;color:#112e5d;font-weight:760;letter-spacing:-.55px;margin:0}.detail-subtitle{font-size:12px;line-height:1.5;color:#8b9cb5;margin:7px 0 17px}.detail-chips{display:flex;gap:7px;flex-wrap:wrap;padding-bottom:20px;border-bottom:1px solid #edf2f8}.detail-chips .pill{font-size:10px;font-weight:570}.detail-section{margin-top:21px}.detail-section h3{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#243e64;margin:0 0 14px;font-weight:750}.detail-section h3 .muted{color:#94a6c0;font-weight:500;font-size:10px}.facts{display:grid;grid-template-columns:1fr 1fr;column-gap:18px;row-gap:17px}.fact small{display:block;font-size:10px;color:#9aaac0;margin-bottom:5px}.fact strong{font-size:11px;color:#435a7d;font-weight:660;line-height:1.6}.detail-note{display:flex;align-items:flex-start;gap:9px;padding:12px;margin-top:18px;border:1px solid #e6eef9;border-radius:10px;background:#f7faff;font-size:10px;color:#7083a2;line-height:1.55}.detail-note .icon{height:16px;width:16px;color:#568bd5}.detail-section.adopt{padding-top:19px;border-top:1px solid #edf1f8}.adopt-flow{display:grid;gap:13px;margin:6px 0 20px}.step{display:flex;align-items:center;gap:10px;color:#405f87;font-size:11px}.step em{width:24px;height:24px;border-radius:50%;background:#edf4ff;border:1px solid #e2edff;display:grid;place-items:center;color:#3677d7;font-style:normal;font-size:10px;font-weight:800}.action-full{width:100%;height:44px;font-size:12px}.right-meta{margin-top:12px;font-size:10px;color:#9aaac0;text-align:center}.pagefoot{display:flex;justify-content:space-between;margin-top:20px;font-size:10px;color:#9aa9be;padding:0 3px}.pagefoot a{color:#4e80cb;text-decoration:none}
+@media(max-width:1600px){.topbar{padding:0 26px;gap:7px}.topbar .scope{padding:0 9px;font-size:10px}.topbar .scope:nth-child(3){display:none}.content{padding-inline:27px}.workspace{grid-template-columns:minmax(0,1fr) 340px}.framework-row{grid-template-columns:45px minmax(0,1fr) 125px 94px 16px;gap:10px;padding-inline:12px}.edition{font-size:10px}.detail-body{padding:18px}.global-search{min-width:220px}}
+@media(max-width:1230px){.topbar .scope:nth-child(4){display:none}.workspace{grid-template-columns:minmax(0,1fr) 310px}.fw-status{display:none}.framework-row{grid-template-columns:44px minmax(0,1fr) 115px 17px}.content{padding:24px}.heading-copy h1{font-size:30px}.decor{display:none}.global-search{min-width:190px}.page-heading{min-height:116px}.heading-actions .subtle-badge{display:none}}
+@media(max-width:1024px){.sidebar{width:72px;padding:23px 9px}.logo{padding:0;margin-bottom:43px;justify-content:center}.logo strong,.logo small,.nav-item span,.nav-section,.release,.side-bottom span{display:none}.nav-item{justify-content:center;padding:0}.nav-item.active:before{left:-9px}.side-bottom{padding:0 10px}.topbar .scope:nth-child(2){display:none}}
+@media(max-width:820px){.workspace{grid-template-columns:1fr}.detail-card{position:static}.topbar .scope{display:none}.topbar{height:65px;padding:0 16px}.global-search{min-width:170px;flex:1}.page-heading{align-items:flex-start;gap:20px}.heading-actions{flex-wrap:wrap;justify-content:flex-end}.searchbar{flex-wrap:wrap}.searchbox{width:100%}.framework-row{grid-template-columns:46px minmax(0,1fr) 110px 16px}}
+@media(max-width:560px){.content{padding:20px 15px}.sidebar{width:55px}.logo-mark{transform:scale(.75)}.topbar .profile>div:not(.avatar){display:none}.profile{min-width:42px;padding-left:6px}.global-search{min-width:100px}.key{display:none}.page-heading{display:block}.heading-actions{margin-top:17px;justify-content:flex-start}.button{font-size:11px}.framework-row{grid-template-columns:42px minmax(0,1fr) 14px;min-height:90px}.edition{display:none}.fw-title{font-size:12px}.fw-logo{width:42px;height:42px}.results-head{gap:8px}.dropdown{font-size:10px}.detail-card{margin-bottom:20px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style><style>
+/* ClearSight design prototype: Framework adoption. Shared shell from prototype-shared.css. */
+.content.adoption-page{padding:28px 38px 44px;max-width:1880px}
+.crumbs{display:flex;align-items:center;gap:9px;font-size:11px;color:#94a5c1;font-weight:600;margin:2px 0 21px}
+.crumbs a{color:#517bab;text-decoration:none}.crumbs a:hover{color:#1c67de}
+.crumbs svg{width:12px;height:12px}
+.adoption-heading{position:relative;display:flex;align-items:end;justify-content:space-between;gap:24px;padding:1px 0 28px;min-height:104px}
+.adoption-heading::before{position:absolute;content:"";pointer-events:none;inset:-10px 7% -2px 35%;background:radial-gradient(ellipse at 63% 67%,rgba(135,192,247,.16),transparent 65%);z-index:0}
+.heading-text{position:relative;z-index:1}.heading-text h1{font-size:35px;line-height:1.1;letter-spacing:-1.5px;color:#091f46;margin:0;font-weight:760}
+.heading-text p{margin:10px 0 0;color:#7388ab;font-size:13px}
+.heading-meta{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.mini-label{font-size:10px;padding:6px 9px;background:#f3f7ff;border:1px solid #e2ebf8;color:#617da9;border-radius:7px;font-weight:600;white-space:nowrap}
+.mini-label.tint{background:#eaf4ff;color:#2570db;border-color:#d9e8ff}.mini-label.neutral{color:#77869c;background:#fff}.mini-label.success{background:#ecfaf5;color:#17866d;border-color:#d2efe3}
+.header-actions{display:flex;gap:9px;align-items:center;position:relative;z-index:1}
+.prototype-note{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:#8395ae;border:1px solid #e5ecf7;background:#ffffffb8;border-radius:8px;padding:9px 11px;white-space:nowrap}
+.prototype-note .icon{width:14px;height:14px;color:#83a7d6}
+.adoption-grid{display:grid;grid-template-columns:minmax(0,1fr) 375px;align-items:start;gap:18px}
+.adoption-main{display:grid;gap:16px;min-width:0}.adoption-rail{display:grid;gap:16px;min-width:0}
+.panel{background:#fff;border:1px solid #e2eaf5;box-shadow:0 12px 32px #23599b0a,0 2px 6px #23599b05;border-radius:16px;min-width:0}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:21px 22px 15px}
+.panel-title{display:flex;align-items:center;gap:12px;min-width:0}
+.panel-index{display:grid;place-items:center;width:29px;height:29px;flex:none;background:#eaf3ff;border:1px solid #d9e9ff;border-radius:9px;color:#2e72d8;font-weight:760;font-size:12px}
+.panel-title h2{font-size:16px;font-weight:735;letter-spacing:-.4px;color:#16335b;margin:0}
+.panel-title p{font-size:11px;color:#92a2ba;margin:4px 0 0;line-height:1.35}
+.section-link{border:0;background:none;color:#3375d8;font-weight:680;font-size:11px;padding:7px 3px;display:flex;gap:4px;align-items:center;white-space:nowrap}
+.section-link:hover{color:#104db8}.section-link .icon{width:15px;height:15px}
+.program-body{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:11px;padding:0 22px 22px}
+.field{min-width:0;display:grid;gap:8px}.field label,.field .field-label{font-size:10px;letter-spacing:.03em;color:#7c90b0;font-weight:720}
+.select-wrap{display:flex;align-items:center;position:relative;min-width:0;border:1px solid #dfe9f8;border-radius:11px;height:49px;background:#fafcff;padding:0 12px;gap:8px}
+.select-wrap svg{width:17px;height:17px;color:#7196cf}
+.select-wrap select{width:100%;max-width:100%;min-width:0;appearance:none;border:none;outline:none;background:none;color:#213c68;font-size:12px;font-weight:650;cursor:pointer;padding-right:12px;text-overflow:ellipsis}
+.select-wrap .chev{width:13px;height:13px;color:#7691b9;flex:none}
+.context-detail{display:flex;align-items:center;gap:8px;font-size:10px;color:#91a4be;margin-top:9px}.context-detail svg{width:13px;height:13px;color:#4f97d5}
+.segmented{display:inline-flex;gap:3px;align-items:center;border:1px solid #e5ecf7;padding:3px;border-radius:10px;background:#f7faff}
+.segmented button{border:0;background:transparent;color:#8295b2;font-size:11px;padding:7px 11px;border-radius:7px;font-weight:630;white-space:nowrap}
+.segmented button.active{background:#fff;color:#2269d1;box-shadow:0 2px 7px #1d5bad12}
+.mapping-tools{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:0 22px 15px}
+.mapping-hint{font-size:11px;color:#8296b3}.mapping-hint strong{color:#496b9b;font-weight:650}
+.mapping-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.mapping-table th{height:34px;background:#fafcff;border-top:1px solid #edf2f8;border-bottom:1px solid #edf2f8;text-align:left;color:#94a4bc;font-size:10px;font-weight:680;letter-spacing:.03em}
+.mapping-table th:first-child{padding-left:22px;width:45%}.mapping-table th:nth-child(2){width:19%}.mapping-table th:nth-child(3){width:21%}.mapping-table th:last-child{width:15%;text-align:right;padding-right:22px}
+.mapping-table td{height:65px;border-bottom:1px solid #edf2f9;vertical-align:middle;font-size:11px;color:#567094}.mapping-table td:first-child{padding-left:22px}.mapping-table td:last-child{text-align:right;padding-right:22px}
+.mapping-table tr:last-child td{border-bottom:0}.mapping-table tr:hover td{background:#fbfdff}
+.row-main{font-size:12px;font-weight:710;color:#203b61;line-height:1.2}.row-sub{font-size:10px;color:#98a8bf;margin-top:7px;line-height:1.2}
+.code{display:inline-block;font-weight:660;color:#6481b0;font-size:11px}
+.status{display:inline-flex;align-items:center;gap:6px;font-weight:670;font-size:10px;padding:7px 9px;border-radius:7px;white-space:nowrap}
+.status:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.linked{background:#edfaf6;color:#238b70}.status.review{background:#fff7e8;color:#b98324}
+.row-action{border:1px solid #e2eafb;background:#f9fbff;color:#316dc3;border-radius:8px;padding:8px 11px;white-space:nowrap;font-size:11px;font-weight:700}.row-action:hover{background:#e9f3ff;border-color:#accaf5}
+.mapping-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid #eef2f9;padding:13px 22px;color:#9babc0;font-size:10px}.mapping-footer a{color:#3e78d0;text-decoration:none}
+.form-card .panel-head{padding-bottom:10px}
+.form-body{display:flex;gap:14px;align-items:center;margin:0 22px 20px;padding:14px;border:1px solid #e9eff8;border-radius:12px;background:#fbfdff;min-width:0}
+.form-icon{display:grid;place-items:center;flex:none;width:41px;height:41px;background:#ecf7ff;border:1px solid #d8eafd;border-radius:11px;color:#2f7ad8}.form-icon .icon{width:20px;height:20px}
+.form-info{min-width:0;flex:1}.form-info strong{display:block;color:#24416b;font-size:12px;font-weight:700}.form-info small{display:block;color:#8ca0bd;font-size:10px;margin-top:6px}.form-btn{border:1px solid #dce8f7;background:white;color:#376bb6;border-radius:9px;padding:10px 13px;font-size:11px;font-weight:700;white-space:nowrap}
+.form-btn:hover{background:#eff6ff}.form-badge{background:#e8f8f3;color:#298d74;border-radius:6px;padding:5px 7px;margin-right:10px;font-size:10px;font-weight:680}
+.rail-inner{padding:23px 22px}.rail-inner h2{margin:0;color:#15365f;font-size:16px;letter-spacing:-.35px;font-weight:750}.rail-inner p{font-size:11px;color:#8297b6;line-height:1.55;margin:8px 0 0}
+.rail-heading{display:flex;align-items:center;justify-content:space-between}.rail-heading .status-light{display:flex;gap:6px;align-items:center;color:#758fae;font-weight:650;font-size:10px}
+.rail-heading .status-light:before{content:"";width:7px;height:7px;border-radius:50%;background:#e4b766;box-shadow:0 0 0 4px #fff5e2}
+.progress-display{display:flex;align-items:baseline;gap:9px;margin-top:24px}.progress-display strong{font-size:34px;letter-spacing:-1.7px;color:#142f59;line-height:1;font-weight:740}.progress-display span{font-size:11px;color:#6e88aa;font-weight:630}
+.progress{height:7px;border-radius:999px;background:#e8eff8;margin:13px 0 10px;overflow:hidden}.progress span{height:100%;display:block;background:linear-gradient(90deg,#0da9ab,#1e78e5);border-radius:999px;transition:width .16s ease}
+.progress-detail{display:flex;justify-content:space-between;color:#7d94b5;font-size:10px;margin-top:7px}.progress-detail strong{font-weight:720;color:#3573cc}
+.rule{border-top:1px solid #edf2f8;margin:23px 0 21px}
+.review-checks{display:grid;gap:18px;margin:20px 0 24px}.review-check{display:flex;gap:11px;align-items:start}.review-check .mark{width:23px;height:23px;display:grid;place-items:center;border-radius:50%;font-size:12px;flex:none;font-weight:740;background:#eaf9f3;color:#229b78}.review-check.attention .mark{background:#fff5e4;color:#b78628}
+.review-check strong{display:block;font-size:11px;color:#2a456e;font-weight:700}.review-check small{display:block;font-size:10px;color:#92a4bd;margin-top:4px;line-height:1.4}
+.action-stack{display:grid;gap:9px}.action-stack .button{width:100%;min-height:44px}.action-stack .button.secondary{box-shadow:none}.rail-footnote{display:block;text-align:center;font-size:10px;line-height:1.5;color:#9badc3;margin-top:13px}
+.source-head{display:flex;justify-content:space-between;align-items:center;margin:0 0 17px}.source-head h2{font-size:14px}
+.source-facts{display:grid;grid-template-columns:1fr 1fr;gap:18px 10px}.source-facts small{display:block;color:#97a8bd;font-size:10px;margin-bottom:6px}.source-facts strong{font-size:11px;color:#3a557b;font-weight:690}
+.notice{display:flex;align-items:start;gap:9px;padding:11px 12px;background:#f5f9ff;border:1px solid #e4eefe;color:#7290b7;font-size:10px;line-height:1.5;border-radius:10px;margin-top:19px}.notice svg{width:16px;height:16px;color:#4288e3;flex:none}
+.visual-rail{height:95px;position:relative;overflow:hidden;border-radius:15px 15px 0 0;background:radial-gradient(ellipse at 76% 90%,rgba(123,196,255,.34),transparent 70%),linear-gradient(112deg,#f4f9ff,#e8f4ff 76%,#f5faff)}
+.visual-rail .grid-art{position:absolute;right:13px;top:5px;width:148px;height:95px;opacity:.75}.visual-rail .crest{position:absolute;left:20px;top:30px;display:grid;place-items:center;width:42px;height:42px;background:#fff;border:1px solid #dfecfd;border-radius:12px;box-shadow:0 3px 9px #4372a714;color:#2187b5;font-size:14px;font-weight:800}
+.ai-tip{display:flex;align-items:start;gap:10px;color:#7894b7;font-size:10px;line-height:1.5}.ai-tip .icon{width:16px;height:16px;color:#3779e0}
+.empty-list{padding:30px 22px;text-align:center;color:#8195b1;font-size:12px}
+.dialog-backdrop{position:fixed;inset:0;background:#0b265085;backdrop-filter:blur(8px);z-index:30;display:none;align-items:center;justify-content:center;padding:24px}
+.dialog-backdrop.open{display:flex}.dialog{background:#fff;width:min(520px,100%);border-radius:17px;box-shadow:0 32px 90px #07183335;padding:25px;border:1px solid #e3eaf6}.dialog h2{font-size:18px;color:#15365f;letter-spacing:-.5px;margin:0 0 9px}.dialog p{font-size:12px;color:#8195b4;line-height:1.6;margin:0 0 19px}.dialog .close{float:right;border:none;background:#f2f6fc;padding:5px 10px;border-radius:7px;color:#55719c}
+.dialog .choice{width:100%;display:flex;justify-content:space-between;text-align:left;align-items:center;border:1px solid #e6eef8;background:#fff;color:#314e78;font-weight:660;padding:15px 12px;border-radius:10px;margin:8px 0}.dialog .choice:hover{border-color:#a0bff1;background:#f5f9ff}.dialog .choice span{font-size:10px;color:#8aa2be;font-weight:500}.dialog .control-picker{display:grid;gap:10px;margin:10px 0 22px}.dialog select{width:100%;height:40px;border:1px solid #e1eaf7;border-radius:9px;padding:0 10px;color:#274770;background:#fff}.dialog-actions{display:flex;gap:9px;justify-content:flex-end}
+.toast{position:fixed;right:28px;bottom:24px;padding:13px 18px;border-radius:11px;color:#275386;background:#f8fbff;border:1px solid #b9d4fb;box-shadow:0 12px 32px #11284c1b;z-index:40;font-size:12px;font-weight:620;display:none}.toast.visible{display:block}
+@media(max-width:1450px){.adoption-grid{grid-template-columns:minmax(0,1fr) 335px}.content.adoption-page{padding-inline:28px}.mapping-table th:first-child{width:42%}.mapping-table th:nth-child(2){width:19%}.mapping-table th:nth-child(3){width:22%}.mapping-table th:last-child{width:17%}}
+@media(max-width:1250px){.adoption-grid{grid-template-columns:minmax(0,1fr)}.adoption-rail{grid-template-columns:1fr 1fr}.topbar .scope:nth-of-type(n+3){display:none}.program-body{grid-template-columns:1.2fr 1fr 1fr}.mapping-table{min-width:740px}.table-scroll{overflow:auto}}
+@media(max-width:760px){.content.adoption-page{padding:22px 17px}.adoption-heading{align-items:start;display:grid;gap:12px}.heading-text h1{font-size:29px}.header-actions{flex-wrap:wrap}.program-body{grid-template-columns:1fr}.adoption-rail{grid-template-columns:1fr}.panel-head{padding:18px 16px 13px}.mapping-tools,.mapping-footer{padding-inline:16px;flex-wrap:wrap}.mapping-table td:first-child,.mapping-table th:first-child{padding-left:16px}.form-body{margin:0 16px 17px;flex-wrap:wrap}.form-btn{margin-left:auto}.content.adoption-page{max-width:none}}
+@media(prefers-reduced-motion:reduce){.progress span,.button,.row-action{transition:none!important;transform:none!important}}
+@media(max-width:760px){
+  .table-scroll{overflow:visible}
+  .mapping-table{min-width:0;display:block}
+  .mapping-table thead{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden;white-space:nowrap}
+  .mapping-table tbody{display:grid;gap:9px;padding:0 13px 14px}
+  .mapping-table tr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px 7px;padding:13px;border:1px solid #e7eff9;border-radius:11px;background:#fff}
+  .mapping-table tr:hover td{background:transparent}
+  .mapping-table td{height:auto;display:block;border:0;padding:0!important;min-width:0;}
+  .mapping-table td:first-child{grid-column:1/-1}
+  .mapping-table td:nth-child(2){grid-column:1}
+  .mapping-table td:nth-child(3){grid-column:2;text-align:right}
+  .mapping-table td:nth-child(4){grid-column:1/-1;text-align:right}
+  .mapping-table td:nth-child(2):before,.mapping-table td:nth-child(3):before{content:attr(data-label);display:block;font-size:9px;color:#9caec3;margin-bottom:7px}
+  .mapping-table .row-sub{overflow-wrap:anywhere}
+}
+
+</style>
+</head>
+<body>
+<svg aria-hidden="true" style="display:none" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-8h6v8"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="m8 13 3 3 5-6M9 4V2h6v2"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 22 7-4V6l-7-4-7 4v12l7 4Z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="10" cy="7" r="3"/><path d="M3 21v-2a7 7 0 0 1 14 0v2M18 5a3 3 0 0 1 0 6m3 10v-2a7 7 0 0 0-3-5.7"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/></symbol>
+<symbol id="i-form" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 21V11h4v10M10 21V4h4v17M16 21v-8h4v8"/></symbol>
+<symbol id="i-setting" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+<symbol id="i-next" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 8-3 8-3 10h18c0-2-3-2-3-10M10 22h4"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c6 6 6 14 0 20M12 2c-6 6-6 14 0 20"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.3 7.7L22 12l-7.7 2.3L12 22l-2.3-7.7L2 12l7.7-2.3z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6m0-6-9 9"/><path d="M20 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h6"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/></symbol>
+</defs></svg>
+<div class="app">
+<aside class="sidebar" aria-label="Main navigation">
+<div class="logo"><div class="logo-mark"><i class="a"></i><i class="b"></i><i class="c"></i></div><div><strong>ClearSight</strong><small>Governance · Risk · Compliance</small></div></div>
+<nav class="nav">
+<a href="#home" class="nav-item"><svg class="icon"><use href="#i-home"/></svg><span>Home</span></a>
+<a href="framework-library.html" class="nav-item active"><svg class="icon"><use href="#i-layers"/></svg><span>Frameworks</span></a>
+<a href="#programs" class="nav-item"><svg class="icon"><use href="#i-grid"/></svg><span>Programs</span></a>
+<a href="#forms" class="nav-item"><svg class="icon"><use href="#i-form"/></svg><span>Forms</span></a>
+<a href="#vendors" class="nav-item"><svg class="icon"><use href="#i-users"/></svg><span>Vendors</span></a>
+<a href="#risk" class="nav-item"><svg class="icon"><use href="#i-shield"/></svg><span>Risk &amp; Losses</span></a>
+<a href="#privacy" class="nav-item"><svg class="icon"><use href="#i-lock"/></svg><span>Privacy</span></a>
+<a href="#reports" class="nav-item"><svg class="icon"><use href="#i-chart"/></svg><span>Reports</span></a>
+</nav><div class="side-bottom"><button><svg class="icon"><use href="#i-setting"/></svg><span>Settings</span></button><div class="release">ClearSight · Design preview<br>October 2026</div></div>
+</aside>
+<div class="main">
+<header class="topbar"><button class="scope"><svg class="icon"><use href="#i-grid"/></svg>All branches<svg class="icon chev"><use href="#i-chevron"/></svg></button><button class="scope"><svg class="icon"><use href="#i-layers"/></svg>All departments<svg class="icon chev"><use href="#i-chevron"/></svg></button><button class="scope"><svg class="icon"><use href="#i-users"/></svg>All teams<svg class="icon chev"><use href="#i-chevron"/></svg></button><button class="scope"><svg class="icon"><use href="#i-grid"/></svg>All groups<svg class="icon chev"><use href="#i-chevron"/></svg></button><div class="grow"></div><div class="global-search"><svg class="icon"><use href="#i-search"/></svg>Search ClearSight<span class="key">⌘ K</span></div><button class="top-icon" aria-label="Notifications"><svg class="icon"><use href="#i-bell"/></svg></button><div class="profile"><div class="avatar">JD</div><div><strong>Jordan Ellis</strong><small>GRC Administrator</small></div></div></header>
+<main class="content adoption-page">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="framework-library.html">Frameworks</a><svg class="icon"><use href="#i-next"/></svg><span>ISO/IEC 27001:2022</span><svg class="icon"><use href="#i-next"/></svg><strong style="color:#3b64a3">Adoption review</strong></nav>
+  <header class="adoption-heading">
+    <div class="heading-text">
+      <h1>ISO/IEC 27001:2022</h1>
+      <p>Information security management systems</p>
+      <div class="heading-meta"><span class="mini-label tint">Global</span><span class="mini-label neutral">2022 edition</span><span class="mini-label neutral">Citations only</span></div>
+    </div>
+    <div class="header-actions"><span class="prototype-note"><svg class="icon"><use href="#i-info"/></svg>Illustrative design data</span><a class="button" href="framework-library.html"><svg class="icon"><use href="#i-layers"/></svg>Library</a></div>
+  </header>
+  <div class="adoption-grid">
+  <div class="adoption-main">
+    <section class="panel program-card" aria-labelledby="program-title">
+      <div class="panel-head"><div class="panel-title"><span class="panel-index">1</span><div><h2 id="program-title">Program &amp; scope</h2></div></div><button class="section-link" id="change-scope">Manage scope <svg class="icon"><use href="#i-next"/></svg></button></div>
+      <div class="program-body">
+        <div class="field"><label for="program">Program</label><div class="select-wrap"><svg class="icon"><use href="#i-grid"/></svg><select id="program"><option>Information security management</option><option>Third-party security</option><option>IT risk and exceptions</option></select><svg class="icon chev"><use href="#i-chevron"/></svg></div></div>
+        <div class="field"><label for="entity">Legal entity</label><div class="select-wrap"><svg class="icon"><use href="#i-globe"/></svg><select id="entity"><option>Clear Bank Nigeria</option><option>Clear Bank UK</option></select><svg class="icon chev"><use href="#i-chevron"/></svg></div></div>
+        <div class="field"><label for="coverage">Organization scope</label><div class="select-wrap"><svg class="icon"><use href="#i-layers"/></svg><select id="coverage"><option>All groups</option><option>Technology</option><option>Retail banking</option><option>Operations</option></select><svg class="icon chev"><use href="#i-chevron"/></svg></div></div>
+      </div>
+    </section>
+    <section class="panel mapping-card" aria-labelledby="mapping-title">
+      <div class="panel-head"><div class="panel-title"><span class="panel-index">2</span><div><h2 id="mapping-title">Requirement links</h2></div></div><button class="section-link" id="view-all-controls">View controls <svg class="icon"><use href="#i-next"/></svg></button></div>
+      <div class="mapping-tools"><div class="segmented" role="group" aria-label="Filter requirement links"><button type="button" class="active" data-filter="all">All <span id="count-all">6</span></button><button type="button" data-filter="review">To review <span id="count-review">2</span></button><button type="button" data-filter="linked">Linked <span id="count-linked">4</span></button></div><span class="mapping-hint">Suggested matches require <strong>review</strong></span></div>
+      <div class="table-scroll"><table class="mapping-table"><thead><tr><th>Existing Program requirement</th><th>Edition reference</th><th>Control link</th><th>Action</th></tr></thead><tbody id="mapping-rows"></tbody></table></div>
+      <div class="mapping-footer"><span>Illustrative references · Full standard text not included</span><a href="#source" id="source-link">Edition source <svg class="icon" style="display:inline;width:12px;height:12px;vertical-align:middle"><use href="#i-next"/></svg></a></div>
+    </section>
+    <section class="panel form-card" aria-labelledby="form-title">
+      <div class="panel-head"><div class="panel-title"><span class="panel-index">3</span><div><h2 id="form-title">Questionnaire</h2></div></div><button class="section-link" id="form-library">Form library <svg class="icon"><use href="#i-next"/></svg></button></div>
+      <div class="form-body"><span class="form-icon"><svg class="icon"><use href="#i-form"/></svg></span><div class="form-info"><strong id="current-form-name">Information security self-assessment</strong><small id="current-form-info">Version 4 · Internal questionnaire · Existing Program form</small></div><span class="form-badge" id="form-link-state">Linked</span><button class="form-btn" id="link-form">Change form</button></div>
+    </section>
+  </div>
+  <aside class="adoption-rail" aria-label="Adoption review">
+    <section class="panel review-panel"><div class="rail-inner">
+      <div class="rail-heading"><h2>Adoption review</h2><span class="status-light">Draft</span></div>
+      <p></p>
+      <div class="progress-display"><strong id="mapped-count">4 of 6</strong><span>links prepared</span></div>
+      <div class="progress" role="progressbar" aria-label="Linked Program requirements" aria-valuemin="0" aria-valuemax="6" aria-valuenow="4" id="coverage-progress"><span id="progress-fill" style="width:66.666%"></span></div>
+      <div class="progress-detail"><span><strong id="linked-summary">4 linked</strong> · <span id="review-summary">2 to review</span></span><span>Not a compliance score</span></div>
+      <div class="rule"></div>
+      <div class="review-checks">
+        <div class="review-check"><span class="mark">✓</span><div><strong>Program selected</strong><small id="selected-program-name">Information security management</small></div></div>
+        <div class="review-check"><span class="mark">✓</span><div><strong>Scope selected</strong><small id="scope-readout">Clear Bank Nigeria · All groups</small></div></div>
+        <div class="review-check attention" id="mapping-check"><span class="mark" id="mapping-mark">!</span><div><strong>Requirement mappings</strong><small id="mapping-check-label">2 references need review</small></div></div>
+        <div class="review-check"><span class="mark">✓</span><div><strong>Questionnaire</strong><small id="review-form-label">Existing form linked</small></div></div>
+      </div>
+      <div class="action-stack"><button class="button primary" id="send-proposal">Send for review <svg class="icon"><use href="#i-next"/></svg></button><button class="button secondary" id="save-draft">Save draft</button></div>
+      <span class="rail-footnote">Adoption takes effect after authorized approval.</span>
+    </div></section>
+    <section class="panel source-panel" id="source">
+      <div class="visual-rail"><span class="crest">ISO</span><svg class="grid-art" viewBox="0 0 170 100" fill="none"><path d="M7 68 45 26 78 54 111 11 157 43 125 84 78 54 18 92 45 26 125 84" stroke="#fff" stroke-opacity=".9" stroke-width="1.2"/><g fill="white"><circle cx="7" cy="68" r="4"/><circle cx="45" cy="26" r="4"/><circle cx="78" cy="54" r="4"/><circle cx="111" cy="11" r="4"/><circle cx="157" cy="43" r="4"/><circle cx="125" cy="84" r="4"/><circle cx="18" cy="92" r="4"/></g></svg></div>
+      <div class="rail-inner" style="padding-top:19px"><div class="source-head"><h2>Edition details</h2><button class="section-link" id="view-source">Source <svg class="icon"><use href="#i-external"/></svg></button></div>
+        <div class="source-facts"><div><small>Publisher</small><strong>ISO/IEC</strong></div><div><small>Edition</small><strong>2022</strong></div><div><small>Jurisdiction</small><strong>Global</strong></div><div><small>Content</small><strong>Citations only</strong></div></div>
+        <div class="notice"><svg class="icon"><use href="#i-info"/></svg><span>Full standard text is not included. Requirement applicability and evidence are confirmed in the Program.</span></div>
+      </div>
+    </section>
+  </aside>
+  </div>
+</main>
+</div></div>
+<div class="dialog-backdrop" id="dialog-overlay" role="presentation"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><button class="close" id="close-dialog" aria-label="Close">✕</button><h2 id="dialog-title">Review requirement</h2><p id="dialog-copy">Select an existing control link.</p><div id="dialog-contents"></div><div class="dialog-actions"><button class="button" id="dialog-cancel">Cancel</button><button class="button primary" id="dialog-confirm">Confirm</button></div></section></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+// Design-only interactions. No commands, approvals or tenant changes are sent.
+const rows = [
+  {id:'ac', title:'Access control reviews', detail:'IT security · Access governance', reference:'Annex A.5.15', control:'IT-AC-014', status:'linked'},
+  {id:'pr', title:'Privileged account safeguards', detail:'IT security · Identity', reference:'Annex A.8.2', control:'IT-AC-018', status:'review'},
+  {id:'lg', title:'Security event logging', detail:'IT security · Monitoring', reference:'Annex A.8.15', control:'IT-MON-003', status:'linked'},
+  {id:'sv', title:'Supplier security', detail:'Third parties · Vendor controls', reference:'Annex A.5.19', control:'—', status:'review'},
+  {id:'bc', title:'Continuity readiness', detail:'Operations · Resilience', reference:'Annex A.5.30', control:'BCP-004', status:'linked'},
+  {id:'ir', title:'Incident response planning', detail:'IT security · Response', reference:'Annex A.5.24', control:'IT-IR-002', status:'linked'}
+];
+const forms=[{name:'Information security self-assessment',meta:'Version 4 · Internal questionnaire · Existing Program form'}, {name:'ISO 27001 readiness check',meta:'Version 2 · Evidence and control review'}, {name:'Security control attestation',meta:'Version 3 · Internal control owners'}];
+const $ = selector => document.querySelector(selector);
+let filter='all';let dialogAction=null;let lastFocused=null;let formIndex=0;
+function render(){
+  const linked=rows.filter(item=>item.status==='linked').length, reviewing=rows.length-linked;
+  $('#count-all').textContent=rows.length;$('#count-linked').textContent=linked;$('#count-review').textContent=reviewing;
+  $('#mapped-count').textContent=`${linked} of ${rows.length}`;$('#progress-fill').style.width=`${linked/rows.length*100}%`;
+  $('#coverage-progress').setAttribute('aria-valuenow',String(linked));$('#linked-summary').textContent=`${linked} linked`;$('#review-summary').textContent=`${reviewing} to review`;
+  $('#mapping-check-label').textContent=reviewing?`${reviewing} references need review`:'All example links reviewed';
+  $('#mapping-check').classList.toggle('attention',Boolean(reviewing));$('#mapping-mark').textContent=reviewing?'!':'✓';
+  const shown=rows.filter(item=>filter==='all'||item.status===filter);
+  $('#mapping-rows').innerHTML=shown.map(item=>`<tr><td><div class="row-main">${item.title}</div><div class="row-sub">${item.detail}</div></td><td data-label="Reference"><span class="code">${item.reference}</span></td><td data-label="Control link"><span class="status ${item.status}">${item.status==='linked'?'Linked':'To review'}</span><span class="row-sub" style="display:block">${item.control==='—'?'No link selected':item.control}</span></td><td><button class="row-action" data-row="${item.id}">${item.status==='linked'?'Change':'Review'}</button></td></tr>`).join('');
+  if(shown.length===0) $('#mapping-rows').innerHTML='<tr><td colspan="4"><div class="empty-list">No matching requirement links.</div></td></tr>';
+  document.querySelectorAll('[data-row]').forEach(button=>button.addEventListener('click',()=>openRow(button.dataset.row)));
+  $('#selected-program-name').textContent=$('#program').value;
+  $('#scope-readout').textContent=`${$('#entity').value} · ${$('#coverage').value}`;
+  $('#current-form-name').textContent=forms[formIndex].name;
+  $('#current-form-info').textContent=forms[formIndex].meta;
+}
+function showDialog(title,description,contents,action,confirm='Confirm'){
+  lastFocused=document.activeElement;dialogAction=action;
+  $('#dialog-title').textContent=title;$('#dialog-copy').textContent=description;$('#dialog-contents').innerHTML=contents;
+  $('#dialog-confirm').textContent=confirm;$('#dialog-overlay').classList.add('open');$('#close-dialog').focus();
+}
+function closeDialog(){ $('#dialog-overlay').classList.remove('open');dialogAction=null;lastFocused?.focus(); }
+function toast(message){const node=$('#toast');node.textContent=message;node.classList.add('visible');clearTimeout(toast.timeout);toast.timeout=setTimeout(()=>node.classList.remove('visible'),3600)}
+function openRow(id){
+ const row=rows.find(r=>r.id===id);
+ const options=['IT-AC-014','IT-AC-018','IT-MON-003','IT-VEN-009','BCP-004','IT-IR-002'].map(code=>`<option ${row.control===code?'selected':''}>${code}</option>`).join('');
+ showDialog(`Review ${row.reference}`,`${row.title} · ${row.detail}. Select an existing control, or leave this item for the reviewer.`,`<div class="control-picker"><label class="field"><span class="field-label">Existing control</span><select id="control-select"><option value="">Unlinked — needs review</option>${options}</select></label><div class="notice" style="margin:0">Design preview: changing a link here does not modify an approved framework, Program or assessment.</div></div>`,()=>{const v=$('#control-select').value;row.control=v||'—';row.status=v?'linked':'review';render();toast(v?`${row.reference} linked in preview`:`${row.reference} left for review`)},'Update link');
+}
+function openForm(){
+ showDialog('Link an existing form','Select a governed questionnaire already available to the Program.',forms.map((f,i)=>`<button type="button" class="choice" data-form="${i}">${f.name}<span>${formIndex===i?'Current':'Select'} →</span></button>`).join(''),()=>{ const idx=Number(document.querySelector('.choice[data-selected="true"]')?.dataset.form??formIndex);formIndex=idx;render();toast('Questionnaire selection updated in preview')},'Link form');
+ document.querySelectorAll('[data-form]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('[data-form]').forEach(x=>{x.style.borderColor='#e6eef8';x.dataset.selected='false'});button.dataset.selected='true';button.style.borderColor='#3e80ec'}));
+}
+function previewAction(name){showDialog(name,'Review the selected Program, requirement links and questionnaire. This screen is a design prototype; no records will be created or sent.',`<div class="notice" style="margin:0 0 19px">${rows.filter(r=>r.status==='review').length} example mappings remain open. They may be submitted for independent review.</div>`,()=>toast(`${name}: design preview only`),'Continue preview')}
+document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{filter=button.dataset.filter;document.querySelectorAll('[data-filter]').forEach(btn=>btn.classList.toggle('active',btn===button));render()}));
+['#program','#entity','#coverage'].forEach(id=>$(id).addEventListener('change',render));
+$('#link-form').addEventListener('click',openForm);
+$('#form-library').addEventListener('click',openForm);
+$('#change-scope').addEventListener('click',()=>$('#coverage').focus());
+$('#view-all-controls').addEventListener('click',()=>{filter='all';document.querySelectorAll('[data-filter]').forEach(btn=>btn.classList.toggle('active',btn.dataset.filter==='all'));render();toast('Showing all existing Program requirement links')});
+$('#save-draft').addEventListener('click',()=>previewAction('Save draft'));
+$('#send-proposal').addEventListener('click',()=>previewAction('Send for review'));
+$('#view-source').addEventListener('click',()=>toast('Full standard text requires publisher entitlement'));
+$('#close-dialog').addEventListener('click',closeDialog);
+$('#dialog-cancel').addEventListener('click',closeDialog);
+$('#dialog-confirm').addEventListener('click',()=>{if(dialogAction)dialogAction();closeDialog()});
+$('#dialog-overlay').addEventListener('click',event=>{if(event.target.id==='dialog-overlay')closeDialog()});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('#dialog-overlay').classList.contains('open'))closeDialog()});
+$('#source-link').addEventListener('click',()=>$('#source').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
+render();
+
+</script></body></html>

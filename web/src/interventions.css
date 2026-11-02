@@ -42,6 +42,7 @@
 .continuous-checks-detail ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 11px; line-height: 1.55; }
 .continuous-checks-detail p { margin: 9px 0 0; font-size: 11px; }
 
+.workspace-context-return { justify-self: start; margin: 14px 0 2px; }
 .workspace-brief { display: flex; justify-content: space-between; align-items: end; gap: 28px; margin: 28px 0 18px; padding: 0 2px 16px; border-bottom: 1px solid var(--border); }
 .workspace-brief > div:first-child { min-width: 0; }
 .workspace-brief h2 { margin-top: 7px; font-size: 25px; }
@@ -102,4 +103,158 @@
   .continuous-checks-detail dl { grid-template-columns: 1fr; }
   .workspace-brief-facts { display: grid; gap: 4px; white-space: normal; }
   .review-assertions > div { grid-template-columns: 1fr; gap: 5px; }
+}
+
+
+/* Approved Work queue: selected record beside the existing actor-scoped feed. */
+.assigned-workspace { margin-block-start: var(--cs-space-group); container: assigned-work / inline-size; }
+.assigned-workspace__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .4fr); align-items: start; gap: var(--cs-space-group); }
+.assigned-workspace__record { display: flex; align-items: center; gap: var(--cs-space-inline); min-inline-size: 0; }
+.assigned-workspace__record strong { overflow-wrap: anywhere; }
+.assigned-workspace__context { min-inline-size: 0; padding: var(--cs-space-group); background: var(--cs-bg-surface-1); border: 1px solid var(--cs-border-default); border-radius: var(--cs-surface-radius); }
+.assigned-workspace__context h3 { margin-block: var(--cs-space-inline); overflow-wrap: anywhere; }
+.assigned-workspace__context > p { color: var(--cs-text-muted); overflow-wrap: anywhere; }
+.assigned-workspace__context dl { display: grid; gap: var(--cs-space-inline); margin: 0; }
+.assigned-workspace__context dl > div { display: grid; grid-template-columns: minmax(90px, .35fr) minmax(0, 1fr); gap: var(--cs-space-inline); }
+.assigned-workspace__context dt { color: var(--cs-text-muted); }
+.assigned-workspace__context dd { margin: 0; overflow-wrap: anywhere; }
+.assigned-workspace__next { display: grid; gap: var(--cs-primitive-space-1); margin-block: var(--cs-space-group); }
+.assigned-workspace__next > span { color: var(--cs-text-muted); }
+.assigned-workspace__actions { display: flex; flex-wrap: wrap; gap: var(--cs-space-inline); margin-block-start: var(--cs-space-group); }
+@container assigned-work (max-width: 980px) {
+  .assigned-workspace__grid { grid-template-columns: minmax(0, 1fr); }
+  .assigned-workspace__grid > .assigned-workspace__context { display: none; }
+}
+
+.assigned-workspace .intervention-heading { flex-wrap: wrap; align-items: center; }
+.assigned-workspace .intervention-heading h2 { margin-block: 0; font-size: 20px; }
+.assigned-workspace__receipt { margin: 0 0 var(--cs-primitive-space-3); color: var(--cs-text-muted); font-size: 11px; }
+.assigned-workspace__due-window { flex: 0 1 240px; min-inline-size: min(100%, 220px); }
+.assigned-workspace__due-window .cs-select-field { inline-size: 100%; }
+@container assigned-work (max-width: 620px) {
+  .assigned-workspace__due-window { flex: 1 1 100%; }
+}
+
+.assigned-workspace__signals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--cs-space-inline);
+  margin-block: var(--cs-space-group);
+}
+.assigned-workspace__signals > * { min-inline-size: 0; }
+.assigned-workspace__signals .cs-metric-card {
+  --cs-metric-card-min-height: 99px;
+  --cs-metric-card-padding: var(--cs-primitive-space-3);
+  --cs-metric-card-gap: var(--cs-primitive-space-1);
+  --cs-metric-card-heading-columns: minmax(0, 1fr);
+  --cs-metric-card-label-transform: none;
+  --cs-metric-card-label-spacing: 0;
+  --cs-metric-card-value-size: 28px;
+}
+.assigned-workspace__signals .cs-metric-card__measure { order: -1; }
+/* The original Work strip keeps four columns through tablet widths. */
+@media (max-width: 1130px) {
+  .assigned-workspace__signals .cs-metric-card { --cs-metric-card-min-height: 85px; }
+}
+@media (max-width: 760px) {
+  .assigned-workspace__signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* The approved phone Work view uses a short intent row and compact 2x2
+   measures so the first assignment is visible without scrolling. */
+@container assigned-work (max-width: 620px) {
+  .assigned-workspace__signals .cs-metric-card {
+    --cs-metric-card-min-height: 0;
+    --cs-metric-card-padding: var(--cs-primitive-space-3);
+    --cs-metric-card-gap: var(--cs-primitive-space-1);
+  }
+  .assigned-workspace .cs-tabs__list { overflow-x: auto; scrollbar-width: none; }
+  .assigned-workspace .cs-tabs__tab { flex: none; }
+}
+
+/* Work's approved phone layout keeps tabs, measures, queue and first record
+   in the initial viewport. Preserve values, filter state and touch targets. */
+@media (max-width: 650px) {
+  .work-topbar { gap: var(--cs-primitive-space-2); }
+  .work-topbar h1 { font-size: 26px; line-height: 1.12; margin-block: var(--cs-primitive-space-1); }
+  .work-topbar .topbar-actions { gap: var(--cs-primitive-space-2); }
+  .assigned-workspace { margin-block-start: var(--cs-primitive-space-2); }
+}
+@container assigned-work (max-width: 620px) {
+  .assigned-workspace .cs-tabs__panel { padding-block-start: var(--cs-primitive-space-1); }
+  .assigned-workspace__signals {
+    gap: var(--cs-primitive-space-2);
+    margin-block: var(--cs-primitive-space-2);
+  }
+  .assigned-workspace__signals .cs-metric-card {
+    --cs-metric-card-padding: var(--cs-primitive-space-2);
+    align-content: center;
+  }
+  .assigned-workspace__signals .cs-metric-card__measure { order: -1; }
+  .assigned-workspace__signals .cs-metric-card__measure strong { font-size: 26px; }
+  .assigned-workspace__signals .cs-metric-card__label {
+    font-size: 10px;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+  .assigned-workspace .intervention-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--cs-primitive-space-2);
+    padding-block-end: var(--cs-primitive-space-2);
+  }
+  .assigned-workspace .intervention-heading .eyebrow { display: none; }
+  .assigned-workspace .intervention-heading h2 {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.2;
+  }
+  .assigned-workspace .intervention-heading p {
+    margin-block-start: var(--cs-primitive-space-1);
+    font-size: 11px;
+  }
+  .assigned-workspace__due-window { min-inline-size: 0; inline-size: 100%; }
+  .assigned-workspace__due-window .cs-select-field__label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .assigned-workspace .cs-filter-bar { display: grid; gap: var(--cs-primitive-space-1); }
+  .assigned-workspace .cs-filter-bar__fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: var(--cs-primitive-space-2);
+  }
+  .assigned-workspace .cs-filter-bar__fields > * { min-inline-size: 0; inline-size: 100%; }
+  .assigned-workspace .cs-filter-bar__summary { gap: var(--cs-primitive-space-2); }
+  .assigned-workspace .cs-filter-bar__count { font-size: 10px; white-space: normal; }
+}
+
+/* Work heading follows the approved source's Home / Work breadcrumb.
+   Keep global organization context in the shared authenticated shell. */
+.work-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--cs-primitive-space-2);
+  min-inline-size: 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
+}
+.work-breadcrumb .cs-action-link {
+  min-block-size: var(--cs-target-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cs-action-primary);
+  font: inherit;
+  font-weight: 650;
+}
+.work-breadcrumb [aria-current="page"] { overflow-wrap: anywhere; }
+.work-topbar__basis {
+  margin-block: var(--cs-primitive-space-2) 0;
+  color: var(--cs-text-muted);
+  font-size: var(--cs-font-size-caption);
 }

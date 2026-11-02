@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { ProgramItemTarget, ProgramSection } from "../appRouting";
+import type { FrameworkEditionTarget, ProgramItemTarget, ProgramSection } from "../appRouting";
 import { loadProgram, loadProgramAt } from "../api";
 import { loadProgramOperations } from "../programOperationsApi";
 import type { ProgramOperations } from "../programOperationsApi";
 import { loadProgramReviewDigest } from "../programReviewApi";
 import type { ProgramReviewDigest as ReviewDigest } from "../programReviewApi";
 import type { ProgramAggregate } from "../types";
+import type { CompletedResponseSummary } from "../formsDistributionApi";
 import { EmptyState } from "./EmptyState";
 import { dominantProgramAction, ProgramCurrentPosition } from "./ProgramCurrentPosition";
 import { ProgramAttention } from "./ProgramAttention";
@@ -24,9 +25,13 @@ import { VendorRelationshipLinks } from "./VendorRelationshipLinks";
 import { VendorWorkPanel } from "./VendorWorkPanel";
 import { MonitoringSetup } from "./MonitoringSetup";
 import { ProgramDetailSections } from "./ProgramDetailSections";
-import { Notice } from "./ui";
+import { ProgramRequirementCoverageSummary } from "./ProgramRequirementCoverageSummary";
+import { ProgramRecentAssessments, type AssessmentPeriodDays } from "./ProgramRecentAssessments";
+import { ProgramActivityPanel } from "./ProgramActivityPanel";
+import { MetricCard, Notice, StatusBadge } from "./ui";
+import { programOverviewMetrics } from "../programOverviewMetrics";
 
-type Props = { programID: string; section?: ProgramSection; programItem?: ProgramItemTarget; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
+type Props = { programID: string; section?: ProgramSection; programItem?: ProgramItemTarget; frameworkEdition?: FrameworkEditionTarget; onSectionChange?: (section: ProgramSection) => void; onBack: () => void; actorPrincipalID?: string; canConfigureSources?: boolean; onOpenMatter?: (matterID: string) => void; onOpenRequest?: (requestID: string) => void; onOpenForm?: (formID: string) => void };
 type LoadState = "loading" | "live" | "unavailable";
 
 function statusLabel(value: string) {
@@ -39,7 +44,7 @@ function statusLabel(value: string) {
   }
 }
 
-export function ProgramRecordWorkspace({ programID, section = "overview", programItem, onSectionChange, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenRequest, onOpenForm }: Props) {
+export function ProgramRecordWorkspace({ programID, section = "overview", programItem, frameworkEdition, onSectionChange, onBack, actorPrincipalID = "", canConfigureSources = false, onOpenMatter = (matterID) => { window.location.hash = `#work/matters/${encodeURIComponent(matterID)}`; }, onOpenRequest, onOpenForm }: Props) {
   const [aggregateState, setAggregateState] = useState<LoadState>("loading");
   const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [reviewState, setReviewState] = useState<LoadState>("loading");
@@ -47,7 +52,9 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   const [operations, setOperations] = useState<ProgramOperations | null>(null);
   const [digest, setDigest] = useState<ReviewDigest | null>(null);
   const [activeSection, setActiveSection] = useState<ProgramSection>(section);
+  const [activityPeriod, setActivityPeriod] = useState<AssessmentPeriodDays>(90);
   const [ownerIntent, setOwnerIntent] = useState(0);
+  const [assessmentReview, setAssessmentReview] = useState<{ programID: string; id: string; revision: number; form_template_version: number } | null>(null);
   const loadIDs = useRef({ aggregate: 0, operations: 0, review: 0 });
   const activeTarget = useRef({ id: programID, generation: 0 });
   const startedTargetID = useRef<string | null>(null);
@@ -70,6 +77,8 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
   useLayoutEffect(() => {
     if (activeTarget.current.id === programID) return;
     activeTarget.current = { id: programID, generation: activeTarget.current.generation + 1 };
+    setStandardLinkReviewID(undefined);
+    setAssessmentReview(null);
     setAggregate(null);
     setOperations(null);
     setDigest(null);
@@ -194,42 +203,155 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       };
   const dominantAction = digest ? dominantProgramAction(displayedOperations.operations, digest) : undefined;
   const ownerActionIsDominant = dominantAction?.command === "program.assign";
+  const [standardLinkReviewID, setStandardLinkReviewID] = useState<string | undefined>();
+  const overviewMeasures = useMemo(() => aggregate ? programOverviewMetrics(aggregate) : [], [aggregate]);
+  const adoptedStandards = aggregate?.framework_adoptions?.filter((item) => item.status === "ACTIVE");
 
-  function selectSection(next: ProgramSection) {
+  function selectSection(next: ProgramSection, reviewAdoptionID?: string) {
+    setStandardLinkReviewID(next === "requirements-controls" ? reviewAdoptionID : undefined);
+    if (next !== "assessments") setAssessmentReview(null);
     setActiveSection(next);
     onSectionChange?.(next);
   }
 
+  function openRecentAssessment(response: CompletedResponseSummary) {
+    if (response.subject_type !== "PROGRAM" || response.subject_id !== programID || !response.current) return;
+    setAssessmentReview({
+      programID, id: response.id, revision: response.revision,
+      form_template_version: response.form_template_version,
+    });
+    selectSection("assessments");
+  }
+
   const panels: Record<ProgramSection, ReactNode> | null = aggregate ? {
-    overview: <section className="program-record-grid">
-      <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <div className="inline-notice">Review actions are disabled until the current review status is available.</div>}</article>
+    overview: <section className="program-record-grid program-record-grid--overview" aria-label="Program overview">
+      <article className="program-record-panel" id="program-review-panel">{digest ? <ProgramReviewDigest aggregate={aggregate} initialDigest={digest} canAcknowledge={canAcknowledgeReview} onDigestUpdated={applyDigestUpdated}/> : <Notice tone="warning">Review status unavailable. Reload the Program before taking action.</Notice>}</article>
       <ProgramStatusPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
-      <ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+      <div className="program-record-overview-details">
+        <ProgramDetailsPanel aggregate={aggregate} operations={displayedOperations.operations} frameworkEdition={frameworkEdition} onNavigate={selectSection} responsibleParties={displayedOperations.responsible_parties} ownerIntent={ownerIntent} suppressOwnerAction={ownerActionIsDominant} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+      </div>
     </section>,
     "requirements-controls": <section className="program-record-grid">
-      <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
+      <ProgramRequirementsPanel aggregate={aggregate} operations={displayedOperations.operations} reviewAdoptionID={standardLinkReviewID} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
       <ProgramSafeguardsPanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()}/>
     </section>,
-    monitoring: <article className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter} onOpenForm={onOpenForm}/></article>,
-    "evidence-results": <section className="program-record-grid"><ProgramResponsesPanel programID={aggregate.program.id}/><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
+    assessments: <section className="program-record-grid" aria-label="Program assessments"><ProgramResponsesPanel programID={aggregate.program.id} requestedResponse={assessmentReview?.programID === programID ? assessmentReview : undefined}/></section>,
+    "evidence-results": <section className="program-record-grid" aria-label="Program evidence"><ProgramEvidencePanel aggregate={aggregate} operations={displayedOperations.operations} responsibleParties={displayedOperations.responsible_parties} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} canOperate={mutationsReady} onUpdated={(value) => void applyUpdated(value)} onReload={() => void reloadRecord()} onOpenMatter={onOpenMatter}/></section>,
+    monitoring: <article id="program-monitoring-panel" className="program-record-panel program-wide-panel"><MonitoringSetup aggregate={aggregate} actorPrincipalID={actorPrincipalID} canConfigureSources={canConfigureSources && mutationsReady} operations={displayedOperations.operations} onOpenMatter={onOpenMatter} onOpenForm={onOpenForm}/></article>,
     "issues-actions": <section className="program-record-grid">
       <ProgramIssuesPanel aggregate={aggregate} canCreateIssue={mutationsReady} onOpenMatter={onOpenMatter}/>
       <VendorRelationshipLinks targetType="PROGRAM" targetID={aggregate.program.id}/>
       <VendorWorkPanel targetType="PROGRAM" targetID={aggregate.program.id} onOpenRequest={onOpenRequest}/>
     </section>,
     history: <section className="program-record-grid">
-      <article className="program-record-panel program-wide-panel"><div className="program-panel-heading"><div><span className="eyebrow">History</span><h2>Program record history</h2></div></div><dl className="program-history-facts"><div><dt>Program version</dt><dd>{aggregate.program.version}</dd></div><div><dt>Created</dt><dd><time dateTime={aggregate.program.created_at}>{new Date(aggregate.program.created_at).toLocaleString()}</time></dd></div><div><dt>Last changed</dt><dd><time dateTime={aggregate.program.updated_at}>{new Date(aggregate.program.updated_at).toLocaleString()}</time></dd></div><div><dt>Latest status calculated</dt><dd>{aggregate.current_state?.generated_at ? <time dateTime={aggregate.current_state.generated_at}>{new Date(aggregate.current_state.generated_at).toLocaleString()}</time> : "Not available"}</dd></div></dl><RecordSnapshotControl recordLabel="Program" loadSnapshot={async (at) => { const value = await loadProgramAt(aggregate.program.id, at); return { version: value.program.version, status: value.program.status, updatedAt: value.program.updated_at }; }}/></article>
+      <ProgramActivityPanel aggregate={aggregate}
+        digest={digestVersionMatches && reviewState === "live" ? digest : null}
+        onReload={() => void reloadRecord()}>
+        <RecordSnapshotControl recordLabel="Program" loadSnapshot={async (at) => {
+          const value = await loadProgramAt(aggregate.program.id, at);
+          return { version: value.program.version, status: value.program.status, updatedAt: value.program.updated_at };
+        }}/>
+      </ProgramActivityPanel>
     </section>,
   } : null;
 
+  const positionPanel = aggregate ? (digest
+    ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest}
+        onNavigate={selectSection} showAttention={activeSection !== "overview"}
+        onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
+    : <section className="program-current-position" aria-labelledby="program-current-position-heading">
+        <div><span className="eyebrow">Current position</span>
+          <h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2>
+          {activeSection !== "overview" && <ProgramAttention aggregate={aggregate} onNavigate={selectSection}/>}
+        </div>
+        <div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div>
+      </section>) : null;
+
+  const lead = aggregate ? <>
+    {activeSection !== "history" && <div className="program-overview-lead">
+      {activeSection === "overview" && <section className="program-overview-metrics" aria-label="Program measures">
+        {overviewMeasures.map((measure) =>
+          <MetricCard key={measure.id} label={measure.label} value={measure.value}
+            quality={measure.quality} qualityLabel={measure.qualityLabel}
+            tone={measure.id === "issues" && typeof measure.value === "number" && measure.value > 0 ? "warning" : "neutral"}
+            detail={measure.detail} meta={measure.meta} actionLabel={measure.actionLabel}
+            onPress={() => selectSection(measure.target)}/>)}
+      </section>}
+      {activeSection === "overview" ? <div className="program-overview-composition">
+        <div className="program-overview-main">
+          <ProgramRequirementCoverageSummary aggregate={aggregate} onNavigate={selectSection}/>
+          <ProgramRecentAssessments programID={aggregate.program.id} period={activityPeriod} onNavigate={selectSection} onOpenAssessment={openRecentAssessment}/>
+        </div>
+        <aside className="program-overview-rail" aria-label="Program attention and setup">
+          <section className="program-overview-attention" aria-labelledby="program-overview-attention-heading">
+            <h2 id="program-overview-attention-heading">Needs attention</h2>
+            <p>{!aggregate.current_state ? "Current Program state unavailable"
+              : aggregate.current_state.program_version !== aggregate.program.version
+                ? "Based on the previous Program state"
+                : "Recorded issues and outstanding checks"}</p>
+            {aggregate.current_state?.reasons?.length
+              ? <ProgramAttention aggregate={aggregate} onNavigate={selectSection}/>
+              : <p>{aggregate.current_state ? "No recorded follow-up reasons." : "Follow-up is unavailable."}</p>}
+          </section>
+          <section className="program-overview-setup" aria-labelledby="program-overview-setup-heading">
+            <header>
+              <h2 id="program-overview-setup-heading">Program setup</h2>
+              <button type="button" className="text-button" onClick={() => {
+                document.getElementById("program-details-panel")?.scrollIntoView?.({ block: "start" });
+              }}>View details</button>
+            </header>
+            <dl>
+              <div><dt>Standards</dt><dd>{adoptedStandards === undefined ? "Not available"
+                : adoptedStandards.length === 0 ? "None adopted"
+                : adoptedStandards.map((item) =>
+                  <span key={item.id}>{item.framework_code} · {item.edition_code}</span>)}</dd></div>
+              <div><dt>Jurisdiction</dt><dd>{aggregate.program.jurisdiction || "Not recorded"}</dd></div>
+              <div><dt>Owning function</dt><dd>{aggregate.program.owning_function || "Not recorded"}</dd></div>
+            </dl>
+          </section>
+          {positionPanel}
+          <ProgramVendorFollowUp programID={aggregate.program.id}/>
+        </aside>
+      </div> : positionPanel}
+    </div>}
+    {requestedItem && aggregateState === "live" && !itemAvailable && <Notice>
+      <strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong>
+      <p>Return to the import to check its result, or review the available requirements and controls below.</p>
+    </Notice>}
+  </> : null;
+
   return <section className="program-record-workspace" aria-label="Program record">
-    <button aria-label="Back to Programs" className="text-button program-record-back" type="button" onClick={onBack}>← Back to Programs</button>
+    <nav className="program-record-breadcrumb" aria-label="Breadcrumb">
+      <button aria-label="Back to Programs" className="text-button program-record-back" type="button" onClick={onBack}>Programs</button>
+      <span aria-hidden="true">›</span>
+      <span aria-current="page">{aggregate?.program.name ?? "Program"}</span>
+    </nav>
     {aggregateState === "loading" && !aggregate && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading Program record…</div>}
     {aggregateState === "unavailable" && !aggregate && <EmptyState kind="unavailable" label="Program" title="Program record could not be loaded" description="The current Program information is unavailable. Retry the Program record before relying on its status or evidence." action="Retry Program record" onAction={() => void loadAggregate()}/>}
     {aggregate && <>
       <header className="program-record-header">
-        <div><span className="program-kicker">{aggregate.program.code} · {aggregate.program.owning_function}</span><h1>{aggregate.program.name}</h1><p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p></div>
-        <dl><div><dt>Operating status</dt><dd>{statusLabel(aggregate.program.status)}</dd></div><div><dt>Calculated state</dt><dd>{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</dd></div><div><dt>Record version</dt><dd>{aggregate.program.version}</dd></div></dl>
+        <div className="program-record-header__identity">
+          <span className="program-kicker">{aggregate.program.code} · {aggregate.program.type.replaceAll("_", " ")} · <abbr title="Record version">v{aggregate.program.version}</abbr></span>
+          <h1>{aggregate.program.name}</h1>
+          <p>{aggregate.program.jurisdiction || "Jurisdiction not recorded"}</p>
+          <dl className="program-record-header__facts">
+            <div><dt className="sr-only">Operating status</dt><dd><StatusBadge tone={aggregate.program.status === "PAUSED" ? "warning" : aggregate.program.status === "ACTIVE" ? "info" : "neutral"}>{statusLabel(aggregate.program.status)}</StatusBadge></dd></div>
+            <div><dt>Owning function</dt><dd>{aggregate.program.owning_function || "Not recorded"}</dd></div>
+          </dl>
+        </div>
+        <div className="program-record-header__side">
+          <div className="program-record-header__actions">
+            <label className="program-record-header__period">Assessment period
+              <select aria-label="Assessment activity period" value={activityPeriod}
+                onChange={(event) => setActivityPeriod(Number(event.target.value) as AssessmentPeriodDays)}>
+                <option value={90}>Last 90 days</option>
+                <option value={30}>Last 30 days</option>
+                <option value={7}>Last 7 days</option>
+              </select>
+            </label>
+            <button type="button" className="secondary-button" onClick={() => selectSection("monitoring")}>Open data collection</button>
+          </div>
+        </div>
       </header>
       {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking who can act on this Program.</strong> Program details remain visible while assignments are loading.</div>}
       {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Program assignments could not be checked.</strong> Details and recorded owners remain visible, but changes are disabled until assignments can be confirmed. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry assignments</button></div>}
@@ -239,12 +361,7 @@ export function ProgramRecordWorkspace({ programID, section = "overview", progra
       {reviewState === "loading" && <div className="inline-notice" role="status"><strong>Checking the current review status.</strong> Program values remain visible while the latest review position is loaded.</div>}
       {reviewState === "unavailable" && <div className="inline-notice" role="status"><strong>Program review status could not be checked.</strong> Program values and calculated status remain visible, but changes are disabled until the current review position is available. <button className="text-button" type="button" onClick={() => void loadReview()}>Retry review status</button></div>}
       {reviewOutdated && <div className="inline-notice" role="status"><strong>Program review status is out of date.</strong> Program values and review history remain visible, but changes are disabled until the latest Program changes have been assessed. <button className="text-button" type="button" onClick={() => void loadReview()}>Reload review status</button></div>}
-      {digest
-        ? <ProgramCurrentPosition aggregate={aggregate} operations={displayedOperations} digest={digest} onNavigate={selectSection} onOpenOwnerChange={() => setOwnerIntent((value) => value + 1)}/>
-        : <section className="program-current-position" aria-labelledby="program-current-position-heading"><div><span className="eyebrow">Current position</span><h2 id="program-current-position-heading">{aggregate.state_label === "Evidence incomplete" ? "Supporting information needs review" : aggregate.state_label}</h2><ProgramAttention aggregate={aggregate} onNavigate={selectSection}/></div><div className="program-readonly-next"><strong>Changes are disabled</strong><span>Retry the Program review status before making a change.</span></div></section>}
-      {activeSection === "overview" && <ProgramVendorFollowUp programID={aggregate.program.id}/>}
-      {requestedItem && aggregateState === "live" && !itemAvailable && <Notice><strong>The requested {requestedItem.kind === "requirement" ? "requirement" : "control objective"} is unavailable in this Program.</strong><p>Return to the import to check its result, or review the available requirements and controls below.</p></Notice>}
-      {panels && <ProgramDetailSections section={activeSection} panels={panels} onSectionChange={selectSection}/>}
+      {panels && <ProgramDetailSections section={activeSection} panels={panels} lead={lead} onSectionChange={selectSection}/>}
     </>}
   </section>;
 }

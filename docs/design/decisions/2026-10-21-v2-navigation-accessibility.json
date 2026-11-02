@@ -1,0 +1,893 @@
+{
+  "generatedAt": "2026-10-21T14:45:45.426Z",
+  "reviewer": "/root/layout_audit",
+  "scope": "Read-only menu and Reports Overview browser checks on the loaded evidence fixture. WCAG 2 A/AA automated results are limited to the scoped rendered elements. This is not whole-screen acceptance or production/backend proof; 0/19 screen acceptance remains unchanged.",
+  "fixture": "report-overview-loaded",
+  "route": "#reports",
+  "browser": "Chromium through the local Playwright adapter",
+  "scenarios": [
+    {
+      "name": "overview-light-1440",
+      "theme": "light",
+      "width": 1440,
+      "geometry": {
+        "theme": "light",
+        "rail": {
+          "x": 0,
+          "width": 228,
+          "height": 900
+        },
+        "compactOpenerVisible": false,
+        "openerTarget": {
+          "width": 0,
+          "height": 0
+        },
+        "horizontalOverflow": 0,
+        "primaryCurrent": [
+          "Reports"
+        ],
+        "labelledRoles": {
+          "brand": "img",
+          "actor": "group",
+          "staticChartRows": [
+            "group",
+            "group"
+          ]
+        }
+      },
+      "axe": {
+        "version": "4.12.1",
+        "selectors": [
+          ".app-navigation",
+          ".reports-workspace"
+        ],
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": [
+              {
+                "target": [
+                  ".eyebrow"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#reports-heading"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria8654985188-_r_h_-tab-overview > span:nth-child(1)"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria8654985188-_r_h_-tab-explore > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria8654985188-_r_h_-tab-library > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria8654985188-_r_h_-tab-schedules > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria8654985188-_r_h_-tab-builder > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ],
+        "passedRuleCount": 25
+      }
+    },
+    {
+      "name": "overview-light-390",
+      "theme": "light",
+      "width": 390,
+      "geometry": {
+        "theme": "light",
+        "rail": {
+          "x": 0,
+          "width": 56,
+          "height": 844
+        },
+        "compactOpenerVisible": true,
+        "openerTarget": {
+          "width": 44,
+          "height": 44
+        },
+        "horizontalOverflow": 0,
+        "primaryCurrent": [
+          "Reports"
+        ],
+        "labelledRoles": {
+          "brand": "img",
+          "actor": "group",
+          "staticChartRows": [
+            "group",
+            "group"
+          ]
+        }
+      },
+      "axe": {
+        "version": "4.12.1",
+        "selectors": [
+          ".app-navigation",
+          ".reports-workspace"
+        ],
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": [
+              {
+                "target": [
+                  ".eyebrow"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#reports-heading"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria6730040110-_r_h_-tab-overview > span:nth-child(1)"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria6730040110-_r_h_-tab-explore > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria6730040110-_r_h_-tab-library > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria6730040110-_r_h_-tab-schedules > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria6730040110-_r_h_-tab-builder > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ],
+        "passedRuleCount": 26
+      }
+    },
+    {
+      "name": "navigation-expanded-light-390",
+      "theme": "light",
+      "width": 390,
+      "sheet": {
+        "dialogName": "Navigation",
+        "box": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "reducedMotion": true,
+        "styles": [
+          {
+            "selector": "cs-sheet cs-sheet--default cs-sheet--start app-navigation-sheet",
+            "animationName": "none",
+            "animationDuration": "1e-05s",
+            "transitionProperty": "all",
+            "transitionDuration": "1e-05s",
+            "transform": "none",
+            "activeAnimationCount": 0
+          },
+          {
+            "selector": "cs-sheet__overlay cs-sheet__overlay--start",
+            "animationName": "none",
+            "animationDuration": "1e-05s",
+            "transitionProperty": "all",
+            "transitionDuration": "1e-05s",
+            "transform": "none",
+            "activeAnimationCount": 0
+          }
+        ],
+        "paintedControlCount": 16,
+        "offscreenControls": [
+          {
+            "name": "Dismiss",
+            "width": 1,
+            "height": 1,
+            "x": -1,
+            "y": 13
+          }
+        ],
+        "undersizedControls": [],
+        "minControlWidth": 44,
+        "minControlHeight": 44,
+        "currentPage": "Reports",
+        "currentPageVisibleWithoutScrolling": true,
+        "currentPageBox": {
+          "y": 657.140625,
+          "height": 44
+        },
+        "itemScroller": {
+          "y": 93.140625,
+          "height": 617.859375,
+          "scrollHeight": 618,
+          "scrollTop": 0
+        },
+        "riskExpanded": "true",
+        "childLabels": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ]
+      },
+      "axe": {
+        "version": "4.12.1",
+        "selectors": [
+          ".app-navigation-sheet"
+        ],
+        "violations": [],
+        "incomplete": [],
+        "passedRuleCount": 16
+      }
+    },
+    {
+      "name": "overview-dark-1440",
+      "theme": "dark",
+      "width": 1440,
+      "geometry": {
+        "theme": "dark",
+        "rail": {
+          "x": 0,
+          "width": 228,
+          "height": 900
+        },
+        "compactOpenerVisible": false,
+        "openerTarget": {
+          "width": 0,
+          "height": 0
+        },
+        "horizontalOverflow": 0,
+        "primaryCurrent": [
+          "Reports"
+        ],
+        "labelledRoles": {
+          "brand": "img",
+          "actor": "group",
+          "staticChartRows": [
+            "group",
+            "group"
+          ]
+        }
+      },
+      "axe": {
+        "version": "4.12.1",
+        "selectors": [
+          ".app-navigation",
+          ".reports-workspace"
+        ],
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": [
+              {
+                "target": [
+                  ".eyebrow"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#reports-heading"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria2354613914-_r_h_-tab-overview > span:nth-child(1)"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria2354613914-_r_h_-tab-explore > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria2354613914-_r_h_-tab-library > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria2354613914-_r_h_-tab-schedules > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria2354613914-_r_h_-tab-builder > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ],
+        "passedRuleCount": 25
+      }
+    },
+    {
+      "name": "overview-dark-390",
+      "theme": "dark",
+      "width": 390,
+      "geometry": {
+        "theme": "dark",
+        "rail": {
+          "x": 0,
+          "width": 56,
+          "height": 844
+        },
+        "compactOpenerVisible": true,
+        "openerTarget": {
+          "width": 44,
+          "height": 44
+        },
+        "horizontalOverflow": 0,
+        "primaryCurrent": [
+          "Reports"
+        ],
+        "labelledRoles": {
+          "brand": "img",
+          "actor": "group",
+          "staticChartRows": [
+            "group",
+            "group"
+          ]
+        }
+      },
+      "axe": {
+        "version": "4.12.1",
+        "selectors": [
+          ".app-navigation",
+          ".reports-workspace"
+        ],
+        "violations": [],
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": [
+              {
+                "target": [
+                  ".eyebrow"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#reports-heading"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria9718129083-_r_h_-tab-overview > span:nth-child(1)"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria9718129083-_r_h_-tab-explore > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria9718129083-_r_h_-tab-library > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria9718129083-_r_h_-tab-schedules > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              },
+              {
+                "target": [
+                  "#react-aria9718129083-_r_h_-tab-builder > span"
+                ],
+                "summary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+              }
+            ]
+          }
+        ],
+        "passedRuleCount": 26
+      }
+    },
+    {
+      "name": "navigation-expanded-dark-390",
+      "theme": "dark",
+      "width": 390,
+      "sheet": {
+        "dialogName": "Navigation",
+        "box": {
+          "x": 0,
+          "y": 0,
+          "width": 390,
+          "height": 844
+        },
+        "reducedMotion": true,
+        "styles": [
+          {
+            "selector": "cs-sheet cs-sheet--default cs-sheet--start app-navigation-sheet",
+            "animationName": "none",
+            "animationDuration": "1e-05s",
+            "transitionProperty": "all",
+            "transitionDuration": "1e-05s",
+            "transform": "none",
+            "activeAnimationCount": 0
+          },
+          {
+            "selector": "cs-sheet__overlay cs-sheet__overlay--start",
+            "animationName": "none",
+            "animationDuration": "1e-05s",
+            "transitionProperty": "all",
+            "transitionDuration": "1e-05s",
+            "transform": "none",
+            "activeAnimationCount": 0
+          }
+        ],
+        "paintedControlCount": 16,
+        "offscreenControls": [
+          {
+            "name": "Dismiss",
+            "width": 1,
+            "height": 1,
+            "x": -1,
+            "y": 13
+          }
+        ],
+        "undersizedControls": [],
+        "minControlWidth": 44,
+        "minControlHeight": 44,
+        "currentPage": "Reports",
+        "currentPageVisibleWithoutScrolling": true,
+        "currentPageBox": {
+          "y": 657.140625,
+          "height": 44
+        },
+        "itemScroller": {
+          "y": 93.140625,
+          "height": 617.859375,
+          "scrollHeight": 618,
+          "scrollTop": 0
+        },
+        "riskExpanded": "true",
+        "childLabels": [
+          "Risks",
+          "RCSA",
+          "Key indicators",
+          "Loss events"
+        ]
+      },
+      "axe": {
+        "version": "4.12.1",
+        "selectors": [
+          ".app-navigation-sheet"
+        ],
+        "violations": [],
+        "incomplete": [],
+        "passedRuleCount": 16
+      }
+    }
+  ],
+  "interactions": [
+    {
+      "theme": "light",
+      "width": 1024,
+      "sheet": {
+        "dialogName": "Navigation",
+        "box": {
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "height": 768
+        },
+        "reducedMotion": true,
+        "styles": [
+          {
+            "selector": "cs-sheet cs-sheet--default cs-sheet--start app-navigation-sheet",
+            "animationName": "none",
+            "animationDuration": "1e-05s",
+            "transitionDuration": "1e-05s",
+            "transform": "none"
+          },
+          {
+            "selector": "cs-sheet__overlay cs-sheet__overlay--start",
+            "animationName": "none",
+            "animationDuration": "1e-05s",
+            "transitionDuration": "1e-05s",
+            "transform": "none"
+          }
+        ],
+        "undersizedControls": [],
+        "currentPage": "Reports",
+        "currentPageVisibleWithoutScrolling": true,
+        "currentPageBox": {
+          "y": 473.140625,
+          "height": 44
+        },
+        "itemScroller": {
+          "y": 93.140625,
+          "height": 541.859375,
+          "scrollHeight": 542,
+          "scrollTop": 0
+        },
+        "riskExpanded": "false",
+        "childLabels": [],
+        "offscreenControls": [
+          {
+            "name": "Dismiss",
+            "width": 1,
+            "height": 1,
+            "x": -1,
+            "y": 13
+          }
+        ],
+        "paintedControlCount": 12,
+        "paintedControlTargetCheck": "No painted control below 44px in either dimension"
+      },
+      "outsideClick": {
+        "x": 800,
+        "y": 360
+      },
+      "outsideClickDismissal": true,
+      "focusReturnedTo": "Open navigation",
+      "placementPass": true
+    },
+    {
+      "theme": "dark",
+      "width": 1024,
+      "sheet": {
+        "dialogName": "Navigation",
+        "box": {
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "height": 768
+        },
+        "reducedMotion": true,
+        "styles": [
+          {
+            "selector": "cs-sheet cs-sheet--default cs-sheet--start app-navigation-sheet",
+            "animationName": "none",
+            "animationDuration": "1e-05s",
+            "transitionDuration": "1e-05s",
+            "transform": "none"
+          },
+          {
+            "selector": "cs-sheet__overlay cs-sheet__overlay--start",
+            "animationName": "none",
+            "animationDuration": "1e-05s",
+            "transitionDuration": "1e-05s",
+            "transform": "none"
+          }
+        ],
+        "undersizedControls": [],
+        "currentPage": "Reports",
+        "currentPageVisibleWithoutScrolling": true,
+        "currentPageBox": {
+          "y": 473.140625,
+          "height": 44
+        },
+        "itemScroller": {
+          "y": 93.140625,
+          "height": 541.859375,
+          "scrollHeight": 542,
+          "scrollTop": 0
+        },
+        "riskExpanded": "false",
+        "childLabels": [],
+        "offscreenControls": [
+          {
+            "name": "Dismiss",
+            "width": 1,
+            "height": 1,
+            "x": -1,
+            "y": 13
+          }
+        ],
+        "paintedControlCount": 12,
+        "paintedControlTargetCheck": "No painted control below 44px in either dimension"
+      },
+      "outsideClick": {
+        "x": 800,
+        "y": 360
+      },
+      "outsideClickDismissal": true,
+      "focusReturnedTo": "Open navigation",
+      "placementPass": true
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "escapeDismissal": true,
+      "focusReturnedTo": "Open navigation"
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "escapeDismissal": true,
+      "focusReturnedTo": "Open navigation"
+    }
+  ],
+  "boundaries": [
+    {
+      "theme": "light",
+      "width": 560,
+      "expectedRail": 56,
+      "expectedOpener": true,
+      "rail": {
+        "x": 0,
+        "width": 56,
+        "height": 768
+      },
+      "compactOpenerVisible": true,
+      "openerTarget": {
+        "width": 44,
+        "height": 44
+      },
+      "horizontalOverflow": 0,
+      "primaryCurrent": [
+        "Reports"
+      ],
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "width": 561,
+      "expectedRail": 72,
+      "expectedOpener": true,
+      "rail": {
+        "x": 0,
+        "width": 72,
+        "height": 768
+      },
+      "compactOpenerVisible": true,
+      "openerTarget": {
+        "width": 44,
+        "height": 44
+      },
+      "horizontalOverflow": 0,
+      "primaryCurrent": [
+        "Reports"
+      ],
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "width": 1024,
+      "expectedRail": 72,
+      "expectedOpener": true,
+      "rail": {
+        "x": 0,
+        "width": 72,
+        "height": 768
+      },
+      "compactOpenerVisible": true,
+      "openerTarget": {
+        "width": 44,
+        "height": 44
+      },
+      "horizontalOverflow": 0,
+      "primaryCurrent": [
+        "Reports"
+      ],
+      "pass": true
+    },
+    {
+      "theme": "light",
+      "width": 1025,
+      "expectedRail": 228,
+      "expectedOpener": false,
+      "rail": {
+        "x": 0,
+        "width": 228,
+        "height": 900
+      },
+      "compactOpenerVisible": false,
+      "openerTarget": {
+        "width": 0,
+        "height": 0
+      },
+      "horizontalOverflow": 0,
+      "primaryCurrent": [
+        "Reports"
+      ],
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "width": 560,
+      "expectedRail": 56,
+      "expectedOpener": true,
+      "rail": {
+        "x": 0,
+        "width": 56,
+        "height": 768
+      },
+      "compactOpenerVisible": true,
+      "openerTarget": {
+        "width": 44,
+        "height": 44
+      },
+      "horizontalOverflow": 0,
+      "primaryCurrent": [
+        "Reports"
+      ],
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "width": 561,
+      "expectedRail": 72,
+      "expectedOpener": true,
+      "rail": {
+        "x": 0,
+        "width": 72,
+        "height": 768
+      },
+      "compactOpenerVisible": true,
+      "openerTarget": {
+        "width": 44,
+        "height": 44
+      },
+      "horizontalOverflow": 0,
+      "primaryCurrent": [
+        "Reports"
+      ],
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "width": 1024,
+      "expectedRail": 72,
+      "expectedOpener": true,
+      "rail": {
+        "x": 0,
+        "width": 72,
+        "height": 768
+      },
+      "compactOpenerVisible": true,
+      "openerTarget": {
+        "width": 44,
+        "height": 44
+      },
+      "horizontalOverflow": 0,
+      "primaryCurrent": [
+        "Reports"
+      ],
+      "pass": true
+    },
+    {
+      "theme": "dark",
+      "width": 1025,
+      "expectedRail": 228,
+      "expectedOpener": false,
+      "rail": {
+        "x": 0,
+        "width": 228,
+        "height": 900
+      },
+      "compactOpenerVisible": false,
+      "openerTarget": {
+        "width": 0,
+        "height": 0
+      },
+      "horizontalOverflow": 0,
+      "primaryCurrent": [
+        "Reports"
+      ],
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "geometryAndDismissalRecordedAt": "2026-10-21T14:42:31.720Z",
+  "summary": {
+    "axeScenarios": 6,
+    "axeViolations": [],
+    "axeIncomplete": [
+      {
+        "scenario": "overview-light-1440",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "nodes": 7
+          }
+        ]
+      },
+      {
+        "scenario": "overview-light-390",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "nodes": 7
+          }
+        ]
+      },
+      {
+        "scenario": "overview-dark-1440",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "nodes": 7
+          }
+        ]
+      },
+      {
+        "scenario": "overview-dark-390",
+        "rules": [
+          {
+            "id": "color-contrast",
+            "nodes": 7
+          }
+        ]
+      }
+    ],
+    "boundaryCases": 8,
+    "boundaryFailures": [],
+    "undersizedNavigationControls": [],
+    "errors": [],
+    "navigationScope": "All navigation axe states clear; remaining incomplete cases concern only the Reports gradient header/tabs."
+  },
+  "notes": [
+    "Initial aria-prohibited-attr findings on the new brand/actor elements were corrected by the root agent using img/group roles. The same pre-existing static RankedBarList naming issue was corrected with group roles. Final scenario role measurements and axe results verify the changes.",
+    "Color-contrast incomplete entries concern the Reports eyebrow, heading and five tabs over an inherited background gradient. They remain manual-review items, not resolved passes. Open navigation does not have this limitation.",
+    "React Aria supplies a deliberate 1px offscreen Dismiss helper ending at x=0. It is retained in offscreenControls and excluded from painted touch targets. All actual navigation controls are measured.",
+    "Under prefers-reduced-motion:reduce, sheet/overlay have animation-name:none and transform:none. The existing global product-finish stylesheet sets duration fields to 0.01ms; final mobile measurements also record zero active animations. This is not a claim that computed duration fields are literally 0s.",
+    "Boundary geometry and 1024 outside-click/focus-return checks were retained from the initial run because the refresh changed semantics only; geometryAndDismissalRecordedAt identifies that run."
+  ],
+  "implementationCommit": "32ac98ce80f21424904b38a57ef5e31443cac2cd",
+  "layoutCaptureCommit": "67e25eb2e8fb997800b4c43115af7f820259f5cc",
+  "implementationFiles": {
+    "web/src/components/AppNavigation.tsx": "4cb04d3e954b896042804dcc4c6433b14d2545bd8b811120bb5941fcbeb29207",
+    "web/src/app-navigation.css": "466d9e2e743ba5d485dde48025bd8df3c829637ab665ae1837dc21d7da62eb66",
+    "web/src/components/ui/Button.tsx": "37a36553b7996ef137b9fa711b91ff768f7b0abedd461f89050a092eb218b581",
+    "web/src/components/ui/FocusedSheet.tsx": "4562a4e4b6d841fe10241881dba7c9066591c6750cb624e5f6e391dcad10813d",
+    "web/src/components/ui/RankedBarList.tsx": "7649a2a511767fbeef953de55e8ca1d1b0d17d5ec0ea2016cfd9c6d4b151412d"
+  }
+}

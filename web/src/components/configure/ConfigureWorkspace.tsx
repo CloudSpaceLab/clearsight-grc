@@ -1,26 +1,30 @@
 import { useEffect, useState } from "react";
+import type { RuntimeContext } from "../../api";
 import "../../configure-workspace.css";
 import { AIGovernanceSection } from "./AIGovernanceSection";
 import { AutomationSection } from "./AutomationSection";
-import { AuthorityRoutingSection } from "./AuthorityRoutingSection";
 import { ConfigureNavigation } from "./ConfigureNavigation";
 import { ConfigureOverview } from "./ConfigureOverview";
 import { DataIntegrationsSection } from "./DataIntegrationsSection";
+import { EnterpriseSetupSection } from "./EnterpriseSetupSection";
 import { PeopleAccessSection } from "./PeopleAccessSection";
 import { SystemOperationsSection } from "./SystemOperationsSection";
 import { configurationHash, configurationSectionFromHash, type ConfigurationSection } from "./configurationSections";
+import { enterpriseSetupRoute } from "./enterpriseSetupRouting";
 
 type Props = {
   importsEnabled: boolean;
   canReconcileProjection: boolean;
   onOpenImports: () => void;
+  runtimeContext?: RuntimeContext | null;
 };
 
-export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onOpenImports }: Props) {
-  const [section, setSection] = useState<ConfigurationSection>(() => configurationSectionFromHash(window.location.hash));
+export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onOpenImports, runtimeContext }: Props) {
+  const [hash, setHash] = useState(() => window.location.hash);
+  const section = configurationSectionFromHash(hash);
 
   useEffect(() => {
-    const sync = () => setSection(configurationSectionFromHash(window.location.hash));
+    const sync = () => setHash(window.location.hash);
     window.addEventListener("hashchange", sync);
     window.addEventListener("popstate", sync);
     return () => {
@@ -30,10 +34,17 @@ export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onO
   }, []);
 
   function select(next: ConfigurationSection) {
-    setSection(next);
-    const hash = configurationHash(next);
-    if (window.location.hash !== hash) window.history.pushState(null, "", hash);
+    navigate(configurationHash(next));
   }
+
+  function navigate(next: string) {
+    setHash(next);
+    if (window.location.hash !== next) window.history.pushState(null, "", next);
+  }
+
+  if (enterpriseSetupRoute(hash)) return <EnterpriseSetupSection hash={hash} onNavigate={navigate} runtimeContext={runtimeContext} importsEnabled={importsEnabled} onOpenImports={onOpenImports}/>;
+  if (section === "access" || section === "authority") return <PeopleAccessSection hash={hash} onNavigate={navigate} runtimeContext={runtimeContext}/>;
+  if (section === "automation") return <AutomationSection hash={hash} onNavigate={navigate} runtimeContext={runtimeContext}/>;
 
   return <div className="configure-workspace" id="configure-workspace">
     <header className="topbar configure-topbar">
@@ -43,10 +54,7 @@ export function ConfigureWorkspace({ importsEnabled, canReconcileProjection, onO
       <ConfigureNavigation active={section} onSelect={select}/>
       <section className="configure-content" aria-label="Selected configuration area">
         {section === "overview" && <ConfigureOverview importsEnabled={importsEnabled} onOpen={select}/>} 
-        {section === "access" && <PeopleAccessSection/>}
-        {section === "authority" && <AuthorityRoutingSection/>}
         {section === "data" && <DataIntegrationsSection importsEnabled={importsEnabled} onOpenImports={onOpenImports}/>} 
-        {section === "automation" && <AutomationSection/>}
         {section === "ai" && <AIGovernanceSection/>}
         {section === "operations" && <SystemOperationsSection canReconcile={canReconcileProjection}/>} 
       </section>

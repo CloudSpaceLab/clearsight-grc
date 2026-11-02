@@ -1,12 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { deflateSync } from "node:zlib";
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const baseURL = process.env.PAGE_URL ?? "http://127.0.0.1:4173";
 const outputDir = path.resolve(process.env.UI_EVIDENCE_DIR ?? "ui-evidence");
 const manifestPath = path.join(outputDir, "manifest.json");
-const coverPath = path.resolve("..", "docs", "presentation-assets", "clearsight-premium-first-run-cover.png");
+const coverPath = path.resolve(process.env.UI_EVIDENCE_COVER_PATH ?? path.join("..", "docs", "presentation-assets", "clearsight-premium-first-run-cover.png"));
 const browser = await chromium.launch({ headless: true });
 const websiteLogo = createLogoPNG("website");
 const approvedLogo = createLogoPNG("approved");
@@ -39,7 +40,7 @@ async function captureTodayIntroductions() {
   for (const capture of captures) {
     const { context, page } = await openPage({ ...capture, route: "#today", tour: "on", reducedMotion: "no-preference" });
     try {
-      await assertCinematicGuide(page, "Oversight guide", capture.name);
+      await assertCompactHomeGuide(page, capture.name);
       await capturePage(page, capture, "#today");
     } finally {
       await context.close();
@@ -49,8 +50,8 @@ async function captureTodayIntroductions() {
   const reduced = { name: "64-premium-today-intro-reduced-motion-1440x900", theme: "dark", viewport: { width: 1440, height: 900 }, state: "premium-today-intro-reduced-motion" };
   const reducedPage = await openPage({ ...reduced, route: "#today", tour: "on", reducedMotion: "reduce" });
   try {
-    await assertCinematicGuide(reducedPage.page, "Oversight guide", reduced.name);
-    const animations = await reducedPage.page.locator(".cinematic-guide__scene-layer, .cinematic-guide__scene-focus, .cinematic-guide__content").evaluateAll((elements) => elements.map((element) => getComputedStyle(element).animationName));
+    await assertCompactHomeGuide(reducedPage.page, reduced.name);
+    const animations = await reducedPage.page.locator(".guide-panel--compact").evaluateAll((elements) => elements.map((element) => getComputedStyle(element).animationName));
     if (animations.some((name) => name !== "none")) throw new Error(`${reduced.name} still animates under reduced motion: ${animations.join(", ")}`);
     await capturePage(reducedPage.page, reduced, "#today");
   } finally {
@@ -60,9 +61,10 @@ async function captureTodayIntroductions() {
   const zoomed = { name: "65-premium-today-intro-200pct-zoom-proxy", theme: "light", viewport: { width: 720, height: 900 }, state: "premium-today-intro-200pct-proxy" };
   const zoomPage = await openPage({ ...zoomed, route: "#today", tour: "on", reducedMotion: "reduce", deviceScaleFactor: 2 });
   try {
-    await zoomPage.page.getByRole("button", { name: "Start guide" }).scrollIntoViewIfNeeded();
+    await zoomPage.page.locator(".guide-panel--compact").scrollIntoViewIfNeeded();
     await assertNoHorizontalOverflow(zoomPage.page, zoomed.name);
-    await zoomPage.page.getByRole("button", { name: "Home", exact: true }).waitFor({ state: "visible" });
+    await zoomPage.page.getByRole("complementary", { name: "Primary navigation", exact: true })
+      .getByRole("link", { name: "Home", exact: true }).waitFor({ state: "visible" });
     await capturePage(zoomPage.page, zoomed, "#today");
   } finally {
     await zoomPage.context.close();
@@ -101,9 +103,15 @@ async function captureVendorBrandGallery() {
   for (const capture of captures) {
     const opened = await openVendor(capture);
     try {
+      const label = opened.page.getByText(capture.label, { exact: true }).last();
+      if (!await label.isVisible()) await label.locator("xpath=ancestor::details[1]").locator("summary").click();
       await opened.page.getByText(capture.label, { exact: true }).last().waitFor({ state: "visible" });
-      if (capture.image) await opened.page.getByRole("img", { name: "Acme Processing Limited icon" }).first().waitFor({ state: "visible" });
-      if (capture.broken) await opened.page.locator(".vendor-detail-heading .vendor-brand-monogram").waitFor({ state: "visible" });
+      if (capture.image) {
+        const image = opened.page.locator(".vendor-relationship-header .vendor-brand-icon img");
+        await image.waitFor({ state: "visible" });
+        if (!await image.evaluate((element) => element.complete && element.naturalWidth > 0)) throw new Error(`${capture.name} did not render the selected relationship's vendor icon`);
+      }
+      if (capture.broken) await opened.page.locator(".vendor-relationship-header .vendor-brand-monogram").waitFor({ state: "visible" });
       await capturePage(opened.page, capture, "#vendors/register");
     } finally {
       await opened.context.close();
@@ -179,7 +187,7 @@ async function capturePresentationCover() {
   const capture = { name: "presentation-cover", theme: "dark", viewport: { width: 1600, height: 900 }, state: "presentation-cover" };
   const { context, page } = await openPage({ ...capture, route: "#today", tour: "on", reducedMotion: "reduce" });
   try {
-    await assertCinematicGuide(page, "Oversight guide", "presentation cover");
+    await assertCompactHomeGuide(page, "presentation cover");
     if (await page.locator("[role=dialog], .cs-sheet").count()) throw new Error("presentation cover contains an open modal or focused-work panel");
     await page.screenshot({ path: coverPath, fullPage: false, animations: "disabled", caret: "hide" });
     const dimensions = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
@@ -193,7 +201,6 @@ async function openVendor(capture) {
   const opened = await openPage({ ...capture, viewport: capture.viewport ?? { width: 1440, height: 900 }, route: "#vendors/register", tour: "off", reducedMotion: "reduce" });
   await opened.page.getByRole("button", { name: /Acme Processing Limited/ }).first().click();
   await opened.page.getByRole("heading", { name: "Acme Processing Limited", exact: true }).waitFor({ state: "visible" });
-  await opened.page.getByText("Vendor details and record history", { exact: true }).click();
   await opened.page.getByRole("button", { name: "Edit vendor details", exact: true }).waitFor({ state: "visible" });
   return opened;
 }
@@ -234,6 +241,16 @@ async function openPage({ theme, viewport, touch = false, route, fixture, tour, 
   await page.evaluate(() => document.fonts?.ready);
   if (browserErrors.length) throw new Error(`${route} emitted browser errors:\n${browserErrors.join("\n")}`);
   return { context, page };
+}
+
+async function assertCompactHomeGuide(page, name) {
+  const guide = page.getByRole("complementary", { name: "Getting started" });
+  await guide.waitFor({ state: "visible" });
+  await page.locator(".guide-panel--compact").waitFor({ state: "visible" });
+  await guide.getByRole("progressbar", { name: /Guide progress/ }).waitFor({ state: "visible" });
+  await guide.getByRole("button", { name: "Dismiss", exact: true }).waitFor({ state: "visible" });
+  if (await page.locator(".cinematic-guide").count()) throw new Error(`${name} still mounts the Home cinematic introduction`);
+  await assertNoHorizontalOverflow(page, name);
 }
 
 async function assertCinematicGuide(page, label, name) {

@@ -26,6 +26,7 @@ import { StatusBadge, Tabs } from "./ui";
 type Props = {
   matterID: string;
   onBack: () => void;
+  backLabel?: string;
   onOpenRequest?: (requestID: string) => void;
   onOpenLoss?: (lossID: string) => void;
   onOpenIndicator?: (indicatorID: string, kind?: "KRI" | "KCI") => void;
@@ -41,7 +42,7 @@ const matterWorkspaceTabs: ReadonlyArray<{ id: Exclude<MatterWorkspaceTab, "acti
   { id: "decisions", label: "Decisions" },
 ];
 
-export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenLoss, onOpenIndicator }: Props) {
+export function MatterRecordWorkspace({ matterID, onBack, backLabel = "Back to issues and changes", onOpenRequest, onOpenLoss, onOpenIndicator }: Props) {
   const [aggregateState, setAggregateState] = useState<LoadState>("loading");
   const [operationsState, setOperationsState] = useState<LoadState>("loading");
   const [aggregate, setAggregate] = useState<MatterAggregate | null>(null);
@@ -149,11 +150,11 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
   const organizationScope = aggregate?.organization_scope_label || "Not assigned";
 
   return <section className="matter-record-workspace" aria-label="Issue or change record">
-    <button aria-label="Back to issues and changes" className="text-button matter-record-back" type="button" onClick={onBack}>← Back to issues and changes</button>
+    <button aria-label={backLabel} className="text-button matter-record-back" type="button" onClick={onBack}>← {backLabel}</button>
     {aggregateState === "loading" && !aggregate && <div className="workspace-loading" aria-live="polite" aria-busy="true">Loading issue record…</div>}
     {aggregateState === "unavailable" && !aggregate && <EmptyState kind="unavailable" label="Issue or change" title="Issue record could not be loaded" description="The current issue information is unavailable. Retry the issue record before relying on its status or assigned work." action="Retry issue record" onAction={() => void loadAggregate()}/>}
     {aggregate && <>
-      <header className="matter-record-header">
+      <header className="matter-record-header cs-workspace-header">
         <div>
           <span className="matter-kicker">{aggregate.type_label} · {aggregate.matter.reference} · {aggregate.status_label} · Version {aggregate.matter.version}</span>
           <h1>{aggregate.matter.title}</h1>
@@ -170,11 +171,11 @@ export function MatterRecordWorkspace({ matterID, onBack, onOpenRequest, onOpenL
         <MatterBoardBriefAction matterID={aggregate.matter.id}/>
       </div>
       <RecordSnapshotControl recordLabel="issue" loadSnapshot={async (at) => { const value = await loadMatterAt(aggregate.matter.id, at); return { version: value.matter.version, status: value.matter.status, updatedAt: value.matter.updated_at }; }}/>
-      {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking who can act on this issue.</strong> Issue details remain visible while assignments are loading.</div>}
-      {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Issue assignments could not be checked.</strong> Details remain visible, but changes are disabled until assignments can be confirmed. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry assignments</button></div>}
-      {operations && !operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities are temporarily unavailable.</strong> Values and stored owners remain visible, but changes are disabled until authority routing recovers. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
-      {operationsState === "live" && operations?.responsibility_labels_complete === false && <div className="inline-notice" role="status"><strong>Some assignee names could not be loaded.</strong> Recorded assignments remain visible, and available actions continue to use the current assignments. <button className="text-button" type="button" onClick={() => void loadOperations()}>Reload assignee names</button></div>}
-      {operationsOutdated && <div className="inline-notice" role="status"><strong>Issue responsibilities are out of date.</strong> Issue values remain visible, but changes are disabled until responsibilities match issue version {aggregate.matter.version}. <button className="text-button" type="button" onClick={() => void reloadRecord()}>Reload issue data</button></div>}
+      {operationsState === "loading" && <div className="inline-notice" role="status"><strong>Checking issue assignments…</strong></div>}
+      {operationsState === "unavailable" && <div className="inline-notice" role="status"><strong>Issue assignments unavailable.</strong> Editing disabled until assignments are confirmed. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry assignments</button></div>}
+      {operations && !operations.authority_available && <div className="inline-notice" role="status"><strong>Responsibilities unavailable.</strong> Changes disabled until approval routing is restored. <button className="text-button" type="button" onClick={() => void loadOperations()}>Retry responsibilities</button></div>}
+      {operationsState === "live" && operations?.responsibility_labels_complete === false && <div className="inline-notice" role="status"><strong>Some assignee names unavailable.</strong> Recorded assignments remain in effect. <button className="text-button" type="button" onClick={() => void loadOperations()}>Reload assignee names</button></div>}
+      {operationsOutdated && <div className="inline-notice" role="status"><strong>Issue assignments out of date.</strong> Editing disabled until assignments match version {aggregate.matter.version}. <button className="text-button" type="button" onClick={() => void reloadRecord()}>Reload issue data</button></div>}
       <MatterDomainContext aggregate={aggregate} onOpenLoss={onOpenLoss} onOpenIndicator={onOpenIndicator}/>
       <MatterCurrentHandoff
         aggregate={aggregate}

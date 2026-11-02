@@ -1,0 +1,325 @@
+{
+  "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "build": "d2cbf333906fb128a1ccde4eb642c5e7d92d0548",
+  "baseURL": "http://127.0.0.1:4183",
+  "generatedAt": "2026-10-26T10:38:19.321Z",
+  "target": {
+    "label": "Return Independent evidence review for changes",
+    "disabled": true,
+    "x": 85,
+    "y": 648.71875,
+    "width": 276,
+    "height": 44,
+    "right": 361,
+    "bottom": 692.71875,
+    "textBounds": {
+      "x": 105.6875,
+      "y": 653.921875,
+      "width": 234.609375,
+      "height": 32.796875,
+      "right": 340.296875,
+      "bottom": 686.71875
+    },
+    "opacity": 0.55
+  },
+  "paintSamples": [
+    {
+      "name": "final-d2cbf333/280-people-access-routes-definition-dark-390-continuation.png",
+      "sha256": "f336282a644fe4add70b31b6bb5396432df4f4305df3e71125da03063adbc888",
+      "paint": {
+        "sample": {
+          "x": 107,
+          "y": 655,
+          "width": 232,
+          "height": 30
+        },
+        "background": "13,24,38",
+        "distinctColors": 1,
+        "contrastPixels": 0
+      }
+    },
+    {
+      "name": "policy-paint-settled.png",
+      "sha256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae",
+      "paint": {
+        "sample": {
+          "x": 107,
+          "y": 655,
+          "width": 232,
+          "height": 30
+        },
+        "background": "15,28,45",
+        "distinctColors": 398,
+        "contrastPixels": 2526
+      }
+    }
+  ],
+  "repeatedReproduction": [
+    {
+      "run": 0,
+      "images": [
+        {
+          "path": "policy-race-0-first.png",
+          "sha256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae"
+        },
+        {
+          "path": "policy-race-0-settled.png",
+          "sha256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae"
+        }
+      ]
+    },
+    {
+      "run": 1,
+      "images": [
+        {
+          "path": "policy-race-1-first.png",
+          "sha256": "f336282a644fe4add70b31b6bb5396432df4f4305df3e71125da03063adbc888"
+        },
+        {
+          "path": "policy-race-1-settled.png",
+          "sha256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae"
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "images": [
+        {
+          "path": "policy-race-2-first.png",
+          "sha256": "f336282a644fe4add70b31b6bb5396432df4f4305df3e71125da03063adbc888"
+        },
+        {
+          "path": "policy-race-2-settled.png",
+          "sha256": "a9b0c098484de558791d97368d0187be541a50c8e21baf2d7aefbe57965750ae"
+        }
+      ]
+    }
+  ],
+  "oldUnavailableMetrics": {
+    "metrics": [
+      {
+        "text": "Policies Unavailable—",
+        "label": "Policies",
+        "value": "—",
+        "quality": "unknown",
+        "bounds": {
+          "x": 64,
+          "y": 548.5,
+          "width": 155.5,
+          "height": 121,
+          "right": 219.5,
+          "bottom": 669.5
+        },
+        "labelBounds": {
+          "x": 75,
+          "y": 560.5,
+          "width": 36.015625,
+          "height": 36,
+          "right": 111.015625,
+          "bottom": 596.5
+        },
+        "qualityBounds": {
+          "x": 119.015625,
+          "y": 560.5,
+          "width": 89.484375,
+          "height": 18,
+          "right": 208.5,
+          "bottom": 578.5
+        },
+        "labelLongestWordWidth": 51.7734375,
+        "qualityLongestWordWidth": 79.470703125
+      },
+      {
+        "text": "Recorded active Unavailable—",
+        "label": "Recorded active",
+        "value": "—",
+        "quality": "unknown",
+        "bounds": {
+          "x": 226.5,
+          "y": 548.5,
+          "width": 155.5,
+          "height": 121,
+          "right": 382,
+          "bottom": 669.5
+        },
+        "labelBounds": {
+          "x": 237.5,
+          "y": 560.5,
+          "width": 36.015625,
+          "height": 72,
+          "right": 273.515625,
+          "bottom": 632.5
+        },
+        "qualityBounds": {
+          "x": 281.515625,
+          "y": 560.5,
+          "width": 89.484375,
+          "height": 18,
+          "right": 371,
+          "bottom": 578.5
+        },
+        "labelLongestWordWidth": 63.97265625,
+        "qualityLongestWordWidth": 79.470703125
+      },
+      {
+        "text": "Awaiting approval Unavailable—",
+        "label": "Awaiting approval",
+        "value": "—",
+        "quality": "unknown",
+        "bounds": {
+          "x": 64,
+          "y": 676.5,
+          "width": 155.5,
+          "height": 121,
+          "right": 219.5,
+          "bottom": 797.5
+        },
+        "labelBounds": {
+          "x": 75,
+          "y": 688.5,
+          "width": 36.015625,
+          "height": 72,
+          "right": 111.015625,
+          "bottom": 760.5
+        },
+        "qualityBounds": {
+          "x": 119.015625,
+          "y": 688.5,
+          "width": 89.484375,
+          "height": 18,
+          "right": 208.5,
+          "bottom": 706.5
+        },
+        "labelLongestWordWidth": 59.56640625,
+        "qualityLongestWordWidth": 79.470703125
+      },
+      {
+        "text": "Drafts Unavailable—",
+        "label": "Drafts",
+        "value": "—",
+        "quality": "unknown",
+        "bounds": {
+          "x": 226.5,
+          "y": 676.5,
+          "width": 155.5,
+          "height": 121,
+          "right": 382,
+          "bottom": 797.5
+        },
+        "labelBounds": {
+          "x": 237.5,
+          "y": 688.5,
+          "width": 36.015625,
+          "height": 36,
+          "right": 273.515625,
+          "bottom": 724.5
+        },
+        "qualityBounds": {
+          "x": 281.515625,
+          "y": 688.5,
+          "width": 89.484375,
+          "height": 18,
+          "right": 371,
+          "bottom": 706.5
+        },
+        "labelLongestWordWidth": 42.076171875,
+        "qualityLongestWordWidth": 79.470703125
+      }
+    ],
+    "failures": [
+      "summary labels and quality text must fit whole words without collision or clipping"
+    ]
+  },
+  "oldOrganizationSwitcher": {
+    "switcher": {
+      "viewportWidth": 1440,
+      "list": {
+        "x": 260,
+        "y": 296,
+        "width": 1148,
+        "height": 21,
+        "right": 1408,
+        "bottom": 317
+      },
+      "compact": {
+        "x": 260,
+        "y": 317,
+        "width": 1148,
+        "height": 73,
+        "right": 1408,
+        "bottom": 390
+      },
+      "listDisplay": "block",
+      "compactDisplay": "block",
+      "selected": "Organization",
+      "selectedBounds": {
+        "x": 260,
+        "y": 296,
+        "width": 89.515625,
+        "height": 21,
+        "right": 349.515625,
+        "bottom": 317
+      },
+      "indicator": {
+        "x": 349.515625,
+        "y": 298,
+        "width": 0,
+        "height": 16,
+        "right": 349.515625,
+        "bottom": 314
+      },
+      "indicatorPosition": "static",
+      "indicatorColor": "rgba(0, 0, 0, 0)",
+      "buttons": [
+        {
+          "label": "Organization",
+          "x": 260,
+          "y": 296,
+          "width": 89.515625,
+          "height": 21,
+          "right": 349.515625,
+          "bottom": 317
+        },
+        {
+          "label": "Reporting lines",
+          "x": 349.515625,
+          "y": 296,
+          "width": 105.078125,
+          "height": 21,
+          "right": 454.59375,
+          "bottom": 317
+        },
+        {
+          "label": "Provisioning",
+          "x": 454.59375,
+          "y": 296,
+          "width": 84.65625,
+          "height": 21,
+          "right": 539.25,
+          "bottom": 317
+        },
+        {
+          "label": "Escalation routes",
+          "x": 539.25,
+          "y": 296,
+          "width": 120.4375,
+          "height": 21,
+          "right": 659.6875,
+          "bottom": 317
+        }
+      ],
+      "trigger": {
+        "x": 260,
+        "y": 346,
+        "width": 1148,
+        "height": 44,
+        "right": 1408,
+        "bottom": 390
+      },
+      "compactValue": "Organization"
+    },
+    "failures": [
+      "desktop organization switcher requires the styled list, current indicator and44px targets with compact control hidden"
+    ]
+  }
+}

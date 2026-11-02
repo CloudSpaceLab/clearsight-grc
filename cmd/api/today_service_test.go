@@ -87,6 +87,52 @@ func TestActorTodayServiceReturnsOnlyCurrentStoredActorWork(t *testing.T) {
 	}
 }
 
+func TestActorTodayServiceReportsOnlyVisibleWorkflowOverflow(t *testing.T) {
+	now := time.Date(2026, time.October, 20, 10, 0, 0, 0, time.UTC)
+	tasks := make([]workflow.Task, 0, todayItemLimit+5)
+	for i := 0; i < todayItemLimit+1; i++ {
+		tasks = append(tasks, workflow.Task{
+			ID: fmt.Sprintf("visible-%03d", i), TenantID: "bank", LegalEntityID: "entity",
+			WorkflowID: fmt.Sprintf("workflow-%03d", i), WorkflowKind: workflow.EvidenceRequestWorkflowKind,
+			EvidenceRequestID: fmt.Sprintf("request-%03d", i), EvidenceRecipientID: "staff-1",
+			EvidenceSubjectVisible: true, PrincipalID: "staff-1", Responsibility: "PERFORMER",
+			Title: "Provide evidence", Status: workflow.StatusReady, UpdatedAt: now, CreatedAt: now,
+		})
+	}
+	tasks = append(tasks,
+		workflow.Task{ID: "other-actor", TenantID: "bank", LegalEntityID: "entity",
+			WorkflowID: "other-workflow", WorkflowKind: workflow.EvidenceRequestWorkflowKind,
+			EvidenceRequestID: "other-request", EvidenceRecipientID: "staff-2", EvidenceSubjectVisible: true,
+			PrincipalID: "staff-2", Title: "Other actor", Status: workflow.StatusReady},
+		workflow.Task{ID: "other-entity", TenantID: "bank", LegalEntityID: "entity-other",
+			WorkflowID: "entity-workflow", WorkflowKind: workflow.EvidenceRequestWorkflowKind,
+			EvidenceRequestID: "entity-request", EvidenceRecipientID: "staff-1", EvidenceSubjectVisible: true,
+			PrincipalID: "staff-1", Title: "Other legal entity", Status: workflow.StatusReady},
+		workflow.Task{ID: "completed", TenantID: "bank", LegalEntityID: "entity",
+			WorkflowID: "completed-workflow", WorkflowKind: workflow.EvidenceRequestWorkflowKind,
+			EvidenceRequestID: "completed-request", EvidenceRecipientID: "staff-1", EvidenceSubjectVisible: true,
+			PrincipalID: "staff-1", Title: "Completed", Status: workflow.StatusCompleted},
+	)
+	actor := identity.Actor{TenantID: "bank", LegalEntityID: "entity", PrincipalID: "staff-1"}
+	service := actorTodayService(workflow.NewService(workflow.NewMemoryRepository(tasks)), nil, nil, nil, nil)
+	page, err := service.SnapshotFor(context.Background(), actor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if page.WorkflowHasMore == nil || !*page.WorkflowHasMore || len(page.Items) != todayItemLimit {
+		t.Fatalf("actor workflow overflow and loaded population = %+v", page)
+	}
+	for _, item := range page.Items {
+		if item.Title != "Provide evidence" {
+			t.Fatalf("non-authorized work reached Today: %+v", item)
+		}
+	}
+	page, err = actorTodayService(workflow.NewService(workflow.NewMemoryRepository(tasks[:todayItemLimit])), nil, nil, nil, nil).SnapshotFor(context.Background(), actor)
+	if err != nil || page.WorkflowHasMore == nil || *page.WorkflowHasMore || len(page.Items) != todayItemLimit {
+		t.Fatalf("exactly 50 visible tasks must not claim overflow: %+v, %v", page, err)
+	}
+}
+
 func TestActorTodayServiceProjectsEveryAssignedOperationalResponsibility(t *testing.T) {
 	now := time.Now().UTC()
 	responsibilities := []string{"PERFORMER", "ACCOUNTABLE_OWNER", "PROPOSER", "REVIEWER", "INDEPENDENT_CHALLENGER", "AUTHORIZER", "SIGNATORY", "TRANSMITTER", "ACKNOWLEDGEMENT_RECORDER", "ESCALATION_OWNER"}

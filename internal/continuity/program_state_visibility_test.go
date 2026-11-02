@@ -85,6 +85,60 @@ func TestVisibleProgramStateVersionIgnoresCanonicalProjectionChurn(t *testing.T)
 	}
 }
 
+func TestActorProgramCalculationHidesUnscopedCompositeAndHashesSupportedScore(t *testing.T) {
+	score := int64(7500)
+	one := ProgramStateSnapshot{
+		ProgramVersion: 4,
+		Overall:        StateCurrent,
+		Dimensions:     allCurrentDimensions(),
+		Calculation: &ProgramComplianceCalculation{
+			PolicyRevision: "program-v1",
+			State:          ProgramComplianceFinal,
+			ScoreBps:       &score,
+			CoverageBps:    10000,
+			Categories:     []ProgramComplianceCategoryResult{{Code: "REQUIREMENTS", WeightBps: 10000}},
+		},
+	}
+	first := programStateForVisibleMatters(one, 0)
+	if first.Calculation == nil || first.Calculation.ScoreBps == nil || *first.Calculation.ScoreBps != score {
+		t.Fatalf("approved requirements-only score was hidden: %+v", first.Calculation)
+	}
+	secondScore := int64(5500)
+	changed := one
+	newCalculation := *one.Calculation
+	newCalculation.ScoreBps = &secondScore
+	changed.Calculation = &newCalculation
+	second := programStateForVisibleMatters(changed, 0)
+	if first.ProjectionVersion == second.ProjectionVersion {
+		t.Fatal("permitted numeric compliance changes did not change actor-visible revision")
+	}
+
+	// A future privileged composite may reflect a hidden Matter or vendor
+	// assessment. Both the value and changes to its underlying score must be
+	// suppressed until actor-safe contribution reconciliation is available.
+	composite := changed
+	compositeCalc := *changed.Calculation
+	compositeCalc.Categories = []ProgramComplianceCategoryResult{
+		{Code: "REQUIREMENTS", WeightBps: 7000},
+		{Code: "ISSUES", WeightBps: 3000},
+	}
+	composite.Calculation = &compositeCalc
+	hidden := programStateForVisibleMatters(composite, 0)
+	if hidden.Calculation != nil {
+		t.Fatalf("privileged issue-weighted score leaked to actor: %+v", hidden.Calculation)
+	}
+	compositeScore := int64(1000)
+	compositeCalc.ScoreBps = &compositeScore
+	composite.Calculation = &compositeCalc
+	hiddenChanged := programStateForVisibleMatters(composite, 0)
+	if hidden.ProjectionVersion != hiddenChanged.ProjectionVersion {
+		t.Fatal("hidden composite score movement leaked through Program revision fingerprint")
+	}
+	if one.Calculation == nil || *one.Calculation.ScoreBps != score {
+		t.Fatal("actor-facing sanitization mutated authoritative Program state")
+	}
+}
+
 func TestMemoryProgramForPrincipalTracksOnlyReadableMatterTiming(t *testing.T) {
 	ctx := context.Background()
 	repo := NewMemoryRepository()

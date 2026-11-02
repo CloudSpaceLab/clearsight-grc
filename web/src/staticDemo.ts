@@ -209,6 +209,23 @@ export async function loadStaticDemoFixtures(fetcher: typeof fetch = globalThis.
   matterBaseline = clone(matterDetail);
   evidenceRequest = clone(fixtures.evidenceRequest);
   evidenceRequest.deadline = future;
+  if (activeFixture() === "internal-assessment-layout") {
+    // Isolated preview data only. The authenticated CapturePanel, persistence and
+    // authorization paths are unchanged; no prototype scores or decisions.
+    evidenceRequest.title = "Review annual-return control responses";
+    evidenceRequest.presentation = { default_mode: "WIZARD", allow_mode_switch: false };
+    evidenceRequest.sections = [
+      { id: "governance", title: "Governance" },
+      { id: "controls", title: "Controls" },
+      { id: "evidence", title: "Evidence" },
+    ];
+    evidenceRequest.fields = [
+      { id: "accountable_role", section_id: "governance", label: "Accountable role", type: "short_text", required: true },
+      { id: "periodic_review", section_id: "controls", label: "Periodic control review completed", type: "yes_no", required: true },
+      { id: "control_notes", section_id: "controls", label: "Review notes", type: "long_text", required: false },
+      { id: "review_report", section_id: "evidence", label: "Control review report", type: "file", required: true, accepted_formats: ["application/pdf"] },
+    ];
+  }
   evidenceRequests = [evidenceRequest];
   todayItems = clone(fixtures.todayItems);
   for (const item of todayItems) item.due_at = future;
@@ -875,6 +892,31 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
     return clone(programDetail) as T;
   }
   if (pathname === "/api/v1/programs/setup-candidates" && method === "GET") return clone({ owner_candidates: [{ id: "role-dpo", display_name: "Data Protection Officer", kind: "POSITION", role: "DPO" }], approval_authority_candidates: [{ id: "role-cro", display_name: "Chief Risk Officer", kind: "POSITION", role: "CRO" }, { id: "role-deputy-cro", display_name: "Deputy Chief Risk Officer", kind: "POSITION", role: "Deputy CRO" }], has_more: false, generated_at: now }) as T;
+  if (pathname === "/api/v1/framework-catalog/editions" && fixture.startsWith("framework-library-")) {
+    if (fixture === "framework-library-denied") {
+      throw new StaticDemoHTTPError(403, "legal_entity_required", "Select a legal entity.");
+    }
+    // Deterministic UI evidence only. Never install or expose these as
+    // production catalog releases, tenant adoption or scored requirements.
+    const references = [
+      {
+        id: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6001",
+        publisher_code: "SAMPLE", framework_code: "SECURITY", edition_code: "2026",
+        title: "Sample security reference", jurisdiction: "GLOBAL",
+        source_url: "https://example.org/sample-security", source_published_on: "2026-10-01",
+        license_basis: "CITATIONS_ONLY", approval_reference: "sample-release",
+      },
+      {
+        id: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6002",
+        publisher_code: "SAMPLE", framework_code: "PRIVACY", edition_code: "2026",
+        title: "Sample privacy reference", jurisdiction: "GLOBAL",
+        source_url: "https://example.org/sample-privacy", source_published_on: "2026-09-01",
+        license_basis: "SUMMARIES_PERMITTED", license_reference: "sample-license",
+        approval_reference: "sample-release",
+      },
+    ];
+    return clone({ items: url.searchParams.get("jurisdiction") === "GLOBAL" ? references : [] }) as T;
+  }
   if (pathname === "/api/v1/program-summaries") return clone({ items: matchesProgramSummary(url) ? [programSummary] : [], generated_at: now }) as T;
   if (pathname === "/api/v1/form-templates" && method === "GET") {
     if (fixture === "collection-renewal-states" || fixture === "collection-long-content") return clone({ items: collectionFixtures(fixture).forms }) as T;
@@ -1450,7 +1492,7 @@ export async function staticDemoRequest<T>(path: string, init?: RequestInit): Pr
   if (pathname === "/api/v1/workflow/tasks") return clone({ items: [{ id: "task-dpco", tenant_id: "bank-demo", workflow_id: "workflow-return", step_key: "DPCO_REVIEW", responsibility: "REVIEWER", principal_id: "role-dpco", title: "Confirm the final DPCO review date", status: "READY", due_at: future, context: { program: "Nigeria Data Protection Programme" }, version: 1 }] }) as T;
   if (pathname === "/api/v1/operations/projections") return clone({ items: [{ tenant_id: "bank-demo", projection: "program_state", display_name: "Program status", state: "CURRENT", pending: 0, failed: 0, lag_seconds: 3, last_completed: now, updated_at: now }] }) as T;
   if (pathname === "/api/v1/operations/projections/reconcile") return clone({ tenant_id: "bank-demo", checked: 1, queued: 0, already_queued: 0, current: 1 }) as T;
-  if (pathname === "/api/v1/compliance/automation-policies") return clone({ items: [] }) as T;
+  if (pathname === "/api/v1/compliance/automation-policies") return clone({ items: [], tenant_id: "bank-demo", scope: "TENANT", revision_basis: "LATEST_PER_CODE", limit: 200, returned_count: 0, truncated: false }) as T;
   if (pathname === "/api/v1/ai-governance/policies") return clone({ items: [] }) as T;
   if (pathname === "/api/v1/ai-governance/workloads") return clone({ items: [] }) as T;
   if (pathname === "/api/v1/bank-journeys") return clone({ items: [], sample: true }) as T;

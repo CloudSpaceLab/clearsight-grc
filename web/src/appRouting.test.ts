@@ -10,10 +10,35 @@ describe("workspace routes", () => {
     expect(parseRoute("#insights?kind=UNKNOWN&indicator=check-1")).toEqual({ view: "insights", target: { indicatorID: "check-1" } });
   });
 
+  it("round-trips Home Risk/Loss context without widening a department after reload", () => {
+    const target = {
+      insightsView: "risk-loss" as const,
+      insightsPeriod: { start_date: "2026-09-08", end_date: "2026-10-07" },
+      insightsOrganizationScopeID: "00000000-0000-4000-8000-000000000001",
+      insightsLegalEntityID: "00000000-0000-4000-8000-000000000002",
+    };
+    const hash = routeHash("insights", target, "assigned");
+    expect(hash).toBe("#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&legal_entity_id=00000000-0000-4000-8000-000000000002&organization_scope_id=00000000-0000-4000-8000-000000000001");
+    expect(parseRoute(hash)).toEqual({ view: "insights", target });
+    expect(parseRoute("#insights?view=risk-loss&start_date=2026-02-30&end_date=2026-10-07")).toEqual({ view: "insights", target: { insightsView: "risk-loss" } });
+    expect(parseRoute("#insights?view=risk-loss&start_date=2026-09-08&end_date=2026-10-07&legal_entity_id=00000000-0000-4000-8000-000000000002&organization_scope_id=malformed")).toEqual({ view: "insights", target: { insightsView: "risk-loss" } });
+    expect(parseRoute("#insights?view=risk-loss&start_date=2025-01-01&end_date=2026-10-07")).toEqual({ view: "insights", target: { insightsView: "risk-loss" } });
+  });
+
   it("opens Reports as a product-level workspace", () => {
     expect(parseRoute("#reports")).toEqual({ view: "reports", target: {} });
     expect(parseRoute("#ropa/reports")).toEqual({ view: "reports", target: {} });
     expect(routeHash("reports", {}, "matters")).toBe("#reports");
+  });
+
+  it("round-trips Notification local views without changing canonical work routes", () => {
+    expect(parseRoute("#notifications")).toEqual({ view: "notifications", target: {} });
+    for (const notificationTab of ["activity", "preferences"] as const) {
+      expect(parseRoute(`#notifications/${notificationTab}`)).toEqual({ view: "notifications", target: { notificationTab } });
+      expect(routeHash("notifications", { notificationTab }, "matters")).toBe(`#notifications/${notificationTab}`);
+    }
+    expect(parseRoute("#notifications/unknown")).toEqual({ view: "notifications", target: {} });
+    expect(routeHash("notifications", { notificationTab: "inbox" }, "evidence")).toBe("#notifications");
   });
 
   it("opens legacy Today links as Oversight", () => {
@@ -25,6 +50,16 @@ describe("workspace routes", () => {
     expect(parseRoute("#oversight?metric=unknown")).toEqual({ view: "oversight", target: {} });
   });
 
+  it("round-trips explicit Home tabs while keeping Oversight as the compact default route", () => {
+    expect(parseRoute("#oversight")).toEqual({ view: "oversight", target: {} });
+    expect(parseRoute("#oversight?tab=attention")).toEqual({ view: "oversight", target: { homeTab: "attention" } });
+    expect(parseRoute("#oversight?tab=my-work")).toEqual({ view: "oversight", target: { homeTab: "my-work" } });
+    expect(parseRoute("#oversight?tab=unknown")).toEqual({ view: "oversight", target: {} });
+    expect(routeHash("oversight", { homeTab: "oversight" }, "assigned")).toBe("#oversight");
+    expect(routeHash("oversight", { homeTab: "attention", oversightMetric: "overdue" }, "assigned")).toBe("#oversight?tab=attention&metric=overdue");
+    expect(routeHash("oversight", { homeTab: "my-work" }, "assigned")).toBe("#oversight?tab=my-work");
+  });
+
   it("uses assigned work as the Work landing while preserving exact domain routes", () => {
     expect(parseRoute("#work")).toEqual({ view: "work", workTab: "assigned", target: {} });
     expect(routeHash("work", {}, "assigned")).toBe("#work");
@@ -32,6 +67,18 @@ describe("workspace routes", () => {
     expect(parseRoute("#work/evidence/request-1")).toEqual({ view: "work", workTab: "evidence", target: { evidenceID: "request-1" } });
     expect(routeHash("work", { matterID: "matter-1" }, "matters")).toBe("#work/matters/matter-1");
     expect(routeHash("work", { evidenceID: "request-1" }, "evidence")).toBe("#work/evidence/request-1");
+  });
+
+  it("round-trips an originating RCSA cycle through Work records", () => {
+    const matterTarget = { matterID: "matter/1", returnRCSACycleID: "cycle/1" };
+    const matterHash = routeHash("work", matterTarget, "matters");
+    expect(matterHash).toBe("#work/matters/matter%2F1?return_rcsa=cycle%2F1");
+    expect(parseRoute(matterHash)).toEqual({ view: "work", workTab: "matters", target: matterTarget });
+
+    const evidenceTarget = { evidenceID: "request/1", returnRCSACycleID: "cycle/1" };
+    const evidenceHash = routeHash("work", evidenceTarget, "evidence");
+    expect(evidenceHash).toBe("#work/evidence/request%2F1?return_rcsa=cycle%2F1");
+    expect(parseRoute(evidenceHash)).toEqual({ view: "work", workTab: "evidence", target: evidenceTarget });
   });
 
   it("keeps filter queries out of record targets", () => {
@@ -52,6 +99,10 @@ describe("workspace routes", () => {
   it("parses and builds vendor relationship targets", () => {
     expect(parseRoute("#vendors")).toEqual({ view: "vendors", target: { vendorPage: "overview" } });
     expect(parseRoute("#vendors/register")).toEqual({ view: "vendors", target: { vendorPage: "register" } });
+    for (const vendorPage of ["onboarding", "assessments", "documents"] as const) {
+      expect(parseRoute(`#vendors/${vendorPage}`)).toEqual({ view: "vendors", target: { vendorPage } });
+      expect(routeHash("vendors", { vendorPage }, "matters")).toBe(`#vendors/${vendorPage}`);
+    }
     expect(parseRoute("#vendors/register/relationship-1")).toEqual({ view: "vendors", target: { vendorPage: "register", vendorRelationshipID: "relationship-1" } });
     expect(parseRoute("#vendors/relationship-1")).toEqual({ view: "vendors", target: { vendorPage: "register", vendorRelationshipID: "relationship-1" } });
     expect(routeHash("vendors", { vendorPage: "overview" }, "matters")).toBe("#vendors/overview");
@@ -103,8 +154,42 @@ describe("Program section routes", () => {
     expect(routeHash("programs", { programID: "program-1", programSection: "history", programItem: { kind: "requirement", id: "item-1" } }, "matters")).toBe("#programs/program-1/history");
   });
 
+  it("routes the Framework Library within Programs without treating it as a Program record", () => {
+    expect(parseRoute("#programs/library")).toEqual({ view: "programs", target: { programsPage: "library" } });
+    expect(routeHash("programs", { programsPage: "library" }, "assigned")).toBe("#programs/library");
+  });
+
+  it("carries only validated edition identity and jurisdiction into a Program", () => {
+    const frameworkEdition = {
+      editionID: "0199f39a-dac6-7be2-a4ca-1f6d2c7d6001",
+      jurisdiction: "GLOBAL",
+    };
+    const hash = routeHash("programs", { programID: "program-1", programSection: "overview", frameworkEdition }, "assigned");
+    expect(hash).toBe("#programs/program-1/overview?edition_id=0199f39a-dac6-7be2-a4ca-1f6d2c7d6001&edition_jurisdiction=GLOBAL");
+    expect(parseRoute(hash).target).toEqual({ programID: "program-1", programSection: "overview", frameworkEdition });
+    expect(parseRoute(routeHash("programs", { frameworkEdition }, "assigned")).target).toEqual({ frameworkEdition });
+  });
+
+  it("rejects malformed framework selection without losing the Program route", () => {
+    for (const invalid of [
+      "#programs/program-1?edition_id=other&edition_jurisdiction=GLOBAL",
+      "#programs/program-1?edition_id=0199f39a-dac6-7be2-a4ca-1f6d2c7d6001&edition_jurisdiction=invalid",
+      "#programs/program-1?edition_id=0199f39a-dac6-7be2-a4ca-1f6d2c7d6001",
+    ]) {
+      expect(parseRoute(invalid).target).toEqual({ programID: "program-1", programSection: "overview" });
+    }
+  });
+
   it("parses a Program and its selected section", () => {
     expect(parseRoute("#programs/program-1/monitoring")).toEqual({ view: "programs", target: { programID: "program-1", programSection: "monitoring" } });
+  });
+
+  it("round-trips the approved Assessments destination", () => {
+    expect(parseRoute("#programs/program-1/assessments")).toEqual({
+      view: "programs", target: {programID: "program-1", programSection: "assessments"},
+    });
+    expect(routeHash("programs", {programID: "program-1", programSection: "assessments"}, "matters"))
+      .toBe("#programs/program-1/assessments");
   });
 
   it("builds a Program section hash", () => {
@@ -119,6 +204,8 @@ describe("Program section routes", () => {
 describe("ROPA workspace routes", () => {
   it("parses and builds the register route", () => {
     expect(parseRoute("#ropa")).toEqual({ view: "ropa", target: { ropaPage: "register" } });
+    expect(parseRoute("#ropa/overview")).toEqual({ view: "ropa", target: { ropaPage: "overview" } });
+    expect(routeHash("ropa", { ropaPage: "overview" }, "matters")).toBe("#ropa/overview");
     expect(routeHash("ropa", { ropaPage: "register" }, "matters")).toBe("#ropa");
   });
 

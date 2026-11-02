@@ -20,7 +20,7 @@ export function FormApprovalSheet({ input, changedFromInitial, saving, onClose, 
       <header>
         <span className="eyebrow">Governance</span>
         <h3>Ready for independent review</h3>
-        <p>This does not activate the form. A different approver must review and approve the version shown here.</p>
+        <p>An independent approver must approve this form before activation.</p>
       </header>
 
       <dl className="form-approval-facts">
@@ -34,9 +34,8 @@ export function FormApprovalSheet({ input, changedFromInitial, saving, onClose, 
       <div className="form-approval-governance-note">
         <strong>{changedFromInitial ? "New draft version" : "Current draft version"}</strong>
         <p>{changedFromInitial
-          ? "Your changes will be saved as a new draft version before it is submitted."
-          : "No new revision is needed because the saved draft has not changed."}</p>
-        <p>Activation still requires a separate approver.</p>
+          ? "Changes will be saved as a new draft revision."
+          : "Saved draft unchanged; no new revision required."}</p>
       </div>
 
       <footer>

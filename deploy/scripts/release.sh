@@ -86,6 +86,7 @@ trap rollback ERR
 if [[ "$demo_seed_mode" == reference ]]; then
   docker run --rm --network host --env-file "$config" \
     --entrypoint /clearsight-seed-bank-reference "clearsight-api:$sha" \
+    -demo-journeys-only \
     -tenant 00000000-0000-4000-8000-000000000001 \
     -legal-entity 00000000-0000-4000-8000-000000000002 \
     -actor 00000000-0000-4000-8000-000000000101 \

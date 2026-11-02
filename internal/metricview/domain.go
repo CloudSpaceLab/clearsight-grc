@@ -54,6 +54,10 @@ type DomainReader interface {
 	LatestDomainMetrics(context.Context, string, string) (DomainBundle, error)
 }
 
+type ScopedDomainReader interface {
+	CurrentDomainMetrics(context.Context, string, string, string, []string, time.Time) (DomainBundle, error)
+}
+
 func DomainDefinitionList() []Definition {
 	values := make([]Definition, len(domainDefinitions))
 	copy(values, domainDefinitions[:])

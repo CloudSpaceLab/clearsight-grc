@@ -181,24 +181,25 @@ const (
 )
 
 type Program struct {
-	ID                   string          `json:"id"`
-	TenantID             string          `json:"tenant_id"`
-	LegalEntityID        string          `json:"legal_entity_id,omitempty"`
-	OrganizationScopeID  string          `json:"organization_scope_id,omitempty"`
-	Code                 string          `json:"code"`
-	Name                 string          `json:"name"`
-	Type                 string          `json:"type"`
-	Status               ProgramStatus   `json:"status"`
-	OwningFunction       string          `json:"owning_function"`
-	OwnerPrincipalID     string          `json:"owner_principal_id,omitempty"`
-	AuthorityPrincipalID string          `json:"authority_principal_id,omitempty"`
-	Jurisdiction         string          `json:"jurisdiction,omitempty"`
-	Scope                json.RawMessage `json:"scope"`
-	EffectiveFrom        time.Time       `json:"effective_from"`
-	EffectiveUntil       *time.Time      `json:"effective_until,omitempty"`
-	CreatedAt            time.Time       `json:"created_at"`
-	UpdatedAt            time.Time       `json:"updated_at"`
-	Version              int64           `json:"version"`
+	ID                   string                           `json:"id"`
+	TenantID             string                           `json:"tenant_id"`
+	LegalEntityID        string                           `json:"legal_entity_id,omitempty"`
+	OrganizationScopeID  string                           `json:"organization_scope_id,omitempty"`
+	Code                 string                           `json:"code"`
+	Name                 string                           `json:"name"`
+	Type                 string                           `json:"type"`
+	Status               ProgramStatus                    `json:"status"`
+	OwningFunction       string                           `json:"owning_function"`
+	OwnerPrincipalID     string                           `json:"owner_principal_id,omitempty"`
+	AuthorityPrincipalID string                           `json:"authority_principal_id,omitempty"`
+	Jurisdiction         string                           `json:"jurisdiction,omitempty"`
+	Scope                json.RawMessage                  `json:"scope"`
+	CalculationPolicy    *ProgramCompliancePolicyPosition `json:"calculation_policy,omitempty"`
+	EffectiveFrom        time.Time                        `json:"effective_from"`
+	EffectiveUntil       *time.Time                       `json:"effective_until,omitempty"`
+	CreatedAt            time.Time                        `json:"created_at"`
+	UpdatedAt            time.Time                        `json:"updated_at"`
+	Version              int64                            `json:"version"`
 }
 
 type Requirement struct {
@@ -336,24 +337,26 @@ type StateReason struct {
 }
 
 type ProgramStateSnapshot struct {
-	ID                string               `json:"id"`
-	TenantID          string               `json:"tenant_id"`
-	ProgramID         string               `json:"program_id"`
-	Overall           ProgramState         `json:"overall"`
-	Dimensions        ComplianceDimensions `json:"dimensions"`
-	Reasons           []StateReason        `json:"reasons"`
-	OpenMatterCount   int                  `json:"open_matter_count"`
-	TriggerType       string               `json:"trigger_type,omitempty"`
-	TriggerID         string               `json:"trigger_id,omitempty"`
-	GeneratedAt       time.Time            `json:"generated_at"`
-	ProgramVersion    int64                `json:"program_version"`
-	ProjectionVersion int64                `json:"projection_version"`
+	ID                string                        `json:"id"`
+	TenantID          string                        `json:"tenant_id"`
+	ProgramID         string                        `json:"program_id"`
+	Overall           ProgramState                  `json:"overall"`
+	Dimensions        ComplianceDimensions          `json:"dimensions"`
+	Reasons           []StateReason                 `json:"reasons"`
+	Calculation       *ProgramComplianceCalculation `json:"calculation,omitempty"`
+	OpenMatterCount   int                           `json:"open_matter_count"`
+	TriggerType       string                        `json:"trigger_type,omitempty"`
+	TriggerID         string                        `json:"trigger_id,omitempty"`
+	GeneratedAt       time.Time                     `json:"generated_at"`
+	ProgramVersion    int64                         `json:"program_version"`
+	ProjectionVersion int64                         `json:"projection_version"`
 }
 
 type ProgramAggregate struct {
 	StateLabel              string                   `json:"state_label"`
 	Program                 Program                  `json:"program"`
 	Requirements            []Requirement            `json:"requirements"`
+	FrameworkAdoptions      []FrameworkAdoption      `json:"framework_adoptions,omitempty"`
 	Applicability           []Applicability          `json:"applicability"`
 	ControlObjectives       []ControlObjective       `json:"control_objectives"`
 	ControlImplementations  []ControlImplementation  `json:"control_implementations"`

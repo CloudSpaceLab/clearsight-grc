@@ -1,0 +1,1285 @@
+{
+  "status": "LOCAL_CORRECTED_CAPTURE_PASS_HOSTED_RERUN_PENDING",
+  "reviewer": "/root/ci_review",
+  "reviewDate": "2026-10-31",
+  "correction": {
+    "localCommit": "5381850f1f2ebff340e4d9fde57e197253da0348",
+    "remoteEquivalentCommitObject": "bd0f45be0ce96eb1fd2bcf029b0343468203eb19",
+    "tree": "9662a00fc7117326a983fd4ccce2c1a9d5a6a463",
+    "remoteObjectAPI": "https://api.github.com/repos/CloudSpaceLab/clearsight-grc/git/commits/bd0f45be0ce96eb1fd2bcf029b0343468203eb19",
+    "remoteObjectTreeVerified": true,
+    "publicationStateAtReview": "Remote object exists; PR branch advance and final-head hosted run are pending.",
+    "changedPaths": [
+      "docs/evidence/2026-10-31-enterprise-setup/hosted-followup/README.md",
+      "docs/evidence/2026-10-31-enterprise-setup/hosted-followup/diagnostic.json",
+      "docs/evidence/2026-10-31-enterprise-setup/hosted-followup/existing-editors-and-import-guards-failed.png",
+      "web/scripts/capture-enterprise-setup-evidence.mjs",
+      "web/scripts/review-enterprise-setup-evidence.mjs"
+    ],
+    "applicationRuntimeFilesChanged": false
+  },
+  "capture": {
+    "kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+    "revision": "5381850f1f2ebff340e4d9fde57e197253da0348",
+    "browser": "140.0.7339.16",
+    "buildDigest": "28e6d798572e8d37da39a977b639694fb68842515f73b4011517ff51cfe3d4b1",
+    "afterBuildDigest": "28e6d798572e8d37da39a977b639694fb68842515f73b4011517ff51cfe3d4b1",
+    "sameBuildAsEarlierLocalAndFailedHosted": true,
+    "receiptFile": "corrected-capture/enterprise-setup/receipt.json",
+    "receiptBytes": 408139,
+    "receiptSHA256": "696fc531b1c7e89ed3099b82503eb2ce5ca2730e8136d2fd48d57572b8bb639d",
+    "source": {
+      "path": "docs/design/references/clearsight-2026-10/source/clearsight-enterprise-setup-designs/enterprise-setup-preview.html",
+      "sha256": "cc7542e2a3047338b1d2fbbbe33756adbc9ee8c2084fb5920834da8aeedc04c7"
+    },
+    "inputs": [
+      {
+        "kind": "fixtureSHA256",
+        "file": "corrected-inputs/src/staticDemoEnterpriseSetupRuntime.js",
+        "bytes": 7937,
+        "sha256": "8b339301595a9525f3b21e22f88b0d5438e6679a3df63cd1d7d1a5158db444d8"
+      },
+      {
+        "kind": "captureSHA256",
+        "file": "corrected-inputs/scripts/capture-enterprise-setup-evidence.mjs",
+        "bytes": 27452,
+        "sha256": "1983cea03d3ef0640ee3e35a7dfe1f8c0e6f2ebe3ff1b6ee6e37277a6885b755"
+      },
+      {
+        "kind": "reviewerSHA256",
+        "file": "corrected-inputs/scripts/review-enterprise-setup-evidence.mjs",
+        "bytes": 10148,
+        "sha256": "9d173dec1e07234d5318759b6d536747560acd13fafc92c5067f4c5614fbf2d2"
+      }
+    ],
+    "layouts": 10,
+    "behaviors": 11,
+    "images": 42,
+    "allImageBytesAndHashesVerified": true,
+    "failure": null
+  },
+  "archivedReviewerReplay": {
+    "file": "corrected-gate-replay.json",
+    "sha256": "cbce0bd0f0a9c4c717d9a3ac78cf31893ce9940728ccd5bbf5fef2e89df77464",
+    "status": "PASS",
+    "failures": []
+  },
+  "importedEditor": {
+    "checks": {
+      "managedEditorsOpenWithoutCommands": true,
+      "importedMoveRetireGuard": true,
+      "importedTypePopoverClosed": true,
+      "importedTypeFocusRestored": true,
+      "importedTypeRequiresExplicitChoice": true,
+      "retainedPositionBoundaryEditorsOpen": true,
+      "independentMakerGuard": true
+    },
+    "dismissalBeforeEscape": {
+      "expanded": "false",
+      "focused": true,
+      "listboxes": 0,
+      "popovers": 0
+    },
+    "passed": true,
+    "browserErrors": [],
+    "commands": [],
+    "description": "The capture observes the nested listbox/popover absence and restored Type-trigger focus before the same single parent Escape. No manual focus, fixed delay, repeated Escape, retry or timeout increase was added."
+  },
+  "probeEvidence": {
+    "summaryFile": "corrected-probe-summary.json",
+    "summarySHA256": "84ac3b3e2ef7955a2d4e0e7de2351847f90eeeb2b1dc230219c662979d94b623",
+    "traceFile": "corrected-focus-trace.json",
+    "traceSHA256": "18e20c611f8a43d33346c3c0a02b0d129d497574108f0f27a82c1015e47a2fcd",
+    "exactHostedFailureLocallyReproduced": false
+  },
+  "reviewerNegativeChecks": {
+    "file": "corrected-reviewer-negative-verification.json",
+    "sha256": "c8613204323052aeb48f67c286ff3c53308fa32695c8f95225b39c29ef5ee3d6",
+    "reviewer": "/root/work_contract",
+    "cases": 3,
+    "result": "Missing observation, focused=false and popovers=1 are each rejected despite the success flags being set; the original 43 files remain byte-identical."
+  },
+  "layouts": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 341,
+        "y": 539.890625,
+        "width": 449,
+        "height": 44,
+        "right": 790,
+        "bottom": 583.890625
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "beside",
+      "contextGeometry": null,
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria3348753119-_r_f_ > span"
+            ],
+            [
+              "#react-aria3348753119-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria3348753119-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-light-1440.png"
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 341,
+        "y": 539.890625,
+        "width": 449,
+        "height": 44,
+        "right": 790,
+        "bottom": 583.890625
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "beside",
+      "contextGeometry": null,
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria4410910575-_r_f_ > span"
+            ],
+            [
+              "#react-aria4410910575-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria4410910575-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-dark-1440.png"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "light",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 341,
+        "y": 523,
+        "width": 572,
+        "height": 44,
+        "right": 913,
+        "bottom": 567
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "below",
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 239.390625,
+        "titleBottom": 265.03125,
+        "shellBottom": 68,
+        "viewportHeight": 800,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      },
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria7401463926-_r_8_ > span"
+            ],
+            [
+              "#react-aria7401463926-_r_t_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria7401463926-_r_19_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-light-1280.png"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "dark",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 341,
+        "y": 523,
+        "width": 572,
+        "height": 44,
+        "right": 913,
+        "bottom": 567
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "below",
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 239.390625,
+        "titleBottom": 265.03125,
+        "shellBottom": 68,
+        "viewportHeight": 800,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      },
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria9436210923-_r_f_ > span"
+            ],
+            [
+              "#react-aria9436210923-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria9436210923-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-dark-1280.png"
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 193.953125,
+        "y": 555,
+        "width": 484.09375,
+        "height": 44,
+        "right": 678.046875,
+        "bottom": 599
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "below",
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 239.390625,
+        "titleBottom": 265.03125,
+        "shellBottom": 68,
+        "viewportHeight": 768,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      },
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria8061682574-_r_f_ > span"
+            ],
+            [
+              "#react-aria8061682574-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria8061682574-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-light-1024.png"
+    },
+    {
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 193.953125,
+        "y": 555,
+        "width": 484.09375,
+        "height": 44,
+        "right": 678.046875,
+        "bottom": 599
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "below",
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 239.390625,
+        "titleBottom": 265.03125,
+        "shellBottom": 68,
+        "viewportHeight": 768,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      },
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria7292431804-_r_f_ > span"
+            ],
+            [
+              "#react-aria7292431804-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria7292431804-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-dark-1024.png"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 161,
+        "y": 519,
+        "width": 578,
+        "height": 44,
+        "right": 739,
+        "bottom": 563
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "below",
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 266.671875,
+        "titleBottom": 292.3125,
+        "shellBottom": 64,
+        "viewportHeight": 900,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      },
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria6797835198-_r_8_ > span"
+            ],
+            [
+              "#react-aria6797835198-_r_t_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria6797835198-_r_19_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-light-768.png"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 161,
+        "y": 519,
+        "width": 578,
+        "height": 44,
+        "right": 739,
+        "bottom": 563
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "below",
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 266.671875,
+        "titleBottom": 292.3125,
+        "shellBottom": 64,
+        "viewportHeight": 900,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      },
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria4790646600-_r_f_ > span"
+            ],
+            [
+              "#react-aria4790646600-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria4790646600-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-dark-768.png"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 134,
+        "y": 684,
+        "width": 232,
+        "height": 49.890625,
+        "right": 366,
+        "bottom": 733.890625
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "below",
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 214.25,
+        "titleBottom": 239.890625,
+        "shellBottom": 64,
+        "viewportHeight": 844,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      },
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria5875679062-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria5875679062-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-light-390.png"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "sourceOrder": true,
+      "firstRecordInViewport": true,
+      "firstAreaInViewport": true,
+      "firstArea": {
+        "label": "Inspect Abuja Central",
+        "x": 134,
+        "y": 684,
+        "width": 232,
+        "height": 49.890625,
+        "right": 366,
+        "bottom": 733.890625
+      },
+      "minimumControlWidth": 44,
+      "minimumControlHeight": 44,
+      "contextPlacement": "below",
+      "contextGeometry": {
+        "title": "Technology",
+        "titleTop": 214.25,
+        "titleBottom": 239.890625,
+        "shellBottom": 64,
+        "viewportHeight": 844,
+        "focused": true,
+        "titleVisible": true,
+        "hash": "#configure/access/positions?unit=sample-org-technology"
+      },
+      "axeViolations": [],
+      "axeIncomplete": [
+        {
+          "id": "color-contrast",
+          "targets": [
+            [
+              "#react-aria4094107951-_r_14_ > span[aria-hidden=\"true\"]"
+            ],
+            [
+              "#react-aria4094107951-_r_1g_ > span[aria-hidden=\"true\"]"
+            ]
+          ]
+        }
+      ],
+      "image": "corrected-capture/enterprise-setup/layout-dark-390.png"
+    }
+  ],
+  "behaviors": [
+    {
+      "name": "selection-search-history-light-1440",
+      "passed": true,
+      "checks": {
+        "searchFiltersLoadedScopes": true,
+        "searchRetainsAncestors": true,
+        "searchNoMatch": true,
+        "collapseHidesDescendants": true,
+        "selectionUpdatesContextAndURL": true,
+        "historyRestoresSelection": true,
+        "deepLinkRestoresContext": true,
+        "activation": "keyboard"
+      }
+    },
+    {
+      "name": "selection-search-history-dark-390",
+      "passed": true,
+      "checks": {
+        "searchFiltersLoadedScopes": true,
+        "searchRetainsAncestors": true,
+        "searchNoMatch": true,
+        "collapseHidesDescendants": true,
+        "selectionUpdatesContextAndURL": true,
+        "historyRestoresSelection": true,
+        "deepLinkRestoresContext": true,
+        "activation": "touch"
+      }
+    },
+    {
+      "name": "setup-navigation",
+      "passed": true,
+      "checks": {
+        "keyboardTraversalPreservesSelection": true,
+        "keyboardImportHandoff": true,
+        "importHandoff": true,
+        "unavailableDestinationsHonest": true,
+        "setupHistoryPreservesUnit": true,
+        "peopleHandoff": true,
+        "frameworkHandoff": true
+      }
+    },
+    {
+      "name": "empty",
+      "passed": true,
+      "checks": {
+        "emptyPopulationHonest": true,
+        "noHorizontalOverflow": true
+      }
+    },
+    {
+      "name": "truncated",
+      "passed": true,
+      "checks": {
+        "limitDisclosureInViewport": true,
+        "detailedLimitDisclosurePresent": true,
+        "actualBoundedPopulation": true,
+        "loadedPopulationLimitVisible": true,
+        "noHorizontalOverflow": true
+      }
+    },
+    {
+      "name": "denied",
+      "passed": true,
+      "checks": {
+        "failedReadDoesNotShowRecords": true,
+        "noHorizontalOverflow": true
+      }
+    },
+    {
+      "name": "failure",
+      "passed": true,
+      "checks": {
+        "failedReadDoesNotShowRecords": true,
+        "noHorizontalOverflow": true
+      }
+    },
+    {
+      "name": "recovery",
+      "passed": true,
+      "checks": {
+        "failedReadDoesNotShowRecords": true,
+        "retryRestoresRecords": true,
+        "noHorizontalOverflow": true
+      }
+    },
+    {
+      "name": "readonly",
+      "passed": true,
+      "checks": {
+        "mutationActionsUnavailable": true,
+        "noHorizontalOverflow": true
+      }
+    },
+    {
+      "name": "hierarchy-gaps",
+      "passed": true,
+      "checks": {
+        "orphanAndCycleRemainReachable": true,
+        "noHorizontalOverflow": true
+      }
+    },
+    {
+      "name": "existing-editors-and-import-guards",
+      "passed": true,
+      "checks": {
+        "managedEditorsOpenWithoutCommands": true,
+        "importedMoveRetireGuard": true,
+        "importedTypePopoverClosed": true,
+        "importedTypeFocusRestored": true,
+        "importedTypeRequiresExplicitChoice": true,
+        "retainedPositionBoundaryEditorsOpen": true,
+        "independentMakerGuard": true
+      }
+    }
+  ],
+  "truncated": {
+    "loadedAreas": 500,
+    "limitGeometry": {
+      "text": "500 loaded areas \u00b7 More areas not shown",
+      "top": 544.109375,
+      "bottom": 562.109375,
+      "left": 80,
+      "right": 328.125,
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "shellBottom": 64
+    },
+    "checks": {
+      "limitDisclosureInViewport": true,
+      "detailedLimitDisclosurePresent": true,
+      "actualBoundedPopulation": true,
+      "loadedPopulationLimitVisible": true,
+      "noHorizontalOverflow": true
+    },
+    "image": "corrected-capture/enterprise-setup/truncated.png"
+  },
+  "comparison": {
+    "earlierLocalRevision": "613f07f705c383201f576504f7debf7b84592151",
+    "earlierLocalBrowser": "141.0.7390.37",
+    "earlierLocalReceipt": "../after/enterprise-setup/receipt.json",
+    "failedHostedRevision": "7f14b9022c15899d2837957cd75da22bec1f88e8",
+    "failedHostedBrowser": "140.0.7339.16",
+    "failedHostedReceiptSHA256": "53fee6753a6440bdcca8210b39b4ea79b0a53bc933e6fd12fdb45fd073671ece",
+    "imagesByteIdenticalToEarlierLocal": 40,
+    "imagesByteIdenticalToFailedHosted": 35,
+    "images": [
+      {
+        "file": "source-organization-1440.png",
+        "bytes": 210218,
+        "sha256": "a74b37773e65afae559fbbb6d37ee4cc0549fa283ba8749d050fa174c2d6c963",
+        "retainedFile": "corrected-capture/enterprise-setup/source-organization-1440.png",
+        "earlierLocalSHA256": "a74b37773e65afae559fbbb6d37ee4cc0549fa283ba8749d050fa174c2d6c963",
+        "earlierLocalBytes": 210218,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "a74b37773e65afae559fbbb6d37ee4cc0549fa283ba8749d050fa174c2d6c963",
+        "failedHostedBytes": 210218,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-1440.png",
+        "bytes": 165643,
+        "sha256": "548de4a35720071b54e86a06fc5db0961518c7129ec27077569478972ca17798",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-1440.png",
+        "earlierLocalSHA256": "548de4a35720071b54e86a06fc5db0961518c7129ec27077569478972ca17798",
+        "earlierLocalBytes": 165643,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "548de4a35720071b54e86a06fc5db0961518c7129ec27077569478972ca17798",
+        "failedHostedBytes": 165643,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-1440-full.png",
+        "bytes": 235881,
+        "sha256": "f8a7b16e5757229cbd9c9564441581919d6a8f1bae7c33fea8de838230dd3aea",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-1440-full.png",
+        "earlierLocalSHA256": "f8a7b16e5757229cbd9c9564441581919d6a8f1bae7c33fea8de838230dd3aea",
+        "earlierLocalBytes": 235881,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "f8a7b16e5757229cbd9c9564441581919d6a8f1bae7c33fea8de838230dd3aea",
+        "failedHostedBytes": 235881,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-dark-1440.png",
+        "bytes": 166048,
+        "sha256": "e21e2cc801fb3e621dbe879e476d3dff8f578a494116b3fe8920d0e77105c093",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-1440.png",
+        "earlierLocalSHA256": "f887ba00bedd7124a9f6a3c64c70afb050d129ca96ba5ed459a431247ad1411d",
+        "earlierLocalBytes": 166012,
+        "equalToEarlierLocal": false,
+        "failedHostedSHA256": "f887ba00bedd7124a9f6a3c64c70afb050d129ca96ba5ed459a431247ad1411d",
+        "failedHostedBytes": 166012,
+        "equalToFailedHosted": false
+      },
+      {
+        "file": "layout-dark-1440-full.png",
+        "bytes": 236469,
+        "sha256": "5944d742bd32f7cadf421407693b8db074127cc9a690590187bd109e2c89ff78",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-1440-full.png",
+        "earlierLocalSHA256": "5944d742bd32f7cadf421407693b8db074127cc9a690590187bd109e2c89ff78",
+        "earlierLocalBytes": 236469,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "5944d742bd32f7cadf421407693b8db074127cc9a690590187bd109e2c89ff78",
+        "failedHostedBytes": 236469,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "source-organization-1280.png",
+        "bytes": 162353,
+        "sha256": "655ab34c554ff2a4b3620596fa0146b13f9cfdde298e70f889cdd51c61ce8187",
+        "retainedFile": "corrected-capture/enterprise-setup/source-organization-1280.png",
+        "earlierLocalSHA256": "655ab34c554ff2a4b3620596fa0146b13f9cfdde298e70f889cdd51c61ce8187",
+        "earlierLocalBytes": 162353,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "655ab34c554ff2a4b3620596fa0146b13f9cfdde298e70f889cdd51c61ce8187",
+        "failedHostedBytes": 162353,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "source-organization-1280-context.png",
+        "bytes": 124833,
+        "sha256": "2b13d91757559569d7996d26c3275771e54d9fd8381770c49ba5306c714992f0",
+        "retainedFile": "corrected-capture/enterprise-setup/source-organization-1280-context.png",
+        "earlierLocalSHA256": "2b13d91757559569d7996d26c3275771e54d9fd8381770c49ba5306c714992f0",
+        "earlierLocalBytes": 124833,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "2b13d91757559569d7996d26c3275771e54d9fd8381770c49ba5306c714992f0",
+        "failedHostedBytes": 124833,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-1280.png",
+        "bytes": 130117,
+        "sha256": "1685855569dfd86eaa6ac96f73032210f3ec92d3570400387284b9ca9aacd57c",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-1280.png",
+        "earlierLocalSHA256": "1685855569dfd86eaa6ac96f73032210f3ec92d3570400387284b9ca9aacd57c",
+        "earlierLocalBytes": 130117,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "c145fa1ffebbdb63de7ca75d17ddc5b27fcadf8a6e51cd0f51d25ed4d76c359a",
+        "failedHostedBytes": 130179,
+        "equalToFailedHosted": false
+      },
+      {
+        "file": "layout-light-1280-context.png",
+        "bytes": 101011,
+        "sha256": "ab2821a0449e48afdddb6162f2171a8db88cc653679cc5ee5313c63b7f2041ef",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-1280-context.png",
+        "earlierLocalSHA256": "ab2821a0449e48afdddb6162f2171a8db88cc653679cc5ee5313c63b7f2041ef",
+        "earlierLocalBytes": 101011,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "007cdcd79fccf955cbb4e7375e9e0d2964376f0df408f0fae6fbb670e94be657",
+        "failedHostedBytes": 101066,
+        "equalToFailedHosted": false
+      },
+      {
+        "file": "layout-dark-1280.png",
+        "bytes": 130442,
+        "sha256": "196d45bb3a198a520c4d96bc54b6e15c2d6ca992fe67891123d987fbfb2d01e6",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-1280.png",
+        "earlierLocalSHA256": "196d45bb3a198a520c4d96bc54b6e15c2d6ca992fe67891123d987fbfb2d01e6",
+        "earlierLocalBytes": 130442,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "196d45bb3a198a520c4d96bc54b6e15c2d6ca992fe67891123d987fbfb2d01e6",
+        "failedHostedBytes": 130442,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-dark-1280-context.png",
+        "bytes": 101018,
+        "sha256": "ec49c2dcea8510c0698f037310e2d0f1cf9abea19e76e602f84c4e061a5c8386",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-1280-context.png",
+        "earlierLocalSHA256": "ec49c2dcea8510c0698f037310e2d0f1cf9abea19e76e602f84c4e061a5c8386",
+        "earlierLocalBytes": 101018,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "ec49c2dcea8510c0698f037310e2d0f1cf9abea19e76e602f84c4e061a5c8386",
+        "failedHostedBytes": 101018,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "source-organization-1024.png",
+        "bytes": 124205,
+        "sha256": "323e6fa985146122dd232f6e73fe0a510e25099735868154c9ddfe6c4a88e2c7",
+        "retainedFile": "corrected-capture/enterprise-setup/source-organization-1024.png",
+        "earlierLocalSHA256": "323e6fa985146122dd232f6e73fe0a510e25099735868154c9ddfe6c4a88e2c7",
+        "earlierLocalBytes": 124205,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "323e6fa985146122dd232f6e73fe0a510e25099735868154c9ddfe6c4a88e2c7",
+        "failedHostedBytes": 124205,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "source-organization-1024-context.png",
+        "bytes": 93333,
+        "sha256": "8b5133457c4047a2e785323046e5bfabeae4c2e53e18a0c228d9f80e78f453f4",
+        "retainedFile": "corrected-capture/enterprise-setup/source-organization-1024-context.png",
+        "earlierLocalSHA256": "8b5133457c4047a2e785323046e5bfabeae4c2e53e18a0c228d9f80e78f453f4",
+        "earlierLocalBytes": 93333,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "8b5133457c4047a2e785323046e5bfabeae4c2e53e18a0c228d9f80e78f453f4",
+        "failedHostedBytes": 93333,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-1024.png",
+        "bytes": 102586,
+        "sha256": "4450df7b1f8a6c848c7277f77aaaca4adf92d04807acb24a8ef9e2262ed0695d",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-1024.png",
+        "earlierLocalSHA256": "4450df7b1f8a6c848c7277f77aaaca4adf92d04807acb24a8ef9e2262ed0695d",
+        "earlierLocalBytes": 102586,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "4450df7b1f8a6c848c7277f77aaaca4adf92d04807acb24a8ef9e2262ed0695d",
+        "failedHostedBytes": 102586,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-1024-context.png",
+        "bytes": 88844,
+        "sha256": "28d5211b0e63a2616898443440959df8565243ef6e6ae9408ee72cb6b519a4a6",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-1024-context.png",
+        "earlierLocalSHA256": "28d5211b0e63a2616898443440959df8565243ef6e6ae9408ee72cb6b519a4a6",
+        "earlierLocalBytes": 88844,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "28d5211b0e63a2616898443440959df8565243ef6e6ae9408ee72cb6b519a4a6",
+        "failedHostedBytes": 88844,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-dark-1024.png",
+        "bytes": 102147,
+        "sha256": "13cd51823ce573e990af04295c6ebb2d32aa27fb8ff52e246e20c0b7b00ac3dc",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-1024.png",
+        "earlierLocalSHA256": "13cd51823ce573e990af04295c6ebb2d32aa27fb8ff52e246e20c0b7b00ac3dc",
+        "earlierLocalBytes": 102147,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "13cd51823ce573e990af04295c6ebb2d32aa27fb8ff52e246e20c0b7b00ac3dc",
+        "failedHostedBytes": 102147,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-dark-1024-context.png",
+        "bytes": 89205,
+        "sha256": "0245d1cf1e6beb253e0c2bd1326d0758f06fa8445dbce5242e3e68ecc9635cdc",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-1024-context.png",
+        "earlierLocalSHA256": "0245d1cf1e6beb253e0c2bd1326d0758f06fa8445dbce5242e3e68ecc9635cdc",
+        "earlierLocalBytes": 89205,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "0245d1cf1e6beb253e0c2bd1326d0758f06fa8445dbce5242e3e68ecc9635cdc",
+        "failedHostedBytes": 89205,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "source-organization-768.png",
+        "bytes": 97350,
+        "sha256": "0d0efa224b37259360e2247cae709f37b5c696baa1a25fdf543a1b86c55ffbd9",
+        "retainedFile": "corrected-capture/enterprise-setup/source-organization-768.png",
+        "earlierLocalSHA256": "0d0efa224b37259360e2247cae709f37b5c696baa1a25fdf543a1b86c55ffbd9",
+        "earlierLocalBytes": 97350,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "0d0efa224b37259360e2247cae709f37b5c696baa1a25fdf543a1b86c55ffbd9",
+        "failedHostedBytes": 97350,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "source-organization-768-context.png",
+        "bytes": 98534,
+        "sha256": "147679cc95bd1aa8e72b6c7aac00dd2cd6d4710b47156623d2c93b210b63b4ce",
+        "retainedFile": "corrected-capture/enterprise-setup/source-organization-768-context.png",
+        "earlierLocalSHA256": "147679cc95bd1aa8e72b6c7aac00dd2cd6d4710b47156623d2c93b210b63b4ce",
+        "earlierLocalBytes": 98534,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "147679cc95bd1aa8e72b6c7aac00dd2cd6d4710b47156623d2c93b210b63b4ce",
+        "failedHostedBytes": 98534,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-768.png",
+        "bytes": 91693,
+        "sha256": "da0a66205438846656595bbc2793b892bc86860bdb0b979e0f5c4683eeeb40b1",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-768.png",
+        "earlierLocalSHA256": "da0a66205438846656595bbc2793b892bc86860bdb0b979e0f5c4683eeeb40b1",
+        "earlierLocalBytes": 91693,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "da0a66205438846656595bbc2793b892bc86860bdb0b979e0f5c4683eeeb40b1",
+        "failedHostedBytes": 91693,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-768-context.png",
+        "bytes": 79388,
+        "sha256": "b994f4615b4dab6750270970cf6c5423db8b84bd7c209b54e22d9bcbd6691751",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-768-context.png",
+        "earlierLocalSHA256": "b994f4615b4dab6750270970cf6c5423db8b84bd7c209b54e22d9bcbd6691751",
+        "earlierLocalBytes": 79388,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "b994f4615b4dab6750270970cf6c5423db8b84bd7c209b54e22d9bcbd6691751",
+        "failedHostedBytes": 79388,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-dark-768.png",
+        "bytes": 92076,
+        "sha256": "0d7c7f56521044e8a4b746ecd68dbd1f59b78b8650e344e5bc2fee3ac54c60d3",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-768.png",
+        "earlierLocalSHA256": "0d7c7f56521044e8a4b746ecd68dbd1f59b78b8650e344e5bc2fee3ac54c60d3",
+        "earlierLocalBytes": 92076,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "0d7c7f56521044e8a4b746ecd68dbd1f59b78b8650e344e5bc2fee3ac54c60d3",
+        "failedHostedBytes": 92076,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-dark-768-context.png",
+        "bytes": 80854,
+        "sha256": "f877864b6f6378c4b37560801471e7fc42c402d70b6cc07ac64237552010caba",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-768-context.png",
+        "earlierLocalSHA256": "f877864b6f6378c4b37560801471e7fc42c402d70b6cc07ac64237552010caba",
+        "earlierLocalBytes": 80854,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "f877864b6f6378c4b37560801471e7fc42c402d70b6cc07ac64237552010caba",
+        "failedHostedBytes": 80854,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "source-organization-390.png",
+        "bytes": 80298,
+        "sha256": "b7d1ac11e34baf4d6b0e9260c33a55108dbc50cb50025aa9ae403dfd60bc3c5a",
+        "retainedFile": "corrected-capture/enterprise-setup/source-organization-390.png",
+        "earlierLocalSHA256": "b7d1ac11e34baf4d6b0e9260c33a55108dbc50cb50025aa9ae403dfd60bc3c5a",
+        "earlierLocalBytes": 80298,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "b7d1ac11e34baf4d6b0e9260c33a55108dbc50cb50025aa9ae403dfd60bc3c5a",
+        "failedHostedBytes": 80298,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "source-organization-390-context.png",
+        "bytes": 63742,
+        "sha256": "d87e6f0b45378a83958d98a6a819e0f37f701a4d5afd08257c86e9d9fc6a5310",
+        "retainedFile": "corrected-capture/enterprise-setup/source-organization-390-context.png",
+        "earlierLocalSHA256": "d87e6f0b45378a83958d98a6a819e0f37f701a4d5afd08257c86e9d9fc6a5310",
+        "earlierLocalBytes": 63742,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "d87e6f0b45378a83958d98a6a819e0f37f701a4d5afd08257c86e9d9fc6a5310",
+        "failedHostedBytes": 63742,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-390.png",
+        "bytes": 62011,
+        "sha256": "0ce21b305963ce62213f11a2e7a2a501a9b552edefaf5bedbd8ad121cb72867c",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-390.png",
+        "earlierLocalSHA256": "0ce21b305963ce62213f11a2e7a2a501a9b552edefaf5bedbd8ad121cb72867c",
+        "earlierLocalBytes": 62011,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "0ce21b305963ce62213f11a2e7a2a501a9b552edefaf5bedbd8ad121cb72867c",
+        "failedHostedBytes": 62011,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-390-full.png",
+        "bytes": 189347,
+        "sha256": "e7fa0d89aa62492027a486b26f65748e5334a42fda6ca497b667286866775077",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-390-full.png",
+        "earlierLocalSHA256": "e7fa0d89aa62492027a486b26f65748e5334a42fda6ca497b667286866775077",
+        "earlierLocalBytes": 189347,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "e7fa0d89aa62492027a486b26f65748e5334a42fda6ca497b667286866775077",
+        "failedHostedBytes": 189347,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-light-390-context.png",
+        "bytes": 49899,
+        "sha256": "6b9bf4173d3f5bf0a9f143d5f79e619d3e9bbdaa9604e104c96c6c347cda4555",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-light-390-context.png",
+        "earlierLocalSHA256": "6b9bf4173d3f5bf0a9f143d5f79e619d3e9bbdaa9604e104c96c6c347cda4555",
+        "earlierLocalBytes": 49899,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "405d9c472091e8b6ac50086e31f91cf2ae175accbcb723b297d2fa1fe3c0ccde",
+        "failedHostedBytes": 49899,
+        "equalToFailedHosted": false
+      },
+      {
+        "file": "layout-dark-390.png",
+        "bytes": 62588,
+        "sha256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-390.png",
+        "earlierLocalSHA256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b",
+        "earlierLocalBytes": 62588,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b",
+        "failedHostedBytes": 62588,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-dark-390-full.png",
+        "bytes": 191610,
+        "sha256": "a39a9f4d0834c2f9e22d0629c2d6dc654213ffd2a0ba54b26991cad21f0ec8f3",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-390-full.png",
+        "earlierLocalSHA256": "a39a9f4d0834c2f9e22d0629c2d6dc654213ffd2a0ba54b26991cad21f0ec8f3",
+        "earlierLocalBytes": 191610,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "a39a9f4d0834c2f9e22d0629c2d6dc654213ffd2a0ba54b26991cad21f0ec8f3",
+        "failedHostedBytes": 191610,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "layout-dark-390-context.png",
+        "bytes": 50818,
+        "sha256": "afde9bc59449b4880a1271084806247c7fa8d4393327670548c624a3e087566a",
+        "retainedFile": "corrected-capture/enterprise-setup/layout-dark-390-context.png",
+        "earlierLocalSHA256": "afde9bc59449b4880a1271084806247c7fa8d4393327670548c624a3e087566a",
+        "earlierLocalBytes": 50818,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "d96aeb1269ef065b02b1410356f92df31df0c475546e00e7e3335b860a37b7a6",
+        "failedHostedBytes": 50819,
+        "equalToFailedHosted": false
+      },
+      {
+        "file": "selection-search-history-light-1440.png",
+        "bytes": 166519,
+        "sha256": "a3f60d7e653b3d8aa8a3dfd2f329887e2bef41e85a56e37988b9fd8ac9ef2459",
+        "retainedFile": "corrected-capture/enterprise-setup/selection-search-history-light-1440.png",
+        "earlierLocalSHA256": "e38f14e0d6da8c611bcbb4e8aec85cea52122cce7b027cc282426f31caa5ffb9",
+        "earlierLocalBytes": 166454,
+        "equalToEarlierLocal": false,
+        "failedHostedSHA256": "e38f14e0d6da8c611bcbb4e8aec85cea52122cce7b027cc282426f31caa5ffb9",
+        "failedHostedBytes": 166454,
+        "equalToFailedHosted": false
+      },
+      {
+        "file": "selection-search-history-dark-390.png",
+        "bytes": 62588,
+        "sha256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b",
+        "retainedFile": "corrected-capture/enterprise-setup/selection-search-history-dark-390.png",
+        "earlierLocalSHA256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b",
+        "earlierLocalBytes": 62588,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "4a2525e028d7dd569aaa29a72931726cdc3636805cce0659df2ebfebf69e8a9b",
+        "failedHostedBytes": 62588,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "setup-navigation.png",
+        "bytes": 162583,
+        "sha256": "d21c819e56e9526b3a4fe5fbbeb747f9e73db025e46bacda9fa7212ea062848f",
+        "retainedFile": "corrected-capture/enterprise-setup/setup-navigation.png",
+        "earlierLocalSHA256": "d21c819e56e9526b3a4fe5fbbeb747f9e73db025e46bacda9fa7212ea062848f",
+        "earlierLocalBytes": 162583,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "d21c819e56e9526b3a4fe5fbbeb747f9e73db025e46bacda9fa7212ea062848f",
+        "failedHostedBytes": 162583,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "empty.png",
+        "bytes": 61761,
+        "sha256": "97f35ffb0cc0e9896980b2466ee7e74099c79f1a78d66a7d4f3af782dfa516b2",
+        "retainedFile": "corrected-capture/enterprise-setup/empty.png",
+        "earlierLocalSHA256": "97f35ffb0cc0e9896980b2466ee7e74099c79f1a78d66a7d4f3af782dfa516b2",
+        "earlierLocalBytes": 61761,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "97f35ffb0cc0e9896980b2466ee7e74099c79f1a78d66a7d4f3af782dfa516b2",
+        "failedHostedBytes": 61761,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "truncated.png",
+        "bytes": 63253,
+        "sha256": "1260879549ca922259d1188a0bae85f07a8aa139f675accb898d07d095ccf69a",
+        "retainedFile": "corrected-capture/enterprise-setup/truncated.png",
+        "earlierLocalSHA256": "1260879549ca922259d1188a0bae85f07a8aa139f675accb898d07d095ccf69a",
+        "earlierLocalBytes": 63253,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "1260879549ca922259d1188a0bae85f07a8aa139f675accb898d07d095ccf69a",
+        "failedHostedBytes": 63253,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "denied.png",
+        "bytes": 49751,
+        "sha256": "67706795fcbbcab8e9406c2e3b58efc01df7803b3d15296afd14a63f112f8817",
+        "retainedFile": "corrected-capture/enterprise-setup/denied.png",
+        "earlierLocalSHA256": "67706795fcbbcab8e9406c2e3b58efc01df7803b3d15296afd14a63f112f8817",
+        "earlierLocalBytes": 49751,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "67706795fcbbcab8e9406c2e3b58efc01df7803b3d15296afd14a63f112f8817",
+        "failedHostedBytes": 49751,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "failure.png",
+        "bytes": 48033,
+        "sha256": "77bd1a33ce26293a057285bbdac56cf35260212fe69803b240f6ba8a3867df15",
+        "retainedFile": "corrected-capture/enterprise-setup/failure.png",
+        "earlierLocalSHA256": "77bd1a33ce26293a057285bbdac56cf35260212fe69803b240f6ba8a3867df15",
+        "earlierLocalBytes": 48033,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "77bd1a33ce26293a057285bbdac56cf35260212fe69803b240f6ba8a3867df15",
+        "failedHostedBytes": 48033,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "recovery.png",
+        "bytes": 62588,
+        "sha256": "953d116409befee04ddc6253669c66f6ec9a026dbee88fbc8bc7141f6f989557",
+        "retainedFile": "corrected-capture/enterprise-setup/recovery.png",
+        "earlierLocalSHA256": "953d116409befee04ddc6253669c66f6ec9a026dbee88fbc8bc7141f6f989557",
+        "earlierLocalBytes": 62588,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "953d116409befee04ddc6253669c66f6ec9a026dbee88fbc8bc7141f6f989557",
+        "failedHostedBytes": 62588,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "readonly.png",
+        "bytes": 57453,
+        "sha256": "929064352dd787acddbe08261cf43410906994236cb10845e025d67ab2a498fb",
+        "retainedFile": "corrected-capture/enterprise-setup/readonly.png",
+        "earlierLocalSHA256": "929064352dd787acddbe08261cf43410906994236cb10845e025d67ab2a498fb",
+        "earlierLocalBytes": 57453,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "929064352dd787acddbe08261cf43410906994236cb10845e025d67ab2a498fb",
+        "failedHostedBytes": 57453,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "hierarchy-gaps.png",
+        "bytes": 48974,
+        "sha256": "04309fd640029f44954a9a81e11586f89c07ae34848dc9cff92dc9481dddb9af",
+        "retainedFile": "corrected-capture/enterprise-setup/hierarchy-gaps.png",
+        "earlierLocalSHA256": "04309fd640029f44954a9a81e11586f89c07ae34848dc9cff92dc9481dddb9af",
+        "earlierLocalBytes": 48974,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": "04309fd640029f44954a9a81e11586f89c07ae34848dc9cff92dc9481dddb9af",
+        "failedHostedBytes": 48974,
+        "equalToFailedHosted": true
+      },
+      {
+        "file": "existing-editors-and-import-guards.png",
+        "bytes": 214756,
+        "sha256": "b9a26dde2d99dfb01ee5fd6772eabe94eebe3f17156c768c8c5f668bcdb227bf",
+        "retainedFile": "corrected-capture/enterprise-setup/existing-editors-and-import-guards.png",
+        "earlierLocalSHA256": "b9a26dde2d99dfb01ee5fd6772eabe94eebe3f17156c768c8c5f668bcdb227bf",
+        "earlierLocalBytes": 214756,
+        "equalToEarlierLocal": true,
+        "failedHostedSHA256": null,
+        "failedHostedBytes": null,
+        "equalToFailedHosted": false
+      }
+    ]
+  },
+  "namedScopedVisualReview": {
+    "reviewer": "/root/ci_review",
+    "file": "corrected-named-review.md",
+    "directlyInspectedImages": [
+      {
+        "file": "corrected-capture/enterprise-setup/layout-dark-1440.png",
+        "sha256": "e21e2cc801fb3e621dbe879e476d3dff8f578a494116b3fe8920d0e77105c093"
+      },
+      {
+        "file": "corrected-capture/enterprise-setup/selection-search-history-light-1440.png",
+        "sha256": "a3f60d7e653b3d8aa8a3dfd2f329887e2bef41e85a56e37988b9fd8ac9ef2459"
+      },
+      {
+        "file": "corrected-capture/enterprise-setup/existing-editors-and-import-guards.png",
+        "sha256": "b9a26dde2d99dfb01ee5fd6772eabe94eebe3f17156c768c8c5f668bcdb227bf"
+      },
+      {
+        "file": "corrected-capture/enterprise-setup/layout-light-1280.png",
+        "sha256": "1685855569dfd86eaa6ac96f73032210f3ec92d3570400387284b9ca9aacd57c"
+      },
+      {
+        "file": "corrected-capture/enterprise-setup/layout-light-1280-context.png",
+        "sha256": "ab2821a0449e48afdddb6162f2171a8db88cc653679cc5ee5313c63b7f2041ef"
+      },
+      {
+        "file": "corrected-capture/enterprise-setup/layout-light-390-context.png",
+        "sha256": "6b9bf4173d3f5bf0a9f143d5f79e619d3e9bbdaa9604e104c96c6c347cda4555"
+      },
+      {
+        "file": "corrected-capture/enterprise-setup/layout-dark-390-context.png",
+        "sha256": "afde9bc59449b4880a1271084806247c7fa8d4393327670548c624a3e087566a"
+      }
+    ],
+    "finding": "No additional visible layout defect found in these seven changed/new frames. Other frames retain previous named review bindings where bytes are identical.",
+    "wholeScreenAcceptance": "NOT_ASSESSED"
+  },
+  "historicalFailure": {
+    "workflowID": 41200449260,
+    "status": "FAIL",
+    "diagnosticFile": "diagnostic.json",
+    "diagnosticSHA256": "9926f2430d7f601b033dc3a85c8c5f06c715ff83e426fe3a8ffa24033844b04b",
+    "failedImage": "existing-editors-and-import-guards-failed.png",
+    "failedImageSHA256": "8004c17bddbe3607d6a28a483ceed8123f37e0f82df7baea9a2a80bd6ca072ec",
+    "unchanged": true
+  },
+  "limitations": [
+    "This is a local capture using the CI-pinned browser, not a successful final-head hosted workflow.",
+    "All original bounded local probes passed; the precise hosted failure was not locally reproduced. The recorded focus boundary supports an explicit synchronization condition without proving an unobserved failure cause.",
+    "Image differences are reported by exact bytes; the comparison does not assign their cause.",
+    "The separate global 652-flow / 217-source-view hosted gates still require the newly published final head.",
+    "Synthetic transport does not prove live backend authorization, four-actor outcomes, complete WCAG conformance or whole-screen acceptance."
+  ]
+}

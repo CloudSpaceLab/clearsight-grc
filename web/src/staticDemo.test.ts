@@ -22,6 +22,29 @@ beforeEach(() => {
 });
 
 describe("static stakeholder demo transport", () => {
+  it("exposes illustrative framework references only in an explicit evidence fixture", async () => {
+    window.history.replaceState(null, "", "/?fixture=framework-library-loaded");
+    const { staticDemoRequest } = await demo();
+    const page = await staticDemoRequest<{items: Array<{ id: string; title: string; license_basis: string }>}>(
+      "/api/v1/framework-catalog/editions?jurisdiction=GLOBAL&limit=26",
+    );
+    expect(page.items).toHaveLength(2);
+    expect(page.items[0]).toMatchObject({title: "Sample security reference", license_basis: "CITATIONS_ONLY"});
+    expect((await staticDemoRequest<{items: unknown[]}>(
+      "/api/v1/framework-catalog/editions?jurisdiction=NG",
+    )).items).toHaveLength(0);
+  });
+
+  it("distinguishes denied reference reads from an empty catalog in evidence mode", async () => {
+    window.history.replaceState(null, "", "/?fixture=framework-library-denied");
+    const { staticDemoRequest, StaticDemoHTTPError } = await demo();
+    await expect(staticDemoRequest("/api/v1/framework-catalog/editions?jurisdiction=GLOBAL"))
+      .rejects.toMatchObject({
+        status: 403,
+        code: "legal_entity_required",
+      } satisfies Partial<InstanceType<typeof StaticDemoHTTPError>>);
+  });
+
   it("provides incomplete result metadata without inventing a replacement destination", async () => {
     window.history.replaceState(null, "", "/?fixture=document-result-incomplete");
     const { staticDemoRequest } = await demo();

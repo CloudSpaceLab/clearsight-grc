@@ -1,0 +1,64 @@
+{
+  "reviewer": "GPT-6 Astra Pro /root",
+  "date": "2026-10-31",
+  "local_revision": "613f07f705c383201f576504f7debf7b84592151",
+  "published_revision": "74603165763e69d00b8dc2cb8e804225053f6a68",
+  "tree": "c9adf95492efe0942d3d5803d9184ddb19ae6183",
+  "change": "Show omitted-area disclosure in the hierarchy heading for truncated responses, and require its viewport geometry in the existing synthetic browser scenario. Nontruncated runtime copy and geometry are unchanged.",
+  "focused_tests": {
+    "files": 2,
+    "tests": 15,
+    "passed": 15,
+    "suites": [
+      "OrganizationScopeManager",
+      "copyQuality"
+    ],
+    "reported_by": "/root/work_contract"
+  },
+  "typescript": "PASS via both builds",
+  "node_gate_files": {
+    "passed": 4,
+    "failed": 0
+  },
+  "customer_bundle": {
+    "metrics": {
+      "javascript": {
+        "raw": 2427628,
+        "gzip": 672908,
+        "initial_gzip": 161935,
+        "largest_raw_chunk": 573982
+      },
+      "css": {
+        "raw": 656235,
+        "gzip": 112601,
+        "initial_gzip": 32126
+      }
+    },
+    "failures": []
+  },
+  "logs": [
+    {
+      "file": "final-customer-build.txt",
+      "command": "npm run build",
+      "exit_code": 0,
+      "sha256": "5858c03b3a8b243faa35c6147a4628c7f189e6d7eae7f6c999ab87f36b3cb53b",
+      "bytes": 9228
+    },
+    {
+      "file": "final-evidence-build.txt",
+      "command": "npm run build:evidence",
+      "exit_code": 0,
+      "sha256": "49e8858590acdd3eed4373b093a035a95682c597991b2132696633415f974b5b",
+      "bytes": 11506
+    },
+    {
+      "file": "final-node-gates.txt",
+      "command": "node --test scripts/runtime-fixture-boundary.nodecheck.mjs scripts/ui-contract.nodecheck.mjs scripts/review-ui-flow-manifest.nodecheck.mjs scripts/forms-evidence-scenarios.nodecheck.mjs",
+      "exit_code": 0,
+      "sha256": "6c30e67e4c136c513db7760cefab86c5b494d37a41faa0393ab4a686dd7da1d2",
+      "bytes": 367
+    }
+  ],
+  "prior_full_suite": "The 277-file/2299-test local suite and 10 Configuration/92 People compatibility capture remain pinned to 2264dfd in receipt.json and ../compatibility. They are not relabeled as final-runtime runs.",
+  "final_head_coverage": "The final pull request must pass hosted full CI and UI review before merge. Its body retains those receipts and release verification."
+}

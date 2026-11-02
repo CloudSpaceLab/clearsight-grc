@@ -63,7 +63,8 @@ export type ReusableFormTemplateRef = { id: string; name: string; code: string; 
 
 export type FormTemplateQuery = {
   search?: string; status?: LifecycleStatus; owner?: string; program?: string;
-  use?: string; tag?: string; filter?: FormFilterExpression; sort?: "UPDATED_DESC" | "UPDATED_ASC"; cursor?: string; limit?: number;
+  use?: string; tag?: string; origin_type?: FormOrigin["type"]; origin_id?: string;
+  filter?: FormFilterExpression; sort?: "UPDATED_DESC" | "UPDATED_ASC"; cursor?: string; limit?: number;
 };
 
 export type SavedFormViewFilter = {

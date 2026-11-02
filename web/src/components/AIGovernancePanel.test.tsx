@@ -11,7 +11,8 @@ describe("AIGovernancePanel", () => {
     expect(screen.getByRole("heading", { name: "Governed model access" })).toBeTruthy();
     expect(screen.getByText("Payments agent")).toBeTruthy();
     expect(screen.getAllByText("Shadow").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Routine allowed traffic does not create Today work/)).toBeTruthy();
+    expect(screen.getByText(/AI actions requiring approval need an approved issue decision/)).toBeTruthy();
+    expect(screen.getByText(/Each execution grant is single-use/)).toBeTruthy();
   });
 
   it("keeps degraded state explicit", () => {

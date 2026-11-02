@@ -10,6 +10,7 @@ type Props = {
   digest: ProgramReviewDigest;
   onOpenOwnerChange?: () => void;
   onNavigate?: (section: ProgramSection) => void;
+  showAttention?: boolean;
 };
 
 const actionOrder = [
@@ -30,23 +31,50 @@ const actionOrder = [
 
 export function dominantProgramAction(operations: ProgramOperation[], digest: ProgramReviewDigest) {
   const executable = operations.filter((operation) => operation.can_act);
+  const priority = (command: string) => { const index = actionOrder.indexOf(command); return index < 0 ? actionOrder.length : index; };
   if (!digest.review_required) {
     const withoutReview = executable.filter((operation) => operation.command !== "program.review.accept");
-    if (withoutReview.length > 0) return [...withoutReview].sort((left, right) => actionOrder.indexOf(left.command) - actionOrder.indexOf(right.command))[0];
+    if (withoutReview.length > 0) return [...withoutReview].sort((left, right) => priority(left.command) - priority(right.command))[0];
   }
-  return [...executable].sort((left, right) => actionOrder.indexOf(left.command) - actionOrder.indexOf(right.command))[0];
+  return [...executable].sort((left, right) => priority(left.command) - priority(right.command))[0];
 }
 
 function actionTarget(command: string) {
   if (command === "program.review.accept") return "program-review-panel";
-  if (command === "program.evidence.assess" || command === "program.evidence.define" || command.startsWith("program.monitoring.")) return "program-evidence-panel";
+  if (command.startsWith("program.monitoring.")) return "program-monitoring-panel";
+  if (command === "program.evidence.assess" || command === "program.evidence.define") return "program-evidence-panel";
   if (command === "program.safeguard.define") return "program-safeguards-panel";
   if (command === "program.requirement.add" || command === "program.applicability.decide") return "program-requirements-panel";
   if (command === "program.transition") return "program-status-panel";
   return "program-details-panel";
 }
 
-export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOwnerChange, onNavigate }: Props) {
+function requirementComplianceSummary(aggregate: ProgramAggregate, stale: boolean): string | null {
+  const policy = aggregate.program.calculation_policy?.active;
+  const result = aggregate.current_state?.calculation;
+  const approvedCategory = policy?.definition.categories[0];
+  const measuredCategory = result?.categories?.[0];
+  if (stale || !policy?.approved_at || !result ||
+      policy.definition.categories.length !== 1 ||
+      approvedCategory?.code !== "REQUIREMENTS" || approvedCategory.weight_bps !== 10000 ||
+      result.categories?.length !== 1 ||
+      measuredCategory?.code !== "REQUIREMENTS" || measuredCategory.weight_bps !== 10000 ||
+      measuredCategory.coverage_bps !== result.coverage_bps ||
+      result.policy_revision !== policy.definition.revision ||
+      result.unpopulated_categories?.length ||
+      !Number.isInteger(result.coverage_bps) ||
+      result.coverage_bps < 0 || result.coverage_bps > 10000) return null;
+
+  const formatted = (basisPoints: number) => `${(basisPoints / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
+  const coverage = formatted(result.coverage_bps);
+  if (result.state !== "FINAL") return `Not assessed · ${coverage} coverage`;
+  if (!Number.isInteger(result.score_bps) || result.score_bps === undefined ||
+      result.score_bps < 0 || result.score_bps > 10000 ||
+      measuredCategory.score_bps !== result.score_bps) return null;
+  return `${formatted(result.score_bps)} · ${coverage} coverage`;
+}
+
+export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOwnerChange, onNavigate, showAttention = true }: Props) {
   const current = aggregate.current_state;
   const assessedVersion = current?.program_version ?? 0;
   const assessmentVersionKnown = Number.isInteger(assessedVersion) && assessedVersion > 0;
@@ -60,6 +88,8 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
   const calculatedAt = validCalculationTime ? new Date(current!.generated_at).toLocaleString() : "Time unavailable";
   const openIssues = current?.open_matter_count;
   const knownOpenIssues = typeof openIssues === "number" && Number.isInteger(openIssues) && openIssues >= 0;
+  const requirementsCompliance = requirementComplianceSummary(aggregate, stale || !assessmentVersionKnown);
+  const activeStandards = (aggregate.framework_adoptions ?? []).filter((adoption) => adoption.status === "ACTIVE").length;
   const navigate = onNavigate ?? ((section: ProgramSection) => { window.location.hash = `#programs/${encodeURIComponent(aggregate.program.id)}/${section}`; });
 
   function goToAction() {
@@ -71,7 +101,10 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
 	}
 	const command = action.command;
 	navigate(command.startsWith("program.monitoring.") ? "monitoring" : command.startsWith("program.evidence.") ? "evidence-results" : command === "program.safeguard.define" || command === "program.requirement.add" || command === "program.applicability.decide" ? "requirements-controls" : "overview");
-	window.requestAnimationFrame(() => document.getElementById(actionTarget(command))?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
+	window.requestAnimationFrame(() => {
+      const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+      document.getElementById(actionTarget(command))?.scrollIntoView?.({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+    });
   }
 
   return <section className="program-current-position" aria-labelledby="program-current-position-heading">
@@ -86,8 +119,10 @@ export function ProgramCurrentPosition({ aggregate, operations, digest, onOpenOw
         <span><strong>Owner</strong> {owner?.display_name ?? storedOwner ?? (aggregate.program.owner_principal_id ? "Recorded Program owner unavailable" : "Program owner not assigned")}</span>
         <span><strong>Open issues</strong> {knownOpenIssues ? `${openIssues}${stale ? " (last calculation)" : ""}` : "Unknown"}</span>
         <span><strong>Requirements</strong> {aggregate.requirements.filter((requirement) => requirement.status === "APPROVED").length}</span>
+        {activeStandards > 0 && <span><strong>Standards</strong> {activeStandards}</span>}
+        {requirementsCompliance && <span><strong>Requirement compliance</strong> {requirementsCompliance}</span>}
       </div>
-      {reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Follow-up from the last calculation" : "What needs attention"}</h3><ProgramAttention aggregate={aggregate} onNavigate={navigate}/></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons unavailable." : stale ? "No prior status reasons." : "No status reasons."}</p>}
+      {showAttention && (reasons.length > 0 ? <div className="program-position-reasons"><h3>{stale ? "Follow-up from the last calculation" : "What needs attention"}</h3><ProgramAttention aggregate={aggregate} onNavigate={navigate}/></div> : <p>{!current || !Array.isArray(current.reasons) ? "Status reasons unavailable." : stale ? "No prior status reasons." : "No status reasons."}</p>)}
     </div>
   </section>;
 }

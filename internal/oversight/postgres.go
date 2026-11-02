@@ -32,7 +32,7 @@ func (r *PostgresRepository) Latest(ctx context.Context, scope Scope) (Snapshot,
 	err := r.pool.QueryRow(ctx, `
 		SELECT os.id::text,COALESCE(os.metric_membership_revision,''),os.generated_at,os.period_start,os.period_end,os.projection_version,os.source_high_water,
 		       os.coverage_population,os.coverage_excluded,os.coverage_unknown,os.payload,
-		       t.slug,le.code
+		       t.id::text,le.id::text
 		FROM oversight_snapshots os
 		JOIN tenants t ON t.id=os.tenant_id
 		JOIN legal_entities le ON le.tenant_id=os.tenant_id AND le.id=os.legal_entity_id

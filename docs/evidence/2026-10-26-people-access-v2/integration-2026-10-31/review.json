@@ -1,0 +1,2310 @@
+{
+  "reviewer": "/root/people_integration",
+  "reviewDate": "2026-10-31",
+  "verdict": "PASS for integration and scoped V2 layout review; hosted final-head release gates remain required",
+  "capturedRuntimeRevision": "6491b26dd02f1a925e1dec73423354becef753fb",
+  "currentRevision": "113b4d7645d7dd4260939c0f1b8c84869842b4c7",
+  "followupDelta": "Current revision adds only the independently validated PostgreSQL Work count regression from merged PR #598; browser runtime and capture inputs are unchanged.",
+  "mainBase": "96cdab453458b66e097bb5d700d29b9d2f74d03e",
+  "approvedSource": {
+    "path": "docs/design/references/clearsight-2026-10/source/clearsight-people-access-designs/people-access-preview.html",
+    "sha256": "3300853e7959e06f76e52b484e77c71c6f0c2af876351861921e0dead0aaa7f4"
+  },
+  "runtimeBuildDigest": "311769d1cddcf196c6f8c77ea50671dc86ce0f442cbbca41349749335efe7b49",
+  "captureInputs": {
+    "files": {
+      "scripts/capture-people-access-evidence.mjs": {
+        "bytes": 10825,
+        "sha256": "fec36b3994bc3aec2de65d3ea43a44fd1295d49405809e97d4a58aee1b3c4407"
+      },
+      "scripts/people-access-evidence.mjs": {
+        "bytes": 29488,
+        "sha256": "91e08feec6a2d73f293448e44ff008ae87ce364be76e1f98e04c2e8e00e47999"
+      },
+      "scripts/people-access-evidence-scenarios.mjs": {
+        "bytes": 3834,
+        "sha256": "f5f4532937f73a1fede0adb6b2797d0ac236f0d09666320a9c083331ff980668"
+      },
+      "scripts/people-access-evidence-contract.mjs": {
+        "bytes": 21110,
+        "sha256": "eb1198205e7009e90fbae67f30fd116cab9c0c33ce78ec3265c7e285648b0b3e"
+      }
+    },
+    "digest": "28b3e2f45b773b2a322e902a3f879a0b7af630bcc4e6d6657022750f6b2c0808",
+    "revision": "6491b26dd02f1a925e1dec73423354becef753fb"
+  },
+  "browser": {
+    "version": "141.0.7390.37",
+    "node": "v24.22.1",
+    "locale": "en-NG",
+    "timezone": "Africa/Lagos",
+    "reducedMotion": "reduce"
+  },
+  "validation": {
+    "focusedWebTests": 87,
+    "focusedWebFiles": 13,
+    "nodeSuites": 5,
+    "typecheck": "PASS",
+    "evidenceBuild": "PASS",
+    "customerBuild": "PASS",
+    "runtimeCaptures": 92,
+    "runtimeImages": 95,
+    "configurationCases": 10,
+    "accessibilityCases": 22,
+    "axeViolations": 0,
+    "browserErrors": 0,
+    "undersizedPrimaryControls": 0
+  },
+  "bundle": {
+    "initialJavaScriptGzip": 161912,
+    "initialCSSGzip": 32097,
+    "largestJavaScriptRaw": 570144,
+    "budgetFailures": []
+  },
+  "accessibilityLimits": {
+    "contrastLimits": "Canvas colors are rounded to 8-bit sRGB. Supplemental readings do not model overlapping siblings, pseudo-element paint, blur or position-dependent gradients. Only shared field boundaries are automatically classified as essential; other low border readings require human interpretation.",
+    "scenariosWithIncomplete": 17
+  },
+  "capturedStates": [
+    {
+      "name": "280-people-access-people-layout-light-1440",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-layout-light-1280",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-layout-light-1024",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-layout-light-768",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-layout-light-390",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-layout-dark-1440",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-layout-dark-1280",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-layout-dark-1024",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-layout-dark-768",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-layout-dark-390",
+      "view": "people",
+      "check": "layout",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-light-1440",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-light-1280",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-light-1024",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-light-768",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-light-390",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-1440",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-1280",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-1024",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-768",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-390",
+      "view": "roles",
+      "check": "layout",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-light-1440",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-light-1280",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-light-1024",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-light-768",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-light-390",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-1440",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-1280",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-1024",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-768",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-390",
+      "view": "routes",
+      "check": "layout",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-1440",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-1280",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-1024",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-768",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-390",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-1440",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-1280",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1280,
+        "scrollWidth": 1280
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-1024",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-768",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-390",
+      "view": "delegations",
+      "check": "layout",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-context-light-1024",
+      "view": "people",
+      "check": "context",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-context-light-768",
+      "view": "people",
+      "check": "context",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-context-light-390",
+      "view": "people",
+      "check": "context",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-context-dark-1024",
+      "view": "people",
+      "check": "context",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-context-dark-768",
+      "view": "people",
+      "check": "context",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-context-dark-390",
+      "view": "people",
+      "check": "context",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-context-light-1024",
+      "view": "roles",
+      "check": "context",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-context-light-768",
+      "view": "roles",
+      "check": "context",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-context-light-390",
+      "view": "roles",
+      "check": "context",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-context-dark-1024",
+      "view": "roles",
+      "check": "context",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-context-dark-768",
+      "view": "roles",
+      "check": "context",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-context-dark-390",
+      "view": "roles",
+      "check": "context",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-context-light-1024",
+      "view": "routes",
+      "check": "context",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-context-light-768",
+      "view": "routes",
+      "check": "context",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-context-light-390",
+      "view": "routes",
+      "check": "context",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-context-dark-1024",
+      "view": "routes",
+      "check": "context",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-context-dark-768",
+      "view": "routes",
+      "check": "context",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-context-dark-390",
+      "view": "routes",
+      "check": "context",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-context-light-1024",
+      "view": "delegations",
+      "check": "context",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-context-light-768",
+      "view": "delegations",
+      "check": "context",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-context-light-390",
+      "view": "delegations",
+      "check": "context",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-context-dark-1024",
+      "view": "delegations",
+      "check": "context",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1024,
+        "scrollWidth": 1024
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-context-dark-768",
+      "view": "delegations",
+      "check": "context",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-context-dark-390",
+      "view": "delegations",
+      "check": "context",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-history-light-1440",
+      "view": "people",
+      "check": "history",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-filters-light-1440",
+      "view": "people",
+      "check": "filters",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-history-dark-390",
+      "view": "people",
+      "check": "history",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-filters-dark-390",
+      "view": "people",
+      "check": "filters",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-empty-light-390",
+      "view": "people",
+      "check": "empty",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-denied-dark-390",
+      "view": "people",
+      "check": "denied",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-empty-light-390",
+      "view": "roles",
+      "check": "empty",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-denied-dark-390",
+      "view": "roles",
+      "check": "denied",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-empty-light-390",
+      "view": "routes",
+      "check": "empty",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-denied-dark-390",
+      "view": "routes",
+      "check": "denied",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-empty-light-390",
+      "view": "delegations",
+      "check": "empty",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-denied-dark-390",
+      "view": "delegations",
+      "check": "denied",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-limited-light-390",
+      "view": "people",
+      "check": "limited",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-recovery-light-1440",
+      "view": "people",
+      "check": "recovery",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-readonly-dark-390",
+      "view": "people",
+      "check": "readonly",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-readonly-light-1440",
+      "view": "routes",
+      "check": "readonly",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-partial-light-390",
+      "view": "routes",
+      "check": "partial",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-partial-dark-390",
+      "view": "delegations",
+      "check": "partial",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-people-missing-dark-390",
+      "view": "people",
+      "check": "missing",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-roles-missing-light-390",
+      "view": "roles",
+      "check": "missing",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-missing-dark-390",
+      "view": "routes",
+      "check": "missing",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-missing-light-390",
+      "view": "delegations",
+      "check": "missing",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-composer-light-1440",
+      "view": "routes",
+      "check": "composer",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-composer-dark-390",
+      "view": "routes",
+      "check": "composer",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-composer-light-1440",
+      "view": "delegations",
+      "check": "composer",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-delegations-composer-dark-390",
+      "view": "delegations",
+      "check": "composer",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-definition-light-1440",
+      "view": "routes",
+      "check": "definition",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "commands": []
+    },
+    {
+      "name": "280-people-access-routes-definition-dark-390",
+      "view": "routes",
+      "check": "definition",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "theme": "dark",
+      "errors": [],
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "commands": []
+    }
+  ],
+  "images": [
+    {
+      "name": "280-people-access-people-layout-light-1440.png",
+      "path": "../after/280-people-access-people-layout-light-1440.png",
+      "sha256": "ef6d0a927b54681a8af3f0862fa05e39a067d30b20e511cb91266615b83a1efc",
+      "bytes": 156497,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-layout-light-1280.png",
+      "path": "../after/280-people-access-people-layout-light-1280.png",
+      "sha256": "d854aa7b8f1836a9fecaa0e69e666e92b3c35a47e1a5cc0a6c9fe3265aec0873",
+      "bytes": 128228,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-layout-light-1024.png",
+      "path": "../after/280-people-access-people-layout-light-1024.png",
+      "sha256": "3e282e2d7a8ad3824102fa5c79ceab7a3c1ff930452481ad1bc8d6bd8060c5f3",
+      "bytes": 81414,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-layout-light-768.png",
+      "path": "../after/280-people-access-people-layout-light-768.png",
+      "sha256": "a91172c0badc46d1ba444ca497c16511163fbc61b6ffe5479d4da14f53f43b28",
+      "bytes": 92822,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-layout-light-390.png",
+      "path": "../after/280-people-access-people-layout-light-390.png",
+      "sha256": "416d60019ce071b24bf5f5781ade9c4eca53f00f39608a375335220b5989e8d7",
+      "bytes": 67178,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-layout-dark-1440.png",
+      "path": "../after/280-people-access-people-layout-dark-1440.png",
+      "sha256": "0da706a4cf12a49e0e69ed0535d9190d965310439fb6cf5931a9c83357f73f11",
+      "bytes": 155654,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-layout-dark-1280.png",
+      "path": "../after/280-people-access-people-layout-dark-1280.png",
+      "sha256": "e0e1d99515dc2017d6e552db6d1fb0051f7abdc828a0e0a6d7b2ddff90480e43",
+      "bytes": 127195,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-layout-dark-1024.png",
+      "path": "../after/280-people-access-people-layout-dark-1024.png",
+      "sha256": "6186fe09e4d508937a87c9b0ffb3ea530ca8353630d8e8774000dbaed9c84f42",
+      "bytes": 78410,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-layout-dark-768.png",
+      "path": "../after/280-people-access-people-layout-dark-768.png",
+      "sha256": "235d3b89d202315fee7ab160fa41cc1b6d363c031cb7c317f51f1d32394e6b11",
+      "bytes": 91464,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-layout-dark-390.png",
+      "path": "../after/280-people-access-people-layout-dark-390.png",
+      "sha256": "d203ab30945516bd97876ad94868f6939bde19b37ec137c4254a1a4228ececcc",
+      "bytes": 65952,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-light-1440.png",
+      "path": "../after/280-people-access-roles-layout-light-1440.png",
+      "sha256": "a210c02a132bda9927810035207ed9b52653d48d47ec5fb313ff7e506690ec6d",
+      "bytes": 119572,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-light-1280.png",
+      "path": "../after/280-people-access-roles-layout-light-1280.png",
+      "sha256": "4f9e7271b2c033b89f5a8f3967622ce5fff07745a0fe603f76533a73903c79d8",
+      "bytes": 114932,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-light-1024.png",
+      "path": "../after/280-people-access-roles-layout-light-1024.png",
+      "sha256": "455a3be2c85022c936e6e638206b194654ae94ddb972c2144d5ac35ecf280132",
+      "bytes": 80068,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-light-768.png",
+      "path": "../after/280-people-access-roles-layout-light-768.png",
+      "sha256": "93ce4ada77a27ae7b90ff042cb6639355d626b28143f7776429d8314751e931d",
+      "bytes": 79300,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-light-390.png",
+      "path": "../after/280-people-access-roles-layout-light-390.png",
+      "sha256": "d84703b4c4fc0b1e03931e4e1a16d9ac5619c8debb04352b6ddf2b166f8281a7",
+      "bytes": 65831,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-1440.png",
+      "path": "../after/280-people-access-roles-layout-dark-1440.png",
+      "sha256": "2eb3b4665874c69d54b92ce9ae67125e4aba054681b25662ec039f2a6591f4a1",
+      "bytes": 118645,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-1280.png",
+      "path": "../after/280-people-access-roles-layout-dark-1280.png",
+      "sha256": "e50c9ebe383e3eeaee763e97eafddc81d167305278162df1b18e32949772de66",
+      "bytes": 113940,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-1024.png",
+      "path": "../after/280-people-access-roles-layout-dark-1024.png",
+      "sha256": "d38112a23a5eb199bad0ee489033cc9090f2b770f432d550e073bb8271598bb8",
+      "bytes": 77394,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-768.png",
+      "path": "../after/280-people-access-roles-layout-dark-768.png",
+      "sha256": "0089fd08bf723fd7ce31ec880c437ea42e79fecf146f974b01fbaddad0c09537",
+      "bytes": 77993,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-layout-dark-390.png",
+      "path": "../after/280-people-access-roles-layout-dark-390.png",
+      "sha256": "a45858a871db791df60cc54331227e910a77ff1b5808182fbd5343c79bafe3cf",
+      "bytes": 64771,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-light-1440.png",
+      "path": "../after/280-people-access-routes-layout-light-1440.png",
+      "sha256": "6dc95af8fde1f7bf9e59dc9467f776db0da5e4a86cdf0a8e2f1ba4ec81aec178",
+      "bytes": 139930,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-light-1280.png",
+      "path": "../after/280-people-access-routes-layout-light-1280.png",
+      "sha256": "8c1aac4ab7b8b221dfec2fce8032d3652d4a5beb5814d4aca73cec591d6b0a78",
+      "bytes": 134494,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-light-1024.png",
+      "path": "../after/280-people-access-routes-layout-light-1024.png",
+      "sha256": "9562acd9161c86c9db582548a6a4c20bc98d3558ca4ad11baac71a962d89ca16",
+      "bytes": 90210,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-light-768.png",
+      "path": "../after/280-people-access-routes-layout-light-768.png",
+      "sha256": "68245db749ea4e77129119c29a1673a4757742a4ca66104498ca887ff7a35234",
+      "bytes": 90046,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-light-390.png",
+      "path": "../after/280-people-access-routes-layout-light-390.png",
+      "sha256": "f2baf160f29a2f7cefdbd1690ee61c642a178556df57ad1bd0ff921cb59399db",
+      "bytes": 67534,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-1440.png",
+      "path": "../after/280-people-access-routes-layout-dark-1440.png",
+      "sha256": "0855aa26e1e085b02556a25208e5faf8c780f9de417c0b0d606515a517c7f42a",
+      "bytes": 139281,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-1280.png",
+      "path": "../after/280-people-access-routes-layout-dark-1280.png",
+      "sha256": "0daf040eca22532b663bc4f1c1c5f5497584a386a1c195d0650f24b6d34a1471",
+      "bytes": 133690,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-1024.png",
+      "path": "../after/280-people-access-routes-layout-dark-1024.png",
+      "sha256": "07db2f959827fe6045639e5688d300345962347e3571f97562cf2f8f99b31e23",
+      "bytes": 87425,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-768.png",
+      "path": "../after/280-people-access-routes-layout-dark-768.png",
+      "sha256": "146933426625ef9d67c36f1ed75243e2ccb5e90ef4ab11baa0ed72fc94338a08",
+      "bytes": 88973,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-layout-dark-390.png",
+      "path": "../after/280-people-access-routes-layout-dark-390.png",
+      "sha256": "c514e97635d6774d59d3a1f418a327c113405e6fff308f8807b9e53a1d803c15",
+      "bytes": 66313,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-1440.png",
+      "path": "../after/280-people-access-delegations-layout-light-1440.png",
+      "sha256": "e34c192a86cd0580111192896f183e9551550cb0b067b10efb0db958db4b44fc",
+      "bytes": 145742,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-1280.png",
+      "path": "../after/280-people-access-delegations-layout-light-1280.png",
+      "sha256": "9250890c70b532ec0b934cf4b946cc54df6bbbbb7d7616af0cc07cc13e877801",
+      "bytes": 134173,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-1024.png",
+      "path": "../after/280-people-access-delegations-layout-light-1024.png",
+      "sha256": "c8f70936ae28a5ce5b0b2654f11ab7b1fcc180a19ef0fd481cada34e3bcef8e1",
+      "bytes": 91056,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-768.png",
+      "path": "../after/280-people-access-delegations-layout-light-768.png",
+      "sha256": "44b1ba19f39602fa460da7842a5c45f67d8486e51ddeff894ab9990f0a444546",
+      "bytes": 92628,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-light-390.png",
+      "path": "../after/280-people-access-delegations-layout-light-390.png",
+      "sha256": "8bd45c9500bc085720348a270e90c52db28d3a7105695bdaed84d495fa45115a",
+      "bytes": 70867,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-1440.png",
+      "path": "../after/280-people-access-delegations-layout-dark-1440.png",
+      "sha256": "a05f9a9b1930d71510ba785c74dfd81fb22afdd4a60c332cb434e915548b1c77",
+      "bytes": 144901,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-1280.png",
+      "path": "../after/280-people-access-delegations-layout-dark-1280.png",
+      "sha256": "fb04ee04fbe04c4dcffcca92e59d458bee2b5894529eebaec39158fd8975d5b9",
+      "bytes": 133075,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-1024.png",
+      "path": "../after/280-people-access-delegations-layout-dark-1024.png",
+      "sha256": "1c26bb1e2547540ab7ca6a69fdb4de456491413cb11319e59e2edcd9ff0c998f",
+      "bytes": 88429,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-768.png",
+      "path": "../after/280-people-access-delegations-layout-dark-768.png",
+      "sha256": "0accb9c69175e5e4ba069273c09bfeae2c3e9a506be3bdf913115ba8ac2046a1",
+      "bytes": 91459,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-layout-dark-390.png",
+      "path": "../after/280-people-access-delegations-layout-dark-390.png",
+      "sha256": "163c088ea275070ec782c57add75224165f5b18db8aab9a5f88f8bd926cfa3ba",
+      "bytes": 69671,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-context-light-1024.png",
+      "path": "../after/280-people-access-people-context-light-1024.png",
+      "sha256": "cdd9990ff934a13e9e1d62d6692327e8a65e73f677e954b64a9f0c7a171d6f50",
+      "bytes": 76315,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-context-light-768.png",
+      "path": "../after/280-people-access-people-context-light-768.png",
+      "sha256": "328699b0e4f30a5ba1fbf953fdf7370dbcb18436dca4f3f0f33fad1784ae2b30",
+      "bytes": 76107,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-context-light-390.png",
+      "path": "../after/280-people-access-people-context-light-390.png",
+      "sha256": "4319162bb0064c1481a162ce562c9e7009b9e0f1d1e5a7c8128fe05b7790f07c",
+      "bytes": 58332,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-context-dark-1024.png",
+      "path": "../after/280-people-access-people-context-dark-1024.png",
+      "sha256": "6e8e95786db35f168e23e00464d0201ee653a21d9d90bc1be5bfd483deec3be6",
+      "bytes": 78130,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-context-dark-768.png",
+      "path": "../after/280-people-access-people-context-dark-768.png",
+      "sha256": "0103574534c64bd9d7bfb1d6a66b8ab83e2434e3d8e2e7f42001b8081d65e196",
+      "bytes": 77065,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-context-dark-390.png",
+      "path": "../after/280-people-access-people-context-dark-390.png",
+      "sha256": "e43b7c3445680fda88842732def87f612c1ae00095c3562e407ae7e13bd2e1ab",
+      "bytes": 59538,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-context-light-1024.png",
+      "path": "280-people-access-roles-context-light-1024.png",
+      "sha256": "1c0c3c94d289f1f0bab62d9dcfdca39a1a24ac9ed7fea8f7d05f230e281b6b4d",
+      "bytes": 69476,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 3
+    },
+    {
+      "name": "280-people-access-roles-context-light-768.png",
+      "path": "../after/280-people-access-roles-context-light-768.png",
+      "sha256": "0841b97b055d0fa1350277c819a7cca45314f8164922e23fe0c7d48d78c74b9c",
+      "bytes": 64901,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-context-light-390.png",
+      "path": "../after/280-people-access-roles-context-light-390.png",
+      "sha256": "7a00a0be6dc06cf30dde000dd22dc8afdaf250d156065c6f417076d4e53b3df1",
+      "bytes": 54772,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-context-dark-1024.png",
+      "path": "../after/280-people-access-roles-context-dark-1024.png",
+      "sha256": "4fbbbe4dc3abf5c1213e7e894cc0b1c30add8d7b92fbefc2446872c158fc9425",
+      "bytes": 70590,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-context-dark-768.png",
+      "path": "280-people-access-roles-context-dark-768.png",
+      "sha256": "39b9451d420e090f6f532f3c1a8ab54216ff53e073133fb76642b4079d130237",
+      "bytes": 66165,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 2
+    },
+    {
+      "name": "280-people-access-roles-context-dark-390.png",
+      "path": "../after/280-people-access-roles-context-dark-390.png",
+      "sha256": "e746dff2fc27210f2ae11a1824ec677723fa92f53490e80b9e2937a6ac36b904",
+      "bytes": 55638,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-context-light-1024.png",
+      "path": "280-people-access-routes-context-light-1024.png",
+      "sha256": "1d94a12262d3deacd94a51e270514cf9e47d9d0fac216a28750e7ccfe645f7b0",
+      "bytes": 83491,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 3
+    },
+    {
+      "name": "280-people-access-routes-context-light-768.png",
+      "path": "../after/280-people-access-routes-context-light-768.png",
+      "sha256": "98d5f8259b6fe89d01892eaa23fdba5830e6486b36ee10b6d8cb6b027c106d49",
+      "bytes": 85419,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-context-light-390.png",
+      "path": "../after/280-people-access-routes-context-light-390.png",
+      "sha256": "402fe9faea72523fb626b83511264930c7a09c437031ee41267c8b3af62a4015",
+      "bytes": 62056,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-context-dark-1024.png",
+      "path": "../after/280-people-access-routes-context-dark-1024.png",
+      "sha256": "a2c414aaab71cf9402ee1ef1ada83b9d42c9aefa5d6784686d7b9ca2c8356143",
+      "bytes": 84007,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-context-dark-768.png",
+      "path": "../after/280-people-access-routes-context-dark-768.png",
+      "sha256": "c31181cfb3f02f9d474f5090c38fac8fd0ca9ec4627ffcaaa096184dbc17e5b7",
+      "bytes": 86019,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-context-dark-390.png",
+      "path": "../after/280-people-access-routes-context-dark-390.png",
+      "sha256": "39c5f8fbcbf68ebadb5e1a629ce4e3ccec358bfade08ffd206c6e267a2c6e672",
+      "bytes": 62953,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-context-light-1024.png",
+      "path": "../after/280-people-access-delegations-context-light-1024.png",
+      "sha256": "22c040046b29ce29feae2d29c642411f224f110f057e6ec0e16974ecccd808a1",
+      "bytes": 88700,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-context-light-768.png",
+      "path": "../after/280-people-access-delegations-context-light-768.png",
+      "sha256": "c9eed35cbcacd62ec0516f0e28f61881bf3274c1897f5138cbd461bcfbf80f3f",
+      "bytes": 89761,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-context-light-390.png",
+      "path": "../after/280-people-access-delegations-context-light-390.png",
+      "sha256": "dcc5cb30882663a784b5995d64a41545bd319ffe3e9d9cf7fb6ee6e548d4902e",
+      "bytes": 64805,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-context-dark-1024.png",
+      "path": "../after/280-people-access-delegations-context-dark-1024.png",
+      "sha256": "f64fa434dc23f1d6c600205ea9eae69e54e73ca660b4c1108d583bc7595f9919",
+      "bytes": 89220,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-context-dark-768.png",
+      "path": "280-people-access-delegations-context-dark-768.png",
+      "sha256": "a0e4c8ca4d9ec0ab0223a81e40a976dfa60f4dfa5b5158acc943b5f6a541c6b2",
+      "bytes": 90377,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 2
+    },
+    {
+      "name": "280-people-access-delegations-context-dark-390.png",
+      "path": "../after/280-people-access-delegations-context-dark-390.png",
+      "sha256": "5c40ca8edb9fe5444dc6ee3a328372b13694ed68436a79dbe4a46cef6de29567",
+      "bytes": 65619,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-history-light-1440.png",
+      "path": "280-people-access-people-history-light-1440.png",
+      "sha256": "8c59400537c5dc19f7133e558b47dd8ccb1fa6a665127e3505580b4432ae3b87",
+      "bytes": 156488,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 24
+    },
+    {
+      "name": "280-people-access-people-filters-light-1440.png",
+      "path": "280-people-access-people-filters-light-1440.png",
+      "sha256": "3dfcc64a17949f699c951bd0c1326a56ae9aea26ef410f8172b650f28ce1d8b4",
+      "bytes": 156546,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 19
+    },
+    {
+      "name": "280-people-access-people-history-dark-390.png",
+      "path": "280-people-access-people-history-dark-390.png",
+      "sha256": "1ef6cbca4e4b33ecb6dc2142d545a7f3e33e4f9b29b89848ff925379218513dc",
+      "bytes": 66017,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 15
+    },
+    {
+      "name": "280-people-access-people-filters-dark-390.png",
+      "path": "../after/280-people-access-people-filters-dark-390.png",
+      "sha256": "e74a82d513d5342c88489abadd053d1abb89e2bb533a9b970b1eb6da98ca41a3",
+      "bytes": 65941,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-empty-light-390.png",
+      "path": "../after/280-people-access-people-empty-light-390.png",
+      "sha256": "e547611aee0cc19fae1557f2670673312debe58cac35602af435ca4a7ebf2be8",
+      "bytes": 64761,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-denied-dark-390.png",
+      "path": "../after/280-people-access-people-denied-dark-390.png",
+      "sha256": "3147dfe7bbd3a3f149010586eac1e492ee8bbc92b8c4d00a162b5d5a80157c11",
+      "bytes": 41107,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-empty-light-390.png",
+      "path": "../after/280-people-access-roles-empty-light-390.png",
+      "sha256": "f3fd361b3b301238ef9425f6a539b186abcd250fcdf591a873f22a222ae60539",
+      "bytes": 66264,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-denied-dark-390.png",
+      "path": "../after/280-people-access-roles-denied-dark-390.png",
+      "sha256": "4f4669ef03d7effbacf57158deae8b503fdaa5d80014cb1e9373f8150984430d",
+      "bytes": 41429,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-empty-light-390.png",
+      "path": "../after/280-people-access-routes-empty-light-390.png",
+      "sha256": "ea90ff64631a540a38487fdae2b61f528dbb220424188c36bcb1a2d4ff2b365d",
+      "bytes": 67918,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-denied-dark-390.png",
+      "path": "../after/280-people-access-routes-denied-dark-390.png",
+      "sha256": "991cb913d76bc5b2a34cf0ed3723dcd3466d0f6accfe5e7428b4d5c5cd493077",
+      "bytes": 72865,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-empty-light-390.png",
+      "path": "../after/280-people-access-delegations-empty-light-390.png",
+      "sha256": "e39348198149aaa00ed52269969f7f63b59caa963e224a17dcc07a06dee5cac1",
+      "bytes": 64361,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-denied-dark-390.png",
+      "path": "../after/280-people-access-delegations-denied-dark-390.png",
+      "sha256": "822b4e47a10dab62ac10821cc6d7d4073f5dbe5b1ba92c8244045153903a0094",
+      "bytes": 72210,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-limited-light-390.png",
+      "path": "../after/280-people-access-people-limited-light-390.png",
+      "sha256": "0fad9f1ba2630e4214ca14d005cb841b57ac59cece0d24ecf61b61c8280bf11d",
+      "bytes": 67848,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-recovery-light-1440.png",
+      "path": "../after/280-people-access-people-recovery-light-1440.png",
+      "sha256": "ef6d0a927b54681a8af3f0862fa05e39a067d30b20e511cb91266615b83a1efc",
+      "bytes": 156497,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-readonly-dark-390.png",
+      "path": "../after/280-people-access-people-readonly-dark-390.png",
+      "sha256": "d203ab30945516bd97876ad94868f6939bde19b37ec137c4254a1a4228ececcc",
+      "bytes": 65952,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-readonly-light-1440.png",
+      "path": "280-people-access-routes-readonly-light-1440.png",
+      "sha256": "765bc75518f62e85fa9284b1463f16734e4994233a2937a8f218f49b76ddd66d",
+      "bytes": 142770,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 19
+    },
+    {
+      "name": "280-people-access-routes-partial-light-390.png",
+      "path": "../after/280-people-access-routes-partial-light-390.png",
+      "sha256": "c60117fcdd409944b0868595fc0b381ef6a6688580011c4ac787fba404451f1a",
+      "bytes": 70914,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-partial-dark-390.png",
+      "path": "../after/280-people-access-delegations-partial-dark-390.png",
+      "sha256": "1dccaaf2448d9caf551f52312680a94fe39cb7bd1d0e00926097388da842cb21",
+      "bytes": 70181,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-people-missing-dark-390.png",
+      "path": "../after/280-people-access-people-missing-dark-390.png",
+      "sha256": "bd76f245bea8a56b29d8c6027d846e78f79cac5ec9c854e47e1c93c44a653d2c",
+      "bytes": 65902,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-roles-missing-light-390.png",
+      "path": "../after/280-people-access-roles-missing-light-390.png",
+      "sha256": "457b28c6f52cb94e85b5b5008a3e9a450fefbb3d0108ba07aa48a1e7d310c415",
+      "bytes": 66110,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-missing-dark-390.png",
+      "path": "../after/280-people-access-routes-missing-dark-390.png",
+      "sha256": "61f9f8604b10ddd95b2115e098a2f030b30e57419b4ca7d015edbd1a466c310e",
+      "bytes": 66363,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-missing-light-390.png",
+      "path": "../after/280-people-access-delegations-missing-light-390.png",
+      "sha256": "edbabb61c1c233ea108e831e95fe45725923888b2416fe7f61a4e2a8648e597a",
+      "bytes": 70919,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-composer-light-1440.png",
+      "path": "../after/280-people-access-routes-composer-light-1440.png",
+      "sha256": "5497ba8a1044e4e00b0addf6a2d5ce77cc39e3f4754ef46c6fb6ef11ea836cf2",
+      "bytes": 189148,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-composer-dark-390.png",
+      "path": "../after/280-people-access-routes-composer-dark-390.png",
+      "sha256": "e5a6d676214049351ed98592f6ce6c105379f42eb82b6469cfc88a0691ba56a4",
+      "bytes": 55612,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-composer-dark-390-continuation.png",
+      "path": "../after/280-people-access-routes-composer-dark-390-continuation.png",
+      "sha256": "660d3f1d00010fe181e04dd64f2bf6afdad0f735a89b2b56030f832307b5027f",
+      "bytes": 53800,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-composer-light-1440.png",
+      "path": "../after/280-people-access-delegations-composer-light-1440.png",
+      "sha256": "b790d2d248badd8f44eeda39ae258afdf14f8452b81706049a501cde1438412f",
+      "bytes": 211255,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-delegations-composer-dark-390.png",
+      "path": "280-people-access-delegations-composer-dark-390.png",
+      "sha256": "e4ab724a4e890e1f8ba9dfe7f95263e155c39188cf22c412d6bef82907c1256b",
+      "bytes": 65366,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 132
+    },
+    {
+      "name": "280-people-access-delegations-composer-dark-390-continuation.png",
+      "path": "280-people-access-delegations-composer-dark-390-continuation.png",
+      "sha256": "a11763825f6190e1d077ebc62b321b78cd55ae99d13f41478add315720ffd4c0",
+      "bytes": 53516,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 99
+    },
+    {
+      "name": "280-people-access-routes-definition-light-1440.png",
+      "path": "../after/280-people-access-routes-definition-light-1440.png",
+      "sha256": "8dea2a13f42baac026ef47f0f097af35b8abcdc7503dd1061c4c114f9cb4873d",
+      "bytes": 134397,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-definition-dark-390.png",
+      "path": "../after/280-people-access-routes-definition-dark-390.png",
+      "sha256": "2e36e86387a5b6a619cb04f39f3134ccce87812a92354a98b24432d48a31c065",
+      "bytes": 63818,
+      "unchangedFromReviewedCapture": true,
+      "differentPixels": 0
+    },
+    {
+      "name": "280-people-access-routes-definition-dark-390-continuation.png",
+      "path": "280-people-access-routes-definition-dark-390-continuation.png",
+      "sha256": "262b0e6939eb546f42089fbc72d885c2e397644cc251b09803526aae4ea029b8",
+      "bytes": 62297,
+      "unchangedFromReviewedCapture": false,
+      "differentPixels": 4066
+    }
+  ],
+  "limits": [
+    "Fixture transport does not establish live backend authorization or four-actor execution.",
+    "Source-to-report and whole-screen production acceptance remain separate.",
+    "Whole-screen register remains 0/19.",
+    "Fresh Chromium 141 replaces historical Chromium 140; changed images are retained, byte-identical images reference existing files."
+  ]
+}

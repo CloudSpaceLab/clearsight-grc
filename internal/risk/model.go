@@ -235,6 +235,8 @@ type AssessmentInput struct {
 	AppetitePosition    AppetitePosition `json:"appetite_position"`
 	AppetiteRationale   string           `json:"appetite_rationale,omitempty"`
 	ActorID             string           `json:"actor_id,omitempty"`
+	AssessedAt          time.Time        `json:"-"`
+	AssessedBy          *string          `json:"-"`
 }
 
 type AppetiteInput struct {

@@ -1,0 +1,447 @@
+{
+  "status": "PASS",
+  "evidenceKind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION",
+  "runtimeRevision": "1bde850512b9eb4045b23f306322a29ed0859292",
+  "tree": "b8ddfceddb8b767bd060362a2028c8a90de784e2",
+  "runtimeBuildDigest": "63f2c03efd4db6ad4787a11e3d999144dde40c2b8612f64cbd80150b62591c41",
+  "evidenceInputDigest": "28b3e2f45b773b2a322e902a3f879a0b7af630bcc4e6d6657022750f6b2c0808",
+  "baseURL": "http://127.0.0.1:4184",
+  "route": "#configure/access/positions",
+  "fixture": "Evidence entry default Organization fixtures",
+  "theme": "light",
+  "viewportHeight": 900,
+  "receipts": [
+    {
+      "viewport": 390,
+      "header": {
+        "x": 85,
+        "y": 337.140625,
+        "width": 276,
+        "height": 202.671875,
+        "top": 337.140625,
+        "right": 361,
+        "bottom": 539.8125,
+        "left": 85
+      },
+      "heading": {
+        "x": 85,
+        "y": 337.140625,
+        "width": 276,
+        "height": 21,
+        "top": 337.140625,
+        "right": 361,
+        "bottom": 358.140625,
+        "left": 85
+      },
+      "filters": {
+        "x": 85,
+        "y": 397.28125,
+        "width": 276,
+        "height": 142.53125,
+        "top": 397.28125,
+        "right": 361,
+        "bottom": 539.8125,
+        "left": 85
+      },
+      "table": {
+        "x": 85,
+        "y": 599.8125,
+        "width": 276,
+        "height": 319.71875,
+        "top": 599.8125,
+        "right": 361,
+        "bottom": 919.53125,
+        "left": 85
+      },
+      "tableWrap": {
+        "x": 85,
+        "y": 599.8125,
+        "width": 276,
+        "height": 319.71875,
+        "top": 599.8125,
+        "right": 361,
+        "bottom": 919.53125,
+        "left": 85
+      },
+      "tableCellDisplay": "grid",
+      "tableScrollWidth": 276,
+      "tableClientWidth": 276,
+      "documentWidth": 390,
+      "documentScrollWidth": 390,
+      "actions": [
+        {
+          "label": "Edit",
+          "button": {
+            "x": 207,
+            "y": 810.53125,
+            "width": 65.078125,
+            "height": 44,
+            "top": 810.53125,
+            "right": 272.078125,
+            "bottom": 854.53125,
+            "left": 207
+          },
+          "text": {
+            "x": 224,
+            "y": 824.125,
+            "width": 31.078125,
+            "height": 16.796875,
+            "top": 824.125,
+            "right": 255.078125,
+            "bottom": 840.921875,
+            "left": 224
+          },
+          "unwrappedWidth": 31.076171875
+        },
+        {
+          "label": "Roles",
+          "button": {
+            "x": 276.078125,
+            "y": 810.53125,
+            "width": 77.03125,
+            "height": 44,
+            "top": 810.53125,
+            "right": 353.109375,
+            "bottom": 854.53125,
+            "left": 276.078125
+          },
+          "text": {
+            "x": 293.078125,
+            "y": 824.125,
+            "width": 43.03125,
+            "height": 16.796875,
+            "top": 824.125,
+            "right": 336.109375,
+            "bottom": 840.921875,
+            "left": 293.078125
+          },
+          "unwrappedWidth": 43.025390625
+        },
+        {
+          "label": "Retire",
+          "button": {
+            "x": 207,
+            "y": 858.53125,
+            "width": 82.171875,
+            "height": 44,
+            "top": 858.53125,
+            "right": 289.171875,
+            "bottom": 902.53125,
+            "left": 207
+          },
+          "text": {
+            "x": 224,
+            "y": 872.125,
+            "width": 48.171875,
+            "height": 16.796875,
+            "top": 872.125,
+            "right": 272.171875,
+            "bottom": 888.921875,
+            "left": 224
+          },
+          "unwrappedWidth": 48.166015625
+        }
+      ],
+      "images": [
+        {
+          "image": "organization-position-header-390.png",
+          "imageBytes": 63848,
+          "imageSHA256": "595e513806d8bf12eef24550f4ec7e8d26daed556de4eb40d64b284c5e550a79"
+        },
+        {
+          "image": "organization-position-table-390.png",
+          "imageBytes": 63651,
+          "imageSHA256": "f3cf1d386c21d8eceefa1950cb419d6d8e383aff9b574fa5b6a9c0ebf31c1c85"
+        }
+      ]
+    },
+    {
+      "viewport": 600,
+      "header": {
+        "x": 101,
+        "y": 336.984375,
+        "width": 470,
+        "height": 202.671875,
+        "top": 336.984375,
+        "right": 571,
+        "bottom": 539.65625,
+        "left": 101
+      },
+      "heading": {
+        "x": 101,
+        "y": 336.984375,
+        "width": 470,
+        "height": 21,
+        "top": 336.984375,
+        "right": 571,
+        "bottom": 357.984375,
+        "left": 101
+      },
+      "filters": {
+        "x": 101,
+        "y": 397.125,
+        "width": 470,
+        "height": 142.53125,
+        "top": 397.125,
+        "right": 571,
+        "bottom": 539.65625,
+        "left": 101
+      },
+      "table": {
+        "x": 101,
+        "y": 599.65625,
+        "width": 470,
+        "height": 271.71875,
+        "top": 599.65625,
+        "right": 571,
+        "bottom": 871.375,
+        "left": 101
+      },
+      "tableWrap": {
+        "x": 101,
+        "y": 599.65625,
+        "width": 470,
+        "height": 271.71875,
+        "top": 599.65625,
+        "right": 571,
+        "bottom": 871.375,
+        "left": 101
+      },
+      "tableCellDisplay": "grid",
+      "tableScrollWidth": 470,
+      "tableClientWidth": 470,
+      "documentWidth": 600,
+      "documentScrollWidth": 600,
+      "actions": [
+        {
+          "label": "Edit",
+          "button": {
+            "x": 223,
+            "y": 810.375,
+            "width": 65.078125,
+            "height": 44,
+            "top": 810.375,
+            "right": 288.078125,
+            "bottom": 854.375,
+            "left": 223
+          },
+          "text": {
+            "x": 240,
+            "y": 823.96875,
+            "width": 31.078125,
+            "height": 16.796875,
+            "top": 823.96875,
+            "right": 271.078125,
+            "bottom": 840.765625,
+            "left": 240
+          },
+          "unwrappedWidth": 31.076171875
+        },
+        {
+          "label": "Roles",
+          "button": {
+            "x": 292.078125,
+            "y": 810.375,
+            "width": 77.03125,
+            "height": 44,
+            "top": 810.375,
+            "right": 369.109375,
+            "bottom": 854.375,
+            "left": 292.078125
+          },
+          "text": {
+            "x": 309.078125,
+            "y": 823.96875,
+            "width": 43.03125,
+            "height": 16.796875,
+            "top": 823.96875,
+            "right": 352.109375,
+            "bottom": 840.765625,
+            "left": 309.078125
+          },
+          "unwrappedWidth": 43.025390625
+        },
+        {
+          "label": "Retire",
+          "button": {
+            "x": 373.109375,
+            "y": 810.375,
+            "width": 82.171875,
+            "height": 44,
+            "top": 810.375,
+            "right": 455.28125,
+            "bottom": 854.375,
+            "left": 373.109375
+          },
+          "text": {
+            "x": 390.109375,
+            "y": 823.96875,
+            "width": 48.171875,
+            "height": 16.796875,
+            "top": 823.96875,
+            "right": 438.28125,
+            "bottom": 840.765625,
+            "left": 390.109375
+          },
+          "unwrappedWidth": 48.166015625
+        }
+      ],
+      "images": [
+        {
+          "image": "organization-position-header-600.png",
+          "imageBytes": 65327,
+          "imageSHA256": "33ea6a8f2236087dacdbceddf99393213d0599d490864eadf1b024b08c9d42ec"
+        },
+        {
+          "image": "organization-position-table-600.png",
+          "imageBytes": 70077,
+          "imageSHA256": "115e392af7afad4f53558cdeb45622351c54e3cf808e5f5785e37b1f694fcf01"
+        }
+      ]
+    },
+    {
+      "viewport": 768,
+      "header": {
+        "x": 101,
+        "y": 388.421875,
+        "width": 638,
+        "height": 133.140625,
+        "top": 388.421875,
+        "right": 739,
+        "bottom": 521.5625,
+        "left": 101
+      },
+      "heading": {
+        "x": 101,
+        "y": 388.421875,
+        "width": 638,
+        "height": 21,
+        "top": 388.421875,
+        "right": 739,
+        "bottom": 409.421875,
+        "left": 101
+      },
+      "filters": {
+        "x": 101,
+        "y": 448.5625,
+        "width": 638,
+        "height": 73,
+        "top": 448.5625,
+        "right": 739,
+        "bottom": 521.5625,
+        "left": 101
+      },
+      "table": {
+        "x": 101,
+        "y": 581.5625,
+        "width": 638,
+        "height": 218.59375,
+        "top": 581.5625,
+        "right": 739,
+        "bottom": 800.15625,
+        "left": 101
+      },
+      "tableWrap": {
+        "x": 101,
+        "y": 581.5625,
+        "width": 638,
+        "height": 218.59375,
+        "top": 581.5625,
+        "right": 739,
+        "bottom": 800.15625,
+        "left": 101
+      },
+      "tableCellDisplay": "table-cell",
+      "tableScrollWidth": 638,
+      "tableClientWidth": 638,
+      "documentWidth": 768,
+      "documentScrollWidth": 768,
+      "actions": [
+        {
+          "label": "Edit",
+          "button": {
+            "x": 663.921875,
+            "y": 647.15625,
+            "width": 65.078125,
+            "height": 44,
+            "top": 647.15625,
+            "right": 729,
+            "bottom": 691.15625,
+            "left": 663.921875
+          },
+          "text": {
+            "x": 680.921875,
+            "y": 660.75,
+            "width": 31.078125,
+            "height": 16.796875,
+            "top": 660.75,
+            "right": 712,
+            "bottom": 677.546875,
+            "left": 680.921875
+          },
+          "unwrappedWidth": 31.076171875
+        },
+        {
+          "label": "Roles",
+          "button": {
+            "x": 651.96875,
+            "y": 695.15625,
+            "width": 77.03125,
+            "height": 44,
+            "top": 695.15625,
+            "right": 729,
+            "bottom": 739.15625,
+            "left": 651.96875
+          },
+          "text": {
+            "x": 668.96875,
+            "y": 708.75,
+            "width": 43.03125,
+            "height": 16.796875,
+            "top": 708.75,
+            "right": 712,
+            "bottom": 725.546875,
+            "left": 668.96875
+          },
+          "unwrappedWidth": 43.025390625
+        },
+        {
+          "label": "Retire",
+          "button": {
+            "x": 646.828125,
+            "y": 743.15625,
+            "width": 82.171875,
+            "height": 44,
+            "top": 743.15625,
+            "right": 729,
+            "bottom": 787.15625,
+            "left": 646.828125
+          },
+          "text": {
+            "x": 663.828125,
+            "y": 756.75,
+            "width": 48.171875,
+            "height": 16.796875,
+            "top": 756.75,
+            "right": 712,
+            "bottom": 773.546875,
+            "left": 663.828125
+          },
+          "unwrappedWidth": 48.166015625
+        }
+      ],
+      "images": [
+        {
+          "image": "organization-position-header-768.png",
+          "imageBytes": 81277,
+          "imageSHA256": "c2cd77ccad7c9d3020b13692f6818432497ff745b5d247d75848891b2f14b277"
+        },
+        {
+          "image": "organization-position-table-768.png",
+          "imageBytes": 81277,
+          "imageSHA256": "c2cd77ccad7c9d3020b13692f6818432497ff745b5d247d75848891b2f14b277"
+        }
+      ]
+    }
+  ]
+}

@@ -84,16 +84,16 @@ function ActivationChecks({ relationship, onActivated, onRefreshed }: VendorActi
     }
   }
 
-  if (relationship.status === "ACTIVE" || eligibility?.relationship.status === "ACTIVE") return <section className="vendor-activation-panel" aria-labelledby="vendor-activation-title"><span className="eyebrow">Activation complete</span><h3 id="vendor-activation-title">Vendor relationship active</h3><p>{relationship.service_name} may now receive certification requests. Vendor uploads still require separate review.</p></section>;
+  if (relationship.status === "ACTIVE" || eligibility?.relationship.status === "ACTIVE") return <section className="vendor-activation-panel" aria-labelledby="vendor-activation-title"><span className="eyebrow">Activation complete</span><h3 id="vendor-activation-title">Vendor relationship active</h3><p>{relationship.service_name} activated. Uploaded documents still need review.</p></section>;
   return <section className="vendor-activation-panel" aria-labelledby="vendor-activation-title" aria-busy={state === "loading"}>
     <div className="vendor-activation-heading"><div><span className="eyebrow">Activation decision</span><h3 id="vendor-activation-title">Activate vendor relationship</h3></div>{eligibility && <span className={eligibility.eligible ? "vendor-activation-ready" : "vendor-activation-pending"}>{eligibility.eligible ? "Ready for authorization" : "Checks incomplete"}</span>}</div>
-    {state === "loading" && <p>Checking the current policy, assessment, decisions, address outcome and blocking issues…</p>}
+    {state === "loading" && <p>Checking activation requirements…</p>}
     {state === "unavailable" && <div role="status"><p>{error}</p><button type="button" className="secondary-button" onClick={() => { setEligibility(undefined); setState("loading"); setError(""); setReload((value) => value + 1); }}>Reload activation checks</button></div>}
     {state === "ready" && eligibility && <>
       <p>Policy {eligibility.policy.policy_number}, version {eligibility.policy.version} applies from {formatDate(eligibility.policy.effective_from)}.</p>
       <ul className="vendor-activation-gates">{eligibility.gates.map((gate) => <li key={gate.code} data-satisfied={gate.satisfied}><span aria-hidden="true">{gate.satisfied ? "✓" : "–"}</span><div><strong>{gateLabel(gate.code)}</strong><p>{gate.explanation}</p></div></li>)}</ul>
       {eligibility.eligible && <div className="vendor-activation-action"><label htmlFor="vendor-activation-rationale">Activation rationale</label><textarea id="vendor-activation-rationale" rows={3} maxLength={2000} value={rationale} onChange={(event) => setRationale(event.target.value)} placeholder="Record why the current evidence and decisions support activation."/><small>{rationale.trim().length < 20 ? "Enter at least 20 characters for the activation record." : "This rationale will be stored with the activation receipt."}</small><button type="button" className="primary-button" disabled={busy || rationale.trim().length < 20} onClick={() => void activate()}>{busy ? "Activating…" : "Activate vendor relationship"}</button></div>}
-      {!eligibility.eligible && <p className="inline-notice">Complete the first unsatisfied check above. Submission or upload alone cannot activate this relationship.</p>}
+      {!eligibility.eligible && <p className="inline-notice">Complete outstanding checks before activation.</p>}
     </>}
     {error && state === "ready" && <p role="alert" className="inline-error">{error}</p>}
   </section>;

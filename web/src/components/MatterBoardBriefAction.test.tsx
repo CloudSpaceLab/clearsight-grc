@@ -49,7 +49,7 @@ it("queues the exact governed definition when generation is authorised", async (
   expect(screen.getByRole("link", { name: "Open Reports" }).getAttribute("href")).toBe("#reports");
 });
 
-it("does not render a dead control when no active setup exists", async () => {
+it("explains a missing board brief setup and links to Reports", async () => {
   vi.mocked(getMatterBoardBriefAvailability).mockResolvedValue({
     can_run: false,
     authority_available: true,
@@ -58,8 +58,10 @@ it("does not render a dead control when no active setup exists", async () => {
 
   render(<MatterBoardBriefAction matterID="matter-1"/>);
 
-  await waitFor(() => expect(getMatterBoardBriefAvailability).toHaveBeenCalled());
+  expect(await screen.findByText(/No active board brief setup is available for this issue\./)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Open Reports" }).getAttribute("href")).toBe("#reports");
   expect(screen.queryByRole("button", { name: "Generate board brief" })).toBeNull();
+  expect(createReportRun).not.toHaveBeenCalled();
 });
 
 it("explains an authority limitation without enabling generation", async () => {

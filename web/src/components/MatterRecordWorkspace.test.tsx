@@ -200,6 +200,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack}/>);
 
     expect(await screen.findByRole("heading", { name: "Implement GAID 2025 annual return requirements" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Implement GAID 2025 annual return requirements" }).closest("header")?.className).toContain("cs-workspace-header");
     expect(screen.getByText("Regulatory change · MAT-82BF · Work in progress · Version 7")).toBeTruthy();
     const priority = screen.getByText("High", { selector: ".cs-status-badge" });
     expect(priority.className).toContain("cs-tone--error");
@@ -215,6 +216,17 @@ describe("Matter record workspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Back to issues and changes" }));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses a contextual return label when opened from another governed record", async () => {
+    const onBack = vi.fn();
+    render(<MatterRecordWorkspace matterID="matter-1" onBack={onBack} backLabel="Back to RCSA cycle"/>);
+
+    const back = await screen.findByRole("button", { name: "Back to RCSA cycle" });
+    expect(back.textContent).toBe("← Back to RCSA cycle");
+    fireEvent.click(back);
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Back to issues and changes" })).toBeNull();
   });
 
   it("keeps exactly one Activity rail and composer on desktop", async () => {
@@ -257,7 +269,7 @@ describe("Matter record workspace", () => {
     render(<MatterRecordWorkspace matterID="matter-1" onBack={vi.fn()}/>);
 
     await openRecordTab("Evidence");
-    expect(await screen.findByRole("button", { name: "Request employee form" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Link existing form" })).toBeTruthy();
   });
 
   it("keeps Work and Activity available when linked form reads fail", async () => {
@@ -342,7 +354,7 @@ describe("Matter record workspace", () => {
     await openRecordTab("Actions");
     expect(screen.getAllByText("Privacy Program Owner").length).toBeGreaterThan(0);
     expect(screen.getByText("Annual Return Lead")).toBeTruthy();
-    expect(screen.getByText("Some assignee names could not be loaded.")).toBeTruthy();
+    expect(screen.getByText("Some assignee names unavailable.")).toBeTruthy();
     expect(screen.queryByText(/terminal-owner-id|terminal-action-owner-id/)).toBeNull();
     expect(screen.queryByRole("button", { name: /Edit issue details|Change issue owner|Edit Update the annual return evidence checklist|Change owner for Update the annual return evidence checklist|Update status for Update the annual return evidence checklist/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Change issue status" })).toBeNull();

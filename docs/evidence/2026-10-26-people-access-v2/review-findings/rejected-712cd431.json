@@ -1,0 +1,11 @@
+{
+  "status": "REJECTED_VISUAL_CHECKPOINT",
+  "revision": "712cd43113e6ba46c2b21215fd8d52d339c5aaec",
+  "automatedResults": { "states": 92, "images": 95, "accessibilityCases": 22, "configurationCases": 8, "passed": true },
+  "originalSourceSHA256": "3300853e7959e06f76e52b484e77c71c6f0c2af876351861921e0dead0aaa7f4",
+  "findings": [
+    { "viewport": { "width": 1024, "height": 768 }, "view": "People", "finding": "The search field remains capped instead of filling the source's tablet search row.", "toolbarWidth": 836.09375, "searchWidth": 420 },
+    { "viewport": { "width": 1024, "height": 768 }, "view": "People", "finding": "The fixed-height decorative wave extends from the shortened heading into the tab strip.", "heading": { "y": 124, "height": 78, "bottom": 202 }, "wave": { "y": 124, "height": 128, "bottom": 252 } }
+  ],
+  "publication": "Do not treat this checkpoint as accepted visual parity. Retained as the before evidence for the corrected CSS and geometry contracts. No source-pair acceptance was generated."
+}

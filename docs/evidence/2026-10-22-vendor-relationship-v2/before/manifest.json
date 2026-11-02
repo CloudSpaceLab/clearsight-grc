@@ -1,0 +1,164 @@
+{
+  "head": "8495506ef034718c897611991abb9e2a48f8bb87",
+  "browser": "153.0.8010.0",
+  "fixture": "vendor-form-assessment",
+  "captures": [
+    {
+      "file": "vendor-relationship-before-light-1440x900.png",
+      "fullFile": "vendor-relationship-before-light-1440x900-full.png",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "sha256": "94299ea079d8d71779d7309574474dcf87e55e1ad5afe04396698708b2c79db1",
+      "bytes": 246829,
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "heading": "Acme Processing Limited",
+        "menu": [
+          "Overview",
+          "Forms",
+          "Documents",
+          "Due diligence",
+          "History"
+        ],
+        "parentHeadingVisible": true
+      },
+      "fullSha256": "25e664ce63c2a7d6091f943b42d459d2ef92eddc1b6b381ce1c84f67afbc4d30",
+      "fullBytes": 467756
+    },
+    {
+      "file": "vendor-relationship-before-light-768x900.png",
+      "fullFile": "vendor-relationship-before-light-768x900-full.png",
+      "theme": "light",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "sha256": "5fa70116a40c8a2dbb7827f4bc8806ec6a6a1bbdc2084b54313f597480fabb2b",
+      "bytes": 130318,
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "heading": "Acme Processing Limited",
+        "menu": [
+          "Overview",
+          "Forms",
+          "Documents",
+          "Due diligence",
+          "History"
+        ],
+        "parentHeadingVisible": true
+      },
+      "fullSha256": "08c59afc05b9a331df0c71c02123c3d42a7499d0fb8ad01862d3755998b117d4",
+      "fullBytes": 385305
+    },
+    {
+      "file": "vendor-relationship-before-light-390x844.png",
+      "fullFile": "vendor-relationship-before-light-390x844-full.png",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "sha256": "79565d29cc42d02df2eebeed3ce638ee4f3acf05c192ff3020ebe2ce313bcca7",
+      "bytes": 86025,
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "heading": "Acme Processing Limited",
+        "menu": [
+          "Overview",
+          "Forms",
+          "Documents",
+          "Due diligence",
+          "History"
+        ],
+        "parentHeadingVisible": true
+      },
+      "fullSha256": "6efc388313514fdc8b285a8ea55206e9cb99b8ae64a101314156a6dc9cdc3576",
+      "fullBytes": 347053
+    },
+    {
+      "file": "vendor-relationship-before-dark-1440x900.png",
+      "fullFile": "vendor-relationship-before-dark-1440x900-full.png",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "sha256": "d6965345937fb79618af45427eb21fddfc8d563956069185292b140d807b23b7",
+      "bytes": 223911,
+      "metrics": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440,
+        "heading": "Acme Processing Limited",
+        "menu": [
+          "Overview",
+          "Forms",
+          "Documents",
+          "Due diligence",
+          "History"
+        ],
+        "parentHeadingVisible": true
+      },
+      "fullSha256": "afbe3fafc6d1761d103aeb21a373267d3599b4fa3818b4b733907c26fdd033db",
+      "fullBytes": 445373
+    },
+    {
+      "file": "vendor-relationship-before-dark-768x900.png",
+      "fullFile": "vendor-relationship-before-dark-768x900-full.png",
+      "theme": "dark",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "sha256": "6f8589a9c7b82238d1f12dcbf726a19bbcf3926973b85e1730a9edec44efa3f3",
+      "bytes": 117758,
+      "metrics": {
+        "clientWidth": 768,
+        "scrollWidth": 768,
+        "heading": "Acme Processing Limited",
+        "menu": [
+          "Overview",
+          "Forms",
+          "Documents",
+          "Due diligence",
+          "History"
+        ],
+        "parentHeadingVisible": true
+      },
+      "fullSha256": "6206860ef3a1c9a00cc5612e807508eb8dbb273b3f750508c9fd2261c82ddb24",
+      "fullBytes": 364420
+    },
+    {
+      "file": "vendor-relationship-before-dark-390x844.png",
+      "fullFile": "vendor-relationship-before-dark-390x844-full.png",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "sha256": "8fbb37062aa6386dc96e0ee6e7c41bd6aa7a250cda5d6e86d3cd538799f62fd3",
+      "bytes": 82790,
+      "metrics": {
+        "clientWidth": 390,
+        "scrollWidth": 390,
+        "heading": "Acme Processing Limited",
+        "menu": [
+          "Overview",
+          "Forms",
+          "Documents",
+          "Due diligence",
+          "History"
+        ],
+        "parentHeadingVisible": true
+      },
+      "fullSha256": "36dc0f66e54da33119148ffa91f2d1545120ad76806768c771678db58358a1f5",
+      "fullBytes": 340766
+    }
+  ],
+  "evidence_kind": "SYNTHETIC_UI_FIXTURE_NOT_BACKEND_AUTHORIZATION"
+}

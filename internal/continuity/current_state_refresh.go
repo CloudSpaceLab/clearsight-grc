@@ -29,6 +29,16 @@ func (s *Service) refreshProgramCurrent(ctx context.Context, tenant, programID, 
 		}
 	}
 	state := deriveProgramStateWithSourceState(aggregate, openMatters, now, sourceState)
+	calculation, calcErr := requirementsOnlyProgramCalculation(aggregate, now, sourceState)
+	if calcErr == nil {
+		state.Calculation = calculation
+	} else {
+		// Invalid scoring configuration must not suppress canonical Program
+		// status updates. Withhold the percentage until it can be verified.
+		state.Reasons = append(state.Reasons, StateReason{
+			Code: "CALCULATION_UNAVAILABLE", Summary: "Calculation unavailable.",
+		})
+	}
 	state.ID, err = id.NewUUIDv7()
 	if err != nil {
 		return err

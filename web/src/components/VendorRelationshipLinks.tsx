@@ -230,13 +230,13 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
 
   return <section className="vendor-relationship-links" aria-labelledby={headingID} aria-hidden={linking ? "true" : undefined} data-testid={`vendor-links-${targetType}-${targetID}`}>
     <div className="section-heading-row">
-      <div><h2 id={headingID}>Related vendors</h2><p>Vendor relationships connected to this {targetName} and the recorded purpose for each link.</p></div>
+      <div><h2 id={headingID}>Related vendors</h2><p>Vendor relationships and their role in this {targetName}.</p></div>
       {loadState === "ready" && <button ref={openButton} type="button" className="primary-button" onClick={() => { if (!linking) { setNotice(null); setLinking(true); } }}>Link vendor</button>}
     </div>
     {notice && <p role="status">{notice}</p>}
     {loadState === "loading" && <p aria-live="polite" aria-busy="true">Loading vendor relationships linked to this {targetName}…</p>}
     {loadState === "failed" && <div role="alert"><p>Related vendors could not be loaded for this {targetName}. No link has been changed.</p><button type="button" className="primary-button" onClick={() => void loadLinks()}>Try again</button></div>}
-    {loadState === "ready" && links.length === 0 && <p>No vendor relationships are linked to this {targetName}.</p>}
+    {loadState === "ready" && links.length === 0 && <p className="vendor-link-empty">No related vendors. Use Link vendor to add an existing relationship.</p>}
     {loadState === "ready" && links.length > 0 && <ul className="vendor-link-list">{links.map((value) => { const { link, relationship } = value; return <li key={link.id} className={link.state === "ENDED" ? "ended" : undefined}>
       <div className="vendor-link-identity">{relationship ? <><strong>{relationship.vendor.legal_name}</strong><span>{relationship.relationship.service_name}</span></> : <><strong>Vendor details unavailable</strong><span>The linked relationship could not be loaded in the current scope.</span></>}</div>
       <div className="vendor-link-purpose"><span>{link.purpose_label}</span>{link.state === "ENDED" ? <small>Link ended</small> : <button type="button" className="text-button" aria-label={`End link for ${relationship?.vendor.legal_name ?? "vendor relationship"}`} onClick={() => { setEndingLinkID(link.id); setEndReason(""); setEndError(""); setNotice(null); }}>End link</button>}</div>
@@ -246,7 +246,7 @@ export function VendorRelationshipLinks({ targetType, targetID }: Props) {
     {loadMoreError && <div role="alert"><span>More related vendors could not be loaded. The current list remains available.</span><button type="button" className="secondary-button" onClick={() => nextCursor && void loadLinks(nextCursor)}>Try again</button></div>}
     {linking && <FocusedSheet label={`Link vendor to this ${targetName}`} onClose={closeLinking} panelClassName="vendor-link-sheet">
       <form className="vendor-link-form" onSubmit={(event) => void submit(event)}>
-      <div className="vendor-link-sheet-heading"><span className="eyebrow">Related vendor</span><h2>Link vendor to this {targetName}</h2><p>Search the vendor register, choose the relevant service relationship, and record why it supports this {targetName}.</p></div>
+      <div className="vendor-link-sheet-heading"><span className="eyebrow">Related vendor</span><h2>Link vendor to this {targetName}</h2></div>
       <div className="form-grid vendor-link-search"><label>Search vendor relationships<input value={query} onChange={(event) => changeQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void search(); } }} autoComplete="off" placeholder="Vendor or service name"/></label><button type="button" className="secondary-button" disabled={searching || !query.trim()} onClick={() => void search()}>{searching ? "Searching…" : "Search vendors"}</button></div>
       {searchError && <div role="alert"><span>Vendor search is unavailable. Your search remains on this screen.</span><button type="button" className="secondary-button" disabled={searching} onClick={() => void search()}>Try again</button></div>}
       {!searchError && searchAttempted && results.length === 0 && <p>No vendor relationships match this search. Check the vendor or service name and search again.</p>}

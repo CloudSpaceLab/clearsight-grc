@@ -72,6 +72,7 @@ export type AuthorityResolution = { principal: AuthorityPrincipal; candidate_pri
 export type IntegrityFinding = { type: string; severity: string; summary: string; required_action: string; rule_ids?: string[]; };
 export type PolicySummary = { id: string; code: string; name: string; status: string; version: number; effective_from?: string; };
 export type AutomationPolicy = { id: string; tenant_id: string; code: string; name: string; action_class: string; eligibility: Record<string, unknown>; blast_radius_limit: Record<string, unknown>; verification_contract: Record<string, unknown>; rollout_mode?: "SHADOW" | "ENFORCE" | string; checksum?: string; status: string; maker_id?: string; checker_id?: string; effective_from?: string; effective_until?: string; submitted_at?: string; approved_at?: string; activated_at?: string; suspended_at?: string; retired_at?: string; created_at?: string; updated_at?: string; version: number; record_version?: number; };
+export type AutomationPolicyPage = { items: AutomationPolicy[]; tenant_id: string; scope: "TENANT"; revision_basis: "LATEST_PER_CODE"; limit: number; returned_count: number; truncated: boolean };
 export type AIGovernancePolicy = AutomationPolicy & { rollout_mode: "SHADOW" | "ENFORCE" | string; checksum: string; maker_id: string; record_version: number; };
 export type AIGovernanceWorkload = { id: string; workload_id: string; tenant_id: string; code: string; name: string; purpose: string; environment: string; owner_principal_id: string; service_principal_id?: string; allowed_models: string[]; requests_per_minute: number; tokens_per_minute: number; cost_microusd_per_minute: number; max_concurrent: number; verified_metadata?: Record<string, string>; approved_resources?: string[]; policy_id: string; policy_version: number; state: string; maker_id?: string; checker_id?: string; effective_from?: string; effective_until?: string; submitted_at?: string; approved_at?: string; activated_at?: string; suspended_at?: string; retired_at?: string; checksum: string; created_at?: string; updated_at?: string; version: number; record_version: number; };
 export type Drift = { id: string; subject_type: string; subject_id: string; dimension: string; severity: number; summary: string; required_action: string; detected_at: string; };
@@ -83,17 +84,55 @@ export type OnboardingState = { tenant_id: string; principal_id: string; guide_c
 export type WorkflowTask = { id: string; tenant_id: string; workflow_id: string; step_key: string; responsibility: string; principal_id?: string; title: string; status: string; due_at?: string; claimed_at?: string; completed_at?: string; context?: Record<string, string>; source_bindings?: BindingReference[]; version: number; };
 export type EvidenceSource = { id: string; tenant_id: string; legal_entity_id?: string; code: string; name: string; type: string; authority_class: string; owner_principal_id?: string; expected_freshness_minutes: number; last_observed_at?: string; last_success_at?: string; health: string; status: string; version: number; };
 export type EvidenceField = CaptureField;
-export type EvidenceRequest = { id: string; tenant_id: string; subject_type: string; subject_id: string; title: string; purpose: string; why_you: string; sensitivity: string; audience_type: string; recipient?: EvidenceRecipient; created_by?: string; estimated_minutes: number; deadline: string; known_facts: Record<string, string>; fields: EvidenceField[]; source_bindings?: RequestBindingReference[]; status: string; version: number; created_at: string; updated_at: string; };
+// The HTTP evidence.Request includes the same versioned presentation,
+// sections and fields as the capture contract. Retain the additional scoped
+// record identity instead of duplicating and silently dropping form metadata.
+export type EvidenceRequest = CaptureRequest & {
+  tenant_id: string;
+  legal_entity_id?: string;
+  subject_type: string;
+  subject_id: string;
+  audience_type: string;
+  source_bindings?: RequestBindingReference[];
+  created_at: string;
+  updated_at: string;
+};
 export type EvidenceReviewSubmission = { id: string; request_id: string; submitted_by?: string; channel: string; answers: CaptureAnswers; answer_provenance?: Record<string, unknown>; submitted_at: string; };
 
 export type ProgramState = "CURRENT" | "AT_RISK" | "GAP_IDENTIFIED" | "EVIDENCE_INSUFFICIENT" | "IMPLEMENTATION_PENDING" | "OVERDUE" | "UNDER_REVIEW" | "NOT_APPLICABLE" | "UNKNOWN";
-export type Program = { id: string; tenant_id: string; legal_entity_id?: string; organization_scope_id?: string; code: string; name: string; type: string; status: string; owning_function: string; owner_principal_id?: string; authority_principal_id?: string; jurisdiction?: string; scope: Record<string, unknown>; effective_from: string; effective_until?: string; created_at: string; updated_at: string; version: number; };
+export type ProgramCalculationCategory = { code: string; weight_bps: number };
+export type ProgramExpectedVendorAssessment = {
+  key: string; relationship_id: string; form_template_id: string;
+  form_template_version: number; review_kind: "ONBOARDING" | "PERIODIC" | "TRIGGERED"; weight: number;
+};
+export type ProgramCalculationDefinition = {
+  revision: string; minimum_coverage_bps: number;
+  categories: ProgramCalculationCategory[];
+  expected_vendor_assessments?: ProgramExpectedVendorAssessment[];
+};
+export type ProgramCalculationRevision = { number: number; definition: ProgramCalculationDefinition; checksum: string; maker_id: string; proposed_at: string; approver_id?: string; approved_at?: string };
+export type ProgramCalculationPolicy = { last_revision: number; active?: ProgramCalculationRevision; pending?: ProgramCalculationRevision };
+export type Program = { id: string; tenant_id: string; legal_entity_id?: string; organization_scope_id?: string; code: string; name: string; type: string; status: string; owning_function: string; owner_principal_id?: string; authority_principal_id?: string; jurisdiction?: string; scope: Record<string, unknown>; calculation_policy?: ProgramCalculationPolicy; effective_from: string; effective_until?: string; created_at: string; updated_at: string; version: number; };
 export type Requirement = { id: string; source_id?: string; code: string; title: string; statement: string; source_anchor?: string; modality?: string; actor?: string; action?: string; object?: string; status: string; effective_from?: string; effective_until?: string; version?: number; };
 export type ControlImplementation = { id: string; objective_id?: string; name: string; description: string; implementation_type: string; owner_principal_id?: string; scope?: Record<string, unknown>; status: string; effective_from?: string; effective_until?: string; version?: number; };
 export type EvidenceContract = { id: string; requirement_id?: string; control_implementation_id?: string; code: string; name: string; claim: string; acceptable_source_ids?: string[]; population_scope?: Record<string, unknown>; status: string; freshness_minutes: number; minimum_coverage: number; independence_required?: boolean; contradiction_policy?: string; failure_action?: string; version?: number; };
 export type StateReason = { code: string; summary: string; object_type?: string; object_id?: string; };
-export type ProgramStateSnapshot = { id: string; overall_state?: ProgramState; overall?: ProgramState; dimensions: Record<string, ProgramState>; reasons: StateReason[]; open_matter_count: number; trigger_type?: string; trigger_id?: string; generated_at: string; program_version: number; projection_version: number; };
-export type ProgramAggregate = { state_label: string; program: Program; requirements: Requirement[]; applicability: Array<{ id: string; requirement_id: string; status: string; scope?: Record<string, unknown>; rationale: string; approved_by?: string; effective_from?: string; effective_until?: string; version?: number }>; control_objectives: Array<{ id: string; code: string; name: string; outcome: string; status: string; version?: number }>; control_implementations: ControlImplementation[]; requirement_control_links: Array<{ id?: string; requirement_id: string; implementation_id: string }>; evidence_contracts: EvidenceContract[]; evidence_assessments: Array<{ id: string; contract_id: string; conclusion: string; coverage: number; basis?: Record<string, unknown>; assessed_by?: string; assessed_at: string; valid_until?: string }>; current_state?: ProgramStateSnapshot; triggers: Array<{ id: string; type: string; observed_at: string; source: string }>; };
+export type ProgramComplianceSnapshot = {
+  policy_revision: string;
+  state: "NOT_ASSESSED" | "PROVISIONAL" | "FINAL";
+  score_bps?: number;
+  assessed_score_bps?: number;
+  coverage_bps: number;
+  eligible_count: number;
+  assessed_count: number;
+  unknown_count: number;
+  excluded_count: number;
+  unpopulated_categories?: string[];
+  categories: Array<{ code: string; weight_bps: number; eligible_count: number; assessed_count: number; unknown_count: number; excluded_count: number; coverage_bps: number; score_bps?: number }>;
+};
+export type ProgramStateSnapshot = { id: string; overall_state?: ProgramState; overall?: ProgramState; dimensions: Record<string, ProgramState>; reasons: StateReason[]; open_matter_count: number; trigger_type?: string; trigger_id?: string; generated_at: string; program_version: number; projection_version: number; calculation?: ProgramComplianceSnapshot; };
+export type ProgramFrameworkAdoption = { id: string; edition_id: string; publisher_code: string; framework_code: string; edition_code: string; status: "PENDING" | "ACTIVE" | "REJECTED" | "SUPERSEDED" | "RETIRED"; proposed_by: string; reviewed_by?: string; rationale: string; proposed_at: string; reviewed_at?: string; version: number };
+export type ProgramAggregate = { framework_adoptions?: ProgramFrameworkAdoption[]; state_label: string; program: Program; requirements: Requirement[]; applicability: Array<{ id: string; requirement_id: string; status: string; scope?: Record<string, unknown>; rationale: string; approved_by?: string; effective_from?: string; effective_until?: string; version?: number }>; control_objectives: Array<{ id: string; code: string; name: string; outcome: string; status: string; version?: number }>; control_implementations: ControlImplementation[]; requirement_control_links: Array<{ id?: string; requirement_id: string; implementation_id: string }>; evidence_contracts: EvidenceContract[]; evidence_assessments: Array<{ id: string; contract_id: string; conclusion: string; coverage: number; basis?: Record<string, unknown>; assessed_by?: string; assessed_at: string; valid_until?: string }>; current_state?: ProgramStateSnapshot; triggers: Array<{ id: string; type: string; observed_at: string; source: string }>; };
 
 export type Matter = { id: string; tenant_id: string; legal_entity_id?: string; organization_scope_id?: string; reference: string; type: string; status: string; priority: number; title: string; summary: string; scope: Record<string, unknown>; source_type?: string; source_id?: string; trigger_type?: string; trigger_id?: string; trigger_key?: string; known_facts: Record<string, unknown>; missing_facts: unknown[]; contradictions: unknown[]; owner_principal_id?: string; required_authority?: string; due_at?: string; closed_at?: string; closure_reason?: string; created_at: string; updated_at: string; version: number; };
 export type MatterAction = { id: string; title: string; description: string; owner_principal_id?: string; required_responsibility?: string; status: string; due_at?: string; implemented_at?: string; created_at?: string; updated_at?: string; version?: number; };

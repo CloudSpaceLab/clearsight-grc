@@ -1,0 +1,71 @@
+{
+  "status": "PASS",
+  "runtimeRevision": "1bde850512b9eb4045b23f306322a29ed0859292",
+  "tree": "b8ddfceddb8b767bd060362a2028c8a90de784e2",
+  "runtimeBuildDigest": "63f2c03efd4db6ad4787a11e3d999144dde40c2b8612f64cbd80150b62591c41",
+  "evidenceInputDigest": "28b3e2f45b773b2a322e902a3f879a0b7af630bcc4e6d6657022750f6b2c0808",
+  "assetCount": 173,
+  "verifiedByteHashPairs": 322,
+  "runtimeCases": 92,
+  "runtimeImages": 95,
+  "sourceImages": 32,
+  "sourceImagesByteIdenticalToD2": 32,
+  "sourceSHA256": "3300853e7959e06f76e52b484e77c71c6f0c2af876351861921e0dead0aaa7f4",
+  "sameScreenBindings": 64,
+  "configurationCases": 10,
+  "configurationImages": 12,
+  "rangeWidths": [
+    390,
+    600,
+    768
+  ],
+  "rangeImages": 6,
+  "a11y": {
+    "cases": 22,
+    "reportedViolations": 0,
+    "undersizedPrimaryControls": 0,
+    "ariaProhibitedViolationsOrIncomplete": 0,
+    "incompleteCases": 17,
+    "incompleteNodes": 38,
+    "incompleteRules": [
+      "color-contrast"
+    ],
+    "contrast": {
+      "PASS": 1413,
+      "INCOMPLETE": 157,
+      "REVIEW": 110,
+      "INACTIVE": 20
+    }
+  },
+  "files": {
+    "manifest.json": {
+      "bytes": 2185892,
+      "sha256": "47b151724de989866bd68491f2bd27b2a15d09ec83d56011e04b906ebfd3c19b"
+    },
+    "accessibility.json": {
+      "bytes": 1165979,
+      "sha256": "89e92b67d9da0579dd11004e5709f178e00be1834a6a078612ff09b599e57976"
+    },
+    "configuration-review.json": {
+      "bytes": 9739,
+      "sha256": "bb631e8e266eec578bef184eb3b215486e4fe3f2e5865cd0c5f3d06f19933fd7"
+    },
+    "approved-reference/manifest.json": {
+      "bytes": 417171,
+      "sha256": "e1ba5b17ab84007482acbdc5f3279b6425d1e616f5c1313366f477301188a48e"
+    },
+    "organization-range/organization-range-review.json": {
+      "bytes": 11448,
+      "sha256": "d0e9f99ab6f1bab2fe70b559a5e9e258714f8988b5e594c5c8c417a33d559a8b"
+    },
+    "image-diff-from-d2.json": {
+      "bytes": 24769,
+      "sha256": "e31a4e2f3f017be23c60d291733c2dd1e2146d4f238d529b1b03b214774a347b"
+    }
+  },
+  "limits": [
+    "Synthetic UI evidence does not establish backend authorization or production acceptance.",
+    "Raw accessibility incomplete and review readings remain unresolved; no full accessibility conformance claim.",
+    "Original source uses its environment font fallback; same-screen binding does not assert pixel-perfect parity."
+  ]
+}

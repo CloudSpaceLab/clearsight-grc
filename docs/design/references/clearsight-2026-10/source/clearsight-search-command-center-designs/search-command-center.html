@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ClearSight · Search</title><link rel="stylesheet" href="prototype-shared.css"><link rel="stylesheet" href="search-command-center.css"></head>
+<body>
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10H3zM9 21v-8h6v8"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.7" cy="10.7" r="7"/><path d="m16 16 5 5"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M5 2h9l5 5v14H5zM14 2v6h5M8 12h8M8 16h8"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6c-4-3-8-3-10-2v15c4-1 7 0 10 2 3-2 6-3 10-2V4c-2-1-6-1-10 2zM12 6v15"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 22 7-4V6l-7-4-7 4v12l7 4zM9 12l2 2 4-4"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m12 3 10 18H2L12 3zM12 9v5M12 18h.01"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 6a3 3 0 0 1 0 6M22 21v-2a6 6 0 0 0-3-5.2"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 21V11h4v10M10 21V4h4v17M16 21v-8h4v8"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+<symbol id="i-check-square" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 12 4 4 6-7"/></symbol>
+<symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="1"/><path d="M8 5V2h8v3M8 9v2m4-2v2m4-2v2m-8 3v2m4-2v2m4-2v2M10 21v-4h4v4"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 8-3 8-3 10h18c0-2-3-2-3-10M10 22h4"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5z"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 7 .9-5.1 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5.1-4.9 7-.9z"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></symbol>
+<symbol id="i-command" viewBox="0 0 24 24"><path d="M9 6V5a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v14a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></symbol>
+</defs></svg>
+<div class="app search-app">
+ <aside class="sidebar" id="sidebar"><div class="logo"><div class="logo-mark"><i class="a"></i><i class="b"></i><i class="c"></i></div><div><strong>ClearSight</strong><small>Governance · Risk · Compliance</small></div></div>
+ <nav class="nav" aria-label="Primary navigation">
+  <a class="nav-item" href="reports-workspace-preview.html"><svg class="icon"><use href="#i-home"/></svg><span>Home</span></a>
+  <a class="nav-item" href="framework-library.html"><svg class="icon"><use href="#i-grid"/></svg><span>Frameworks</span></a>
+  <a class="nav-item" href="program-workspace-preview.html"><svg class="icon"><use href="#i-layers"/></svg><span>Programs</span></a>
+  <a class="nav-item" href="assessment-workspace-preview.html"><svg class="icon"><use href="#i-check-square"/></svg><span>Assessments</span></a>
+  <a class="nav-item" href="operational-risk-preview.html"><svg class="icon"><use href="#i-alert"/></svg><span>Risk & losses</span></a>
+  <a class="nav-item" href="vendor-workspace-preview.html"><svg class="icon"><use href="#i-users"/></svg><span>Vendors</span></a>
+  <a class="nav-item" href="privacy-workspace-preview.html"><svg class="icon"><use href="#i-lock"/></svg><span>Privacy & data</span></a>
+  <a class="nav-item" href="controls-policies-preview.html"><svg class="icon"><use href="#i-shield"/></svg><span>Controls & policies</span></a>
+  <a class="nav-item" href="work-approvals-preview.html"><svg class="icon"><use href="#i-check"/></svg><span>Work & approvals</span></a>
+  <a class="nav-item" href="reports-workspace-preview.html"><svg class="icon"><use href="#i-chart"/></svg><span>Reports</span></a>
+  <a class="nav-item" href="enterprise-setup-preview.html"><svg class="icon"><use href="#i-settings"/></svg><span>Setup</span></a>
+ </nav><div class="side-bottom"><div class="release">ClearSight · Design preview<br>October 2026</div></div>
+ </aside>
+ <div class="main">
+ <header class="topbar search-topbar"><button class="mobile-menu" id="menu-toggle" aria-label="Toggle navigation">☰</button><div class="mobile-brand">ClearSight</div>
+  <label class="scope"><svg class="icon"><use href="#i-building"/></svg><select aria-label="Legal entity" id="entity"><option value="ng">Clear Bank Nigeria</option><option value="gh">Clear Bank Ghana</option></select></label>
+  <label class="scope"><svg class="icon"><use href="#i-grid"/></svg><select aria-label="Group" id="group"><option value="all">All groups</option><option value="Technology">Technology</option><option value="Marketing">Marketing</option><option value="Risk & Compliance">Risk & Compliance</option><option value="Operations">Operations</option></select></label>
+  <span class="grow"></span><button class="global-search" id="global-search"><svg class="icon"><use href="#i-search"/></svg><span>Search records...</span><kbd class="key">⌘ K</kbd></button><button class="top-icon" id="notification-button" aria-label="Notifications"><svg class="icon"><use href="#i-bell"/></svg></button><div class="profile"><div class="avatar">JO</div><div><strong>Jordan Ellis</strong><small>Risk Administrator</small></div></div>
+ </header>
+ <main class="content search-content">
+  <header class="search-pagehead"><div><div class="breadcrumb">Workspace <span>›</span> Search</div><h1>Search</h1><p>Programs, risks, vendors, evidence and work</p></div><div class="header-art" aria-hidden="true"><svg viewBox="0 0 720 160" preserveAspectRatio="none"><defs><linearGradient id="wave" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8f5ff" stop-opacity=".13"/><stop offset=".6" stop-color="#b5e3ff" stop-opacity=".58"/><stop offset="1" stop-color="#91ceff" stop-opacity=".12"/></linearGradient></defs><path d="M0 156C133 134 175 35 290 89S492 33 604 75S674 90 720 34V160H0" fill="url(#wave)"/><path d="M0 162C155 128 224 130 337 52S510 152 622 82S687 140 720 102V162H0" fill="#a8d8ff" opacity=".2"/></svg></div><span class="sample-indicator"><span></span>Sample records</span></header>
+  <section class="primary-search" aria-label="Search records"><svg class="icon"><use href="#i-search"/></svg><input id="search-input" type="search" autocomplete="off" value="data retention" aria-label="Search all permitted records" placeholder="Search by record, ID or owner…"><button id="search-clear" class="clear-search" aria-label="Clear search"><svg class="icon"><use href="#i-x"/></svg></button><kbd>↵</kbd></section>
+  <div class="content-filters"><div class="category-strip" role="tablist" aria-label="Result types" id="type-tabs"></div><div class="secondary-filters"><label class="filter-select">Status <select id="status-filter" aria-label="Status filter"><option value="all">All statuses</option><option value="attention">Needs attention</option><option value="current">Current</option></select></label><label class="filter-select">Sort <select id="sort-filter" aria-label="Sort results"><option value="relevance">Relevance</option><option value="recent">Recently updated</option><option value="title">Name</option></select></label><button class="filter-reset" id="reset-filters">Clear filters</button></div></div>
+  <div class="search-workspace">
+    <section class="result-surface" aria-label="Results"><div class="surface-header"><div><h2>Results <span id="result-count"></span></h2><p id="results-context">Within your selected legal entity</p></div><button type="button" id="save-search" class="save-button"><svg class="icon"><use href="#i-star"/></svg><span>Save search</span></button></div><div id="results-list" class="results-list" role="listbox" aria-label="Search result records"></div><div class="results-footer"><span id="results-footer-summary"></span><button id="show-more" class="quiet-link">Show more <svg class="icon"><use href="#i-arrow"/></svg></button></div></section>
+    <aside id="detail-surface" class="record-preview" aria-label="Selected record"></aside>
+  </div>
+  <section class="recent-searches"><h2>Recent searches</h2><div class="recent-chips" id="recent-searches"></div><div class="footer-hint"><svg class="icon"><use href="#i-command"/></svg> <kbd>⌘ K</kbd> for quick search</div></section>
+  <footer class="design-footer"><span>Design preview · Sample content</span><span>Search is limited to the selected legal entity and permitted records.</span></footer>
+ </main></div></div>
+ <div id="palette" class="palette-layer" hidden><div class="palette-scrim" data-close-palette></div><section role="dialog" aria-modal="true" aria-labelledby="palette-title" class="command-dialog"><div class="command-input-row"><svg class="icon"><use href="#i-search"/></svg><input id="palette-input" aria-label="Quick search" placeholder="Search records or jump to a workspace..." autocomplete="off"><button id="palette-close" aria-label="Close quick search"><svg class="icon"><use href="#i-x"/></svg></button></div><div class="palette-section"><div id="palette-title" class="palette-heading">Results</div><div class="palette-results" id="palette-results" role="listbox" aria-label="Quick search results"></div></div><div class="palette-help"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>↵</kbd> Select</span><span><kbd>esc</kbd> Close</span></div></section></div>
+ <div id="record-drawer" class="drawer-layer" hidden><div class="drawer-scrim" data-close-drawer></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="Record details"><div class="drawer-head"><span>Record preview</span><button id="drawer-close" aria-label="Close record preview"><svg class="icon"><use href="#i-x"/></svg></button></div><div id="drawer-body"></div></aside></div>
+ <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script defer src="search-command-center.js"></script></body></html>

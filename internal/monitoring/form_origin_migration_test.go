@@ -21,6 +21,8 @@ func TestFormMatterOriginMigrationIsScopedAndImmutable(t *testing.T) {
 		"enforce_monitoring_form_origin_immutable",
 		"existing.origin_type IS DISTINCT FROM NEW.origin_type",
 		"existing.origin_id IS DISTINCT FROM NEW.origin_id",
+		"CREATE INDEX monitoring_form_templates_origin_idx",
+		"ON monitoring_form_templates(tenant_id,legal_entity_id,origin_type,origin_id,updated_at DESC,id,version DESC)",
 	} {
 		if !strings.Contains(sql, required) {
 			t.Fatalf("form origin migration is missing %q", required)

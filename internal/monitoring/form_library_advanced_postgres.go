@@ -13,6 +13,10 @@ func (r *PostgresRepository) ListAdvancedFormLibrary(ctx context.Context, filter
 	if filter.TenantID == "" || filter.LegalEntityID == "" {
 		return FormTemplatePage{}, ErrInvalid
 	}
+	originType, originID, err := normalizeFormLibraryOriginFilter(filter.OriginType, filter.OriginID)
+	if err != nil {
+		return FormTemplatePage{}, err
+	}
 	cursor, err := decodeFormLibraryCursor(filter.Cursor)
 	if err != nil {
 		return FormTemplatePage{}, err
@@ -29,13 +33,13 @@ func (r *PostgresRepository) ListAdvancedFormLibrary(ctx context.Context, filter
 	if err != nil {
 		return FormTemplatePage{}, err
 	}
-	whereExpression, expressionArgs, nextArg := formFilterSQL(expression, "f", 4)
+	whereExpression, expressionArgs, nextArg := formFilterSQL(expression, "f", 6)
 	cursorTime := ""
 	if !cursor.UpdatedAt.IsZero() {
 		cursorTime = cursor.UpdatedAt.UTC().Format("2006-01-02T15:04:05.999999999Z07:00")
 	}
 	limit := boundedFormLibraryLimit(filter.Limit)
-	pageArgs := []any{filter.TenantID, filter.LegalEntityID, strings.TrimSpace(filter.Search)}
+	pageArgs := []any{filter.TenantID, filter.LegalEntityID, string(originType), originID, strings.TrimSpace(filter.Search)}
 	pageArgs = append(pageArgs, expressionArgs...)
 	pageArgs = append(pageArgs, cursorTime, cursor.ID, limit+1)
 	pageSQL := fmt.Sprintf(`
@@ -43,13 +47,14 @@ func (r *PostgresRepository) ListAdvancedFormLibrary(ctx context.Context, filter
 		SELECT DISTINCT ON (f.tenant_id,f.id) f.revision_id
 		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid
+		  AND ($3='' OR (f.origin_type=$3 AND f.origin_id=NULLIF($4,'')::uuid))
 		ORDER BY f.tenant_id,f.id,f.version DESC
 	)
 	SELECT %s,COALESCE(active.version,0),COALESCE(active.status,'')
 	FROM latest_ids latest
 	JOIN monitoring_form_templates f ON f.revision_id=latest.revision_id
 	LEFT JOIN monitoring_form_templates active ON active.tenant_id=f.tenant_id AND active.id=f.id AND active.is_current
-	WHERE ($3='' OR lower(f.code) LIKE '%%'||lower($3)||'%%' OR lower(f.name) LIKE '%%'||lower($3)||'%%' OR lower(f.purpose) LIKE '%%'||lower($3)||'%%')
+	WHERE ($5='' OR lower(f.code) LIKE '%%'||lower($5)||'%%' OR lower(f.name) LIKE '%%'||lower($5)||'%%' OR lower(f.purpose) LIKE '%%'||lower($5)||'%%')
 	  AND (%s)
 	  AND ($%d='' OR (f.updated_at,f.id) %s (NULLIF($%d,'')::timestamptz,NULLIF($%d,'')::uuid))
 	ORDER BY f.updated_at %s,f.id %s
@@ -91,13 +96,17 @@ func (r *PostgresRepository) ListAdvancedFormLibrary(ctx context.Context, filter
 }
 
 func (r *PostgresRepository) advancedFormLibraryMetadata(ctx context.Context, filter FormLibraryFilter, expression *FormFilterExpression, includeStatusFacets bool) (int, FormLibraryFacets, error) {
-	fullSQL, fullArgs, nextArg := formFilterSQL(expression, "f", 4)
+	originType, originID, err := normalizeFormLibraryOriginFilter(filter.OriginType, filter.OriginID)
+	if err != nil {
+		return 0, FormLibraryFacets{}, err
+	}
+	fullSQL, fullArgs, nextArg := formFilterSQL(expression, "f", 6)
 	facetExpression := expression
 	if includeStatusFacets {
 		facetExpression = formFilterExpressionWithoutField(expression, FormFilterStatus)
 	}
 	facetSQL, facetArgs, _ := formFilterSQL(facetExpression, "f", nextArg)
-	args := []any{filter.TenantID, filter.LegalEntityID, strings.TrimSpace(filter.Search)}
+	args := []any{filter.TenantID, filter.LegalEntityID, string(originType), originID, strings.TrimSpace(filter.Search)}
 	args = append(args, fullArgs...)
 	args = append(args, facetArgs...)
 	metadataSQL := fmt.Sprintf(`
@@ -105,16 +114,17 @@ func (r *PostgresRepository) advancedFormLibraryMetadata(ctx context.Context, fi
 		SELECT DISTINCT ON (f.tenant_id,f.id) f.revision_id
 		FROM monitoring_form_templates f JOIN tenants t ON t.id=f.tenant_id
 		WHERE (t.id::text=$1 OR t.slug=$1) AND f.legal_entity_id=$2::uuid
+		  AND ($3='' OR (f.origin_type=$3 AND f.origin_id=NULLIF($4,'')::uuid))
 		ORDER BY f.tenant_id,f.id,f.version DESC
 	), latest AS (
 		SELECT f.* FROM latest_ids latest JOIN monitoring_form_templates f ON f.revision_id=latest.revision_id
 	), total AS (
 		SELECT count(*)::int AS value FROM latest f
-		WHERE ($3='' OR lower(f.code) LIKE '%%'||lower($3)||'%%' OR lower(f.name) LIKE '%%'||lower($3)||'%%' OR lower(f.purpose) LIKE '%%'||lower($3)||'%%')
+		WHERE ($5='' OR lower(f.code) LIKE '%%'||lower($5)||'%%' OR lower(f.name) LIKE '%%'||lower($5)||'%%' OR lower(f.purpose) LIKE '%%'||lower($5)||'%%')
 		  AND (%s)
 	), status_counts AS (
 		SELECT f.status,count(*)::int AS value FROM latest f
-		WHERE ($3='' OR lower(f.code) LIKE '%%'||lower($3)||'%%' OR lower(f.name) LIKE '%%'||lower($3)||'%%' OR lower(f.purpose) LIKE '%%'||lower($3)||'%%')
+		WHERE ($5='' OR lower(f.code) LIKE '%%'||lower($5)||'%%' OR lower(f.name) LIKE '%%'||lower($5)||'%%' OR lower(f.purpose) LIKE '%%'||lower($5)||'%%')
 		  AND (%s)
 		GROUP BY f.status
 	)

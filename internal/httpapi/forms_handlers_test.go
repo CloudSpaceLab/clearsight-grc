@@ -206,6 +206,28 @@ func TestFormsCreateAndRevisePreserveMatterOrigin(t *testing.T) {
 	if revised.Origin == nil || revised.Origin.ID != "matter-a" || revised.Version != 2 {
 		t.Fatalf("revised origin = %#v, version=%d", revised.Origin, revised.Version)
 	}
+
+	unlinkedBody := []byte(`{"code":"OTHER-CHECK","name":"Other evidence check","purpose":"Collect unrelated evidence.","presentation":{"default_mode":"AUTOMATIC"},"sections":[{"id":"evidence","title":"Evidence"}],"fields":[{"id":"state","section_id":"evidence","label":"Current state","type":"short_text","required":true}]}`)
+	unlinkedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(unlinkedResponse, httptest.NewRequest(http.MethodPost, "/api/v1/forms/templates", bytes.NewReader(unlinkedBody)))
+	if unlinkedResponse.Code != http.StatusCreated {
+		t.Fatalf("unlinked create returned %d: %s", unlinkedResponse.Code, unlinkedResponse.Body.String())
+	}
+
+	listResponse := httptest.NewRecorder()
+	handler.ServeHTTP(listResponse, httptest.NewRequest(http.MethodGet, "/api/v1/forms/templates?origin_type=MATTER&origin_id=matter-a&limit=6", nil))
+	if listResponse.Code != http.StatusOK {
+		t.Fatalf("origin list returned %d: %s", listResponse.Code, listResponse.Body.String())
+	}
+	if !bytes.Contains(listResponse.Body.Bytes(), []byte(`"id":"`+created.ID+`"`)) || bytes.Contains(listResponse.Body.Bytes(), []byte("OTHER-CHECK")) {
+		t.Fatalf("origin list was not exact: %s", listResponse.Body.String())
+	}
+
+	partialResponse := httptest.NewRecorder()
+	handler.ServeHTTP(partialResponse, httptest.NewRequest(http.MethodGet, "/api/v1/forms/templates?origin_type=MATTER&limit=6", nil))
+	if partialResponse.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("partial origin filter returned %d: %s", partialResponse.Code, partialResponse.Body.String())
+	}
 }
 
 func TestFormsCreateAcceptsAdvancedScoreProfile(t *testing.T) {
