@@ -86,6 +86,9 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		{Command: "program.details.update", Label: "Edit Program details", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.assign", Label: "Change Program owner", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID, ReassignmentPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.approval-authority.assign", DecisionType: "program.transition", Label: "Change approval authority", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID, IncludeCandidates: true},
+		{Command: "program.requirement.review.propose", Label: "Send requirement for review", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID},
+		{Command: "program.requirement.review.approve", Label: "Approve requirement", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID},
+		{Command: "program.requirement.review.reject", Label: "Reject requirement", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID},
 		{Command: "program.requirement.add", Label: "Add a requirement", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
 		{Command: "program.safeguard.define", Label: "Define safeguards", Responsibility: authority.ResponsibilityOwner, CandidateResponsibility: authority.ResponsibilityPerformer, Materiality: 2, AssignedPrincipalID: ownerID, IncludeCandidates: true},
 		{Command: "program.evidence.define", Label: "Define an evidence check", Responsibility: authority.ResponsibilityOwner, Materiality: 2, AssignedPrincipalID: ownerID},
@@ -102,6 +105,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		add(programOperationSpec{Command: "program.compliance-policy.approve", Label: "Approve calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
 		add(programOperationSpec{Command: "program.compliance-policy.reject", Label: "Reject calculation rules", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
 	}
+	add(programOperationSpec{Command: "program.framework.questionnaire.select", Label: "Select framework questionnaire", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID})
 	hasActiveFramework := false
 	for _, adoption := range aggregate.FrameworkAdoptions {
 		if adoption.Status == continuity.FrameworkAdoptionActive {
@@ -115,6 +119,7 @@ func (a *API) buildProgramOperations(ctx context.Context, actor identity.Actor, 
 		add(programOperationSpec{Command: "program.framework.mapping.reject", Label: "Reject requirement link", Responsibility: authority.ResponsibilityAuthorizer, Materiality: 4, AssignedPrincipalID: approvalAuthorityID})
 	}
 	hasPendingFramework := false
+	add(programOperationSpec{Command: "program.framework.draft", Label: "Save standard draft", Responsibility: authority.ResponsibilityOwner, Materiality: 3, AssignedPrincipalID: ownerID})
 	for _, edition := range aggregate.FrameworkAdoptions {
 		if edition.Status == continuity.FrameworkAdoptionPending {
 			hasPendingFramework = true

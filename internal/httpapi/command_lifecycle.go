@@ -846,7 +846,7 @@ func (a *API) resolveMonitoringAssignee(ctx context.Context, tenant string, prog
 
 func programOwnerBoundCommand(name string) bool {
 	switch name {
-	case "program.compliance-policy.propose", "program.details.update", "program.assign", "program.requirement.add", "program.requirement.supersede", "program.safeguard.define", "program.safeguard.update", "program.safeguard.assign", "program.safeguard.unlink", "program.evidence.define", "program.evidence.revise", "program.monitoring.form.define":
+	case "program.compliance-policy.propose", "program.details.update", "program.assign", "program.requirement.add", "program.requirement.review.propose", "program.requirement.supersede", "program.safeguard.define", "program.safeguard.update", "program.safeguard.assign", "program.safeguard.unlink", "program.evidence.define", "program.evidence.revise", "program.monitoring.form.define":
 		return true
 	default:
 		return false

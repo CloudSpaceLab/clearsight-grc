@@ -331,6 +331,12 @@ func (a *API) addProgramRequirement(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	// User-created requirements must pass the separate review workflow.
+	if input.Status != "" && input.Status != continuity.RequirementDraft {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "New requirements must be drafts and approved through review.")
+		return
+	}
+	input.Status = continuity.RequirementDraft
 	input.ProgramID = r.PathValue("id")
 	value, err := service.AddRequirement(r.Context(), input)
 	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)

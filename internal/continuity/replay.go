@@ -13,6 +13,7 @@ const (
 	EventProgramCalculationPolicyApproved   = "PROGRAM_CALCULATION_POLICY_APPROVED"
 	EventProgramCalculationPolicyRejected   = "PROGRAM_CALCULATION_POLICY_REJECTED"
 	EventProgramFrameworkAdoptionProposed   = "PROGRAM_FRAMEWORK_ADOPTION_PROPOSED"
+	EventProgramFrameworkAdoptionDraftSaved = "PROGRAM_FRAMEWORK_ADOPTION_DRAFT_SAVED"
 	EventProgramFrameworkAdoptionApproved   = "PROGRAM_FRAMEWORK_ADOPTION_APPROVED"
 	EventProgramFrameworkAdoptionRejected   = "PROGRAM_FRAMEWORK_ADOPTION_REJECTED"
 	EventFrameworkMappingProposed           = "FRAMEWORK_CLAUSE_MAPPING_PROPOSED"
@@ -106,7 +107,7 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 		case EventFrameworkMappingProposed, EventFrameworkMappingApproved, EventFrameworkMappingRejected:
 			// Mapping identities live in their scoped relation; this Program event
 			// advances version/history without duplicating operating requirements.
-		case EventProgramFrameworkAdoptionProposed:
+		case EventProgramFrameworkAdoptionProposed, EventProgramFrameworkAdoptionDraftSaved:
 			var value FrameworkAdoption
 			if err := json.Unmarshal(event.Payload, &value); err != nil {
 				return ProgramAggregate{}, err
@@ -130,6 +131,14 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.Program = value.Program
+		case EventRequirementReviewProposed, EventRequirementReviewRejected:
+			// The review itself is kept in the scoped review relation.
+		case EventRequirementReviewApproved:
+			var value requirementReviewDecisionEvent
+			if err := json.Unmarshal(event.Payload, &value); err != nil {
+				return ProgramAggregate{}, err
+			}
+			aggregate.Requirements = upsertRequirement(aggregate.Requirements, value.Requirement)
 		case EventRequirementAdded:
 			var value Requirement
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

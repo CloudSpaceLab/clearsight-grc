@@ -478,9 +478,11 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		_, err = tx.Exec(ctx, `UPDATE programs SET name=$3,owning_function=$4,owner_principal_id=NULLIF($5,'')::uuid,authority_principal_id=NULLIF($6,'')::uuid,jurisdiction=$7,scope=$8,effective_from=$9,effective_until=$10,updated_at=$11 WHERE id=$2::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)`, v.TenantID, v.ID, v.Name, v.OwningFunction, v.OwnerPrincipalID, v.AuthorityPrincipalID, v.Jurisdiction, rawJSON(v.Scope, `{}`), v.EffectiveFrom, v.EffectiveUntil, v.UpdatedAt)
 		return err
+	case EventRequirementReviewProposed, EventRequirementReviewApproved, EventRequirementReviewRejected:
+		return applyRequirementReviewProjection(ctx, tx, event)
 	case EventFrameworkMappingProposed, EventFrameworkMappingApproved, EventFrameworkMappingRejected:
 		return applyFrameworkMappingProjection(ctx, tx, event)
-	case EventProgramFrameworkAdoptionProposed:
+	case EventProgramFrameworkAdoptionProposed, EventProgramFrameworkAdoptionDraftSaved:
 		var v FrameworkAdoption
 		if err := json.Unmarshal(event.Payload, &v); err != nil {
 			return err
@@ -493,7 +495,15 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 				$8,$9::uuid,$10,$11,$12
 			FROM programs p JOIN tenants t ON t.id=p.tenant_id
 			WHERE p.id=$2::uuid AND (t.id::text=$3 OR t.slug=$3)
-			  AND p.legal_entity_id=$13::uuid`,
+			  AND p.legal_entity_id=$13::uuid
+			ON CONFLICT (id) DO UPDATE SET status=EXCLUDED.status,proposed_by=EXCLUDED.proposed_by,
+			  rationale=EXCLUDED.rationale,proposed_at=EXCLUDED.proposed_at,version=EXCLUDED.version
+			WHERE program_framework_adoptions.status='DRAFT'
+			  AND program_framework_adoptions.version=EXCLUDED.version-1
+			  AND program_framework_adoptions.tenant_id=EXCLUDED.tenant_id
+			  AND program_framework_adoptions.legal_entity_id=EXCLUDED.legal_entity_id
+			  AND program_framework_adoptions.program_id=EXCLUDED.program_id
+			  AND program_framework_adoptions.edition_id=EXCLUDED.edition_id`,
 			v.ID, v.ProgramID, v.TenantID, v.EditionID,
 			v.PublisherCode, v.FrameworkCode, v.EditionCode, v.Status,
 			v.ProposedBy, v.Rationale, v.ProposedAt, v.Version, v.LegalEntityID)

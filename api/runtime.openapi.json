@@ -3306,6 +3306,12 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/framework-catalog/reference-templates": {
+      "get": {
+        "operationId": "listFrameworkReferenceTemplates",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/programs/setup-candidates": {
       "get": {
         "operationId": "listProgramSetupCandidates",
@@ -3366,9 +3372,25 @@
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
+    "/api/v1/programs/{id}/standards/draft": {
+      "post": {
+        "operationId": "saveProgramFrameworkAdoptionDraft",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
     "/api/v1/programs/{id}/standards/propose": {
       "post": {
         "operationId": "proposeProgramFrameworkAdoption",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/standards/{adoption_id}/questionnaire": {
+      "get": {
+        "operationId": "getFrameworkQuestionnaire",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      },
+      "post": {
+        "operationId": "selectFrameworkQuestionnaire",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -3435,6 +3457,30 @@
     "/api/v1/programs/{id}/requirements": {
       "post": {
         "operationId": "addProgramRequirement",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/requirements/{requirement_id}/review": {
+      "post": {
+        "operationId": "proposeRequirementReview",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/requirement-reviews": {
+      "get": {
+        "operationId": "listRequirementReviews",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/requirement-reviews/{review_id}/approve": {
+      "post": {
+        "operationId": "approveRequirementReview",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/requirement-reviews/{review_id}/reject": {
+      "post": {
+        "operationId": "rejectRequirementReview",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -5776,3 +5822,5 @@
     }
   }
 }
+
+

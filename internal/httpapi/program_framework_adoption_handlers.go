@@ -12,7 +12,15 @@ import (
 // Program command authorization (Owner/Authorizer) is enforced by the material
 // route registry before these handlers run. Tenant and actor always come from
 // the verified request identity, never the JSON body.
+func (a *API) saveProgramFrameworkAdoptionDraft(w http.ResponseWriter, r *http.Request) {
+	a.writeProgramFrameworkAdoptionProposal(w, r, true)
+}
+
 func (a *API) proposeProgramFrameworkAdoption(w http.ResponseWriter, r *http.Request) {
+	a.writeProgramFrameworkAdoptionProposal(w, r, false)
+}
+
+func (a *API) writeProgramFrameworkAdoptionProposal(w http.ResponseWriter, r *http.Request, draft bool) {
 	programs, ok := a.continuityService(w)
 	if !ok {
 		return
@@ -36,11 +44,17 @@ func (a *API) proposeProgramFrameworkAdoption(w http.ResponseWriter, r *http.Req
 		writeContinuityError(w, continuity.ErrNotFound)
 		return
 	}
-	value, err := programs.ProposeFrameworkAdoption(r.Context(), continuity.ProposeFrameworkAdoptionInput{
+	input := continuity.ProposeFrameworkAdoptionInput{
 		TenantID: actor.TenantID, ProgramID: r.PathValue("id"),
 		EditionID: request.EditionID, ExpectedVersion: request.ExpectedVersion,
 		ActorID: actor.PrincipalID, Rationale: request.Rationale,
-	})
+	}
+	var value continuity.ProgramAggregate
+	if draft {
+		value, err = programs.SaveFrameworkAdoptionDraft(r.Context(), input)
+	} else {
+		value, err = programs.ProposeFrameworkAdoption(r.Context(), input)
+	}
 	a.writeFrameworkAdoptionResult(w, r, value, err)
 }
 
