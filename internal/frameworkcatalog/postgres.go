@@ -39,6 +39,20 @@ func (r *PostgresRepository) Publish(ctx context.Context, publication Publicatio
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	edition, err := publishInTransaction(ctx, tx, publication, approvalReference, digest)
+	if err != nil {
+		return Edition{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Edition{}, err
+	}
+	return edition, nil
+}
+
+// publishInTransaction allows a governed decision and publication to share one transaction.
+// The caller remains responsible for authorization and validation.
+func publishInTransaction(ctx context.Context, tx pgx.Tx, publication Publication, approvalReference, digest string) (Edition, error) {
+	var err error
 	var id string
 	err = tx.QueryRow(ctx, `
 		INSERT INTO framework_catalog_editions (
@@ -84,9 +98,6 @@ func (r *PostgresRepository) Publish(ctx context.Context, publication Publicatio
 	}
 	edition, err := getEditionByKey(ctx, tx, publication.PublisherCode, publication.FrameworkCode, publication.EditionCode)
 	if err != nil {
-		return Edition{}, err
-	}
-	if err := tx.Commit(ctx); err != nil {
 		return Edition{}, err
 	}
 	return edition, nil
