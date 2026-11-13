@@ -211,6 +211,12 @@ type Constraints struct {
 type Type string
 
 const (
+	TypeGridRadio      Type = "grid_radio"
+	TypeGridCheckbox   Type = "grid_checkbox"
+	TypeRating         Type = "rating"
+	TypeLinearScale    Type = "linear_scale"
+	TypeTime           Type = "time"
+	TypeDropdown       Type = "dropdown"
 	TypeShortText      Type = "short_text"
 	TypeLongText       Type = "long_text"
 	TypeEmail          Type = "email"
@@ -240,7 +246,16 @@ type Scoring struct {
 	CriticalAnswers []string       `json:"critical_answers,omitempty"`
 }
 
+type QuestionImage struct {
+	Data string `json:"data"`
+	Alt  string `json:"alt"`
+}
+
 type Field struct {
+	Rows               []string             `json:"rows,omitempty"`
+	Columns            []string             `json:"columns,omitempty"`
+	ScaleMax           int                  `json:"scale_max,omitempty"`
+	Image              *QuestionImage       `json:"image,omitempty"`
 	Assessment         *FieldAssessment     `json:"assessment,omitempty"`
 	ID                 string               `json:"id"`
 	SectionID          string               `json:"section_id"`

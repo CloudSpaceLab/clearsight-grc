@@ -192,6 +192,10 @@ type RecordBaseline struct {
 }
 
 type Field struct {
+	Rows                 []string                          `json:"rows,omitempty"`
+	Columns              []string                          `json:"columns,omitempty"`
+	ScaleMax             int                               `json:"scale_max,omitempty"`
+	Image                *formcontract.QuestionImage       `json:"image,omitempty"`
 	CollectionReceived   bool                              `json:"collection_received,omitempty"`
 	CollectionResolution *CollectionResolution             `json:"collection_resolution,omitempty"`
 	Assessment           *formcontract.FieldAssessment     `json:"assessment,omitempty"`
