@@ -45,6 +45,9 @@ Thumbs.db
 .worktrees/
 .superpowers/
 *.log
+.cache/
+.gomodcache/
+*.pnpm-store
 
 # Private operator-provided bank sample manifests (never publish in this repo).
 /cmd/seed-bank-reference/source_records_it_vendor.json

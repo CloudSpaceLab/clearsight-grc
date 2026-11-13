@@ -1,0 +1,2 @@
+# The verifier fixture's checksum is defined over the repository's LF bytes.
+internal/frameworkcatalog/testdata/synthetic_source.txt text eol=lf
