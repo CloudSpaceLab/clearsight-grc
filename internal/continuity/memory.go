@@ -500,6 +500,7 @@ func applyProgramEventToAggregate(aggregate *ProgramAggregate, event Event) erro
 			return err
 		}
 		aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value.Adoption)
+		applyStarterRequirements(aggregate, value.Adoption)
 	case EventProgramOwnerChanged:
 		var value programOwnerChangedEvent
 		if err := json.Unmarshal(event.Payload, &value); err != nil {

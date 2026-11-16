@@ -5819,8 +5819,24 @@
         "operationId": "getMonitoringResult",
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
+    },
+    "/api/v1/framework-catalog/reference-templates/{code}/requirements": {
+      "get": {
+        "operationId": "listFrameworkStarterRequirements",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/framework-catalog/reference-templates/{code}/requirements/{requirement_code}": {
+      "post": {
+        "operationId": "updateFrameworkStarterRequirement",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/starter-respondent-units": {
+      "get": {
+        "operationId": "listStarterRespondentUnits",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
     }
   }
 }
-
-

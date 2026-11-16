@@ -119,6 +119,7 @@ func reconstructProgram(events []Event) (ProgramAggregate, error) {
 				return ProgramAggregate{}, err
 			}
 			aggregate.FrameworkAdoptions = upsertFrameworkAdoption(aggregate.FrameworkAdoptions, value.Adoption)
+			applyStarterRequirements(&aggregate, value.Adoption)
 		case EventProgramOwnerChanged:
 			var value programOwnerChangedEvent
 			if err := json.Unmarshal(event.Payload, &value); err != nil {

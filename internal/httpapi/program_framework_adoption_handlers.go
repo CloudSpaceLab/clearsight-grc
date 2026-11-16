@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"errors"
+	"github.com/jackc/pgx/v5/pgconn"
 	"net/http"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -26,10 +27,12 @@ func (a *API) writeProgramFrameworkAdoptionProposal(w http.ResponseWriter, r *ht
 		return
 	}
 	var request struct {
-		TenantID        string `json:"tenant_id,omitempty"`
-		ExpectedVersion int64  `json:"expected_version"`
-		EditionID       string `json:"edition_id"`
-		Rationale       string `json:"rationale"`
+		TenantID        string                           `json:"tenant_id,omitempty"`
+		ExpectedVersion int64                            `json:"expected_version"`
+		EditionID       string                           `json:"edition_id"`
+		TemplateCode    string                           `json:"template_code,omitempty"`
+		Configuration   *continuity.StarterConfiguration `json:"configuration,omitempty"`
+		Rationale       string                           `json:"rationale"`
 	}
 	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Check the standard and Program revision.")
@@ -46,7 +49,7 @@ func (a *API) writeProgramFrameworkAdoptionProposal(w http.ResponseWriter, r *ht
 	}
 	input := continuity.ProposeFrameworkAdoptionInput{
 		TenantID: actor.TenantID, ProgramID: r.PathValue("id"),
-		EditionID: request.EditionID, ExpectedVersion: request.ExpectedVersion,
+		EditionID: request.EditionID, TemplateCode: request.TemplateCode, Configuration: request.Configuration, ExpectedVersion: request.ExpectedVersion,
 		ActorID: actor.PrincipalID, Rationale: request.Rationale,
 	}
 	var value continuity.ProgramAggregate
@@ -98,6 +101,11 @@ func (a *API) decideProgramFrameworkAdoption(approve bool) http.HandlerFunc {
 }
 
 func (a *API) writeFrameworkAdoptionResult(w http.ResponseWriter, r *http.Request, value continuity.ProgramAggregate, err error) {
+	var databaseError *pgconn.PgError
+	if errors.As(err, &databaseError) {
+		httpx.WriteError(w, http.StatusInternalServerError, "adoption_not_saved", "The adoption could not be saved. Your previous saved version is unchanged. Reload the Program before retrying.")
+		return
+	}
 	if errors.Is(err, continuity.ErrFrameworkEditionUnavailable) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "framework_catalog_unavailable", "Standards are temporarily unavailable.")
 		return

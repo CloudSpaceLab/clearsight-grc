@@ -37,6 +37,9 @@ const (
 // SaveFrameworkAdoptionDraft persists an owner's working proposal as a
 // versioned Program event. A draft is not an adoption or an approval.
 func (s *Service) SaveFrameworkAdoptionDraft(ctx context.Context, input ProposeFrameworkAdoptionInput) (ProgramAggregate, error) {
+	if input.TemplateCode != "" {
+		return s.saveStarterAdoption(ctx, input, true)
+	}
 	aggregate, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion)
 	if err != nil {
 		return ProgramAggregate{}, err
@@ -84,6 +87,8 @@ func (s *Service) SaveFrameworkAdoptionDraft(ctx context.Context, input ProposeF
 }
 
 type FrameworkAdoption struct {
+	TemplateCode  string                  `json:"template_code,omitempty"`
+	Configuration *StarterConfiguration   `json:"configuration,omitempty"`
 	ID            string                  `json:"id"`
 	TenantID      string                  `json:"tenant_id"`
 	LegalEntityID string                  `json:"legal_entity_id"`
@@ -103,12 +108,14 @@ type FrameworkAdoption struct {
 }
 
 type ProposeFrameworkAdoptionInput struct {
-	TenantID        string `json:"tenant_id"`
-	ProgramID       string `json:"program_id"`
-	EditionID       string `json:"edition_id"`
-	ExpectedVersion int64  `json:"expected_version"`
-	ActorID         string `json:"actor_id"`
-	Rationale       string `json:"rationale"`
+	TemplateCode    string                `json:"template_code,omitempty"`
+	Configuration   *StarterConfiguration `json:"configuration,omitempty"`
+	TenantID        string                `json:"tenant_id"`
+	ProgramID       string                `json:"program_id"`
+	EditionID       string                `json:"edition_id"`
+	ExpectedVersion int64                 `json:"expected_version"`
+	ActorID         string                `json:"actor_id"`
+	Rationale       string                `json:"rationale"`
 }
 
 type DecideFrameworkAdoptionInput struct {
@@ -129,6 +136,9 @@ func (s *Service) ConfigureFrameworkEditionLookup(lookup FrameworkEditionLookup)
 }
 
 func (s *Service) ProposeFrameworkAdoption(ctx context.Context, input ProposeFrameworkAdoptionInput) (ProgramAggregate, error) {
+	if input.TemplateCode != "" {
+		return s.saveStarterAdoption(ctx, input, false)
+	}
 	aggregate, err := s.programForMutation(ctx, input.TenantID, input.ProgramID, input.ExpectedVersion)
 	if err != nil {
 		return ProgramAggregate{}, err
@@ -227,7 +237,7 @@ func (s *Service) decideFrameworkAdoption(ctx context.Context, input DecideFrame
 	current.ReviewedAt = &now
 	eventType := EventProgramFrameworkAdoptionRejected
 	current.Status = FrameworkAdoptionRejected
-	if approve {
+	if approve && current.TemplateCode == "" {
 		if s.frameworkEditionLookup == nil {
 			return ProgramAggregate{}, ErrFrameworkEditionUnavailable
 		}
@@ -238,6 +248,26 @@ func (s *Service) decideFrameworkAdoption(ctx context.Context, input DecideFrame
 		if edition.PublisherCode != current.PublisherCode || edition.FrameworkCode != current.FrameworkCode ||
 			edition.EditionCode != current.EditionCode || edition.ReleaseSHA256 == "" {
 			return ProgramAggregate{}, ErrInvalidState
+		}
+		current.Status = FrameworkAdoptionActive
+		current.EffectiveFrom = &now
+		eventType = EventProgramFrameworkAdoptionApproved
+	}
+
+	if approve && current.TemplateCode != "" {
+		catalog, ok := s.frameworkEditionLookup.(StarterTemplateLookup)
+		if !ok || current.Configuration == nil {
+			return ProgramAggregate{}, ErrFrameworkEditionUnavailable
+		}
+		// Native Forms approval is checked on the selected historical revisions, not a newer form.
+		if validator, ok := catalog.(interface {
+			ValidateStarterSnapshot(context.Context, string, string, StarterConfiguration) error
+		}); ok {
+			if err := validator.ValidateStarterSnapshot(ctx, current.TenantID, current.LegalEntityID, *current.Configuration); err != nil {
+				return ProgramAggregate{}, err
+			}
+		} else {
+			return ProgramAggregate{}, ErrFrameworkEditionUnavailable
 		}
 		current.Status = FrameworkAdoptionActive
 		current.EffectiveFrom = &now

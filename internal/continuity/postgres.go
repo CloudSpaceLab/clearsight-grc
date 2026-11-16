@@ -490,23 +490,24 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		result, err := tx.Exec(ctx, `
 			INSERT INTO program_framework_adoptions(
 				id,tenant_id,legal_entity_id,program_id,edition_id,publisher_code,framework_code,edition_code,
-				status,proposed_by,rationale,proposed_at,version)
-			SELECT $1::uuid,t.id,p.legal_entity_id,p.id,$4::uuid,$5,$6,$7,
-				$8,$9::uuid,$10,$11,$12
+				status,proposed_by,rationale,proposed_at,version,template_code,configuration)
+			SELECT $1::uuid,t.id,p.legal_entity_id,p.id,NULLIF($4,'')::uuid,$5,$6,$7,
+				$8,$9::uuid,$10,$11,$12,NULLIF($14,''),$15::jsonb
 			FROM programs p JOIN tenants t ON t.id=p.tenant_id
 			WHERE p.id=$2::uuid AND (t.id::text=$3 OR t.slug=$3)
 			  AND p.legal_entity_id=$13::uuid
 			ON CONFLICT (id) DO UPDATE SET status=EXCLUDED.status,proposed_by=EXCLUDED.proposed_by,
-			  rationale=EXCLUDED.rationale,proposed_at=EXCLUDED.proposed_at,version=EXCLUDED.version
+			  rationale=EXCLUDED.rationale,proposed_at=EXCLUDED.proposed_at,version=EXCLUDED.version,configuration=EXCLUDED.configuration
 			WHERE program_framework_adoptions.status='DRAFT'
 			  AND program_framework_adoptions.version=EXCLUDED.version-1
 			  AND program_framework_adoptions.tenant_id=EXCLUDED.tenant_id
 			  AND program_framework_adoptions.legal_entity_id=EXCLUDED.legal_entity_id
 			  AND program_framework_adoptions.program_id=EXCLUDED.program_id
-			  AND program_framework_adoptions.edition_id=EXCLUDED.edition_id`,
+			  AND program_framework_adoptions.edition_id IS NOT DISTINCT FROM EXCLUDED.edition_id
+              AND program_framework_adoptions.template_code IS NOT DISTINCT FROM EXCLUDED.template_code`,
 			v.ID, v.ProgramID, v.TenantID, v.EditionID,
 			v.PublisherCode, v.FrameworkCode, v.EditionCode, v.Status,
-			v.ProposedBy, v.Rationale, v.ProposedAt, v.Version, v.LegalEntityID)
+			v.ProposedBy, v.Rationale, v.ProposedAt, v.Version, v.LegalEntityID, v.TemplateCode, starterConfigurationJSON(v.Configuration))
 		if err != nil {
 			return err
 		}
@@ -526,7 +527,7 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 			FROM tenants t
 			WHERE a.id=$1::uuid AND a.program_id=$2::uuid
 			  AND a.tenant_id=t.id AND (t.id::text=$3 OR t.slug=$3)
-			  AND a.legal_entity_id=$4::uuid AND a.edition_id=$5::uuid
+			  AND a.legal_entity_id=$4::uuid AND a.edition_id IS NOT DISTINCT FROM NULLIF($5,'')::uuid
 			  AND a.status='PENDING' AND a.version=$11`,
 			a.ID, a.ProgramID, a.TenantID, a.LegalEntityID, a.EditionID,
 			a.Status, a.ReviewedBy, a.ReviewedAt, a.EffectiveFrom, a.Version, a.Version-1)
@@ -535,6 +536,18 @@ func applyProgramProjection(ctx context.Context, tx pgx.Tx, event Event) error {
 		}
 		if result.RowsAffected() != 1 {
 			return ErrVersionConflict
+		}
+
+		for i, requirement := range starterProgramRequirements(a) {
+			_, err = tx.Exec(ctx, `INSERT INTO program_requirements(id,tenant_id,program_id,code,title,statement,source_anchor,modality,actor,action,object_name,status,effective_from,created_at,version) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4,$5,$6,$7,$8,'Program Owner','Review','Program scope',$9,$10,$10,1)`, requirement.ID, requirement.TenantID, requirement.ProgramID, requirement.Code, requirement.Title, requirement.Statement, requirement.SourceAnchor, requirement.Modality, requirement.Status, requirement.CreatedAt)
+			if err != nil {
+				return err
+			}
+			link := a.Configuration.Requirements[i]
+			_, err = tx.Exec(ctx, `INSERT INTO program_framework_requirement_questions(adoption_id,requirement_id,tenant_id,legal_entity_id,program_id,form_template_id,form_template_version,group_id) VALUES($1::uuid,$2::uuid,(SELECT id FROM tenants WHERE id::text=$3 OR slug=$3),$4::uuid,$5::uuid,$6::uuid,$7,$8)`, a.ID, requirement.ID, a.TenantID, a.LegalEntityID, a.ProgramID, link.FormID, link.FormVersion, link.GroupID)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	case EventProgramCalculationPolicyProposed, EventProgramCalculationPolicyApproved, EventProgramCalculationPolicyRejected:
@@ -1005,3 +1018,11 @@ func isUniqueViolation(err error) bool     { return strings.Contains(err.Error()
 func isForeignKeyViolation(err error) bool { return strings.Contains(err.Error(), "SQLSTATE 23503") }
 
 var _ Repository = (*PostgresRepository)(nil)
+
+func starterConfigurationJSON(v *StarterConfiguration) any {
+	if v == nil {
+		return nil
+	}
+	b, _ := json.Marshal(v)
+	return string(b)
+}
