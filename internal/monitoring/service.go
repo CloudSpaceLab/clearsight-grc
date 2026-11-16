@@ -80,15 +80,18 @@ type TransitionInput struct {
 }
 
 type StartCollectionInput struct {
-	FormTemplateID        string    `json:"form_template_id"`
-	FormTemplateVersion   int64     `json:"form_template_version"`
-	ProgramID             string    `json:"program_id"`
-	LegalEntityID         string    `json:"legal_entity_id"`
-	RespondentPrincipalID string    `json:"respondent_principal_id"`
-	ReviewerPrincipalID   string    `json:"reviewer_principal_id"`
-	PeriodStart           time.Time `json:"period_start"`
-	PeriodEnd             time.Time `json:"period_end"`
-	Deadline              time.Time `json:"deadline"`
+	AdoptionID             string    `json:"adoption_id,omitempty"`
+	AssessmentKey          string    `json:"assessment_key,omitempty"`
+	ExpectedProgramVersion int64     `json:"expected_program_version,omitempty"`
+	FormTemplateID         string    `json:"form_template_id"`
+	FormTemplateVersion    int64     `json:"form_template_version"`
+	ProgramID              string    `json:"program_id"`
+	LegalEntityID          string    `json:"legal_entity_id"`
+	RespondentPrincipalID  string    `json:"respondent_principal_id"`
+	ReviewerPrincipalID    string    `json:"reviewer_principal_id"`
+	PeriodStart            time.Time `json:"period_start"`
+	PeriodEnd              time.Time `json:"period_end"`
+	Deadline               time.Time `json:"deadline"`
 }
 
 type CreateCheckInput struct {
@@ -490,6 +493,9 @@ func (s *Service) TransitionForm(ctx context.Context, actor Actor, input Transit
 }
 
 func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartCollectionInput) (evidence.Request, error) {
+	if input.AdoptionID != "" {
+		return s.startAdoptedAssessment(ctx, actor, input)
+	}
 	if err := validateActor(actor); err != nil {
 		return evidence.Request{}, err
 	}

@@ -4694,6 +4694,58 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/programs/{id}/assessment-setup": {
+      "get": {
+        "operationId": "getAdoptedAssessmentSetup",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-workspace": {
+      "get": {
+        "operationId": "getProgramAssessmentWorkspace",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/evidence/requests/{id}/submission": {
+      "get": {
+        "operationId": "getOwnAssessmentSubmission",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessments": {
+      "post": {
+        "operationId": "createAdoptedAssessment",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-review-records/{review_id}": {
+      "get": {
+        "operationId": "getProgramAssessmentReview",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-reviews": {
+      "get": {
+        "operationId": "listProgramAssessmentReviews",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-reviews/{request_id}": {
+      "post": {
+        "operationId": "reviewProgramAssessment",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/evidence/requests/{id}/draft": {
+      "get": {
+        "operationId": "getInternalResponseDraft",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      },
+      "post": {
+        "operationId": "saveInternalResponseDraft",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE"
+      }
+    },
     "/api/v1/evidence/requests/{id}/recipient-candidates": {
       "get": {
         "operationId": "listEvidenceRecipientCandidates",

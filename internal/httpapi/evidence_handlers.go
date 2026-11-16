@@ -206,6 +206,7 @@ func (a *API) submitEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		input.TenantID = actor.TenantID
+		input.LegalEntityID = request.LegalEntityID
 		input.SubmittedBy = actor.PrincipalID
 	}
 	receipt, err := service.Submit(r.Context(), input)

@@ -144,6 +144,9 @@ func documentReadAuthoritySQLAt(principal, at int) string {
 	principalSQL := fmt.Sprintf("$%d", principal)
 	subjectVisibility := strings.ReplaceAll(completedResponseSubjectVisibilitySQL(principalSQL, fmt.Sprintf("$%d", at)), "ELSE true", "ELSE false")
 	return `CASE
+ WHEN req.origin_type='FRAMEWORK_ASSESSMENT' THEN req.subject_type='PROGRAM'
+ AND EXISTS(SELECT 1 FROM programs p WHERE p.id::text=req.subject_id AND p.tenant_id=req.tenant_id AND p.legal_entity_id=req.legal_entity_id
+ AND (p.owner_principal_id::text=` + principalSQL + ` OR p.authority_principal_id::text=` + principalSQL + ` OR (req.recipient_principal_id::text=` + principalSQL + ` AND req.recipient_state='ASSIGNED')))
  WHEN req.origin_type='THIRD_PARTY_ASSESSMENT' THEN assessment.id IS NOT NULL AND (assessment.started_by_principal_id::text=` + principalSQL + ` OR relationship.business_owner_principal_id::text=` + principalSQL + ` OR ` + assessmentRoute + `)
  WHEN req.origin_type='THIRD_PARTY_WORK' THEN work.id IS NOT NULL
  AND CASE work.target_type
@@ -159,7 +162,7 @@ func documentReadAuthoritySQLAt(principal, at int) string {
 // Separate workflow distributions therefore do not use their local is_current
 // flags to classify the merged work/assessment response.
 func documentCurrentSQL() string {
-	return `CASE WHEN req.origin_type IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') THEN NOT EXISTS (
+	return `CASE WHEN req.origin_type='FRAMEWORK_ASSESSMENT' THEN true WHEN req.origin_type IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') THEN NOT EXISTS (
  SELECT 1 FROM capture_requests newer
  JOIN capture_submissions newer_submission ON newer_submission.request_id=newer.id AND newer_submission.tenant_id=newer.tenant_id
  LEFT JOIN capture_response_revisions newer_revision ON newer_revision.submission_id=newer_submission.id AND newer_revision.tenant_id=newer.tenant_id AND newer_revision.legal_entity_id=newer.legal_entity_id
