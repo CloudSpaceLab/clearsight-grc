@@ -53,3 +53,6 @@ Thumbs.db
 /cmd/seed-bank-reference/source_records_it_vendor.json
 /cmd/seed-bank-reference/source_records_ops.json
 /docs/demo/source-record-coverage.md
+
+# Local development processes, logs and demo session secrets
+/.local/
