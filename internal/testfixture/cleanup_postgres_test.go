@@ -54,14 +54,17 @@ func TestCleanupPreservesOtherEntityAndProductionForeignKeys(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM monitoring_form_templates WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid`, tenant, b).Scan(&after); err != nil || after != before {
 		t.Fatalf("other entity changed: before=%d after=%d err=%v", before, after, err)
 	}
-	// A failed parent deletion must roll back dependency cleanup in the same transaction.
-	if _, err := pool.Exec(ctx, `INSERT INTO principals(tenant_id,kind,display_name,status) VALUES($1::uuid,'PERSON','Fixture owner','ACTIVE')`, tenant); err != nil {
+	// A failed parent deletion rolls dependency cleanup back in the same transaction.
+	if _, err := pool.Exec(ctx, `INSERT INTO monitoring_form_templates(tenant_id,legal_entity_id,code,name,purpose,fields,status,version) VALUES($1::uuid,$2::uuid,'CLEANUP-BLOCKER','Retained custom form','Test cleanup rollback.','[{"id":"q","label":"Question","type":"short_text","required":false}]','DRAFT',1)`, tenant, b); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Exec(ctx, pool, `DELETE FROM legal_entities WHERE id=$1::uuid AND tenant_id=$2::uuid`, b, a); err != nil {
-		t.Fatal(err)
+	if _, err := Exec(ctx, pool, `DELETE FROM legal_entities WHERE id=$1::uuid`, b); err == nil {
+		t.Fatal("custom form should prevent parent deletion")
 	}
-	if _, err := pool.Exec(ctx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenant); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM monitoring_form_templates WHERE tenant_id=$1::uuid AND legal_entity_id=$2::uuid AND starter_catalog_code LIKE 'FRAMEWORK_%'`, tenant, b).Scan(&after); err != nil || after != before {
+		t.Fatalf("failed cleanup did not roll back starter deletion: before=%d after=%d err=%v", before, after, err)
+	}
+	if _, err := Exec(ctx, pool, `DELETE FROM monitoring_form_templates WHERE tenant_id=$1::uuid AND code='CLEANUP-BLOCKER'`, tenant); err != nil {
 		t.Fatal(err)
 	}
 }
