@@ -3381,6 +3381,7 @@
     "/api/v1/programs/{id}/standards/draft": {
       "post": {
         "operationId": "saveProgramFrameworkAdoptionDraft",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -3397,6 +3398,7 @@
       },
       "post": {
         "operationId": "selectFrameworkQuestionnaire",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -3469,6 +3471,7 @@
     "/api/v1/programs/{id}/requirements/{requirement_id}/review": {
       "post": {
         "operationId": "proposeRequirementReview",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -3481,12 +3484,14 @@
     "/api/v1/programs/{id}/requirement-reviews/{review_id}/approve": {
       "post": {
         "operationId": "approveRequirementReview",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
     "/api/v1/programs/{id}/requirement-reviews/{review_id}/reject": {
       "post": {
         "operationId": "rejectRequirementReview",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -4713,18 +4718,21 @@
       },
       "post": {
         "operationId": "proposeAssessmentSchedule",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
     "/api/v1/programs/{id}/assessment-schedules/{schedule_id}/approve": {
       "post": {
         "operationId": "approveAssessmentSchedule",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
     "/api/v1/programs/{id}/assessment-schedules/{schedule_id}/stop": {
       "post": {
         "operationId": "stopAssessmentSchedule",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -4761,6 +4769,7 @@
     "/api/v1/programs/{id}/assessments": {
       "post": {
         "operationId": "createAdoptedAssessment",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -4779,6 +4788,7 @@
     "/api/v1/programs/{id}/assessment-reviews/{request_id}": {
       "post": {
         "operationId": "reviewProgramAssessment",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },

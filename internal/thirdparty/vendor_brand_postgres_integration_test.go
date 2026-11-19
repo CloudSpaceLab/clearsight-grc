@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -91,7 +92,7 @@ func TestVendorBrandCompletionAndIdentityUpdateUseConsistentLockOrder(t *testing
 	const jobID = "33333333-3333-7333-8333-333333333342"
 	const leaseToken = "33333333-3333-7333-8333-333333333343"
 	const assetID = "33333333-3333-7333-8333-333333333344"
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	now := time.Now().UTC()
 	if _, err := pool.Exec(ctx, `

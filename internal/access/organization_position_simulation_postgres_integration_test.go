@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,7 +34,7 @@ func TestOrganizationPositionRouteSimulationUsesProposedStateWithoutMutation(t *
 		policyID   = "8a888888-8888-7888-8888-888888888807"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/sourceaccess"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -135,5 +136,5 @@ func TestCreateSourceStoresEndpointOnlyAsReferenceConnection(t *testing.T) {
 }
 
 func cleanupSourceCatalogFixture(ctx context.Context, pool *pgxpool.Pool) {
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, sourceCatalogTenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, sourceCatalogTenantID)
 }

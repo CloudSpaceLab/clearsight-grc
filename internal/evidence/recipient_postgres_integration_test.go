@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -36,7 +37,7 @@ func TestEvidenceRecipientTruthIsTenantBoundPreLimitAndAudienceBound(t *testing.
 	const programID = "99999999-8888-7888-8888-888888888890"
 	now := time.Date(2026, 8, 8, 14, 0, 0, 0, time.UTC)
 
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenantID)
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenantID)
 	})
@@ -202,7 +203,7 @@ func recipientRequestInput(tenant, legalEntityID, subjectType, subjectID, recipi
 
 func mustExecRecipient(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, query, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, query, args...); err != nil {
 		t.Fatal(err)
 	}
 }

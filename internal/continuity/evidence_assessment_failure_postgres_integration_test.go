@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -30,7 +31,7 @@ func TestPostgresEvidenceFailureCommitsAssessmentMatterEventsAndOutboxTogether(t
 		ownerID    = "93333333-3333-7333-8333-333333333333"
 		reviewerID = "93333333-3333-7333-8333-333333333334"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) }()
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'evidence-failure-test','Evidence Failure Test')`, tenantID); err != nil {
 		t.Fatal(err)
@@ -134,7 +135,7 @@ func TestPostgresLegacyEvidenceFailureActionsRemainExecutable(t *testing.T) {
 		flagID     = "94444444-4444-7444-8444-444444444446"
 		blockID    = "94444444-4444-7444-8444-444444444447"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) }()
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'legacy-evidence-failure-test','Legacy Evidence Failure Test')`, tenantID); err != nil {
 		t.Fatal(err)

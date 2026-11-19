@@ -12,6 +12,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/authority"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -39,7 +40,7 @@ func TestMatterLifecycleProjectorRoutesPolicySelectedResponsibilityWithoutPredet
 	const authorizerVersionID = "98888888-8888-7888-8888-888888888890"
 	now := time.Date(2026, 8, 8, 12, 0, 0, 0, time.UTC)
 
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	})
@@ -175,7 +176,7 @@ func activateSequencePolicy(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 
 func mustExecSequence(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, query, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, query, args...); err != nil {
 		t.Fatal(err)
 	}
 }

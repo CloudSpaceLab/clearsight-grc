@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,7 +35,7 @@ func TestPostgresProgramFrameworkAdoptionScopeAndReviewGuards(t *testing.T) {
 	}
 	exec := func(statement string, args ...any) {
 		t.Helper()
-		if _, err := pool.Exec(ctx, statement, args...); err != nil {
+		if _, err := testfixture.Exec(ctx, pool, statement, args...); err != nil {
 			t.Fatal(err)
 		}
 	}

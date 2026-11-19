@@ -9,6 +9,7 @@ import (
 	"time"
 
 	platformid "github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -55,10 +56,10 @@ func TestPostgresCycleListIsScopedFilteredAndPaginated(t *testing.T) {
 	t.Cleanup(func() {
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM rcsa_cycles WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanupCtx, pool, `DELETE FROM rcsa_cycles WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanupCtx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanupCtx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanupCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	})
 
 	for _, cycle := range []struct {

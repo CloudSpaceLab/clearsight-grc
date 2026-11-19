@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -32,7 +33,7 @@ func TestPostgresSourceDependenciesIncludeRequirementsAndEvidenceContracts(t *te
 		requirementSourceID = "33333333-3333-7333-8333-333333333335"
 		contractSourceID    = "33333333-3333-7333-8333-333333333336"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 
 	now := time.Now().UTC()
@@ -60,7 +61,7 @@ func TestPostgresSourceDependenciesIncludeRequirementsAndEvidenceContracts(t *te
 			[]any{tenantID, programID, contractID, contractSourceID}},
 	}
 	for _, statement := range statements {
-		if _, err := pool.Exec(ctx, statement.query, statement.args...); err != nil {
+		if _, err := testfixture.Exec(ctx, pool, statement.query, statement.args...); err != nil {
 			t.Fatal(err)
 		}
 	}

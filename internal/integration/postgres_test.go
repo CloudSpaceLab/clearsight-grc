@@ -14,6 +14,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/autonomy"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/onboarding"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -210,7 +211,7 @@ func seedPostgres(t *testing.T, pool *pgxpool.Pool) {
 		{`INSERT INTO workflow_instances(id,tenant_id,kind,subject_type,subject_id,state,policy_version) VALUES($1::uuid,$2::uuid,'REVIEW','MATTER',$3::uuid,'ACTIVE','default:v1')`, []any{workflowID, tenantID, subjectID}},
 	}
 	for _, statement := range statements {
-		if _, err := pool.Exec(ctx, statement.query, statement.args...); err != nil {
+		if _, err := testfixture.Exec(ctx, pool, statement.query, statement.args...); err != nil {
 			t.Fatal(err)
 		}
 	}

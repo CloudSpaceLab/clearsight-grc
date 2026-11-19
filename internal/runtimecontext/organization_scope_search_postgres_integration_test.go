@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -37,13 +38,13 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 		rootScopeID     = "8f300000-0000-4000-8000-000000000008"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM role_templates WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM organization_scopes WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM role_templates WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM organization_scopes WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })
@@ -52,7 +53,7 @@ func TestOrganizationScopeSearchScalesBeyondCompactHierarchy(t *testing.T) {
 	validFrom := now.Add(-time.Hour)
 	exec := func(query string, args ...any) {
 		t.Helper()
-		if _, execErr := pool.Exec(ctx, query, args...); execErr != nil {
+		if _, execErr := testfixture.Exec(ctx, pool, query, args...); execErr != nil {
 			t.Fatal(execErr)
 		}
 	}
