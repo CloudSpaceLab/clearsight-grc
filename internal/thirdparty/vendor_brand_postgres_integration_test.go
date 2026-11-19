@@ -176,6 +176,18 @@ func TestVendorBrandMigrationBackfillsIdentityOnceBeforeTheFirstUpdate(t *testin
 	}
 	defer pool.Close()
 
+	// Historical up migrations replace event vocabularies. Restore the exact
+	// current constraint after exercising them, including later reconciliation events.
+	var eventConstraint string
+	if err := pool.QueryRow(ctx, `SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid='third_party_events'::regclass AND conname='third_party_events_event_type_check'`).Scan(&eventConstraint); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if _, err := pool.Exec(context.Background(), `ALTER TABLE third_party_events DROP CONSTRAINT third_party_events_event_type_check; ALTER TABLE third_party_events ADD CONSTRAINT third_party_events_event_type_check `+eventConstraint); err != nil {
+			t.Errorf("restore current third-party event vocabulary: %v", err)
+		}
+	}()
+
 	down := readVendorBrandMigration(t, "../../migrations/000047_vendor_brand_assets.down.sql")
 	up := readVendorBrandMigration(t, "../../migrations/000047_vendor_brand_assets.up.sql")
 	downOverrides := readVendorBrandMigration(t, "../../migrations/000048_vendor_brand_overrides.down.sql")
@@ -187,7 +199,7 @@ func TestVendorBrandMigrationBackfillsIdentityOnceBeforeTheFirstUpdate(t *testin
 		t.Fatalf("roll back vendor brand migration: %v", err)
 	}
 	migrationIsDown := true
-	t.Cleanup(func() {
+	defer func() {
 		if migrationIsDown {
 			if _, cleanupErr := pool.Exec(context.Background(), up); cleanupErr != nil {
 				t.Errorf("restore vendor brand migration: %v", cleanupErr)
@@ -196,7 +208,7 @@ func TestVendorBrandMigrationBackfillsIdentityOnceBeforeTheFirstUpdate(t *testin
 				t.Errorf("restore vendor brand overrides: %v", cleanupErr)
 			}
 		}
-	})
+	}()
 
 	if _, err := pool.Exec(ctx, `TRUNCATE tenants CASCADE`); err != nil {
 		t.Fatal(err)
