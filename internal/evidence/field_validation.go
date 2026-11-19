@@ -59,7 +59,7 @@ func formContractWithScoring(presentation formcontract.Presentation, scoringMode
 	contractFields := make([]formcontract.Field, len(fields))
 	for index, field := range fields {
 		contractFields[index] = formcontract.Field{
-			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: formcontract.Type(field.Type), Required: field.Required,
+			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: formcontract.Type(field.Type), Required: field.Required, AnswerValidityDays: field.AnswerValidityDays, ValidationBinding: field.ValidationBinding,
 			Rows: append([]string(nil), field.Rows...), Columns: append([]string(nil), field.Columns...), ScaleMax: field.ScaleMax, Image: field.Image,
 			Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...),
 			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring, Assessment: field.Assessment,
@@ -74,6 +74,8 @@ func applyContractField(target *Field, source formcontract.Field) {
 	target.Label = source.Label
 	target.Type = string(source.Type)
 	target.Required = source.Required
+	target.AnswerValidityDays = source.AnswerValidityDays
+	target.ValidationBinding = source.ValidationBinding
 	target.Rows = append([]string(nil), source.Rows...)
 	target.Columns = append([]string(nil), source.Columns...)
 	target.ScaleMax = source.ScaleMax

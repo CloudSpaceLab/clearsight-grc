@@ -4,10 +4,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"strings"
+	"unicode/utf8"
+
 	"encoding/json"
 	"fmt"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/evidence"
-	"strings"
+
 	"time"
 )
 
@@ -45,6 +48,9 @@ func (s *Service) AdoptedAssessmentOptions(ctx context.Context, actor Actor, pro
 }
 func (s *Service) startAdoptedAssessment(ctx context.Context, actor Actor, input StartCollectionInput) (evidence.Request, error) {
 	if err := validateActor(actor); err != nil {
+		return evidence.Request{}, err
+	}
+	if err := validateAssessmentName(input.AssessmentName); err != nil {
 		return evidence.Request{}, err
 	}
 	if !formLinkUUID.MatchString(input.AssessmentKey) || input.PeriodStart.IsZero() || input.PeriodEnd.Before(input.PeriodStart) || input.Deadline.Before(input.PeriodEnd) || !input.Deadline.After(s.now()) {
@@ -96,15 +102,38 @@ func (s *Service) startAdoptedAssessment(ctx context.Context, actor Actor, input
 		}
 	}
 	start, end := input.PeriodStart.UTC().Truncate(time.Microsecond), input.PeriodEnd.UTC().Truncate(time.Microsecond)
-	digest := sha256.Sum256([]byte(strings.Join([]string{input.AdoptionID, input.AssessmentKey, input.RespondentPrincipalID}, ":")))
+
+	facts := map[string]string{"reviewer": option.ReviewerID, "adoption_id": option.AdoptionID, "framework_template": option.TemplateCode, "program_version": fmt.Sprint(option.ProgramVersion), "legal_entity_id": actor.LegalEntityID, "reporting_period_start": input.PeriodStart.Format(time.DateOnly), "reporting_period_end": input.PeriodEnd.Format(time.DateOnly)}
+	if input.AssessmentScheduleID != "" {
+		facts["assessment_schedule_id"] = input.AssessmentScheduleID
+	}
 	return s.requests.CreateRequest(evidence.WithRequestOriginAuthority(ctx, "FRAMEWORK_ASSESSMENT"), evidence.CreateRequestInput{
 		TenantID: actor.TenantID, LegalEntityID: actor.LegalEntityID, SubjectType: "PROGRAM", SubjectID: input.ProgramID,
-		Title: form.Name + " · " + start.Format("2006-01-02"), Purpose: form.Purpose, WhyYou: "Your department is assigned to provide this Program assessment and supporting records.",
+		Title: assessmentName(input.AssessmentName, form.Name+" · "+input.PeriodStart.Format(time.DateOnly)), Purpose: form.Purpose, WhyYou: "Your department is assigned to provide this Program assessment and supporting records.",
 		Sensitivity: string(form.Sensitivity), AudienceType: "INTERNAL", Recipient: evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: input.RespondentPrincipalID},
 		EstimatedMinutes: estimateMinutes(len(fields)), Deadline: input.Deadline.UTC().Truncate(time.Microsecond), CreatedBy: actor.PrincipalID,
-		KnownFacts:   map[string]string{"reviewer": option.ReviewerID, "adoption_id": option.AdoptionID, "framework_template": option.TemplateCode, "program_version": fmt.Sprint(option.ProgramVersion), "legal_entity_id": actor.LegalEntityID, "reporting_period_start": start.Format("2006-01-02"), "reporting_period_end": end.Format("2006-01-02")},
+		KnownFacts:   facts,
 		Presentation: form.Presentation, ScoringMode: form.ScoringMode, ScoreProfile: form.ScoreProfile, Sections: form.Sections, Fields: fields,
 		FormTemplateID: form.ID, FormTemplateVersion: form.Version, CollectionPeriodStart: &start, CollectionPeriodEnd: &end,
-		Origin: evidence.RequestOrigin{Type: "FRAMEWORK_ASSESSMENT", ID: hex.EncodeToString(digest[:]), Version: 1},
+		Origin: adoptedAssessmentOrigin(input.AdoptionID, input.AssessmentKey, input.RespondentPrincipalID),
 	})
+}
+
+func adoptedAssessmentOrigin(adoptionID, key, respondentID string) evidence.RequestOrigin {
+	digest := sha256.Sum256([]byte(strings.Join([]string{adoptionID, key, respondentID}, ":")))
+	return evidence.RequestOrigin{Type: "FRAMEWORK_ASSESSMENT", ID: hex.EncodeToString(digest[:]), Version: 1}
+}
+
+func validateAssessmentName(name string) error {
+	if utf8.RuneCountInString(strings.TrimSpace(name)) > 150 {
+		return fmt.Errorf("%w: assessment name must contain at most 150 characters", ErrInvalid)
+	}
+	return nil
+}
+
+func assessmentName(name, fallback string) string {
+	if trimmed := strings.TrimSpace(name); trimmed != "" {
+		return trimmed
+	}
+	return fallback
 }

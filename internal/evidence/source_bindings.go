@@ -37,6 +37,17 @@ func (s *Service) prepareRequestBindings(ctx context.Context, input CreateReques
 	hasReferences := len(requestBindings) > 0
 	for index := range fields {
 		fields[index].SourceResolutions = nil
+		if configured := fields[index].ValidationBinding; configured != nil {
+			for _, binding := range fields[index].Bindings {
+				if binding.Mode == BindingUseValidate {
+					return nil, nil, fmt.Errorf("%s defines duplicate validation sources", fields[index].Label)
+				}
+			}
+			fields[index].Bindings = append(fields[index].Bindings, FieldBindingReference{
+				BindingID: strings.TrimSpace(configured.BindingID), BindingVersion: configured.BindingVersion,
+				Mode: BindingUseValidate, ValueField: strings.TrimSpace(configured.ValueField),
+			})
+		}
 		hasReferences = hasReferences || len(fields[index].Bindings) > 0
 	}
 	for index := range requestBindings {
@@ -94,6 +105,11 @@ func (s *Service) prepareRequestBindings(ctx context.Context, input CreateReques
 			}
 			if err := validateFieldBindingReference(*field, reference, revision); err != nil {
 				return nil, nil, err
+			}
+			if field.ValidationBinding != nil && input.LegalEntityID != "" {
+				if err := s.ValidateActiveSourcesForEntity(ctx, input.TenantID, input.LegalEntityID, []string{revision.SourceID}); err != nil {
+					return nil, nil, fmt.Errorf("%s validation source is unavailable in this legal entity", field.Label)
+				}
 			}
 			revisions[bindingIndex] = revision
 		}
@@ -491,14 +507,14 @@ func (s *Service) deriveAnswerProvenance(ctx context.Context, request Request, a
 			if reference.Mode != BindingUseValidate {
 				continue
 			}
-			provenance.Validations = append(provenance.Validations, s.validateSourceAnswer(ctx, request.TenantID, field, reference, answerText))
+			provenance.Validations = append(provenance.Validations, s.validateSourceAnswer(ctx, request.TenantID, request.LegalEntityID, field, reference, answerText))
 		}
 		result[field.ID] = provenance
 	}
 	return result
 }
 
-func (s *Service) validateSourceAnswer(ctx context.Context, tenantID string, field Field, reference FieldBindingReference, answer string) SourceResolution {
+func (s *Service) validateSourceAnswer(ctx context.Context, tenantID, legalEntityID string, field Field, reference FieldBindingReference, answer string) SourceResolution {
 	fallback := SourceResolution{
 		Mode:           BindingUseValidate,
 		BindingID:      strings.TrimSpace(reference.BindingID),
@@ -517,6 +533,11 @@ func (s *Service) validateSourceAnswer(ctx context.Context, tenantID string, fie
 		fallback.State = SourceResolutionInvalid
 		fallback.FailureCode = "BINDING_IDENTITY_MISMATCH"
 		return fallback
+	}
+	if field.ValidationBinding != nil && legalEntityID != "" {
+		if err := s.ValidateActiveSourcesForEntity(ctx, tenantID, legalEntityID, []string{revision.SourceID}); err != nil {
+			return fallback
+		}
 	}
 	resolution := sourceResolutionBase(BindingUseValidate, revision)
 	if revision.Status != sourceaccess.RevisionActive {
@@ -664,6 +685,7 @@ func cloneAnswerProvenance(input map[string]AnswerProvenance) map[string]AnswerP
 		}
 		value.SourceReceipt = cloneOperationReceipt(value.SourceReceipt)
 		value.PreviousSubmittedAt = cloneTimePointer(value.PreviousSubmittedAt)
+		value.ExpiresAt = cloneTimePointer(value.ExpiresAt)
 		value.Validations = cloneSourceResolutions(value.Validations)
 		out[key] = value
 	}
@@ -686,6 +708,7 @@ func RespondentRequestAt(request Request, now time.Time) Request {
 		field := &request.Fields[fieldIndex]
 		field.CollectionReceived = CollectionFieldFulfilled(*field, now)
 		field.CollectionResolution = nil
+		field.ValidationBinding = nil
 		visibleResolutions := make([]SourceResolution, 0, 2)
 		visibleKeys := make(map[string]struct{}, 2)
 		for _, resolution := range field.SourceResolutions {

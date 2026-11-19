@@ -37,7 +37,7 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 	latestFields := map[string]documentFieldSource{}
 	for _, submission := range submissions {
 		request, err := s.repo.GetRequest(ctx, q.TenantID, submission.RequestID)
-		if err != nil || request.LegalEntityID != q.LegalEntityID {
+		if err != nil || request.LegalEntityID != q.LegalEntityID || (q.ProgramID != "" && (request.SubjectType != "PROGRAM" || request.SubjectID != q.ProgramID)) {
 			continue
 		}
 		revision := revisions[submission.ID]
@@ -122,6 +122,7 @@ func (s *MemoryDistributionStore) ListDocuments(ctx context.Context, q DocumentQ
 						v.ExpiresOn = expiry
 					}
 				}
+				v.AnswerExpiresAt = cloneTimePointer(submission.AnswerProvenance[field.ID].ExpiresAt)
 				values = append(values, v)
 			}
 		}

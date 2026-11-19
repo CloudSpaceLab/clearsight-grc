@@ -24,6 +24,7 @@ type RequirementReviewCoverage struct {
 	Outcome string `json:"outcome"`
 }
 type AssessmentActivity struct {
+	ActorName string `json:"actor_name,omitempty"`
 	ID        string `json:"id"`
 	RequestID string `json:"request_id"`
 	Title     string `json:"title"`

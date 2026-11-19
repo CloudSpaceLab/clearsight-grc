@@ -7,6 +7,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/httpx"
 	"net/http"
+	"strconv"
 )
 
 func (a *API) getAdoptedAssessmentSetup(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +61,8 @@ func (a *API) getInternalResponseDraft(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	value, err := service.GetInternalResponseDraft(r.Context(), r.PathValue("id"))
+	query := r.URL.Query()
+	value, err := service.GetInternalAssessmentDraft(r.Context(), r.PathValue("id"), evidence.CorrectionReference(query.Get("submission_id"), query.Get("review_id")))
 	if writeAssessmentResponseError(w, err) {
 		return
 	}
@@ -221,5 +223,44 @@ func (a *API) getProgramAssessmentReview(w http.ResponseWriter, r *http.Request)
 	if writeAssessmentResponseError(w, err) {
 		return
 	}
+	httpx.WriteJSON(w, 200, value)
+}
+
+func (a *API) getProgramAssessmentHistory(w http.ResponseWriter, r *http.Request) {
+	service, ok := a.evidenceService(w)
+	if !ok {
+		return
+	}
+	actor, aggregate, err := a.bindMonitoringProgram(r, r.PathValue("id"))
+	if err != nil {
+		writeMonitoringScopeError(w, err)
+		return
+	}
+	if _, err := a.programForActor(r.Context(), aggregate, nil); err != nil {
+		httpx.WriteError(w, 404, "not_found", "Program not found.")
+		return
+	}
+	params := r.URL.Query()
+	query := evidence.AssessmentHistoryQuery{ProgramID: aggregate.Program.ID, RequestID: r.PathValue("request_id"), SubmissionID: params.Get("submission_id")}
+	if params.Has("before_revision") {
+		query.BeforeRevision, err = strconv.ParseInt(params.Get("before_revision"), 10, 64)
+	}
+	if err == nil && params.Has("before_review") {
+		query.BeforeReview, err = strconv.ParseInt(params.Get("before_review"), 10, 64)
+	}
+	if err != nil || query.BeforeRevision < 0 || query.BeforeReview < 0 {
+		httpx.WriteError(w, 400, "invalid_cursor", "Choose a valid response or review history page.")
+		return
+	}
+	value, err := service.ProgramAssessmentHistory(r.Context(), query)
+	if writeAssessmentResponseError(w, err) {
+		return
+	}
+	if value.CanReview {
+		value.CanReview = a.requireMonitoringResponsibility(r.Context(), actor.TenantID, aggregate.Program,
+			"PROGRAM", aggregate.Program.ID, authority.ResponsibilityAuthorizer, aggregate.Program.AuthorityPrincipalID,
+			"program.assessment.review", 3) == nil
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
 	httpx.WriteJSON(w, 200, value)
 }

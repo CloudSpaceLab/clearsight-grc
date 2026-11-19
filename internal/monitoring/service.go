@@ -80,6 +80,8 @@ type TransitionInput struct {
 }
 
 type StartCollectionInput struct {
+	AssessmentName         string    `json:"assessment_name,omitempty"`
+	AssessmentScheduleID   string    `json:"-"`
 	AdoptionID             string    `json:"adoption_id,omitempty"`
 	AssessmentKey          string    `json:"assessment_key,omitempty"`
 	ExpectedProgramVersion int64     `json:"expected_program_version,omitempty"`
@@ -496,6 +498,9 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	if input.AdoptionID != "" {
 		return s.startAdoptedAssessment(ctx, actor, input)
 	}
+	if err := validateAssessmentName(input.AssessmentName); err != nil {
+		return evidence.Request{}, err
+	}
 	if err := validateActor(actor); err != nil {
 		return evidence.Request{}, err
 	}
@@ -551,7 +556,7 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	periodStart := input.PeriodStart.UTC()
 	periodEnd := input.PeriodEnd.UTC()
 	return s.requests.CreateRequest(ctx, evidence.CreateRequestInput{
-		TenantID: actor.TenantID, LegalEntityID: input.LegalEntityID, SubjectType: "PROGRAM", SubjectID: input.ProgramID, Title: form.Name,
+		TenantID: actor.TenantID, LegalEntityID: input.LegalEntityID, SubjectType: "PROGRAM", SubjectID: input.ProgramID, Title: assessmentName(input.AssessmentName, form.Name),
 		Purpose: form.Purpose, WhyYou: "You are responsible for completing this control review.",
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: input.RespondentPrincipalID},

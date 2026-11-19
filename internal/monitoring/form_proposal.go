@@ -153,6 +153,10 @@ func cloneProposalContract(value formcontract.Contract) formcontract.Contract {
 
 func cloneTemplateField(value formcontract.Field) formcontract.Field {
 	cloned := value
+	if value.ValidationBinding != nil {
+		reference := *value.ValidationBinding
+		cloned.ValidationBinding = &reference
+	}
 	cloned.Options = append([]string(nil), value.Options...)
 	cloned.AcceptedFormats = append([]string(nil), value.AcceptedFormats...)
 	cloned.Constraints.MinLength = cloneProposalPointer(value.Constraints.MinLength)

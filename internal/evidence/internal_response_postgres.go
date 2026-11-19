@@ -10,9 +10,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *PostgresRepository) GetInternalDraft(ctx context.Context, tenant, request, principal string) (ResponseDraft, error) {
+func (r *PostgresRepository) GetInternalDraft(ctx context.Context, tenant, request, principal, reviewID string) (ResponseDraft, error) {
 	value, err := scanResponseDraft(r.pool.QueryRow(ctx, `SELECT d.id::text,d.tenant_id::text,d.request_id::text,'',d.answers,d.presentation_mode,d.version,d.created_at,d.updated_at
- FROM capture_response_drafts d JOIN tenants t ON t.id=d.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND d.request_id=$2::uuid AND d.principal_id=$3::uuid`, tenant, request, principal))
+ FROM capture_response_drafts d JOIN tenants t ON t.id=d.tenant_id WHERE (t.id::text=$1 OR t.slug=$1) AND d.request_id=$2::uuid AND d.principal_id=$3::uuid
+ AND d.correction_review_id IS NOT DISTINCT FROM NULLIF($4,'')::uuid`, tenant, request, principal, reviewID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return value, ErrNotFound
 	}
@@ -28,8 +29,8 @@ func (r *PostgresRepository) SaveInternalDraft(ctx context.Context, record Inter
 	err = tx.QueryRow(ctx, `SELECT req.version FROM capture_requests req JOIN tenants t ON t.id=req.tenant_id
  JOIN principals p ON p.tenant_id=req.tenant_id AND p.id=req.recipient_principal_id
  WHERE (t.id::text=$1 OR t.slug=$1) AND req.id=$2::uuid AND req.recipient_principal_id=$3::uuid AND req.recipient_state='ASSIGNED'
- AND req.status IN ('READY','IN_PROGRESS') AND req.deadline>clock_timestamp() AND p.kind='PERSON' AND p.status='ACTIVE'
- AND p.valid_from<=clock_timestamp() AND (p.valid_until IS NULL OR p.valid_until>clock_timestamp()) FOR UPDATE OF req`, record.Draft.TenantID, record.Draft.RequestID, record.PrincipalID).Scan(&version)
+ AND ($4::boolean OR (req.status IN ('READY','IN_PROGRESS') AND req.deadline>clock_timestamp())) AND p.kind='PERSON' AND p.status='ACTIVE'
+ AND p.valid_from<=clock_timestamp() AND (p.valid_until IS NULL OR p.valid_until>clock_timestamp()) FOR UPDATE OF req`, record.Draft.TenantID, record.Draft.RequestID, record.PrincipalID, record.Correction != nil).Scan(&version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ResponseDraft{}, ErrRequestClosed
 	}
@@ -39,20 +40,31 @@ func (r *PostgresRepository) SaveInternalDraft(ctx context.Context, record Inter
 	if version != record.RequestVersion {
 		return ResponseDraft{}, ErrVersionConflict
 	}
+	reviewID := ""
+	if record.Correction != nil {
+		if _, err := readAssessmentCorrectionBase(ctx, tx, record.Draft.TenantID, record.Draft.RequestID, record.PrincipalID, *record.Correction); err != nil {
+			return ResponseDraft{}, err
+		}
+		reviewID = record.Correction.ReviewID
+	}
 	data, err := json.Marshal(record.Draft.Answers)
 	if err != nil {
 		return ResponseDraft{}, err
 	}
 	var row pgx.Row
 	if record.ExpectedVersion == 0 {
-		row = tx.QueryRow(ctx, `INSERT INTO capture_response_drafts(id,tenant_id,request_id,principal_id,answers,presentation_mode,version,created_at,updated_at)
-  VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5::jsonb,$6,1,$7,$7)
-  ON CONFLICT (tenant_id,request_id,principal_id) WHERE principal_id IS NOT NULL DO NOTHING
-  RETURNING id::text,tenant_id::text,request_id::text,'',answers,presentation_mode,version,created_at,updated_at`, record.Draft.ID, record.Draft.TenantID, record.Draft.RequestID, record.PrincipalID, string(data), record.Draft.PresentationMode, record.Draft.UpdatedAt)
+		row = tx.QueryRow(ctx, `INSERT INTO capture_response_drafts AS draft(id,tenant_id,request_id,principal_id,answers,presentation_mode,version,created_at,updated_at,correction_review_id)
+  VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,$4::uuid,$5::jsonb,$6,1,$7,$7,NULLIF($8,'')::uuid)
+  ON CONFLICT (tenant_id,request_id,principal_id) WHERE principal_id IS NOT NULL
+  DO UPDATE SET answers=EXCLUDED.answers,presentation_mode=EXCLUDED.presentation_mode,version=draft.version+1,
+    updated_at=EXCLUDED.updated_at,correction_review_id=EXCLUDED.correction_review_id
+  WHERE EXCLUDED.correction_review_id IS NOT NULL AND draft.correction_review_id IS DISTINCT FROM EXCLUDED.correction_review_id
+  RETURNING id::text,tenant_id::text,request_id::text,'',answers,presentation_mode,version,created_at,updated_at`, record.Draft.ID, record.Draft.TenantID, record.Draft.RequestID, record.PrincipalID, string(data), record.Draft.PresentationMode, record.Draft.UpdatedAt, reviewID)
 	} else {
 		row = tx.QueryRow(ctx, `UPDATE capture_response_drafts d SET answers=$5::jsonb,presentation_mode=$6,version=d.version+1,updated_at=$7
   FROM tenants t WHERE t.id=d.tenant_id AND (t.id::text=$1 OR t.slug=$1) AND d.request_id=$2::uuid AND d.principal_id=$3::uuid AND d.version=$4
-  RETURNING d.id::text,d.tenant_id::text,d.request_id::text,'',d.answers,d.presentation_mode,d.version,d.created_at,d.updated_at`, record.Draft.TenantID, record.Draft.RequestID, record.PrincipalID, record.ExpectedVersion, string(data), record.Draft.PresentationMode, record.Draft.UpdatedAt)
+  AND d.correction_review_id IS NOT DISTINCT FROM NULLIF($8,'')::uuid
+  RETURNING d.id::text,d.tenant_id::text,d.request_id::text,'',d.answers,d.presentation_mode,d.version,d.created_at,d.updated_at`, record.Draft.TenantID, record.Draft.RequestID, record.PrincipalID, record.ExpectedVersion, string(data), record.Draft.PresentationMode, record.Draft.UpdatedAt, reviewID)
 	}
 	value, err := scanResponseDraft(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -72,12 +84,12 @@ func (r *PostgresRepository) SaveInternalDraft(ctx context.Context, record Inter
 	return value, nil
 }
 
-const submissionReviewColumns = `review.id::text,review.request_id::text,review.submission_id::text,review.status,review.rationale,review.groups,review.reviewed_by::text,review.version,review.created_at`
+const submissionReviewColumns = `review.id::text,review.request_id::text,review.submission_id::text,review.status,review.rationale,review.groups,review.reviewed_by::text,review.version,review.created_at,review.correction_due_at`
 
 func scanSubmissionReview(row scanner) (SubmissionReview, error) {
 	var value SubmissionReview
 	var groups []byte
-	err := row.Scan(&value.ID, &value.RequestID, &value.SubmissionID, &value.Status, &value.Rationale, &groups, &value.ReviewedBy, &value.Version, &value.CreatedAt)
+	err := row.Scan(&value.ID, &value.RequestID, &value.SubmissionID, &value.Status, &value.Rationale, &groups, &value.ReviewedBy, &value.Version, &value.CreatedAt, &value.CorrectionDueAt)
 	if err == nil {
 		err = json.Unmarshal(groups, &value.Groups)
 	}
@@ -115,8 +127,7 @@ func (r *PostgresRepository) RecordSubmissionReview(ctx context.Context, req Req
 	err = tx.QueryRow(ctx, `SELECT req.version FROM capture_requests req JOIN programs p ON p.tenant_id=req.tenant_id AND p.legal_entity_id=req.legal_entity_id AND p.id::text=req.subject_id
  WHERE req.tenant_id=$1::uuid AND req.id=$2::uuid AND req.status='SUBMITTED' AND req.subject_type='PROGRAM'
  AND req.known_facts->>'reviewer'=$3 AND req.created_by::text<>$3 AND p.authority_principal_id::text=$3
- AND EXISTS(SELECT 1 FROM capture_submissions submission WHERE submission.tenant_id=req.tenant_id AND submission.request_id=req.id AND submission.id=$4::uuid AND submission.submitted_by::text<>$3)
- FOR UPDATE OF req FOR SHARE OF p`, req.TenantID, req.ID, value.ReviewedBy, sub.ID).Scan(&version)
+ FOR UPDATE OF req FOR SHARE OF p`, req.TenantID, req.ID, value.ReviewedBy).Scan(&version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return value, ErrRecipientMismatch
 	}
@@ -124,6 +135,14 @@ func (r *PostgresRepository) RecordSubmissionReview(ctx context.Context, req Req
 		return value, err
 	}
 	if version != req.Version {
+		return value, ErrVersionConflict
+	}
+	var latest string
+	if err = tx.QueryRow(ctx, `SELECT (`+assessmentLatestSubmission+`)::text
+ FROM capture_requests req WHERE req.tenant_id=$1::uuid AND req.id=$2::uuid`, req.TenantID, req.ID).Scan(&latest); err != nil {
+		return value, err
+	}
+	if latest != sub.ID {
 		return value, ErrVersionConflict
 	}
 	var current int64
@@ -137,8 +156,8 @@ func (r *PostgresRepository) RecordSubmissionReview(ctx context.Context, req Req
 	if err != nil {
 		return value, err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO capture_submission_reviews(id,tenant_id,legal_entity_id,request_id,submission_id,reviewed_by,status,rationale,groups,version,created_at)
- VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7,$8,$9::jsonb,$10,$11)`, value.ID, req.TenantID, req.LegalEntityID, req.ID, sub.ID, value.ReviewedBy, value.Status, value.Rationale, string(groups), value.Version, value.CreatedAt)
+	_, err = tx.Exec(ctx, `INSERT INTO capture_submission_reviews(id,tenant_id,legal_entity_id,request_id,submission_id,reviewed_by,status,rationale,groups,version,created_at,correction_due_at)
+ VALUES($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::uuid,$7,$8,$9::jsonb,$10,$11,$12)`, value.ID, req.TenantID, req.LegalEntityID, req.ID, sub.ID, value.ReviewedBy, value.Status, value.Rationale, string(groups), value.Version, value.CreatedAt, value.CorrectionDueAt)
 	if err != nil {
 		return value, err
 	}

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 )
 
 func Normalize(input Contract) (Contract, error) {
@@ -121,6 +122,21 @@ func normalizeField(field *Field) error {
 		TypeAttestation, TypeFile, TypePhoto, TypeSignature, TypeVendorDocument,
 	}, field.Type) {
 		return invalid("%s uses unsupported field type %q", field.Label, field.Type)
+	}
+	if field.AnswerValidityDays < 0 || field.AnswerValidityDays > 3650 {
+		return invalid("%s validity must be between 1 and 3650 days", field.Label)
+	}
+	if field.ValidationBinding != nil {
+		binding := *field.ValidationBinding
+		binding.BindingID = strings.TrimSpace(binding.BindingID)
+		binding.ValueField = strings.TrimSpace(binding.ValueField)
+		if binding.BindingID == "" || len(binding.BindingID) > 128 || strings.IndexFunc(binding.BindingID, unicode.IsControl) >= 0 || binding.ValueField == "" || len(binding.ValueField) > 200 || strings.IndexFunc(binding.ValueField, unicode.IsControl) >= 0 || binding.BindingVersion < 1 {
+			return invalid("%s requires a source binding, revision and lookup field", field.Label)
+		}
+		if !slices.Contains([]Type{TypeShortText, TypeLongText, TypeEmail, TypeTelephone, TypeURL, TypeInteger, TypeDecimal, TypePercentage, TypeCurrency, TypeDate, TypeYesNo, TypeSingleSelect, TypeDropdown, TypeTime, TypeRating, TypeLinearScale}, field.Type) {
+			return invalid("%s source validation requires a single text, number, date or choice answer", field.Label)
+		}
+		field.ValidationBinding = &binding
 	}
 	field.CollectionIntent = CollectionIntent(strings.ToUpper(strings.TrimSpace(string(field.CollectionIntent))))
 	if field.CollectionIntent == "" {

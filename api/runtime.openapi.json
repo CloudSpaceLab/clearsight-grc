@@ -3306,6 +3306,12 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/framework-catalog/program-usage": {
+      "get": {
+        "operationId": "listFrameworkProgramUsage",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/framework-catalog/reference-templates": {
       "get": {
         "operationId": "listFrameworkReferenceTemplates",
@@ -3869,6 +3875,12 @@
     "/api/v1/form-templates": {
       "get": {
         "operationId": "listReusableFormTemplates",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/forms/validation-bindings/{binding_id}": {
+      "get": {
+        "operationId": "getFormValidationBinding",
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
@@ -4694,9 +4706,43 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/programs/{id}/assessment-schedules": {
+      "get": {
+        "operationId": "listAssessmentSchedules",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      },
+      "post": {
+        "operationId": "proposeAssessmentSchedule",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-schedules/{schedule_id}/approve": {
+      "post": {
+        "operationId": "approveAssessmentSchedule",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-schedules/{schedule_id}/stop": {
+      "post": {
+        "operationId": "stopAssessmentSchedule",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
     "/api/v1/programs/{id}/assessment-setup": {
       "get": {
         "operationId": "getAdoptedAssessmentSetup",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-responses/{request_id}": {
+      "get": {
+        "operationId": "getProgramAssessmentHistory",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/activity": {
+      "get": {
+        "operationId": "getProgramActivity",
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },

@@ -130,6 +130,58 @@ func TestPostgresStarterSeedAdoptionIsolationAndVersionPins(t *testing.T) {
 		}
 		return v
 	}
+	for _, pack := range []struct {
+		code         string
+		requirements int
+	}{
+		{"NIST_CSF_2", 6},
+		{"PCI_DSS_4_0_1", 4},
+		{"NDPA_2023", 4},
+		{"UK_DPA_2018", 4},
+		{"DORA_2022_2554", 4},
+		{"SOC_2", 4},
+	} {
+		t.Run(pack.code, func(t *testing.T) {
+			requirements, err := catalog.StarterRequirements(ctx, tenant, entity, pack.code)
+			if err != nil || len(requirements) != pack.requirements {
+				t.Fatalf("starter requirements: got %d, want %d: %v", len(requirements), pack.requirements, err)
+			}
+			formID := requirements[0].FormID
+			if formID == "" {
+				t.Fatal("starter has no native questionnaire")
+			}
+			exec(`INSERT INTO monitoring_form_templates(id,tenant_id,legal_entity_id,code,name,purpose,responsible_team,approved_uses,tags,sensitivity,scoring_mode,presentation,sections,fields,status,is_current,effective_from,version,created_by,submitted_by,approved_by,starter_catalog_code,starter_catalog_version)
+     SELECT id,tenant_id,legal_entity_id,code,name,purpose,responsible_team,approved_uses,tags,sensitivity,scoring_mode,presentation,sections,fields,'ACTIVE',true,clock_timestamp(),3,$2::uuid,$2::uuid,$3::uuid,starter_catalog_code,starter_catalog_version
+     FROM monitoring_form_templates WHERE id=$1::uuid AND version=1`, formID, owner, checker)
+			exec(`UPDATE framework_starter_requirement_links SET form_template_version=3 WHERE tenant_id=$1::uuid AND template_code=$2`, tenant, pack.code)
+			requirements, err = catalog.StarterRequirements(ctx, tenant, entity, pack.code)
+			if err != nil || len(requirements) != pack.requirements {
+				t.Fatalf("load approved questions: %v", err)
+			}
+			for i := range requirements {
+				requirements[i].Decision = "KEEP"
+			}
+			program := create(pack.code + "-" + suffix)
+			input := continuity.ProposeFrameworkAdoptionInput{TenantID: tenant, ProgramID: program.Program.ID, ExpectedVersion: program.Program.Version, ActorID: owner, Rationale: "Verify the scoped bank starter workflow", TemplateCode: pack.code, Configuration: &continuity.StarterConfiguration{OwnerID: owner, RespondentScopeIDs: []string{unit}, Requirements: requirements}}
+			draft, err := service.SaveFrameworkAdoptionDraft(sys, input)
+			if err != nil {
+				t.Fatal("save starter draft", err)
+			}
+			input.ExpectedVersion = draft.Program.Version
+			pending, err := service.ProposeFrameworkAdoption(sys, input)
+			if err != nil {
+				t.Fatal("submit starter adoption", err)
+			}
+			adoption := pending.FrameworkAdoptions[0].ID
+			approved, err := service.ApproveFrameworkAdoption(sys, continuity.DecideFrameworkAdoptionInput{TenantID: tenant, ProgramID: program.Program.ID, ExpectedVersion: pending.Program.Version, ActorID: checker, AdoptionID: adoption, Rationale: "Independent fixture approval"})
+			if err != nil || len(approved.Requirements) != pack.requirements {
+				t.Fatalf("approve adoption: %v", err)
+			}
+			if got := count(`SELECT count(DISTINCT group_id) FROM program_framework_requirement_questions WHERE adoption_id=$1::uuid AND form_template_id=$2::uuid AND form_template_version=3`, adoption, formID); got != pack.requirements {
+				t.Fatalf("pinned question groups: got %d, want %d", got, pack.requirements)
+			}
+		})
+	}
 	p := create("DB-" + suffix)
 	input := continuity.ProposeFrameworkAdoptionInput{TenantID: tenant, ProgramID: p.Program.ID, ExpectedVersion: p.Program.Version, ActorID: owner, Rationale: "Test scoped ISO adoption", TemplateCode: "ISO_27001_2022", Configuration: &c}
 	draft, err := service.SaveFrameworkAdoptionDraft(sys, input)
@@ -196,6 +248,7 @@ func TestPostgresStarterSeedAdoptionIsolationAndVersionPins(t *testing.T) {
 		t.Fatal("duplicate requirement accepted")
 	}
 	exec(`UPDATE framework_starter_requirement_links SET statement='Staff maintained bank wording',version=version+1 WHERE tenant_id=$1::uuid AND template_code='ISO_27001_2022' AND requirement_code='GOV'`, tenant)
+	questionnaireCount := count(`SELECT count(*) FROM monitoring_form_templates WHERE tenant_id=$1::uuid`, tenant)
 	exec(`SELECT backfill_framework_starter_forms($1::uuid)`, entity)
 	exec(`SELECT backfill_framework_starter_forms($1::uuid)`, entity)
 	if n := count(`SELECT count(*) FROM framework_starter_requirement_links WHERE tenant_id=$1::uuid`, tenant); n != 36 {
@@ -205,7 +258,7 @@ func TestPostgresStarterSeedAdoptionIsolationAndVersionPins(t *testing.T) {
 	if err = pool.QueryRow(ctx, `SELECT statement FROM framework_starter_requirement_links WHERE tenant_id=$1::uuid AND template_code='ISO_27001_2022' AND requirement_code='GOV'`, tenant).Scan(&wording); err != nil || wording != "Staff maintained bank wording" {
 		t.Fatal("backfill overwrote staff edit", err)
 	}
-	if n := count(`SELECT count(*) FROM monitoring_form_templates WHERE tenant_id=$1::uuid`, tenant); n != 10 {
+	if n := count(`SELECT count(*) FROM monitoring_form_templates WHERE tenant_id=$1::uuid`, tenant); n != questionnaireCount {
 		t.Fatalf("rerun duplicated questionnaires: %d", n)
 	}
 	if n := count(`SELECT count(*) FROM program_framework_requirement_questions WHERE adoption_id=$1::uuid AND form_template_version=3`, adoptionID); n != 5 {

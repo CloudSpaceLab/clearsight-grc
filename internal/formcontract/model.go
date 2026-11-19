@@ -251,7 +251,16 @@ type QuestionImage struct {
 	Alt  string `json:"alt"`
 }
 
+// ValidationBinding pins a source lookup for an internal Program assessment.
+type ValidationBinding struct {
+	BindingID      string `json:"binding_id"`
+	BindingVersion int64  `json:"binding_version"`
+	ValueField     string `json:"value_field"`
+}
+
 type Field struct {
+	AnswerValidityDays int                  `json:"answer_validity_days,omitempty"`
+	ValidationBinding  *ValidationBinding   `json:"validation_binding,omitempty"`
 	Rows               []string             `json:"rows,omitempty"`
 	Columns            []string             `json:"columns,omitempty"`
 	ScaleMax           int                  `json:"scale_max,omitempty"`

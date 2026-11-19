@@ -87,24 +87,25 @@ func (s *Service) SaveFrameworkAdoptionDraft(ctx context.Context, input ProposeF
 }
 
 type FrameworkAdoption struct {
-	TemplateCode  string                  `json:"template_code,omitempty"`
-	Configuration *StarterConfiguration   `json:"configuration,omitempty"`
-	ID            string                  `json:"id"`
-	TenantID      string                  `json:"tenant_id"`
-	LegalEntityID string                  `json:"legal_entity_id"`
-	ProgramID     string                  `json:"program_id"`
-	EditionID     string                  `json:"edition_id"`
-	PublisherCode string                  `json:"publisher_code"`
-	FrameworkCode string                  `json:"framework_code"`
-	EditionCode   string                  `json:"edition_code"`
-	Status        FrameworkAdoptionStatus `json:"status"`
-	ProposedBy    string                  `json:"proposed_by"`
-	ReviewedBy    string                  `json:"reviewed_by,omitempty"`
-	Rationale     string                  `json:"rationale"`
-	ProposedAt    time.Time               `json:"proposed_at"`
-	ReviewedAt    *time.Time              `json:"reviewed_at,omitempty"`
-	EffectiveFrom *time.Time              `json:"effective_from,omitempty"`
-	Version       int64                   `json:"version"`
+	TemplateCode   string                  `json:"template_code,omitempty"`
+	Configuration  *StarterConfiguration   `json:"configuration,omitempty"`
+	ID             string                  `json:"id"`
+	TenantID       string                  `json:"tenant_id"`
+	LegalEntityID  string                  `json:"legal_entity_id"`
+	ProgramID      string                  `json:"program_id"`
+	EditionID      string                  `json:"edition_id"`
+	PublisherCode  string                  `json:"publisher_code"`
+	FrameworkCode  string                  `json:"framework_code"`
+	EditionCode    string                  `json:"edition_code"`
+	Status         FrameworkAdoptionStatus `json:"status"`
+	ProposedBy     string                  `json:"proposed_by"`
+	ReviewedBy     string                  `json:"reviewed_by,omitempty"`
+	Rationale      string                  `json:"rationale"`
+	ProposedAt     time.Time               `json:"proposed_at"`
+	ReviewedAt     *time.Time              `json:"reviewed_at,omitempty"`
+	EffectiveFrom  *time.Time              `json:"effective_from,omitempty"`
+	EffectiveUntil *time.Time              `json:"effective_until,omitempty"`
+	Version        int64                   `json:"version"`
 }
 
 type ProposeFrameworkAdoptionInput struct {

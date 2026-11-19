@@ -68,3 +68,13 @@ Programs and Matters can be reconstructed at an RFC3339 timestamp from `continui
 - authority resolution is not yet automatically invoked by every Program/Matter command;
 - aggregate lists use bounded event replay and will need projection-first reads before high-cardinality production use;
 - bulk imports, dependency graph propagation and scheduled evidence-aging triggers remain later work.
+
+// Program Activity reads schedule history by aggregate, not by outbox delivery state.
+
+## Program Activity read contract
+
+GET /api/v1/programs/{id}/activity binds the verified account and legal entity before querying. The evidence read model joins retained continuity events, immutable submissions and review decisions, linked document bindings and schedule outbox receipts. SQL evaluates current request assignment, Program owner/authorizer access and restricted issue visibility before search and paging. Raw domain payloads, answer bodies and artifact storage keys are excluded.
+
+Queries accept search (maximum 200 characters), category, event_type, inclusive UTC from/to dates, limit 1–100 and a query/account-scoped cursor. Timestamp plus event identifier provides deterministic keyset ordering at equal timestamps. Each cursor retains an upper read timestamp; permission changes still apply on every page. This is retained-event history, not a cross-request database transaction snapshot. No new domain event is inferred for a change that was never recorded. Schedule history currently uses the existing outbox receipts and follows their retention policy.
+
+Migration 000151 adds schedule-event and request-review read indexes. Existing per-aggregate continuity and capture request/artifact indexes support exact Program reads. No history backfill or retention-policy change is included. V2 export traverses filtered pages and fails without downloading partial history on error; it asks users to narrow queries above its 20,000-event safety bound. Validation covers a 408-event fixture, equal timestamps, all five categories, immutable document identity, exact filters, restricted issues and tenant/entity isolation. Larger production cardinalities require deployment query-plan and retention review.
