@@ -49,6 +49,9 @@ type DocumentReview struct {
 	Source     string     `json:"source"`
 }
 type DocumentOccurrence struct {
+	SubmittedByName      string           `json:"submitted_by_name,omitempty"`
+	AssessmentRevision   int64            `json:"assessment_revision,omitempty"`
+	AnswerExpiresAt      *time.Time       `json:"answer_expires_at,omitempty"`
 	SubmissionChannel    string           `json:"submission_channel"`
 	ID                   string           `json:"id"`
 	ArtifactID           string           `json:"artifact_id"`
@@ -88,6 +91,7 @@ type DocumentQuery struct {
 	TenantID, LegalEntityID, PrincipalID                      string
 	FileKind                                                  DocumentFileKind
 	Query, FormTemplateID, RelationshipID, ResponseRevisionID string
+	ProgramID                                                 string
 	CurrentOnly                                               bool
 	Cursor                                                    string
 	Limit                                                     int

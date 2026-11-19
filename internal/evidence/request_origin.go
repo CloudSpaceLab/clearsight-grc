@@ -53,6 +53,36 @@ func validateRequestPredecessor(ctx context.Context, repo Repository, value Requ
 }
 
 func requestImmutableFingerprint(value Request) ([32]byte, error) {
+	// PostgreSQL returns timestamps in the session timezone and hydrates derived
+	// source resolutions. Canonicalize representation without discarding any
+	// configured field, answer, source binding or recipient identity.
+	value.Fields = append([]Field{}, value.Fields...)
+	for i := range value.Fields {
+		value.Fields[i].SourceResolutions = nil
+	}
+	if value.SourceBindings == nil {
+		value.SourceBindings = []RequestBindingReference{}
+	}
+	if value.PreviousResponses == nil {
+		value.PreviousResponses = map[string]PreviousResponseValue{}
+	}
+	if value.KnownFacts == nil {
+		value.KnownFacts = map[string]string{}
+	}
+	if value.Sections == nil {
+		value.Sections = []formcontract.Section{}
+	}
+	canonicalTime := func(v *time.Time) *time.Time {
+		if v == nil {
+			return nil
+		}
+		u := v.UTC().Truncate(time.Microsecond)
+		return &u
+	}
+	value.CollectionPeriodStart = canonicalTime(value.CollectionPeriodStart)
+	value.CollectionPeriodEnd = canonicalTime(value.CollectionPeriodEnd)
+	value.Deadline = value.Deadline.UTC().Truncate(time.Microsecond)
+
 	immutable := struct {
 		LegalEntityID         string
 		SubjectType           string

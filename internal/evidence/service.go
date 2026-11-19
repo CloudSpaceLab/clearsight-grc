@@ -8,12 +8,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
 )
 
@@ -169,6 +171,7 @@ func (s *Service) CreateRequest(ctx context.Context, input CreateRequestInput) (
 	} else if _, exact := s.repo.(SubjectScopeResolver); exact {
 		return Request{}, ErrSubjectAccessDenied
 	}
+	input.LegalEntityID = scope.LegalEntityID
 	fields, sourceBindings, err := s.prepareRequestBindings(ctx, input)
 	if err != nil {
 		return Request{}, err
@@ -325,8 +328,18 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 			return SubmissionReceipt{}, err
 		}
 	}
-	now := s.now().UTC()
-	if !requestOpenAt(request, now) {
+	now := s.now().UTC().Truncate(time.Microsecond)
+	var base Submission
+	if submission.Correction != nil {
+		actor, identityErr := identity.Require(ctx)
+		if identityErr != nil || actor.PrincipalID != submission.SubmittedBy || actor.LegalEntityID != request.LegalEntityID || submission.SessionID != "" {
+			return SubmissionReceipt{}, ErrRecipientMismatch
+		}
+		base, err = s.correctionBase(ctx, request, submission.SubmittedBy, *submission.Correction)
+		if err != nil {
+			return SubmissionReceipt{}, err
+		}
+	} else if !requestOpenAt(request, now) {
 		return SubmissionReceipt{}, ErrRequestClosed
 	}
 	if strings.EqualFold(strings.TrimSpace(submission.Channel), "MAGIC_LINK") {
@@ -355,6 +368,24 @@ func (s *Service) Submit(ctx context.Context, submission Submission) (Submission
 	submission.Answers = cloneAnswerValues(submission.Answers)
 	submission.AnswerProvenance = s.deriveAnswerProvenance(ctx, request, submission.Answers)
 	submission.SubmittedAt = now
+	for _, field := range request.Fields {
+		answer, exists := submission.Answers[field.ID]
+		if prior, ok := base.Answers[field.ID]; ok && exists && reflect.DeepEqual(prior, answer) {
+			if provenance, found := base.AnswerProvenance[field.ID]; found {
+				submission.AnswerProvenance[field.ID] = provenance
+			} else {
+				delete(submission.AnswerProvenance, field.ID)
+			}
+			continue
+		}
+		if field.AnswerValidityDays <= 0 || !exists || !answer.Answered() {
+			continue
+		}
+		expiresAt := now.AddDate(0, 0, field.AnswerValidityDays)
+		provenance := submission.AnswerProvenance[field.ID]
+		provenance.ExpiresAt = &expiresAt
+		submission.AnswerProvenance[field.ID] = provenance
+	}
 	return s.repo.Submit(ctx, submission)
 }
 
@@ -530,7 +561,18 @@ func (s *Service) storeArtifact(ctx context.Context, input ArtifactInput, reader
 	if err != nil {
 		return Artifact{}, err
 	}
-	if !requestOpenAt(request, now) {
+	if input.Correction != nil {
+		actor, identityErr := identity.Require(ctx)
+		if identityErr != nil || actor.PrincipalID != input.CreatedBy || input.SessionToken != "" || canonicalExternalSession || input.SubmissionID != "" || input.FieldID == "" {
+			return Artifact{}, ErrRecipientMismatch
+		}
+		if err := validateCurrentRequestScope(ctx, s.repo, request, actor.LegalEntityID); err != nil {
+			return Artifact{}, err
+		}
+		if _, err := s.correctionBase(ctx, request, input.CreatedBy, *input.Correction); err != nil {
+			return Artifact{}, err
+		}
+	} else if !requestOpenAt(request, now) {
 		return Artifact{}, ErrRequestClosed
 	}
 	if !canonicalExternalSession {
@@ -579,7 +621,7 @@ func (s *Service) storeArtifact(ctx context.Context, input ArtifactInput, reader
 	if err != nil {
 		return Artifact{}, err
 	}
-	artifact := Artifact{ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, SubmissionID: input.SubmissionID, FileName: fileName, MediaType: mediaType, SizeBytes: object.SizeBytes, SHA256: object.SHA256, StorageKey: object.Key, Status: ArtifactStoredUnscanned, CreatedBy: input.CreatedBy, CreatedAt: now}
+	artifact := Artifact{Correction: input.Correction, ID: valueID, TenantID: input.TenantID, RequestID: input.RequestID, SubmissionID: input.SubmissionID, FileName: fileName, MediaType: mediaType, SizeBytes: object.SizeBytes, SHA256: object.SHA256, StorageKey: object.Key, Status: ArtifactStoredUnscanned, CreatedBy: input.CreatedBy, CreatedAt: now}
 	created, err := s.repo.CreateArtifact(ctx, artifact)
 	if err != nil {
 		_ = s.store.Delete(ctx, object.Key)
@@ -768,6 +810,10 @@ func cloneAnswerValues(input map[string]formcontract.AnswerValue) map[string]for
 func cloneFields(input []Field) []Field {
 	out := append([]Field(nil), input...)
 	for index := range out {
+		if input[index].ValidationBinding != nil {
+			reference := *input[index].ValidationBinding
+			out[index].ValidationBinding = &reference
+		}
 		if input[index].CollectionResolution != nil {
 			copy := *input[index].CollectionResolution
 			if copy.Source.Review != nil {

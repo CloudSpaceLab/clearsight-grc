@@ -41,7 +41,16 @@ func (o RequestOrigin) validate() error {
 	return nil
 }
 
+type InternalDraftAttachment struct {
+	ID        string         `json:"id"`
+	FileName  string         `json:"file_name"`
+	Status    ArtifactStatus `json:"status"`
+	SizeBytes int64          `json:"size_bytes"`
+}
+
 type ResponseDraft struct {
+	Attachments []InternalDraftAttachment `json:"attachments,omitempty"`
+
 	ID               string                              `json:"id"`
 	TenantID         string                              `json:"tenant_id"`
 	RequestID        string                              `json:"request_id"`
@@ -54,6 +63,7 @@ type ResponseDraft struct {
 }
 
 type SaveDraftInput struct {
+	Correction       *AssessmentCorrection               `json:"correction,omitempty"`
 	Answers          map[string]formcontract.AnswerValue `json:"answers"`
 	PresentationMode formcontract.PresentationMode       `json:"presentation_mode"`
 	ExpectedVersion  int64                               `json:"expected_version"`

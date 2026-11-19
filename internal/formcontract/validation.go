@@ -1,12 +1,15 @@
 package formcontract
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 )
 
 func Normalize(input Contract) (Contract, error) {
@@ -112,12 +115,28 @@ func normalizeField(field *Field) error {
 		return err
 	}
 	if !slices.Contains([]Type{
+		TypeGridRadio, TypeGridCheckbox, TypeRating, TypeLinearScale, TypeTime, TypeDropdown,
 		TypeShortText, TypeLongText, TypeEmail, TypeTelephone, TypeURL,
 		TypeInteger, TypeDecimal, TypePercentage, TypeCurrency, TypeDate,
 		TypeYesNo, TypeSingleSelect, TypeMultiSelect, TypeCheckbox,
 		TypeAttestation, TypeFile, TypePhoto, TypeSignature, TypeVendorDocument,
 	}, field.Type) {
 		return invalid("%s uses unsupported field type %q", field.Label, field.Type)
+	}
+	if field.AnswerValidityDays < 0 || field.AnswerValidityDays > 3650 {
+		return invalid("%s validity must be between 1 and 3650 days", field.Label)
+	}
+	if field.ValidationBinding != nil {
+		binding := *field.ValidationBinding
+		binding.BindingID = strings.TrimSpace(binding.BindingID)
+		binding.ValueField = strings.TrimSpace(binding.ValueField)
+		if binding.BindingID == "" || len(binding.BindingID) > 128 || strings.IndexFunc(binding.BindingID, unicode.IsControl) >= 0 || binding.ValueField == "" || len(binding.ValueField) > 200 || strings.IndexFunc(binding.ValueField, unicode.IsControl) >= 0 || binding.BindingVersion < 1 {
+			return invalid("%s requires a source binding, revision and lookup field", field.Label)
+		}
+		if !slices.Contains([]Type{TypeShortText, TypeLongText, TypeEmail, TypeTelephone, TypeURL, TypeInteger, TypeDecimal, TypePercentage, TypeCurrency, TypeDate, TypeYesNo, TypeSingleSelect, TypeDropdown, TypeTime, TypeRating, TypeLinearScale}, field.Type) {
+			return invalid("%s source validation requires a single text, number, date or choice answer", field.Label)
+		}
+		field.ValidationBinding = &binding
 	}
 	field.CollectionIntent = CollectionIntent(strings.ToUpper(strings.TrimSpace(string(field.CollectionIntent))))
 	if field.CollectionIntent == "" {
@@ -163,7 +182,7 @@ func normalizeField(field *Field) error {
 			return invalid("%s must use Yes and No choices", field.Label)
 		}
 	}
-	selection := field.Type == TypeSingleSelect || field.Type == TypeMultiSelect || field.Type == TypeYesNo
+	selection := field.Type == TypeSingleSelect || field.Type == TypeMultiSelect || field.Type == TypeYesNo || field.Type == TypeDropdown
 	if selection {
 		if len(field.Options) < 2 || len(field.Options) > MaxChoices {
 			return invalid("%s must define 2-%d choices", field.Label, MaxChoices)
@@ -180,6 +199,45 @@ func normalizeField(field *Field) error {
 		}
 	} else if len(field.Options) != 0 {
 		return invalid("%s cannot define choices", field.Label)
+	}
+	grid := field.Type == TypeGridRadio || field.Type == TypeGridCheckbox
+	for _, list := range [][]string{field.Rows, field.Columns} {
+		if grid {
+			if len(list) < 1 || len(list) > 20 {
+				return invalid("%s requires 1-20 rows and columns", field.Label)
+			}
+			seen := map[string]bool{}
+			for i, value := range list {
+				value = strings.TrimSpace(value)
+				if value == "" || len(value) > 150 || seen[value] {
+					return invalid("%s requires unique bounded grid labels", field.Label)
+				}
+				seen[value] = true
+				list[i] = value
+			}
+		} else if len(list) > 0 {
+			return invalid("%s cannot define grid labels", field.Label)
+		}
+	}
+	scale := field.Type == TypeRating || field.Type == TypeLinearScale
+	if scale && (field.ScaleMax < 2 || field.ScaleMax > 10) {
+		return invalid("%s requires a scale between 2 and 10", field.Label)
+	}
+	if !scale && field.ScaleMax != 0 {
+		return invalid("%s cannot define a scale", field.Label)
+	}
+	if field.Image != nil {
+		if len(field.Image.Alt) > 250 || len(field.Image.Data) > 350000 {
+			return invalid("%s has an oversized image", field.Label)
+		}
+		parts := strings.SplitN(field.Image.Data, ",", 2)
+		if len(parts) != 2 || !slices.Contains([]string{"data:image/png;base64", "data:image/jpeg;base64", "data:image/webp;base64"}, parts[0]) {
+			return invalid("%s requires a PNG, JPEG or WebP image", field.Label)
+		}
+		data, err := base64.StdEncoding.DecodeString(parts[1])
+		if err != nil || len(data) == 0 || len(data) > 256000 || http.DetectContentType(data) != strings.TrimSuffix(strings.TrimPrefix(parts[0], "data:"), ";base64") {
+			return invalid("%s has an invalid image", field.Label)
+		}
 	}
 	fileType := field.Type == TypeFile || field.Type == TypePhoto || field.Type == TypeSignature || field.Type == TypeVendorDocument
 	if !fileType && len(field.AcceptedFormats) != 0 {

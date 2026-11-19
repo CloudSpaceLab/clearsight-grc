@@ -1,0 +1,15 @@
+BEGIN;
+DO $$ BEGIN IF EXISTS(SELECT 1 FROM program_framework_adoptions WHERE template_code IS NOT NULL) OR EXISTS(SELECT 1 FROM framework_starter_requirement_events) OR EXISTS(SELECT 1 FROM monitoring_form_templates WHERE starter_catalog_code LIKE 'FRAMEWORK_%') THEN RAISE EXCEPTION 'Starter forms or adoption history exists; retain the migration and records'; END IF; END $$;
+DROP TRIGGER legal_entity_framework_starters ON legal_entities;
+DROP FUNCTION install_new_entity_framework_starters();
+DROP TRIGGER framework_starter_group_check ON framework_starter_requirement_links;
+DROP TABLE program_framework_requirement_questions;
+DROP FUNCTION validate_framework_question_group();
+DROP INDEX program_framework_adoptions_scope_uq;
+ALTER TABLE program_framework_adoptions DROP CONSTRAINT program_framework_adoption_source_ck, DROP COLUMN configuration, DROP COLUMN template_code;
+ALTER TABLE program_framework_adoptions ALTER COLUMN edition_id SET NOT NULL;
+DROP FUNCTION backfill_framework_starter_forms(uuid);
+DROP TABLE framework_starter_requirement_events,framework_starter_requirement_links,framework_starter_requirements;
+DROP INDEX monitoring_form_templates_entity_revision_uq;
+DELETE FROM form_starter_templates WHERE code LIKE 'FRAMEWORK_%';
+COMMIT;

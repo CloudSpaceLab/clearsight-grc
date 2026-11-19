@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,7 +35,7 @@ func TestRequestOriginAndResponseDraftPersistence(t *testing.T) {
 		relationshipID = "88888888-7777-7777-8777-777777777776"
 	)
 	now := time.Date(2026, 8, 26, 11, 0, 0, 0, time.UTC)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenant)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenant)
 	defer func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenant)
 	}()
@@ -144,7 +145,7 @@ func TestSubmissionDeletesResponseDraftInSameTransaction(t *testing.T) {
 		relationshipID = "77777777-6666-7666-8666-666666666665"
 	)
 	now := time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) }()
 	mustExecDraft(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'draft-submit-test','Draft Submit Test')`, tenantID)
 	mustExecDraft(t, ctx, pool, `INSERT INTO principals(id,tenant_id,kind,display_name,status,valid_from) VALUES($1::uuid,$2::uuid,'PERSON','Request owner','ACTIVE',$3)`, requesterID, tenantID, now.Add(-time.Hour))
@@ -196,7 +197,7 @@ func seedDraftVendorRelationship(t *testing.T, ctx context.Context, pool *pgxpoo
 
 func mustExecDraft(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, query, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, query, args...); err != nil {
 		t.Fatal(err)
 	}
 }

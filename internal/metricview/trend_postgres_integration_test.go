@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -28,13 +29,13 @@ func TestMetricTrendRetentionPreservesComparisonAndBoundsRawHistory(t *testing.T
 	const tenantID = "8f630000-0000-4000-8000-000000000001"
 	const entityID = "8f630000-0000-4000-8000-000000000002"
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM metric_observation_daily_rollups WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM metric_observations WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_memberships WHERE oversight_snapshot_id IN (SELECT id FROM oversight_snapshots WHERE tenant_id=$1::uuid)`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_membership_sets WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshots WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE id=$1::uuid`, entityID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM metric_observation_daily_rollups WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM metric_observations WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM oversight_snapshot_metric_memberships WHERE oversight_snapshot_id IN (SELECT id FROM oversight_snapshots WHERE tenant_id=$1::uuid)`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM oversight_snapshot_metric_membership_sets WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM oversight_snapshots WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE id=$1::uuid`, entityID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })
@@ -134,7 +135,7 @@ func TestMetricTrendRetentionPreservesComparisonAndBoundsRawHistory(t *testing.T
 		t.Fatalf("comparison=%#v", series)
 	}
 
-	if _, err := pool.Exec(ctx, `DELETE FROM metric_observations WHERE source_id=$1::uuid`, currentSnapshotID); err == nil {
+	if _, err := testfixture.Exec(ctx, pool, `DELETE FROM metric_observations WHERE source_id=$1::uuid`, currentSnapshotID); err == nil {
 		t.Fatal("recent raw metric observation deletion was accepted")
 	}
 

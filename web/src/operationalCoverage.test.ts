@@ -94,6 +94,8 @@ describe("Program operational UI coverage", () => {
       .filter(([path]) => path === "/api/v1/programs" || path.startsWith("/api/v1/programs/{id}") || path === "/api/v1/monitoring-results/{result_id}/linked-issue")
       .flatMap(([, methods]) => Object.values(methods))
       .filter((operation) => operation["x-clearsight-route-class"] === "MATERIAL_COMMAND")
+      // Ownership is pinned by the backend runtime contract test; this is the legacy V1 client.
+      .filter((operation) => !("x-clearsight-client" in operation) || operation["x-clearsight-client"] !== "clearsight2-grc")
       .map((operation) => operation.operationId);
     const commands = materialOperationIDs.map((operationID) => programOperationCommands[operationID as keyof typeof programOperationCommands]);
     expect(commands).not.toContain(undefined);

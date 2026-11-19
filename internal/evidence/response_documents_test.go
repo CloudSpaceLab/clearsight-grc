@@ -287,3 +287,42 @@ func TestWorkDocumentCurrencyFollowsSubmittedFieldReplacements(t *testing.T) {
 		})
 	}
 }
+
+func TestDocumentOccurrenceRetainsAnswerExpiry(t *testing.T) {
+	store, query := documentMemoryFixture()
+	expiry := time.Date(2026, 11, 25, 12, 0, 0, 0, time.UTC)
+	submission := store.repo.submissions["newer"]
+	submission.AnswerProvenance = map[string]AnswerProvenance{"file": {ExpiresAt: &expiry}}
+	store.repo.submissions["newer"] = submission
+	page, err := store.ListDocuments(context.Background(), query)
+	if err != nil || len(page.Items) != 1 || page.Items[0].AnswerExpiresAt == nil || !page.Items[0].AnswerExpiresAt.Equal(expiry) {
+		t.Fatalf("document answer expiry lost: %+v %v", page, err)
+	}
+}
+
+func TestDocumentProgramFilterPreservesRevisionAndReaderScope(t *testing.T) {
+	store, q := documentMemoryFixture()
+	q.ProgramID = "program"
+	q.Limit = 1
+	first, err := store.ListDocuments(context.Background(), q)
+	if err != nil || len(first.Items) != 1 || first.NextCursor == "" {
+		t.Fatalf("first page: %+v %v", first, err)
+	}
+	q.Cursor = first.NextCursor
+	second, err := store.ListDocuments(context.Background(), q)
+	if err != nil || len(second.Items) != 1 || second.Items[0].SubmissionID == first.Items[0].SubmissionID {
+		t.Fatalf("history: %+v %v", second, err)
+	}
+	q.Cursor = ""
+	q.ProgramID = "another-program"
+	hidden, err := store.ListDocuments(context.Background(), q)
+	if err != nil || len(hidden.Items) != 0 {
+		t.Fatalf("wrong Program: %+v %v", hidden, err)
+	}
+	q.ProgramID = "program"
+	q.PrincipalID = "intruder"
+	hidden, err = store.ListDocuments(context.Background(), q)
+	if err != nil || len(hidden.Items) != 0 {
+		t.Fatalf("unrelated reader: %+v %v", hidden, err)
+	}
+}

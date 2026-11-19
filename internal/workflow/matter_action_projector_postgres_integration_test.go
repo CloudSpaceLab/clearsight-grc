@@ -10,6 +10,7 @@ import (
 	"time"
 
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,7 +35,7 @@ func TestMatterActionProjectorIsIdempotentAndKeepsTaskDerived(t *testing.T) {
 		action2ID = "9f666666-6666-7666-8666-666666666665"
 	)
 	occurred := time.Date(2026, 8, 7, 18, 30, 0, 0, time.UTC)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'action-work-test','Action Work Test')`, tenantID); err != nil {
 		t.Fatal(err)
@@ -172,7 +173,7 @@ func TestMatterActionProjectorReassignsCurrentTask(t *testing.T) {
 		actionID = "97666666-6666-7766-8766-666666666665"
 	)
 	occurred := time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'action-reassignment-test','Action Reassignment Test')`, tenantID); err != nil {
 		t.Fatal(err)

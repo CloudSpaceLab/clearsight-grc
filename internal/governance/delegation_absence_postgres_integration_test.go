@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -46,7 +47,7 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 			"DELETE FROM legal_entities WHERE tenant_id=$1::uuid",
 			"DELETE FROM tenants WHERE id=$1::uuid",
 		} {
-			_, _ = pool.Exec(cleanCtx, query, tenantID)
+			_, _ = testfixture.Exec(cleanCtx, pool, query, tenantID)
 		}
 	}
 	cleanup(ctx)
@@ -183,7 +184,7 @@ func TestPostgresDelegationCoversPlannedAndEmergencyAbsenceFailClosed(t *testing
 
 func mustGovernanceExec(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, query, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, query, args...); err != nil {
 		t.Fatal(err)
 	}
 }

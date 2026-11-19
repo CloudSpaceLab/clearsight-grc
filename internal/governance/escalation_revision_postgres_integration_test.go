@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -183,26 +184,26 @@ func TestEscalationGuardRevisionKeepsApprovedPolicyLiveUntilCheckerActivation(t 
 
 func mustExecGovernanceRevision(t *testing.T, ctx context.Context, pool *pgxpool.Pool, sql string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, sql, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, sql, args...); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func cleanupGovernanceRevisionFixture(ctx context.Context, pool *pgxpool.Pool, tenantID string) {
-	_, _ = pool.Exec(ctx, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM governance_decisions WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM effective_authority_routes WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM routing_policy_versions WHERE policy_id IN (SELECT id FROM routing_policies WHERE tenant_id=$1::uuid)`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM routing_policies WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM directory_group_members WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM directory_group_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM directory_groups WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM scim_users WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM scim_sources WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM role_templates WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM governance_decisions WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM effective_authority_routes WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM routing_policy_versions WHERE policy_id IN (SELECT id FROM routing_policies WHERE tenant_id=$1::uuid)`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM routing_policies WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM directory_group_members WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM directory_group_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM directory_groups WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM scim_users WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM scim_sources WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM role_templates WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 }

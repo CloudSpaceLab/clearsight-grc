@@ -251,6 +251,7 @@ func buildWorker(ctx context.Context, cfg config.Config, logger *slog.Logger) (w
 	assessmentProvisioner.ConfigureAuthority(authorityService)
 	service.AddMaintainerClass(workflowruntime.WorkClassEvidenceMaintenance, evidenceService)
 	service.AddMaintainerClass(monitoring.CollectionRenewalWorkClass, collectionRenewal)
+	service.AddMaintainerClass(monitoring.AssessmentScheduleWorkClass, &monitoring.AssessmentScheduleMaintainer{Repository: monitoringRepository, Service: monitoring.NewService(monitoringRepository, evidenceService), Requests: evidenceService, Authority: authorityService})
 	service.AddMaintainerClass(workflowruntime.WorkClassProgramProjection, &continuity.ProjectionMaintainer{Service: continuityService, Repo: continuityRepository, WorkerID: cfg.WorkerID})
 	service.AddMaintainerClass(thirdparty.AssessmentSetupWorkClass, assessmentProvisioner)
 	refreshPolicy, _ := vendorRefreshWorkerSettings(cfg)

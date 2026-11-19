@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/monitoring"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -35,11 +36,11 @@ func TestPostgresDefaultComplianceFormPreservesScopedHistory(t *testing.T) {
 	tenant := rowID(`INSERT INTO tenants(slug,name) VALUES('compliance-form-'||uuidv7()::text,'Compliance form test') RETURNING id::text`)
 	defer func() {
 		for _, table := range []string{"outbox_events", "monitoring_events", "monitoring_form_templates", "programs", "principals", "legal_entities"} {
-			if _, err := pool.Exec(ctx, "DELETE FROM "+table+" WHERE tenant_id=$1::uuid", tenant); err != nil {
+			if _, err := testfixture.Exec(ctx, pool, "DELETE FROM "+table+" WHERE tenant_id=$1::uuid", tenant); err != nil {
 				t.Error(err)
 			}
 		}
-		if _, err := pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenant); err != nil {
+		if _, err := testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenant); err != nil {
 			t.Error(err)
 		}
 	}()

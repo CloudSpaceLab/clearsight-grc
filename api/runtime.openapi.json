@@ -3306,6 +3306,18 @@
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
+    "/api/v1/framework-catalog/program-usage": {
+      "get": {
+        "operationId": "listFrameworkProgramUsage",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/framework-catalog/reference-templates": {
+      "get": {
+        "operationId": "listFrameworkReferenceTemplates",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
     "/api/v1/programs/setup-candidates": {
       "get": {
         "operationId": "listProgramSetupCandidates",
@@ -3366,9 +3378,27 @@
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
+    "/api/v1/programs/{id}/standards/draft": {
+      "post": {
+        "operationId": "saveProgramFrameworkAdoptionDraft",
+        "x-clearsight-client": "clearsight2-grc",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
     "/api/v1/programs/{id}/standards/propose": {
       "post": {
         "operationId": "proposeProgramFrameworkAdoption",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/standards/{adoption_id}/questionnaire": {
+      "get": {
+        "operationId": "getFrameworkQuestionnaire",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      },
+      "post": {
+        "operationId": "selectFrameworkQuestionnaire",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -3435,6 +3465,33 @@
     "/api/v1/programs/{id}/requirements": {
       "post": {
         "operationId": "addProgramRequirement",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/requirements/{requirement_id}/review": {
+      "post": {
+        "operationId": "proposeRequirementReview",
+        "x-clearsight-client": "clearsight2-grc",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/requirement-reviews": {
+      "get": {
+        "operationId": "listRequirementReviews",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/requirement-reviews/{review_id}/approve": {
+      "post": {
+        "operationId": "approveRequirementReview",
+        "x-clearsight-client": "clearsight2-grc",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/requirement-reviews/{review_id}/reject": {
+      "post": {
+        "operationId": "rejectRequirementReview",
+        "x-clearsight-client": "clearsight2-grc",
         "x-clearsight-route-class": "MATERIAL_COMMAND"
       }
     },
@@ -3823,6 +3880,12 @@
     "/api/v1/form-templates": {
       "get": {
         "operationId": "listReusableFormTemplates",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/forms/validation-bindings/{binding_id}": {
+      "get": {
+        "operationId": "getFormValidationBinding",
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     },
@@ -4646,6 +4709,97 @@
       "get": {
         "operationId": "getEvidenceReviewSubmission",
         "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-schedules": {
+      "get": {
+        "operationId": "listAssessmentSchedules",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      },
+      "post": {
+        "operationId": "proposeAssessmentSchedule",
+        "x-clearsight-client": "clearsight2-grc",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-schedules/{schedule_id}/approve": {
+      "post": {
+        "operationId": "approveAssessmentSchedule",
+        "x-clearsight-client": "clearsight2-grc",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-schedules/{schedule_id}/stop": {
+      "post": {
+        "operationId": "stopAssessmentSchedule",
+        "x-clearsight-client": "clearsight2-grc",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-setup": {
+      "get": {
+        "operationId": "getAdoptedAssessmentSetup",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-responses/{request_id}": {
+      "get": {
+        "operationId": "getProgramAssessmentHistory",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/activity": {
+      "get": {
+        "operationId": "getProgramActivity",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-workspace": {
+      "get": {
+        "operationId": "getProgramAssessmentWorkspace",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/evidence/requests/{id}/submission": {
+      "get": {
+        "operationId": "getOwnAssessmentSubmission",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessments": {
+      "post": {
+        "operationId": "createAdoptedAssessment",
+        "x-clearsight-client": "clearsight2-grc",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-review-records/{review_id}": {
+      "get": {
+        "operationId": "getProgramAssessmentReview",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-reviews": {
+      "get": {
+        "operationId": "listProgramAssessmentReviews",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/programs/{id}/assessment-reviews/{request_id}": {
+      "post": {
+        "operationId": "reviewProgramAssessment",
+        "x-clearsight-client": "clearsight2-grc",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/evidence/requests/{id}/draft": {
+      "get": {
+        "operationId": "getInternalResponseDraft",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      },
+      "post": {
+        "operationId": "saveInternalResponseDraft",
+        "x-clearsight-route-class": "AUTHENTICATED_WRITE"
       }
     },
     "/api/v1/evidence/requests/{id}/recipient-candidates": {
@@ -5771,6 +5925,24 @@
     "/api/v1/monitoring-results/{result_id}": {
       "get": {
         "operationId": "getMonitoringResult",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/framework-catalog/reference-templates/{code}/requirements": {
+      "get": {
+        "operationId": "listFrameworkStarterRequirements",
+        "x-clearsight-route-class": "AUTHENTICATED_READ"
+      }
+    },
+    "/api/v1/framework-catalog/reference-templates/{code}/requirements/{requirement_code}": {
+      "post": {
+        "operationId": "updateFrameworkStarterRequirement",
+        "x-clearsight-route-class": "MATERIAL_COMMAND"
+      }
+    },
+    "/api/v1/programs/{id}/starter-respondent-units": {
+      "get": {
+        "operationId": "listStarterRespondentUnits",
         "x-clearsight-route-class": "AUTHENTICATED_READ"
       }
     }

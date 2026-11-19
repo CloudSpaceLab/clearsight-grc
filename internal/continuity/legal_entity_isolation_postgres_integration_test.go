@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -32,7 +33,7 @@ func TestPostgresCurrentAndReplayReadersEnforceLegalEntityScope(t *testing.T) {
 		entityA  = "98777777-7777-7777-8777-777777777772"
 		entityB  = "98777777-7777-7777-8777-777777777773"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'entity-scope-postgres','Entity Scope Test'); INSERT INTO legal_entities(id,tenant_id,code,name,jurisdiction) VALUES($2::uuid,$1::uuid,'ENTITY-A','Entity A','NG'),($3::uuid,$1::uuid,'ENTITY-B','Entity B','NG')`, pgx.QueryExecModeSimpleProtocol, tenantID, entityA, entityB); err != nil {
 		t.Fatal(err)

@@ -13,6 +13,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/aigateway"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -216,11 +217,13 @@ func cleanupAIGovernanceFixture(t *testing.T, pool *pgxpool.Pool) {
 		`DELETE FROM continuity_events WHERE tenant_id=$1::uuid`,
 		`DELETE FROM matter_decisions WHERE tenant_id=$1::uuid`,
 		`DELETE FROM matters WHERE tenant_id=$1::uuid`,
+		`DELETE FROM framework_starter_requirement_links WHERE tenant_id=$1::uuid`,
+		`DELETE FROM monitoring_form_templates WHERE tenant_id=$1::uuid`,
 		`DELETE FROM principals WHERE tenant_id=$1::uuid`,
 		`DELETE FROM legal_entities WHERE tenant_id=$1::uuid`,
 		`DELETE FROM tenants WHERE id=$1::uuid`,
 	} {
-		if _, err := pool.Exec(ctx, statement, aiGovernanceIntegrationTenantID); err != nil {
+		if _, err := testfixture.Exec(ctx, pool, statement, aiGovernanceIntegrationTenantID); err != nil {
 			// The first cleanup runs before fixture creation and should still succeed;
 			// fail loudly on real dependency/schema regressions.
 			t.Fatalf("fixture cleanup %q: %v", statement, err)

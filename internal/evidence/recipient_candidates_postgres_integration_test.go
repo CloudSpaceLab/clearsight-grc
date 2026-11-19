@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -174,7 +175,7 @@ func cleanupRecipientCandidatesPostgres(t *testing.T, ctx context.Context, pool 
 		`DELETE FROM legal_entities WHERE tenant_id=$1::uuid`,
 		`DELETE FROM tenants WHERE id=$1::uuid`,
 	} {
-		if _, err := pool.Exec(ctx, query, tenantID); err != nil {
+		if _, err := testfixture.Exec(ctx, pool, query, tenantID); err != nil {
 			t.Fatalf("cleanup recipient candidates: %v", err)
 		}
 	}
@@ -182,7 +183,7 @@ func cleanupRecipientCandidatesPostgres(t *testing.T, ctx context.Context, pool 
 
 func mustExecRecipientCandidate(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, query, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, query, args...); err != nil {
 		t.Fatal(err)
 	}
 }

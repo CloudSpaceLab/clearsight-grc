@@ -13,6 +13,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -283,26 +284,26 @@ func assertEscalatedTask(t *testing.T, ctx context.Context, pool *pgxpool.Pool, 
 }
 
 func cleanupEscalationFixture(ctx context.Context, pool *pgxpool.Pool, tenantID, policyID string) {
-	_, _ = pool.Exec(ctx, `DELETE FROM workflow_timers WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM inbox_receipts WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM workflow_events WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM workflow_tasks WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM workflow_instances WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM effective_authority_routes WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM routing_policy_versions WHERE policy_id=$1::uuid`, policyID)
-	_, _ = pool.Exec(ctx, `DELETE FROM routing_policies WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM role_templates WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM matters WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM workflow_timers WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM inbox_receipts WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM workflow_events WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM workflow_tasks WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM workflow_instances WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM effective_authority_routes WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM routing_policy_versions WHERE policy_id=$1::uuid`, policyID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM routing_policies WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM role_templates WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM matters WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 }
 
 func mustExecEscalation(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, query, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, query, args...); err != nil {
 		t.Fatal(err)
 	}
 }

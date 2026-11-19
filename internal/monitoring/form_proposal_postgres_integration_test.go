@@ -14,6 +14,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/documentimport"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -269,12 +270,12 @@ func testPostgresFormProposalAcceptanceIsAtomicAndAuditable(t *testing.T, useTen
 func cleanupFormProposalIntegration(ctx context.Context, pool *pgxpool.Pool, tenantID string) {
 	_, _ = pool.Exec(ctx, `DROP TRIGGER IF EXISTS form_proposal_accept_outbox_failure_test ON outbox_events`)
 	_, _ = pool.Exec(ctx, `DROP FUNCTION IF EXISTS form_proposal_accept_outbox_failure_test()`)
-	_, _ = pool.Exec(ctx, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM monitoring_events WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM form_template_proposals WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM monitoring_form_templates WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM document_imports WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM monitoring_events WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM form_template_proposals WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM monitoring_form_templates WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM document_imports WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 }

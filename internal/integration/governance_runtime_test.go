@@ -12,6 +12,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/governance"
 	workflowruntime "github.com/CloudSpaceLab/clearsight-grc/internal/runtime"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -177,7 +178,7 @@ func seedGovernanceRuntime(t *testing.T, pool *pgxpool.Pool) {
 		`INSERT INTO workflow_instances(id,tenant_id,kind,subject_type,subject_id,state,policy_version) VALUES('` + phase2WorkflowID + `','` + phase2TenantID + `','REVIEW','MATTER','` + phase2SubjectID + `','ACTIVE','phase2:v1')`,
 	}
 	for _, statement := range statements {
-		if _, err := pool.Exec(ctx, statement); err != nil {
+		if _, err := testfixture.Exec(ctx, pool, statement); err != nil {
 			t.Fatal(err)
 		}
 	}

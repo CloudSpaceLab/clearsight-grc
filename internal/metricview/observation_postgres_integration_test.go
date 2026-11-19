@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -34,10 +35,10 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		snapshotID    = "8f500000-0000-4000-8000-000000000003"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM metric_observations WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshots WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM metric_observations WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM oversight_snapshots WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })
@@ -299,7 +300,7 @@ func TestMetricObservationProjectionIsDurableIdempotentAndRepairable(t *testing.
 		t.Fatal("metric definition mutation was accepted")
 	}
 
-	if _, err := pool.Exec(ctx, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID); err != nil {
 		t.Fatalf("retained metric observation blocked source snapshot retention cleanup: %v", err)
 	}
 	if _, err := members.ListSnapshotMembers(

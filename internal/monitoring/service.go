@@ -80,15 +80,20 @@ type TransitionInput struct {
 }
 
 type StartCollectionInput struct {
-	FormTemplateID        string    `json:"form_template_id"`
-	FormTemplateVersion   int64     `json:"form_template_version"`
-	ProgramID             string    `json:"program_id"`
-	LegalEntityID         string    `json:"legal_entity_id"`
-	RespondentPrincipalID string    `json:"respondent_principal_id"`
-	ReviewerPrincipalID   string    `json:"reviewer_principal_id"`
-	PeriodStart           time.Time `json:"period_start"`
-	PeriodEnd             time.Time `json:"period_end"`
-	Deadline              time.Time `json:"deadline"`
+	AssessmentName         string    `json:"assessment_name,omitempty"`
+	AssessmentScheduleID   string    `json:"-"`
+	AdoptionID             string    `json:"adoption_id,omitempty"`
+	AssessmentKey          string    `json:"assessment_key,omitempty"`
+	ExpectedProgramVersion int64     `json:"expected_program_version,omitempty"`
+	FormTemplateID         string    `json:"form_template_id"`
+	FormTemplateVersion    int64     `json:"form_template_version"`
+	ProgramID              string    `json:"program_id"`
+	LegalEntityID          string    `json:"legal_entity_id"`
+	RespondentPrincipalID  string    `json:"respondent_principal_id"`
+	ReviewerPrincipalID    string    `json:"reviewer_principal_id"`
+	PeriodStart            time.Time `json:"period_start"`
+	PeriodEnd              time.Time `json:"period_end"`
+	Deadline               time.Time `json:"deadline"`
 }
 
 type CreateCheckInput struct {
@@ -490,6 +495,12 @@ func (s *Service) TransitionForm(ctx context.Context, actor Actor, input Transit
 }
 
 func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartCollectionInput) (evidence.Request, error) {
+	if input.AdoptionID != "" {
+		return s.startAdoptedAssessment(ctx, actor, input)
+	}
+	if err := validateAssessmentName(input.AssessmentName); err != nil {
+		return evidence.Request{}, err
+	}
 	if err := validateActor(actor); err != nil {
 		return evidence.Request{}, err
 	}
@@ -545,7 +556,7 @@ func (s *Service) StartCollection(ctx context.Context, actor Actor, input StartC
 	periodStart := input.PeriodStart.UTC()
 	periodEnd := input.PeriodEnd.UTC()
 	return s.requests.CreateRequest(ctx, evidence.CreateRequestInput{
-		TenantID: actor.TenantID, LegalEntityID: input.LegalEntityID, SubjectType: "PROGRAM", SubjectID: input.ProgramID, Title: form.Name,
+		TenantID: actor.TenantID, LegalEntityID: input.LegalEntityID, SubjectType: "PROGRAM", SubjectID: input.ProgramID, Title: assessmentName(input.AssessmentName, form.Name),
 		Purpose: form.Purpose, WhyYou: "You are responsible for completing this control review.",
 		Sensitivity: "INTERNAL", AudienceType: "INTERNAL",
 		Recipient:        evidence.RecipientInput{Type: evidence.RecipientInternalPrincipal, PrincipalID: input.RespondentPrincipalID},

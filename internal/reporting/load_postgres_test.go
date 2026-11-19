@@ -390,6 +390,8 @@ func (f *reportLoadPostgresFixture) cleanup() {
 		`DELETE FROM ropa_processing_activities WHERE tenant_id=$1::uuid`,
 		`DELETE FROM ropa_register_summary WHERE tenant_id=$1::uuid`,
 		`DELETE FROM matters WHERE tenant_id=$1::uuid`,
+		`DELETE FROM framework_starter_requirement_links WHERE tenant_id=$1::uuid`,
+		`DELETE FROM monitoring_form_templates WHERE tenant_id=$1::uuid`,
 		`DELETE FROM programs WHERE tenant_id=$1::uuid`,
 		`DELETE FROM legal_entities WHERE tenant_id=$1::uuid`,
 		`DELETE FROM principals WHERE tenant_id=$1::uuid`,

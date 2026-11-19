@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -30,8 +31,8 @@ func TestPostgresRelationshipRetirementCommitsCurrentProjectionEventOutboxAndRef
 		ownerID     = "94666666-6666-7666-8666-666666666663"
 		authorityID = "94666666-6666-7666-8666-666666666664"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
-	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	t.Cleanup(func() { _, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'relationship-retirement-test','Relationship Retirement Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}

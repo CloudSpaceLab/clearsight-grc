@@ -854,6 +854,8 @@ func cleanupReportingTenant(ctx context.Context, pool *pgxpool.Pool, tenantID st
 	_, _ = pool.Exec(ctx, `DELETE FROM verification_contracts WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM matter_actions WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM matters WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `DELETE FROM framework_starter_requirement_links WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = pool.Exec(ctx, `DELETE FROM monitoring_form_templates WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM programs WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM ropa_register_summary WHERE tenant_id=$1::uuid`, tenantID)
 	_, _ = pool.Exec(ctx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)

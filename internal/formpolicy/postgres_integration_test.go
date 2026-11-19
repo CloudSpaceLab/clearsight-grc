@@ -209,6 +209,7 @@ func cleanupPolicyFixture(t *testing.T, pool *pgxpool.Pool) {
 		DELETE FROM capture_requests WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM capture_form_distributions WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM automation_policies WHERE tenant_id IN ($1::uuid,$2::uuid);
+		DELETE FROM framework_starter_requirement_links WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM monitoring_form_templates WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM principals WHERE tenant_id IN ($1::uuid,$2::uuid);
 		DELETE FROM legal_entities WHERE tenant_id IN ($1::uuid,$2::uuid);

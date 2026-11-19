@@ -10,6 +10,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/workflow"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -27,7 +28,7 @@ func TestPostgresDemoMatterArchiveFiltersWorkBeforePagination(t *testing.T) {
 	defer pool.Close()
 	exec := func(query string, args ...any) {
 		t.Helper()
-		if _, err := pool.Exec(ctx, query, args...); err != nil {
+		if _, err := testfixture.Exec(ctx, pool, query, args...); err != nil {
 			t.Fatal(err)
 		}
 	}

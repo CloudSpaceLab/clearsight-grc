@@ -331,6 +331,12 @@ func (a *API) addProgramRequirement(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
+	// User-created requirements must pass the separate review workflow.
+	if input.Status != "" && input.Status != continuity.RequirementDraft {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "New requirements must be drafts and approved through review.")
+		return
+	}
+	input.Status = continuity.RequirementDraft
 	input.ProgramID = r.PathValue("id")
 	value, err := service.AddRequirement(r.Context(), input)
 	a.writeProgramResult(w, r, value, err, http.StatusCreated, nil)
@@ -607,6 +613,24 @@ func (a *API) createMatter(w http.ResponseWriter, r *http.Request) {
 	}
 	if !a.validateMatterOrganizationScope(w, r, input.OrganizationScopeID) {
 		return
+	}
+	if input.SourceType == "ASSESSMENT_REVIEW" {
+		if _, _, err := a.bindMonitoringProgram(r, input.ProgramID); err != nil {
+			writeMonitoringScopeError(w, err)
+			return
+		}
+		capture, ok := a.evidenceService(w)
+		if !ok {
+			return
+		}
+		review, err := capture.ProgramSubmissionReview(r.Context(), input.ProgramID, input.SourceID)
+		if writeAssessmentResponseError(w, err) {
+			return
+		}
+		if review.Status != "FOLLOW_UP_REQUIRED" || input.Type != continuity.MatterControlGap {
+			httpx.WriteError(w, 422, "invalid_review_source", "Select a review requiring follow-up for this control gap.")
+			return
+		}
 	}
 	value, err := service.CreateMatter(r.Context(), input)
 	writeContinuityResult(w, value, err, http.StatusCreated)

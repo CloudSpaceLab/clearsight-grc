@@ -164,6 +164,7 @@ type RequestBindingReference struct {
 }
 
 type AnswerProvenance struct {
+	ExpiresAt            *time.Time                     `json:"expires_at,omitempty"`
 	Origin               AnswerOrigin                   `json:"origin"`
 	BindingID            string                         `json:"binding_id,omitempty"`
 	BindingVersion       int64                          `json:"binding_version,omitempty"`
@@ -192,6 +193,12 @@ type RecordBaseline struct {
 }
 
 type Field struct {
+	ValidationBinding    *formcontract.ValidationBinding   `json:"validation_binding,omitempty"`
+	AnswerValidityDays   int                               `json:"answer_validity_days,omitempty"`
+	Rows                 []string                          `json:"rows,omitempty"`
+	Columns              []string                          `json:"columns,omitempty"`
+	ScaleMax             int                               `json:"scale_max,omitempty"`
+	Image                *formcontract.QuestionImage       `json:"image,omitempty"`
 	CollectionReceived   bool                              `json:"collection_received,omitempty"`
 	CollectionResolution *CollectionResolution             `json:"collection_resolution,omitempty"`
 	Assessment           *formcontract.FieldAssessment     `json:"assessment,omitempty"`
@@ -257,38 +264,40 @@ type RecipientInput struct {
 }
 
 type Request struct {
-	ID                    string                           `json:"id"`
-	TenantID              string                           `json:"tenant_id"`
-	LegalEntityID         string                           `json:"legal_entity_id"`
-	SubjectType           string                           `json:"subject_type"`
-	SubjectID             string                           `json:"subject_id"`
-	Title                 string                           `json:"title"`
-	Purpose               string                           `json:"purpose"`
-	WhyYou                string                           `json:"why_you"`
-	Sensitivity           string                           `json:"sensitivity"`
-	AudienceType          string                           `json:"audience_type"`
-	Recipient             Recipient                        `json:"recipient"`
-	EstimatedMinutes      int                              `json:"estimated_minutes"`
-	Deadline              time.Time                        `json:"deadline"`
-	KnownFacts            map[string]string                `json:"known_facts"`
-	Presentation          formcontract.Presentation        `json:"presentation"`
-	ScoringMode           formcontract.ScoringMode         `json:"scoring_mode,omitempty"`
-	ScoreProfile          *formcontract.ScoreProfile       `json:"score_profile,omitempty"`
-	Sections              []formcontract.Section           `json:"sections"`
-	Fields                []Field                          `json:"fields"`
-	SourceBindings        []RequestBindingReference        `json:"source_bindings,omitempty"`
-	FormTemplateID        string                           `json:"form_template_id,omitempty"`
-	FormTemplateVersion   int64                            `json:"form_template_version,omitempty"`
-	CollectionPeriodStart *time.Time                       `json:"collection_period_start,omitempty"`
-	CollectionPeriodEnd   *time.Time                       `json:"collection_period_end,omitempty"`
-	Origin                RequestOrigin                    `json:"origin,omitempty"`
-	PredecessorRequestID  string                           `json:"predecessor_request_id,omitempty"`
-	PreviousResponses     map[string]PreviousResponseValue `json:"previous_responses,omitempty"`
-	Status                RequestStatus                    `json:"status"`
-	CreatedBy             string                           `json:"created_by,omitempty"`
-	Version               int64                            `json:"version"`
-	CreatedAt             time.Time                        `json:"created_at"`
-	UpdatedAt             time.Time                        `json:"updated_at"`
+	LatestAssessmentSubmissionID string                           `json:"latest_assessment_submission_id,omitempty"`
+	LatestAssessmentRevision     int64                            `json:"latest_assessment_revision,omitempty"`
+	ID                           string                           `json:"id"`
+	TenantID                     string                           `json:"tenant_id"`
+	LegalEntityID                string                           `json:"legal_entity_id"`
+	SubjectType                  string                           `json:"subject_type"`
+	SubjectID                    string                           `json:"subject_id"`
+	Title                        string                           `json:"title"`
+	Purpose                      string                           `json:"purpose"`
+	WhyYou                       string                           `json:"why_you"`
+	Sensitivity                  string                           `json:"sensitivity"`
+	AudienceType                 string                           `json:"audience_type"`
+	Recipient                    Recipient                        `json:"recipient"`
+	EstimatedMinutes             int                              `json:"estimated_minutes"`
+	Deadline                     time.Time                        `json:"deadline"`
+	KnownFacts                   map[string]string                `json:"known_facts"`
+	Presentation                 formcontract.Presentation        `json:"presentation"`
+	ScoringMode                  formcontract.ScoringMode         `json:"scoring_mode,omitempty"`
+	ScoreProfile                 *formcontract.ScoreProfile       `json:"score_profile,omitempty"`
+	Sections                     []formcontract.Section           `json:"sections"`
+	Fields                       []Field                          `json:"fields"`
+	SourceBindings               []RequestBindingReference        `json:"source_bindings,omitempty"`
+	FormTemplateID               string                           `json:"form_template_id,omitempty"`
+	FormTemplateVersion          int64                            `json:"form_template_version,omitempty"`
+	CollectionPeriodStart        *time.Time                       `json:"collection_period_start,omitempty"`
+	CollectionPeriodEnd          *time.Time                       `json:"collection_period_end,omitempty"`
+	Origin                       RequestOrigin                    `json:"origin,omitempty"`
+	PredecessorRequestID         string                           `json:"predecessor_request_id,omitempty"`
+	PreviousResponses            map[string]PreviousResponseValue `json:"previous_responses,omitempty"`
+	Status                       RequestStatus                    `json:"status"`
+	CreatedBy                    string                           `json:"created_by,omitempty"`
+	Version                      int64                            `json:"version"`
+	CreatedAt                    time.Time                        `json:"created_at"`
+	UpdatedAt                    time.Time                        `json:"updated_at"`
 }
 
 type CreateRequestInput struct {
@@ -341,6 +350,9 @@ type ReassignRecipientInput struct {
 }
 
 type Submission struct {
+	Correction       *AssessmentCorrection               `json:"correction,omitempty"`
+	Revision         int64                               `json:"revision,omitempty"`
+	CorrectionOf     string                              `json:"correction_of,omitempty"`
 	ID               string                              `json:"id"`
 	TenantID         string                              `json:"tenant_id"`
 	LegalEntityID    string                              `json:"legal_entity_id,omitempty"`
@@ -355,6 +367,7 @@ type Submission struct {
 }
 
 type SubmissionReceipt struct {
+	Revision     int64         `json:"revision,omitempty"`
 	SubmissionID string        `json:"submission_id"`
 	RequestID    string        `json:"request_id"`
 	Status       RequestStatus `json:"status"`
@@ -485,22 +498,24 @@ const (
 )
 
 type Artifact struct {
-	DemoUnscannedAllowed bool           `json:"demo_unscanned_allowed,omitempty"`
-	ID                   string         `json:"id"`
-	TenantID             string         `json:"tenant_id"`
-	RequestID            string         `json:"request_id"`
-	SubmissionID         string         `json:"submission_id,omitempty"`
-	FileName             string         `json:"file_name"`
-	MediaType            string         `json:"media_type"`
-	SizeBytes            int64          `json:"size_bytes"`
-	SHA256               string         `json:"sha256"`
-	StorageKey           string         `json:"storage_key"`
-	Status               ArtifactStatus `json:"status"`
-	CreatedBy            string         `json:"created_by,omitempty"`
-	CreatedAt            time.Time      `json:"created_at"`
+	Correction           *AssessmentCorrection `json:"-"`
+	DemoUnscannedAllowed bool                  `json:"demo_unscanned_allowed,omitempty"`
+	ID                   string                `json:"id"`
+	TenantID             string                `json:"tenant_id"`
+	RequestID            string                `json:"request_id"`
+	SubmissionID         string                `json:"submission_id,omitempty"`
+	FileName             string                `json:"file_name"`
+	MediaType            string                `json:"media_type"`
+	SizeBytes            int64                 `json:"size_bytes"`
+	SHA256               string                `json:"sha256"`
+	StorageKey           string                `json:"storage_key"`
+	Status               ArtifactStatus        `json:"status"`
+	CreatedBy            string                `json:"created_by,omitempty"`
+	CreatedAt            time.Time             `json:"created_at"`
 }
 
 type ArtifactInput struct {
+	Correction   *AssessmentCorrection
 	TenantID     string
 	RequestID    string
 	FieldID      string

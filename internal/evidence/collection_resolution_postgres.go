@@ -28,7 +28,7 @@ func ReadCollectionSourcePostgres(ctx context.Context, tx pgx.Tx, q DocumentQuer
 	if err := tx.QueryRow(ctx, `SELECT ar.id::text FROM capture_artifacts ar JOIN capture_submissions s ON s.tenant_id=ar.tenant_id AND s.id=$3::uuid JOIN capture_requests req ON req.tenant_id=s.tenant_id AND req.id=s.request_id WHERE ar.tenant_id=$1::uuid AND ar.id=$2::uuid AND req.legal_entity_id=$4::uuid FOR SHARE OF ar,s,req`, q.TenantID, q.ArtifactID, q.SubmissionID, q.LegalEntityID).Scan(&locked); err != nil {
 		return DocumentOccurrence{}, ErrNotFound
 	}
-	rows, err := tx.Query(ctx, documentInventorySQL(), q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), "", q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, "", "", time.Time{}, "", q.SubmissionID, q.FieldID, q.ArtifactID, 2, false)
+	rows, err := tx.Query(ctx, documentInventorySQL(), q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), "", q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, "", "", time.Time{}, "", q.SubmissionID, q.FieldID, q.ArtifactID, 2, false, q.ProgramID)
 	if err != nil {
 		return DocumentOccurrence{}, err
 	}

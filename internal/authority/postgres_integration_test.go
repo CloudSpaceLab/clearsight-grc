@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -37,7 +38,7 @@ func TestPostgresEffectiveAuthorityDelegationGrantAndSegregation(t *testing.T) {
 		positionID = "84444444-4444-7444-8444-444444444449"
 		bindingID  = "84444444-4444-7444-8444-444444444450"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	now := time.Now().UTC().Truncate(time.Second)
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'authority-effective-test','Authority Effective Test')`, tenantID); err != nil {
@@ -167,7 +168,7 @@ func TestPostgresEffectiveAuthorityAssignmentAndAmbiguity(t *testing.T) {
 		secondID = "85555555-5555-7555-8555-555555555554"
 		objectID = "85555555-5555-7555-8555-555555555555"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	now := time.Now().UTC().Truncate(time.Second)
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'authority-assignment-test','Authority Assignment Test')`, tenantID); err != nil {

@@ -39,7 +39,7 @@ func (s *PostgresDistributionStore) ListDocuments(ctx context.Context, q Documen
 	if err != nil {
 		return DocumentPage{}, err
 	}
-	for _, value := range []string{q.LegalEntityID, q.PrincipalID, q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.SubmissionID, q.ArtifactID} {
+	for _, value := range []string{q.ProgramID, q.LegalEntityID, q.PrincipalID, q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.SubmissionID, q.ArtifactID} {
 		if value != "" {
 			var parsed pgtype.UUID
 			if parsed.Scan(value) != nil {
@@ -47,7 +47,7 @@ func (s *PostgresDistributionStore) ListDocuments(ctx context.Context, q Documen
 			}
 		}
 	}
-	rows, err := s.repo.pool.Query(ctx, documentInventorySQL(), q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, string(q.FileKind), q.Query, cursor.SubmittedAt, cursor.ID, q.SubmissionID, q.FieldID, q.ArtifactID, q.Limit+1, q.assessmentRead)
+	rows, err := s.repo.pool.Query(ctx, documentInventorySQL(), q.TenantID, q.LegalEntityID, q.PrincipalID, time.Now().UTC(), q.FormTemplateID, q.RelationshipID, q.ResponseRevisionID, q.CurrentOnly, string(q.FileKind), q.Query, cursor.SubmittedAt, cursor.ID, q.SubmissionID, q.FieldID, q.ArtifactID, q.Limit+1, q.assessmentRead, q.ProgramID)
 	if err != nil {
 		return DocumentPage{}, err
 	}
@@ -83,13 +83,15 @@ func documentInventorySQL() string {
  req.title AS form_title,field->>'label' AS field_label,artifact.file_name,artifact.media_type,
  ` + documentKindSQL("artifact.media_type") + ` AS file_kind,
  artifact.size_bytes,artifact.sha256,artifact.status AS artifact_status,artifact.created_at AS uploaded_at,artifact.created_by::text AS uploaded_by,
+ submission.assessment_revision, (SELECT person.display_name FROM principals person WHERE person.tenant_id=req.tenant_id AND person.id=submission.submitted_by) AS submitted_by_name,
  submission.submitted_at,submission.submitted_by::text AS submitted_by,submission.channel AS submission_channel,
+ submission.answer_provenance->(field->>'id')->>'expires_at' AS answer_expires_at,
  COALESCE(review.expires_on::text,submission.answers->(field->>'id')->'document'->>'expires_on','') AS expires_on,
  ` + documentCurrentSQL() + ` AS current,
  CASE WHEN review.id IS NOT NULL THEN jsonb_build_object('id',review.id::text,'status',review.status,'reviewed_by',review.validated_by_principal_id::text,'reviewed_at',review.validated_at,'source','VENDOR_ASSESSMENT') END AS review,
  artifact.request_id::text AS artifact_request_id
  ` + documentSubmissionJoinsSQL() + `
- JOIN LATERAL jsonb_array_elements(req.fields) field ON field->>'type' IN ('file','photo','vendor_document')
+ JOIN LATERAL jsonb_array_elements(req.fields) field ON (field->>'type' IN ('file','photo','vendor_document') OR (field->>'type'='signature' AND (` + internalAssessmentDocumentSQL + `)))
  JOIN LATERAL (
  SELECT DISTINCT value AS artifact_id FROM jsonb_array_elements_text(
  CASE WHEN field->>'type'='vendor_document' THEN CASE WHEN submission.answers->(field->>'id')->'document'->>'artifact_id' IS NOT NULL THEN jsonb_build_array(submission.answers->(field->>'id')->'document'->>'artifact_id') ELSE '[]'::jsonb END
@@ -101,6 +103,7 @@ func documentInventorySQL() string {
  LEFT JOIN third_party_documents review ON review.tenant_id=req.tenant_id AND review.legal_entity_id=req.legal_entity_id AND review.assessment_id=assessment.id AND review.request_id=req.id AND review.artifact_id=artifact.id AND artifact.submission_id=submission.id
  WHERE (t.id::text=$1 OR t.slug=$1) AND req.legal_entity_id=$2::uuid
  AND ` + documentRevisionScopeSQL() + `
+ AND ($18='' OR (req.subject_type='PROGRAM' AND req.subject_id=$18))
  AND ($5='' OR req.form_template_id=NULLIF($5,'')::uuid) AND ($7='' OR r.id=NULLIF($7,'')::uuid)
  AND ($13='' OR submission.id=NULLIF($13,'')::uuid) AND ($14='' OR field->>'id'=$14) AND ($15='' OR artifact.id=NULLIF($15,'')::uuid)
  AND ((` + documentReadAuthoritySQL() + `) OR ($17::boolean AND $7<>'' AND r.id=NULLIF($7,'')::uuid AND (` + vendorAssessmentCandidateSQL() + `)))
@@ -144,6 +147,9 @@ func documentReadAuthoritySQLAt(principal, at int) string {
 	principalSQL := fmt.Sprintf("$%d", principal)
 	subjectVisibility := strings.ReplaceAll(completedResponseSubjectVisibilitySQL(principalSQL, fmt.Sprintf("$%d", at)), "ELSE true", "ELSE false")
 	return `CASE
+ WHEN ` + internalAssessmentDocumentSQL + ` THEN req.subject_type='PROGRAM'
+ AND EXISTS(SELECT 1 FROM programs p WHERE p.id::text=req.subject_id AND p.tenant_id=req.tenant_id AND p.legal_entity_id=req.legal_entity_id
+ AND (p.owner_principal_id::text=` + principalSQL + ` OR p.authority_principal_id::text=` + principalSQL + ` OR (req.recipient_principal_id::text=` + principalSQL + ` AND req.recipient_state='ASSIGNED')))
  WHEN req.origin_type='THIRD_PARTY_ASSESSMENT' THEN assessment.id IS NOT NULL AND (assessment.started_by_principal_id::text=` + principalSQL + ` OR relationship.business_owner_principal_id::text=` + principalSQL + ` OR ` + assessmentRoute + `)
  WHEN req.origin_type='THIRD_PARTY_WORK' THEN work.id IS NOT NULL
  AND CASE work.target_type
@@ -158,8 +164,12 @@ func documentReadAuthoritySQLAt(principal, at int) string {
 // answer for a requested field. Pending captures cannot retire prior evidence.
 // Separate workflow distributions therefore do not use their local is_current
 // flags to classify the merged work/assessment response.
+const internalAssessmentDocumentSQL = `req.subject_type='PROGRAM' AND (req.origin_type='FRAMEWORK_ASSESSMENT'
+ OR (req.form_template_id IS NOT NULL AND req.distribution_id IS NULL AND req.audience_type='INTERNAL'
+ AND req.known_facts->>'reviewer'<>'' AND submission.channel='INTERNAL' AND submission.session_id IS NULL))`
+
 func documentCurrentSQL() string {
-	return `CASE WHEN req.origin_type IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') THEN NOT EXISTS (
+	return `CASE WHEN ` + internalAssessmentDocumentSQL + ` THEN submission.id=(` + assessmentLatestSubmission + `) WHEN req.origin_type IN ('THIRD_PARTY_ASSESSMENT','THIRD_PARTY_WORK') THEN NOT EXISTS (
  SELECT 1 FROM capture_requests newer
  JOIN capture_submissions newer_submission ON newer_submission.request_id=newer.id AND newer_submission.tenant_id=newer.tenant_id
  LEFT JOIN capture_response_revisions newer_revision ON newer_revision.submission_id=newer_submission.id AND newer_revision.tenant_id=newer.tenant_id AND newer_revision.legal_entity_id=newer.legal_entity_id

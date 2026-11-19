@@ -211,6 +211,12 @@ type Constraints struct {
 type Type string
 
 const (
+	TypeGridRadio      Type = "grid_radio"
+	TypeGridCheckbox   Type = "grid_checkbox"
+	TypeRating         Type = "rating"
+	TypeLinearScale    Type = "linear_scale"
+	TypeTime           Type = "time"
+	TypeDropdown       Type = "dropdown"
 	TypeShortText      Type = "short_text"
 	TypeLongText       Type = "long_text"
 	TypeEmail          Type = "email"
@@ -240,7 +246,25 @@ type Scoring struct {
 	CriticalAnswers []string       `json:"critical_answers,omitempty"`
 }
 
+type QuestionImage struct {
+	Data string `json:"data"`
+	Alt  string `json:"alt"`
+}
+
+// ValidationBinding pins a source lookup for an internal Program assessment.
+type ValidationBinding struct {
+	BindingID      string `json:"binding_id"`
+	BindingVersion int64  `json:"binding_version"`
+	ValueField     string `json:"value_field"`
+}
+
 type Field struct {
+	AnswerValidityDays int                  `json:"answer_validity_days,omitempty"`
+	ValidationBinding  *ValidationBinding   `json:"validation_binding,omitempty"`
+	Rows               []string             `json:"rows,omitempty"`
+	Columns            []string             `json:"columns,omitempty"`
+	ScaleMax           int                  `json:"scale_max,omitempty"`
+	Image              *QuestionImage       `json:"image,omitempty"`
 	Assessment         *FieldAssessment     `json:"assessment,omitempty"`
 	ID                 string               `json:"id"`
 	SectionID          string               `json:"section_id"`

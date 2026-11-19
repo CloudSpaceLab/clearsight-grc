@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/oversight"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -35,16 +36,16 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	const programID = "8f610000-0000-4000-8000-000000000009"
 	const programMemberID = "8f610000-0000-4000-8000-00000000000a"
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM metric_runtime_membership_sets WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_memberships WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshot_metric_membership_sets WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM matters WHERE id=$1::uuid`, matterID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM programs WHERE id=$1::uuid`, programID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM organization_scopes WHERE id=$1::uuid`, organizationScopeID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE id IN ($1::uuid,$2::uuid)`, principalA, principalB)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE id=$1::uuid`, entityID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM metric_runtime_membership_sets WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM oversight_snapshot_metric_memberships WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM oversight_snapshot_metric_membership_sets WHERE oversight_snapshot_id=$1::uuid`, snapshotID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM oversight_snapshots WHERE id=$1::uuid`, snapshotID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM matters WHERE id=$1::uuid`, matterID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM programs WHERE id=$1::uuid`, programID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM organization_scopes WHERE id=$1::uuid`, organizationScopeID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM principals WHERE id IN ($1::uuid,$2::uuid)`, principalA, principalB)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE id=$1::uuid`, entityID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })
@@ -52,7 +53,7 @@ func TestMetricMembershipRetainsHistoricalCountButRedactsChangedMatterAccess(t *
 	now := time.Date(2026, 10, 4, 12, 0, 0, 0, time.UTC)
 	mustExec := func(query string, args ...any) {
 		t.Helper()
-		if _, execErr := pool.Exec(ctx, query, args...); execErr != nil {
+		if _, execErr := testfixture.Exec(ctx, pool, query, args...); execErr != nil {
 			t.Fatal(execErr)
 		}
 	}

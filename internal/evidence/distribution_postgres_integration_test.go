@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -334,8 +335,8 @@ func setupDistributionFixture(t *testing.T, ctx context.Context, pool *pgxpool.P
 }
 
 func cleanupDistributionTenant(ctx context.Context, pool *pgxpool.Pool, tenantID string) {
-	_, _ = pool.Exec(ctx, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 }
 
 func cleanupDistributionFailureTrigger(ctx context.Context, pool *pgxpool.Pool) {

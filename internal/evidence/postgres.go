@@ -383,7 +383,15 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	if err != nil {
 		return SubmissionReceipt{}, err
 	}
-	if !requestOpenAt(request, submission.SubmittedAt) {
+	var base Submission
+	revision := int64(1)
+	if submission.Correction != nil {
+		base, err = readAssessmentCorrectionBase(ctx, tx, request.TenantID, request.ID, submission.SubmittedBy, *submission.Correction)
+		if err != nil {
+			return SubmissionReceipt{}, err
+		}
+		revision = base.Revision + 1
+	} else if !requestOpenAt(request, submission.SubmittedAt) {
 		return SubmissionReceipt{}, ErrRequestClosed
 	}
 	if request.Version != submission.ExpectedVersion {
@@ -392,6 +400,9 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	artifactIDs, err := submissionArtifactIDs(request, submission.Answers)
 	if err != nil {
 		return SubmissionReceipt{}, err
+	}
+	if submission.Correction != nil {
+		artifactIDs = correctionUploads(request, base, submission)
 	}
 	answers, err := json.Marshal(submission.Answers)
 	if err != nil {
@@ -405,7 +416,7 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	if err != nil {
 		return SubmissionReceipt{}, err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO capture_submissions(id,tenant_id,request_id,session_id,submitted_by,channel,answers,answer_provenance,submitted_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,$6,$7::jsonb,$8::jsonb,$9)`, submission.ID, submission.TenantID, submission.RequestID, submission.SessionID, submission.SubmittedBy, submission.Channel, string(answers), string(answerProvenance), submission.SubmittedAt)
+	_, err = tx.Exec(ctx, `INSERT INTO capture_submissions(id,tenant_id,request_id,session_id,submitted_by,channel,answers,answer_provenance,submitted_at,assessment_revision,correction_of) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,NULLIF($5,'')::uuid,$6,$7::jsonb,$8::jsonb,$9,$10,NULLIF($11,'')::uuid)`, submission.ID, submission.TenantID, submission.RequestID, submission.SessionID, submission.SubmittedBy, submission.Channel, string(answers), string(answerProvenance), submission.SubmittedAt, revision, base.ID)
 	if err != nil {
 		return SubmissionReceipt{}, err
 	}
@@ -413,8 +424,9 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 		result, bindErr := tx.Exec(ctx, `
 			UPDATE capture_artifacts SET submission_id=$3::uuid
 			WHERE tenant_id=(SELECT id FROM tenants WHERE id::text=$1 OR slug=$1)
-			  AND request_id=$2::uuid AND submission_id IS NULL AND id::text=ANY($4::text[])`,
-			submission.TenantID, submission.RequestID, submission.ID, artifactIDs)
+			  AND request_id=$2::uuid AND submission_id IS NULL AND id::text=ANY($4::text[])
+			  AND (NOT $5::boolean OR created_by::text=$6)`,
+			submission.TenantID, submission.RequestID, submission.ID, artifactIDs, submission.Correction != nil, submission.SubmittedBy)
 		if bindErr != nil {
 			return SubmissionReceipt{}, bindErr
 		}
@@ -426,7 +438,7 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 	if err := tx.QueryRow(ctx, `UPDATE capture_requests SET status='SUBMITTED',version=version+1,updated_at=$3 WHERE id=$1::uuid AND tenant_id=(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2) RETURNING version`, submission.RequestID, submission.TenantID, submission.SubmittedAt).Scan(&version); err != nil {
 		return SubmissionReceipt{}, err
 	}
-	if _, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'EVIDENCE_REQUEST',$2::uuid,'EvidenceResponseSubmitted',jsonb_build_object('submission_id',$3::text,'channel',$4::text),$5,$5,$5)`, submission.TenantID, submission.RequestID, submission.ID, submission.Channel, submission.SubmittedAt); err != nil {
+	if _, err = tx.Exec(ctx, `INSERT INTO outbox_events(tenant_id,aggregate_type,aggregate_id,event_type,payload,occurred_at,available_at,next_attempt_at) VALUES((SELECT id FROM tenants WHERE id::text=$1 OR slug=$1),'EVIDENCE_REQUEST',$2::uuid,'EvidenceResponseSubmitted',jsonb_build_object('submission_id',$3::text,'channel',$4::text,'revision',$6::bigint),$5,$5,$5)`, submission.TenantID, submission.RequestID, submission.ID, submission.Channel, submission.SubmittedAt, revision); err != nil {
 		return SubmissionReceipt{}, err
 	}
 	if submission.SessionID != "" {
@@ -436,59 +448,54 @@ func (r *PostgresRepository) Submit(ctx context.Context, submission Submission) 
 			return SubmissionReceipt{}, err
 		}
 	}
+	if submission.Correction != nil {
+		if _, err = tx.Exec(ctx, `DELETE FROM capture_response_drafts
+			WHERE tenant_id=$1::uuid AND request_id=$2::uuid AND principal_id::text=$3`,
+			request.TenantID, request.ID, submission.SubmittedBy); err != nil {
+			return SubmissionReceipt{}, err
+		}
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return SubmissionReceipt{}, err
 	}
-	return SubmissionReceipt{SubmissionID: submission.ID, RequestID: submission.RequestID, Status: RequestSubmitted, SubmittedAt: submission.SubmittedAt, Version: version}, nil
+	return SubmissionReceipt{Revision: revision, SubmissionID: submission.ID, RequestID: submission.RequestID, Status: RequestSubmitted, SubmittedAt: submission.SubmittedAt, Version: version}, nil
+}
+
+const assessmentSubmissionColumns = `sub.id::text,sub.tenant_id::text,sub.request_id::text,
+ COALESCE(sub.session_id::text,''),COALESCE(sub.submitted_by::text,''),sub.channel,sub.answers,
+ sub.answer_provenance,sub.submitted_at,sub.assessment_revision,COALESCE(sub.correction_of::text,'')`
+
+func scanSubmission(row scanner) (Submission, error) {
+	var value Submission
+	var answers, provenance []byte
+	err := row.Scan(&value.ID, &value.TenantID, &value.RequestID, &value.SessionID, &value.SubmittedBy,
+		&value.Channel, &answers, &provenance, &value.SubmittedAt, &value.Revision, &value.CorrectionOf)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Submission{}, ErrNotFound
+	}
+	if err != nil {
+		return Submission{}, err
+	}
+	if err := json.Unmarshal(answers, &value.Answers); err != nil {
+		return Submission{}, err
+	}
+	if err := json.Unmarshal(provenance, &value.AnswerProvenance); err != nil {
+		return Submission{}, err
+	}
+	return value, nil
 }
 
 func (r *PostgresRepository) GetSubmission(ctx context.Context, tenant, id string) (Submission, error) {
-	var value Submission
-	var answers, provenance []byte
-	err := r.pool.QueryRow(ctx, `
-		SELECT s.id::text,s.tenant_id::text,s.request_id::text,COALESCE(s.session_id::text,''),COALESCE(s.submitted_by::text,''),s.channel,s.answers,s.answer_provenance,s.submitted_at
-		FROM capture_submissions s JOIN tenants t ON t.id=s.tenant_id
-		WHERE (t.id::text=$1 OR t.slug=$1) AND s.id=$2::uuid`, tenant, id).Scan(
-		&value.ID, &value.TenantID, &value.RequestID, &value.SessionID, &value.SubmittedBy, &value.Channel, &answers, &provenance, &value.SubmittedAt,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Submission{}, ErrNotFound
-	}
-	if err != nil {
-		return Submission{}, err
-	}
-	if err := json.Unmarshal(answers, &value.Answers); err != nil {
-		return Submission{}, err
-	}
-	if err := json.Unmarshal(provenance, &value.AnswerProvenance); err != nil {
-		return Submission{}, err
-	}
-	return value, nil
+	return scanSubmission(r.pool.QueryRow(ctx, `SELECT `+assessmentSubmissionColumns+`
+		FROM capture_submissions sub JOIN tenants t ON t.id=sub.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND sub.id=$2::uuid`, tenant, id))
 }
 
 func (r *PostgresRepository) GetSubmissionForRequest(ctx context.Context, tenant, requestID string) (Submission, error) {
-	var value Submission
-	var answers, provenance []byte
-	err := r.pool.QueryRow(ctx, `
-		SELECT s.id::text,s.tenant_id::text,s.request_id::text,COALESCE(s.session_id::text,''),COALESCE(s.submitted_by::text,''),s.channel,s.answers,s.answer_provenance,s.submitted_at
-		FROM capture_submissions s JOIN tenants t ON t.id=s.tenant_id
-		WHERE (t.id::text=$1 OR t.slug=$1) AND s.request_id=$2::uuid
-		ORDER BY s.submitted_at DESC,s.id DESC LIMIT 1`, tenant, requestID).Scan(
-		&value.ID, &value.TenantID, &value.RequestID, &value.SessionID, &value.SubmittedBy, &value.Channel, &answers, &provenance, &value.SubmittedAt,
-	)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Submission{}, ErrNotFound
-	}
-	if err != nil {
-		return Submission{}, err
-	}
-	if err := json.Unmarshal(answers, &value.Answers); err != nil {
-		return Submission{}, err
-	}
-	if err := json.Unmarshal(provenance, &value.AnswerProvenance); err != nil {
-		return Submission{}, err
-	}
-	return value, nil
+	return scanSubmission(r.pool.QueryRow(ctx, `SELECT `+assessmentSubmissionColumns+`
+		FROM capture_submissions sub JOIN tenants t ON t.id=sub.tenant_id
+		WHERE (t.id::text=$1 OR t.slug=$1) AND sub.request_id=$2::uuid
+		ORDER BY sub.assessment_revision DESC,sub.submitted_at DESC,sub.id DESC LIMIT 1`, tenant, requestID))
 }
 
 func (r *PostgresRepository) CreateInvitation(ctx context.Context, value Invitation) error {
@@ -640,7 +647,11 @@ func (r *PostgresRepository) CreateArtifact(ctx context.Context, value Artifact)
 	if err != nil {
 		return Artifact{}, err
 	}
-	if !requestOpenAt(request, value.CreatedAt) {
+	if value.Correction != nil {
+		if _, err := readAssessmentCorrectionBase(ctx, tx, request.TenantID, request.ID, value.CreatedBy, *value.Correction); err != nil {
+			return Artifact{}, err
+		}
+	} else if !requestOpenAt(request, value.CreatedAt) {
 		return Artifact{}, ErrRequestClosed
 	}
 	row := tx.QueryRow(ctx, `INSERT INTO capture_artifacts(id,tenant_id,request_id,submission_id,file_name,media_type,size_bytes,sha256,storage_key,status,created_by,created_at) VALUES($1::uuid,(SELECT id FROM tenants WHERE id::text=$2 OR slug=$2),$3::uuid,NULLIF($4,'')::uuid,$5,$6,$7,$8,$9,$10,NULLIF($11,'')::uuid,$12) RETURNING id::text,(SELECT slug FROM tenants WHERE id=tenant_id),request_id::text,COALESCE(submission_id::text,''),file_name,media_type,size_bytes,sha256,storage_key,status,COALESCE(created_by::text,''),created_at`, value.ID, value.TenantID, value.RequestID, value.SubmissionID, value.FileName, value.MediaType, value.SizeBytes, value.SHA256, value.StorageKey, value.Status, value.CreatedBy, value.CreatedAt)

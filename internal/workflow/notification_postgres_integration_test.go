@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -41,11 +42,11 @@ func TestPostgresInAppNotificationsStayActorAndEntityScoped(t *testing.T) {
 	)
 
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM in_app_notifications WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM in_app_notifications WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM outbox_events WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })
@@ -124,7 +125,7 @@ func TestPostgresInAppNotificationsStayActorAndEntityScoped(t *testing.T) {
 		t.Fatalf("cross-actor mark error = %v", err)
 	}
 
-	if _, err := pool.Exec(ctx, `DELETE FROM outbox_events WHERE id=$1::uuid AND tenant_id=$2::uuid`, eventA2, tenantID); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, `DELETE FROM outbox_events WHERE id=$1::uuid AND tenant_id=$2::uuid`, eventA2, tenantID); err != nil {
 		t.Fatal(err)
 	}
 	retained, err := service.ListNotifications(ctx, NotificationFilter{
