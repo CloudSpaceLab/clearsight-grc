@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ActorWorkWorkspace } from "./ActorWorkWorkspace";
+import { ApiError } from "../http";
 const api = vi.hoisted(() => ({ loadActorWorkPage: vi.fn() }));
 const approvalSources = vi.hoisted(() => ({ forms: vi.fn(), reviews: vi.fn() }));
 vi.mock("../api", () => api);
@@ -10,6 +11,51 @@ const context = { tenant: { id: "bank", name: "Bank" }, legal_entity: { id: "ent
 const item = (id: string) => ({ id, title: `Review ${id}`, type: "REVIEW", state: "READY", owner: "Person", due_at: "2026-12-01T00:00:00Z" });
 const page = { scope: { tenant_id: "bank", legal_entity_id: "entity", principal_id: "person" }, coverage: "WORKFLOW_ASSIGNMENTS_ONLY", count_basis: "NOT_AVAILABLE", as_of: "2026-11-21T10:00:00Z", items: [item("one")], has_more: true, next_cursor: "next" };
 beforeEach(() => { vi.resetAllMocks(); });
+it.each([
+  ["missing scope", { ...page, scope: undefined }],
+  ["coverage", { ...page, coverage: "ALL_WORK" }],
+  ["count basis", { ...page, count_basis: "LOADED" }],
+])("rejects an initial work page with invalid %s", async (_label, invalid) => {
+  api.loadActorWorkPage.mockResolvedValue(invalid);
+  render(<ActorWorkWorkspace context={context}/>);
+  expect((await screen.findByRole("alert")).textContent).toContain("Work unavailable");
+  expect(screen.queryByText("Review one")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Load more work" })).toBeNull();
+});
+
+it("discards work after a later page belongs to another actor", async () => {
+  api.loadActorWorkPage.mockResolvedValueOnce(page).mockResolvedValueOnce({ ...page, scope: { ...page.scope, principal_id: "other" }, items: [item("other")], has_more: false, next_cursor: undefined });
+  render(<ActorWorkWorkspace context={context}/>);
+  expect(await screen.findByText("Review one")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Load more work" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Work unavailable");
+  expect(screen.queryByText("Review one")).toBeNull();
+  expect(screen.queryByText("Review other")).toBeNull();
+});
+
+it.each([401, 403])("discards work when pagination returns HTTP %s", async (status) => {
+  api.loadActorWorkPage.mockResolvedValueOnce(page).mockRejectedValueOnce(new ApiError(status, "Access changed", "work_scope_denied"));
+  render(<ActorWorkWorkspace context={context}/>);
+  expect(await screen.findByText("Review one")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Load more work" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Work unavailable");
+  expect(screen.queryByText("Review one")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Load more work" })).toBeNull();
+});
+
+it("retains loaded work and retries the same cursor after a connection failure", async () => {
+  api.loadActorWorkPage.mockResolvedValueOnce(page).mockRejectedValueOnce(new ApiError(0, "Connection lost", "connection_lost"))
+    .mockResolvedValueOnce({ ...page, items: [item("two")], has_more: false, next_cursor: undefined });
+  render(<ActorWorkWorkspace context={context}/>);
+  expect(await screen.findByText("Review one")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Load more work" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("More work unavailable");
+  expect(screen.getByText("Review one")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Load more work" }));
+  expect(await screen.findByText("Review two")).toBeTruthy();
+  expect(screen.getByText("Review one")).toBeTruthy();
+  expect(api.loadActorWorkPage.mock.calls[2]).toEqual(api.loadActorWorkPage.mock.calls[1]);
+});
 it("brings form approvals and assigned Program reviews together", async () => {
   api.loadActorWorkPage.mockResolvedValue(page);
   approvalSources.forms.mockResolvedValue({ items: [] });
