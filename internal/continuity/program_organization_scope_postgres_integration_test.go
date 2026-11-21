@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -35,7 +36,7 @@ func TestPostgresProgramOrganizationScopeIsExactAndFilterable(t *testing.T) {
 		siblingScope     = "91222222-2222-7222-8222-222222222226"
 		otherEntityScope = "91222222-2222-7222-8222-222222222227"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 
 	now := time.Date(2026, 10, 3, 13, 0, 0, 0, time.UTC)

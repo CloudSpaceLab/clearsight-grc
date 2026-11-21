@@ -8,6 +8,7 @@ import (
 type requestOriginAuthorityKey struct{}
 
 var reservedRequestOrigins = map[string]struct{}{
+	"FRAMEWORK_ASSESSMENT":             {},
 	"THIRD_PARTY_ASSESSMENT":           {},
 	"THIRD_PARTY_WORK":                 {},
 	"THIRD_PARTY_ADDRESS_VERIFICATION": {},

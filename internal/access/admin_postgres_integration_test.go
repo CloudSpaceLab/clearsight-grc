@@ -13,6 +13,7 @@ import (
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/organization"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/scimapi"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -37,7 +38,7 @@ func TestIdentityAccessAdminRevokesSourceDerivedGrantWithoutDeletingPrincipal(t 
 		ownerID  = "8a333333-3333-7333-8333-333333333336"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })
@@ -178,12 +179,12 @@ func TestOrganizationScopeManagementRequiresIndependentApprovalAndProtectsLiveRe
 		positionID = "8a444444-4444-7444-8444-444444444445"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM organization_scope_revisions WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM organization_scopes WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM organization_scope_revisions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM organization_scopes WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })
@@ -279,7 +280,7 @@ func TestOrganizationScopeManagementRequiresIndependentApprovalAndProtectsLiveRe
 
 func mustAdminExec(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, query, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, query, args...); err != nil {
 		t.Fatal(err)
 	}
 }

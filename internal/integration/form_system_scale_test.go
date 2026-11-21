@@ -141,7 +141,7 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 
 	t.Run("representative recipient and revision population", func(t *testing.T) {
 		for table, want := range map[string]int{
-			"monitoring_form_templates":       1000,
+			"monitoring_form_templates":       1016, // 1,000 scale Forms plus eight draft starters per entity.
 			"capture_form_distributions":      400,
 			"capture_distribution_recipients": 1200,
 			"capture_response_revisions":      800,
@@ -241,7 +241,7 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 	formIDs := map[string]struct{}{}
 	formCursor := ""
 	for pageNumber := 1; pageNumber <= 10; pageNumber++ {
-		page, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: entity, Cursor: formCursor, Limit: 100})
+		page, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: entity, Use: "VENDOR_DUE_DILIGENCE", Cursor: formCursor, Limit: 100})
 		if err != nil {
 			t.Fatalf("form page %d: %v", pageNumber, err)
 		}
@@ -265,7 +265,7 @@ func TestGovernedFormsStayBoundedAtBankScale(t *testing.T) {
 	if len(formIDs) != 1000 {
 		t.Fatalf("stable form pagination returned %d unique templates, want 1000", len(formIDs))
 	}
-	otherForms, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: otherEntity, Limit: 100})
+	otherForms, err := forms.ListFormLibrary(ctx, monitoring.FormLibraryFilter{TenantID: "forms-scale-bank", LegalEntityID: otherEntity, Use: "VENDOR_DUE_DILIGENCE", Limit: 100})
 	if err != nil || len(otherForms.Items) != 0 {
 		t.Fatalf("form library crossed the legal-entity boundary: %#v, %v", otherForms, err)
 	}

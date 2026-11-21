@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -43,7 +44,7 @@ func TestLossPeriodProjectionPreservesCurrencyRecoveryScopeAndExactMembers(t *te
 
 	mustExec := func(query string, args ...any) {
 		t.Helper()
-		if _, execErr := pool.Exec(ctx, query, args...); execErr != nil {
+		if _, execErr := testfixture.Exec(ctx, pool, query, args...); execErr != nil {
 			t.Fatal(execErr)
 		}
 	}

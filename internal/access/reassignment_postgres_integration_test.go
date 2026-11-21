@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -181,12 +182,12 @@ func newReassignmentFixture(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		for _, table := range []string{"governance_decisions", "organization_position_revisions", "org_positions", "principals", "legal_entities"} {
-			if _, err := pool.Exec(cleanCtx, `DELETE FROM `+table+` WHERE tenant_id=$1::uuid`, f.tenant); err != nil {
+			if _, err := testfixture.Exec(cleanCtx, pool, `DELETE FROM `+table+` WHERE tenant_id=$1::uuid`, f.tenant); err != nil {
 				t.Errorf("clean %s fixtures: %v", table, err)
 				return
 			}
 		}
-		if _, err := pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, f.tenant); err != nil {
+		if _, err := testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, f.tenant); err != nil {
 			t.Errorf("clean tenant fixture: %v", err)
 		}
 	})

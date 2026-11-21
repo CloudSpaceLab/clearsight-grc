@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -43,7 +44,7 @@ func TestPostgresActivityFederatesIdentityDecisionsWithoutLeakingOtherHistory(t 
 		sourceB          = "8b000000-0000-7000-8000-000000000017"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantA, tenantB)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantA, tenantB)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })
@@ -109,7 +110,7 @@ func TestPostgresActivityFederatesIdentityDecisionsWithoutLeakingOtherHistory(t 
 
 func mustExecActivity(t *testing.T, ctx context.Context, pool *pgxpool.Pool, sql string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, sql, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, sql, args...); err != nil {
 		t.Fatal(err)
 	}
 }

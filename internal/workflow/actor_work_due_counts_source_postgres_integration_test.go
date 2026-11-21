@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -69,7 +70,7 @@ func TestActorWorkPostgresCountsReconcileWithVisibleCursorPages(t *testing.T) {
 
 	mustExec := func(sql string, args ...any) {
 		t.Helper()
-		if _, err := pool.Exec(ctx, sql, args...); err != nil {
+		if _, err := testfixture.Exec(ctx, pool, sql, args...); err != nil {
 			t.Fatal(err)
 		}
 	}

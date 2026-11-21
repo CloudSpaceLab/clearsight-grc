@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -117,7 +118,7 @@ func TestPostgresRelationshipTransactionReuseAndScope(t *testing.T) {
 	if _, err := pool.Exec(ctx, `UPDATE demo_record_archives SET reason='Rewrite' WHERE record_id=$1::uuid`, second.Relationship.ID); err == nil {
 		t.Fatal("archive provenance was mutable")
 	}
-	if _, err := pool.Exec(ctx, `DELETE FROM demo_record_archives WHERE record_id=$1::uuid`, second.Relationship.ID); err == nil {
+	if _, err := testfixture.Exec(ctx, pool, `DELETE FROM demo_record_archives WHERE record_id=$1::uuid`, second.Relationship.ID); err == nil {
 		t.Fatal("archive history was deletable")
 	}
 	if _, err := pool.Exec(ctx, `UPDATE demo_record_archives SET restored_at=now(),restored_by=$2::uuid,restoration_reason='Restore sample' WHERE record_id=$1::uuid`, second.Relationship.ID, thirdPartyPrincipal); err != nil {

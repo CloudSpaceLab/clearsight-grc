@@ -10,6 +10,7 @@ import (
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/formcontract"
 	"github.com/CloudSpaceLab/clearsight-grc/internal/platform/id"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -384,6 +385,6 @@ func cleanupResponseWorkspaceTenant(ctx context.Context, pool *pgxpool.Pool, ten
 		`DELETE FROM legal_entities WHERE tenant_id=$1::uuid`,
 		`DELETE FROM tenants WHERE id=$1::uuid`,
 	} {
-		_, _ = pool.Exec(ctx, statement, tenantID)
+		_, _ = testfixture.Exec(ctx, pool, statement, tenantID)
 	}
 }

@@ -206,6 +206,7 @@ func (a *API) submitEvidenceRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		input.TenantID = actor.TenantID
+		input.LegalEntityID = request.LegalEntityID
 		input.SubmittedBy = actor.PrincipalID
 	}
 	receipt, err := service.Submit(r.Context(), input)
@@ -435,8 +436,13 @@ func (a *API) uploadEvidenceArtifact(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	mediaType := multipartMediaType(header)
-	artifactInput := evidence.ArtifactInput{TenantID: tenant, RequestID: requestID, FieldID: strings.TrimSpace(r.FormValue("field_id")), SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy}
+	correction := evidence.CorrectionReference(r.FormValue("correction_submission_id"), r.FormValue("correction_review_id"))
+	artifactInput := evidence.ArtifactInput{Correction: correction, TenantID: tenant, RequestID: requestID, FieldID: strings.TrimSpace(r.FormValue("field_id")), SubmissionID: strings.TrimSpace(r.FormValue("submission_id")), FileName: header.Filename, MediaType: mediaType, CreatedBy: createdBy}
 	var artifact evidence.Artifact
+	if correction != nil && authenticatedActor == nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "identity_required", "A verified sign-in is required for assessment corrections.")
+		return
+	}
 	if canonicalSession {
 		artifact, err = service.StoreArtifactForDistributionSession(r.Context(), a.deps.FormDistributionAccess, sessionToken, artifactInput, file)
 	} else {

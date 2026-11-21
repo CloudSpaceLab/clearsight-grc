@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/mail"
@@ -58,7 +59,8 @@ func formContractWithScoring(presentation formcontract.Presentation, scoringMode
 	contractFields := make([]formcontract.Field, len(fields))
 	for index, field := range fields {
 		contractFields[index] = formcontract.Field{
-			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: formcontract.Type(field.Type), Required: field.Required,
+			ID: field.ID, SectionID: field.SectionID, Label: field.Label, Type: formcontract.Type(field.Type), Required: field.Required, AnswerValidityDays: field.AnswerValidityDays, ValidationBinding: field.ValidationBinding,
+			Rows: append([]string(nil), field.Rows...), Columns: append([]string(nil), field.Columns...), ScaleMax: field.ScaleMax, Image: field.Image,
 			Description: field.Description, Options: append([]string(nil), field.Options...), AcceptedFormats: append([]string(nil), field.AcceptedFormats...),
 			Attestation: field.Attestation, Constraints: field.Constraints, Condition: field.Condition, Scoring: field.Scoring, Assessment: field.Assessment,
 		}
@@ -72,6 +74,12 @@ func applyContractField(target *Field, source formcontract.Field) {
 	target.Label = source.Label
 	target.Type = string(source.Type)
 	target.Required = source.Required
+	target.AnswerValidityDays = source.AnswerValidityDays
+	target.ValidationBinding = source.ValidationBinding
+	target.Rows = append([]string(nil), source.Rows...)
+	target.Columns = append([]string(nil), source.Columns...)
+	target.ScaleMax = source.ScaleMax
+	target.Image = source.Image
 	target.Description = source.Description
 	target.Options = append([]string(nil), source.Options...)
 	target.AcceptedFormats = append([]string(nil), source.AcceptedFormats...)
@@ -236,7 +244,52 @@ func (s *Service) validateTypedAnswer(ctx context.Context, request Request, requ
 				return fmt.Errorf("%s must be on or before %s", field.Label, field.Constraints.MaxDate)
 			}
 		}
-	case formcontract.TypeYesNo, formcontract.TypeSingleSelect:
+	case formcontract.TypeGridRadio, formcontract.TypeGridCheckbox:
+		value, err := requiredScalar(field, answer)
+		if err != nil {
+			return err
+		}
+		var rows map[string][]string
+		if json.Unmarshal([]byte(value), &rows) != nil {
+			return fmt.Errorf("%s requires grid answers", field.Label)
+		}
+		for row, values := range rows {
+			if !containsOption(field.Rows, row) || len(values) == 0 || (fieldType == formcontract.TypeGridRadio && len(values) != 1) {
+				return fmt.Errorf("%s contains an invalid grid row", field.Label)
+			}
+			seen := map[string]bool{}
+			for _, col := range values {
+				if !containsOption(field.Columns, col) || seen[col] {
+					return fmt.Errorf("%s contains an invalid grid selection", field.Label)
+				}
+				seen[col] = true
+			}
+		}
+		if field.Required {
+			for _, row := range field.Rows {
+				if len(rows[row]) == 0 {
+					return fmt.Errorf("%s requires an answer for each row", field.Label)
+				}
+			}
+		}
+	case formcontract.TypeRating, formcontract.TypeLinearScale:
+		value, err := requiredScalar(field, answer)
+		if err != nil {
+			return err
+		}
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 1 || n > field.ScaleMax {
+			return fmt.Errorf("%s contains an invalid scale answer", field.Label)
+		}
+	case formcontract.TypeTime:
+		value, err := requiredScalar(field, answer)
+		if err != nil {
+			return err
+		}
+		if _, err = time.Parse("15:04", value); err != nil {
+			return fmt.Errorf("%s requires a valid time", field.Label)
+		}
+	case formcontract.TypeYesNo, formcontract.TypeSingleSelect, formcontract.TypeDropdown:
 		value, err := requiredScalar(field, answer)
 		if err != nil {
 			return err

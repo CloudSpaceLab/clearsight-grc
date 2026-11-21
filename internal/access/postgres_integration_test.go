@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -43,13 +44,13 @@ func TestPostgresResolverKeepsDepartmentCapabilitiesScoped(t *testing.T) {
 		secondBindID   = "8a111111-1111-7111-8111-111111111124"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM position_role_bindings WHERE id IN ($1::uuid,$2::uuid,$3::uuid)`, globalBindID, paymentBindID, secondBindID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM org_positions WHERE id IN ($1::uuid,$2::uuid,$3::uuid)`, globalPosID, paymentPosID, secondPosID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM principal_identities WHERE id=$1::uuid`, identityID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM role_templates WHERE id IN ($1::uuid,$2::uuid)`, globalRoleID, paymentRoleID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE id=$1::uuid`, principalID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE id IN ($1::uuid,$2::uuid,$3::uuid)`, entityID, secondEntityID, deniedEntityID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM position_role_bindings WHERE id IN ($1::uuid,$2::uuid,$3::uuid)`, globalBindID, paymentBindID, secondBindID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM org_positions WHERE id IN ($1::uuid,$2::uuid,$3::uuid)`, globalPosID, paymentPosID, secondPosID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM principal_identities WHERE id=$1::uuid`, identityID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM role_templates WHERE id IN ($1::uuid,$2::uuid)`, globalRoleID, paymentRoleID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM principals WHERE id=$1::uuid`, principalID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE id IN ($1::uuid,$2::uuid,$3::uuid)`, entityID, secondEntityID, deniedEntityID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })

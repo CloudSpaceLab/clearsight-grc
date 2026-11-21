@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -40,7 +41,7 @@ func TestPostgresMonitoringAdverseTriggerIsAtomicAndIdempotent(t *testing.T) {
 		rollbackMatter = "96666666-6666-7666-8666-666666666668"
 		rollbackLink   = "96666666-6666-7666-8666-666666666669"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'monitoring-adverse-trigger-test','Monitoring Adverse Trigger Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -49,7 +50,7 @@ func TestCurrentPostgresReadsMatchReplayAndStayFixedQuery(t *testing.T) {
 	const tenantID = "97777777-7777-7777-8777-777777777771"
 	const legalEntityID = "97777777-7777-7777-8777-777777777774"
 	const actionOwnerID = "97777777-7777-7777-8777-777777777773"
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'bounded-current-test','Bounded Current Test')`, tenantID); err != nil {
 		t.Fatal(err)
@@ -208,7 +209,7 @@ func TestPostgresPortfolioListsStayOneQueryAtMaximumPageSize(t *testing.T) {
 
 	const tenantID = "97777777-7777-7777-8777-777777777781"
 	const entityID = "97777777-7777-7777-8777-777777777782"
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'portfolio-list-load','Portfolio List Load')`, tenantID); err != nil {
 		t.Fatal(err)

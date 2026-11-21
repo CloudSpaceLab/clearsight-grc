@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,7 +34,7 @@ func TestPostgresCoverageRoundTripReviewConflictAndQueue(t *testing.T) {
 		programID     = "f2666666-6666-4666-8666-666666666666"
 		requirementID = "f2666666-6666-4666-8666-666666666667"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	defer func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) }()
 	tx, err := pool.Begin(ctx)
 	if err != nil {

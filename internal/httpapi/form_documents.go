@@ -19,7 +19,7 @@ func documentProtection(w http.ResponseWriter) {
 }
 func documentQueryFromRequest(r *http.Request) (evidence.DocumentQuery, error) {
 	v := r.URL.Query()
-	q := evidence.DocumentQuery{FileKind: evidence.DocumentFileKind(v.Get("file_kind")), Query: v.Get("query"), FormTemplateID: v.Get("form_template_id"), RelationshipID: v.Get("relationship_id"), ResponseRevisionID: v.Get("response_revision_id"), CurrentOnly: true, Cursor: v.Get("cursor"), Limit: 25}
+	q := evidence.DocumentQuery{ProgramID: v.Get("program_id"), FileKind: evidence.DocumentFileKind(v.Get("file_kind")), Query: v.Get("query"), FormTemplateID: v.Get("form_template_id"), RelationshipID: v.Get("relationship_id"), ResponseRevisionID: v.Get("response_revision_id"), SubmissionID: v.Get("submission_id"), CurrentOnly: true, Cursor: v.Get("cursor"), Limit: 25}
 	var err error
 	if v.Has("limit") {
 		q.Limit, err = strconv.Atoi(v.Get("limit"))

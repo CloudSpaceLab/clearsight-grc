@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -40,10 +41,10 @@ func TestPostgresResolverUsesExactVerifiedScope(t *testing.T) {
 		otherTenant        = "8f200000-0000-4000-8000-000000000001"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenant)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id IN ($1::uuid,$2::uuid)`, tenantID, otherTenant)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })

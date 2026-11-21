@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,8 +34,8 @@ func TestEvidenceRecipientLifecycleIsAuditableAtomicAndRevokesSupersededCapabili
 		programID  = "9e666666-6666-7666-8666-666666666666"
 	)
 	now := time.Date(2026, 8, 9, 10, 0, 0, 0, time.UTC)
-	_, _ = pool.Exec(ctx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)

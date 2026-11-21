@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -34,12 +35,12 @@ func TestPostgresLegalEntityDataBoundaryMakerCheckerAndIsolation(t *testing.T) {
 		checkerID = "8e700000-0000-4000-8000-000000000005"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM governance_decisions WHERE tenant_id=$1::uuid AND object_type IN ('LEGAL_ENTITY_DATA_BOUNDARY','LEGAL_ENTITY_DATA_BOUNDARY_REVISION')`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entity_data_boundary_revisions WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entity_data_boundaries WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM governance_decisions WHERE tenant_id=$1::uuid AND object_type IN ('LEGAL_ENTITY_DATA_BOUNDARY','LEGAL_ENTITY_DATA_BOUNDARY_REVISION')`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entity_data_boundary_revisions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entity_data_boundaries WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })

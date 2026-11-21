@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -30,7 +31,7 @@ func TestPostgresProgramResourceLifecycleCommitsProjectionEventAndOutboxTogether
 		ownerID  = "94222222-2222-7222-8222-222222222223"
 		otherID  = "94222222-2222-7222-8222-222222222224"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	if _, err = pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'program-resource-lifecycle-test','Program Resource Lifecycle Test')`, tenantID); err != nil {
 		t.Fatal(err)
 	}

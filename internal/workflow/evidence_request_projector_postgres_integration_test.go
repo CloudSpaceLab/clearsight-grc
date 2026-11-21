@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -37,7 +38,7 @@ func TestEvidenceRequestProjectorConvergesRecipientVisibilityWithoutDuplicateWor
 	// Actor visibility uses database now(), so keep this integration fixture
 	// relative to the executing database clock rather than a wall-clock date.
 	now := time.Now().UTC().Truncate(time.Second)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 
 	mustExecEvidenceWork(t, ctx, pool, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'evidence-work-test','Evidence Work Test')`, tenantID)
@@ -193,7 +194,7 @@ func assertEvidenceWorkCardinality(t *testing.T, ctx context.Context, pool *pgxp
 
 func mustExecEvidenceWork(t *testing.T, ctx context.Context, pool *pgxpool.Pool, query string, args ...any) {
 	t.Helper()
-	if _, err := pool.Exec(ctx, query, args...); err != nil {
+	if _, err := testfixture.Exec(ctx, pool, query, args...); err != nil {
 		t.Fatal(err)
 	}
 }

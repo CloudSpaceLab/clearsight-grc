@@ -75,9 +75,23 @@ func TestPostgresFrameworkAdoptionEventAndCurrentProjection(t *testing.T) {
 		EditionCode: "2026", ReleaseSHA256: release,
 	}})
 	service.now = func() time.Time { return now.Add(time.Minute) }
+	drafted, err := service.SaveFrameworkAdoptionDraft(ctx, ProposeFrameworkAdoptionInput{
+		TenantID: slug, ProgramID: program.Program.ID, EditionID: editionID,
+		ExpectedVersion: program.Program.Version, ActorID: owner, Rationale: "Draft the scope.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(drafted.FrameworkAdoptions) != 1 || drafted.FrameworkAdoptions[0].Status != FrameworkAdoptionDraft {
+		t.Fatalf("draft missing: %+v", drafted.FrameworkAdoptions)
+	}
+	var draftStatus string
+	if err := pool.QueryRow(ctx, `SELECT status FROM program_framework_adoptions WHERE id=$1::uuid`, drafted.FrameworkAdoptions[0].ID).Scan(&draftStatus); err != nil || draftStatus != "DRAFT" {
+		t.Fatalf("draft was not stored: %s %v", draftStatus, err)
+	}
 	proposed, err := service.ProposeFrameworkAdoption(ctx, ProposeFrameworkAdoptionInput{
 		TenantID: slug, ProgramID: program.Program.ID, EditionID: editionID,
-		ExpectedVersion: program.Program.Version, ActorID: owner,
+		ExpectedVersion: drafted.Program.Version, ActorID: owner,
 		Rationale: "Review published edition and its requirements.",
 	})
 	if err != nil {
@@ -104,13 +118,13 @@ func TestPostgresFrameworkAdoptionEventAndCurrentProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(approved.FrameworkAdoptions) != 1 || approved.FrameworkAdoptions[0].Status != FrameworkAdoptionActive ||
-		approved.FrameworkAdoptions[0].ReviewedBy != checker || approved.FrameworkAdoptions[0].Version != 2 {
+		approved.FrameworkAdoptions[0].ReviewedBy != checker || approved.FrameworkAdoptions[0].Version != 3 {
 		t.Fatalf("current Program and SQL projection diverged: %+v", approved.FrameworkAdoptions)
 	}
 	var activeVersion int64
 	if err := pool.QueryRow(ctx, `SELECT status,version FROM program_framework_adoptions
 		WHERE id=$1::uuid`, adoptionID).Scan(&status, &activeVersion); err != nil ||
-		status != "ACTIVE" || activeVersion != 2 {
+		status != "ACTIVE" || activeVersion != 3 {
 		t.Fatalf("not committed with Program event: %s v%d %v", status, activeVersion, err)
 	}
 	history, err := service.ProgramAt(ctx, slug, program.Program.ID, now.Add(time.Minute))

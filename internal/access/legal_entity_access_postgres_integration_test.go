@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/identity"
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -37,12 +38,12 @@ func TestPostgresResolveLegalEntityAccessExcludesDepartmentGrants(t *testing.T) 
 		positionB   = "8f500000-0000-4000-8000-000000000021"
 	)
 	cleanup := func(cleanCtx context.Context) {
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM role_templates WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
-		_, _ = pool.Exec(cleanCtx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM position_role_bindings WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM org_positions WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM role_templates WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM principals WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM legal_entities WHERE tenant_id=$1::uuid`, tenantID)
+		_, _ = testfixture.Exec(cleanCtx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	}
 	cleanup(ctx)
 	t.Cleanup(func() { cleanup(context.Background()) })

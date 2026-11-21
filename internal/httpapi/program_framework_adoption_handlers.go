@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"errors"
+	"github.com/jackc/pgx/v5/pgconn"
 	"net/http"
 
 	"github.com/CloudSpaceLab/clearsight-grc/internal/continuity"
@@ -12,16 +13,26 @@ import (
 // Program command authorization (Owner/Authorizer) is enforced by the material
 // route registry before these handlers run. Tenant and actor always come from
 // the verified request identity, never the JSON body.
+func (a *API) saveProgramFrameworkAdoptionDraft(w http.ResponseWriter, r *http.Request) {
+	a.writeProgramFrameworkAdoptionProposal(w, r, true)
+}
+
 func (a *API) proposeProgramFrameworkAdoption(w http.ResponseWriter, r *http.Request) {
+	a.writeProgramFrameworkAdoptionProposal(w, r, false)
+}
+
+func (a *API) writeProgramFrameworkAdoptionProposal(w http.ResponseWriter, r *http.Request, draft bool) {
 	programs, ok := a.continuityService(w)
 	if !ok {
 		return
 	}
 	var request struct {
-		TenantID        string `json:"tenant_id,omitempty"`
-		ExpectedVersion int64  `json:"expected_version"`
-		EditionID       string `json:"edition_id"`
-		Rationale       string `json:"rationale"`
+		TenantID        string                           `json:"tenant_id,omitempty"`
+		ExpectedVersion int64                            `json:"expected_version"`
+		EditionID       string                           `json:"edition_id"`
+		TemplateCode    string                           `json:"template_code,omitempty"`
+		Configuration   *continuity.StarterConfiguration `json:"configuration,omitempty"`
+		Rationale       string                           `json:"rationale"`
 	}
 	if err := httpx.DecodeJSON(w, r, &request); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_request", "Check the standard and Program revision.")
@@ -36,11 +47,17 @@ func (a *API) proposeProgramFrameworkAdoption(w http.ResponseWriter, r *http.Req
 		writeContinuityError(w, continuity.ErrNotFound)
 		return
 	}
-	value, err := programs.ProposeFrameworkAdoption(r.Context(), continuity.ProposeFrameworkAdoptionInput{
+	input := continuity.ProposeFrameworkAdoptionInput{
 		TenantID: actor.TenantID, ProgramID: r.PathValue("id"),
-		EditionID: request.EditionID, ExpectedVersion: request.ExpectedVersion,
+		EditionID: request.EditionID, TemplateCode: request.TemplateCode, Configuration: request.Configuration, ExpectedVersion: request.ExpectedVersion,
 		ActorID: actor.PrincipalID, Rationale: request.Rationale,
-	})
+	}
+	var value continuity.ProgramAggregate
+	if draft {
+		value, err = programs.SaveFrameworkAdoptionDraft(r.Context(), input)
+	} else {
+		value, err = programs.ProposeFrameworkAdoption(r.Context(), input)
+	}
 	a.writeFrameworkAdoptionResult(w, r, value, err)
 }
 
@@ -84,6 +101,11 @@ func (a *API) decideProgramFrameworkAdoption(approve bool) http.HandlerFunc {
 }
 
 func (a *API) writeFrameworkAdoptionResult(w http.ResponseWriter, r *http.Request, value continuity.ProgramAggregate, err error) {
+	var databaseError *pgconn.PgError
+	if errors.As(err, &databaseError) {
+		httpx.WriteError(w, http.StatusInternalServerError, "adoption_not_saved", "The adoption could not be saved. Your previous saved version is unchanged. Reload the Program before retrying.")
+		return
+	}
 	if errors.Is(err, continuity.ErrFrameworkEditionUnavailable) {
 		httpx.WriteError(w, http.StatusServiceUnavailable, "framework_catalog_unavailable", "Standards are temporarily unavailable.")
 		return

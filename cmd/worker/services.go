@@ -43,6 +43,7 @@ func configureWorkerRuntime(service *workflowruntime.Service, cfg config.Config,
 	policy, refreshOptions := vendorRefreshWorkerSettings(cfg)
 	_ = policy
 	service.ConfigureClass(thirdparty.VendorRefreshMaintenanceWorkClass, refreshOptions)
+	service.ConfigureClass(monitoring.AssessmentScheduleWorkClass, workflowruntime.WorkClassOptions{Poll: 10 * time.Second, Batch: 10, Timeout: 30 * time.Second})
 	service.ConfigureClass(monitoring.CollectionRenewalWorkClass, workflowruntime.WorkClassOptions{Poll: 5 * time.Second, Batch: 50})
 }
 

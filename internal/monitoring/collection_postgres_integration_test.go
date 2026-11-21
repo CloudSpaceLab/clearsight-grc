@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CloudSpaceLab/clearsight-grc/internal/testfixture"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -40,7 +41,7 @@ func TestPostgresCollectionPolicyCycleScopeAndLease(t *testing.T) {
 		otherCycleID   = "636f6c6c-6563-7469-8f6e-72656e65776c"
 		otherFormID    = "636f6c6c-6563-7469-8f6e-72656e65776e"
 	)
-	_, _ = pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
+	_, _ = testfixture.Exec(ctx, pool, `DELETE FROM tenants WHERE id=$1::uuid`, tenantID)
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM tenants WHERE id=$1::uuid`, tenantID) })
 	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
 	if _, err := pool.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1::uuid,'collection-renewal-test','Collection Renewal Test')`, tenantID); err != nil {
